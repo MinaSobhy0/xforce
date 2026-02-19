@@ -33,6 +33,7 @@ class SuperAdminPanelProvider extends PanelProvider
                 $logo = PlatformSetting::get('platform_logo');
                 return $logo ? asset('storage/' . $logo) : null;
             })
+            ->brandLogoHeight('5rem')
             ->favicon(function () {
                 $favicon = PlatformSetting::get('favicon');
                 return $favicon ? asset('storage/' . $favicon) : asset('favicon.ico');
