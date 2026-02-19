@@ -61,7 +61,7 @@ class RevenueAnalytics extends Page implements HasForms
 
     public function getKpis(): array
     {
-        $activeTenants = Tenant::whereRaw('is_active = true')->count();
+        $activeTenants = Tenant::where('status', 'active')->count();
         $mrr = $this->calculateMRR();
         $arr = $mrr * 12;
         $avgRevenuePerTenant = $activeTenants > 0 ? $mrr / $activeTenants : 0;
@@ -107,10 +107,10 @@ class RevenueAnalytics extends Page implements HasForms
 
         foreach ($plans as $plan) {
             $tenantCount = Tenant::where('subscription_plan_id', $plan->id)
-                ->whereRaw('is_active = true')
+                ->where('status', 'active')
                 ->count();
 
-            $revenue = $tenantCount * $plan->monthly_price;
+            $revenue = $tenantCount * ($plan->price_monthly_minor / 100);
 
             $breakdown[] = [
                 'plan' => $plan->code,
@@ -143,13 +143,13 @@ class RevenueAnalytics extends Page implements HasForms
 
         foreach ($plans as $plan) {
             $tenantCount = Tenant::where('subscription_plan_id', $plan->id)
-                ->whereRaw('is_active = true')
+                ->where('status', 'active')
                 ->count();
 
             $data[] = [
                 'name' => $plan->code,
                 'count' => $tenantCount,
-                'mrr' => $tenantCount * $plan->monthly_price,
+                'mrr' => $tenantCount * ($plan->price_monthly_minor / 100),
                 'percentage' => 0, // Will be calculated
             ];
         }
@@ -190,13 +190,13 @@ class RevenueAnalytics extends Page implements HasForms
 
     protected function calculateMRR(): float
     {
-        $planRevenue = DB::table('tenants')
+        $planRevenueMinor = DB::table('tenants')
             ->join('subscription_plans', 'tenants.subscription_plan_id', '=', 'subscription_plans.id')
-            ->whereRaw('tenants.is_active = true')
-            ->sum('subscription_plans.monthly_price');
+            ->where('tenants.status', 'active')
+            ->sum('subscription_plans.price_monthly_minor');
 
-        // Add estimated add-on and overage revenue
-        return $planRevenue + 5580 + 1420;
+        // Convert from minor units and add estimated add-on and overage revenue
+        return ($planRevenueMinor / 100) + 5580 + 1420;
     }
 
     protected function getHeaderActions(): array
