@@ -6,6 +6,7 @@ use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Filament\Navigation\NavigationGroup;
 use Filament\Pages;
 use Filament\Panel;
 use Filament\PanelProvider;
@@ -32,6 +33,44 @@ class AdminPanelProvider extends PanelProvider
                 'primary' => Color::Blue,
             ])
             ->darkMode()
+
+            // Sidebar settings
+            ->sidebarCollapsibleOnDesktop(false)
+            ->sidebarFullyCollapsibleOnDesktop(false)
+
+            // Navigation Groups with icons for double sidebar
+            ->navigationGroups([
+                NavigationGroup::make('CRM')
+                    ->label(__('CRM'))
+                    ->icon('heroicon-o-users'),
+                NavigationGroup::make('Treatments')
+                    ->label(__('Treatments'))
+                    ->icon('heroicon-o-beaker'),
+                NavigationGroup::make('Booking')
+                    ->label(__('Booking'))
+                    ->icon('heroicon-o-calendar-days'),
+                NavigationGroup::make('Billing')
+                    ->label(__('Billing'))
+                    ->icon('heroicon-o-banknotes'),
+                NavigationGroup::make('Inventory')
+                    ->label(__('Inventory'))
+                    ->icon('heroicon-o-cube'),
+                NavigationGroup::make('Reports')
+                    ->label(__('Reports'))
+                    ->icon('heroicon-o-chart-bar'),
+                NavigationGroup::make('User Management')
+                    ->label(__('User Management'))
+                    ->icon('heroicon-o-user-group'),
+                NavigationGroup::make('Security')
+                    ->label(__('Security'))
+                    ->icon('heroicon-o-shield-check'),
+                NavigationGroup::make('Settings')
+                    ->label(__('Settings'))
+                    ->icon('heroicon-o-cog-6-tooth'),
+                NavigationGroup::make('Account')
+                    ->label(__('Account'))
+                    ->icon('heroicon-o-user-circle'),
+            ])
 
             // Discover resources from modules
             ->discoverResources(in: base_path('modules/Auth/Filament/Resources'), for: 'Modules\\Auth\\Filament\\Resources')
