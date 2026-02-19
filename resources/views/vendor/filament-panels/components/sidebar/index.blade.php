@@ -23,18 +23,18 @@
         }
     }"
     x-cloak="-lg"
-    x-bind:class="$store.sidebar.isOpen ? @js($openSidebarClasses . ' lg:sticky') : '-translate-x-full rtl:translate-x-full lg:sticky'"
+    x-bind:class="$store.sidebar.isOpen ? @js($openSidebarClasses) : '-translate-x-full rtl:translate-x-full lg:translate-x-0'"
     {{
         $attributes->class([
-            'fi-sidebar fixed inset-y-0 start-0 z-30 flex h-screen content-start bg-white transition-all dark:bg-gray-900 lg:z-0 lg:bg-transparent lg:shadow-none lg:ring-0 lg:transition-none dark:lg:bg-transparent',
+            'fi-sidebar fixed inset-y-0 start-0 z-30 flex h-screen content-start bg-white transition-all dark:bg-gray-900 lg:z-0 lg:sticky lg:bg-transparent lg:shadow-none lg:ring-0 lg:transition-none dark:lg:bg-transparent',
         ])
     }}
 >
     <div class="flex h-full">
         {{-- First Sidebar: Icons with labels --}}
         <div class="fi-sidebar-icons flex flex-col w-24 bg-gray-50 dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800">
-            {{-- Logo Area --}}
-            <header class="flex h-16 items-center justify-center border-b border-gray-200 dark:border-gray-800 p-2">
+            {{-- Logo Area - aligned with topbar --}}
+            <header class="flex h-16 items-center justify-center bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10">
                 @if ($homeUrl = filament()->getHomeUrl())
                     <a {{ \Filament\Support\generate_href_html($homeUrl) }} class="flex items-center justify-center">
                         @php
@@ -113,8 +113,8 @@
             x-transition:leave-end="opacity-0 w-0"
             class="fi-sidebar-items w-56 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 overflow-hidden flex flex-col"
         >
-            {{-- Header with group name --}}
-            <header class="flex h-16 items-center px-4 border-b border-gray-200 dark:border-gray-800">
+            {{-- Header with group name - aligned with topbar --}}
+            <header class="flex h-16 items-center px-4 bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10">
                 <h2 class="text-sm font-semibold text-gray-900 dark:text-white truncate" x-text="activeGroup"></h2>
                 <button
                     type="button"
