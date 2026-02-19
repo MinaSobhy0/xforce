@@ -85,48 +85,45 @@ class ModulePopularityWidget extends ChartWidget
 
     private function getModuleUsageStats()
     {
-        // Try to get from modules table with tenant counts
-        if (class_exists(Module::class) && \Schema::hasTable('modules')) {
-            $modules = Module::select('name')
-                ->withCount(['tenants' => function ($query) {
-                    $query->where(function ($q) {
-                        $q->where('subscription_status', 'active')
-                            ->orWhere('status', 'active');
-                    });
-                }])
-                ->orderByDesc('tenants_count')
-                ->limit(10)
-                ->get()
-                ->map(function ($module) {
-                    return [
-                        'name' => $module->name,
-                        'usage_count' => $module->tenants_count,
-                    ];
-                });
+        // Get all active tenants with their features
+        $tenants = Tenant::where(function ($query) {
+            $query->where('subscription_status', 'active')
+                ->orWhere('status', 'active');
+        })->whereNotNull('features')->get();
 
-            if ($modules->isNotEmpty()) {
-                return $modules;
+        // Count module usage across all tenants
+        $moduleCounts = [];
+        foreach ($tenants as $tenant) {
+            $features = $tenant->features ?? [];
+            if (is_array($features)) {
+                foreach ($features as $moduleCode) {
+                    $moduleCounts[$moduleCode] = ($moduleCounts[$moduleCode] ?? 0) + 1;
+                }
             }
         }
 
-        // Fallback: Use static module list with estimated counts
-        $totalTenants = Tenant::where(function ($query) {
-            $query->where('subscription_status', 'active')
-                ->orWhere('status', 'active');
-        })->count();
+        // Get module names from database
+        $modules = Module::whereIn('code', array_keys($moduleCounts))->pluck('name', 'code');
 
-        // Estimate module adoption rates
-        return collect([
-            ['name' => 'Patients', 'usage_count' => $totalTenants], // Core - all tenants
-            ['name' => 'Booking', 'usage_count' => (int) ($totalTenants * 0.95)],
-            ['name' => 'Billing', 'usage_count' => (int) ($totalTenants * 0.90)],
-            ['name' => 'Treatments', 'usage_count' => (int) ($totalTenants * 0.85)],
-            ['name' => 'Inventory', 'usage_count' => (int) ($totalTenants * 0.60)],
-            ['name' => 'Equipment', 'usage_count' => (int) ($totalTenants * 0.55)],
-            ['name' => 'HR', 'usage_count' => (int) ($totalTenants * 0.40)],
-            ['name' => 'Reports', 'usage_count' => (int) ($totalTenants * 0.70)],
-            ['name' => 'Marketing', 'usage_count' => (int) ($totalTenants * 0.30)],
-            ['name' => 'Lab', 'usage_count' => (int) ($totalTenants * 0.25)],
-        ])->sortByDesc('usage_count')->values();
+        // Build stats array
+        $stats = collect($moduleCounts)->map(function ($count, $code) use ($modules) {
+            return [
+                'name' => $modules[$code] ?? ucfirst($code),
+                'usage_count' => $count,
+            ];
+        })->sortByDesc('usage_count')->take(10)->values();
+
+        // If no data, show placeholder
+        if ($stats->isEmpty()) {
+            $totalTenants = $tenants->count() ?: 1;
+            return collect([
+                ['name' => 'Core', 'usage_count' => $totalTenants],
+                ['name' => 'Patients', 'usage_count' => $totalTenants],
+                ['name' => 'Booking', 'usage_count' => (int) ($totalTenants * 0.95)],
+                ['name' => 'Billing', 'usage_count' => (int) ($totalTenants * 0.90)],
+            ]);
+        }
+
+        return $stats;
     }
 }

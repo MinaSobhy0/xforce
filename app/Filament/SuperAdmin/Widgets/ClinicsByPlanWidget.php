@@ -68,18 +68,18 @@ class ClinicsByPlanWidget extends ChartWidget
     {
         // Get tenant counts by plan
         $stats = Tenant::query()
-            ->select('plan_id', DB::raw('count(*) as count'))
+            ->select('subscription_plan_id', DB::raw('count(*) as count'))
             ->where(function ($query) {
                 $query->where('subscription_status', 'active')
                     ->orWhere('subscription_status', 'trial')
                     ->orWhere('status', 'active');
             })
-            ->groupBy('plan_id')
+            ->groupBy('subscription_plan_id')
             ->get();
 
         // Map plan IDs to names
         return $stats->map(function ($item) {
-            $plan = SubscriptionPlan::find($item->plan_id);
+            $plan = SubscriptionPlan::find($item->subscription_plan_id);
             return [
                 'name' => $plan?->name ?? 'No Plan',
                 'count' => $item->count,
