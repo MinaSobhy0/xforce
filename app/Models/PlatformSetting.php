@@ -77,6 +77,11 @@ class PlatformSetting extends Model
         };
     }
 
+    public function setIsEncryptedAttribute($value): void
+    {
+        $this->attributes['is_encrypted'] = (bool) $value;
+    }
+
     public static function get(string $key, $default = null)
     {
         $settings = Cache::remember('platform_settings', 3600, function () {
@@ -88,15 +93,33 @@ class PlatformSetting extends Model
 
     public static function set(string $key, $value, string $group = 'general', string $type = 'string', bool $encrypted = false): self
     {
-        return self::updateOrCreate(
-            ['key' => $key],
-            [
-                'group' => $group,
-                'value' => $value,
-                'type' => $type,
-                'is_encrypted' => $encrypted,
-            ]
-        );
+        $setting = self::where('key', $key)->first();
+        $encryptedValue = $encrypted ? 'true' : 'false';
+
+        if ($setting) {
+            $setting->group = $group;
+            $setting->type = $type;
+            $setting->value = $value;
+            $setting->save();
+
+            \DB::statement("UPDATE platform_settings SET is_encrypted = {$encryptedValue} WHERE key = ?", [$key]);
+            $setting->refresh();
+            return $setting;
+        }
+
+        // Insert without is_encrypted, then update it
+        \DB::statement("
+            INSERT INTO platform_settings (id, key, \"group\", value, type, is_encrypted, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, {$encryptedValue}, NOW(), NOW())
+        ", [
+            (string) \Illuminate\Support\Str::uuid(),
+            $key,
+            $group,
+            $type === 'json' ? json_encode($value) : (string) $value,
+            $type,
+        ]);
+
+        return self::where('key', $key)->first();
     }
 
     public static function getGroup(string $group): array
