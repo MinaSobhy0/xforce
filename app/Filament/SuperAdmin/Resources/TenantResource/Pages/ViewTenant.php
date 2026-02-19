@@ -674,8 +674,7 @@ class ViewTenant extends ViewRecord
                                             default => 'gray',
                                         }),
                                     Components\TextEntry::make('description')
-                                        ->label('Description')
-                                        ->wrap(),
+                                        ->label('Description'),
                                 ])
                                 ->columns(3)
                                 ->placeholder('No activity logged yet'),
