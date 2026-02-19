@@ -34,13 +34,20 @@
         {{-- First Sidebar: Icons with labels --}}
         <div class="fi-sidebar-icons flex flex-col w-24 bg-gray-50 dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800">
             {{-- Logo Area --}}
-            <header class="flex h-16 items-center justify-center border-b border-gray-200 dark:border-gray-800">
+            <header class="flex h-16 items-center justify-center border-b border-gray-200 dark:border-gray-800 p-2">
                 @if ($homeUrl = filament()->getHomeUrl())
                     <a {{ \Filament\Support\generate_href_html($homeUrl) }} class="flex items-center justify-center">
-                        <x-filament::icon
-                            icon="heroicon-o-squares-2x2"
-                            class="w-8 h-8 text-primary-600"
-                        />
+                        @php
+                            $logo = \App\Models\PlatformSetting::get('platform_logo');
+                        @endphp
+                        @if($logo)
+                            <img src="{{ asset('storage/' . $logo) }}" alt="Logo" class="h-10 w-auto object-contain" />
+                        @else
+                            <x-filament::icon
+                                icon="heroicon-o-squares-2x2"
+                                class="w-8 h-8 text-primary-600"
+                            />
+                        @endif
                     </a>
                 @endif
             </header>

@@ -12,6 +12,7 @@ use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\Widgets;
 use Filament\SpatieLaravelTranslatablePlugin;
+use App\Models\PlatformSetting;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -27,17 +28,27 @@ class SuperAdminPanelProvider extends PanelProvider
             // Identity
             ->id('super-admin')
             ->path('platform')
-            ->brandName('XLinic Platform')
-            ->favicon(asset('favicon.ico'))
+            ->brandName(PlatformSetting::get('platform_name', 'XLinic Platform'))
+            ->brandLogo(function () {
+                $logo = PlatformSetting::get('platform_logo');
+                return $logo ? asset('storage/' . $logo) : null;
+            })
+            ->favicon(function () {
+                $favicon = PlatformSetting::get('favicon');
+                return $favicon ? asset('storage/' . $favicon) : asset('favicon.ico');
+            })
 
-            // Colors (Indigo theme for platform)
-            ->colors([
-                'primary' => Color::Indigo,
-                'danger'  => Color::Rose,
-                'success' => Color::Emerald,
-                'warning' => Color::Amber,
-                'info'    => Color::Sky,
-            ])
+            // Colors (dynamic from platform settings)
+            ->colors(function () {
+                $primaryColor = PlatformSetting::get('primary_color', '#6366f1'); // Default indigo
+                return [
+                    'primary' => Color::hex($primaryColor),
+                    'danger'  => Color::Rose,
+                    'success' => Color::Emerald,
+                    'warning' => Color::Amber,
+                    'info'    => Color::Sky,
+                ];
+            })
 
             // Auth
             ->login()
