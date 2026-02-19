@@ -111,19 +111,19 @@
             x-transition:leave="transition ease-in duration-150"
             x-transition:leave-start="opacity-100 w-56"
             x-transition:leave-end="opacity-0 w-0"
-            class="fi-sidebar-items w-56 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 overflow-hidden flex flex-col"
+            class="fi-sidebar-items w-56 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 overflow-hidden flex flex-col shadow-xl ring-1 ring-gray-950/5 dark:ring-white/10"
         >
             {{-- Header with group name - aligned with topbar --}}
-            <header class="flex h-16 items-center px-4 bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10">
-                <h2 class="text-sm font-semibold text-gray-900 dark:text-white truncate" x-text="activeGroup"></h2>
+            <header class="flex h-16 items-center gap-x-4 px-4 bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10 shrink-0">
+                <h2 class="text-sm font-semibold text-gray-900 dark:text-white truncate flex-1" x-text="activeGroup"></h2>
                 <button
                     type="button"
                     x-on:click="activeGroup = null"
-                    class="ml-auto p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+                    class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-500"
                 >
                     <x-filament::icon
                         icon="heroicon-o-x-mark"
-                        class="w-5 h-5 text-gray-500"
+                        class="w-5 h-5"
                     />
                 </button>
             </header>
