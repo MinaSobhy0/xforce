@@ -151,7 +151,7 @@ class PlatformSettings extends Page implements HasForms
                                 Forms\Components\Select::make('welcome_email_template')
                                     ->label('Welcome Email Template')
                                     ->options(fn () => \App\Models\EmailTemplate::whereRaw('is_active = true')
-                                        ->whereIn('type', ['welcome', 'onboarding'])
+                                        ->whereIn('trigger', ['welcome', 'onboarding', 'tenant_created'])
                                         ->pluck('name', 'code')
                                         ->toArray() ?: ['welcome' => 'Default Welcome Email'])
                                     ->helperText('Email template sent to new tenants on provisioning')
