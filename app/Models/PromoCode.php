@@ -38,6 +38,17 @@ class PromoCode extends Model
         'is_active' => 'boolean',
     ];
 
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::saving(function ($model) {
+            if (isset($model->is_active)) {
+                $model->is_active = filter_var($model->is_active, FILTER_VALIDATE_BOOLEAN);
+            }
+        });
+    }
+
     public const DISCOUNT_TYPES = [
         'percentage' => 'Percentage',
         'fixed' => 'Fixed Amount',

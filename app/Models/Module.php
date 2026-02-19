@@ -41,6 +41,20 @@ class Module extends Model
         'settings_schema' => 'array',
     ];
 
+    protected static function boot()
+    {
+        parent::boot();
+
+        // Ensure boolean fields are properly cast for PostgreSQL
+        static::saving(function ($model) {
+            foreach (['is_core', 'is_active', 'is_beta'] as $field) {
+                if (isset($model->$field)) {
+                    $model->$field = filter_var($model->$field, FILTER_VALIDATE_BOOLEAN);
+                }
+            }
+        });
+    }
+
     public const CATEGORIES = [
         'core' => 'Core',
         'operations' => 'Operations',

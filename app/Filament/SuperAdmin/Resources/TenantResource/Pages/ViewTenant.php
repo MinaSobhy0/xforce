@@ -385,13 +385,47 @@ class ViewTenant extends ViewRecord
                                         ->columns(4),
                                 ])
                                 ->collapsible(),
+
+                            Components\Section::make('Invoice History')
+                                ->schema([
+                                    Components\RepeatableEntry::make('invoices')
+                                        ->label('')
+                                        ->schema([
+                                            Components\TextEntry::make('invoice_number')
+                                                ->label('Invoice #'),
+                                            Components\TextEntry::make('period_start')
+                                                ->label('Period')
+                                                ->formatStateUsing(fn($state, $record) =>
+                                                    $record->period_start?->format('M Y') ?? '-'
+                                                ),
+                                            Components\TextEntry::make('amount')
+                                                ->label('Amount')
+                                                ->money('EGP', divideBy: 100),
+                                            Components\TextEntry::make('status')
+                                                ->label('Status')
+                                                ->badge()
+                                                ->color(fn(?string $state) => match ($state) {
+                                                    'paid' => 'success',
+                                                    'pending' => 'warning',
+                                                    'overdue' => 'danger',
+                                                    default => 'gray',
+                                                }),
+                                            Components\TextEntry::make('paid_at')
+                                                ->label('Paid')
+                                                ->date()
+                                                ->placeholder('-'),
+                                        ])
+                                        ->columns(5)
+                                        ->placeholder('No invoices yet'),
+                                ])
+                                ->collapsible(),
                         ]),
 
                     // TAB 3: USAGE
                     Components\Tabs\Tab::make('Usage')
                         ->icon('heroicon-o-chart-bar')
                         ->schema([
-                            Components\Section::make('Resource Limits')
+                            Components\Section::make('Hard Limits')
                                 ->columns(3)
                                 ->schema([
                                     Components\TextEntry::make('usage.users')
@@ -416,13 +450,99 @@ class ViewTenant extends ViewRecord
                                             return ($state ?? 0) . ' / ' . $limit;
                                         }),
 
-                                    Components\TextEntry::make('usage.storage_mb')
-                                        ->label('Storage')
+                                    Components\TextEntry::make('usage.branches')
+                                        ->label('Branches')
                                         ->formatStateUsing(function ($state, Tenant $record) {
-                                            $used = round(($state ?? 0) / 1024, 1);
+                                            $limit = $record->plan?->max_branches ?? '∞';
+                                            return ($state ?? 1) . ' / ' . $limit;
+                                        }),
+
+                                    Components\TextEntry::make('usage.equipment')
+                                        ->label('Equipment')
+                                        ->formatStateUsing(function ($state, Tenant $record) {
+                                            $limit = $record->plan?->max_equipment ?? '∞';
+                                            return ($state ?? 0) . ' / ' . $limit;
+                                        }),
+
+                                    Components\TextEntry::make('usage.products')
+                                        ->label('Products')
+                                        ->formatStateUsing(function ($state, Tenant $record) {
+                                            $limit = $record->plan?->max_products ?? '∞';
+                                            return ($state ?? 0) . ' / ' . $limit;
+                                        }),
+
+                                    Components\TextEntry::make('usage.treatments')
+                                        ->label('Treatments')
+                                        ->formatStateUsing(function ($state, Tenant $record) {
+                                            $limit = $record->plan?->max_treatments ?? '∞';
+                                            return ($state ?? 0) . ' / ' . $limit;
+                                        }),
+                                ]),
+
+                            Components\Section::make('Storage Breakdown')
+                                ->columns(4)
+                                ->schema([
+                                    Components\TextEntry::make('usage.storage_mb')
+                                        ->label('Total Used')
+                                        ->formatStateUsing(function ($state, Tenant $record) {
+                                            $used = round(($state ?? 0) / 1024, 2);
                                             $limit = $record->max_storage_mb;
                                             $limitGb = $limit ? round($limit / 1024, 1) : '∞';
                                             return "{$used} GB / {$limitGb} GB";
+                                        }),
+
+                                    Components\TextEntry::make('usage.storage_photos_mb')
+                                        ->label('Photos')
+                                        ->formatStateUsing(fn($state) => round(($state ?? 0) / 1024, 2) . ' GB')
+                                        ->default('0 GB'),
+
+                                    Components\TextEntry::make('usage.storage_documents_mb')
+                                        ->label('Documents')
+                                        ->formatStateUsing(fn($state) => round(($state ?? 0) / 1024, 2) . ' GB')
+                                        ->default('0 GB'),
+
+                                    Components\TextEntry::make('usage.storage_consent_mb')
+                                        ->label('Consent Forms')
+                                        ->formatStateUsing(fn($state) => round(($state ?? 0) / 1024, 2) . ' GB')
+                                        ->default('0 GB'),
+                                ]),
+
+                            Components\Section::make('Monthly Usage (Current Period)')
+                                ->columns(5)
+                                ->schema([
+                                    Components\TextEntry::make('usage.appointments_this_month')
+                                        ->label('Appointments')
+                                        ->formatStateUsing(function ($state, Tenant $record) {
+                                            $limit = $record->plan?->max_appointments_monthly ?? '∞';
+                                            return ($state ?? 0) . ' / ' . $limit;
+                                        }),
+
+                                    Components\TextEntry::make('usage.whatsapp_this_month')
+                                        ->label('WhatsApp')
+                                        ->formatStateUsing(function ($state, Tenant $record) {
+                                            $limit = $record->plan?->max_whatsapp_monthly ?? '∞';
+                                            return ($state ?? 0) . ' / ' . $limit;
+                                        }),
+
+                                    Components\TextEntry::make('usage.sms_this_month')
+                                        ->label('SMS')
+                                        ->formatStateUsing(function ($state, Tenant $record) {
+                                            $limit = $record->plan?->max_sms_monthly ?? '∞';
+                                            return ($state ?? 0) . ' / ' . $limit;
+                                        }),
+
+                                    Components\TextEntry::make('usage.emails_this_month')
+                                        ->label('Emails')
+                                        ->formatStateUsing(function ($state, Tenant $record) {
+                                            $limit = $record->plan?->max_emails_monthly ?? '∞';
+                                            return ($state ?? 0) . ' / ' . $limit;
+                                        }),
+
+                                    Components\TextEntry::make('usage.api_calls_today')
+                                        ->label('API Calls (Today)')
+                                        ->formatStateUsing(function ($state, Tenant $record) {
+                                            $limit = $record->plan?->max_api_calls_daily ?? '∞';
+                                            return ($state ?? 0) . ' / ' . $limit;
                                         }),
                                 ]),
                         ]),
@@ -499,22 +619,124 @@ class ViewTenant extends ViewRecord
                                 ->collapsible(),
                         ]),
 
-                    // TAB 5: ACTIVITY
+                    // TAB 5: USERS
+                    Components\Tabs\Tab::make('Users')
+                        ->icon('heroicon-o-users')
+                        ->schema([
+                            Components\RepeatableEntry::make('users')
+                                ->label('')
+                                ->schema([
+                                    Components\TextEntry::make('name')
+                                        ->label('Name')
+                                        ->weight(\Filament\Support\Enums\FontWeight::Bold),
+                                    Components\TextEntry::make('email')
+                                        ->label('Email')
+                                        ->copyable(),
+                                    Components\TextEntry::make('roles.name')
+                                        ->label('Role')
+                                        ->badge()
+                                        ->color('info'),
+                                    Components\TextEntry::make('last_login_at')
+                                        ->label('Last Login')
+                                        ->since()
+                                        ->placeholder('Never'),
+                                    Components\TextEntry::make('status')
+                                        ->label('Status')
+                                        ->badge()
+                                        ->color(fn(?string $state) => match ($state) {
+                                            'active' => 'success',
+                                            'inactive' => 'gray',
+                                            'suspended' => 'danger',
+                                            default => 'gray',
+                                        }),
+                                ])
+                                ->columns(5)
+                                ->placeholder('No users found'),
+                        ]),
+
+                    // TAB 6: ACTIVITY
                     Components\Tabs\Tab::make('Activity')
                         ->icon('heroicon-o-clock')
                         ->schema([
-                            Components\TextEntry::make('updated_at')
-                                ->label('Last Updated')
-                                ->since(),
+                            Components\RepeatableEntry::make('activityLogs')
+                                ->label('')
+                                ->schema([
+                                    Components\TextEntry::make('created_at')
+                                        ->label('Time')
+                                        ->since(),
+                                    Components\TextEntry::make('event_type')
+                                        ->label('Event')
+                                        ->badge()
+                                        ->color(fn(?string $state) => match ($state) {
+                                            'payment_received', 'reactivated', 'plan_upgraded' => 'success',
+                                            'payment_failed', 'suspended' => 'danger',
+                                            'addon_activated', 'user_added' => 'info',
+                                            default => 'gray',
+                                        }),
+                                    Components\TextEntry::make('description')
+                                        ->label('Description')
+                                        ->wrap(),
+                                ])
+                                ->columns(3)
+                                ->placeholder('No activity logged yet'),
                         ]),
 
-                    // TAB 6: SUPPORT
+                    // TAB 7: SUPPORT
                     Components\Tabs\Tab::make('Support')
                         ->icon('heroicon-o-ticket')
                         ->schema([
-                            Components\TextEntry::make('contact_email')
-                                ->label('Support Contact')
-                                ->copyable(),
+                            Components\Section::make()
+                                ->schema([
+                                    Components\Actions::make([
+                                        Components\Actions\Action::make('createTicket')
+                                            ->label('Create Ticket for Clinic')
+                                            ->icon('heroicon-o-plus')
+                                            ->color('primary')
+                                            ->url(fn(Tenant $record) => route('filament.super-admin.resources.support-tickets.create', ['tenant_id' => $record->id])),
+                                        Components\Actions\Action::make('emailOwner')
+                                            ->label('Email Clinic Owner')
+                                            ->icon('heroicon-o-envelope')
+                                            ->color('gray')
+                                            ->action(function (Tenant $record) {
+                                                Notification::make()
+                                                    ->title('Opening email client...')
+                                                    ->info()
+                                                    ->send();
+                                            }),
+                                    ]),
+                                ]),
+                            Components\RepeatableEntry::make('supportTickets')
+                                ->label('Tickets')
+                                ->schema([
+                                    Components\TextEntry::make('ticket_number')
+                                        ->label('#'),
+                                    Components\TextEntry::make('subject')
+                                        ->label('Subject')
+                                        ->limit(40),
+                                    Components\TextEntry::make('priority')
+                                        ->label('Priority')
+                                        ->badge()
+                                        ->color(fn(?string $state) => match ($state) {
+                                            'urgent' => 'danger',
+                                            'high' => 'warning',
+                                            'normal' => 'info',
+                                            default => 'gray',
+                                        }),
+                                    Components\TextEntry::make('status')
+                                        ->label('Status')
+                                        ->badge()
+                                        ->color(fn(?string $state) => match ($state) {
+                                            'open' => 'warning',
+                                            'in_progress' => 'info',
+                                            'resolved' => 'success',
+                                            default => 'gray',
+                                        }),
+                                    Components\TextEntry::make('created_at')
+                                        ->label('Opened')
+                                        ->since(),
+                                ])
+                                ->columns(5)
+                                ->placeholder('No support tickets'),
                         ]),
                 ]),
         ]);

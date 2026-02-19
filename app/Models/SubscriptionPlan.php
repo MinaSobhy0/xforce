@@ -96,6 +96,21 @@ class SubscriptionPlan extends Model
         'included_module_codes' => 'array',
     ];
 
+    protected static function boot()
+    {
+        parent::boot();
+
+        // Ensure boolean fields are properly cast for PostgreSQL
+        static::saving(function ($model) {
+            $booleanFields = ['is_active', 'is_featured', 'allow_white_label', 'allow_custom_domain', 'allow_data_export', 'allow_api_access', 'has_priority_support'];
+            foreach ($booleanFields as $field) {
+                if (isset($model->$field)) {
+                    $model->$field = filter_var($model->$field, FILTER_VALIDATE_BOOLEAN);
+                }
+            }
+        });
+    }
+
     public function tenants(): HasMany
     {
         return $this->hasMany(Tenant::class, 'subscription_plan_id');

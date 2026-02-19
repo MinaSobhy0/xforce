@@ -30,6 +30,19 @@ class TenantDomain extends Model
         'dns_verified_at' => 'datetime',
     ];
 
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::saving(function ($model) {
+            foreach (['is_primary', 'is_verified'] as $field) {
+                if (isset($model->$field)) {
+                    $model->$field = filter_var($model->$field, FILTER_VALIDATE_BOOLEAN);
+                }
+            }
+        });
+    }
+
     public const TYPES = [
         'subdomain' => 'Subdomain',
         'custom' => 'Custom Domain',

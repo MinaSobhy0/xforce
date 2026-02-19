@@ -42,6 +42,19 @@ class AddOn extends Model
         'sort_order' => 'integer',
     ];
 
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::saving(function ($model) {
+            foreach (['is_active', 'is_recurring'] as $field) {
+                if (isset($model->$field)) {
+                    $model->$field = filter_var($model->$field, FILTER_VALIDATE_BOOLEAN);
+                }
+            }
+        });
+    }
+
     public function tenants(): BelongsToMany
     {
         return $this->belongsToMany(Tenant::class, 'tenant_add_ons')

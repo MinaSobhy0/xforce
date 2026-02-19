@@ -30,6 +30,17 @@ class SystemAlert extends Model
         'resolved_at' => 'datetime',
     ];
 
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::saving(function ($model) {
+            if (isset($model->is_resolved)) {
+                $model->is_resolved = filter_var($model->is_resolved, FILTER_VALIDATE_BOOLEAN);
+            }
+        });
+    }
+
     public const TYPES = [
         'api_rate_limit' => 'API Rate Limit',
         'storage_warning' => 'Storage Warning',

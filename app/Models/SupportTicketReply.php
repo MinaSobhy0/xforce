@@ -26,6 +26,17 @@ class SupportTicketReply extends Model
         'attachments' => 'array',
     ];
 
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::saving(function ($model) {
+            if (isset($model->is_internal)) {
+                $model->is_internal = filter_var($model->is_internal, FILTER_VALIDATE_BOOLEAN);
+            }
+        });
+    }
+
     public function ticket(): BelongsTo
     {
         return $this->belongsTo(SupportTicket::class, 'ticket_id');
