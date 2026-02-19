@@ -12,21 +12,16 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        // Register XLinic Framework middleware
+        // Register XLinic Framework middleware as named middleware
+        // These are applied via route groups, NOT globally
         $middleware->alias([
             'tenant' => \XLinic\Framework\Core\Tenancy\TenantMiddleware::class,
             'quota' => \XLinic\Framework\Core\Quota\QuotaMiddleware::class,
         ]);
 
-        // Add tenant middleware to web group (for tenant-scoped routes)
-        $middleware->web(append: [
-            \XLinic\Framework\Core\Tenancy\TenantMiddleware::class,
-        ]);
-
-        // Add quota middleware to api group (for rate limiting)
-        $middleware->api(append: [
-            \XLinic\Framework\Core\Quota\QuotaMiddleware::class,
-        ]);
+        // NOTE: Do NOT add tenant middleware globally to web group
+        // The admin/platform panels should NOT use tenant middleware
+        // Tenant middleware is applied via route groups for tenant-scoped routes only
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

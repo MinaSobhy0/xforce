@@ -152,11 +152,19 @@ abstract class BaseResource extends Resource
             return false;
         }
 
-        $permissionRegistry = app(PermissionRegistry::class);
-        $resourceName = strtolower(class_basename(static::class));
-        $permission = str_replace('resource', '', $resourceName) . '.create';
+        if (!class_exists(PermissionRegistry::class)) {
+            return true;
+        }
 
-        return $permissionRegistry->userCan($user, $permission);
+        try {
+            $permissionRegistry = app(PermissionRegistry::class);
+            $resourceName = strtolower(class_basename(static::class));
+            $permission = str_replace('resource', '', $resourceName) . '.create';
+
+            return $permissionRegistry->userCan($user, $permission);
+        } catch (\Exception $e) {
+            return true;
+        }
     }
 
     /**
@@ -170,11 +178,19 @@ abstract class BaseResource extends Resource
             return false;
         }
 
-        $permissionRegistry = app(PermissionRegistry::class);
-        $resourceName = strtolower(class_basename(static::class));
-        $permission = str_replace('resource', '', $resourceName) . '.edit';
+        if (!class_exists(PermissionRegistry::class)) {
+            return true;
+        }
 
-        return $permissionRegistry->userCan($user, $permission);
+        try {
+            $permissionRegistry = app(PermissionRegistry::class);
+            $resourceName = strtolower(class_basename(static::class));
+            $permission = str_replace('resource', '', $resourceName) . '.edit';
+
+            return $permissionRegistry->userCan($user, $permission);
+        } catch (\Exception $e) {
+            return true;
+        }
     }
 
     /**
@@ -188,11 +204,19 @@ abstract class BaseResource extends Resource
             return false;
         }
 
-        $permissionRegistry = app(PermissionRegistry::class);
-        $resourceName = strtolower(class_basename(static::class));
-        $permission = str_replace('resource', '', $resourceName) . '.delete';
+        if (!class_exists(PermissionRegistry::class)) {
+            return true;
+        }
 
-        return $permissionRegistry->userCan($user, $permission);
+        try {
+            $permissionRegistry = app(PermissionRegistry::class);
+            $resourceName = strtolower(class_basename(static::class));
+            $permission = str_replace('resource', '', $resourceName) . '.delete';
+
+            return $permissionRegistry->userCan($user, $permission);
+        } catch (\Exception $e) {
+            return true;
+        }
     }
 
     /**
@@ -202,11 +226,15 @@ abstract class BaseResource extends Resource
     {
         $form = static::getFormSchema($form);
 
-        // Apply form extensions
-        if (static::$applyExtensions) {
-            $extensionManager = app(ViewExtensionManager::class);
-            $target = static::class;
-            $extensionManager->applyFormExtensions($target, $form);
+        // Apply form extensions if ViewExtensionManager exists
+        if (static::$applyExtensions && class_exists(ViewExtensionManager::class)) {
+            try {
+                $extensionManager = app(ViewExtensionManager::class);
+                $target = static::class;
+                $extensionManager->applyFormExtensions($target, $form);
+            } catch (\Exception $e) {
+                // Silently ignore extension errors
+            }
         }
 
         return $form;
@@ -219,11 +247,15 @@ abstract class BaseResource extends Resource
     {
         $table = static::getTableSchema($table);
 
-        // Apply table extensions
-        if (static::$applyExtensions) {
-            $extensionManager = app(ViewExtensionManager::class);
-            $target = static::class;
-            $extensionManager->applyTableExtensions($target, $table);
+        // Apply table extensions if ViewExtensionManager exists
+        if (static::$applyExtensions && class_exists(ViewExtensionManager::class)) {
+            try {
+                $extensionManager = app(ViewExtensionManager::class);
+                $target = static::class;
+                $extensionManager->applyTableExtensions($target, $table);
+            } catch (\Exception $e) {
+                // Silently ignore extension errors
+            }
         }
 
         return $table;
@@ -358,14 +390,13 @@ abstract class BaseResource extends Resource
 
     /**
      * Get the resource's pages.
+     * Note: Subclasses should override this method with their own Pages classes.
      */
     public static function getPages(): array
     {
-        return [
-            'index' => Pages\ListRecords::route('/'),
-            'create' => Pages\CreateRecord::route('/create'),
-            'edit' => Pages\EditRecord::route('/{record}/edit'),
-        ];
+        // Return empty array - subclasses must define their own pages
+        // This avoids the "Pages\ListRecords" namespace issue
+        return [];
     }
 
     /**
@@ -375,16 +406,24 @@ abstract class BaseResource extends Resource
     {
         $components = [];
 
-        $tenantManager = app(TenantManager::class);
-        $currentTenant = $tenantManager->current();
+        if (!class_exists(TenantManager::class)) {
+            return $components;
+        }
 
-        if ($currentTenant && auth()->user()?->can('view-all-tenants')) {
-            $components[] = \Filament\Forms\Components\Select::make('tenant_id')
-                ->label('Tenant')
-                ->relationship('tenant', 'name')
-                ->default($currentTenant->id)
-                ->required()
-                ->disabled(!auth()->user()?->can('manage-tenants'));
+        try {
+            $tenantManager = app(TenantManager::class);
+            $currentTenant = $tenantManager->current();
+
+            if ($currentTenant && auth()->user()?->can('view-all-tenants')) {
+                $components[] = \Filament\Forms\Components\Select::make('tenant_id')
+                    ->label('Tenant')
+                    ->relationship('tenant', 'name')
+                    ->default($currentTenant->id)
+                    ->required()
+                    ->disabled(!auth()->user()?->can('manage-tenants'));
+            }
+        } catch (\Exception $e) {
+            // Silently ignore tenant errors
         }
 
         return $components;

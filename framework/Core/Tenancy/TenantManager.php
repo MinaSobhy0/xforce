@@ -44,20 +44,41 @@ class TenantManager
     }
 
     /**
+     * Get the Tenant model class.
+     */
+    protected function getTenantModel(): ?string
+    {
+        // Check multiple possible locations for Tenant model
+        $possibleModels = [
+            \Modules\Core\Models\Tenant::class,
+            \App\Models\Tenant::class,
+        ];
+
+        foreach ($possibleModels as $model) {
+            if (class_exists($model)) {
+                return $model;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Find a tenant by ID or identifier.
      */
     public function findTenant(string $identifier): ?object
     {
-        if (!class_exists(\App\Models\Tenant::class)) {
+        $model = $this->getTenantModel();
+        if (!$model) {
             return null;
         }
 
         // Try to find by ID first
-        $tenant = \App\Models\Tenant::find($identifier);
+        $tenant = $model::find($identifier);
 
         if (!$tenant) {
             // Try to find by slug or code
-            $tenant = \App\Models\Tenant::where('slug', $identifier)
+            $tenant = $model::where('slug', $identifier)
                 ->orWhere('code', $identifier)
                 ->first();
         }
@@ -70,11 +91,12 @@ class TenantManager
      */
     public function findTenantBySlug(string $slug): ?object
     {
-        if (!class_exists(\App\Models\Tenant::class)) {
+        $model = $this->getTenantModel();
+        if (!$model) {
             return null;
         }
 
-        return \App\Models\Tenant::where('slug', $slug)->first();
+        return $model::where('slug', $slug)->first();
     }
 
     /**
@@ -82,11 +104,12 @@ class TenantManager
      */
     public function findTenantBy(string $field, mixed $value): ?object
     {
-        if (!class_exists(\App\Models\Tenant::class)) {
+        $model = $this->getTenantModel();
+        if (!$model) {
             return null;
         }
 
-        return \App\Models\Tenant::where($field, $value)->first();
+        return $model::where($field, $value)->first();
     }
 
     /**
@@ -109,11 +132,12 @@ class TenantManager
      */
     public function getAllTenants(): \Illuminate\Database\Eloquent\Collection
     {
-        if (!class_exists(\App\Models\Tenant::class)) {
+        $model = $this->getTenantModel();
+        if (!$model) {
             return collect();
         }
 
-        return \App\Models\Tenant::all();
+        return $model::all();
     }
 
     /**
