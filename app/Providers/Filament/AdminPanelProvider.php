@@ -43,15 +43,21 @@ class AdminPanelProvider extends PanelProvider
             // Dark Mode
             ->darkMode()
 
-            // Sidebar Configuration
-            ->sidebarCollapsibleOnDesktop()
+            // Sidebar always expanded on desktop
+            ->sidebarCollapsibleOnDesktop(false)
 
-            // Navigation Groups
+            // Navigation Groups - must include all groups used by resources
             ->navigationGroups([
                 NavigationGroup::make('CRM')
                     ->icon('heroicon-o-users'),
+                NavigationGroup::make('Treatments')
+                    ->icon('heroicon-o-beaker'),
                 NavigationGroup::make('User Management')
                     ->icon('heroicon-o-user-group'),
+                NavigationGroup::make('Security')
+                    ->icon('heroicon-o-shield-check'),
+                NavigationGroup::make('System Management')
+                    ->icon('heroicon-o-server-stack'),
                 NavigationGroup::make('Settings')
                     ->icon('heroicon-o-cog-6-tooth')
                     ->collapsed(),
