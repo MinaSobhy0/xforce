@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\HasPostgresBoolean;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SupportTicketReply extends Model
 {
-    use HasUuids;
+    use HasUuids, HasPostgresBoolean;
 
     protected $table = 'support_ticket_replies';
 
@@ -26,15 +27,9 @@ class SupportTicketReply extends Model
         'attachments' => 'array',
     ];
 
-    protected static function boot()
+    protected function getPostgresBooleanFields(): array
     {
-        parent::boot();
-
-        static::saving(function ($model) {
-            if (isset($model->is_internal)) {
-                $model->is_internal = filter_var($model->is_internal, FILTER_VALIDATE_BOOLEAN);
-            }
-        });
+        return ['is_internal'];
     }
 
     public function ticket(): BelongsTo

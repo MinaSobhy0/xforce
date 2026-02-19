@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\HasPostgresBoolean;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Translatable\HasTranslations;
 
 class EmailTemplate extends Model
 {
-    use HasUuids, HasTranslations;
+    use HasUuids, HasTranslations, HasPostgresBoolean;
 
     protected $fillable = [
         'code',
@@ -25,18 +26,12 @@ class EmailTemplate extends Model
         'variables' => 'array',
     ];
 
-    protected static function boot()
-    {
-        parent::boot();
-
-        static::saving(function ($model) {
-            if (isset($model->is_active)) {
-                $model->is_active = filter_var($model->is_active, FILTER_VALIDATE_BOOLEAN);
-            }
-        });
-    }
-
     public array $translatable = ['subject', 'body'];
+
+    protected function getPostgresBooleanFields(): array
+    {
+        return ['is_active'];
+    }
 
     public const TRIGGERS = [
         'on_signup' => 'On Signup',

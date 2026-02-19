@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\HasPostgresBoolean;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -11,7 +12,7 @@ use Modules\Core\Models\Tenant;
 
 class AddOn extends Model
 {
-    use HasFactory, HasUuids, SoftDeletes;
+    use HasFactory, HasUuids, SoftDeletes, HasPostgresBoolean;
 
     protected $table = 'add_ons';
 
@@ -42,17 +43,9 @@ class AddOn extends Model
         'sort_order' => 'integer',
     ];
 
-    protected static function boot()
+    protected function getPostgresBooleanFields(): array
     {
-        parent::boot();
-
-        static::saving(function ($model) {
-            foreach (['is_active', 'is_recurring'] as $field) {
-                if (isset($model->$field)) {
-                    $model->$field = filter_var($model->$field, FILTER_VALIDATE_BOOLEAN);
-                }
-            }
-        });
+        return ['is_active', 'is_recurring'];
     }
 
     public function tenants(): BelongsToMany

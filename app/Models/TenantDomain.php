@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\HasPostgresBoolean;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class TenantDomain extends Model
 {
-    use HasUuids;
+    use HasUuids, HasPostgresBoolean;
 
     protected $fillable = [
         'tenant_id',
@@ -30,17 +31,9 @@ class TenantDomain extends Model
         'dns_verified_at' => 'datetime',
     ];
 
-    protected static function boot()
+    protected function getPostgresBooleanFields(): array
     {
-        parent::boot();
-
-        static::saving(function ($model) {
-            foreach (['is_primary', 'is_verified'] as $field) {
-                if (isset($model->$field)) {
-                    $model->$field = filter_var($model->$field, FILTER_VALIDATE_BOOLEAN);
-                }
-            }
-        });
+        return ['is_primary', 'is_verified'];
     }
 
     public const TYPES = [

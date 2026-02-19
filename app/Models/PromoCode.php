@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\HasPostgresBoolean;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class PromoCode extends Model
 {
-    use HasUuids, SoftDeletes;
+    use HasUuids, SoftDeletes, HasPostgresBoolean;
 
     protected $table = 'promo_codes';
 
@@ -38,15 +39,9 @@ class PromoCode extends Model
         'is_active' => 'boolean',
     ];
 
-    protected static function boot()
+    protected function getPostgresBooleanFields(): array
     {
-        parent::boot();
-
-        static::saving(function ($model) {
-            if (isset($model->is_active)) {
-                $model->is_active = filter_var($model->is_active, FILTER_VALIDATE_BOOLEAN);
-            }
-        });
+        return ['is_active'];
     }
 
     public const DISCOUNT_TYPES = [

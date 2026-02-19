@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\HasPostgresBoolean;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -9,7 +10,7 @@ use Spatie\Translatable\HasTranslations;
 
 class Module extends Model
 {
-    use HasUuids, SoftDeletes, HasTranslations;
+    use HasUuids, SoftDeletes, HasTranslations, HasPostgresBoolean;
 
     protected $table = 'modules';
 
@@ -41,18 +42,9 @@ class Module extends Model
         'settings_schema' => 'array',
     ];
 
-    protected static function boot()
+    protected function getPostgresBooleanFields(): array
     {
-        parent::boot();
-
-        // Ensure boolean fields are properly cast for PostgreSQL
-        static::saving(function ($model) {
-            foreach (['is_core', 'is_active', 'is_beta'] as $field) {
-                if (isset($model->$field)) {
-                    $model->$field = filter_var($model->$field, FILTER_VALIDATE_BOOLEAN);
-                }
-            }
-        });
+        return ['is_core', 'is_active', 'is_beta'];
     }
 
     public const CATEGORIES = [

@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\HasPostgresBoolean;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SystemAlert extends Model
 {
-    use HasUuids;
+    use HasUuids, HasPostgresBoolean;
 
     protected $fillable = [
         'type',
@@ -30,15 +31,9 @@ class SystemAlert extends Model
         'resolved_at' => 'datetime',
     ];
 
-    protected static function boot()
+    protected function getPostgresBooleanFields(): array
     {
-        parent::boot();
-
-        static::saving(function ($model) {
-            if (isset($model->is_resolved)) {
-                $model->is_resolved = filter_var($model->is_resolved, FILTER_VALIDATE_BOOLEAN);
-            }
-        });
+        return ['is_resolved'];
     }
 
     public const TYPES = [
