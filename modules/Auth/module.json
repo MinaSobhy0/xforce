@@ -1,0 +1,317 @@
+{
+    "name": "Auth",
+    "code": "auth",
+    "version": "1.0.0",
+    "description": {
+        "en": "User authentication and role-based access control",
+        "ar": "مصادقة المستخدم والتحكم في الوصول القائم على الأدوار"
+    },
+    "author": "XLinic",
+    "dependencies": ["core"],
+    "providers": [
+        "Modules\\Auth\\Providers\\AuthServiceProvider"
+    ],
+    "aliases": {},
+    "files": [
+        "start.php"
+    ],
+    "requires": {
+        "php": "^8.2",
+        "laravel/framework": "^11.0",
+        "spatie/laravel-permission": "^6.0"
+    },
+    "active": true,
+    "order": 2,
+    "category": "system",
+    "tags": ["auth", "users", "roles", "permissions"],
+    "permissions": [
+        {
+            "name": "users.view",
+            "display_name": {
+                "en": "View Users",
+                "ar": "عرض المستخدمين"
+            },
+            "description": {
+                "en": "View user accounts",
+                "ar": "عرض حسابات المستخدمين"
+            }
+        },
+        {
+            "name": "users.create",
+            "display_name": {
+                "en": "Create Users",
+                "ar": "إنشاء المستخدمين"
+            },
+            "description": {
+                "en": "Create new user accounts",
+                "ar": "إنشاء حسابات مستخدمين جديدة"
+            }
+        },
+        {
+            "name": "users.edit",
+            "display_name": {
+                "en": "Edit Users",
+                "ar": "تعديل المستخدمين"
+            },
+            "description": {
+                "en": "Edit user accounts",
+                "ar": "تعديل حسابات المستخدمين"
+            }
+        },
+        {
+            "name": "users.delete",
+            "display_name": {
+                "en": "Delete Users",
+                "ar": "حذف المستخدمين"
+            },
+            "description": {
+                "en": "Delete user accounts",
+                "ar": "حذف حسابات المستخدمين"
+            }
+        },
+        {
+            "name": "roles.view",
+            "display_name": {
+                "en": "View Roles",
+                "ar": "عرض الأدوار"
+            },
+            "description": {
+                "en": "View user roles",
+                "ar": "عرض أدوار المستخدمين"
+            }
+        },
+        {
+            "name": "roles.manage",
+            "display_name": {
+                "en": "Manage Roles",
+                "ar": "إدارة الأدوار"
+            },
+            "description": {
+                "en": "Create, edit, and delete user roles",
+                "ar": "إنشاء وتعديل وحذف أدوار المستخدمين"
+            }
+        },
+        {
+            "name": "permissions.view",
+            "display_name": {
+                "en": "View Permissions",
+                "ar": "عرض الصلاحيات"
+            },
+            "description": {
+                "en": "View system permissions",
+                "ar": "عرض صلاحيات النظام"
+            }
+        },
+        {
+            "name": "permissions.manage",
+            "display_name": {
+                "en": "Manage Permissions",
+                "ar": "إدارة الصلاحيات"
+            },
+            "description": {
+                "en": "Manage system permissions",
+                "ar": "إدارة صلاحيات النظام"
+            }
+        },
+        {
+            "name": "auth.impersonate",
+            "display_name": {
+                "en": "Impersonate Users",
+                "ar": "انتحال شخصية المستخدمين"
+            },
+            "description": {
+                "en": "Login as other users for support purposes",
+                "ar": "تسجيل الدخول كمستخدمين آخرين لأغراض الدعم"
+            }
+        }
+    ],
+    "roles": [
+        {
+            "name": "admin",
+            "display_name": {
+                "en": "Administrator",
+                "ar": "مدير"
+            },
+            "description": {
+                "en": "Tenant administrator with full access",
+                "ar": "مدير المستأجر مع الوصول الكامل"
+            },
+            "permissions": ["users.view", "users.create", "users.edit", "users.delete", "roles.view", "roles.manage"]
+        },
+        {
+            "name": "manager",
+            "display_name": {
+                "en": "Manager",
+                "ar": "مدير تنفيذي"
+            },
+            "description": {
+                "en": "Department manager with limited admin access",
+                "ar": "مدير القسم مع وصول إداري محدود"
+            },
+            "permissions": ["users.view", "users.create", "users.edit", "roles.view"]
+        },
+        {
+            "name": "staff",
+            "display_name": {
+                "en": "Staff",
+                "ar": "موظف"
+            },
+            "description": {
+                "en": "Regular staff member",
+                "ar": "موظف عادي"
+            },
+            "permissions": ["users.view"]
+        },
+        {
+            "name": "receptionist",
+            "display_name": {
+                "en": "Receptionist",
+                "ar": "موظف استقبال"
+            },
+            "description": {
+                "en": "Front desk receptionist",
+                "ar": "موظف استقبال"
+            },
+            "permissions": ["users.view"]
+        },
+        {
+            "name": "doctor",
+            "display_name": {
+                "en": "Doctor",
+                "ar": "طبيب"
+            },
+            "description": {
+                "en": "Medical doctor",
+                "ar": "طبيب"
+            },
+            "permissions": ["users.view"]
+        },
+        {
+            "name": "nurse",
+            "display_name": {
+                "en": "Nurse",
+                "ar": "ممرض"
+            },
+            "description": {
+                "en": "Registered nurse",
+                "ar": "ممرض مسجل"
+            },
+            "permissions": ["users.view"]
+        },
+        {
+            "name": "technician",
+            "display_name": {
+                "en": "Technician",
+                "ar": "فني"
+            },
+            "description": {
+                "en": "Medical technician",
+                "ar": "فني طبي"
+            },
+            "permissions": ["users.view"]
+        }
+    ],
+    "navigation": [
+        {
+            "id": "auth.users",
+            "label": {
+                "en": "Users",
+                "ar": "المستخدمون"
+            },
+            "icon": "heroicon-o-users",
+            "route": "filament.admin.resources.users.index",
+            "order": 20,
+            "permission": "users.view",
+            "group": "user_management"
+        },
+        {
+            "id": "auth.roles",
+            "label": {
+                "en": "Roles & Permissions",
+                "ar": "الأدوار والصلاحيات"
+            },
+            "icon": "heroicon-o-key",
+            "route": "filament.admin.resources.roles.index",
+            "order": 21,
+            "permission": "roles.view",
+            "group": "user_management"
+        },
+        {
+            "id": "auth.profile",
+            "label": {
+                "en": "My Profile",
+                "ar": "ملفي الشخصي"
+            },
+            "icon": "heroicon-o-user",
+            "route": "filament.admin.pages.profile",
+            "order": 100
+        }
+    ],
+    "menus": {
+        "admin": [
+            {
+                "id": "user_management",
+                "label": {
+                    "en": "User Management",
+                    "ar": "إدارة المستخدمين"
+                },
+                "icon": "heroicon-o-users",
+                "order": 20
+            }
+        ]
+    },
+    "widgets": [
+        "Modules\\Auth\\Widgets\\UsersStatsWidget",
+        "Modules\\Auth\\Widgets\\RecentLoginsWidget"
+    ],
+    "resources": [
+        "Modules\\Auth\\Resources\\UserResource",
+        "Modules\\Auth\\Resources\\RoleResource"
+    ],
+    "pages": [
+        "Modules\\Auth\\Pages\\Profile",
+        "Modules\\Auth\\Pages\\TwoFactorSetup"
+    ],
+    "server_actions": [
+        {
+            "class": "Modules\\Auth\\Actions\\ResetPasswordAction"
+        },
+        {
+            "class": "Modules\\Auth\\Actions\\SendPasswordResetAction"
+        }
+    ],
+    "scheduled_actions": [
+        {
+            "class": "Modules\\Auth\\Actions\\CleanupExpiredSessionsAction"
+        },
+        {
+            "class": "Modules\\Auth\\Actions\\SendPasswordExpiryRemindersAction"
+        }
+    ],
+    "settings": {
+        "password_policy": {
+            "min_length": 8,
+            "require_uppercase": true,
+            "require_lowercase": true,
+            "require_numbers": true,
+            "require_symbols": false,
+            "password_history": 5,
+            "expires_days": 90
+        },
+        "session_policy": {
+            "timeout_minutes": 120,
+            "concurrent_sessions": 3,
+            "remember_me_days": 30
+        },
+        "two_factor": {
+            "enabled": true,
+            "required_for_roles": ["admin", "manager"],
+            "backup_codes": true
+        },
+        "account_lockout": {
+            "enabled": true,
+            "max_attempts": 5,
+            "lockout_minutes": 30
+        }
+    }
+}

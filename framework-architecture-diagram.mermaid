@@ -1,0 +1,140 @@
+graph TB
+    subgraph Request["HTTP Request Flow"]
+        REQ[Request] --> TM[Tenant Middleware]
+        TM --> MM[Module Manager Boot]
+        MM --> QM[Quota Middleware]
+        QM --> FP[Filament Panel]
+    end
+
+    subgraph Framework["Framework Kernel"]
+        direction TB
+        
+        subgraph Registries["Registries (Central Brain)"]
+            MR[Module Registry]
+            MDR[Model Registry]
+            VEM[View Extension Manager]
+            NR[Navigation Registry]
+            SR[Settings Registry]
+            PR[Permission Registry]
+            SCR[Schedule Registry]
+            AR[Action Registry]
+            RPE[Record Policy Engine]
+            SEQ[Sequence Service]
+            QS[Quota Service]
+            RE[Report Engine]
+        end
+
+        subgraph BaseClasses["Base Classes (Every Module Inherits)"]
+            BM[BaseModel]
+            BR[BaseResource]
+            BP[BasePage]
+            BW[BaseWidget]
+            BRM[BaseRelationManager]
+        end
+
+        subgraph Traits["Model Traits (Mixins)"]
+            HT[HasTenancy]
+            HA[HasActivity - Chatter]
+            HSM[HasStateMachine]
+            HSQ[HasSequence]
+            HAU[HasAudit]
+            HTR[HasTranslation]
+            HPA[HasPortalAccess]
+            HAT[HasAttachments]
+            HTG[HasTags]
+        end
+
+        subgraph CrossCutting["Cross-Cutting Concerns"]
+            TE[Tenancy Engine]
+            EV[Event Dispatcher]
+            CA[Cache Layer]
+        end
+    end
+
+    subgraph Modules["Feature Modules"]
+        direction LR
+        
+        subgraph Core["Core (Always Active)"]
+            AUTH[Auth & RBAC]
+            CORE[Core Settings]
+        end
+
+        subgraph Operations["Operations"]
+            PAT[Patients]
+            BOOK[Booking]
+            TREAT[Treatments]
+            EQUIP[Equipment]
+            STAFF[Staff]
+        end
+
+        subgraph Financial["Financial"]
+            BILL[Billing]
+            ACCT[Accounting]
+            PAY[Payroll]
+        end
+
+        subgraph Sales["Sales & Engagement"]
+            PKG[Packages]
+            GC[Gift Cards]
+            MEM[Memberships]
+            LOY[Loyalty]
+            INV[Inventory]
+        end
+
+        subgraph Marketing["Marketing"]
+            WA[WhatsApp]
+            SMS[SMS]
+            EMAIL[Email]
+            SOC[Social Media]
+        end
+    end
+
+    subgraph Panels["Filament Panels"]
+        ADMIN[Admin Panel - Clinic Staff]
+        SUPER[Super Admin - Platform Owner]
+        PORTAL[Patient Portal]
+    end
+
+    %% Framework provides base classes to modules
+    BM --> PAT
+    BM --> BOOK
+    BM --> GC
+    BR --> PAT
+    BR --> BOOK
+    BR --> GC
+
+    %% Modules register with registries
+    PAT -->|registers| MR
+    BOOK -->|registers| MR
+    GC -->|registers| MR
+    GC -->|extends Patient form| VEM
+    GC -->|extends Patient model| MDR
+    ACCT -->|listens to Billing events| EV
+    LOY -->|listens to Billing events| EV
+    WA -->|listens to Booking events| EV
+
+    %% Registries feed panels
+    MR --> FP
+    NR --> ADMIN
+    PR --> ADMIN
+    SR --> ADMIN
+
+    %% Module dependencies
+    GC -.->|depends on| BILL
+    GC -.->|depends on| PAT
+    ACCT -.->|depends on| BILL
+    PKG -.->|depends on| BILL
+    PKG -.->|depends on| BOOK
+    PAY -.->|depends on| ACCT
+
+    style Framework fill:#1a1a2e,color:#fff
+    style Registries fill:#16213e,color:#fff
+    style BaseClasses fill:#0f3460,color:#fff
+    style Traits fill:#533483,color:#fff
+    style Modules fill:#e94560,color:#fff
+    style Core fill:#ff6b6b,color:#fff
+    style Operations fill:#ffa502,color:#fff
+    style Financial fill:#2ed573,color:#fff
+    style Sales fill:#1e90ff,color:#fff
+    style Marketing fill:#ff6348,color:#fff
+    style Panels fill:#7bed9f,color:#000

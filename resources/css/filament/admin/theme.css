@@ -1,0 +1,183 @@
+/* XLinic Admin Double Sidebar Theme */
+
+/* Enhanced sidebar styling for double-sidebar effect */
+.fi-sidebar {
+    transition: all 0.3s ease-in-out;
+}
+
+/* Navigation group icons - always visible */
+.fi-sidebar-nav-groups {
+    padding: 0.5rem;
+}
+
+/* Navigation group styling */
+.fi-sidebar-group {
+    margin-bottom: 0.25rem;
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+/* Group header with icon - mini sidebar indicator */
+.fi-sidebar-group-button {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    width: 100%;
+    border-radius: 0.5rem;
+    transition: all 0.2s ease;
+}
+
+.fi-sidebar-group-button:hover {
+    background-color: rgba(59, 130, 246, 0.1);
+}
+
+/* Group icon styling - larger for mini sidebar visibility */
+.fi-sidebar-group-button .fi-sidebar-group-icon {
+    width: 1.5rem;
+    height: 1.5rem;
+    flex-shrink: 0;
+}
+
+/* Collapsed sidebar - show only icons */
+.fi-sidebar-collapsed .fi-sidebar-group-button span:not(.fi-sidebar-group-icon) {
+    display: none;
+}
+
+.fi-sidebar-collapsed .fi-sidebar-group-button {
+    justify-content: center;
+    padding: 0.75rem;
+}
+
+/* Group items styling */
+.fi-sidebar-group-items {
+    margin-left: 0.5rem;
+    padding-left: 1rem;
+    border-left: 2px solid rgba(59, 130, 246, 0.2);
+}
+
+/* Individual nav items */
+.fi-sidebar-item {
+    margin-bottom: 0.125rem;
+}
+
+.fi-sidebar-item-button {
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.375rem;
+    transition: all 0.2s ease;
+}
+
+.fi-sidebar-item-button:hover {
+    background-color: rgba(59, 130, 246, 0.1);
+}
+
+/* Active item styling */
+.fi-sidebar-item-active .fi-sidebar-item-button {
+    background-color: rgba(59, 130, 246, 0.15);
+    border-left: 3px solid rgb(59, 130, 246);
+}
+
+/* Dark mode adjustments */
+.dark .fi-sidebar-group-button:hover {
+    background-color: rgba(59, 130, 246, 0.2);
+}
+
+.dark .fi-sidebar-group-items {
+    border-left-color: rgba(59, 130, 246, 0.3);
+}
+
+.dark .fi-sidebar-item-button:hover {
+    background-color: rgba(59, 130, 246, 0.2);
+}
+
+.dark .fi-sidebar-item-active .fi-sidebar-item-button {
+    background-color: rgba(59, 130, 246, 0.25);
+}
+
+/* Sidebar header branding */
+.fi-sidebar-header {
+    padding: 1rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    margin-bottom: 0.5rem;
+}
+
+.dark .fi-sidebar-header {
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Collapsed sidebar tooltip */
+.fi-sidebar-collapsed .fi-sidebar-group {
+    position: relative;
+}
+
+.fi-sidebar-collapsed .fi-sidebar-group:hover .fi-sidebar-group-items {
+    display: block !important;
+    position: absolute;
+    left: 100%;
+    top: 0;
+    min-width: 200px;
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    padding: 0.5rem;
+    margin-left: 0.5rem;
+    z-index: 50;
+    border-left: none;
+    margin-left: 0.25rem;
+}
+
+.dark .fi-sidebar-collapsed .fi-sidebar-group:hover .fi-sidebar-group-items {
+    background: rgb(31, 41, 55);
+}
+
+/* Smooth transitions for sidebar */
+.fi-sidebar,
+.fi-sidebar-nav,
+.fi-sidebar-group,
+.fi-sidebar-group-items {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Mobile responsive */
+@media (max-width: 1024px) {
+    .fi-sidebar {
+        width: 100% !important;
+    }
+
+    .fi-sidebar-collapsed .fi-sidebar-group:hover .fi-sidebar-group-items {
+        position: static;
+        min-width: auto;
+        box-shadow: none;
+        background: transparent;
+        margin-left: 0;
+    }
+}
+
+/* Badge styling for menu items */
+.fi-sidebar-item-badge {
+    margin-left: auto;
+    padding: 0.125rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 9999px;
+    background-color: rgb(59, 130, 246);
+    color: white;
+}
+
+/* Scrollbar styling */
+.fi-sidebar-nav::-webkit-scrollbar {
+    width: 4px;
+}
+
+.fi-sidebar-nav::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.fi-sidebar-nav::-webkit-scrollbar-thumb {
+    background-color: rgba(59, 130, 246, 0.3);
+    border-radius: 4px;
+}
+
+.fi-sidebar-nav::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(59, 130, 246, 0.5);
+}

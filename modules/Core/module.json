@@ -1,0 +1,160 @@
+{
+    "name": "Core",
+    "code": "core",
+    "version": "1.0.0",
+    "description": {
+        "en": "Core system management and tenant administration",
+        "ar": "إدارة النظام الأساسي والمستأجرين"
+    },
+    "author": "XLinic",
+    "dependencies": [],
+    "providers": [
+        "Modules\\Core\\Providers\\CoreServiceProvider"
+    ],
+    "aliases": {},
+    "files": [
+        "start.php"
+    ],
+    "requires": {
+        "php": "^8.2",
+        "laravel/framework": "^11.0"
+    },
+    "active": true,
+    "order": 1,
+    "category": "system",
+    "tags": ["core", "tenant", "system"],
+    "permissions": [
+        {
+            "name": "core.manage",
+            "display_name": {
+                "en": "Manage Core System",
+                "ar": "إدارة النظام الأساسي"
+            },
+            "description": {
+                "en": "Full access to core system management",
+                "ar": "الوصول الكامل لإدارة النظام الأساسي"
+            }
+        },
+        {
+            "name": "tenants.view",
+            "display_name": {
+                "en": "View Tenants",
+                "ar": "عرض المستأجرين"
+            },
+            "description": {
+                "en": "View tenant information",
+                "ar": "عرض معلومات المستأجرين"
+            }
+        },
+        {
+            "name": "tenants.manage",
+            "display_name": {
+                "en": "Manage Tenants",
+                "ar": "إدارة المستأجرين"
+            },
+            "description": {
+                "en": "Create, update, and delete tenants",
+                "ar": "إنشاء وتحديث وحذف المستأجرين"
+            }
+        },
+        {
+            "name": "system.settings",
+            "display_name": {
+                "en": "System Settings",
+                "ar": "إعدادات النظام"
+            },
+            "description": {
+                "en": "Manage system-wide settings",
+                "ar": "إدارة إعدادات النظام"
+            }
+        }
+    ],
+    "roles": [
+        {
+            "name": "system_admin",
+            "display_name": {
+                "en": "System Administrator",
+                "ar": "مدير النظام"
+            },
+            "description": {
+                "en": "Full system administration access",
+                "ar": "الوصول الكامل لإدارة النظام"
+            },
+            "permissions": ["core.manage", "tenants.manage", "system.settings"]
+        }
+    ],
+    "navigation": [
+        {
+            "id": "core.dashboard",
+            "label": {
+                "en": "Dashboard",
+                "ar": "لوحة التحكم"
+            },
+            "icon": "heroicon-o-home",
+            "route": "filament.superadmin.pages.dashboard",
+            "order": 1,
+            "permission": "core.manage"
+        },
+        {
+            "id": "core.tenants",
+            "label": {
+                "en": "Tenants",
+                "ar": "المستأجرون"
+            },
+            "icon": "heroicon-o-building-office-2",
+            "route": "filament.superadmin.resources.tenants.index",
+            "order": 10,
+            "permission": "tenants.view",
+            "group": "system"
+        },
+        {
+            "id": "core.settings",
+            "label": {
+                "en": "System Settings",
+                "ar": "إعدادات النظام"
+            },
+            "icon": "heroicon-o-cog-6-tooth",
+            "route": "filament.superadmin.pages.system-settings",
+            "order": 90,
+            "permission": "system.settings",
+            "group": "system"
+        }
+    ],
+    "menus": {
+        "superadmin": [
+            {
+                "id": "system",
+                "label": {
+                    "en": "System Management",
+                    "ar": "إدارة النظام"
+                },
+                "icon": "heroicon-o-server",
+                "order": 100
+            }
+        ]
+    },
+    "widgets": [],
+    "resources": [
+        "Modules\\Core\\Resources\\TenantResource"
+    ],
+    "pages": [
+        "Modules\\Core\\Pages\\SystemSettings"
+    ],
+    "server_actions": [],
+    "scheduled_actions": [
+        {
+            "class": "Modules\\Core\\Actions\\CleanupExpiredTokensAction"
+        }
+    ],
+    "settings": {
+        "tenant_isolation": true,
+        "schema_per_tenant": true,
+        "default_tenant_features": [
+            "users",
+            "patients",
+            "appointments",
+            "treatments",
+            "inventory"
+        ]
+    }
+}

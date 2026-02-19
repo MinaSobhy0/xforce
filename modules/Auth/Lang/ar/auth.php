@@ -1,0 +1,133 @@
+<?php
+
+return [
+    // Module info
+    'module_name' => 'المصادقة',
+    'module_description' => 'إدارة مصادقة المستخدمين والأدوار والصلاحيات',
+
+    // Users
+    'user' => 'مستخدم',
+    'users' => 'المستخدمين',
+    'user_name' => 'الاسم',
+    'user_email' => 'البريد الإلكتروني',
+    'user_phone' => 'الهاتف',
+    'user_password' => 'كلمة المرور',
+    'user_confirm_password' => 'تأكيد كلمة المرور',
+    'user_avatar' => 'الصورة الشخصية',
+    'user_role' => 'الدور',
+    'user_roles' => 'الأدوار',
+    'user_status' => 'الحالة',
+    'user_last_login' => 'آخر تسجيل دخول',
+    'user_created' => 'تاريخ الإنشاء',
+
+    // User Statuses
+    'status_active' => 'نشط',
+    'status_inactive' => 'غير نشط',
+    'status_suspended' => 'موقوف',
+    'status_pending' => 'قيد الانتظار',
+
+    // Roles
+    'role' => 'دور',
+    'roles' => 'الأدوار',
+    'role_name' => 'اسم الدور',
+    'role_permissions' => 'الصلاحيات',
+    'role_users' => 'المستخدمين بهذا الدور',
+    'system_role' => 'دور النظام',
+
+    // Permissions
+    'permission' => 'صلاحية',
+    'permissions' => 'الصلاحيات',
+    'permission_name' => 'اسم الصلاحية',
+    'permission_module' => 'الوحدة',
+    'grant_permission' => 'منح الصلاحية',
+    'revoke_permission' => 'إلغاء الصلاحية',
+
+    // Profile
+    'profile' => 'الملف الشخصي',
+    'my_profile' => 'ملفي الشخصي',
+    'edit_profile' => 'تعديل الملف الشخصي',
+    'change_password' => 'تغيير كلمة المرور',
+    'current_password' => 'كلمة المرور الحالية',
+    'new_password' => 'كلمة المرور الجديدة',
+    'confirm_new_password' => 'تأكيد كلمة المرور الجديدة',
+    'password_changed' => 'تم تغيير كلمة المرور بنجاح',
+    'profile_updated' => 'تم تحديث الملف الشخصي بنجاح',
+
+    // Two Factor Authentication
+    'two_factor' => 'المصادقة الثنائية',
+    'two_factor_setup' => 'إعداد المصادقة الثنائية',
+    'enable_2fa' => 'تفعيل المصادقة الثنائية',
+    'disable_2fa' => 'إلغاء المصادقة الثنائية',
+    'scan_qr_code' => 'امسح رمز QR بتطبيق المصادقة',
+    'enter_code' => 'أدخل رمز التحقق',
+    'backup_codes' => 'رموز النسخ الاحتياطي',
+    'backup_codes_warning' => 'احفظ هذه الرموز في مكان آمن. كل رمز يمكن استخدامه مرة واحدة فقط.',
+    '2fa_enabled' => 'تم تفعيل المصادقة الثنائية',
+    '2fa_disabled' => 'تم إلغاء المصادقة الثنائية',
+
+    // Login / Authentication
+    'login' => 'تسجيل الدخول',
+    'logout' => 'تسجيل الخروج',
+    'sign_in' => 'دخول',
+    'sign_out' => 'خروج',
+    'remember_me' => 'تذكرني',
+    'forgot_password' => 'نسيت كلمة المرور؟',
+    'reset_password' => 'إعادة تعيين كلمة المرور',
+    'send_reset_link' => 'إرسال رابط إعادة التعيين',
+    'login_failed' => 'بيانات الدخول غير صحيحة',
+    'account_locked' => 'تم قفل حسابك بسبب كثرة المحاولات الفاشلة',
+    'session_expired' => 'انتهت صلاحية الجلسة. يرجى تسجيل الدخول مجدداً.',
+
+    // Messages
+    'user_created' => 'تم إنشاء المستخدم بنجاح',
+    'user_updated' => 'تم تحديث المستخدم بنجاح',
+    'user_deleted' => 'تم حذف المستخدم بنجاح',
+    'role_created' => 'تم إنشاء الدور بنجاح',
+    'role_updated' => 'تم تحديث الدور بنجاح',
+    'role_deleted' => 'تم حذف الدور بنجاح',
+    'cannot_delete_system_role' => 'لا يمكن حذف أدوار النظام',
+    'cannot_delete_own_account' => 'لا يمكنك حذف حسابك الخاص',
+
+    // Impersonation
+    'impersonate' => 'انتحال الهوية',
+    'stop_impersonating' => 'إيقاف الانتحال',
+    'impersonating_user' => 'أنت تنتحل هوية :name',
+
+    // Access Policies
+    'access_policy' => 'سياسة الوصول',
+    'access_policies' => 'سياسات الوصول',
+    'policy_details' => 'تفاصيل السياسة',
+    'policy_name' => 'اسم السياسة',
+    'model_type' => 'نوع النموذج',
+    'model_type_help' => 'اسم الفئة الكامل للنموذج (مثال: Modules\\Patients\\Models\\Patient)',
+    'description' => 'الوصف',
+    'apply_to_all_roles' => 'تطبيق على جميع الأدوار',
+    'apply_to_all_roles_help' => 'عند التفعيل، تُطبق هذه السياسة على جميع الأدوار بغض النظر عن اختيار الدور',
+    'priority' => 'الأولوية',
+    'priority_help' => 'رقم أقل = أولوية أعلى. يتم تقييم السياسات حسب ترتيب الأولوية.',
+    'active' => 'نشط',
+    'created_at' => 'تاريخ الإنشاء',
+    'duplicate' => 'نسخ',
+    'all_roles' => 'جميع الأدوار',
+
+    // Permissions in Access Policies
+    'perm_read' => 'قراءة',
+    'perm_create' => 'إنشاء',
+    'perm_update' => 'تحديث',
+    'perm_delete' => 'حذف',
+
+    // Domain Filter
+    'domain_filter' => 'قواعد تصفية السجلات',
+    'field' => 'الحقل',
+    'operator' => 'المشغل',
+    'value' => 'القيمة',
+    'value_placeholders' => 'استخدم {user.id}, {user.branch_id}, {user.tenant_id}, {today}, {now}',
+    'add_condition' => 'إضافة شرط',
+    'domain_filter_help' => 'حدد الشروط لتصفية السجلات. سيرى المستخدمون فقط السجلات التي تطابق جميع الشروط.',
+
+    // Branch Roles
+    'branch_role' => 'دور الفرع',
+    'branch_roles' => 'أدوار الفروع',
+    'assign_branch_role' => 'تعيين دور للفرع',
+    'primary_branch' => 'الفرع الرئيسي',
+];
