@@ -107,26 +107,41 @@ class FrameworkServiceProvider extends ServiceProvider
      */
     protected function registerViewComposers(): void
     {
-        // Navigation composer - inject navigation data into all views
-        view()->composer('*', function ($view) {
-            if (auth()->check()) {
-                $navigationRegistry = app(NavigationRegistry::class);
-                $view->with('navigation', $navigationRegistry->getTree());
+        // Skip view composers for Filament panels - they handle their own navigation
+        // These composers are only for custom blade views outside Filament
+
+        // Navigation composer - inject navigation data into custom views only
+        view()->composer(['layouts.*', 'pages.*'], function ($view) {
+            try {
+                if (auth()->check() && class_exists(NavigationRegistry::class)) {
+                    $navigationRegistry = app(NavigationRegistry::class);
+                    $view->with('navigation', $navigationRegistry->getTree());
+                }
+            } catch (\Exception $e) {
+                // Silently ignore navigation errors
             }
         });
 
         // Quota composer - inject quota data for authenticated users
-        view()->composer('*', function ($view) {
-            if (auth()->check() && tenancy()->initialized) {
-                $quotaService = app(QuotaService::class);
-                $view->with('quotas', $quotaService->getDashboard());
+        view()->composer(['layouts.*', 'pages.*'], function ($view) {
+            try {
+                if (auth()->check() && function_exists('tenancy') && tenancy()->initialized) {
+                    $quotaService = app(QuotaService::class);
+                    $view->with('quotas', $quotaService->getDashboard());
+                }
+            } catch (\Exception $e) {
+                // Silently ignore quota errors
             }
         });
 
         // Tenant composer - inject current tenant data
-        view()->composer('*', function ($view) {
-            if (tenancy()->initialized) {
-                $view->with('currentTenant', tenant());
+        view()->composer(['layouts.*', 'pages.*'], function ($view) {
+            try {
+                if (function_exists('tenancy') && tenancy()->initialized) {
+                    $view->with('currentTenant', tenant());
+                }
+            } catch (\Exception $e) {
+                // Silently ignore tenant errors
             }
         });
     }

@@ -45,27 +45,26 @@ class SuperAdminPanelProvider extends PanelProvider
             // Dark Mode
             ->darkMode()
 
-            // Navigation Groups
+            // Navigation Groups with icons for double sidebar
             ->navigationGroups([
                 NavigationGroup::make('Tenants')
-                    ->icon('heroicon-o-building-office-2')
-                    ->label(__('Tenants')),
+                    ->label(__('Tenants'))
+                    ->icon('heroicon-o-building-office-2'),
                 NavigationGroup::make('Billing')
-                    ->icon('heroicon-o-credit-card')
-                    ->label(__('Billing')),
+                    ->label(__('Billing'))
+                    ->icon('heroicon-o-credit-card'),
                 NavigationGroup::make('Plans & Modules')
-                    ->icon('heroicon-o-puzzle-piece')
-                    ->label(__('Plans & Modules')),
+                    ->label(__('Plans & Modules'))
+                    ->icon('heroicon-o-cube'),
                 NavigationGroup::make('Support')
-                    ->icon('heroicon-o-ticket')
-                    ->label(__('Support')),
+                    ->label(__('Support'))
+                    ->icon('heroicon-o-lifebuoy'),
                 NavigationGroup::make('Monitoring')
-                    ->icon('heroicon-o-chart-bar')
-                    ->label(__('Monitoring')),
+                    ->label(__('Monitoring'))
+                    ->icon('heroicon-o-chart-bar'),
                 NavigationGroup::make('System')
-                    ->icon('heroicon-o-cog-6-tooth')
                     ->label(__('System'))
-                    ->collapsed(),
+                    ->icon('heroicon-o-cog-6-tooth'),
             ])
 
             // Resource Discovery

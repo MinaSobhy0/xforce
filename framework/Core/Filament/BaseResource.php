@@ -16,7 +16,7 @@ abstract class BaseResource extends Resource
     /**
      * The resource's navigation icon.
      */
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = null;
 
     /**
      * The resource's navigation group.
