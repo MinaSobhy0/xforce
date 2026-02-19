@@ -66,6 +66,39 @@
             </form>
         </x-filament::section>
 
+        {{-- Email Provider --}}
+        <x-filament::section
+            icon="heroicon-o-envelope"
+            icon-color="primary"
+            collapsible
+        >
+            <x-slot name="heading">
+                Email Provider
+            </x-slot>
+
+            <x-slot name="description">
+                Configure email delivery for transactional emails, notifications, and marketing campaigns.
+            </x-slot>
+
+            <form wire:submit="saveEmail">
+                {{ $this->emailForm }}
+
+                <div class="mt-4 flex items-center gap-3">
+                    <x-filament::button type="submit">
+                        Save Email Settings
+                    </x-filament::button>
+
+                    <x-filament::button
+                        type="button"
+                        color="gray"
+                        wire:click="testEmail"
+                    >
+                        Send Test Email
+                    </x-filament::button>
+                </div>
+            </form>
+        </x-filament::section>
+
         {{-- Cloud Storage --}}
         <x-filament::section
             icon="heroicon-o-cloud-arrow-up"
@@ -140,7 +173,7 @@
                 Integration Status
             </x-slot>
 
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
                 <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 text-center">
                     <div class="text-2xl mb-1">
                         @if($whatsappData['whatsapp_enabled'] ?? false)
@@ -161,6 +194,19 @@
                         @endif
                     </div>
                     <div class="text-sm text-gray-600 dark:text-gray-400">SMS</div>
+                </div>
+
+                <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 text-center">
+                    <div class="text-2xl mb-1">
+                        @if(!empty($emailData['email_provider']) && $emailData['email_provider'] !== 'smtp')
+                            <span class="text-green-500">&#10003;</span>
+                        @elseif(!empty($emailData['smtp_host']))
+                            <span class="text-green-500">&#10003;</span>
+                        @else
+                            <span class="text-yellow-500">!</span>
+                        @endif
+                    </div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400">Email</div>
                 </div>
 
                 <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 text-center">

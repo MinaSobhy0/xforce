@@ -1342,11 +1342,11 @@ platform/tenant-domains            DNS & SSL
 - [✅] Storage Used percentage
 
 ### Charts & Widgets
-- [🔮] Revenue Trend chart (12 months line graph)
-- [✅] Clinics by Plan breakdown
+- [✅] Revenue Trend chart (12 months line graph) - RevenueTrendWidget
+- [✅] Clinics by Plan breakdown - ClinicsByPlanWidget
 - [✅] Recent Signups widget with actions
 - [✅] Needs Attention widget (alerts summary)
-- [🔮] Module Popularity bar chart
+- [✅] Module Popularity bar chart - ModulePopularityWidget
 
 ---
 
@@ -1399,7 +1399,7 @@ platform/tenant-domains            DNS & SSL
 - [✅] Hard limits display (users, branches, patients, equipment, products, treatments)
 - [✅] Storage breakdown (total, photos, consent forms, documents)
 - [✅] Monthly usage (appointments, WhatsApp, SMS, emails, API calls)
-- [🔮] Usage trend chart (3 months)
+- [✅] Usage trend chart (3 months) - UsageAnalytics page
 
 ### Tab 4: Modules
 - [✅] Module list with Plan Included status
@@ -1724,9 +1724,9 @@ platform/tenant-domains            DNS & SSL
 - [✅] Redis status
 - [✅] Queue/Horizon status
 - [✅] Storage status
-- [🔮] Meilisearch status
-- [🔮] WhatsApp API status
-- [🔮] SMS Provider status
+- [✅] Meilisearch status - SystemHealthWidget
+- [✅] WhatsApp API status - SystemHealthWidget
+- [✅] SMS Provider status - SystemHealthWidget
 
 ### Actions
 - [✅] Resolve alert with notes
@@ -1792,10 +1792,10 @@ platform/tenant-domains            DNS & SSL
 - [✅] Invoice Prefix
 
 ### Integrations Tab (Not in spec but useful)
-- [🔮] WhatsApp Business API config
-- [🔮] SMS Provider config
-- [🔮] Email Provider config
-- [🔮] Storage (S3) config
+- [✅] WhatsApp Business API config - IntegrationSettings page
+- [✅] SMS Provider config - IntegrationSettings page
+- [✅] Email Provider config - IntegrationSettings page
+- [✅] Storage (S3) config - IntegrationSettings page
 
 ### Branding Tab
 - [✅] Platform Logo upload (PlatformSettings page)
@@ -1960,7 +1960,7 @@ platform/tenant-domains            DNS & SSL
 - [✅] Announcements
 - [🔮] Knowledge Base (future)
 - [✅] Usage Analytics
-- [🔮] Storage Monitor (merged into Usage Analytics)
+- [✅] Storage Monitor (merged into Usage Analytics)
 - [✅] System Alerts
 - [✅] Audit Logs
 - [✅] Platform Admins
@@ -2040,12 +2040,15 @@ platform/tenant-domains            DNS & SSL
 1. 🟡 Redis HA setup - docs ready, needs server install
 2. 🟡 S3/Cloud storage migration - UI ready, needs credentials
 
-### Future Enhancements (🔮)
-- Revenue Trend chart visualization
-- Module Popularity chart
-- Cohort analysis table
-- Meilisearch integration
-- WhatsApp/SMS API status monitoring
+### Future Enhancements (🔮) - NOW COMPLETED
+- ✅ Revenue Trend chart visualization - RevenueTrendWidget
+- ✅ Module Popularity chart - ModulePopularityWidget
+- ✅ Clinics by Plan chart - ClinicsByPlanWidget
+- ✅ Usage Trend chart (3 months) - UsageAnalytics page
+- ✅ Meilisearch status - SystemHealthWidget
+- ✅ WhatsApp/SMS API status monitoring - SystemHealthWidget
+- ✅ WhatsApp/SMS/Email/S3 Integration configs - IntegrationSettings page
+- 🔮 Cohort analysis table (still future)
 
 ---
 

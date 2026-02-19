@@ -86,6 +86,9 @@ class SuperAdminPanelProvider extends PanelProvider
             ->widgets([
                 Widgets\AccountWidget::class,
                 \App\Filament\SuperAdmin\Widgets\PlatformStatsWidget::class,
+                \App\Filament\SuperAdmin\Widgets\RevenueTrendWidget::class,
+                \App\Filament\SuperAdmin\Widgets\ClinicsByPlanWidget::class,
+                \App\Filament\SuperAdmin\Widgets\ModulePopularityWidget::class,
                 \App\Filament\SuperAdmin\Widgets\RecentSignupsWidget::class,
                 \App\Filament\SuperAdmin\Widgets\NeedsAttentionWidget::class,
             ])

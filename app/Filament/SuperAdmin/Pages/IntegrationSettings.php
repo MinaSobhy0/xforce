@@ -23,6 +23,7 @@ class IntegrationSettings extends Page
 
     public ?array $whatsappData = [];
     public ?array $smsData = [];
+    public ?array $emailData = [];
     public ?array $storageData = [];
     public ?array $paymentData = [];
 
@@ -43,6 +44,22 @@ class IntegrationSettings extends Page
             'sms_api_key' => PlatformSetting::get('sms_api_key', ''),
             'sms_api_secret' => PlatformSetting::get('sms_api_secret', ''),
             'sms_sender_id' => PlatformSetting::get('sms_sender_id', 'XLinic'),
+        ];
+
+        $this->emailData = [
+            'email_provider' => PlatformSetting::get('email_provider', 'smtp'),
+            'smtp_host' => PlatformSetting::get('smtp_host', config('mail.mailers.smtp.host', '')),
+            'smtp_port' => PlatformSetting::get('smtp_port', config('mail.mailers.smtp.port', 587)),
+            'smtp_username' => PlatformSetting::get('smtp_username', ''),
+            'smtp_password' => PlatformSetting::get('smtp_password', ''),
+            'smtp_encryption' => PlatformSetting::get('smtp_encryption', 'tls'),
+            'mail_from_address' => PlatformSetting::get('mail_from_address', config('mail.from.address', '')),
+            'mail_from_name' => PlatformSetting::get('mail_from_name', config('mail.from.name', '')),
+            'mailgun_domain' => PlatformSetting::get('mailgun_domain', ''),
+            'mailgun_secret' => PlatformSetting::get('mailgun_secret', ''),
+            'ses_key' => PlatformSetting::get('ses_key', ''),
+            'ses_secret' => PlatformSetting::get('ses_secret', ''),
+            'ses_region' => PlatformSetting::get('ses_region', 'us-east-1'),
         ];
 
         $this->storageData = [
@@ -147,6 +164,114 @@ class IntegrationSettings extends Page
                     ->visible(fn(Forms\Get $get) => $get('sms_enabled')),
             ])
             ->statePath('smsData');
+    }
+
+    public function emailForm(Form $form): Form
+    {
+        return $form
+            ->schema([
+                Forms\Components\Select::make('email_provider')
+                    ->label('Email Provider')
+                    ->options([
+                        'smtp' => 'SMTP Server',
+                        'mailgun' => 'Mailgun',
+                        'ses' => 'Amazon SES',
+                        'postmark' => 'Postmark',
+                        'sendgrid' => 'SendGrid',
+                    ])
+                    ->live(),
+
+                Forms\Components\Grid::make(2)
+                    ->schema([
+                        Forms\Components\TextInput::make('mail_from_address')
+                            ->label('From Email Address')
+                            ->email()
+                            ->required(),
+
+                        Forms\Components\TextInput::make('mail_from_name')
+                            ->label('From Name')
+                            ->required(),
+                    ]),
+
+                // SMTP Settings
+                Forms\Components\Fieldset::make('SMTP Configuration')
+                    ->visible(fn(Forms\Get $get) => $get('email_provider') === 'smtp')
+                    ->schema([
+                        Forms\Components\Grid::make(2)
+                            ->schema([
+                                Forms\Components\TextInput::make('smtp_host')
+                                    ->label('SMTP Host')
+                                    ->placeholder('smtp.example.com'),
+
+                                Forms\Components\TextInput::make('smtp_port')
+                                    ->label('Port')
+                                    ->numeric()
+                                    ->default(587),
+                            ]),
+
+                        Forms\Components\Grid::make(2)
+                            ->schema([
+                                Forms\Components\TextInput::make('smtp_username')
+                                    ->label('Username'),
+
+                                Forms\Components\TextInput::make('smtp_password')
+                                    ->label('Password')
+                                    ->password()
+                                    ->revealable(),
+                            ]),
+
+                        Forms\Components\Select::make('smtp_encryption')
+                            ->label('Encryption')
+                            ->options([
+                                'tls' => 'TLS',
+                                'ssl' => 'SSL',
+                                null => 'None',
+                            ])
+                            ->default('tls'),
+                    ]),
+
+                // Mailgun Settings
+                Forms\Components\Fieldset::make('Mailgun Configuration')
+                    ->visible(fn(Forms\Get $get) => $get('email_provider') === 'mailgun')
+                    ->schema([
+                        Forms\Components\TextInput::make('mailgun_domain')
+                            ->label('Domain')
+                            ->placeholder('mg.example.com'),
+
+                        Forms\Components\TextInput::make('mailgun_secret')
+                            ->label('API Key')
+                            ->password()
+                            ->revealable(),
+                    ]),
+
+                // Amazon SES Settings
+                Forms\Components\Fieldset::make('Amazon SES Configuration')
+                    ->visible(fn(Forms\Get $get) => $get('email_provider') === 'ses')
+                    ->schema([
+                        Forms\Components\TextInput::make('ses_key')
+                            ->label('Access Key ID')
+                            ->password()
+                            ->revealable(),
+
+                        Forms\Components\TextInput::make('ses_secret')
+                            ->label('Secret Access Key')
+                            ->password()
+                            ->revealable(),
+
+                        Forms\Components\Select::make('ses_region')
+                            ->label('Region')
+                            ->options([
+                                'us-east-1' => 'US East (N. Virginia)',
+                                'us-west-2' => 'US West (Oregon)',
+                                'eu-west-1' => 'Europe (Ireland)',
+                                'eu-central-1' => 'Europe (Frankfurt)',
+                                'ap-south-1' => 'Asia Pacific (Mumbai)',
+                                'ap-southeast-1' => 'Asia Pacific (Singapore)',
+                            ])
+                            ->default('us-east-1'),
+                    ]),
+            ])
+            ->statePath('emailData');
     }
 
     public function storageForm(Form $form): Form
@@ -282,6 +407,44 @@ class IntegrationSettings extends Page
             ->send();
     }
 
+    public function saveEmail(): void
+    {
+        foreach ($this->emailData as $key => $value) {
+            PlatformSetting::set($key, $value);
+        }
+
+        // Clear config cache to apply new mail settings
+        Artisan::call('config:clear');
+
+        Notification::make()
+            ->title('Email settings saved')
+            ->success()
+            ->send();
+    }
+
+    public function testEmail(): void
+    {
+        try {
+            // In production, this would send a test email
+            \Mail::raw('This is a test email from XLinic Platform.', function ($message) {
+                $message->to($this->emailData['mail_from_address'] ?? config('mail.from.address'))
+                    ->subject('XLinic Test Email');
+            });
+
+            Notification::make()
+                ->title('Test Email Sent')
+                ->body('Check your inbox for the test email')
+                ->success()
+                ->send();
+        } catch (\Exception $e) {
+            Notification::make()
+                ->title('Email Test Failed')
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
+        }
+    }
+
     public function saveStorage(): void
     {
         foreach ($this->storageData as $key => $value) {
@@ -358,6 +521,7 @@ class IntegrationSettings extends Page
         return [
             'whatsappForm',
             'smsForm',
+            'emailForm',
             'storageForm',
             'paymentForm',
         ];

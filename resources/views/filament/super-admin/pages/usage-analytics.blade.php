@@ -22,6 +22,15 @@
             </div>
         </x-filament::section>
 
+        {{-- Usage Trend Chart --}}
+        <x-filament::section>
+            <x-slot name="heading">Usage Trend (3 Months)</x-slot>
+
+            <div class="h-80">
+                <canvas id="usageTrendChart"></canvas>
+            </div>
+        </x-filament::section>
+
         {{-- Top Tenants by Usage --}}
         <x-filament::section>
             <x-slot name="heading">Top Tenants by Usage</x-slot>
@@ -88,4 +97,42 @@
             </div>
         </x-filament::section>
     </div>
+    @push('scripts')
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const ctx = document.getElementById('usageTrendChart');
+                if (ctx) {
+                    const chartData = @json($this->getUsageTrendData());
+                    new Chart(ctx, {
+                        type: 'line',
+                        data: chartData,
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'top',
+                                },
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        callback: function(value) {
+                                            return value.toLocaleString();
+                                        }
+                                    }
+                                }
+                            },
+                            interaction: {
+                                intersect: false,
+                                mode: 'index',
+                            },
+                        }
+                    });
+                }
+            });
+        </script>
+    @endpush
 </x-filament-panels::page>

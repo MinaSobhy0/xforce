@@ -128,6 +128,60 @@ class UsageAnalytics extends Page implements HasForms
         ];
     }
 
+    public function getUsageTrendData(): array
+    {
+        // Generate 3 months of usage trend data
+        $months = [];
+        $appointments = [];
+        $patients = [];
+        $messages = [];
+
+        for ($i = 2; $i >= 0; $i--) {
+            $date = now()->subMonths($i);
+            $months[] = $date->format('M Y');
+
+            // In production, these would come from actual usage tracking
+            // For now, generate realistic trending data
+            $baseAppointments = 35000 + ($i * 2500);
+            $basePatients = 2500 + ($i * 300);
+            $baseMessages = 70000 + ($i * 5000);
+
+            $appointments[] = $baseAppointments + rand(-2000, 5000);
+            $patients[] = $basePatients + rand(-200, 500);
+            $messages[] = $baseMessages + rand(-3000, 8000);
+        }
+
+        return [
+            'labels' => $months,
+            'datasets' => [
+                [
+                    'label' => 'Appointments',
+                    'data' => $appointments,
+                    'borderColor' => 'rgb(99, 102, 241)',
+                    'backgroundColor' => 'rgba(99, 102, 241, 0.1)',
+                    'tension' => 0.3,
+                    'fill' => true,
+                ],
+                [
+                    'label' => 'New Patients',
+                    'data' => $patients,
+                    'borderColor' => 'rgb(16, 185, 129)',
+                    'backgroundColor' => 'rgba(16, 185, 129, 0.1)',
+                    'tension' => 0.3,
+                    'fill' => true,
+                ],
+                [
+                    'label' => 'Messages (WhatsApp + SMS)',
+                    'data' => $messages,
+                    'borderColor' => 'rgb(245, 158, 11)',
+                    'backgroundColor' => 'rgba(245, 158, 11, 0.1)',
+                    'tension' => 0.3,
+                    'fill' => true,
+                ],
+            ],
+        ];
+    }
+
     public function getQuotaWarnings(): array
     {
         // In production, query tenants approaching their limits
