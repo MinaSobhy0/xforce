@@ -57,6 +57,10 @@ class SuperAdminPanelProvider extends PanelProvider
             // Dark Mode
             ->darkMode()
 
+            // Sidebar settings - ensure visible on desktop
+            ->sidebarCollapsibleOnDesktop(false)
+            ->sidebarFullyCollapsibleOnDesktop(false)
+
             // Navigation Groups with icons for double sidebar
             ->navigationGroups([
                 NavigationGroup::make('Tenants')
@@ -112,8 +116,8 @@ class SuperAdminPanelProvider extends PanelProvider
             ->databaseNotifications()
             ->databaseNotificationsPolling('30s')
 
-            // SPA Mode
-            ->spa()
+            // SPA Mode disabled - was causing sidebar issues
+            // ->spa()
 
             // Plugins
             ->plugin(
