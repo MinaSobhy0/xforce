@@ -432,12 +432,12 @@ class ViewTenant extends ViewRecord
                                         ->label('Users')
                                         ->formatStateUsing(function ($state, Tenant $record) {
                                             $limit = $record->max_users ?? '∞';
-                                            return ($state ?? 0) . ' / ' . $limit;
+                                            return ((int) ($state ?? 0)) . ' / ' . $limit;
                                         })
                                         ->color(function ($state, Tenant $record) {
                                             $limit = $record->max_users;
-                                            if (!$limit) return 'gray';
-                                            $pct = ($state ?? 0) / $limit * 100;
+                                            if (!$limit || !is_numeric($limit)) return 'gray';
+                                            $pct = ((int) ($state ?? 0)) / (int) $limit * 100;
                                             if ($pct >= 90) return 'danger';
                                             if ($pct >= 70) return 'warning';
                                             return 'success';
@@ -447,35 +447,35 @@ class ViewTenant extends ViewRecord
                                         ->label('Patients')
                                         ->formatStateUsing(function ($state, Tenant $record) {
                                             $limit = $record->max_patients ?? '∞';
-                                            return ($state ?? 0) . ' / ' . $limit;
+                                            return ((int) ($state ?? 0)) . ' / ' . $limit;
                                         }),
 
                                     Components\TextEntry::make('usage.branches')
                                         ->label('Branches')
                                         ->formatStateUsing(function ($state, Tenant $record) {
                                             $limit = $record->plan?->max_branches ?? '∞';
-                                            return ($state ?? 1) . ' / ' . $limit;
+                                            return ((int) ($state ?? 1)) . ' / ' . $limit;
                                         }),
 
                                     Components\TextEntry::make('usage.equipment')
                                         ->label('Equipment')
                                         ->formatStateUsing(function ($state, Tenant $record) {
                                             $limit = $record->plan?->max_equipment ?? '∞';
-                                            return ($state ?? 0) . ' / ' . $limit;
+                                            return ((int) ($state ?? 0)) . ' / ' . $limit;
                                         }),
 
                                     Components\TextEntry::make('usage.products')
                                         ->label('Products')
                                         ->formatStateUsing(function ($state, Tenant $record) {
                                             $limit = $record->plan?->max_products ?? '∞';
-                                            return ($state ?? 0) . ' / ' . $limit;
+                                            return ((int) ($state ?? 0)) . ' / ' . $limit;
                                         }),
 
                                     Components\TextEntry::make('usage.treatments')
                                         ->label('Treatments')
                                         ->formatStateUsing(function ($state, Tenant $record) {
                                             $limit = $record->plan?->max_treatments ?? '∞';
-                                            return ($state ?? 0) . ' / ' . $limit;
+                                            return ((int) ($state ?? 0)) . ' / ' . $limit;
                                         }),
                                 ]),
 
@@ -485,25 +485,25 @@ class ViewTenant extends ViewRecord
                                     Components\TextEntry::make('usage.storage_mb')
                                         ->label('Total Used')
                                         ->formatStateUsing(function ($state, Tenant $record) {
-                                            $used = round(($state ?? 0) / 1024, 2);
+                                            $used = round(((float) ($state ?? 0)) / 1024, 2);
                                             $limit = $record->max_storage_mb;
-                                            $limitGb = $limit ? round($limit / 1024, 1) : '∞';
+                                            $limitGb = $limit ? round((float) $limit / 1024, 1) : '∞';
                                             return "{$used} GB / {$limitGb} GB";
                                         }),
 
                                     Components\TextEntry::make('usage.storage_photos_mb')
                                         ->label('Photos')
-                                        ->formatStateUsing(fn($state) => round(($state ?? 0) / 1024, 2) . ' GB')
+                                        ->formatStateUsing(fn($state) => round(((float) ($state ?? 0)) / 1024, 2) . ' GB')
                                         ->default('0 GB'),
 
                                     Components\TextEntry::make('usage.storage_documents_mb')
                                         ->label('Documents')
-                                        ->formatStateUsing(fn($state) => round(($state ?? 0) / 1024, 2) . ' GB')
+                                        ->formatStateUsing(fn($state) => round(((float) ($state ?? 0)) / 1024, 2) . ' GB')
                                         ->default('0 GB'),
 
                                     Components\TextEntry::make('usage.storage_consent_mb')
                                         ->label('Consent Forms')
-                                        ->formatStateUsing(fn($state) => round(($state ?? 0) / 1024, 2) . ' GB')
+                                        ->formatStateUsing(fn($state) => round(((float) ($state ?? 0)) / 1024, 2) . ' GB')
                                         ->default('0 GB'),
                                 ]),
 
@@ -514,35 +514,35 @@ class ViewTenant extends ViewRecord
                                         ->label('Appointments')
                                         ->formatStateUsing(function ($state, Tenant $record) {
                                             $limit = $record->plan?->max_appointments_monthly ?? '∞';
-                                            return ($state ?? 0) . ' / ' . $limit;
+                                            return ((int) ($state ?? 0)) . ' / ' . $limit;
                                         }),
 
                                     Components\TextEntry::make('usage.whatsapp_this_month')
                                         ->label('WhatsApp')
                                         ->formatStateUsing(function ($state, Tenant $record) {
                                             $limit = $record->plan?->max_whatsapp_monthly ?? '∞';
-                                            return ($state ?? 0) . ' / ' . $limit;
+                                            return ((int) ($state ?? 0)) . ' / ' . $limit;
                                         }),
 
                                     Components\TextEntry::make('usage.sms_this_month')
                                         ->label('SMS')
                                         ->formatStateUsing(function ($state, Tenant $record) {
                                             $limit = $record->plan?->max_sms_monthly ?? '∞';
-                                            return ($state ?? 0) . ' / ' . $limit;
+                                            return ((int) ($state ?? 0)) . ' / ' . $limit;
                                         }),
 
                                     Components\TextEntry::make('usage.emails_this_month')
                                         ->label('Emails')
                                         ->formatStateUsing(function ($state, Tenant $record) {
                                             $limit = $record->plan?->max_emails_monthly ?? '∞';
-                                            return ($state ?? 0) . ' / ' . $limit;
+                                            return ((int) ($state ?? 0)) . ' / ' . $limit;
                                         }),
 
                                     Components\TextEntry::make('usage.api_calls_today')
                                         ->label('API Calls (Today)')
                                         ->formatStateUsing(function ($state, Tenant $record) {
                                             $limit = $record->plan?->max_api_calls_daily ?? '∞';
-                                            return ($state ?? 0) . ' / ' . $limit;
+                                            return ((int) ($state ?? 0)) . ' / ' . $limit;
                                         }),
                                 ]),
                         ]),
