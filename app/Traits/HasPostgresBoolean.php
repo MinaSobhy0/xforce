@@ -37,19 +37,18 @@ trait HasPostgresBoolean
                         [$this->getKey()]
                     );
 
-                    // Remove from dirty so parent doesn't try to update it
-                    unset($this->attributes[$field]);
-                    $this->syncOriginalAttribute($field);
+                    // Set the attribute to the boolean value and sync to original
+                    // so it's no longer considered dirty
                     $this->attributes[$field] = $value;
+                    $this->original[$field] = $value;
                 }
             }
 
-            // Get remaining dirty attributes
-            $remainingDirty = array_diff_key($dirty, array_flip($booleanFields));
+            // Get remaining dirty attributes (recalculate after syncing)
+            $remainingDirty = $this->getDirty();
 
             if (empty($remainingDirty)) {
                 // All updates were boolean fields, handled above
-                $this->syncOriginal();
                 $this->fireModelEvent('updated', false);
                 return true;
             }
