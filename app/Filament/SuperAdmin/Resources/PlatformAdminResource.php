@@ -42,8 +42,14 @@ class PlatformAdminResource extends Resource
                 ->columns(2)
                 ->schema([
                     Forms\Components\TextInput::make('name')
+                        ->label('Name')
                         ->required()
-                        ->maxLength(255),
+                        ->maxLength(255)
+                        ->afterStateHydrated(function ($component, $record) {
+                            if ($record) {
+                                $component->state(trim($record->first_name . ' ' . $record->last_name));
+                            }
+                        }),
 
                     Forms\Components\TextInput::make('email')
                         ->email()
@@ -92,7 +98,7 @@ class PlatformAdminResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('name')
-                    ->searchable()
+                    ->searchable(['first_name', 'last_name'])
                     ->weight(FontWeight::Bold),
 
                 Tables\Columns\TextColumn::make('email')
