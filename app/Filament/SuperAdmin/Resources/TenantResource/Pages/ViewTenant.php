@@ -643,7 +643,7 @@ class ViewTenant extends ViewRecord
                                     Components\TextEntry::make('status')
                                         ->label('Status')
                                         ->badge()
-                                        ->color(fn(?string $state) => match ($state) {
+                                        ->color(fn(mixed $state) => match ((string) ($state?->value ?? $state)) {
                                             'active' => 'success',
                                             'inactive' => 'gray',
                                             'suspended' => 'danger',
