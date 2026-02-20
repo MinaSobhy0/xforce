@@ -2,7 +2,7 @@
 
 namespace Modules\Marketing\Models;
 
-use App\Models\BaseModel;
+use XLinic\Framework\Core\Model\BaseModel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Modules\Patients\Models\Patient;
