@@ -162,7 +162,7 @@ class StaffProfileResource extends Resource
 
                 Tables\Columns\TextColumn::make('branch.name')
                     ->label(__('staff::staff.fields.branch'))
-                    ->getStateUsing(fn (StaffProfile $record) => $record->branch?->getTranslation('name', app()->getLocale())),
+                    ->getStateUsing(fn (StaffProfile $record) => $record->branch?->name),
 
                 Tables\Columns\TextColumn::make('commission_type')
                     ->label(__('staff::staff.fields.commission_type'))

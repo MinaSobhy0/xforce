@@ -54,7 +54,7 @@ class StockLevelsRelationManager extends RelationManager
             ->columns([
                 Tables\Columns\TextColumn::make('branch.name')
                     ->label(__('inventory::inventory.fields.branch'))
-                    ->getStateUsing(fn (StockLevel $record) => $record->branch?->getTranslation('name', app()->getLocale()))
+                    ->getStateUsing(fn (StockLevel $record) => $record->branch?->name)
                     ->searchable(),
 
                 Tables\Columns\TextColumn::make('quantity_on_hand')

@@ -227,7 +227,7 @@ class PurchaseOrderResource extends Resource
 
                 Tables\Columns\TextColumn::make('branch.name')
                     ->label(__('inventory::inventory.fields.branch'))
-                    ->getStateUsing(fn (PurchaseOrder $record) => $record->branch?->getTranslation('name', app()->getLocale())),
+                    ->getStateUsing(fn (PurchaseOrder $record) => $record->branch?->name),
 
                 Tables\Columns\TextColumn::make('status')
                     ->label(__('inventory::inventory.fields.status'))

@@ -28,7 +28,7 @@ class StockMovementsRelationManager extends RelationManager
 
                 Tables\Columns\TextColumn::make('branch.name')
                     ->label(__('inventory::inventory.fields.branch'))
-                    ->getStateUsing(fn (StockMovement $record) => $record->branch?->getTranslation('name', app()->getLocale())),
+                    ->getStateUsing(fn (StockMovement $record) => $record->branch?->name),
 
                 Tables\Columns\TextColumn::make('movement_type')
                     ->label(__('inventory::inventory.fields.movement_type'))
