@@ -270,48 +270,29 @@ class PlatformSettings extends Page implements HasForms
                                     ->image()
                                     ->directory('platform/branding')
                                     ->disk('public')
-                                    ->imageEditor()
-                                    ->imageResizeMode('cover')
-                                    ->imageCropAspectRatio('3:1')
-                                    ->imageResizeTargetWidth('600')
-                                    ->imageResizeTargetHeight('200')
-                                    ->helperText('Used in admin panels. Recommended: 600x200px, PNG or SVG'),
+                                    ->helperText('Used in admin panels. PNG or SVG recommended.'),
 
                                 Forms\Components\FileUpload::make('website_logo')
                                     ->label('Website Logo')
                                     ->image()
                                     ->directory('platform/branding')
                                     ->disk('public')
-                                    ->imageEditor()
-                                    ->imageResizeMode('cover')
-                                    ->imageCropAspectRatio('3:1')
-                                    ->imageResizeTargetWidth('600')
-                                    ->imageResizeTargetHeight('200')
-                                    ->helperText('Used on landing page. Recommended: 600x200px, PNG or SVG'),
+                                    ->helperText('Used on landing page. PNG or SVG recommended.'),
 
                                 Forms\Components\FileUpload::make('favicon')
                                     ->label('Favicon')
                                     ->image()
                                     ->directory('platform/branding')
                                     ->disk('public')
-                                    ->imageEditor()
-                                    ->imageResizeMode('cover')
-                                    ->imageCropAspectRatio('1:1')
-                                    ->imageResizeTargetWidth('64')
-                                    ->imageResizeTargetHeight('64')
                                     ->acceptedFileTypes(['image/png', 'image/x-icon', 'image/svg+xml'])
-                                    ->helperText('Recommended: 64x64px, PNG or ICO'),
+                                    ->helperText('PNG or ICO recommended.'),
 
                                 Forms\Components\FileUpload::make('login_page_image')
                                     ->label('Login Page Image')
                                     ->image()
                                     ->directory('platform/branding')
                                     ->disk('public')
-                                    ->imageEditor()
-                                    ->imageResizeMode('cover')
-                                    ->imageResizeTargetWidth('1920')
-                                    ->imageResizeTargetHeight('1080')
-                                    ->helperText('Recommended: 1920x1080px, JPG or PNG'),
+                                    ->helperText('JPG or PNG recommended.'),
                             ])
                             ->columns(2),
 
