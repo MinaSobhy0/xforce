@@ -122,6 +122,78 @@ class Tenant extends BaseModel
                 'patient_portal_enabled' => true,
             ], $tenant->settings ?? []);
         });
+
+        // Auto-create subdomain record when tenant is created
+        static::created(function (self $tenant) {
+            if ($tenant->slug) {
+                \DB::statement("
+                    INSERT INTO tenant_domains (id, tenant_id, domain, type, is_primary, is_verified, ssl_status, dns_verified_at, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, true, true, ?, ?, ?, ?)
+                ", [
+                    (string) Str::uuid(),
+                    $tenant->id,
+                    $tenant->slug . '.xlinic.com',
+                    'subdomain',
+                    'valid',
+                    now(),
+                    now(),
+                    now(),
+                ]);
+            }
+
+            // Also create custom domain if provided
+            if ($tenant->domain) {
+                \DB::statement("
+                    INSERT INTO tenant_domains (id, tenant_id, domain, type, is_primary, is_verified, ssl_status, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, false, false, ?, ?, ?)
+                ", [
+                    (string) Str::uuid(),
+                    $tenant->id,
+                    $tenant->domain,
+                    'custom',
+                    'pending',
+                    now(),
+                    now(),
+                ]);
+            }
+        });
+
+        // Auto-update domain records when tenant is updated
+        static::updated(function (self $tenant) {
+            // Update subdomain if slug changed
+            if ($tenant->isDirty('slug')) {
+                $tenant->domains()
+                    ->where('type', 'subdomain')
+                    ->update(['domain' => $tenant->slug . '.xlinic.com']);
+            }
+
+            // Handle custom domain changes
+            if ($tenant->isDirty('domain')) {
+                $oldDomain = $tenant->getOriginal('domain');
+                $newDomain = $tenant->domain;
+
+                // Remove old custom domain if it existed
+                if ($oldDomain) {
+                    $tenant->domains()->where('domain', $oldDomain)->delete();
+                }
+
+                // Add new custom domain if provided
+                if ($newDomain) {
+                    \DB::statement("
+                        INSERT INTO tenant_domains (id, tenant_id, domain, type, is_primary, is_verified, ssl_status, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, false, false, ?, ?, ?)
+                    ", [
+                        (string) Str::uuid(),
+                        $tenant->id,
+                        $newDomain,
+                        'custom',
+                        'pending',
+                        now(),
+                        now(),
+                    ]);
+                }
+            }
+        });
     }
 
     public function scopeActive($query)
@@ -177,6 +249,16 @@ class Tenant extends BaseModel
     public function addonSubscriptions(): HasMany
     {
         return $this->hasMany(\App\Models\TenantAddonSubscription::class);
+    }
+
+    public function domains(): HasMany
+    {
+        return $this->hasMany(\App\Models\TenantDomain::class);
+    }
+
+    public function primaryDomain(): HasOne
+    {
+        return $this->hasOne(\App\Models\TenantDomain::class)->where('is_primary', true);
     }
 
     public function addOns(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
