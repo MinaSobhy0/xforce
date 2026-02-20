@@ -385,8 +385,11 @@ class IntegrationSettings extends Page
 
     public function saveWhatsapp(): void
     {
+        $booleanFields = ['whatsapp_enabled'];
+
         foreach ($this->whatsappData as $key => $value) {
-            PlatformSetting::set($key, $value);
+            $type = in_array($key, $booleanFields) ? 'boolean' : 'string';
+            PlatformSetting::set($key, $value, 'whatsapp', $type);
         }
 
         Notification::make()
@@ -397,8 +400,11 @@ class IntegrationSettings extends Page
 
     public function saveSms(): void
     {
+        $booleanFields = ['sms_enabled'];
+
         foreach ($this->smsData as $key => $value) {
-            PlatformSetting::set($key, $value);
+            $type = in_array($key, $booleanFields) ? 'boolean' : 'string';
+            PlatformSetting::set($key, $value, 'sms', $type);
         }
 
         Notification::make()
@@ -409,8 +415,11 @@ class IntegrationSettings extends Page
 
     public function saveEmail(): void
     {
+        $integerFields = ['smtp_port'];
+
         foreach ($this->emailData as $key => $value) {
-            PlatformSetting::set($key, $value);
+            $type = in_array($key, $integerFields) ? 'integer' : 'string';
+            PlatformSetting::set($key, $value, 'email', $type);
         }
 
         // Clear config cache to apply new mail settings
@@ -448,7 +457,7 @@ class IntegrationSettings extends Page
     public function saveStorage(): void
     {
         foreach ($this->storageData as $key => $value) {
-            PlatformSetting::set($key, $value);
+            PlatformSetting::set($key, $value, 'storage', 'string');
         }
 
         // Clear config cache to apply new storage settings
@@ -463,7 +472,7 @@ class IntegrationSettings extends Page
     public function savePayment(): void
     {
         foreach ($this->paymentData as $key => $value) {
-            PlatformSetting::set($key, $value);
+            PlatformSetting::set($key, $value, 'payment', 'string');
         }
 
         Notification::make()

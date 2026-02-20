@@ -78,8 +78,11 @@ class SecuritySettings extends Page
 
     public function saveRecaptcha(): void
     {
+        $booleanFields = ['recaptcha_enabled'];
+
         foreach ($this->recaptchaData as $key => $value) {
-            PlatformSetting::set($key, $value);
+            $type = in_array($key, $booleanFields) ? 'boolean' : 'string';
+            PlatformSetting::set($key, $value, 'security', $type);
         }
 
         Notification::make()
