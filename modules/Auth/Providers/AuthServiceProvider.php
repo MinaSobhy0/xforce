@@ -13,8 +13,14 @@ class AuthServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->registerConfig();
+        $this->registerTranslations();
         $this->registerViews();
         $this->loadMigrationsFrom(module_path($this->moduleName, 'Migrations'));
+    }
+
+    protected function registerTranslations(): void
+    {
+        $this->loadTranslationsFrom(module_path($this->moduleName, 'Lang'), $this->moduleNameLower);
     }
 
     public function register(): void
