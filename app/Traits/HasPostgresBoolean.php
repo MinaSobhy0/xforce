@@ -76,10 +76,11 @@ trait HasPostgresBoolean
             return parent::performInsert($query);
         }
 
-        // Generate UUID if model uses HasUuids and id is not set
-        if (in_array(\Illuminate\Database\Eloquent\Concerns\HasUuids::class, class_uses_recursive($this))) {
-            if (empty($this->attributes[$this->getKeyName()])) {
-                $this->attributes[$this->getKeyName()] = (string) \Illuminate\Support\Str::uuid();
+        // Generate UUID if id is not set (handles both HasUuids trait and manual UUID generation)
+        if (empty($this->attributes[$this->getKeyName()])) {
+            // Check if model is non-incrementing (uses UUIDs)
+            if (!$this->getIncrementing()) {
+                $this->attributes[$this->getKeyName()] = (string) \Illuminate\Support\Str::orderedUuid();
             }
         }
 
