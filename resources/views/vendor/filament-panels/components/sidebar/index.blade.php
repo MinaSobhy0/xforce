@@ -5,14 +5,9 @@
 @php
     $openSidebarClasses = 'fi-sidebar-open translate-x-0 shadow-xl ring-1 ring-gray-950/5 dark:ring-white/10 rtl:-translate-x-0';
     $isRtl = __('filament-panels::layout.direction') === 'rtl';
-    $currentPanel = filament()->getCurrentPanel()?->getId();
 @endphp
 
-{{-- Simple sidebar for admin (tenant) panel --}}
-@if($currentPanel === 'admin')
-    @include('filament.admin.components.sidebar', ['navigation' => $navigation])
-@else
-{{-- Double sidebar for super-admin panel --}}
+{{-- format-ignore-start --}}
 <aside
     x-data="{
         activeGroup: null,
@@ -190,5 +185,4 @@
         </div>
     </div>
 </aside>
-@endif
 {{-- format-ignore-end --}}
