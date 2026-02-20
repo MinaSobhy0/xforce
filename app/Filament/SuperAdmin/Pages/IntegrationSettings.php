@@ -26,6 +26,7 @@ class IntegrationSettings extends Page
     public ?array $emailData = [];
     public ?array $storageData = [];
     public ?array $paymentData = [];
+    public ?array $recaptchaData = [];
 
     public function mount(): void
     {
@@ -81,6 +82,12 @@ class IntegrationSettings extends Page
             'stripe_key' => PlatformSetting::get('stripe_key', ''),
             'stripe_secret' => PlatformSetting::get('stripe_secret', ''),
             'stripe_webhook_secret' => PlatformSetting::get('stripe_webhook_secret', ''),
+        ];
+
+        $this->recaptchaData = [
+            'recaptcha_enabled' => PlatformSetting::get('recaptcha_enabled', false),
+            'recaptcha_site_key' => PlatformSetting::get('recaptcha_site_key', ''),
+            'recaptcha_secret_key' => PlatformSetting::get('recaptcha_secret_key', ''),
         ];
     }
 
@@ -516,6 +523,45 @@ class IntegrationSettings extends Page
         }
     }
 
+    public function recaptchaForm(Form $form): Form
+    {
+        return $form
+            ->schema([
+                Forms\Components\Toggle::make('recaptcha_enabled')
+                    ->label('Enable reCAPTCHA')
+                    ->helperText('Protect contact form from spam')
+                    ->live(),
+
+                Forms\Components\TextInput::make('recaptcha_site_key')
+                    ->label('Site Key')
+                    ->placeholder('6Lc...')
+                    ->visible(fn(Forms\Get $get) => $get('recaptcha_enabled')),
+
+                Forms\Components\TextInput::make('recaptcha_secret_key')
+                    ->label('Secret Key')
+                    ->password()
+                    ->revealable()
+                    ->visible(fn(Forms\Get $get) => $get('recaptcha_enabled')),
+
+                Forms\Components\Placeholder::make('recaptcha_info')
+                    ->content('Get your reCAPTCHA keys from https://www.google.com/recaptcha/admin')
+                    ->visible(fn(Forms\Get $get) => $get('recaptcha_enabled')),
+            ])
+            ->statePath('recaptchaData');
+    }
+
+    public function saveRecaptcha(): void
+    {
+        foreach ($this->recaptchaData as $key => $value) {
+            PlatformSetting::set($key, $value);
+        }
+
+        Notification::make()
+            ->title('reCAPTCHA settings saved')
+            ->success()
+            ->send();
+    }
+
     protected function getForms(): array
     {
         return [
@@ -524,6 +570,7 @@ class IntegrationSettings extends Page
             'emailForm',
             'storageForm',
             'paymentForm',
+            'recaptchaForm',
         ];
     }
 }

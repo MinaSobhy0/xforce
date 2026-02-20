@@ -5,16 +5,23 @@
     $websiteLogo = PlatformSetting::get('website_logo') ?: PlatformSetting::get('platform_logo');
     $primaryColor = PlatformSetting::get('primary_color', '#3b82f6');
     $footerText = PlatformSetting::get('footer_text', '© ' . date('Y') . ' XLinic. All rights reserved.');
+    $supportEmail = PlatformSetting::get('support_email', 'support@xlinic.com');
+    $recaptchaEnabled = PlatformSetting::get('recaptcha_enabled', false);
+    $recaptchaSiteKey = PlatformSetting::get('recaptcha_site_key', '');
 @endphp
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $platformName }} - Clinic Management Platform</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    @if($recaptchaEnabled && $recaptchaSiteKey)
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    @endif
     <style>
         * {
             margin: 0;
@@ -117,6 +124,7 @@
         .btn-primary {
             display: inline-flex;
             align-items: center;
+            justify-content: center;
             gap: 0.5rem;
             background: linear-gradient(135deg, {{ $primaryColor }} 0%, #8b5cf6 100%);
             color: white;
@@ -126,11 +134,20 @@
             font-weight: 600;
             transition: transform 0.2s, box-shadow 0.2s;
             box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
         }
 
         .btn-primary:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 25px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
         }
 
         main {
@@ -140,7 +157,7 @@
             justify-content: center;
             align-items: center;
             text-align: center;
-            padding: 4rem 0;
+            padding: 2rem 0;
         }
 
         .hero-badge {
@@ -162,10 +179,10 @@
         }
 
         h1 {
-            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-size: clamp(2rem, 4vw, 3rem);
             font-weight: 700;
             line-height: 1.1;
-            margin-bottom: 1.5rem;
+            margin-bottom: 1rem;
             max-width: 800px;
         }
 
@@ -177,44 +194,134 @@
         }
 
         .hero-description {
-            font-size: 1.25rem;
+            font-size: 1.125rem;
             color: #94a3b8;
             max-width: 600px;
             line-height: 1.7;
-            margin-bottom: 3rem;
+            margin-bottom: 2rem;
         }
 
-        .cta-buttons {
-            display: flex;
+        /* Contact Form */
+        .contact-section {
+            width: 100%;
+            max-width: 600px;
+            margin: 2rem auto;
+        }
+
+        .contact-form {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            padding: 2rem;
+            text-align: left;
+        }
+
+        .contact-form h2 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: #f1f5f9;
+        }
+
+        .contact-form .subtitle {
+            color: #94a3b8;
+            margin-bottom: 1.5rem;
+            font-size: 0.9375rem;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
             gap: 1rem;
-            flex-wrap: wrap;
-            justify-content: center;
         }
 
-        .btn-secondary {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group.full-width {
+            grid-column: span 2;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #e2e8f0;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-group label .required {
+            color: #f87171;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem 1rem;
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
             color: #e2e8f0;
-            padding: 0.75rem 1.5rem;
-            border-radius: 10px;
-            text-decoration: none;
-            font-weight: 600;
-            transition: all 0.2s;
+            font-size: 1rem;
+            font-family: inherit;
+            transition: border-color 0.2s, background 0.2s;
         }
 
-        .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.1);
-            border-color: rgba(255, 255, 255, 0.2);
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: {{ $primaryColor }};
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .form-group input::placeholder,
+        .form-group textarea::placeholder {
+            color: #64748b;
+        }
+
+        .form-group select option {
+            background: #1e293b;
+            color: #e2e8f0;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-actions {
+            margin-top: 1.5rem;
+        }
+
+        .form-actions .btn-primary {
+            width: 100%;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .alert-success {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: #4ade80;
+        }
+
+        .alert-error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #f87171;
         }
 
         .features {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 1.5rem;
-            margin-top: 5rem;
+            margin-top: 3rem;
             width: 100%;
         }
 
@@ -279,19 +386,25 @@
             color: #e2e8f0;
         }
 
+        .g-recaptcha {
+            margin-top: 1rem;
+        }
+
         @media (max-width: 640px) {
             .header-links {
                 display: none;
             }
 
-            .cta-buttons {
-                flex-direction: column;
-                width: 100%;
+            .form-grid {
+                grid-template-columns: 1fr;
             }
 
-            .btn-primary, .btn-secondary {
-                width: 100%;
-                justify-content: center;
+            .form-group.full-width {
+                grid-column: span 1;
+            }
+
+            .contact-form {
+                padding: 1.5rem;
             }
         }
     </style>
@@ -315,8 +428,7 @@
             </div>
 
             <div class="header-links">
-                <a href="/admin">Clinic Owner Portal</a>
-                <a href="/platform">Platform Admin</a>
+                <a href="#contact">Contact Us</a>
             </div>
         </header>
 
@@ -335,21 +447,86 @@
                 Manage patients, appointments, treatments, and grow your business - all in one place.
             </p>
 
-            <div class="cta-buttons">
-                <a href="/admin" class="btn-primary">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
-                    </svg>
-                    Access Admin Portal
-                </a>
-                <a href="/platform" class="btn-secondary">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 0 1 1.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.559.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.894.149c-.424.07-.764.383-.929.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 0 1-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.398.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 0 1-.12-1.45l.527-.737c.25-.35.272-.806.108-1.204-.165-.397-.506-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.108-1.204l-.526-.738a1.125 1.125 0 0 1 .12-1.45l.773-.773a1.125 1.125 0 0 1 1.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894Z" />
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                    </svg>
-                    Platform Admin
-                </a>
-            </div>
+            <!-- Contact Form -->
+            <section class="contact-section" id="contact">
+                <div class="contact-form">
+                    <h2>Get Started Today</h2>
+                    <p class="subtitle">Fill out the form below and we'll get in touch with you.</p>
+
+                    @if(session('success'))
+                        <div class="alert alert-success">
+                            {{ session('success') }}
+                        </div>
+                    @endif
+
+                    @if($errors->any())
+                        <div class="alert alert-error">
+                            @foreach($errors->all() as $error)
+                                <p>{{ $error }}</p>
+                            @endforeach
+                        </div>
+                    @endif
+
+                    <form action="{{ route('contact.submit') }}" method="POST">
+                        @csrf
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="clinic_name">Clinic Name <span class="required">*</span></label>
+                                <input type="text" id="clinic_name" name="clinic_name" value="{{ old('clinic_name') }}" required placeholder="Your clinic name">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="contact_name">Your Name <span class="required">*</span></label>
+                                <input type="text" id="contact_name" name="contact_name" value="{{ old('contact_name') }}" required placeholder="Full name">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="email">Email <span class="required">*</span></label>
+                                <input type="email" id="email" name="email" value="{{ old('email') }}" required placeholder="your@email.com">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="phone">Phone <span class="required">*</span></label>
+                                <input type="tel" id="phone" name="phone" value="{{ old('phone') }}" required placeholder="+20 123 456 7890">
+                            </div>
+
+                            <div class="form-group full-width">
+                                <label for="country">Country <span class="required">*</span></label>
+                                <select id="country" name="country" required>
+                                    <option value="">Select your country</option>
+                                    <option value="EG" {{ old('country') == 'EG' ? 'selected' : '' }}>Egypt</option>
+                                    <option value="SA" {{ old('country') == 'SA' ? 'selected' : '' }}>Saudi Arabia</option>
+                                    <option value="AE" {{ old('country') == 'AE' ? 'selected' : '' }}>UAE</option>
+                                    <option value="KW" {{ old('country') == 'KW' ? 'selected' : '' }}>Kuwait</option>
+                                    <option value="QA" {{ old('country') == 'QA' ? 'selected' : '' }}>Qatar</option>
+                                    <option value="BH" {{ old('country') == 'BH' ? 'selected' : '' }}>Bahrain</option>
+                                    <option value="OM" {{ old('country') == 'OM' ? 'selected' : '' }}>Oman</option>
+                                    <option value="JO" {{ old('country') == 'JO' ? 'selected' : '' }}>Jordan</option>
+                                    <option value="LB" {{ old('country') == 'LB' ? 'selected' : '' }}>Lebanon</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group full-width">
+                                <label for="message">Message</label>
+                                <textarea id="message" name="message" placeholder="Tell us about your clinic and what you're looking for...">{{ old('message') }}</textarea>
+                            </div>
+                        </div>
+
+                        @if($recaptchaEnabled && $recaptchaSiteKey)
+                        <div class="g-recaptcha" data-sitekey="{{ $recaptchaSiteKey }}" data-theme="dark"></div>
+                        @endif
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn-primary">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
+                                </svg>
+                                Send Inquiry
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </section>
 
             <div class="features">
                 <div class="feature-card">
@@ -385,7 +562,7 @@
         </main>
 
         <footer>
-            <p>{!! $footerText !!} | <a href="/admin">Clinic Owner Portal</a></p>
+            <p>{!! $footerText !!}</p>
         </footer>
     </div>
 </body>
