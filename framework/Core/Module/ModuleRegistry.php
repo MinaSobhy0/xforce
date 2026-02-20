@@ -39,14 +39,13 @@ class ModuleRegistry
      */
     public function isActive(string $code): bool
     {
-        $tenant = $this->tenantManager->current();
-        $tenantId = $tenant?->id ?? 'system';
-
-        if (!isset($this->activeModulesCache[$tenantId])) {
-            $this->activeModulesCache[$tenantId] = $this->loadActiveModules($tenantId);
-        }
-
-        return in_array($code, $this->activeModulesCache[$tenantId]);
+        // TODO: Implement proper tenant module activation from database
+        // For now, all registered modules are considered active
+        // This ensures translations and providers load correctly
+        // When tenant_modules system is implemented, this will check:
+        // 1. If module is core (always active)
+        // 2. If module is explicitly activated for this tenant in database
+        return isset($this->modules[$code]);
     }
 
     /**
@@ -126,16 +125,11 @@ class ModuleRegistry
 
         return Cache::tags(['tenant:' . $tenantId, 'modules'])
             ->remember("active_modules:{$tenantId}", 3600, function () use ($tenantId) {
-                // This would query the tenant_modules table in tenant context
-                // For now, return core modules as always active
-                $coreModules = array_filter(
-                    array_keys($this->modules),
-                    fn($code) => $this->modules[$code]->isCore()
-                );
-
-                // Add modules that are activated for this tenant
-                // This would be loaded from database in real implementation
-                return $coreModules;
+                // TODO: Query the tenant_modules table for active modules
+                // For now, return all modules as active to ensure translations load
+                // This will be replaced with proper database lookup when
+                // tenant_modules activation system is implemented
+                return array_keys($this->modules);
             });
     }
 }

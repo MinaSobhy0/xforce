@@ -19,6 +19,7 @@ class ModuleManager
 
     /**
      * Discover modules from the modules directory.
+     * Supports both legacy *Manifest.php files and new module.json format.
      */
     public function discoverModules(string $path): void
     {
@@ -30,13 +31,24 @@ class ModuleManager
 
         foreach ($directories as $moduleDirectory) {
             $moduleName = basename($moduleDirectory);
-            $manifestPath = $moduleDirectory . '/' . $moduleName . 'Manifest.php';
 
+            // Try legacy Manifest.php first
+            $manifestPath = $moduleDirectory . '/' . $moduleName . 'Manifest.php';
             if (File::exists($manifestPath)) {
                 $manifestClass = "Modules\\{$moduleName}\\{$moduleName}Manifest";
-
                 if (class_exists($manifestClass)) {
                     $manifest = new $manifestClass();
+                    $this->discoveredModules[$manifest->code] = $manifest;
+                    continue;
+                }
+            }
+
+            // Try module.json format
+            $jsonPath = $moduleDirectory . '/module.json';
+            if (File::exists($jsonPath)) {
+                $config = json_decode(File::get($jsonPath), true);
+                if ($config) {
+                    $manifest = new JsonModuleManifest($config, $moduleDirectory);
                     $this->discoveredModules[$manifest->code] = $manifest;
                 }
             }
@@ -74,10 +86,19 @@ class ModuleManager
      */
     public function bootModule(ModuleManifest $manifest): void
     {
-        // Register service provider
-        $serviceProviderClass = $manifest->getServiceProviderClass();
-        if (class_exists($serviceProviderClass)) {
-            app()->register($serviceProviderClass);
+        // Handle JsonModuleManifest - register all providers
+        if ($manifest instanceof JsonModuleManifest) {
+            foreach ($manifest->getServiceProviders() as $providerClass) {
+                if (class_exists($providerClass)) {
+                    app()->register($providerClass);
+                }
+            }
+        } else {
+            // Register single service provider for legacy manifests
+            $serviceProviderClass = $manifest->getServiceProviderClass();
+            if (class_exists($serviceProviderClass)) {
+                app()->register($serviceProviderClass);
+            }
         }
 
         // Register models
@@ -97,17 +118,21 @@ class ModuleManager
             }
         }
 
-        // Register permissions
-        app(\XLinic\Framework\Core\Security\PermissionRegistry::class)
-            ->registerFromManifest($manifest);
+        // Only register permissions/navigation/settings for legacy manifests
+        // JsonModuleManifest handles these differently (stored in module.json)
+        if (!$manifest instanceof JsonModuleManifest) {
+            // Register permissions
+            app(\XLinic\Framework\Core\Security\PermissionRegistry::class)
+                ->registerFromManifest($manifest);
 
-        // Register navigation items
-        app(\XLinic\Framework\Core\Navigation\NavigationRegistry::class)
-            ->registerFromManifest($manifest);
+            // Register navigation items
+            app(\XLinic\Framework\Core\Navigation\NavigationRegistry::class)
+                ->registerFromManifest($manifest);
 
-        // Register settings
-        app(\XLinic\Framework\Core\Settings\SettingsRegistry::class)
-            ->registerFromManifest($manifest);
+            // Register settings
+            app(\XLinic\Framework\Core\Settings\SettingsRegistry::class)
+                ->registerFromManifest($manifest);
+        }
     }
 
     /**
