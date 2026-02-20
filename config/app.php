@@ -27,6 +27,7 @@ return [
         App\Providers\AppServiceProvider::class,
         App\Providers\FrameworkServiceProvider::class,
         App\Providers\Filament\AdminPanelProvider::class,
+        App\Providers\Filament\TenantPanelProvider::class,
         App\Providers\Filament\SuperAdminPanelProvider::class,
     ])->toArray(),
     'aliases' => Facade::defaultAliases()->merge([

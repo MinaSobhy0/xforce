@@ -5,6 +5,75 @@
 
 ---
 
+# PANEL ARCHITECTURE
+
+The system has **THREE separate Filament panels**:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 1. SUPERADMIN PANEL                                                          │
+│    URL: sys.x-linic.com/platform                                            │
+│    Provider: SuperAdminPanelProvider                                         │
+│    Purpose: Platform owner manages ALL tenants                               │
+│    Features:                                                                 │
+│    ├── Tenant management (create, edit, suspend clinics)                    │
+│    ├── Subscription plans management                                         │
+│    ├── Platform-wide settings                                               │
+│    ├── System monitoring                                                     │
+│    └── Support tickets (all tenants)                                        │
+│    Auth: Platform administrators only                                        │
+│    Database: public schema                                                   │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 2. CLINIC OWNER PORTAL                                                       │
+│    URL: sys.x-linic.com/admin                                               │
+│    Provider: AdminPanelProvider                                              │
+│    Purpose: Clinic owners manage their SUBSCRIPTION (not clinic data)        │
+│    Features:                                                                 │
+│    ├── Dashboard (subscription status)                                       │
+│    ├── My Subscription (view plan, upgrade)                                  │
+│    ├── My Invoices (platform invoices for subscription)                      │
+│    ├── My Support Tickets                                                    │
+│    ├── My Backups                                                           │
+│    └── Account Settings                                                      │
+│    Auth: Clinic owners (tenant owners)                                       │
+│    Database: public schema (reads tenant info only)                          │
+│    NOTE: NO access to Patients, Treatments, Booking, etc.                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 3. TENANT SYSTEM (Clinic Management)                                         │
+│    URL: {tenant-slug}.x-linic.com/admin                                     │
+│    Provider: TenantPanelProvider (NEW)                                       │
+│    Purpose: Clinic staff manages CLINIC OPERATIONS                           │
+│    Features (modules):                                                       │
+│    ├── Core: Branches, Rooms, Settings, Usage Dashboard                     │
+│    ├── Auth: Users, Roles, Permissions, Access Policies                     │
+│    ├── Patients: Patient CRM, Medical History, Consent Forms, Photos        │
+│    ├── Treatments: Treatment Catalog, Categories, Consent Templates         │
+│    ├── Booking: Appointments, Calendar, Schedules, Waitlist                 │
+│    ├── Billing: Invoices, Payments, Installments                            │
+│    ├── Accounting: Chart of Accounts, Journal Entries, Reports              │
+│    ├── Packages, Gift Cards, Memberships                                    │
+│    ├── Inventory, Staff, Payroll                                            │
+│    ├── Marketing: WhatsApp, SMS, Email campaigns                            │
+│    ├── Loyalty, Reporting                                                   │
+│    └── Patient Portal, API                                                  │
+│    Auth: Tenant users (staff with roles/permissions)                         │
+│    Database: tenant_* schema (isolated per tenant)                           │
+│    Middleware: IdentifyTenant (switches to tenant schema)                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+## Key Points:
+1. **Clinic Owner Portal** (sys.x-linic.com/admin) = Subscription management ONLY
+2. **Tenant System** (tenant.x-linic.com/admin) = Clinic operations (patients, treatments, etc.)
+3. They are SEPARATE panels with SEPARATE providers
+4. Tenant modules (Patients, Treatments, etc.) ONLY appear in Tenant System
+
+---
+
 # BUILD ORDER
 
 ```

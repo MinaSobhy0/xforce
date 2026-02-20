@@ -2,17 +2,14 @@
 
 namespace App\Providers\Filament;
 
-use App\Http\Middleware\IdentifyTenant;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Navigation\NavigationGroup;
-use Filament\Pages;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
-use Filament\Widgets;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -20,6 +17,14 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
+/**
+ * Clinic Owner Portal - sys.x-linic.com/admin
+ *
+ * This panel is for clinic OWNERS to manage their SUBSCRIPTION.
+ * NOT for managing clinic operations (patients, treatments, etc.)
+ *
+ * For clinic operations, use TenantPanelProvider at tenant.x-linic.com/admin
+ */
 class AdminPanelProvider extends PanelProvider
 {
     public function panel(Panel $panel): Panel
@@ -28,6 +33,7 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
+            ->domain('sys.x-linic.com')
             ->login()
             ->brandName('XLinic')
             ->colors([
@@ -39,7 +45,7 @@ class AdminPanelProvider extends PanelProvider
             ->sidebarCollapsibleOnDesktop(false)
             ->sidebarFullyCollapsibleOnDesktop(false)
 
-            // Navigation Groups with icons for tenant portal
+            // Navigation Groups for clinic owner portal
             ->navigationGroups([
                 NavigationGroup::make('Subscription')
                     ->label(__('Subscription'))
@@ -52,31 +58,18 @@ class AdminPanelProvider extends PanelProvider
                     ->icon('heroicon-o-user-circle'),
             ])
 
-            // Discover tenant portal resources, pages, and widgets
+            // Discover ONLY clinic owner portal resources (subscription, invoices, support)
+            // NO tenant module resources here (no Patients, Treatments, etc.)
             ->discoverResources(in: app_path('Filament/Admin/Resources'), for: 'App\\Filament\\Admin\\Resources')
             ->discoverPages(in: app_path('Filament/Admin/Pages'), for: 'App\\Filament\\Admin\\Pages')
             ->discoverWidgets(in: app_path('Filament/Admin/Widgets'), for: 'App\\Filament\\Admin\\Widgets')
-
-            // Discover Core module resources, pages, and widgets
-            ->discoverResources(in: base_path('modules/Core/Filament/Resources'), for: 'Modules\\Core\\Filament\\Resources')
-            ->discoverPages(in: base_path('modules/Core/Filament/Pages'), for: 'Modules\\Core\\Filament\\Pages')
-
-            // Discover Auth module resources
-            ->discoverResources(in: base_path('modules/Auth/Filament/Resources'), for: 'Modules\\Auth\\Filament\\Resources')
-
-            // Discover Patients module resources
-            ->discoverResources(in: base_path('modules/Patients/Filament/Resources'), for: 'Modules\\Patients\\Filament\\Resources')
-
-            // Discover Treatments module resources
-            ->discoverResources(in: base_path('modules/Treatments/Filament/Resources'), for: 'Modules\\Treatments\\Filament\\Resources')
 
             // No default pages/widgets - use discovered ones
             ->pages([])
             ->widgets([])
 
-            // Middleware - IdentifyTenant must come FIRST to set up database connection
+            // Middleware - NO IdentifyTenant here (sys subdomain uses public schema)
             ->middleware([
-                IdentifyTenant::class,
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
                 StartSession::class,
