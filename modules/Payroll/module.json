@@ -1,0 +1,12 @@
+{
+    "name": "Payroll",
+    "alias": "payroll",
+    "description": "Payroll management - salary runs, commissions, and salary slips",
+    "keywords": ["payroll", "salary", "hr", "compensation"],
+    "priority": 0,
+    "providers": [
+        "Modules\\Payroll\\Providers\\PayrollServiceProvider",
+        "Modules\\Payroll\\Providers\\RouteServiceProvider"
+    ],
+    "files": []
+}

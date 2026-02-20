@@ -1,0 +1,159 @@
+<?php
+
+namespace Modules\Inventory\Filament\Resources\PurchaseOrderResource\Pages;
+
+use Filament\Forms;
+use Filament\Forms\Form;
+use Filament\Resources\Pages\Page;
+use Filament\Actions;
+use Filament\Notifications\Notification;
+use Illuminate\Database\Eloquent\Model;
+use Modules\Inventory\Models\PurchaseOrder;
+use Modules\Inventory\Models\PurchaseOrderLine;
+use Modules\Inventory\Filament\Resources\PurchaseOrderResource;
+
+class ReceivePurchaseOrder extends Page
+{
+    protected static string $resource = PurchaseOrderResource::class;
+
+    protected static string $view = 'inventory::filament.pages.receive-purchase-order';
+
+    public ?array $data = [];
+
+    public PurchaseOrder $record;
+
+    public function mount(int | string $record): void
+    {
+        $this->record = PurchaseOrder::with('lines.product')->findOrFail($record);
+
+        if (!$this->record->canReceive()) {
+            Notification::make()
+                ->title(__('inventory::inventory.messages.cannot_receive'))
+                ->danger()
+                ->send();
+
+            $this->redirect($this->getResource()::getUrl('view', ['record' => $this->record]));
+            return;
+        }
+
+        $this->form->fill([
+            'lines' => $this->record->lines->map(function (PurchaseOrderLine $line) {
+                return [
+                    'id' => $line->id,
+                    'product_name' => $line->product?->getTranslation('name', app()->getLocale()),
+                    'ordered' => $line->quantity,
+                    'received' => $line->quantity_received,
+                    'remaining' => $line->remaining_quantity,
+                    'receive_now' => $line->remaining_quantity, // Default to receiving all remaining
+                ];
+            })->toArray(),
+        ]);
+    }
+
+    public function form(Form $form): Form
+    {
+        return $form
+            ->schema([
+                Forms\Components\Section::make(__('inventory::inventory.sections.receive_items'))
+                    ->schema([
+                        Forms\Components\Repeater::make('lines')
+                            ->schema([
+                                Forms\Components\Hidden::make('id'),
+
+                                Forms\Components\TextInput::make('product_name')
+                                    ->label(__('inventory::inventory.fields.product'))
+                                    ->disabled()
+                                    ->dehydrated(false)
+                                    ->columnSpan(3),
+
+                                Forms\Components\TextInput::make('ordered')
+                                    ->label(__('inventory::inventory.fields.ordered'))
+                                    ->disabled()
+                                    ->dehydrated(false)
+                                    ->columnSpan(1),
+
+                                Forms\Components\TextInput::make('received')
+                                    ->label(__('inventory::inventory.fields.already_received'))
+                                    ->disabled()
+                                    ->dehydrated(false)
+                                    ->columnSpan(1),
+
+                                Forms\Components\TextInput::make('remaining')
+                                    ->label(__('inventory::inventory.fields.remaining'))
+                                    ->disabled()
+                                    ->dehydrated(false)
+                                    ->columnSpan(1),
+
+                                Forms\Components\TextInput::make('receive_now')
+                                    ->label(__('inventory::inventory.fields.receive_now'))
+                                    ->numeric()
+                                    ->minValue(0)
+                                    ->columnSpan(1),
+                            ])
+                            ->columns(8)
+                            ->addable(false)
+                            ->deletable(false)
+                            ->reorderable(false),
+                    ]),
+            ])
+            ->statePath('data');
+    }
+
+    public function receive(): void
+    {
+        $data = $this->form->getState();
+
+        $hasReceivedItems = false;
+
+        foreach ($data['lines'] as $lineData) {
+            $receiveQty = (int) ($lineData['receive_now'] ?? 0);
+
+            if ($receiveQty > 0) {
+                $line = PurchaseOrderLine::find($lineData['id']);
+
+                if ($line && $line->remaining_quantity > 0) {
+                    $line->receiveItems(min($receiveQty, $line->remaining_quantity));
+                    $hasReceivedItems = true;
+                }
+            }
+        }
+
+        if ($hasReceivedItems) {
+            // Refresh the order to update status
+            $this->record->refresh();
+
+            Notification::make()
+                ->title(__('inventory::inventory.messages.items_received'))
+                ->success()
+                ->send();
+        } else {
+            Notification::make()
+                ->title(__('inventory::inventory.messages.no_items_to_receive'))
+                ->warning()
+                ->send();
+        }
+
+        $this->redirect($this->getResource()::getUrl('view', ['record' => $this->record]));
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Actions\Action::make('receive')
+                ->label(__('inventory::inventory.actions.confirm_receive'))
+                ->icon('heroicon-o-check')
+                ->color('success')
+                ->action('receive'),
+
+            Actions\Action::make('cancel')
+                ->label(__('inventory::inventory.actions.cancel'))
+                ->color('gray')
+                ->url($this->getResource()::getUrl('view', ['record' => $this->record])),
+        ];
+    }
+
+    public function getTitle(): string
+    {
+        return __('inventory::inventory.pages.receive_order', ['number' => $this->record->order_number]);
+    }
+}

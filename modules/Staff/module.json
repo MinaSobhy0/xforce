@@ -1,0 +1,12 @@
+{
+    "name": "Staff",
+    "alias": "staff",
+    "description": "Staff management - profiles, commissions, and performance tracking",
+    "keywords": ["staff", "commissions", "hr", "employees"],
+    "priority": 0,
+    "providers": [
+        "Modules\\Staff\\Providers\\StaffServiceProvider",
+        "Modules\\Staff\\Providers\\RouteServiceProvider"
+    ],
+    "files": []
+}

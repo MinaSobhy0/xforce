@@ -1,0 +1,12 @@
+{
+    "name": "Inventory",
+    "alias": "inventory",
+    "description": "Inventory management - products, stock, suppliers, and purchase orders",
+    "keywords": ["inventory", "stock", "products", "suppliers", "purchase-orders"],
+    "priority": 0,
+    "providers": [
+        "Modules\\Inventory\\Providers\\InventoryServiceProvider",
+        "Modules\\Inventory\\Providers\\RouteServiceProvider"
+    ],
+    "files": []
+}
