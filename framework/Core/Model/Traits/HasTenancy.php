@@ -20,8 +20,26 @@ trait HasTenancy
 
             $tenantManager = app(\XLinic\Framework\Core\Tenancy\TenantManager::class);
             $currentTenant = $tenantManager->current();
+            $hasTenantIdField = in_array('tenant_id', (new static())->getFillable());
 
-            if ($currentTenant && in_array('tenant_id', (new static())->getFillable())) {
+            // Log for User model only
+            if (static::class === \Modules\Auth\Models\User::class) {
+                // Get the current search_path
+                $searchPath = 'unknown';
+                try {
+                    $result = \DB::select('SHOW search_path');
+                    $searchPath = $result[0]->search_path ?? 'unknown';
+                } catch (\Exception $e) {}
+
+                \Log::warning('HasTenancy User query', [
+                    'hasTenant' => $currentTenant ? 'yes' : 'no',
+                    'tenantId' => $currentTenant?->id,
+                    'path' => request()->path(),
+                    'searchPath' => $searchPath,
+                ]);
+            }
+
+            if ($currentTenant && $hasTenantIdField) {
                 $builder->where('tenant_id', $currentTenant->id);
             }
         });

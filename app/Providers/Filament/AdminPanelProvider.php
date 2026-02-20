@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Http\Middleware\IdentifyTenant;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -60,8 +61,9 @@ class AdminPanelProvider extends PanelProvider
             ->pages([])
             ->widgets([])
 
-            // Middleware
+            // Middleware - IdentifyTenant must come FIRST to set up database connection
             ->middleware([
+                IdentifyTenant::class,
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
                 StartSession::class,

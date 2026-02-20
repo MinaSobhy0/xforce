@@ -1265,3 +1265,881 @@ Example: GiftCards module NEVER touches Patient code. Instead:
 - Invoice payment form magically has "Gift Card" payment option
 
 This is what makes the system truly modular.
+
+---
+
+# IMPLEMENTATION CHECKLIST
+
+## Legend
+- [x] = Done / Implemented
+- [ ] = Not Started
+- [~] = Partial Implementation
+
+---
+
+## BATCH 1: CORE + AUTH MODULE
+
+### Core Module
+
+#### Models
+- [x] Branch.php - BaseModel, HasTenancy, working_hours (jsonb), is_active, timezone
+- [x] Room.php - BaseModel, branch_id FK, capacity, is_active, sort_order
+- [x] Setting.php - key-value store for tenant settings
+- [ ] Sequence.php - Fields: code, prefix, next_value, padding, reset_on_year, current_year
+  - [ ] Method: next() with SELECT FOR UPDATE locking
+
+#### Filament Resources (Tenant Panel)
+- [ ] BranchResource.php
+  - [ ] List: name, address, rooms count, staff count, is_active toggle
+  - [ ] Form: translatable name, address, phone, email, working hours (JSON editor), Google Maps link, timezone
+  - [ ] Relation managers: RoomsRelationManager
+- [x] RoomResource.php
+  - [x] Table: name, capacity, active toggle
+  - [x] Form: name, branch select, capacity, sort order
+
+#### Filament Pages (Tenant Panel)
+- [ ] GeneralSettingsPage.php
+  - [ ] Unified settings built from SettingsRegistry
+  - [ ] Sections: General, Booking, Billing, Marketing (grouped)
+  - [ ] Each setting: label, input type, default, validation
+- [~] ModuleManagementPage.php (exists as SuperAdmin resource, needs tenant-level)
+  - [ ] Grid of available modules
+  - [ ] Toggle on/off with dependency check
+  - [ ] Shows: module name, icon, description, status, dependencies
+  - [ ] Disabled modules show "Upgrade Plan" badge
+- [ ] UsageDashboardPage.php
+  - [ ] Progress bars: users, branches, patients, storage vs plan limits
+  - [ ] Monthly counters: appointments, WhatsApp, SMS, emails
+
+#### Database Migrations
+- [x] create_branches_table.php
+- [x] create_rooms_table.php
+- [x] create_settings_table.php
+- [x] create_sequences_table.php
+- [ ] create_activities_table.php (for HasActivity across all modules)
+- [ ] create_audit_logs_table.php (for HasAudit across all modules)
+
+#### Database Seeders
+- [ ] DefaultBranchSeeder.php (create "Main Branch" on provision)
+- [ ] DefaultSequenceSeeder.php (PAT-, INV-, APT-, GC-, JE-, PO-)
+- [ ] DefaultSettingsSeeder.php (all default setting values)
+
+#### Lang Files
+- [x] en/core.php
+- [x] ar/core.php
+
+---
+
+### Auth Module
+
+#### Models
+- [x] User.php - Authenticatable, HasActivity, HasSequence, branch_id FK, locale, two_factor
+- [x] Role.php - spatie/laravel-permission roles
+- [x] Permission.php - spatie/laravel-permission permissions
+- [x] AccessPolicy.php - Odoo ir.rule equivalent, domain_filter (jsonb), role_id FK
+
+#### Filament Resources (Tenant Panel)
+- [x] UserResource.php
+  - [x] List: name, email, role badges, branch, last login, active toggle
+  - [x] Filters: role, branch, active status
+  - [x] Form: name, email, phone, password, avatar, branch select, role select, locale, active
+  - [ ] Actions: Reset Password, Disable, Force Logout
+  - [ ] Bulk: Activate, Deactivate
+- [x] RoleResource.php
+  - [x] List: name, users count, permissions count
+  - [x] Form: name, permission checkboxes grouped by module
+  - [ ] System roles (owner, manager, practitioner, receptionist, accountant) cannot be deleted
+- [x] AccessPolicyResource.php
+  - [x] List: name, model, role, permissions
+  - [x] Form: name, model select, domain filter builder (jsonb), role select, permission toggles
+  - [ ] Only visible to owner role
+
+#### Filament Pages (Tenant Panel)
+- [x] MyProfilePage.php (ProfileResource)
+  - [x] Edit: name, email, phone, avatar, locale
+  - [x] Change password
+- [x] TwoFactorSetupResource.php
+  - [x] 2FA enable/disable
+  - [ ] Active sessions list
+
+#### Database Migrations
+- [x] create_users_table.php
+- [x] create_permission_tables.php (spatie)
+- [x] create_access_policies_table.php
+- [x] create_user_sessions_table.php
+- [x] create_login_history_table.php
+- [x] create_password_history_table.php
+- [x] create_user_profiles_table.php
+
+#### Database Seeders
+- [ ] DefaultRoleSeeder.php (owner, manager, practitioner, receptionist, accountant)
+- [ ] DefaultPermissionSeeder.php (all permissions from all module manifests)
+- [ ] DefaultAccessPolicySeeder.php (branch-scoped policies for non-owner roles)
+
+#### Lang Files
+- [x] en/auth.php
+- [x] ar/auth.php
+
+---
+
+### BATCH 1 CHECKPOINT
+- [x] Tenant admin panel loads at {slug}.laserbase.com/admin
+- [x] Login works with tenant user credentials
+- [ ] Can create/edit branches and rooms (RoomResource exists, BranchResource missing)
+- [x] Can create/edit users with role assignment
+- [x] Roles have permission checkboxes grouped by module
+- [ ] Settings page shows all registered settings
+- [ ] Module management page shows available modules (tenant-level)
+- [ ] Usage dashboard shows plan limits vs current usage
+- [ ] Access policies filter data by branch for scoped roles
+- [x] Profile page allows password change and locale switch
+
+---
+
+## BATCH 2: PATIENTS + TREATMENTS
+
+### Patients Module
+
+#### Models
+- [x] Patient.php - BaseModel, HasActivity, HasSequence, HasTags
+  - [x] Fields: code, first_name, last_name, phone, email, date_of_birth, gender, national_id
+  - [x] Fields: address, referral_source, language, is_vip, is_blacklisted, tags
+  - [x] Relationships: medicalHistory(), consentForms(), photos(), notes()
+  - [x] Computed: age, total_spent, last_visit_date
+  - [x] Searchable: name, phone, email, national_id, code
+- [x] PatientMedicalHistory.php - One-to-one with Patient
+  - [x] Fields: fitzpatrick_type, skin_conditions, allergies, medications, chronic_conditions
+  - [x] Fields: contraindications, is_pregnant, is_breastfeeding, blood_type
+  - [x] Fields: emergency_contact_name, emergency_contact_phone
+- [x] PatientConsentForm.php
+  - [x] Fields: patient_id, consent_template_id, signed_at, signature_data, signature_type
+  - [x] Fields: pdf_path, witness_name, ip_address, version
+- [x] PatientPhoto.php
+  - [x] Fields: patient_id, type (before/after/during/consultation), body_area
+  - [x] Fields: treatment_id, appointment_id, notes, taken_by_user_id, taken_at
+- [x] PatientNote.php
+  - [x] Fields: patient_id, type (clinical/administrative/follow_up/complaint)
+  - [x] Fields: content, created_by_user_id, is_pinned, is_private
+
+#### Filament Resources
+- [x] PatientResource.php
+  - [x] List: code, full_name, phone, gender, last visit, VIP badge, tags
+  - [x] Filters: gender, referral source, branch, tags, date range
+  - [x] Search: name, phone, email, national_id, code
+  - [ ] Actions: Quick Book, Quick Invoice, Send WhatsApp, View
+  - [ ] Bulk: Tag, Export, Send Campaign
+  - [x] Stats header: total patients, new this month, returning this month
+  - [x] Create/Edit page (tabbed):
+    - [x] Tab "Personal": first_name, last_name, phone, email, DOB, gender, national_id
+    - [x] Tab "Medical": Fitzpatrick type, allergies, medications, conditions, contraindications
+    - [x] Tab "Consent Forms": list of signed consents
+    - [x] Tab "Photos": gallery grid filtered by body area + type
+    - [x] Tab "Notes": timeline of notes, add note form
+    - [ ] Fitzpatrick type VISUAL selector with skin tone images
+    - [ ] Signature pad for consent forms
+    - [ ] Before/after comparison view
+
+#### Database Migrations
+- [x] create_patients_table.php
+- [x] create_patient_medical_histories_table.php
+- [x] create_patient_consent_forms_table.php
+- [x] create_patient_photos_table.php
+- [x] create_patient_notes_table.php
+
+#### Database Seeders
+- [ ] PatientSampleSeeder.php (20 sample patients with Arabic names for demo)
+
+#### Lang Files
+- [x] en/patients.php
+- [x] ar/patients.php
+
+---
+
+### Treatments Module
+
+#### Models
+- [x] TreatmentCategory.php - BaseModel, HasTranslation
+  - [x] Self-referencing tree: parent_id FK
+  - [x] Fields: name (jsonb), slug, icon, sort_order, is_active
+  - [x] Relationships: parent(), children(), treatments()
+- [x] Treatment.php - BaseModel, HasTranslation, HasActivity
+  - [x] Fields: name (jsonb), description (jsonb), category_id, duration_minutes, buffer_minutes
+  - [x] Fields: base_price_minor, recommended_sessions, session_interval_days
+  - [x] Fields: contraindications (jsonb), fitzpatrick_min/max, pre_care/post_care instructions
+  - [x] Fields: consent_template_id, requires_equipment, is_active, sort_order
+  - [x] Relationships: category(), branchPricing(), consentTemplate()
+  - [x] Computed: effective_price(branch_id) via getPriceForBranch()
+- [x] TreatmentBranchPricing.php
+  - [x] Fields: treatment_id, branch_id, price_minor, is_active
+  - [x] Composite unique: [treatment_id, branch_id]
+- [x] ConsentTemplate.php - BaseModel, HasTranslation
+  - [x] Fields: name (jsonb), content (jsonb — rich HTML translatable)
+  - [x] Fields: version, is_active, requires_signature
+
+#### Filament Resources
+- [x] TreatmentCategoryResource.php
+  - [x] List view with categories
+  - [ ] Tree view with drag-and-drop reorder
+  - [x] Form: translatable name, parent select, icon, active toggle
+- [x] TreatmentResource.php
+  - [x] List: name, category badge, duration, base price, sessions, active toggle
+  - [x] Filters: category, active
+  - [x] Form (tabbed):
+    - [x] Tab "Details": translatable name/description, category, duration, buffer, sessions, price
+    - [x] Tab "Medical": contraindications, Fitzpatrick range, pre-care/post-care instructions
+    - [x] Tab "Pricing": BranchPricingRelationManager
+    - [ ] Tab "Equipment": equipment types required for availability check
+- [x] ConsentTemplateResource.php
+  - [x] List: name, version, treatments count
+  - [x] Form: translatable name, rich text editor, version, signature required toggle
+
+#### Database Migrations
+- [x] create_treatment_categories_table.php
+- [x] create_treatments_table.php
+- [x] create_treatment_branch_pricing_table.php
+- [x] create_consent_templates_table.php
+
+#### Database Seeders
+- [ ] TreatmentCategorySeeder.php (Laser Hair Removal, Skin Rejuvenation, Body Contouring, etc.)
+- [ ] TreatmentSampleSeeder.php (10 sample treatments with Arabic translations)
+
+#### Lang Files
+- [x] en/treatments.php
+- [x] ar/treatments.php
+
+---
+
+### BATCH 2 CHECKPOINT
+- [x] Can create patients with medical history
+- [x] Patient search works (name, phone, code)
+- [ ] Fitzpatrick type selector is visual (skin tone images)
+- [ ] Consent forms can be signed with signature pad
+- [x] Before/after photo upload works with body area tags
+- [ ] Patient activity log shows all actions
+- [ ] Treatment categories show as tree with drag reorder
+- [x] Treatments have branch-specific pricing
+- [x] Consent templates have rich text with translatable content
+- [x] Patient sequence auto-generates PAT-2024-000001
+
+---
+
+## BATCH 3: BOOKING + EQUIPMENT
+
+### Equipment Module
+- [ ] EquipmentManifest.php
+
+#### Models
+- [ ] EquipmentType.php
+  - [ ] Fields: name (jsonb), manufacturer, model, category (laser/ipl/rf/hifu/etc)
+  - [ ] Fields: specifications (jsonb), max_shots, image_url
+- [ ] Equipment.php - BaseModel, HasStateMachine, HasActivity, HasSequence
+  - [ ] Fields: code, name, equipment_type_id, branch_id, room_id
+  - [ ] Fields: serial_number, purchase_date, purchase_price_minor, warranty_expiry
+  - [ ] Fields: total_shots_fired, current_status (active/maintenance/retired/out_of_service)
+  - [ ] Fields: last_maintenance_at, next_maintenance_at, depreciation_years, notes
+  - [ ] State machine: active ↔ maintenance → retired, active → out_of_service
+  - [ ] Computed: shots_remaining, depreciated_value, is_maintenance_due
+- [ ] EquipmentMaintenanceLog.php
+  - [ ] Fields: equipment_id, type (preventive/corrective/calibration), description
+  - [ ] Fields: performed_by, cost_minor, parts_replaced (jsonb), next_due_date, performed_at
+- [ ] EquipmentShotLog.php
+  - [ ] Fields: equipment_id, appointment_id, shots_count, energy_setting, spot_size, pulse_duration
+
+#### Filament Resources
+- [ ] EquipmentTypeResource.php - Catalog of machine types
+- [ ] EquipmentResource.php
+  - [ ] List: code, name, type, branch, room, shots fired, status badge, maintenance due
+  - [ ] Form tabs: Details, Maintenance, Shot Counter, Depreciation
+  - [ ] Status bar at top (Odoo-style)
+  - [ ] Actions: Log Maintenance, Record Shots, Move to Room, Retire
+
+#### Database Migrations
+- [ ] create_equipment_types_table.php
+- [ ] create_equipment_table.php
+- [ ] create_equipment_maintenance_logs_table.php
+- [ ] create_equipment_shot_logs_table.php
+- [ ] create_treatment_equipment_requirements_table.php (pivot)
+
+#### Database Seeders
+- [ ] EquipmentTypeSeeder.php (Candela GentleMax, Alma Soprano, Lumenis, etc.)
+
+---
+
+### Booking Module
+- [ ] BookingManifest.php
+
+#### Models
+- [ ] Appointment.php - BaseModel, HasStateMachine, HasActivity, HasSequence
+  - [ ] Fields: code, patient_id, treatment_id, branch_id, practitioner_id, room_id, equipment_id
+  - [ ] Fields: date, start_time, end_time, duration_minutes, status, price_minor, discount_minor
+  - [ ] Fields: notes, cancellation_reason, rescheduled_from_id, source
+  - [ ] Fields: confirmed_at, checked_in_at, started_at, completed_at, cancelled_at
+  - [ ] State machine: scheduled → confirmed → checked_in → in_progress → completed
+  - [ ] Also: cancelled, no_show, rescheduled states
+- [ ] AppointmentTreatmentNote.php - One-to-one (filled after completion)
+  - [ ] Fields: appointment_id, areas_treated (jsonb), machine_settings (jsonb)
+  - [ ] Fields: skin_reaction, patient_comfort, shots_fired, notes, post_care_given
+  - [ ] Fields: follow_up_recommended, follow_up_days, created_by_user_id
+- [ ] PractitionerSchedule.php
+  - [ ] Fields: user_id, branch_id, day_of_week, start_time, end_time, is_available
+  - [ ] Composite unique: [user_id, branch_id, day_of_week]
+- [ ] PractitionerTimeOff.php - BaseModel, HasStateMachine
+  - [ ] Fields: user_id, type (vacation/sick/personal/training), start_date, end_date
+  - [ ] Fields: reason, status (pending/approved/rejected), approved_by_user_id, approved_at
+- [ ] Waitlist.php
+  - [ ] Fields: patient_id, treatment_id, branch_id, practitioner_id
+  - [ ] Fields: preferred_days (jsonb), preferred_times (jsonb), priority, notes
+  - [ ] Fields: status (waiting/notified/booked/expired), notified_at, expires_at
+
+#### Filament Resources
+- [ ] AppointmentResource.php
+  - [ ] List: code, patient, treatment, practitioner, date+time, status badge, branch
+  - [ ] Filters: status, branch, practitioner, treatment, date range, source
+  - [ ] Create wizard: Patient → Treatment → Branch → Practitioner → Date/Time → Confirm
+  - [ ] View: status bar, details, treatment notes, shot log
+  - [ ] Actions: Check-in, Start, Complete, Cancel, Reschedule, No-Show
+  - [ ] Complete action: modal for treatment notes
+- [ ] PractitionerScheduleResource.php - Visual weekly grid editor
+- [ ] PractitionerTimeOffResource.php - Approval workflow
+- [ ] WaitlistResource.php - Priority ordering, Book Now action
+
+#### Filament Pages
+- [ ] CalendarPage.php
+  - [ ] Full calendar view (Day/Week/Month)
+  - [ ] Color-coded by status
+  - [ ] Click to view/edit
+  - [ ] Filters: branch, practitioner, room
+  - [ ] Drag to reschedule (optional)
+- [ ] DailyAgendaPage.php
+  - [ ] Today's appointments as timeline
+  - [ ] One-click: Check-in, Start, Complete, No-Show
+  - [ ] Designed for reception desk
+
+#### Services
+- [ ] AvailabilityService.php
+  - [ ] getAvailableSlots(branch, treatment, practitioner?, date)
+  - [ ] Checks: schedule, existing appointments, time off, room, equipment, buffers
+
+#### Database Migrations
+- [ ] create_appointments_table.php
+- [ ] create_appointment_treatment_notes_table.php
+- [ ] create_practitioner_schedules_table.php
+- [ ] create_practitioner_time_off_table.php
+- [ ] create_waitlist_table.php
+
+#### Database Seeders
+- [ ] PractitionerScheduleSeeder.php
+- [ ] AppointmentSampleSeeder.php (30 sample appointments)
+
+---
+
+### BATCH 3 CHECKPOINT
+- [ ] Calendar page shows appointments in day/week/month view
+- [ ] Can create appointment via step wizard with availability checking
+- [ ] Double-booking prevented (practitioner, room, equipment)
+- [ ] Status transitions work: scheduled → confirmed → checked_in → in_progress → completed
+- [ ] Treatment notes captured on completion (areas, settings, reaction)
+- [ ] Equipment shot log recorded per appointment
+- [ ] Practitioner schedules editable as weekly grid
+- [ ] Time off requests with approval workflow
+- [ ] Waitlist with priority ordering
+- [ ] Daily agenda page works for reception
+- [ ] Activity log on appointment shows full timeline
+
+---
+
+## BATCH 4: BILLING + ACCOUNTING
+
+### Billing Module
+- [ ] BillingManifest.php
+
+#### Models
+- [ ] Invoice.php - BaseModel, HasStateMachine, HasSequence, HasActivity
+  - [ ] Fields: code, patient_id, branch_id, appointment_id, type (standard/credit_note/proforma)
+  - [ ] Fields: status, subtotal_minor, discount_minor, tax_minor, total_minor, paid_minor, remaining_minor
+  - [ ] Fields: notes, due_date, issued_at, paid_at, cancelled_at, created_by_user_id
+  - [ ] State machine: draft → issued → partially_paid → paid (also: overdue, cancelled, refunded)
+  - [ ] Computed: is_overdue, payment_progress_percentage
+- [ ] InvoiceLine.php
+  - [ ] Fields: invoice_id, treatment_id, description, quantity, unit_price_minor
+  - [ ] Fields: discount_minor, discount_type, tax_rate, tax_minor, total_minor
+  - [ ] Fields: package_subscription_id, gift_card_id, sort_order
+- [ ] Payment.php - BaseModel, HasActivity
+  - [ ] Fields: code, invoice_id, amount_minor, method (cash/card/bank_transfer/wallet/gift_card/insurance/installment/online)
+  - [ ] Fields: reference_number, gateway_transaction_id, gift_card_id
+  - [ ] Fields: received_by_user_id, notes, paid_at
+- [ ] TaxRate.php
+  - [ ] Fields: name (jsonb), rate (decimal), is_default, is_active
+- [ ] InstallmentPlan.php
+  - [ ] Fields: invoice_id, total_installments, installment_amount_minor, frequency, start_date, status
+- [ ] InstallmentSchedule.php
+  - [ ] Fields: installment_plan_id, installment_number, amount_minor, due_date, paid_at, payment_id, status
+
+#### Filament Resources
+- [ ] InvoiceResource.php
+  - [ ] List: code, patient, total, paid, remaining, status badge, date
+  - [ ] Stats header: today's revenue, month revenue, outstanding total
+  - [ ] Filters: status, branch, date range, payment method, overdue only
+  - [ ] Create/Edit: patient select, branch, type, date, due date, line items
+  - [ ] View: status bar, lines, payment history, actions
+  - [ ] Record Payment action: modal with amount, method, reference
+- [ ] PaymentResource.php - Read-only list for reconciliation
+
+#### Filament Widgets
+- [ ] RevenueWidget.php (today + this month)
+- [ ] OutstandingWidget.php (unpaid invoices total)
+- [ ] PaymentMethodBreakdownWidget.php (pie chart)
+
+#### Services
+- [ ] InvoiceCalculationService.php - All integer arithmetic
+- [ ] AutoInvoiceService.php - Creates invoice on AppointmentCompleted
+
+#### Database Migrations
+- [ ] create_invoices_table.php
+- [ ] create_invoice_lines_table.php
+- [ ] create_payments_table.php
+- [ ] create_tax_rates_table.php
+- [ ] create_installment_plans_table.php
+- [ ] create_installment_schedule_table.php
+
+#### Database Seeders
+- [ ] TaxRateSeeder.php (VAT 14% for Egypt)
+
+---
+
+### Accounting Module
+- [ ] AccountingManifest.php
+
+#### Models
+- [ ] ChartOfAccount.php
+  - [ ] Self-referencing tree: parent_id
+  - [ ] Fields: code, name (jsonb), type (asset/liability/equity/revenue/expense)
+  - [ ] Fields: sub_type, is_system, balance_minor, is_active
+- [ ] JournalEntry.php - BaseModel, HasStateMachine, HasSequence, HasActivity
+  - [ ] Fields: code, date, reference, description, source_type/source_id (polymorphic)
+  - [ ] Fields: status (draft/posted/cancelled), total_debit_minor, total_credit_minor
+  - [ ] Fields: fiscal_period_id, created_by_user_id, posted_at
+  - [ ] Validation: total_debit = total_credit
+- [ ] JournalEntryLine.php
+  - [ ] Fields: journal_entry_id, account_id, debit_minor, credit_minor, description
+  - [ ] Fields: branch_id (cost center), partner_type/partner_id (polymorphic)
+- [ ] FiscalPeriod.php
+  - [ ] Fields: name, start_date, end_date, status (open/closed/locked), closed_by, closed_at
+
+#### Filament Resources
+- [ ] ChartOfAccountResource.php - Tree view with hierarchy
+- [ ] JournalEntryResource.php
+  - [ ] Create: date, reference, description, lines (account, debit, credit)
+  - [ ] Balance check warning
+  - [ ] Actions: Post, Cancel (with auto-reversal)
+
+#### Filament Pages
+- [ ] TrialBalancePage.php
+- [ ] ProfitLossPage.php (by period/branch)
+- [ ] BalanceSheetPage.php
+- [ ] GeneralLedgerPage.php
+- [ ] CashFlowPage.php
+
+#### Listeners
+- [ ] CreateJournalOnInvoiceIssued.php
+- [ ] CreateJournalOnPaymentReceived.php
+- [ ] CreateJournalOnRefund.php
+
+#### Database Migrations
+- [ ] create_chart_of_accounts_table.php
+- [ ] create_journal_entries_table.php
+- [ ] create_journal_entry_lines_table.php
+- [ ] create_fiscal_periods_table.php
+
+#### Database Seeders
+- [ ] ChartOfAccountSeeder.php (full COA: 1000-5990)
+- [ ] FiscalPeriodSeeder.php (12 monthly periods)
+
+---
+
+### BATCH 4 CHECKPOINT
+- [ ] Can create invoices with line items and auto tax calculation
+- [ ] All amounts are integers (minor units) — no float math anywhere
+- [ ] Record payments: cash, card, bank transfer — partial payments work
+- [ ] Installment plans create schedule with due dates
+- [ ] Auto-invoice fires when appointment completes (if setting on)
+- [ ] Journal entries auto-created: on invoice issue, on payment
+- [ ] Journal entries always balance (debit = credit validation)
+- [ ] Trial balance page shows correct numbers
+- [ ] P&L report filters by period and branch
+- [ ] Chart of accounts pre-seeded (1000-5990)
+- [ ] Fiscal periods: can close period to prevent back-dating
+
+---
+
+## BATCH 5: PACKAGES + GIFT CARDS + MEMBERSHIPS
+
+### Packages Module
+- [ ] PackagesManifest.php
+
+#### Models
+- [ ] Package.php
+  - [ ] Fields: name (jsonb), type (session_bundle/value_bundle), base_price_minor
+  - [ ] Fields: validity_days, is_transferable, is_active, sort_order
+- [ ] PackageItem.php
+  - [ ] Fields: package_id, treatment_id, quantity
+- [ ] PackageSubscription.php - BaseModel, HasStateMachine, HasActivity
+  - [ ] Fields: patient_id, package_id, invoice_id, status (active/completed/expired/cancelled/frozen)
+  - [ ] Fields: purchased_at, expires_at, frozen_at, frozen_until
+  - [ ] Computed: sessions_used, sessions_remaining (per treatment)
+- [ ] PackageSessionUsage.php
+  - [ ] Fields: subscription_id, treatment_id, appointment_id, used_at, notes
+
+#### Extensions
+- [ ] PatientModelExtension.php → adds packageSubscriptions() relation
+- [ ] PatientFormExtension.php → adds "Packages" tab
+- [ ] AppointmentFormExtension.php → adds package session selector
+- [ ] InvoiceFormExtension.php → adds package purchase as line type
+
+#### Filament Resources
+- [ ] PackageResource.php - List, Form with items repeater
+
+#### Database Migrations
+- [ ] create_packages_table.php
+- [ ] create_package_items_table.php
+- [ ] create_package_subscriptions_table.php
+- [ ] create_package_session_usage_table.php
+
+---
+
+### GiftCards Module
+- [ ] GiftCardsManifest.php
+
+#### Models
+- [ ] GiftCard.php - BaseModel, HasStateMachine, HasSequence, HasActivity
+  - [ ] Fields: code (GC-2024-000001), purchaser_patient_id, recipient_patient_id
+  - [ ] Fields: initial_value_minor, remaining_value_minor
+  - [ ] Fields: status (draft/active/partially_used/fully_used/expired/cancelled)
+  - [ ] Fields: purchased_via_invoice_id, expires_at, activated_at, notes
+- [ ] GiftCardTransaction.php
+  - [ ] Fields: gift_card_id, type (activate/redeem/refund/adjust/expire)
+  - [ ] Fields: amount_minor, running_balance_minor, invoice_id, payment_id
+  - [ ] Fields: notes, created_by_user_id
+
+#### Extensions
+- [ ] PatientModelExtension.php
+- [ ] PatientFormExtension.php → adds "Gift Cards" tab
+- [ ] InvoiceFormExtension.php → gift card as payment option
+- [ ] GiftCardDashboardWidget.php
+
+#### Filament Resources
+- [ ] GiftCardResource.php - List, View with transaction timeline, Create
+
+#### Listeners
+- [ ] ActivateGiftCardOnInvoicePaid.php
+
+#### Database Migrations
+- [ ] create_gift_cards_table.php
+- [ ] create_gift_card_transactions_table.php
+
+---
+
+### Memberships Module
+- [ ] MembershipsManifest.php
+
+#### Models
+- [ ] Membership.php
+  - [ ] Fields: name (jsonb), tier (silver/gold/platinum/diamond)
+  - [ ] Fields: price_monthly_minor, price_yearly_minor, discount_percentage
+  - [ ] Fields: included_sessions_monthly (jsonb), loyalty_multiplier, priority_booking
+  - [ ] Fields: is_active, sort_order
+- [ ] MembershipSubscription.php - BaseModel, HasStateMachine, HasActivity
+  - [ ] Fields: patient_id, membership_id, status (active/expired/cancelled/frozen)
+  - [ ] Fields: started_at, expires_at, auto_renew, renewal_invoice_id
+
+#### Extensions
+- [ ] PatientModelExtension.php → adds membershipSubscription(), is_member, member_discount
+- [ ] PatientFormExtension.php → adds "Membership" tab
+- [ ] InvoiceModelExtension.php → auto-apply member discount
+
+#### Database Migrations
+- [ ] create_memberships_table.php
+- [ ] create_membership_subscriptions_table.php
+
+---
+
+### BATCH 5 CHECKPOINT
+- [ ] Can create packages with multiple treatments × quantities
+- [ ] Patient can purchase package → sessions tracked
+- [ ] When booking, can select "use package session" to consume from package
+- [ ] Package status: active → completed when all sessions used
+- [ ] Gift cards: create, activate, redeem (partial), track balance
+- [ ] Gift card as payment method on invoice works
+- [ ] Gift card auto-activates when purchase invoice paid
+- [ ] Memberships: create tiers with discount percentage
+- [ ] Member discount auto-applied on new invoices
+- [ ] All three modules add tabs to Patient detail via FormExtension
+- [ ] Patient model has new relationships from ModelExtensions
+- [ ] Accounting: deferred revenue journals for packages/gift cards
+
+---
+
+## BATCH 6: INVENTORY + STAFF + PAYROLL
+
+### Inventory Module
+- [ ] InventoryManifest.php
+
+#### Models
+- [ ] ProductCategory.php
+- [ ] Product.php - consumables: creams, needles, gels, etc.
+- [ ] StockLevel.php - per product per branch
+- [ ] StockMovement.php - in/out/transfer/adjustment
+- [ ] Supplier.php
+- [ ] PurchaseOrder.php - HasStateMachine: draft → sent → received
+- [ ] PurchaseOrderLine.php
+
+#### Key Features
+- [ ] Auto-deduct consumables when appointment completes
+- [ ] Reorder alerts when stock < reorder_point
+- [ ] Inter-branch stock transfers
+- [ ] Purchase order workflow with receiving
+
+#### Listeners
+- [ ] DeductStockOnAppointmentCompleted.php
+
+#### Extensions
+- [ ] TreatmentFormExtension.php → adds "Consumables" tab
+
+---
+
+### Staff Module
+- [ ] StaffManifest.php
+
+#### Models
+- [ ] StaffProfile.php - extends User with: specializations, bio, commission_type
+- [ ] StaffCommission.php - rules: flat per treatment, % of revenue, tiered
+- [ ] StaffCommissionRecord.php - actual earnings per appointment
+
+#### Key Features
+- [ ] Commission auto-calculated when appointment completes
+- [ ] Commission approval workflow (pending → approved → paid)
+- [ ] Per-treatment or per-category commission rules
+
+#### Listeners
+- [ ] CalculateCommissionOnAppointmentCompleted.php
+
+#### Extensions
+- [ ] UserFormExtension.php → adds "Commission" tab
+
+---
+
+### Payroll Module
+- [ ] PayrollManifest.php
+
+#### Models
+- [ ] PayrollRun.php - HasStateMachine: draft → approved → paid
+- [ ] PayrollLine.php - per user: base + commissions + bonuses - deductions
+
+#### Key Features
+- [ ] Monthly payroll generation pulling approved commissions
+- [ ] PDF salary slips
+- [ ] Journal entries for salary expenses (if Accounting active)
+
+#### Listeners
+- [ ] CreateSalaryJournalOnPayrollPaid.php
+
+---
+
+### BATCH 6 CHECKPOINT
+- [ ] Products with stock levels per branch
+- [ ] Stock auto-deducts on appointment completion
+- [ ] Low stock alerts on dashboard
+- [ ] Purchase orders with receive workflow
+- [ ] Staff commissions calculated per appointment
+- [ ] Commission approval workflow
+- [ ] Payroll run generates salary slips
+- [ ] All financial transactions create journal entries
+
+---
+
+## BATCH 7: MARKETING
+
+### MarketingWhatsApp Module
+- [ ] MarketingWhatsAppManifest.php
+
+#### Models
+- [ ] WhatsAppTemplate.php - pre-approved Meta templates
+- [ ] NotificationLog.php (shared)
+- [ ] Campaign.php (shared)
+
+#### Key Features
+- [ ] Automated appointment reminders (24h + 2h before)
+- [ ] Follow-up messages (X days after appointment)
+- [ ] Campaign builder: audience filters (last visit, tags, treatment, branch)
+- [ ] Delivery tracking: sent, delivered, read, failed
+- [ ] WhatsApp Business Cloud API integration
+
+#### Filament Resources
+- [ ] CampaignResource.php - audience + template + schedule + analytics
+- [ ] WhatsAppTemplateResource.php - manage approved templates
+- [ ] NotificationLogResource.php - delivery tracking table
+
+#### Listeners
+- [ ] SendAppointmentReminder.php (AppointmentConfirmed)
+- [ ] SendFollowUpMessage.php (AppointmentCompleted)
+- [ ] SendInvoiceReceipt.php (InvoicePaid)
+
+---
+
+### MarketingSms Module
+- [ ] Same pattern as WhatsApp with SMS provider
+
+---
+
+### MarketingEmail Module
+- [ ] Same pattern with Mailgun/Resend + HTML builder
+
+---
+
+### BATCH 7 CHECKPOINT
+- [ ] WhatsApp appointment reminders sent automatically
+- [ ] Campaign builder: filter audience → select template → schedule → send
+- [ ] Delivery tracking: sent/delivered/read/failed status
+- [ ] SMS and Email channels working
+- [ ] Notification log shows all messages across channels
+- [ ] Quota enforcement: messages count against plan limits
+
+---
+
+## BATCH 8: LOYALTY + REPORTING
+
+### Loyalty Module
+- [ ] LoyaltyManifest.php
+
+#### Models
+- [ ] LoyaltyRule.php - earn: per_spend/per_visit/referral/birthday
+- [ ] LoyaltyTransaction.php - earn/redeem/expire/adjust with running balance
+- [ ] ReferralProgram.php - referrer + referred rewards
+
+#### Extensions
+- [ ] PatientModelExtension.php → adds loyalty_points, loyaltyTransactions()
+- [ ] PatientFormExtension.php → adds "Loyalty" tab
+- [ ] InvoiceModelExtension.php → points redemption as payment
+
+#### Listeners
+- [ ] AwardPointsOnPayment.php
+- [ ] AwardPointsOnVisit.php
+- [ ] AwardReferralBonus.php
+
+---
+
+### Reporting Module
+- [ ] ReportingManifest.php
+
+#### Filament Pages
+- [ ] RevenueReportPage.php (by treatment, branch, practitioner, period)
+- [ ] PatientReportPage.php (new vs returning, demographics, retention)
+- [ ] AppointmentReportPage.php (utilization, no-show rate, peak hours)
+- [ ] EquipmentReportPage.php (shots, maintenance cost, utilization)
+- [ ] StaffPerformanceReportPage.php (revenue per practitioner, appointment count)
+- [ ] InventoryReportPage.php (stock valuation, consumption rate)
+- [ ] GiftCardReportPage.php (outstanding balance, redemption rate)
+- [ ] CampaignReportPage.php (ROI, conversion, cost per acquisition)
+- [ ] FinancialSummaryPage.php (executive: P&L, cash flow, receivables aging)
+
+#### Each Report Has
+- [ ] Date range filter, branch filter
+- [ ] Summary cards at top
+- [ ] Chart (bar/line/pie using Chart.js)
+- [ ] Data table below
+- [ ] Export buttons: PDF (dompdf), Excel (maatwebsite)
+
+---
+
+### BATCH 8 CHECKPOINT
+- [ ] Loyalty points earned on payment + visit
+- [ ] Points redeemable as payment on invoice
+- [ ] Referral tracking works
+- [ ] All 9 report pages load with correct data
+- [ ] Reports filter by date range and branch
+- [ ] PDF and Excel export functional
+- [ ] Dashboard shows key metrics from all modules
+
+---
+
+## BATCH 9: PATIENT PORTAL + API
+
+### PatientPortal Module
+- [ ] PatientPortalManifest.php
+
+#### Filament Panel: PortalPanel at /portal
+- [ ] Auth: phone + OTP or email + password
+
+#### Pages
+- [ ] Dashboard: upcoming appointments, recent invoices, points balance
+- [ ] Book Appointment: treatment → branch → date → time → confirm
+- [ ] My Appointments: list with cancel/reschedule
+- [ ] My Invoices: list with pay online button (Paymob)
+- [ ] My Profile: edit personal info
+- [ ] Gift Cards: check balance
+- [ ] Loyalty: view points and history
+- [ ] Consent Forms: view and download signed PDFs
+- [ ] Photos: view before/after (if enabled by clinic)
+
+---
+
+### Api Module
+- [ ] ApiManifest.php
+
+#### REST API using Laravel Sanctum
+- [ ] Patient auth: phone + OTP → token
+- [ ] Staff auth: email + password → token
+- [ ] Endpoints mirror portal functionality
+- [ ] Rate limiting via QuotaService
+- [ ] Module-aware: endpoints only available if module active
+- [ ] Auto-docs via Scribe or manual OpenAPI spec
+
+---
+
+### BATCH 9 CHECKPOINT
+- [ ] Patient can register and login to portal via OTP
+- [ ] Patient can book appointments through portal
+- [ ] Patient can view and pay invoices online
+- [ ] API returns JSON with proper pagination
+- [ ] API respects module activation (404 if module off)
+- [ ] Rate limiting enforced per plan
+
+---
+
+## SUMMARY PROGRESS
+
+| Batch | Module | Status | Progress |
+|-------|--------|--------|----------|
+| 1 | Core | Partial | ~60% |
+| 1 | Auth | Mostly Done | ~85% |
+| 2 | Patients | Done | ~95% |
+| 2 | Treatments | Done | ~90% |
+| 3 | Equipment | Not Started | 0% |
+| 3 | Booking | Not Started | 0% |
+| 4 | Billing | Not Started | 0% |
+| 4 | Accounting | Not Started | 0% |
+| 5 | Packages | Not Started | 0% |
+| 5 | GiftCards | Not Started | 0% |
+| 5 | Memberships | Not Started | 0% |
+| 6 | Inventory | Not Started | 0% |
+| 6 | Staff | Not Started | 0% |
+| 6 | Payroll | Not Started | 0% |
+| 7 | MarketingWhatsApp | Not Started | 0% |
+| 7 | MarketingSms | Not Started | 0% |
+| 7 | MarketingEmail | Not Started | 0% |
+| 8 | Loyalty | Not Started | 0% |
+| 8 | Reporting | Not Started | 0% |
+| 9 | PatientPortal | Not Started | 0% |
+| 9 | Api | Not Started | 0% |
+
+**Overall Progress: ~15% (4 of 21 modules partially/fully implemented)**
+
+---
+
+## NEXT STEPS (Recommended Order)
+
+1. **Complete Core Module** - Add Sequence model, BranchResource, GeneralSettingsPage, UsageDashboardPage
+2. **Complete Auth Module** - Add DefaultRoleSeeder, DefaultPermissionSeeder, system role protection
+3. **Start Batch 3: Equipment Module** - Foundation for appointments
+4. **Start Batch 3: Booking Module** - Core business functionality
+5. Continue with Batch 4-9 in order

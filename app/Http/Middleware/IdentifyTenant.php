@@ -1,0 +1,191 @@
+<?php
+
+namespace App\Http\Middleware;
+
+use Closure;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Config;
+use Modules\Core\Models\Tenant;
+use Symfony\Component\HttpFoundation\Response;
+
+class IdentifyTenant
+{
+    /**
+     * Subdomains that should not be treated as tenant subdomains.
+     */
+    protected array $excludedSubdomains = [
+        'sys',
+        'www',
+        'api',
+        'admin',
+        'app',
+        'mail',
+        'smtp',
+        'ftp',
+    ];
+
+    /**
+     * Handle an incoming request.
+     */
+    public function handle(Request $request, Closure $next): Response
+    {
+        $host = $request->getHost();
+        $subdomain = $this->extractSubdomain($request);
+
+        $requestId = substr(md5(microtime()), 0, 6);
+        \Log::warning("IdentifyTenant[$requestId] START", [
+            'host' => $host,
+            'subdomain' => $subdomain,
+            'path' => $request->path(),
+            'referer' => $request->header('referer'),
+            'origin' => $request->header('origin'),
+        ]);
+
+        // Skip if no subdomain or if it's an excluded subdomain
+        if (!$subdomain || in_array($subdomain, $this->excludedSubdomains)) {
+            \Log::warning("IdentifyTenant[$requestId] SKIPPED - excluded subdomain");
+            return $next($request);
+        }
+
+        // Ensure we query the public schema for tenants table
+        // This is important for Livewire persistent middleware which may run
+        // after the schema has already been switched
+        Config::set('database.connections.pgsql.search_path', 'public');
+        DB::purge('pgsql');
+        DB::reconnect('pgsql');
+
+        // Find tenant by slug (subdomain)
+        try {
+            $tenant = Tenant::where('slug', $subdomain)
+                ->where('status', 'active')
+                ->first();
+            \Log::warning('IdentifyTenant: tenant found', ['tenant' => $tenant ? $tenant->name : 'NOT FOUND']);
+        } catch (\Exception $e) {
+            \Log::error('IdentifyTenant: tenant lookup FAILED', ['error' => $e->getMessage()]);
+            throw $e;
+        }
+
+        if (!$tenant) {
+            // Tenant not found - show error or redirect
+            abort(404, "Clinic not found: {$subdomain}");
+        }
+
+        // Check if tenant schema is provisioned
+        if (!$tenant->database_name || !$this->schemaExists($tenant->database_name)) {
+            abort(503, "Clinic database not provisioned. Please contact support.");
+        }
+
+        // Switch to tenant's PostgreSQL schema
+        $this->switchToTenantSchema($tenant);
+        \Log::warning('IdentifyTenant: schema switched', ['schema' => $tenant->database_name]);
+
+        // Store tenant in request and TenantManager for later use
+        $request->attributes->set('tenant', $tenant);
+        app()->instance('currentTenant', $tenant);
+
+        // Set tenant in TenantManager (used by HasTenancy trait)
+        $tenantManager = app(\XLinic\Framework\Core\Tenancy\TenantManager::class);
+        $tenantManager->setCurrentTenant($tenant);
+
+        // Verify TenantManager has tenant
+        $verifyTenant = $tenantManager->current();
+        \Log::warning('IdentifyTenant: COMPLETE', [
+            'tenantId' => $tenant->id,
+            'managerHasTenant' => $verifyTenant ? 'yes' : 'no',
+            'managerId' => $verifyTenant?->id,
+        ]);
+
+        // Log SQL queries for users table
+        DB::listen(function ($query) {
+            if (stripos($query->sql, 'users') !== false && stripos($query->sql, 'select') !== false) {
+                \Log::warning('SQL Query on users', [
+                    'sql' => $query->sql,
+                    'bindings' => $query->bindings,
+                ]);
+            }
+        });
+
+        $response = $next($request);
+
+        return $response;
+    }
+
+    /**
+     * Extract subdomain from the request host.
+     */
+    protected function extractSubdomain(Request $request): ?string
+    {
+        $host = $request->getHost();
+        $parts = explode('.', $host);
+
+        // Need at least 3 parts for subdomain (tenant.x-linic.com)
+        if (count($parts) < 3) {
+            return null;
+        }
+
+        $subdomain = $parts[0];
+
+        // Validate subdomain format
+        if (!preg_match('/^[a-z0-9\-]+$/', $subdomain)) {
+            return null;
+        }
+
+        return $subdomain;
+    }
+
+    /**
+     * Check if PostgreSQL schema exists.
+     */
+    protected function schemaExists(string $schemaName): bool
+    {
+        try {
+            $result = DB::select(
+                "SELECT schema_name FROM information_schema.schemata WHERE schema_name = ?",
+                [$schemaName]
+            );
+            return count($result) > 0;
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Switch database connection to tenant's PostgreSQL schema.
+     */
+    protected function switchToTenantSchema(Tenant $tenant): void
+    {
+        $schemaName = $tenant->database_name;
+
+        // Switching to tenant schema
+
+        // Configure the default pgsql connection to use tenant's schema
+        // This persists across the request even with PgBouncer
+        Config::set('database.connections.pgsql.search_path', $schemaName);
+
+        // Purge and reconnect the default connection with new search_path
+        DB::purge('pgsql');
+        DB::reconnect('pgsql');
+
+        // Verify the search_path is set correctly (silent verification)
+        DB::select('SHOW search_path');
+
+        // Also configure a named tenant connection for explicit use
+        Config::set('database.connections.tenant', [
+            'driver' => 'pgsql',
+            'host' => config('database.connections.pgsql.host'),
+            'port' => config('database.connections.pgsql.port'),
+            'database' => config('database.connections.pgsql.database'),
+            'username' => config('database.connections.pgsql.username'),
+            'password' => config('database.connections.pgsql.password'),
+            'charset' => 'utf8',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'search_path' => $schemaName,
+            'sslmode' => 'prefer',
+        ]);
+
+        // Purge any cached tenant connection
+        DB::purge('tenant');
+    }
+}
