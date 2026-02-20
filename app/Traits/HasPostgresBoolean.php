@@ -63,13 +63,72 @@ trait HasPostgresBoolean
     protected function performInsert(\Illuminate\Database\Eloquent\Builder $query): bool
     {
         $booleanFields = $this->getPostgresBooleanFields();
+        $hasBooleanFields = false;
 
         foreach ($booleanFields as $field) {
-            if (isset($this->attributes[$field])) {
-                $this->attributes[$field] = filter_var($this->attributes[$field], FILTER_VALIDATE_BOOLEAN);
+            if (array_key_exists($field, $this->attributes)) {
+                $hasBooleanFields = true;
+                break;
             }
         }
 
-        return parent::performInsert($query);
+        if (!$hasBooleanFields) {
+            return parent::performInsert($query);
+        }
+
+        // Generate UUID if model uses HasUuids and id is not set
+        if (in_array(\Illuminate\Database\Eloquent\Concerns\HasUuids::class, class_uses_recursive($this))) {
+            if (empty($this->attributes[$this->getKeyName()])) {
+                $this->attributes[$this->getKeyName()] = (string) \Illuminate\Support\Str::uuid();
+            }
+        }
+
+        // Set timestamps if the model uses them
+        if ($this->usesTimestamps()) {
+            $time = $this->freshTimestamp();
+            if (!isset($this->attributes['created_at'])) {
+                $this->attributes['created_at'] = $time;
+            }
+            if (!isset($this->attributes['updated_at'])) {
+                $this->attributes['updated_at'] = $time;
+            }
+        }
+
+        // Use raw SQL insert for models with boolean fields
+        $attributes = $this->getAttributes();
+        $columns = [];
+        $placeholders = [];
+        $values = [];
+
+        foreach ($attributes as $key => $value) {
+            $columns[] = '"' . $key . '"';
+            if (in_array($key, $booleanFields)) {
+                // Use literal true/false for boolean columns
+                $boolValue = filter_var($value, FILTER_VALIDATE_BOOLEAN);
+                $placeholders[] = $boolValue ? 'true' : 'false';
+            } elseif ($value instanceof \DateTimeInterface) {
+                $placeholders[] = '?';
+                $values[] = $value->format('Y-m-d H:i:s');
+            } else {
+                $placeholders[] = '?';
+                $values[] = $value;
+            }
+        }
+
+        $sql = sprintf(
+            'INSERT INTO "%s" (%s) VALUES (%s)',
+            $this->getTable(),
+            implode(', ', $columns),
+            implode(', ', $placeholders)
+        );
+
+        \DB::statement($sql, $values);
+
+        // Set exists to true and fire events
+        $this->exists = true;
+        $this->wasRecentlyCreated = true;
+        $this->fireModelEvent('created', false);
+
+        return true;
     }
 }
