@@ -14,10 +14,8 @@
 {{-- ADMIN PANEL: Simple single sidebar --}}
 <aside
     x-cloak="-lg"
-    x-bind:class="$store.sidebar.isOpen ? @js($openSidebarClasses) : '-translate-x-full rtl:translate-x-full lg:translate-x-0'"
-    {{ $attributes->class([
-        'fi-sidebar fixed inset-y-0 start-0 z-30 flex h-screen w-64 flex-col bg-white shadow-xl ring-1 ring-gray-950/5 transition-all dark:bg-gray-900 dark:ring-white/10 lg:z-0 lg:sticky lg:shadow-none lg:ring-0',
-    ]) }}
+    x-bind:class="$store.sidebar.isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
+    class="fi-sidebar fixed inset-y-0 start-0 z-30 flex h-screen w-64 flex-col bg-white shadow-xl ring-1 ring-gray-950/5 transition-all dark:bg-gray-900 dark:ring-white/10 lg:z-0 lg:sticky lg:translate-x-0"
 >
     {{-- Logo Header --}}
     <header class="flex h-16 shrink-0 items-center gap-x-4 px-6 border-b border-gray-200 dark:border-gray-700">
