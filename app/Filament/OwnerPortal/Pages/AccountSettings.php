@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Admin\Pages;
+namespace App\Filament\OwnerPortal\Pages;
 
 use Filament\Pages\Page;
 use Filament\Forms;
@@ -24,7 +24,7 @@ class AccountSettings extends Page implements HasForms
 
     protected static ?string $title = 'Account Settings';
 
-    protected static string $view = 'filament.admin.pages.account-settings';
+    protected static string $view = 'filament.owner-portal.pages.account-settings';
 
     public ?array $profileData = [];
     public ?array $passwordData = [];

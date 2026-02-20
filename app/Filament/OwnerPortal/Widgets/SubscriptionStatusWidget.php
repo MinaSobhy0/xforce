@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Filament\Admin\Widgets;
+namespace App\Filament\OwnerPortal\Widgets;
 
 use Filament\Widgets\Widget;
 use Illuminate\Support\Facades\Auth;
 
 class SubscriptionStatusWidget extends Widget
 {
-    protected static string $view = 'filament.admin.widgets.subscription-status';
+    protected static string $view = 'filament.owner-portal.widgets.subscription-status';
 
     protected int|string|array $columnSpan = 'full';
 

@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Filament\Admin\Resources;
+namespace App\Filament\OwnerPortal\Resources;
 
-use App\Filament\Admin\Resources\MyInvoiceResource\Pages;
+use App\Filament\OwnerPortal\Resources\MyInvoiceResource\Pages;
 use App\Models\PlatformInvoice;
 use Filament\Forms;
 use Filament\Forms\Form;

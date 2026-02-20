@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Filament\Admin\Resources\MySupportTicketResource\Pages;
+namespace App\Filament\OwnerPortal\Resources\MySupportTicketResource\Pages;
 
-use App\Filament\Admin\Resources\MySupportTicketResource;
+use App\Filament\OwnerPortal\Resources\MySupportTicketResource;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Facades\Auth;
 

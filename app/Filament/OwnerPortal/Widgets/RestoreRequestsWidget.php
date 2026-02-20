@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Filament\Admin\Widgets;
+namespace App\Filament\OwnerPortal\Widgets;
 
 use App\Models\RestoreRequest;
 use Filament\Widgets\Widget;
 
 class RestoreRequestsWidget extends Widget
 {
-    protected static string $view = 'filament.admin.widgets.restore-requests';
+    protected static string $view = 'filament.owner-portal.widgets.restore-requests';
 
     protected int | string | array $columnSpan = 'full';
 

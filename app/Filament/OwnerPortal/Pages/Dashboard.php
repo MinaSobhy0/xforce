@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Filament\Admin\Pages;
+namespace App\Filament\OwnerPortal\Pages;
 
 use Filament\Pages\Dashboard as BaseDashboard;
-use App\Filament\Admin\Widgets\SubscriptionStatusWidget;
-use App\Filament\Admin\Widgets\QuickActionsWidget;
-use App\Filament\Admin\Widgets\RecentInvoicesWidget;
-use App\Filament\Admin\Widgets\SupportTicketsWidget;
+use App\Filament\OwnerPortal\Widgets\SubscriptionStatusWidget;
+use App\Filament\OwnerPortal\Widgets\QuickActionsWidget;
+use App\Filament\OwnerPortal\Widgets\RecentInvoicesWidget;
+use App\Filament\OwnerPortal\Widgets\SupportTicketsWidget;
 
 class Dashboard extends BaseDashboard
 {

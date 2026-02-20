@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Filament\Admin\Widgets;
+namespace App\Filament\OwnerPortal\Widgets;
 
 use Filament\Widgets\Widget;
 
 class QuickActionsWidget extends Widget
 {
-    protected static string $view = 'filament.admin.widgets.quick-actions';
+    protected static string $view = 'filament.owner-portal.widgets.quick-actions';
 
     protected int|string|array $columnSpan = 1;
 

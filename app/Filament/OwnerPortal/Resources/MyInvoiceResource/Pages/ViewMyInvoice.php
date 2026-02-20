@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Filament\Admin\Resources\MyInvoiceResource\Pages;
+namespace App\Filament\OwnerPortal\Resources\MyInvoiceResource\Pages;
 
-use App\Filament\Admin\Resources\MyInvoiceResource;
+use App\Filament\OwnerPortal\Resources\MyInvoiceResource;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Infolists\Infolist;
 use Filament\Infolists\Components;

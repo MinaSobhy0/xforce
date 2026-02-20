@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Admin\Pages;
+namespace App\Filament\OwnerPortal\Pages;
 
 use Filament\Pages\Page;
 use Filament\Actions\Action;
@@ -23,7 +23,7 @@ class MySubscription extends Page
 
     protected static ?string $title = 'My Subscription';
 
-    protected static string $view = 'filament.admin.pages.my-subscription';
+    protected static string $view = 'filament.owner-portal.pages.my-subscription';
 
     public function getSubscriptionData(): array
     {

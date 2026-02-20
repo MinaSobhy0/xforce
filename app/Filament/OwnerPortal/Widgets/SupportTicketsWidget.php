@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Admin\Widgets;
+namespace App\Filament\OwnerPortal\Widgets;
 
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -54,7 +54,7 @@ class SupportTicketsWidget extends BaseWidget
                 Tables\Actions\Action::make('view')
                     ->label('View')
                     ->icon('heroicon-o-eye')
-                    ->url(fn(SupportTicket $record) => route('filament.admin.resources.my-support-tickets.view', $record)),
+                    ->url(fn(SupportTicket $record) => route('filament.owner-portal.resources.my-support-tickets.view', $record)),
             ])
             ->emptyStateHeading('No open tickets')
             ->emptyStateDescription('You have no open support tickets.')

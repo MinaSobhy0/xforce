@@ -60,9 +60,9 @@ class AdminPanelProvider extends PanelProvider
 
             // Discover ONLY clinic owner portal resources (subscription, invoices, support)
             // NO tenant module resources here (no Patients, Treatments, etc.)
-            ->discoverResources(in: app_path('Filament/Admin/Resources'), for: 'App\\Filament\\Admin\\Resources')
-            ->discoverPages(in: app_path('Filament/Admin/Pages'), for: 'App\\Filament\\Admin\\Pages')
-            ->discoverWidgets(in: app_path('Filament/Admin/Widgets'), for: 'App\\Filament\\Admin\\Widgets')
+            ->discoverResources(in: app_path('Filament/OwnerPortal/Resources'), for: 'App\\Filament\\OwnerPortal\\Resources')
+            ->discoverPages(in: app_path('Filament/OwnerPortal/Pages'), for: 'App\\Filament\\OwnerPortal\\Pages')
+            ->discoverWidgets(in: app_path('Filament/OwnerPortal/Widgets'), for: 'App\\Filament\\OwnerPortal\\Widgets')
 
             // No default pages/widgets - use discovered ones
             ->pages([])

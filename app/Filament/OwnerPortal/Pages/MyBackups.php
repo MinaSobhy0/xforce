@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Admin\Pages;
+namespace App\Filament\OwnerPortal\Pages;
 
 use App\Models\Backup;
 use App\Models\RestoreRequest;
@@ -25,7 +25,7 @@ class MyBackups extends Page implements HasTable
 
     protected static ?int $navigationSort = 10;
 
-    protected static string $view = 'filament.admin.pages.my-backups';
+    protected static string $view = 'filament.owner-portal.pages.my-backups';
 
     public function getTitle(): string
     {
@@ -143,7 +143,7 @@ class MyBackups extends Page implements HasTable
     protected function getHeaderWidgets(): array
     {
         return [
-            \App\Filament\Admin\Widgets\RestoreRequestsWidget::class,
+            \App\Filament\OwnerPortal\Widgets\RestoreRequestsWidget::class,
         ];
     }
 }

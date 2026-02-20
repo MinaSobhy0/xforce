@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Admin\Widgets;
+namespace App\Filament\OwnerPortal\Widgets;
 
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -54,7 +54,7 @@ class RecentInvoicesWidget extends BaseWidget
                 Tables\Actions\Action::make('download')
                     ->label('Download')
                     ->icon('heroicon-o-arrow-down-tray')
-                    ->url(fn(PlatformInvoice $record) => route('filament.admin.resources.my-invoices.view', $record)),
+                    ->url(fn(PlatformInvoice $record) => route('filament.owner-portal.resources.my-invoices.view', $record)),
             ]);
     }
 }
