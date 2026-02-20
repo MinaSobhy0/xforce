@@ -481,8 +481,8 @@
                             </div>
 
                             <div class="form-group">
-                                <label for="email">Email <span class="required">*</span></label>
-                                <input type="email" id="email" name="email" value="{{ old('email') }}" required placeholder="your@email.com">
+                                <label for="email">Email</label>
+                                <input type="email" id="email" name="email" value="{{ old('email') }}" placeholder="your@email.com">
                             </div>
 
                             <div class="form-group">
