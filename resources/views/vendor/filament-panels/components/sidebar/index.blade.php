@@ -118,14 +118,8 @@
         {{-- Second Sidebar: Sub-items --}}
         <div
             x-show="activeGroup !== null"
-            x-transition:enter="transform transition-all duration-300 ease-out"
-            x-transition:enter-start="opacity-0 scale-x-95 -translate-x-2"
-            x-transition:enter-end="opacity-100 scale-x-100 translate-x-0"
-            x-transition:leave="transform transition-all duration-200 ease-in"
-            x-transition:leave-start="opacity-100 scale-x-100 translate-x-0"
-            x-transition:leave-end="opacity-0 scale-x-95 -translate-x-2"
-            style="transform-origin: left center;"
-            class="fi-sidebar-items w-56 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col shadow-xl ring-1 ring-gray-950/5 dark:ring-white/10"
+            x-transition.opacity.duration.300ms
+            class="fi-sidebar-items w-56 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col shadow-xl ring-1 ring-gray-950/5 dark:ring-white/10 transition-all duration-300 ease-in-out"
         >
             {{-- Header with group name - aligned with topbar --}}
             <header class="flex h-16 items-center gap-x-4 px-4 bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10 shrink-0">
