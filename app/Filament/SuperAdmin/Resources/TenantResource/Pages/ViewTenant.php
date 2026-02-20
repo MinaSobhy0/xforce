@@ -6,6 +6,7 @@ use App\Filament\SuperAdmin\Resources\TenantResource;
 use App\Models\AddOn;
 use App\Models\SubscriptionPlan;
 use Modules\Core\Models\Tenant;
+use Modules\Core\Services\TenantService;
 use Filament\Actions;
 use Filament\Forms;
 use Filament\Infolists\Infolist;
@@ -13,6 +14,8 @@ use Filament\Infolists\Components;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Support\Enums\FontWeight;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ViewTenant extends ViewRecord
 {
@@ -22,6 +25,43 @@ class ViewTenant extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
+            Actions\Action::make('provisionDatabase')
+                ->label('Provision Database')
+                ->icon('heroicon-o-server-stack')
+                ->color('success')
+                ->requiresConfirmation()
+                ->modalHeading('Provision Tenant Database')
+                ->modalDescription(fn() => "This will create the PostgreSQL schema '{$this->record->database_name}' and run all migrations. Continue?")
+                ->modalSubmitActionLabel('Yes, provision database')
+                ->visible(fn() => !$this->schemaExists())
+                ->action(function (): void {
+                    try {
+                        $tenantService = app(TenantService::class);
+                        $tenantService->createTenantDatabase($this->record);
+
+                        Notification::make()
+                            ->title('Database provisioned successfully')
+                            ->body("Schema '{$this->record->database_name}' has been created and migrations have been run.")
+                            ->success()
+                            ->send();
+
+                        $this->refreshFormData(['database_name']);
+
+                    } catch (\Exception $e) {
+                        Log::error('Tenant database provisioning failed', [
+                            'tenant_id' => $this->record->id,
+                            'error' => $e->getMessage(),
+                        ]);
+
+                        Notification::make()
+                            ->title('Database provisioning failed')
+                            ->body($e->getMessage())
+                            ->danger()
+                            ->persistent()
+                            ->send();
+                    }
+                }),
+
             Actions\Action::make('loginAs')
                 ->label('Login As Owner')
                 ->icon('heroicon-o-arrow-right-on-rectangle')
@@ -29,7 +69,8 @@ class ViewTenant extends ViewRecord
                 ->url(fn(): string =>
                     "https://{$this->record->slug}.xlinic.com/admin"
                 )
-                ->openUrlInNewTab(),
+                ->openUrlInNewTab()
+                ->visible(fn() => $this->schemaExists()),
 
             Actions\Action::make('emailOwner')
                 ->label('Send Email')
@@ -201,6 +242,46 @@ class ViewTenant extends ViewRecord
 
             Actions\EditAction::make(),
 
+            Actions\Action::make('resetDatabase')
+                ->label('Reset Database')
+                ->icon('heroicon-o-arrow-path')
+                ->color('danger')
+                ->requiresConfirmation()
+                ->modalHeading('Reset Tenant Database')
+                ->modalDescription(fn() => "WARNING: This will DROP the schema '{$this->record->database_name}' and ALL its data, then recreate it with fresh migrations. This action cannot be undone!")
+                ->modalSubmitActionLabel('Yes, reset database')
+                ->visible(fn() => $this->schemaExists())
+                ->action(function (): void {
+                    try {
+                        $tenantService = app(TenantService::class);
+
+                        // Drop existing schema
+                        $tenantService->dropTenantDatabase($this->record);
+
+                        // Recreate schema and run migrations
+                        $tenantService->createTenantDatabase($this->record);
+
+                        Notification::make()
+                            ->title('Database reset successfully')
+                            ->body("Schema '{$this->record->database_name}' has been dropped and recreated.")
+                            ->success()
+                            ->send();
+
+                    } catch (\Exception $e) {
+                        Log::error('Tenant database reset failed', [
+                            'tenant_id' => $this->record->id,
+                            'error' => $e->getMessage(),
+                        ]);
+
+                        Notification::make()
+                            ->title('Database reset failed')
+                            ->body($e->getMessage())
+                            ->danger()
+                            ->persistent()
+                            ->send();
+                    }
+                }),
+
             Actions\Action::make('delete')
                 ->label('Delete')
                 ->icon('heroicon-o-trash')
@@ -282,7 +363,9 @@ class ViewTenant extends ViewRecord
                                         Components\TextEntry::make('database_name')
                                             ->label('DB Schema')
                                             ->badge()
-                                            ->color('gray'),
+                                            ->color(fn() => $this->schemaExists() ? 'success' : 'danger')
+                                            ->icon(fn() => $this->schemaExists() ? 'heroicon-o-check-circle' : 'heroicon-o-x-circle')
+                                            ->formatStateUsing(fn($state) => $state . ($this->schemaExists() ? ' (provisioned)' : ' (not provisioned)')),
                                         Components\TextEntry::make('country')
                                             ->label('Country')
                                             ->formatStateUsing(fn(?string $state) => match ($state) {
@@ -739,5 +822,26 @@ class ViewTenant extends ViewRecord
                         ]),
                 ]),
         ]);
+    }
+
+    /**
+     * Check if the tenant's database schema exists.
+     */
+    protected function schemaExists(): bool
+    {
+        if (!$this->record || !$this->record->database_name) {
+            return false;
+        }
+
+        try {
+            $result = DB::select(
+                "SELECT schema_name FROM information_schema.schemata WHERE schema_name = ?",
+                [$this->record->database_name]
+            );
+
+            return count($result) > 0;
+        } catch (\Exception $e) {
+            return false;
+        }
     }
 }
