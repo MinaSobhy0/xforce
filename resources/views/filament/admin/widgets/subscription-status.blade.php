@@ -28,7 +28,7 @@
                 <x-filament::badge :color="$statusColors[$data['status']] ?? 'gray'" class="mt-1">
                     {{ ucfirst($data['status']) }}
                     @if($data['is_trial'])
-                        ({{ $data['days_remaining'] }} days left)
+                        ({{ ceil($data['days_remaining']) }} days left)
                     @endif
                 </x-filament::badge>
             </div>
