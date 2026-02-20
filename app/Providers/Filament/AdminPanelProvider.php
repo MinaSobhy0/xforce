@@ -38,47 +38,22 @@ class AdminPanelProvider extends PanelProvider
             ->sidebarCollapsibleOnDesktop(false)
             ->sidebarFullyCollapsibleOnDesktop(false)
 
-            // Navigation Groups with icons for double sidebar
+            // Navigation Groups with icons for tenant portal
             ->navigationGroups([
-                NavigationGroup::make('CRM')
-                    ->label(__('CRM'))
-                    ->icon('heroicon-o-users'),
-                NavigationGroup::make('Treatments')
-                    ->label(__('Treatments'))
-                    ->icon('heroicon-o-beaker'),
-                NavigationGroup::make('Booking')
-                    ->label(__('Booking'))
-                    ->icon('heroicon-o-calendar-days'),
-                NavigationGroup::make('Billing')
-                    ->label(__('Billing'))
-                    ->icon('heroicon-o-banknotes'),
-                NavigationGroup::make('Inventory')
-                    ->label(__('Inventory'))
-                    ->icon('heroicon-o-cube'),
-                NavigationGroup::make('Reports')
-                    ->label(__('Reports'))
-                    ->icon('heroicon-o-chart-bar'),
-                NavigationGroup::make('User Management')
-                    ->label(__('User Management'))
-                    ->icon('heroicon-o-user-group'),
-                NavigationGroup::make('Security')
-                    ->label(__('Security'))
-                    ->icon('heroicon-o-shield-check'),
-                NavigationGroup::make('Settings')
-                    ->label(__('Settings'))
-                    ->icon('heroicon-o-cog-6-tooth'),
+                NavigationGroup::make('Subscription')
+                    ->label(__('Subscription'))
+                    ->icon('heroicon-o-credit-card'),
+                NavigationGroup::make('Support')
+                    ->label(__('Support'))
+                    ->icon('heroicon-o-lifebuoy'),
                 NavigationGroup::make('Account')
                     ->label(__('Account'))
                     ->icon('heroicon-o-user-circle'),
             ])
 
-            // Discover resources from modules
-            ->discoverResources(in: base_path('modules/Auth/Filament/Resources'), for: 'Modules\\Auth\\Filament\\Resources')
-            ->discoverResources(in: base_path('modules/Auth/Resources'), for: 'Modules\\Auth\\Resources')
-            ->discoverResources(in: base_path('modules/Core/Filament/Resources'), for: 'Modules\\Core\\Filament\\Resources')
-            ->discoverResources(in: base_path('modules/Core/Resources'), for: 'Modules\\Core\\Resources')
-            ->discoverResources(in: base_path('modules/Patients/Filament/Resources'), for: 'Modules\\Patients\\Filament\\Resources')
-            ->discoverResources(in: base_path('modules/Treatments/Filament/Resources'), for: 'Modules\\Treatments\\Filament\\Resources')
+            // Discover tenant portal resources
+            ->discoverResources(in: app_path('Filament/Admin/Resources'), for: 'App\\Filament\\Admin\\Resources')
+            ->discoverPages(in: app_path('Filament/Admin/Pages'), for: 'App\\Filament\\Admin\\Pages')
 
             // Pages
             ->pages([
