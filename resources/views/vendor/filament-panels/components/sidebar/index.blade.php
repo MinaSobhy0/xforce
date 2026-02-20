@@ -10,13 +10,23 @@
 {{-- format-ignore-start --}}
 <aside
     x-data="{
-        activeGroup: null,
+        activeGroup: localStorage.getItem('sidebar_active_group') || null,
+        init() {
+            // Restore active group from localStorage
+            this.activeGroup = localStorage.getItem('sidebar_active_group') || null;
+        },
         setActiveGroup(group) {
             if (this.activeGroup === group) {
                 this.activeGroup = null;
+                localStorage.removeItem('sidebar_active_group');
             } else {
                 this.activeGroup = group;
+                localStorage.setItem('sidebar_active_group', group);
             }
+        },
+        closeGroup() {
+            this.activeGroup = null;
+            localStorage.removeItem('sidebar_active_group');
         },
         isGroupActive(group) {
             return this.activeGroup === group;
@@ -108,20 +118,20 @@
         {{-- Second Sidebar: Sub-items --}}
         <div
             x-show="activeGroup !== null"
-            x-transition:enter="transition ease-out duration-200"
-            x-transition:enter-start="opacity-0 w-0"
-            x-transition:enter-end="opacity-100 w-56"
-            x-transition:leave="transition ease-in duration-150"
-            x-transition:leave-start="opacity-100 w-56"
-            x-transition:leave-end="opacity-0 w-0"
-            class="fi-sidebar-items w-56 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 overflow-hidden flex flex-col shadow-xl ring-1 ring-gray-950/5 dark:ring-white/10"
+            x-transition:enter="transition-all ease-out duration-300"
+            x-transition:enter-start="opacity-0 -translate-x-4"
+            x-transition:enter-end="opacity-100 translate-x-0"
+            x-transition:leave="transition-all ease-in-out duration-200"
+            x-transition:leave-start="opacity-100 translate-x-0"
+            x-transition:leave-end="opacity-0 -translate-x-4"
+            class="fi-sidebar-items w-56 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col shadow-xl ring-1 ring-gray-950/5 dark:ring-white/10"
         >
             {{-- Header with group name - aligned with topbar --}}
             <header class="flex h-16 items-center gap-x-4 px-4 bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10 shrink-0">
                 <h2 class="text-sm font-semibold text-gray-900 dark:text-white truncate flex-1" x-text="activeGroup"></h2>
                 <button
                     type="button"
-                    x-on:click="activeGroup = null"
+                    x-on:click="closeGroup()"
                     class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-500"
                 >
                     <x-filament::icon
