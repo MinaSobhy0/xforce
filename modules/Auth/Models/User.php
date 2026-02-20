@@ -299,9 +299,12 @@ class User extends BaseModel implements
 
         // Check panel-specific access
         return match ($panel->getId()) {
-            'admin' => $this->hasAnyRole(['super_admin', 'admin', 'manager', 'staff', 'doctor', 'nurse', 'technician', 'receptionist']),
+            // Admin panel (tenant portal) - only users WITH a tenant_id
+            'admin' => $this->tenant_id !== null && $this->hasAnyRole(['admin', 'manager', 'staff', 'doctor', 'nurse', 'technician', 'receptionist', 'owner']),
+            // Patient portal
             'portal' => $this->hasPortalAccess(),
-            'super-admin' => $this->hasRole('super_admin'),
+            // Super admin panel - only users WITHOUT a tenant_id who are super_admin
+            'super-admin' => $this->tenant_id === null && $this->hasRole('super_admin'),
             default => false,
         };
     }

@@ -127,6 +127,18 @@
     ],
     "roles": [
         {
+            "name": "owner",
+            "display_name": {
+                "en": "Clinic Owner",
+                "ar": "مالك العيادة"
+            },
+            "description": {
+                "en": "Clinic owner with full access to all features",
+                "ar": "مالك العيادة مع الوصول الكامل لجميع الميزات"
+            },
+            "permissions": ["users.view", "users.create", "users.edit", "users.delete", "roles.view", "roles.manage", "permissions.view"]
+        },
+        {
             "name": "admin",
             "display_name": {
                 "en": "Administrator",

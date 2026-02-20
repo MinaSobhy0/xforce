@@ -40,9 +40,17 @@ class UsersRelationManager extends RelationManager
                     ->tel(),
 
                 Forms\Components\Select::make('roles')
-                    ->relationship('roles', 'name')
+                    ->relationship(
+                        'roles',
+                        'name',
+                        fn ($query) => $query->whereIn('name', [
+                            'owner', 'admin', 'manager', 'doctor', 'nurse',
+                            'technician', 'receptionist', 'staff'
+                        ])
+                    )
                     ->multiple()
-                    ->preload(),
+                    ->preload()
+                    ->required(),
             ]);
     }
 
