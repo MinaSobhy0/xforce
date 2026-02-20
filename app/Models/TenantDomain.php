@@ -232,28 +232,79 @@ class TenantDomain extends Model
     }
 
     /**
-     * Update nginx configuration to include this custom domain.
+     * Create a separate nginx server block for this domain.
      */
-    protected function updateNginxConfig(): void
+    protected function createNginxServerBlock(): void
     {
         $configPath = '/etc/nginx/sites-available/xlinic.conf';
         $config = file_get_contents($configPath);
 
-        // Check if domain is already in config
-        if (str_contains($config, $this->domain)) {
-            Log::info('Domain already in nginx config', ['domain' => $this->domain]);
+        // Check if domain already has a server block
+        if (str_contains($config, "server_name {$this->domain};")) {
+            Log::info('Server block already exists for domain', ['domain' => $this->domain]);
             return;
         }
 
-        // Add domain to server_name directive
+        // Create new server block for this domain
+        $serverBlock = <<<NGINX
+
+# Tenant domain: {$this->domain}
+server {
+    server_name {$this->domain};
+
+    root /var/www/html/x_linic/public;
+    index index.php index.html;
+
+    charset utf-8;
+
+    location / {
+        try_files \$uri \$uri/ /index.php?\$query_string;
+    }
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location = /robots.txt  { access_log off; log_not_found off; }
+
+    error_page 404 /index.php;
+
+    location ~ \\.php\$ {
+        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME \$realpath_root\$fastcgi_script_name;
+        include fastcgi_params;
+        fastcgi_hide_header X-Powered-By;
+    }
+
+    location ~ /\\.(?!well-known).* {
+        deny all;
+    }
+
+    location ^~ /css/filament/ {
+        alias /var/www/html/x_linic/public/css/filament/;
+    }
+
+    location ^~ /js/filament/ {
+        alias /var/www/html/x_linic/public/js/filament/;
+    }
+
+    listen 443 ssl;
+    ssl_certificate /etc/letsencrypt/live/{$this->domain}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/{$this->domain}/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+}
+NGINX;
+
+        // Append server block to config
+        $config .= $serverBlock;
+
+        // Also add to HTTP redirect block
         $config = preg_replace(
-            '/server_name\s+([^;]+);/',
-            'server_name $1 ' . $this->domain . ';',
+            '/(server\s*\{\s*listen\s+80;\s*server_name\s+)([^;]+)(;\s*return\s+301)/',
+            '$1$2 ' . $this->domain . '$3',
             $config,
             1
         );
 
-        // Write config using sudo tee
+        // Write config using sudo
         $tempFile = tempnam(sys_get_temp_dir(), 'nginx_');
         file_put_contents($tempFile, $config);
 
@@ -261,9 +312,13 @@ class TenantDomain extends Model
         unlink($tempFile);
 
         // Reload nginx
-        Process::run(['/usr/bin/sudo', '/usr/sbin/nginx', '-t']);
-        Process::run(['/usr/bin/sudo', '/usr/bin/systemctl', 'reload', 'nginx']);
-
-        Log::info('Nginx config updated for domain', ['domain' => $this->domain]);
+        $testResult = Process::run(['/usr/bin/sudo', '/usr/sbin/nginx', '-t']);
+        if ($testResult->successful()) {
+            Process::run(['/usr/bin/sudo', '/usr/bin/systemctl', 'reload', 'nginx']);
+            Log::info('Nginx server block created for domain', ['domain' => $this->domain]);
+        } else {
+            Log::error('Nginx config test failed', ['error' => $testResult->errorOutput()]);
+            throw new \Exception('Nginx configuration error: ' . $testResult->errorOutput());
+        }
     }
 }
