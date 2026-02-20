@@ -8,6 +8,7 @@ use Modules\Core\Models\TenantUsage;
 use XLinic\Framework\Core\Tenancy\TenantManager;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
@@ -139,14 +140,22 @@ class TenantService
     public function createTenantDatabase(Tenant $tenant): void
     {
         $schemaName = $tenant->database_name;
-        $connection = config('database.default');
+        $connectionName = "tenant_{$tenant->id}";
 
-        // Create schema
+        Log::info('Creating tenant database schema', [
+            'tenant_id' => $tenant->id,
+            'tenant_name' => $tenant->name,
+            'schema_name' => $schemaName,
+        ]);
+
+        // Create schema in the main database
         DB::statement("CREATE SCHEMA IF NOT EXISTS \"{$schemaName}\"");
 
-        // Configure tenant connection
+        Log::info('Schema created successfully', ['schema_name' => $schemaName]);
+
+        // Configure tenant connection dynamically
         config([
-            "database.connections.tenant_{$tenant->id}" => [
+            "database.connections.{$connectionName}" => [
                 'driver' => 'pgsql',
                 'host' => $tenant->database_host ?? config('database.connections.pgsql.host'),
                 'port' => $tenant->database_port ?? config('database.connections.pgsql.port'),
@@ -156,18 +165,77 @@ class TenantService
                 'charset' => 'utf8',
                 'prefix' => '',
                 'prefix_indexes' => true,
-                'schema' => $schemaName,
+                'search_path' => $schemaName,
                 'sslmode' => 'prefer',
             ]
         ]);
 
-        // Run migrations for tenant
-        $this->tenantManager->runForTenant($tenant, function () {
-            Artisan::call('migrate', [
-                '--path' => 'modules/*/Migrations',
-                '--force' => true,
+        // Purge the connection to force Laravel to use new config
+        DB::purge($connectionName);
+
+        // Run migrations for tenant using the tenant connection
+        $this->tenantManager->runForTenant($tenant, function () use ($connectionName, $schemaName) {
+            // Get all module migration paths
+            $migrationPaths = $this->getModuleMigrationPaths();
+
+            Log::info('Running tenant migrations', [
+                'schema_name' => $schemaName,
+                'connection' => $connectionName,
+                'paths' => $migrationPaths,
             ]);
+
+            foreach ($migrationPaths as $path) {
+                if (is_dir(base_path($path))) {
+                    Log::info('Running migrations from path', ['path' => $path]);
+
+                    Artisan::call('migrate', [
+                        '--database' => $connectionName,
+                        '--path' => $path,
+                        '--force' => true,
+                    ]);
+
+                    Log::info('Migration output', ['output' => Artisan::output()]);
+                }
+            }
         });
+
+        Log::info('Tenant database provisioning completed', [
+            'tenant_id' => $tenant->id,
+            'schema_name' => $schemaName,
+        ]);
+    }
+
+    /**
+     * Get all module migration paths.
+     */
+    protected function getModuleMigrationPaths(): array
+    {
+        $paths = [];
+        $modulesPath = base_path('modules');
+
+        if (is_dir($modulesPath)) {
+            $modules = scandir($modulesPath);
+            foreach ($modules as $module) {
+                if ($module === '.' || $module === '..') {
+                    continue;
+                }
+
+                // Check Database/Migrations first (preferred)
+                $dbMigrationsPath = "modules/{$module}/Database/Migrations";
+                if (is_dir(base_path($dbMigrationsPath))) {
+                    $paths[] = $dbMigrationsPath;
+                    continue;
+                }
+
+                // Fallback to direct Migrations folder
+                $migrationsPath = "modules/{$module}/Migrations";
+                if (is_dir(base_path($migrationsPath))) {
+                    $paths[] = $migrationsPath;
+                }
+            }
+        }
+
+        return $paths;
     }
 
     public function dropTenantDatabase(Tenant $tenant): void
