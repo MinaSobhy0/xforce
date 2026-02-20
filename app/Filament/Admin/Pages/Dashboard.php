@@ -12,6 +12,8 @@ class Dashboard extends BaseDashboard
 {
     protected static ?string $navigationIcon = 'heroicon-o-home';
 
+    protected static ?string $navigationGroup = 'Subscription';
+
     protected static ?int $navigationSort = -2;
 
     public function getWidgets(): array
