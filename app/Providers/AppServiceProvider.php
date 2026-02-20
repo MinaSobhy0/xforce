@@ -26,5 +26,6 @@ class AppServiceProvider extends ServiceProvider
         Livewire::addPersistentMiddleware([
             IdentifyTenant::class,
         ]);
+
     }
 }

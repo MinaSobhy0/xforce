@@ -45,7 +45,11 @@ class PatientResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        return static::getModel()::whereMonth('created_at', now()->month)->count() ?: null;
+        try {
+            return static::getModel()::whereMonth('created_at', now()->month)->count() ?: null;
+        } catch (\Exception $e) {
+            return null;
+        }
     }
 
     public static function getNavigationBadgeColor(): ?string

@@ -20,32 +20,46 @@ trait HasTenancy
 
             $tenantManager = app(\XLinic\Framework\Core\Tenancy\TenantManager::class);
             $currentTenant = $tenantManager->current();
-            $hasTenantIdField = in_array('tenant_id', (new static())->getFillable());
 
-            // Log for User model only
-            if (static::class === \Modules\Auth\Models\User::class) {
-                // Get the current search_path
-                $searchPath = 'unknown';
-                try {
-                    $result = \DB::select('SHOW search_path');
-                    $searchPath = $result[0]->search_path ?? 'unknown';
-                } catch (\Exception $e) {}
+            // Check if we're on a tenant schema (not public)
+            // In schema-per-tenant architecture, tenant tables don't need tenant_id filter
+            $searchPath = 'public';
+            try {
+                $result = \DB::select('SHOW search_path');
+                $searchPath = $result[0]->search_path ?? 'public';
+            } catch (\Exception $e) {}
 
-                \Log::warning('HasTenancy User query', [
-                    'hasTenant' => $currentTenant ? 'yes' : 'no',
-                    'tenantId' => $currentTenant?->id,
-                    'path' => request()->path(),
-                    'searchPath' => $searchPath,
-                ]);
+            // If we're on a tenant schema (starts with tenant_), skip tenant_id filtering
+            // The data is already isolated by schema
+            if (str_starts_with($searchPath, 'tenant_') || str_starts_with($searchPath, '"tenant_')) {
+                return;
             }
+
+            // Only apply tenant_id filter if:
+            // 1. We're on public schema
+            // 2. We have a current tenant
+            // 3. The model has tenant_id in fillable
+            $hasTenantIdField = in_array('tenant_id', (new static())->getFillable());
 
             if ($currentTenant && $hasTenantIdField) {
                 $builder->where('tenant_id', $currentTenant->id);
             }
         });
 
-        // Auto-set tenant_id on creating
+        // Auto-set tenant_id on creating (only on public schema)
         static::creating(function ($model) {
+            // Check if we're on a tenant schema
+            $searchPath = 'public';
+            try {
+                $result = \DB::select('SHOW search_path');
+                $searchPath = $result[0]->search_path ?? 'public';
+            } catch (\Exception $e) {}
+
+            // Skip if on tenant schema - no tenant_id needed
+            if (str_starts_with($searchPath, 'tenant_') || str_starts_with($searchPath, '"tenant_')) {
+                return;
+            }
+
             if (in_array('tenant_id', $model->getFillable()) && !$model->tenant_id) {
                 $tenantManager = app(\XLinic\Framework\Core\Tenancy\TenantManager::class);
                 $currentTenant = $tenantManager->current();

@@ -46,8 +46,13 @@ class EquipmentResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        $maintenanceDue = static::getModel()::where('next_maintenance_at', '<=', now())->count();
-        return $maintenanceDue > 0 ? (string) $maintenanceDue : null;
+        try {
+            $maintenanceDue = static::getModel()::where('next_maintenance_at', '<=', now())->count();
+            return $maintenanceDue > 0 ? (string) $maintenanceDue : null;
+        } catch (\Exception $e) {
+            // Table may not exist in current schema context
+            return null;
+        }
     }
 
     public static function getNavigationBadgeColor(): ?string

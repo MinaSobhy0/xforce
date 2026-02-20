@@ -37,7 +37,7 @@ class SuperAdminPanelProvider extends PanelProvider
             ->brandLogoHeight('5rem')
             ->favicon(function () {
                 $favicon = PlatformSetting::get('favicon');
-                return $favicon ? asset('storage/' . $favicon) : asset('favicon.ico');
+                return $favicon ? asset('storage/' . $favicon) : null;
             })
 
             // Colors (dynamic from platform settings)

@@ -32,6 +32,10 @@ class TenantPanelProvider extends PanelProvider
                 'primary' => Color::Indigo,
             ])
             ->darkMode()
+            ->favicon(function () {
+                $favicon = \App\Models\PlatformSetting::get('favicon');
+                return $favicon ? asset('storage/' . $favicon) : null;
+            })
 
             // Sidebar settings
             ->sidebarCollapsibleOnDesktop()
