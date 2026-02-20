@@ -151,6 +151,29 @@ class TenantDomainResource extends Resource
                     ->label('DNS Verified'),
             ])
             ->actions([
+                Tables\Actions\Action::make('ping_domain')
+                    ->label('Ping')
+                    ->icon('heroicon-o-signal')
+                    ->color('gray')
+                    ->action(function ($record) {
+                        $result = $record->pingDomain();
+
+                        if ($result['success']) {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Domain Reachable')
+                                ->body($result['message'])
+                                ->success()
+                                ->send();
+                        } else {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Domain Not Configured Correctly')
+                                ->body($result['message'])
+                                ->danger()
+                                ->persistent()
+                                ->send();
+                        }
+                    }),
+
                 Tables\Actions\Action::make('show_dns_instructions')
                     ->label('DNS Setup')
                     ->icon('heroicon-o-document-text')
@@ -160,6 +183,7 @@ class TenantDomainResource extends Resource
                     ->modalContent(fn($record) => view('filament.super-admin.modals.dns-instructions', [
                         'record' => $record,
                         'targetHost' => config('app.domain', 'x-linic.com'),
+                        'serverIp' => TenantDomain::SERVER_IP,
                     ])),
 
                 Tables\Actions\Action::make('verify_dns')
@@ -168,41 +192,46 @@ class TenantDomainResource extends Resource
                     ->color('gray')
                     ->visible(fn($record) => !$record->is_verified)
                     ->action(function ($record) {
+                        $result = $record->pingDomain();
+
                         if ($record->verifyDns()) {
                             \Filament\Notifications\Notification::make()
                                 ->title('DNS Verified')
+                                ->body($result['message'])
                                 ->success()
                                 ->send();
                         } else {
                             \Filament\Notifications\Notification::make()
                                 ->title('DNS verification failed')
-                                ->body('CNAME record not found or incorrect.')
+                                ->body($result['message'])
                                 ->danger()
+                                ->persistent()
                                 ->send();
                         }
                     }),
 
                 Tables\Actions\Action::make('provision_ssl')
-                    ->label('Provision SSL')
+                    ->label('Generate SSL')
                     ->icon('heroicon-o-shield-check')
                     ->color('success')
                     ->requiresConfirmation()
-                    ->modalHeading('Provision Let\'s Encrypt SSL')
-                    ->modalDescription('This will automatically provision a free SSL certificate from Let\'s Encrypt for this domain. The domain must have valid DNS records pointing to our servers.')
-                    ->visible(fn($record) => $record->is_verified && $record->ssl_status === 'pending')
+                    ->modalHeading('Generate Let\'s Encrypt SSL')
+                    ->modalDescription('This will automatically generate a free SSL certificate from Let\'s Encrypt for this domain. The domain must have valid DNS records pointing to our server.')
+                    ->visible(fn($record) => $record->is_verified && in_array($record->ssl_status, ['pending', 'failed']))
                     ->action(function ($record) {
                         try {
                             $record->provisionSsl();
                             \Filament\Notifications\Notification::make()
-                                ->title('SSL provisioning started')
-                                ->body('The SSL certificate is being provisioned. This may take a few minutes.')
+                                ->title('SSL certificate generated successfully')
+                                ->body('The SSL certificate has been provisioned and nginx has been updated.')
                                 ->success()
                                 ->send();
                         } catch (\Exception $e) {
                             \Filament\Notifications\Notification::make()
-                                ->title('SSL provisioning failed')
+                                ->title('SSL generation failed')
                                 ->body($e->getMessage())
                                 ->danger()
+                                ->persistent()
                                 ->send();
                         }
                     }),
@@ -212,13 +241,22 @@ class TenantDomainResource extends Resource
                     ->icon('heroicon-o-lock-closed')
                     ->color('warning')
                     ->requiresConfirmation()
-                    ->visible(fn($record) => $record->is_verified && in_array($record->ssl_status, ['expiring', 'expired', 'failed']))
+                    ->visible(fn($record) => $record->is_verified && in_array($record->ssl_status, ['expiring', 'expired']))
                     ->action(function ($record) {
-                        $record->renewSsl();
-                        \Filament\Notifications\Notification::make()
-                            ->title('SSL renewed')
-                            ->success()
-                            ->send();
+                        try {
+                            $record->renewSsl();
+                            \Filament\Notifications\Notification::make()
+                                ->title('SSL renewed successfully')
+                                ->success()
+                                ->send();
+                        } catch (\Exception $e) {
+                            \Filament\Notifications\Notification::make()
+                                ->title('SSL renewal failed')
+                                ->body($e->getMessage())
+                                ->danger()
+                                ->persistent()
+                                ->send();
+                        }
                     }),
 
                 Tables\Actions\EditAction::make(),

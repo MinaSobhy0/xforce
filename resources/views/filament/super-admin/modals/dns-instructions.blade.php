@@ -78,7 +78,7 @@
                     <div>
                         <span class="text-gray-500 dark:text-gray-400 block">Value/IP</span>
                         <code class="text-gray-900 dark:text-gray-100 font-mono bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
-                            {{ config('app.server_ip', '1.2.3.4') }}
+                            {{ $serverIp ?? '145.223.118.113' }}
                         </code>
                     </div>
                 </div>
@@ -98,7 +98,7 @@
                     </div>
                     <div>
                         <span class="text-gray-500 dark:text-gray-400 block">Host/Name</span>
-                        <code class="text-gray-900 dark:text-gray-100 font-mono bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">_xlinic</code>
+                        <code class="text-gray-900 dark:text-gray-100 font-mono bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">_x-linic</code>
                     </div>
                     <div>
                         <span class="text-gray-500 dark:text-gray-400 block">Value</span>
