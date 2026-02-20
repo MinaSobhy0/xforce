@@ -4,5 +4,7 @@
     "Patients": true,
     "Treatments": true,
     "Equipment": true,
-    "Booking": true
+    "Booking": true,
+    "Billing": true,
+    "Accounting": true
 }

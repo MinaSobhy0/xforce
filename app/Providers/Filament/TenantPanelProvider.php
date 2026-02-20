@@ -54,8 +54,8 @@ class TenantPanelProvider extends PanelProvider
                 NavigationGroup::make('Operations')
                     ->label(__('Operations'))
                     ->icon('heroicon-o-cog-6-tooth'),
-                NavigationGroup::make('Financial')
-                    ->label(__('Financial'))
+                NavigationGroup::make('Finance')
+                    ->label(__('Finance'))
                     ->icon('heroicon-o-banknotes'),
                 NavigationGroup::make('Settings')
                     ->label(__('Settings'))
@@ -81,6 +81,14 @@ class TenantPanelProvider extends PanelProvider
             // Discover Booking module resources and pages
             ->discoverResources(in: base_path('modules/Booking/Filament/Resources'), for: 'Modules\\Booking\\Filament\\Resources')
             ->discoverPages(in: base_path('modules/Booking/Filament/Pages'), for: 'Modules\\Booking\\Filament\\Pages')
+
+            // Discover Billing module resources
+            ->discoverResources(in: base_path('modules/Billing/Filament/Resources'), for: 'Modules\\Billing\\Filament\\Resources')
+            ->discoverPages(in: base_path('modules/Billing/Filament/Pages'), for: 'Modules\\Billing\\Filament\\Pages')
+
+            // Discover Accounting module resources
+            ->discoverResources(in: base_path('modules/Accounting/Filament/Resources'), for: 'Modules\\Accounting\\Filament\\Resources')
+            ->discoverPages(in: base_path('modules/Accounting/Filament/Pages'), for: 'Modules\\Accounting\\Filament\\Pages')
 
             // Default pages and widgets
             ->pages([

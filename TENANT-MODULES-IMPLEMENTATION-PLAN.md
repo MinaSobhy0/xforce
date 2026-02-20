@@ -1720,99 +1720,100 @@ This is what makes the system truly modular.
 
 ---
 
-## BATCH 4: BILLING + ACCOUNTING
+## BATCH 4: BILLING + ACCOUNTING ✅ COMPLETED
 
-### Billing Module
-- [ ] BillingManifest.php
+### Billing Module ✅
+- [x] BillingManifest.php (removed - using module.json instead)
 
-#### Models
-- [ ] Invoice.php - BaseModel, HasStateMachine, HasSequence, HasActivity
-  - [ ] Fields: code, patient_id, branch_id, appointment_id, type (standard/credit_note/proforma)
-  - [ ] Fields: status, subtotal_minor, discount_minor, tax_minor, total_minor, paid_minor, remaining_minor
-  - [ ] Fields: notes, due_date, issued_at, paid_at, cancelled_at, created_by_user_id
-  - [ ] State machine: draft → issued → partially_paid → paid (also: overdue, cancelled, refunded)
-  - [ ] Computed: is_overdue, payment_progress_percentage
-- [ ] InvoiceLine.php
-  - [ ] Fields: invoice_id, treatment_id, description, quantity, unit_price_minor
-  - [ ] Fields: discount_minor, discount_type, tax_rate, tax_minor, total_minor
-  - [ ] Fields: package_subscription_id, gift_card_id, sort_order
-- [ ] Payment.php - BaseModel, HasActivity
-  - [ ] Fields: code, invoice_id, amount_minor, method (cash/card/bank_transfer/wallet/gift_card/insurance/installment/online)
-  - [ ] Fields: reference_number, gateway_transaction_id, gift_card_id
-  - [ ] Fields: received_by_user_id, notes, paid_at
-- [ ] TaxRate.php
-  - [ ] Fields: name (jsonb), rate (decimal), is_default, is_active
-- [ ] InstallmentPlan.php
-  - [ ] Fields: invoice_id, total_installments, installment_amount_minor, frequency, start_date, status
-- [ ] InstallmentSchedule.php
-  - [ ] Fields: installment_plan_id, installment_number, amount_minor, due_date, paid_at, payment_id, status
+#### Models ✅
+- [x] Invoice.php - BaseModel, HasStateMachine, HasSequence, HasActivity
+  - [x] Fields: code, patient_id, branch_id, appointment_id, type (standard/credit_note/proforma)
+  - [x] Fields: status, subtotal_minor, discount_minor, tax_minor, total_minor, paid_minor, remaining_minor
+  - [x] Fields: notes, due_date, issued_at, paid_at, cancelled_at, created_by_user_id
+  - [x] State machine: draft → issued → partially_paid → paid (also: overdue, cancelled, refunded)
+  - [x] Computed: is_overdue, payment_progress_percentage
+- [x] InvoiceLine.php
+  - [x] Fields: invoice_id, treatment_id, description, quantity, unit_price_minor
+  - [x] Fields: discount_minor, discount_type, tax_rate, tax_minor, total_minor
+  - [x] Fields: package_subscription_id, gift_card_id, sort_order
+- [x] Payment.php - BaseModel, HasActivity
+  - [x] Fields: code, invoice_id, amount_minor, method (cash/card/bank_transfer/wallet/gift_card/insurance/installment/online)
+  - [x] Fields: reference_number, gateway_transaction_id, gift_card_id
+  - [x] Fields: received_by_user_id, notes, paid_at
+- [x] TaxRate.php
+  - [x] Fields: name (jsonb), rate (decimal), is_default, is_active
+- [x] InstallmentPlan.php
+  - [x] Fields: invoice_id, total_installments, installment_amount_minor, frequency, start_date, status
+- [x] InstallmentSchedule.php
+  - [x] Fields: installment_plan_id, installment_number, amount_minor, due_date, paid_at, payment_id, status
 
-#### Filament Resources
-- [ ] InvoiceResource.php
-  - [ ] List: code, patient, total, paid, remaining, status badge, date
-  - [ ] Stats header: today's revenue, month revenue, outstanding total
-  - [ ] Filters: status, branch, date range, payment method, overdue only
-  - [ ] Create/Edit: patient select, branch, type, date, due date, line items
-  - [ ] View: status bar, lines, payment history, actions
-  - [ ] Record Payment action: modal with amount, method, reference
-- [ ] PaymentResource.php - Read-only list for reconciliation
+#### Filament Resources ✅
+- [x] InvoiceResource.php
+  - [x] List: code, patient, total, paid, remaining, status badge, date
+  - [x] Stats header: today's revenue, month revenue, outstanding total
+  - [x] Filters: status, branch, date range, payment method, overdue only
+  - [x] Create/Edit: patient select, branch, type, date, due date, line items
+  - [x] View: status bar, lines, payment history, actions
+  - [x] Record Payment action: modal with amount, method, reference
+- [x] PaymentResource.php - Read-only list for reconciliation
 
-#### Filament Widgets
-- [ ] RevenueWidget.php (today + this month)
-- [ ] OutstandingWidget.php (unpaid invoices total)
-- [ ] PaymentMethodBreakdownWidget.php (pie chart)
+#### Filament Widgets ✅
+- [x] RevenueWidget.php (today + this month)
+- [x] OutstandingWidget.php (unpaid invoices total)
+- [x] PaymentMethodBreakdownWidget.php (pie chart)
 
-#### Services
-- [ ] InvoiceCalculationService.php - All integer arithmetic
-- [ ] AutoInvoiceService.php - Creates invoice on AppointmentCompleted
+#### Services ✅
+- [x] InvoiceCalculationService.php - All integer arithmetic
+- [ ] AutoInvoiceService.php - Creates invoice on AppointmentCompleted (deferred to integration)
 
-#### Database Migrations
-- [ ] create_invoices_table.php
-- [ ] create_invoice_lines_table.php
-- [ ] create_payments_table.php
-- [ ] create_tax_rates_table.php
-- [ ] create_installment_plans_table.php
-- [ ] create_installment_schedule_table.php
+#### Database Migrations ✅
+- [x] create_invoices_table.php
+- [x] create_invoice_lines_table.php
+- [x] create_payments_table.php
+- [x] create_tax_rates_table.php
+- [x] create_installment_plans_table.php
+- [x] create_installment_schedule_table.php
 
-#### Database Seeders
-- [ ] TaxRateSeeder.php (VAT 14% for Egypt)
+#### Database Seeders ✅
+- [x] TaxRateSeeder.php (VAT 14% for Egypt) - seeded manually
 
 ---
 
-### Accounting Module
-- [ ] AccountingManifest.php
+### Accounting Module ✅
+- [x] AccountingManifest.php (using module.json instead)
 
-#### Models
-- [ ] ChartOfAccount.php
-  - [ ] Self-referencing tree: parent_id
-  - [ ] Fields: code, name (jsonb), type (asset/liability/equity/revenue/expense)
-  - [ ] Fields: sub_type, is_system, balance_minor, is_active
-- [ ] JournalEntry.php - BaseModel, HasStateMachine, HasSequence, HasActivity
-  - [ ] Fields: code, date, reference, description, source_type/source_id (polymorphic)
-  - [ ] Fields: status (draft/posted/cancelled), total_debit_minor, total_credit_minor
-  - [ ] Fields: fiscal_period_id, created_by_user_id, posted_at
-  - [ ] Validation: total_debit = total_credit
-- [ ] JournalEntryLine.php
-  - [ ] Fields: journal_entry_id, account_id, debit_minor, credit_minor, description
-  - [ ] Fields: branch_id (cost center), partner_type/partner_id (polymorphic)
-- [ ] FiscalPeriod.php
-  - [ ] Fields: name, start_date, end_date, status (open/closed/locked), closed_by, closed_at
+#### Models ✅
+- [x] ChartOfAccount.php
+  - [x] Self-referencing tree: parent_id
+  - [x] Fields: code, name (jsonb), type (asset/liability/equity/revenue/expense)
+  - [x] Fields: sub_type, is_system, balance_minor, is_active
+- [x] JournalEntry.php - BaseModel, HasStateMachine, HasSequence, HasActivity
+  - [x] Fields: code, date, reference, description, source_type/source_id (polymorphic)
+  - [x] Fields: status (draft/posted/cancelled), total_debit_minor, total_credit_minor
+  - [x] Fields: fiscal_period_id, created_by_user_id, posted_at
+  - [x] Validation: total_debit = total_credit
+- [x] JournalEntryLine.php
+  - [x] Fields: journal_entry_id, account_id, debit_minor, credit_minor, description
+  - [x] Fields: branch_id (cost center), partner_type/partner_id (polymorphic)
+- [x] FiscalPeriod.php
+  - [x] Fields: name, start_date, end_date, status (open/closed/locked), closed_by, closed_at
 
-#### Filament Resources
-- [ ] ChartOfAccountResource.php - Tree view with hierarchy
-- [ ] JournalEntryResource.php
-  - [ ] Create: date, reference, description, lines (account, debit, credit)
-  - [ ] Balance check warning
-  - [ ] Actions: Post, Cancel (with auto-reversal)
+#### Filament Resources ✅
+- [x] ChartOfAccountResource.php - List view with hierarchy
+- [x] JournalEntryResource.php
+  - [x] Create: date, reference, description, lines (account, debit, credit)
+  - [x] Balance check warning
+  - [x] Actions: Post, Reverse (with auto-reversal entry)
+- [x] FiscalPeriodResource.php - Period management with close/reopen/lock actions
 
-#### Filament Pages
+#### Filament Pages (deferred to reporting batch)
 - [ ] TrialBalancePage.php
 - [ ] ProfitLossPage.php (by period/branch)
 - [ ] BalanceSheetPage.php
 - [ ] GeneralLedgerPage.php
 - [ ] CashFlowPage.php
 
-#### Listeners
+#### Listeners (deferred to integration)
 - [ ] CreateJournalOnInvoiceIssued.php
 - [ ] CreateJournalOnPaymentReceived.php
 - [ ] CreateJournalOnRefund.php

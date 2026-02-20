@@ -1,0 +1,78 @@
+<?php
+
+namespace Modules\Billing\Providers;
+
+use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\Event;
+use Modules\Billing\Services\InvoiceCalculationService;
+use Modules\Booking\Models\Appointment;
+
+class BillingServiceProvider extends ServiceProvider
+{
+    protected string $moduleName = 'Billing';
+    protected string $moduleNameLower = 'billing';
+
+    public function register(): void
+    {
+        $this->app->register(RouteServiceProvider::class);
+
+        // Register services
+        $this->app->singleton(InvoiceCalculationService::class);
+    }
+
+    public function boot(): void
+    {
+        $this->registerTranslations();
+        $this->registerConfig();
+        $this->registerViews();
+        $this->loadMigrationsFrom(module_path($this->moduleName, 'Database/Migrations'));
+    }
+
+    protected function registerViews(): void
+    {
+        $viewPath = resource_path('views/modules/' . $this->moduleNameLower);
+
+        $sourcePath = module_path($this->moduleName, 'resources/views');
+
+        $this->publishes([
+            $sourcePath => $viewPath,
+        ], ['views', $this->moduleNameLower . '-module-views']);
+
+        $this->loadViewsFrom(array_merge($this->getPublishableViewPaths(), [$sourcePath]), $this->moduleNameLower);
+    }
+
+    private function getPublishableViewPaths(): array
+    {
+        $paths = [];
+        foreach (config('view.paths') as $path) {
+            if (is_dir($path . '/modules/' . $this->moduleNameLower)) {
+                $paths[] = $path . '/modules/' . $this->moduleNameLower;
+            }
+        }
+        return $paths;
+    }
+
+    protected function registerConfig(): void
+    {
+        $this->publishes([
+            module_path($this->moduleName, 'Config/config.php') => config_path($this->moduleNameLower . '.php'),
+        ], 'config');
+
+        $this->mergeConfigFrom(
+            module_path($this->moduleName, 'Config/config.php'),
+            $this->moduleNameLower
+        );
+    }
+
+    protected function registerTranslations(): void
+    {
+        $this->loadTranslationsFrom(module_path($this->moduleName, 'Lang'), $this->moduleNameLower);
+    }
+
+    public function provides(): array
+    {
+        return [
+            InvoiceCalculationService::class,
+        ];
+    }
+}

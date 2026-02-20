@@ -1,0 +1,127 @@
+{
+    "name": "Billing",
+    "alias": "billing",
+    "description": "Invoice and payment management with installment plans",
+    "version": "1.0.0",
+    "category": "finance",
+    "icon": "heroicon-o-document-text",
+    "keywords": ["billing", "invoices", "payments", "tax", "installments"],
+    "priority": 20,
+    "providers": [
+        "Modules\\Billing\\Providers\\BillingServiceProvider"
+    ],
+    "dependencies": ["Core", "Auth", "Patients"],
+    "optional_dependencies": ["Booking", "Packages", "GiftCards", "Memberships"],
+    "models": [
+        "Modules\\Billing\\Models\\Invoice",
+        "Modules\\Billing\\Models\\InvoiceLine",
+        "Modules\\Billing\\Models\\Payment",
+        "Modules\\Billing\\Models\\TaxRate",
+        "Modules\\Billing\\Models\\InstallmentPlan",
+        "Modules\\Billing\\Models\\InstallmentSchedule"
+    ],
+    "permissions": {
+        "invoices.view_any": "View invoices list",
+        "invoices.view": "View invoice details",
+        "invoices.create": "Create new invoices",
+        "invoices.update": "Update invoices",
+        "invoices.delete": "Delete invoices",
+        "invoices.issue": "Issue invoices",
+        "invoices.cancel": "Cancel invoices",
+        "payments.view_any": "View payments list",
+        "payments.view": "View payment details",
+        "payments.create": "Record payments",
+        "payments.refund": "Process refunds",
+        "tax_rates.view_any": "View tax rates",
+        "tax_rates.manage": "Manage tax rates",
+        "installments.view_any": "View installment plans",
+        "installments.manage": "Manage installment plans",
+        "billing.reports": "View billing reports"
+    },
+    "default_role_permissions": {
+        "admin": ["invoices.*", "payments.*", "tax_rates.*", "installments.*", "billing.reports"],
+        "manager": ["invoices.*", "payments.*", "tax_rates.view_any", "installments.*", "billing.reports"],
+        "accountant": ["invoices.*", "payments.*", "tax_rates.view_any", "installments.*", "billing.reports"],
+        "doctor": ["invoices.view_any", "invoices.view", "payments.view_any"],
+        "receptionist": ["invoices.*", "payments.view_any", "payments.create"],
+        "staff": ["invoices.view_any", "invoices.view"]
+    },
+    "navigation": [
+        {
+            "id": "invoices",
+            "label": {"en": "Invoices", "ar": "الفواتير"},
+            "icon": "heroicon-o-document-text",
+            "route": "filament.tenant.resources.invoices.index",
+            "group": "finance",
+            "order": 20,
+            "permission": "invoices.view_any"
+        },
+        {
+            "id": "payments",
+            "label": {"en": "Payments", "ar": "المدفوعات"},
+            "icon": "heroicon-o-banknotes",
+            "route": "filament.tenant.resources.payments.index",
+            "group": "finance",
+            "order": 21,
+            "permission": "payments.view_any"
+        },
+        {
+            "id": "tax_rates",
+            "label": {"en": "Tax Rates", "ar": "معدلات الضرائب"},
+            "icon": "heroicon-o-receipt-percent",
+            "route": "filament.tenant.resources.tax-rates.index",
+            "group": "finance",
+            "order": 29,
+            "permission": "tax_rates.view_any"
+        }
+    ],
+    "settings": {
+        "billing.tax_rate": {
+            "type": "number",
+            "default": 14,
+            "label": {"en": "Default Tax Rate (%)", "ar": "معدل الضريبة الافتراضي (%)"}
+        },
+        "billing.tax_inclusive": {
+            "type": "boolean",
+            "default": false,
+            "label": {"en": "Prices Include Tax", "ar": "الأسعار شاملة الضريبة"}
+        },
+        "billing.auto_invoice_on_complete": {
+            "type": "boolean",
+            "default": true,
+            "label": {"en": "Auto-create invoice when appointment completes", "ar": "إنشاء فاتورة تلقائياً عند اكتمال الموعد"}
+        },
+        "billing.default_payment_terms_days": {
+            "type": "integer",
+            "default": 0,
+            "label": {"en": "Default Payment Terms (days)", "ar": "شروط الدفع الافتراضية (أيام)"}
+        },
+        "billing.enable_installments": {
+            "type": "boolean",
+            "default": true,
+            "label": {"en": "Enable Installment Plans", "ar": "تفعيل خطط التقسيط"}
+        }
+    },
+    "sequences": [
+        {
+            "code": "invoice",
+            "prefix": "INV-",
+            "padding": 6
+        },
+        {
+            "code": "payment",
+            "prefix": "PAY-",
+            "padding": 6
+        }
+    ],
+    "events": [
+        "InvoiceCreated",
+        "InvoiceIssued",
+        "InvoicePaid",
+        "InvoiceOverdue",
+        "InvoiceCancelled",
+        "PaymentReceived",
+        "RefundProcessed"
+    ],
+    "active": true
+}
