@@ -2,7 +2,7 @@
     use App\Models\PlatformSetting;
 
     $platformName = PlatformSetting::get('platform_name', 'XLinic');
-    $platformLogo = PlatformSetting::get('platform_logo');
+    $websiteLogo = PlatformSetting::get('website_logo') ?: PlatformSetting::get('platform_logo');
     $primaryColor = PlatformSetting::get('primary_color', '#3b82f6');
     $footerText = PlatformSetting::get('footer_text', '© ' . date('Y') . ' XLinic. All rights reserved.');
 @endphp
@@ -302,8 +302,8 @@
     <div class="container">
         <header>
             <div class="logo">
-                @if($platformLogo)
-                    <img src="{{ asset('storage/' . $platformLogo) }}" alt="{{ $platformName }}" class="logo-image">
+                @if($websiteLogo)
+                    <img src="{{ asset('storage/' . $websiteLogo) }}" alt="{{ $platformName }}" class="logo-image">
                 @else
                     <div class="logo-icon">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">

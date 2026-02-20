@@ -63,6 +63,7 @@ class PlatformSettings extends Page implements HasForms
             'primary_color' => PlatformSetting::get('primary_color', '#2563EB'),
             'footer_text' => PlatformSetting::get('footer_text', '© 2025 XLinic. All rights reserved.'),
             'platform_logo' => PlatformSetting::get('platform_logo'),
+            'website_logo' => PlatformSetting::get('website_logo'),
             'favicon' => PlatformSetting::get('favicon'),
             'login_page_image' => PlatformSetting::get('login_page_image'),
 
@@ -274,7 +275,19 @@ class PlatformSettings extends Page implements HasForms
                                     ->imageCropAspectRatio('3:1')
                                     ->imageResizeTargetWidth('600')
                                     ->imageResizeTargetHeight('200')
-                                    ->helperText('Recommended: 600x200px, PNG or SVG'),
+                                    ->helperText('Used in admin panels. Recommended: 600x200px, PNG or SVG'),
+
+                                Forms\Components\FileUpload::make('website_logo')
+                                    ->label('Website Logo')
+                                    ->image()
+                                    ->directory('platform/branding')
+                                    ->disk('public')
+                                    ->imageEditor()
+                                    ->imageResizeMode('cover')
+                                    ->imageCropAspectRatio('3:1')
+                                    ->imageResizeTargetWidth('600')
+                                    ->imageResizeTargetHeight('200')
+                                    ->helperText('Used on landing page. Recommended: 600x200px, PNG or SVG'),
 
                                 Forms\Components\FileUpload::make('favicon')
                                     ->label('Favicon')
@@ -439,6 +452,11 @@ class PlatformSettings extends Page implements HasForms
         if (!empty($data['platform_logo'])) {
             $logo = is_array($data['platform_logo']) ? reset($data['platform_logo']) : $data['platform_logo'];
             PlatformSetting::set('platform_logo', $logo, 'branding');
+        }
+
+        if (!empty($data['website_logo'])) {
+            $websiteLogo = is_array($data['website_logo']) ? reset($data['website_logo']) : $data['website_logo'];
+            PlatformSetting::set('website_logo', $websiteLogo, 'branding');
         }
 
         if (!empty($data['favicon'])) {
