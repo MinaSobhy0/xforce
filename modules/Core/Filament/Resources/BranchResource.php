@@ -133,13 +133,13 @@ class BranchResource extends Resource
                                 Forms\Components\Select::make('day')
                                     ->label(__('core::core.day'))
                                     ->options([
-                                        'sunday' => __('core::core.days.sunday'),
-                                        'monday' => __('core::core.days.monday'),
-                                        'tuesday' => __('core::core.days.tuesday'),
-                                        'wednesday' => __('core::core.days.wednesday'),
-                                        'thursday' => __('core::core.days.thursday'),
-                                        'friday' => __('core::core.days.friday'),
-                                        'saturday' => __('core::core.days.saturday'),
+                                        'sunday' => __('core::core.days_of_week.sunday'),
+                                        'monday' => __('core::core.days_of_week.monday'),
+                                        'tuesday' => __('core::core.days_of_week.tuesday'),
+                                        'wednesday' => __('core::core.days_of_week.wednesday'),
+                                        'thursday' => __('core::core.days_of_week.thursday'),
+                                        'friday' => __('core::core.days_of_week.friday'),
+                                        'saturday' => __('core::core.days_of_week.saturday'),
                                     ])
                                     ->required()
                                     ->columnSpan(2),

@@ -90,7 +90,7 @@ return [
     'staff' => 'Staff',
 
     // Days of week
-    'days' => [
+    'days_of_week' => [
         'sunday' => 'Sunday',
         'monday' => 'Monday',
         'tuesday' => 'Tuesday',
