@@ -18,7 +18,28 @@ class BookingServiceProvider extends ServiceProvider
     {
         $this->registerTranslations();
         $this->registerConfig();
+        $this->registerViews();
         $this->loadMigrationsFrom(module_path($this->moduleName, 'Database/Migrations'));
+    }
+
+    protected function registerViews(): void
+    {
+        $viewPath = resource_path('views/modules/' . $this->moduleNameLower);
+        $sourcePath = module_path($this->moduleName, 'Resources/views');
+
+        if (is_dir($sourcePath)) {
+            $this->publishes([
+                $sourcePath => $viewPath
+            ], ['views', $this->moduleNameLower . '-module-views']);
+
+            // Register views with both methods for compatibility
+            $this->loadViewsFrom($sourcePath, $this->moduleNameLower);
+
+            // Also register directly with view finder
+            $this->app->booted(function () use ($sourcePath) {
+                $this->app['view.finder']->addNamespace($this->moduleNameLower, $sourcePath);
+            });
+        }
     }
 
     protected function registerTranslations(): void
