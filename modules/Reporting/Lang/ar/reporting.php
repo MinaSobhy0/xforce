@@ -1,0 +1,154 @@
+<?php
+
+return [
+    // Module
+    'reporting' => 'التقارير',
+    'reports' => 'التقارير',
+
+    // Navigation & Titles
+    'revenue_report' => 'تقرير الإيرادات',
+    'patient_report' => 'تقرير المرضى',
+    'appointment_report' => 'تقرير المواعيد',
+    'equipment_report' => 'تقرير المعدات',
+    'staff_performance_report' => 'تقرير أداء الموظفين',
+    'inventory_report' => 'تقرير المخزون',
+    'gift_card_report' => 'تقرير بطاقات الهدايا',
+    'campaign_report' => 'تقرير الحملات',
+    'financial_summary' => 'الملخص المالي',
+
+    // Filters
+    'filters' => 'الفلاتر',
+    'start_date' => 'تاريخ البداية',
+    'end_date' => 'تاريخ النهاية',
+    'branch' => 'الفرع',
+    'all_branches' => 'جميع الفروع',
+    'date_range' => 'نطاق التاريخ',
+
+    // Actions
+    'export_pdf' => 'تصدير PDF',
+    'export_excel' => 'تصدير Excel',
+    'refresh' => 'تحديث',
+    'export_started' => 'بدأ التصدير. سيتم إعلامك عند الانتهاء.',
+
+    // Common Labels
+    'chart' => 'الرسم البياني',
+    'details' => 'التفاصيل',
+    'no_data' => 'لا توجد بيانات للفترة المحددة',
+    'total' => 'الإجمالي',
+    'count' => 'العدد',
+    'percentage' => 'النسبة المئوية',
+    'value' => 'القيمة',
+    'status' => 'الحالة',
+    'category' => 'الفئة',
+    'code' => 'الكود',
+
+    // Revenue Report
+    'total_revenue' => 'إجمالي الإيرادات',
+    'invoices_issued' => 'الفواتير الصادرة',
+    'outstanding' => 'المستحق',
+    'average_invoice' => 'متوسط الفاتورة',
+    'revenue' => 'الإيرادات',
+    'revenue_by_treatment' => 'الإيرادات حسب العلاج',
+    'daily_revenue' => 'الإيرادات اليومية',
+    'treatment' => 'العلاج',
+    'invoices' => 'الفواتير',
+
+    // Patient Report
+    'new_patients' => 'المرضى الجدد',
+    'returning_patients' => 'المرضى العائدون',
+    'retention_rate' => 'معدل الاحتفاظ',
+    'vip_patients' => 'مرضى VIP',
+    'new_patients_trend' => 'اتجاه المرضى الجدد',
+    'referral_source' => 'مصدر الإحالة',
+    'source' => 'المصدر',
+
+    // Appointment Report
+    'total_appointments' => 'إجمالي المواعيد',
+    'completion_rate' => 'معدل الإكمال',
+    'completed' => 'مكتمل',
+    'no_show_rate' => 'معدل عدم الحضور',
+    'no_shows' => 'عدم الحضور',
+    'avg_duration' => 'متوسط المدة',
+    'appointments' => 'المواعيد',
+    'peak_hours' => 'ساعات الذروة',
+
+    // Equipment Report
+    'total_equipment' => 'إجمالي المعدات',
+    'active' => 'نشط',
+    'total_shots' => 'إجمالي الطلقات',
+    'maintenance_cost' => 'تكلفة الصيانة',
+    'maintenance_events' => 'أحداث الصيانة',
+    'utilization_rate' => 'معدل الاستخدام',
+    'daily_shots' => 'الطلقات اليومية',
+    'shots_fired' => 'الطلقات المستخدمة',
+    'equipment' => 'المعدات',
+    'sessions' => 'الجلسات',
+    'avg_per_session' => 'المتوسط لكل جلسة',
+
+    // Staff Performance Report
+    'total_practitioners' => 'إجمالي الممارسين',
+    'appointments_completed' => 'المواعيد المكتملة',
+    'per_practitioner' => 'لكل ممارس',
+    'revenue_generated' => 'الإيرادات المحققة',
+    'commissions' => 'العمولات',
+    'pending' => 'معلق',
+    'performance_by_practitioner' => 'الأداء حسب الممارس',
+    'practitioner' => 'الممارس',
+    'avg_revenue_per_appointment' => 'متوسط الإيرادات/موعد',
+
+    // Inventory Report
+    'stock_valuation' => 'تقييم المخزون',
+    'products' => 'المنتجات',
+    'low_stock_items' => 'المنتجات منخفضة المخزون',
+    'stock_movements' => 'حركات المخزون',
+    'purchase_orders' => 'أوامر الشراء',
+    'movements_by_type' => 'الحركات حسب النوع',
+    'product' => 'المنتج',
+    'sku' => 'SKU',
+    'consumed' => 'المستهلك',
+    'total_cost' => 'التكلفة الإجمالية',
+
+    // Gift Card Report
+    'cards_sold' => 'البطاقات المباعة',
+    'outstanding_balance' => 'الرصيد المستحق',
+    'active_cards' => 'البطاقات النشطة',
+    'redemptions' => 'الاستردادات',
+    'transactions' => 'المعاملات',
+    'redemption_rate' => 'معدل الاسترداد',
+    'expired' => 'منتهي الصلاحية',
+    'gift_card_sales' => 'مبيعات بطاقات الهدايا',
+    'purchaser' => 'المشتري',
+    'initial_value' => 'القيمة الأولية',
+    'current_balance' => 'الرصيد الحالي',
+    'anonymous' => 'مجهول',
+
+    // Campaign Report
+    'campaigns_sent' => 'الحملات المرسلة',
+    'messages' => 'الرسائل',
+    'open_rate' => 'معدل الفتح',
+    'opened' => 'مفتوح',
+    'conversion_rate' => 'معدل التحويل',
+    'conversions' => 'التحويلات',
+    'roi' => 'العائد على الاستثمار',
+    'cpa' => 'تكلفة الاكتساب',
+    'campaign_funnel' => 'قمع الحملة',
+    'sent' => 'مرسل',
+    'delivered' => 'تم التوصيل',
+    'clicked' => 'تم النقر',
+    'converted' => 'تم التحويل',
+    'campaign' => 'الحملة',
+    'channel' => 'القناة',
+    'recipients' => 'المستلمون',
+
+    // Financial Summary
+    'total_costs' => 'إجمالي التكاليف',
+    'gross_profit' => 'إجمالي الربح',
+    'margin' => 'الهامش',
+    'receivables' => 'المستحقات',
+    'overdue' => 'متأخر',
+    'payroll' => 'الرواتب',
+    'expenses' => 'المصروفات',
+    'monthly_pl' => 'الربح والخسارة الشهرية',
+    'payroll_costs' => 'تكاليف الرواتب',
+    'inventory_purchases' => 'مشتريات المخزون',
+];

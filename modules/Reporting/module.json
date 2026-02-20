@@ -1,0 +1,11 @@
+{
+    "name": "Reporting",
+    "alias": "reporting",
+    "description": "Analytics and reporting with charts, data tables, and exports",
+    "keywords": ["reports", "analytics", "charts", "exports", "statistics"],
+    "priority": 54,
+    "providers": [
+        "Modules\\Reporting\\Providers\\ReportingServiceProvider"
+    ],
+    "files": []
+}

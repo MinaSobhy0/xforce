@@ -1,0 +1,154 @@
+<?php
+
+return [
+    // Module
+    'reporting' => 'Reporting',
+    'reports' => 'Reports',
+
+    // Navigation & Titles
+    'revenue_report' => 'Revenue Report',
+    'patient_report' => 'Patient Report',
+    'appointment_report' => 'Appointment Report',
+    'equipment_report' => 'Equipment Report',
+    'staff_performance_report' => 'Staff Performance Report',
+    'inventory_report' => 'Inventory Report',
+    'gift_card_report' => 'Gift Card Report',
+    'campaign_report' => 'Campaign Report',
+    'financial_summary' => 'Financial Summary',
+
+    // Filters
+    'filters' => 'Filters',
+    'start_date' => 'Start Date',
+    'end_date' => 'End Date',
+    'branch' => 'Branch',
+    'all_branches' => 'All Branches',
+    'date_range' => 'Date Range',
+
+    // Actions
+    'export_pdf' => 'Export PDF',
+    'export_excel' => 'Export Excel',
+    'refresh' => 'Refresh',
+    'export_started' => 'Export started. You will be notified when ready.',
+
+    // Common Labels
+    'chart' => 'Chart',
+    'details' => 'Details',
+    'no_data' => 'No data available for the selected period',
+    'total' => 'Total',
+    'count' => 'Count',
+    'percentage' => 'Percentage',
+    'value' => 'Value',
+    'status' => 'Status',
+    'category' => 'Category',
+    'code' => 'Code',
+
+    // Revenue Report
+    'total_revenue' => 'Total Revenue',
+    'invoices_issued' => 'Invoices Issued',
+    'outstanding' => 'Outstanding',
+    'average_invoice' => 'Average Invoice',
+    'revenue' => 'Revenue',
+    'revenue_by_treatment' => 'Revenue by Treatment',
+    'daily_revenue' => 'Daily Revenue',
+    'treatment' => 'Treatment',
+    'invoices' => 'Invoices',
+
+    // Patient Report
+    'new_patients' => 'New Patients',
+    'returning_patients' => 'Returning Patients',
+    'retention_rate' => 'Retention Rate',
+    'vip_patients' => 'VIP Patients',
+    'new_patients_trend' => 'New Patients Trend',
+    'referral_source' => 'Referral Source',
+    'source' => 'Source',
+
+    // Appointment Report
+    'total_appointments' => 'Total Appointments',
+    'completion_rate' => 'Completion Rate',
+    'completed' => 'Completed',
+    'no_show_rate' => 'No-Show Rate',
+    'no_shows' => 'No-Shows',
+    'avg_duration' => 'Avg Duration',
+    'appointments' => 'Appointments',
+    'peak_hours' => 'Peak Hours',
+
+    // Equipment Report
+    'total_equipment' => 'Total Equipment',
+    'active' => 'Active',
+    'total_shots' => 'Total Shots',
+    'maintenance_cost' => 'Maintenance Cost',
+    'maintenance_events' => 'Maintenance Events',
+    'utilization_rate' => 'Utilization Rate',
+    'daily_shots' => 'Daily Shots',
+    'shots_fired' => 'Shots Fired',
+    'equipment' => 'Equipment',
+    'sessions' => 'Sessions',
+    'avg_per_session' => 'Avg per Session',
+
+    // Staff Performance Report
+    'total_practitioners' => 'Total Practitioners',
+    'appointments_completed' => 'Appointments Completed',
+    'per_practitioner' => 'per practitioner',
+    'revenue_generated' => 'Revenue Generated',
+    'commissions' => 'Commissions',
+    'pending' => 'Pending',
+    'performance_by_practitioner' => 'Performance by Practitioner',
+    'practitioner' => 'Practitioner',
+    'avg_revenue_per_appointment' => 'Avg Revenue/Appt',
+
+    // Inventory Report
+    'stock_valuation' => 'Stock Valuation',
+    'products' => 'Products',
+    'low_stock_items' => 'Low Stock Items',
+    'stock_movements' => 'Stock Movements',
+    'purchase_orders' => 'Purchase Orders',
+    'movements_by_type' => 'Movements by Type',
+    'product' => 'Product',
+    'sku' => 'SKU',
+    'consumed' => 'Consumed',
+    'total_cost' => 'Total Cost',
+
+    // Gift Card Report
+    'cards_sold' => 'Cards Sold',
+    'outstanding_balance' => 'Outstanding Balance',
+    'active_cards' => 'Active Cards',
+    'redemptions' => 'Redemptions',
+    'transactions' => 'Transactions',
+    'redemption_rate' => 'Redemption Rate',
+    'expired' => 'Expired',
+    'gift_card_sales' => 'Gift Card Sales',
+    'purchaser' => 'Purchaser',
+    'initial_value' => 'Initial Value',
+    'current_balance' => 'Current Balance',
+    'anonymous' => 'Anonymous',
+
+    // Campaign Report
+    'campaigns_sent' => 'Campaigns Sent',
+    'messages' => 'Messages',
+    'open_rate' => 'Open Rate',
+    'opened' => 'Opened',
+    'conversion_rate' => 'Conversion Rate',
+    'conversions' => 'Conversions',
+    'roi' => 'ROI',
+    'cpa' => 'CPA',
+    'campaign_funnel' => 'Campaign Funnel',
+    'sent' => 'Sent',
+    'delivered' => 'Delivered',
+    'clicked' => 'Clicked',
+    'converted' => 'Converted',
+    'campaign' => 'Campaign',
+    'channel' => 'Channel',
+    'recipients' => 'Recipients',
+
+    // Financial Summary
+    'total_costs' => 'Total Costs',
+    'gross_profit' => 'Gross Profit',
+    'margin' => 'Margin',
+    'receivables' => 'Receivables',
+    'overdue' => 'Overdue',
+    'payroll' => 'Payroll',
+    'expenses' => 'Expenses',
+    'monthly_pl' => 'Monthly P&L',
+    'payroll_costs' => 'Payroll Costs',
+    'inventory_purchases' => 'Inventory Purchases',
+];

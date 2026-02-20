@@ -1,0 +1,11 @@
+{
+    "name": "Loyalty",
+    "alias": "loyalty",
+    "description": "Loyalty points system with rewards, referrals, and tier management",
+    "keywords": ["loyalty", "points", "rewards", "referrals", "tiers"],
+    "priority": 53,
+    "providers": [
+        "Modules\\Loyalty\\Providers\\LoyaltyServiceProvider"
+    ],
+    "files": []
+}
