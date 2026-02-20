@@ -171,9 +171,9 @@ class TenantDomain extends Model
 
         Log::info('Provisioning SSL certificate', ['domain' => $this->domain]);
 
-        // Run certbot to generate SSL certificate
+        // Run certbot to generate and install SSL certificate using sudo
         $result = Process::timeout(120)->run([
-            'certbot', 'certonly',
+            '/usr/bin/sudo', '/snap/bin/certbot',
             '--nginx',
             '-d', $this->domain,
             '--non-interactive',
@@ -192,10 +192,7 @@ class TenantDomain extends Model
             throw new \Exception('SSL provisioning failed: ' . $error);
         }
 
-        Log::info('SSL certificate provisioned successfully', ['domain' => $this->domain]);
-
-        // Update nginx configuration to include this domain
-        $this->updateNginxConfig();
+        Log::info('SSL certificate provisioned and installed successfully', ['domain' => $this->domain]);
 
         // Update SSL status
         $this->update([
@@ -212,7 +209,7 @@ class TenantDomain extends Model
         Log::info('Renewing SSL certificate', ['domain' => $this->domain]);
 
         $result = Process::timeout(120)->run([
-            'certbot', 'renew',
+            '/usr/bin/sudo', '/snap/bin/certbot', 'renew',
             '--cert-name', $this->domain,
             '--non-interactive',
         ]);
@@ -244,6 +241,7 @@ class TenantDomain extends Model
 
         // Check if domain is already in config
         if (str_contains($config, $this->domain)) {
+            Log::info('Domain already in nginx config', ['domain' => $this->domain]);
             return;
         }
 
@@ -255,11 +253,16 @@ class TenantDomain extends Model
             1
         );
 
-        file_put_contents($configPath, $config);
+        // Write config using sudo tee
+        $tempFile = tempnam(sys_get_temp_dir(), 'nginx_');
+        file_put_contents($tempFile, $config);
+
+        Process::run(['/usr/bin/sudo', '/usr/bin/cp', $tempFile, $configPath]);
+        unlink($tempFile);
 
         // Reload nginx
-        Process::run(['nginx', '-t']);
-        Process::run(['systemctl', 'reload', 'nginx']);
+        Process::run(['/usr/bin/sudo', '/usr/sbin/nginx', '-t']);
+        Process::run(['/usr/bin/sudo', '/usr/bin/systemctl', 'reload', 'nginx']);
 
         Log::info('Nginx config updated for domain', ['domain' => $this->domain]);
     }
