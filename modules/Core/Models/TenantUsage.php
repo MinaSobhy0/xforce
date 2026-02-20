@@ -12,6 +12,7 @@ class TenantUsage extends BaseModel
     protected $fillable = [
         'tenant_id',
         'users',
+        'branches',
         'patients',
         'appointments',
         'treatments',
@@ -28,6 +29,7 @@ class TenantUsage extends BaseModel
 
     protected $casts = [
         'users' => 'integer',
+        'branches' => 'integer',
         'patients' => 'integer',
         'appointments' => 'integer',
         'treatments' => 'integer',
@@ -135,6 +137,7 @@ class TenantUsage extends BaseModel
     {
         return match ($metric) {
             'users' => 10,
+            'branches' => 1,
             'patients' => 1000,
             'appointments' => 10000,
             'treatments' => 5000,

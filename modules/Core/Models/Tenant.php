@@ -31,6 +31,7 @@ class Tenant extends BaseModel
         'trial_ends_at',
         'owner_user_id',
         'max_users',
+        'max_branches',
         'max_patients',
         'max_storage_mb',
         'timezone',
@@ -61,6 +62,7 @@ class Tenant extends BaseModel
         'subscription_expires_at' => 'datetime',
         'trial_ends_at' => 'datetime',
         'max_users' => 'integer',
+        'max_branches' => 'integer',
         'max_patients' => 'integer',
         'max_storage_mb' => 'integer',
         'tax_rate' => 'decimal:4',
@@ -95,6 +97,7 @@ class Tenant extends BaseModel
             $tenant->currency = $tenant->currency ?? 'EGP';
             $tenant->tax_rate = $tenant->tax_rate ?? 14.00; // Egyptian VAT
             $tenant->max_users = $tenant->max_users ?? 10;
+            $tenant->max_branches = $tenant->max_branches ?? 1;
             $tenant->max_patients = $tenant->max_patients ?? 1000;
             $tenant->max_storage_mb = $tenant->max_storage_mb ?? 1024; // 1GB
 
@@ -360,6 +363,15 @@ class Tenant extends BaseModel
         }
 
         return ($this->usage->patients ?? 0) < ($this->max_patients ?? 1000);
+    }
+
+    public function canAddBranch(): bool
+    {
+        if (!$this->usage) {
+            return true;
+        }
+
+        return ($this->usage->branches ?? 0) < ($this->max_branches ?? 1);
     }
 
     public function getRemainingStorage(): int

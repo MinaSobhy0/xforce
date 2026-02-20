@@ -185,15 +185,22 @@ class TenantResource extends Resource
 
             Forms\Components\Section::make('Limits')
                 ->icon('heroicon-o-adjustments-horizontal')
-                ->columns(3)
+                ->columns(4)
                 ->schema([
                     Forms\Components\TextInput::make('max_users')
+                        ->label('Max Users')
                         ->numeric()
                         ->default(10),
+                    Forms\Components\TextInput::make('max_branches')
+                        ->label('Max Branches')
+                        ->numeric()
+                        ->default(1),
                     Forms\Components\TextInput::make('max_patients')
+                        ->label('Max Patients')
                         ->numeric()
                         ->default(1000),
                     Forms\Components\TextInput::make('max_storage_mb')
+                        ->label('Max Storage')
                         ->numeric()
                         ->default(1024)
                         ->suffix('MB'),
