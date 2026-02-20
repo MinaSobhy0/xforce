@@ -19,6 +19,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/css/intlTelInput.css">
     @if($recaptchaEnabled && $recaptchaSiteKey)
     <script src="https://www.google.com/recaptcha/api.js" async defer></script>
     @endif
@@ -390,6 +391,70 @@
             margin-top: 1rem;
         }
 
+        /* Phone input with country code */
+        .iti {
+            width: 100%;
+        }
+
+        .iti__flag-container {
+            background: transparent;
+        }
+
+        .iti__selected-flag {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px 0 0 8px;
+        }
+
+        .iti__selected-flag:hover,
+        .iti__selected-flag:focus {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .iti__dropdown-content {
+            background: #1e293b;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .iti__search-input {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #e2e8f0;
+            border-radius: 6px;
+            padding: 0.5rem;
+        }
+
+        .iti__search-input::placeholder {
+            color: #64748b;
+        }
+
+        .iti__country-list {
+            background: #1e293b;
+            color: #e2e8f0;
+        }
+
+        .iti__country {
+            padding: 8px 10px;
+        }
+
+        .iti__country:hover,
+        .iti__country--highlight {
+            background: rgba(59, 130, 246, 0.2);
+        }
+
+        .iti__dial-code {
+            color: #94a3b8;
+        }
+
+        .iti__arrow {
+            border-top-color: #94a3b8;
+        }
+
+        .iti__arrow--up {
+            border-bottom-color: #94a3b8;
+        }
+
         @media (max-width: 640px) {
             .header-links {
                 display: none;
@@ -481,13 +546,14 @@
                             </div>
 
                             <div class="form-group">
-                                <label for="email">Email</label>
-                                <input type="email" id="email" name="email" value="{{ old('email') }}" placeholder="your@email.com">
+                                <label for="phone">Phone <span class="required">*</span></label>
+                                <input type="tel" id="phone" value="{{ old('phone') }}" required placeholder="123 456 7890">
+                                <input type="hidden" id="phone_full" name="phone">
                             </div>
 
                             <div class="form-group">
-                                <label for="phone">Phone <span class="required">*</span></label>
-                                <input type="tel" id="phone" name="phone" value="{{ old('phone') }}" required placeholder="+20 123 456 7890">
+                                <label for="email">Email</label>
+                                <input type="email" id="email" name="email" value="{{ old('email') }}" placeholder="your@email.com">
                             </div>
 
                             <div class="form-group full-width">
@@ -565,5 +631,58 @@
             <p>{!! $footerText !!}</p>
         </footer>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/intlTelInput.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const phoneInput = document.querySelector('#phone');
+            const phoneFullInput = document.querySelector('#phone_full');
+            const countrySelect = document.querySelector('#country');
+
+            // Initialize intl-tel-input
+            const iti = window.intlTelInput(phoneInput, {
+                initialCountry: "auto",
+                geoIpLookup: function(callback) {
+                    fetch('https://ipapi.co/json/')
+                        .then(res => res.json())
+                        .then(data => {
+                            const countryCode = (data && data.country_code) ? data.country_code : "EG";
+                            callback(countryCode);
+                            // Also set the country dropdown
+                            if (countrySelect && countrySelect.querySelector(`option[value="${countryCode}"]`)) {
+                                countrySelect.value = countryCode;
+                            }
+                        })
+                        .catch(() => callback("EG"));
+                },
+                preferredCountries: ["eg", "sa", "ae", "kw", "qa", "bh", "om", "jo", "lb"],
+                separateDialCode: true,
+                utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/utils.js"
+            });
+
+            // Update hidden field with full number on form submit
+            const form = phoneInput.closest('form');
+            form.addEventListener('submit', function() {
+                phoneFullInput.value = iti.getNumber();
+            });
+
+            // Also update on input change
+            phoneInput.addEventListener('change', function() {
+                phoneFullInput.value = iti.getNumber();
+            });
+
+            // Sync country selection with phone country
+            if (countrySelect) {
+                phoneInput.addEventListener('countrychange', function() {
+                    const countryData = iti.getSelectedCountryData();
+                    if (countryData && countryData.iso2) {
+                        const countryCode = countryData.iso2.toUpperCase();
+                        if (countrySelect.querySelector(`option[value="${countryCode}"]`)) {
+                            countrySelect.value = countryCode;
+                        }
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 </html>
