@@ -215,6 +215,14 @@ class BackupResource extends Resource
                             ])
                             ->default('local'),
 
+                        Forms\Components\Select::make('tenant_id')
+                            ->label('Tenant')
+                            ->relationship('tenant', 'name')
+                            ->searchable()
+                            ->preload()
+                            ->required()
+                            ->visible(fn (Forms\Get $get) => $get('type') === 'tenant'),
+
                         Forms\Components\Textarea::make('notes')
                             ->maxLength(500),
                     ])
@@ -223,14 +231,21 @@ class BackupResource extends Resource
                             'name' => $data['name'],
                             'type' => $data['type'],
                             'disk' => $data['disk'],
-                            'filename' => 'backup-' . now()->format('Y-m-d-His') . '.zip',
+                            'filename' => 'backup-' . now()->format('Y-m-d-His') . '.sql.gz',
                             'status' => 'pending',
                             'notes' => $data['notes'] ?? null,
                             'created_by' => auth()->id(),
+                            'tenant_id' => $data['tenant_id'] ?? null,
                         ]);
 
-                        // In production, dispatch a job to create the backup
-                        // dispatch(new CreateBackupJob($backup));
+                        // Dispatch appropriate job based on backup type
+                        if ($data['type'] === 'tenant' && $backup->tenant_id) {
+                            if (config('queue.default') === 'sync') {
+                                \App\Jobs\TenantBackupJob::dispatchSync($backup);
+                            } else {
+                                \App\Jobs\TenantBackupJob::dispatch($backup);
+                            }
+                        }
 
                         Notification::make()
                             ->title('Backup queued')
