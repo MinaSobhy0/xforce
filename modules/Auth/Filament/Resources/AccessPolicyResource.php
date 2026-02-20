@@ -230,8 +230,6 @@ class AccessPolicyResource extends Resource
 
                 Tables\Filters\TernaryFilter::make('apply_to_all_roles')
                     ->label(__('auth::auth.apply_to_all_roles')),
-
-                Tables\Filters\TrashedFilter::make(),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
@@ -249,8 +247,6 @@ class AccessPolicyResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
-                    Tables\Actions\RestoreBulkAction::make(),
-                    Tables\Actions\ForceDeleteBulkAction::make(),
                 ]),
             ]);
     }

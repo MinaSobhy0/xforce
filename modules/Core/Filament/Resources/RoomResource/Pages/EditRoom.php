@@ -19,8 +19,6 @@ class EditRoom extends EditRecord
             Actions\LocaleSwitcher::make(),
             Actions\ViewAction::make(),
             Actions\DeleteAction::make(),
-            Actions\RestoreAction::make(),
-            Actions\ForceDeleteAction::make(),
         ];
     }
 }
