@@ -1,0 +1,151 @@
+{
+    "name": "Booking",
+    "alias": "booking",
+    "description": "Appointment scheduling, calendar management, practitioner schedules, and waitlist",
+    "version": "1.0.0",
+    "category": "operations",
+    "icon": "heroicon-o-calendar-days",
+    "keywords": ["booking", "appointments", "calendar", "schedule", "waitlist"],
+    "priority": 15,
+    "providers": [
+        "Modules\\Booking\\Providers\\BookingServiceProvider"
+    ],
+    "dependencies": ["Core", "Auth", "Patients", "Treatments"],
+    "optional_dependencies": ["Equipment"],
+    "models": [
+        "Modules\\Booking\\Models\\Appointment",
+        "Modules\\Booking\\Models\\AppointmentTreatmentNote",
+        "Modules\\Booking\\Models\\PractitionerSchedule",
+        "Modules\\Booking\\Models\\PractitionerTimeOff",
+        "Modules\\Booking\\Models\\Waitlist"
+    ],
+    "permissions": {
+        "appointments.view_any": "View appointments list",
+        "appointments.view": "View appointment details",
+        "appointments.create": "Create new appointments",
+        "appointments.update": "Update appointments",
+        "appointments.delete": "Delete appointments",
+        "appointments.cancel": "Cancel appointments",
+        "appointments.check_in": "Check in patients",
+        "appointments.start": "Start appointments",
+        "appointments.complete": "Complete appointments",
+        "appointments.no_show": "Mark as no-show",
+        "appointments.reschedule": "Reschedule appointments",
+        "calendar.view": "View calendar",
+        "schedule.view_any": "View practitioner schedules",
+        "schedule.manage": "Manage practitioner schedules",
+        "time_off.view_any": "View time off requests",
+        "time_off.manage": "Manage time off",
+        "waitlist.view_any": "View waitlist",
+        "waitlist.manage": "Manage waitlist"
+    },
+    "default_role_permissions": {
+        "admin": ["appointments.*", "calendar.*", "schedule.*", "time_off.*", "waitlist.*"],
+        "manager": ["appointments.*", "calendar.*", "schedule.*", "time_off.*", "waitlist.*"],
+        "doctor": ["appointments.view_any", "appointments.view", "appointments.check_in", "appointments.start", "appointments.complete", "calendar.view", "schedule.view_any"],
+        "nurse": ["appointments.view_any", "appointments.view", "appointments.check_in", "appointments.start", "calendar.view"],
+        "receptionist": ["appointments.*", "calendar.view", "schedule.view_any", "waitlist.*"],
+        "staff": ["appointments.view_any", "calendar.view"]
+    },
+    "navigation": [
+        {
+            "id": "calendar",
+            "label": {"en": "Calendar", "ar": "التقويم"},
+            "icon": "heroicon-o-calendar-days",
+            "route": "filament.tenant.pages.calendar",
+            "group": "operations",
+            "order": 10,
+            "permission": "calendar.view"
+        },
+        {
+            "id": "appointments",
+            "label": {"en": "Appointments", "ar": "المواعيد"},
+            "icon": "heroicon-o-clipboard-document-list",
+            "route": "filament.tenant.resources.appointments.index",
+            "group": "operations",
+            "order": 11,
+            "permission": "appointments.view_any"
+        },
+        {
+            "id": "schedules",
+            "label": {"en": "Schedules", "ar": "جداول العمل"},
+            "icon": "heroicon-o-clock",
+            "route": "filament.tenant.resources.practitioner-schedules.index",
+            "group": "operations",
+            "order": 12,
+            "permission": "schedule.view_any"
+        },
+        {
+            "id": "time_off",
+            "label": {"en": "Time Off", "ar": "الإجازات"},
+            "icon": "heroicon-o-calendar",
+            "route": "filament.tenant.resources.practitioner-time-off.index",
+            "group": "operations",
+            "order": 13,
+            "permission": "time_off.view_any"
+        },
+        {
+            "id": "waitlist",
+            "label": {"en": "Waitlist", "ar": "قائمة الانتظار"},
+            "icon": "heroicon-o-queue-list",
+            "route": "filament.tenant.resources.waitlist.index",
+            "group": "operations",
+            "order": 14,
+            "permission": "waitlist.view_any"
+        }
+    ],
+    "settings": {
+        "booking.default_slot_duration": {
+            "type": "integer",
+            "default": 30,
+            "label": {"en": "Default slot duration (minutes)", "ar": "مدة الفترة الافتراضية (دقائق)"}
+        },
+        "booking.buffer_minutes": {
+            "type": "integer",
+            "default": 5,
+            "label": {"en": "Buffer between appointments (minutes)", "ar": "الفاصل بين المواعيد (دقائق)"}
+        },
+        "booking.auto_confirm": {
+            "type": "boolean",
+            "default": false,
+            "label": {"en": "Auto-confirm appointments", "ar": "تأكيد المواعيد تلقائياً"}
+        },
+        "booking.reminder_hours_before": {
+            "type": "integer",
+            "default": 24,
+            "label": {"en": "Send reminder hours before appointment", "ar": "إرسال تذكير قبل الموعد بـ (ساعة)"}
+        },
+        "booking.allow_online_booking": {
+            "type": "boolean",
+            "default": true,
+            "label": {"en": "Allow online booking", "ar": "السماح بالحجز عبر الإنترنت"}
+        },
+        "booking.max_advance_booking_days": {
+            "type": "integer",
+            "default": 60,
+            "label": {"en": "Maximum advance booking (days)", "ar": "أقصى مدة للحجز المسبق (يوم)"}
+        },
+        "booking.cancellation_policy_hours": {
+            "type": "integer",
+            "default": 24,
+            "label": {"en": "Cancellation policy (hours before)", "ar": "سياسة الإلغاء (ساعة قبل الموعد)"}
+        }
+    },
+    "sequences": [
+        {
+            "code": "appointment",
+            "prefix": "APT-",
+            "padding": 6
+        }
+    ],
+    "events": [
+        "AppointmentCreated",
+        "AppointmentConfirmed",
+        "AppointmentCheckedIn",
+        "AppointmentStarted",
+        "AppointmentCompleted",
+        "AppointmentCancelled",
+        "AppointmentNoShow"
+    ],
+    "active": true
+}

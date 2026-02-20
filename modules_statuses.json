@@ -1,4 +1,8 @@
 {
     "Core": true,
-    "Auth": true
+    "Auth": true,
+    "Patients": true,
+    "Treatments": true,
+    "Equipment": true,
+    "Booking": true
 }

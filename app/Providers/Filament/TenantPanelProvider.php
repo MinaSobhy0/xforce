@@ -72,6 +72,10 @@ class TenantPanelProvider extends PanelProvider
             // Discover Equipment module resources
             ->discoverResources(in: base_path('modules/Equipment/Filament/Resources'), for: 'Modules\\Equipment\\Filament\\Resources')
 
+            // Discover Booking module resources and pages
+            ->discoverResources(in: base_path('modules/Booking/Filament/Resources'), for: 'Modules\\Booking\\Filament\\Resources')
+            ->discoverPages(in: base_path('modules/Booking/Filament/Pages'), for: 'Modules\\Booking\\Filament\\Pages')
+
             // Default pages and widgets
             ->pages([
                 \Filament\Pages\Dashboard::class,
