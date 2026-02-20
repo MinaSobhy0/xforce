@@ -16,22 +16,7 @@ class Patient extends BaseModel
     use HasTenancy,
         HasActivity,
         HasSequence,
-        SoftDeletes,
-        \App\Traits\HasPostgresBoolean;
-
-    /**
-     * Boolean fields that need PostgreSQL-specific handling.
-     */
-    protected function getPostgresBooleanFields(): array
-    {
-        return [
-            'portal_access_enabled',
-            'marketing_consent',
-            'sms_consent',
-            'email_consent',
-            'whatsapp_consent',
-        ];
-    }
+        SoftDeletes;
 
     /**
      * Sequence code for auto-generation.
