@@ -76,9 +76,15 @@ trait HasPostgresBoolean
             return parent::performInsert($query);
         }
 
+        // Fire the creating event - this allows other traits (HasSequence, etc.)
+        // to set their values before we do the insert
+        if ($this->fireModelEvent('creating') === false) {
+            return false;
+        }
+
         // Generate UUID if id is not set (handles both HasUuids trait and manual UUID generation)
+        // This is a fallback in case the creating event didn't set it
         if (empty($this->attributes[$this->getKeyName()])) {
-            // Check if model is non-incrementing (uses UUIDs)
             if (!$this->getIncrementing()) {
                 $this->attributes[$this->getKeyName()] = (string) \Illuminate\Support\Str::orderedUuid();
             }
@@ -125,7 +131,7 @@ trait HasPostgresBoolean
 
         \DB::statement($sql, $values);
 
-        // Set exists to true and fire events
+        // Set exists to true and fire created event
         $this->exists = true;
         $this->wasRecentlyCreated = true;
         $this->fireModelEvent('created', false);
