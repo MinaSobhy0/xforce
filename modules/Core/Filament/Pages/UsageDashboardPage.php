@@ -45,16 +45,16 @@ class UsageDashboardPage extends Page
         // Get current usage
         $tenantUsage = TenantUsage::where('tenant_id', $tenant->id)->first();
 
-        // Get plan limits from tenant or subscription
+        // Get plan limits from tenant settings (set by SuperAdmin)
         $this->limits = [
-            'users' => $tenant->user_limit ?? 10,
-            'branches' => $tenant->branch_limit ?? 3,
-            'patients' => $tenant->patient_limit ?? 1000,
-            'storage_gb' => $tenant->storage_limit ?? 5,
-            'whatsapp_messages' => $tenant->whatsapp_limit ?? 500,
-            'sms_messages' => $tenant->sms_limit ?? 200,
-            'emails' => $tenant->email_limit ?? 1000,
-            'api_requests' => $tenant->api_limit ?? 10000,
+            'users' => $tenant->max_users ?? 10,
+            'branches' => $tenant->max_branches ?? 3,
+            'patients' => $tenant->max_patients ?? 1000,
+            'storage_gb' => round(($tenant->max_storage_mb ?? 1024) / 1024, 1), // Convert MB to GB
+            'whatsapp_messages' => $tenant->getSetting('max_whatsapp_messages', 500),
+            'sms_messages' => $tenant->getSetting('max_sms_messages', 200),
+            'emails' => $tenant->getSetting('max_emails', 1000),
+            'api_requests' => $tenant->getSetting('max_api_requests', 10000),
         ];
 
         if ($tenantUsage) {
