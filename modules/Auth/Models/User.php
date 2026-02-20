@@ -40,7 +40,16 @@ class User extends BaseModel implements
         HasPortalAccess,
         Notifiable,
         SoftDeletes,
-        \App\Traits\TwoFactorAuthenticatable;
+        \App\Traits\TwoFactorAuthenticatable,
+        \App\Traits\HasPostgresBoolean;
+
+    /**
+     * Boolean fields that need PostgreSQL-specific handling.
+     */
+    protected function getPostgresBooleanFields(): array
+    {
+        return ['must_change_password', 'two_factor_enabled'];
+    }
 
     protected $fillable = [
         'tenant_id',
