@@ -9,11 +9,11 @@ class TenantUsage extends BaseModel
 {
     /**
      * This is a central table (not tenant-specific), so it uses the
-     * central/public schema connection instead of tenant connection.
+     * public schema explicitly to avoid tenant schema isolation.
      */
     protected $connection = 'pgsql';
 
-    protected $table = 'tenant_usage';
+    protected $table = 'public.tenant_usage';
 
     protected $fillable = [
         'tenant_id',
