@@ -11,6 +11,7 @@ use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Navigation\NavigationGroup;
 use Filament\Panel;
 use Filament\PanelProvider;
+use Filament\SpatieLaravelTranslatablePlugin;
 use Filament\Support\Colors\Color;
 use Filament\View\PanelsRenderHook;
 use Illuminate\Contracts\View\View;
@@ -122,6 +123,12 @@ class TenantPanelProvider extends PanelProvider
                 \Filament\Pages\Dashboard::class,
             ])
             ->widgets([])
+
+            // Plugins
+            ->plugin(
+                SpatieLaravelTranslatablePlugin::make()
+                    ->defaultLocales(['en', 'ar'])
+            )
 
             // Branch Switcher in the topbar
             ->renderHook(
