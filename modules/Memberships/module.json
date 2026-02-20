@@ -1,0 +1,11 @@
+{
+    "name": "Memberships",
+    "alias": "memberships",
+    "description": "Membership tiers with discounts and priority booking",
+    "keywords": ["memberships", "subscriptions", "tiers"],
+    "priority": 52,
+    "providers": [
+        "Modules\\Memberships\\Providers\\MembershipsServiceProvider"
+    ],
+    "files": []
+}

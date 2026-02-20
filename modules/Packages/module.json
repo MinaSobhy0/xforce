@@ -1,0 +1,11 @@
+{
+    "name": "Packages",
+    "alias": "packages",
+    "description": "Treatment packages with session bundles and value bundles",
+    "keywords": ["packages", "bundles", "sessions"],
+    "priority": 50,
+    "providers": [
+        "Modules\\Packages\\Providers\\PackagesServiceProvider"
+    ],
+    "files": []
+}

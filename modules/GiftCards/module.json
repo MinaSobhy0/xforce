@@ -1,0 +1,11 @@
+{
+    "name": "GiftCards",
+    "alias": "giftcards",
+    "description": "Gift card system with transactions and balance tracking",
+    "keywords": ["giftcards", "prepaid", "vouchers"],
+    "priority": 51,
+    "providers": [
+        "Modules\\GiftCards\\Providers\\GiftCardsServiceProvider"
+    ],
+    "files": []
+}

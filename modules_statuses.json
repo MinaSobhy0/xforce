@@ -6,5 +6,8 @@
     "Equipment": true,
     "Booking": true,
     "Billing": true,
-    "Accounting": true
+    "Accounting": true,
+    "Packages": true,
+    "GiftCards": true,
+    "Memberships": true
 }

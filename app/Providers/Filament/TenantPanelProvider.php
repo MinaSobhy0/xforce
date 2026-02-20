@@ -57,6 +57,9 @@ class TenantPanelProvider extends PanelProvider
                 NavigationGroup::make('Finance')
                     ->label(__('Finance'))
                     ->icon('heroicon-o-banknotes'),
+                NavigationGroup::make('Sales')
+                    ->label(__('Sales'))
+                    ->icon('heroicon-o-shopping-bag'),
                 NavigationGroup::make('Settings')
                     ->label(__('Settings'))
                     ->icon('heroicon-o-cog'),
@@ -89,6 +92,15 @@ class TenantPanelProvider extends PanelProvider
             // Discover Accounting module resources
             ->discoverResources(in: base_path('modules/Accounting/Filament/Resources'), for: 'Modules\\Accounting\\Filament\\Resources')
             ->discoverPages(in: base_path('modules/Accounting/Filament/Pages'), for: 'Modules\\Accounting\\Filament\\Pages')
+
+            // Discover Packages module resources
+            ->discoverResources(in: base_path('modules/Packages/Filament/Resources'), for: 'Modules\\Packages\\Filament\\Resources')
+
+            // Discover GiftCards module resources
+            ->discoverResources(in: base_path('modules/GiftCards/Filament/Resources'), for: 'Modules\\GiftCards\\Filament\\Resources')
+
+            // Discover Memberships module resources
+            ->discoverResources(in: base_path('modules/Memberships/Filament/Resources'), for: 'Modules\\Memberships\\Filament\\Resources')
 
             // Default pages and widgets
             ->pages([
