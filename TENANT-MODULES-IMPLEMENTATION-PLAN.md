@@ -1283,33 +1283,36 @@ This is what makes the system truly modular.
 
 #### Models
 - [x] Branch.php - BaseModel, HasTenancy, working_hours (jsonb), is_active, timezone
+  - [x] Added rooms() and users() relationships
+  - [x] Added working hours helper methods
 - [x] Room.php - BaseModel, branch_id FK, capacity, is_active, sort_order
 - [x] Setting.php - key-value store for tenant settings
-- [ ] Sequence.php - Fields: code, prefix, next_value, padding, reset_on_year, current_year
-  - [ ] Method: next() with SELECT FOR UPDATE locking
+- [x] Sequence.php - Fields: code, prefix, next_value, padding, reset_on_year, current_year
+  - [x] Method: next() with SELECT FOR UPDATE locking (DB transaction)
 
 #### Filament Resources (Tenant Panel)
-- [ ] BranchResource.php
-  - [ ] List: name, address, rooms count, staff count, is_active toggle
-  - [ ] Form: translatable name, address, phone, email, working hours (JSON editor), Google Maps link, timezone
-  - [ ] Relation managers: RoomsRelationManager
+- [x] BranchResource.php
+  - [x] List: name, address, rooms count, staff count, is_active toggle
+  - [x] Form: name, address, phone, email, working hours (Repeater), Google Maps link, timezone
+  - [x] Relation managers: RoomsRelationManager
 - [x] RoomResource.php
   - [x] Table: name, capacity, active toggle
   - [x] Form: name, branch select, capacity, sort order
 
 #### Filament Pages (Tenant Panel)
-- [ ] GeneralSettingsPage.php
-  - [ ] Unified settings built from SettingsRegistry
-  - [ ] Sections: General, Booking, Billing, Marketing (grouped)
-  - [ ] Each setting: label, input type, default, validation
+- [x] GeneralSettingsPage.php
+  - [x] Unified settings built from SettingsRegistry
+  - [x] Sections: General, Booking, Billing, Marketing (grouped tabs)
+  - [x] Each setting: label, input type, default, validation
 - [~] ModuleManagementPage.php (exists as SuperAdmin resource, needs tenant-level)
   - [ ] Grid of available modules
   - [ ] Toggle on/off with dependency check
   - [ ] Shows: module name, icon, description, status, dependencies
   - [ ] Disabled modules show "Upgrade Plan" badge
-- [ ] UsageDashboardPage.php
-  - [ ] Progress bars: users, branches, patients, storage vs plan limits
-  - [ ] Monthly counters: appointments, WhatsApp, SMS, emails
+- [x] UsageDashboardPage.php
+  - [x] Progress bars: users, branches, patients, storage vs plan limits
+  - [x] Monthly counters: appointments, WhatsApp, SMS, emails
+  - [x] Stats cards: appointments, revenue, new patients this month
 
 #### Database Migrations
 - [x] create_branches_table.php
@@ -1320,9 +1323,9 @@ This is what makes the system truly modular.
 - [ ] create_audit_logs_table.php (for HasAudit across all modules)
 
 #### Database Seeders
-- [ ] DefaultBranchSeeder.php (create "Main Branch" on provision)
-- [ ] DefaultSequenceSeeder.php (PAT-, INV-, APT-, GC-, JE-, PO-)
-- [ ] DefaultSettingsSeeder.php (all default setting values)
+- [x] DefaultBranchSeeder.php (create "Main Branch" on provision)
+- [x] DefaultSequenceSeeder.php (PAT-, INV-, APT-, GC-, JE-, PO-)
+- [x] DefaultSettingsSeeder.php (all default setting values)
 
 #### Lang Files
 - [x] en/core.php
@@ -2110,7 +2113,7 @@ This is what makes the system truly modular.
 
 | Batch | Module | Status | Progress |
 |-------|--------|--------|----------|
-| 1 | Core | Partial | ~60% |
+| 1 | Core | Mostly Done | ~85% |
 | 1 | Auth | Mostly Done | ~85% |
 | 2 | Patients | Done | ~95% |
 | 2 | Treatments | Done | ~90% |
@@ -2132,13 +2135,13 @@ This is what makes the system truly modular.
 | 9 | PatientPortal | Not Started | 0% |
 | 9 | Api | Not Started | 0% |
 
-**Overall Progress: ~15% (4 of 21 modules partially/fully implemented)**
+**Overall Progress: ~20% (4 of 21 modules partially/fully implemented)**
 
 ---
 
 ## NEXT STEPS (Recommended Order)
 
-1. **Complete Core Module** - Add Sequence model, BranchResource, GeneralSettingsPage, UsageDashboardPage
+1. ~~**Complete Core Module** - Add Sequence model, BranchResource, GeneralSettingsPage, UsageDashboardPage~~ ✅ DONE
 2. **Complete Auth Module** - Add DefaultRoleSeeder, DefaultPermissionSeeder, system role protection
 3. **Start Batch 3: Equipment Module** - Foundation for appointments
 4. **Start Batch 3: Booking Module** - Core business functionality
