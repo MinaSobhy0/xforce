@@ -114,10 +114,17 @@ class UsersRelationManager extends RelationManager
                     ->modalDescription('This will generate a new random password and send it to the user\'s email.')
                     ->action(function ($record): void {
                         $newPassword = Str::random(12);
+
+                        // Update password first
                         $record->update([
                             'password' => Hash::make($newPassword),
-                            'must_change_password' => true,
                         ]);
+
+                        // Update boolean separately using raw SQL (PgBouncer compatibility)
+                        \DB::statement(
+                            "UPDATE users SET must_change_password = true WHERE id = ?",
+                            [$record->id]
+                        );
 
                         // TODO: Send password reset email with new password
 

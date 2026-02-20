@@ -51,19 +51,14 @@ class AdminPanelProvider extends PanelProvider
                     ->icon('heroicon-o-user-circle'),
             ])
 
-            // Discover tenant portal resources
+            // Discover tenant portal resources, pages, and widgets
             ->discoverResources(in: app_path('Filament/Admin/Resources'), for: 'App\\Filament\\Admin\\Resources')
             ->discoverPages(in: app_path('Filament/Admin/Pages'), for: 'App\\Filament\\Admin\\Pages')
+            ->discoverWidgets(in: app_path('Filament/Admin/Widgets'), for: 'App\\Filament\\Admin\\Widgets')
 
-            // Pages
-            ->pages([
-                Pages\Dashboard::class,
-            ])
-
-            // Widgets
-            ->widgets([
-                Widgets\AccountWidget::class,
-            ])
+            // No default pages/widgets - use discovered ones
+            ->pages([])
+            ->widgets([])
 
             // Middleware
             ->middleware([

@@ -91,14 +91,17 @@
 
             {{-- User Menu at Bottom --}}
             <div class="border-t border-gray-200 dark:border-gray-800 p-2">
-                <x-filament::icon-button
-                    color="gray"
-                    icon="heroicon-o-arrow-right-on-rectangle"
-                    :label="__('filament-panels::layout.actions.logout.label')"
-                    tag="a"
-                    :href="filament()->getLogoutUrl()"
-                    class="w-full"
-                />
+                <form action="{{ filament()->getLogoutUrl() }}" method="post" class="w-full">
+                    @csrf
+                    <x-filament::icon-button
+                        color="gray"
+                        icon="heroicon-o-arrow-right-on-rectangle"
+                        :label="__('filament-panels::layout.actions.logout.label')"
+                        tag="button"
+                        type="submit"
+                        class="w-full"
+                    />
+                </form>
             </div>
         </div>
 
