@@ -321,6 +321,19 @@
             visibility: hidden;
         }
 
+        /* Spinner animation */
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+        .btn-primary svg.animate-spin {
+            display: inline-block;
+            vertical-align: middle;
+        }
+
         .alert {
             padding: 1rem;
             border-radius: 8px;

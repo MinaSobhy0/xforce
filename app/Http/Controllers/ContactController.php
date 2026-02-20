@@ -48,7 +48,7 @@ class ContactController extends Controller
             $recaptchaSecret = PlatformSetting::get('recaptcha_secret_key');
             $minScore = (float) PlatformSetting::get('recaptcha_min_score', 0.5);
 
-            $response = Http::asForm()->post('https://www.google.com/recaptcha/api/siteverify', [
+            $response = Http::timeout(5)->asForm()->post('https://www.google.com/recaptcha/api/siteverify', [
                 'secret' => $recaptchaSecret,
                 'response' => $request->input('recaptcha_token'),
                 'remoteip' => $request->ip(),
@@ -91,8 +91,13 @@ class ContactController extends Controller
             'user_agent' => $request->userAgent(),
         ]);
 
-        // Send notification email
-        $this->sendNotificationEmail($inquiry);
+        // Send notification email (in background to avoid delays)
+        try {
+            $this->sendNotificationEmail($inquiry);
+        } catch (\Exception $e) {
+            // Don't block form submission if email fails
+            \Log::error('Contact notification email failed: ' . $e->getMessage());
+        }
 
         return back()->with('success', 'Thank you for your inquiry! We will contact you soon.');
     }
