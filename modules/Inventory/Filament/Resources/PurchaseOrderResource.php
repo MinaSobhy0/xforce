@@ -90,7 +90,7 @@ class PurchaseOrderResource extends Resource
                                 Forms\Components\Select::make('branch_id')
                                     ->label(__('inventory::inventory.fields.branch'))
                                     ->relationship('branch', 'id')
-                                    ->getOptionLabelFromRecordUsing(fn (Branch $record) => $record->getTranslation('name', app()->getLocale()))
+                                    ->getOptionLabelFromRecordUsing(fn (Branch $record) => $record->name)
                                     ->required()
                                     ->searchable()
                                     ->preload(),
@@ -274,7 +274,7 @@ class PurchaseOrderResource extends Resource
                 Tables\Filters\SelectFilter::make('branch_id')
                     ->label(__('inventory::inventory.fields.branch'))
                     ->relationship('branch', 'id')
-                    ->getOptionLabelFromRecordUsing(fn (Branch $record) => $record->getTranslation('name', app()->getLocale())),
+                    ->getOptionLabelFromRecordUsing(fn (Branch $record) => $record->name),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),

@@ -56,7 +56,7 @@ class StaffProfileResource extends Resource
                                 Forms\Components\Select::make('branch_id')
                                     ->label(__('staff::staff.fields.branch'))
                                     ->relationship('branch', 'id')
-                                    ->getOptionLabelFromRecordUsing(fn (Branch $record) => $record->getTranslation('name', app()->getLocale()))
+                                    ->getOptionLabelFromRecordUsing(fn (Branch $record) => $record->name)
                                     ->searchable()
                                     ->preload(),
                             ]),
@@ -192,7 +192,7 @@ class StaffProfileResource extends Resource
                 Tables\Filters\SelectFilter::make('branch_id')
                     ->label(__('staff::staff.fields.branch'))
                     ->relationship('branch', 'id')
-                    ->getOptionLabelFromRecordUsing(fn (Branch $record) => $record->getTranslation('name', app()->getLocale())),
+                    ->getOptionLabelFromRecordUsing(fn (Branch $record) => $record->name),
 
                 Tables\Filters\TernaryFilter::make('is_active')
                     ->label(__('staff::staff.fields.is_active')),
