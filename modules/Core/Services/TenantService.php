@@ -175,26 +175,29 @@ class TenantService
 
         // Run migrations for tenant using the tenant connection
         $this->tenantManager->runForTenant($tenant, function () use ($connectionName, $schemaName) {
-            // Get all module migration paths
-            $migrationPaths = $this->getModuleMigrationPaths();
+            // Get tenant-specific migration files (excludes platform-only)
+            $migrationFiles = $this->getTenantMigrationFiles();
 
             Log::info('Running tenant migrations', [
                 'schema_name' => $schemaName,
                 'connection' => $connectionName,
-                'paths' => $migrationPaths,
+                'file_count' => count($migrationFiles),
             ]);
 
-            foreach ($migrationPaths as $path) {
-                if (is_dir(base_path($path))) {
-                    Log::info('Running migrations from path', ['path' => $path]);
+            foreach ($migrationFiles as $file) {
+                $relativePath = str_replace(base_path() . '/', '', $file);
 
-                    Artisan::call('migrate', [
-                        '--database' => $connectionName,
-                        '--path' => $path,
-                        '--force' => true,
-                    ]);
+                Log::info('Running migration', ['file' => basename($file)]);
 
-                    Log::info('Migration output', ['output' => Artisan::output()]);
+                Artisan::call('migrate', [
+                    '--database' => $connectionName,
+                    '--path' => $relativePath,
+                    '--force' => true,
+                ]);
+
+                $output = trim(Artisan::output());
+                if ($output) {
+                    Log::info('Migration output', ['output' => $output]);
                 }
             }
         });
@@ -206,12 +209,20 @@ class TenantService
     }
 
     /**
-     * Get all module migration paths.
+     * Get all tenant migration files (excludes platform-only migrations).
      */
-    protected function getModuleMigrationPaths(): array
+    protected function getTenantMigrationFiles(): array
     {
-        $paths = [];
+        $files = [];
         $modulesPath = base_path('modules');
+
+        // Migrations that should NOT run in tenant schemas (platform-only)
+        $platformOnlyPatterns = [
+            'create_tenants_table',
+            'create_tenant_subscriptions_table',
+            'create_tenant_usage_table',
+            'create_tenant_modules_table',
+        ];
 
         if (is_dir($modulesPath)) {
             $modules = scandir($modulesPath);
@@ -221,21 +232,40 @@ class TenantService
                 }
 
                 // Check Database/Migrations first (preferred)
-                $dbMigrationsPath = "modules/{$module}/Database/Migrations";
-                if (is_dir(base_path($dbMigrationsPath))) {
-                    $paths[] = $dbMigrationsPath;
-                    continue;
+                $migrationsDir = base_path("modules/{$module}/Database/Migrations");
+                if (!is_dir($migrationsDir)) {
+                    $migrationsDir = base_path("modules/{$module}/Migrations");
                 }
 
-                // Fallback to direct Migrations folder
-                $migrationsPath = "modules/{$module}/Migrations";
-                if (is_dir(base_path($migrationsPath))) {
-                    $paths[] = $migrationsPath;
+                if (is_dir($migrationsDir)) {
+                    $migrationFiles = glob($migrationsDir . '/*.php');
+                    foreach ($migrationFiles as $file) {
+                        $filename = basename($file);
+
+                        // Skip platform-only migrations
+                        $skip = false;
+                        foreach ($platformOnlyPatterns as $pattern) {
+                            if (str_contains($filename, $pattern)) {
+                                $skip = true;
+                                Log::info('Skipping platform-only migration', ['file' => $filename]);
+                                break;
+                            }
+                        }
+
+                        if (!$skip) {
+                            $files[] = $file;
+                        }
+                    }
                 }
             }
         }
 
-        return $paths;
+        // Sort files by filename (timestamp) to ensure proper migration order
+        usort($files, function ($a, $b) {
+            return basename($a) <=> basename($b);
+        });
+
+        return $files;
     }
 
     public function dropTenantDatabase(Tenant $tenant): void

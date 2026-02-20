@@ -26,7 +26,7 @@ return new class extends Migration
             $table->json('yearly_stats')->nullable();
             $table->timestamps();
 
-            $table->foreign('tenant_id')->references('id')->on('tenants')->onDelete('cascade');
+            // No FK to tenants - schema isolation handles tenant context
             $table->unique('tenant_id');
             $table->index(['last_activity_at']);
         });

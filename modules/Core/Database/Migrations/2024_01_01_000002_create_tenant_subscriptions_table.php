@@ -35,7 +35,7 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            $table->foreign('tenant_id')->references('id')->on('tenants')->onDelete('cascade');
+            // No FK to tenants - schema isolation handles tenant context
             $table->index(['tenant_id']);
             $table->index(['status']);
             $table->index(['expires_at']);

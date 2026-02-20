@@ -61,8 +61,8 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            // Foreign keys and indexes
-            $table->foreign('tenant_id')->references('id')->on('tenants')->onDelete('cascade');
+            // Indexes (no FK to tenants - schema isolation handles tenant context)
+            $table->index('tenant_id');
             $table->unique(['tenant_id', 'email']);
             $table->unique(['tenant_id', 'employee_id']);
             $table->index(['tenant_id', 'status']);
