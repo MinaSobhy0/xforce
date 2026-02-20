@@ -40,22 +40,42 @@ class ContactController extends Controller
             'phone' => 'required|string|max:50',
             'country' => 'required|string|max:2',
             'message' => 'nullable|string|max:2000',
-            'g-recaptcha-response' => $this->isRecaptchaEnabled() ? 'required' : 'nullable',
+            'recaptcha_token' => $this->isRecaptchaEnabled() ? 'required' : 'nullable',
         ]);
 
-        // Verify reCAPTCHA
+        // Verify reCAPTCHA v3
         if ($this->isRecaptchaEnabled()) {
             $recaptchaSecret = PlatformSetting::get('recaptcha_secret_key');
+            $minScore = (float) PlatformSetting::get('recaptcha_min_score', 0.5);
+
             $response = Http::asForm()->post('https://www.google.com/recaptcha/api/siteverify', [
                 'secret' => $recaptchaSecret,
-                'response' => $request->input('g-recaptcha-response'),
+                'response' => $request->input('recaptcha_token'),
                 'remoteip' => $request->ip(),
             ]);
 
-            if (!$response->json('success')) {
+            $result = $response->json();
+
+            if (!($result['success'] ?? false)) {
+                \Log::warning('reCAPTCHA v3 verification failed', [
+                    'errors' => $result['error-codes'] ?? [],
+                    'ip' => $request->ip(),
+                ]);
                 return back()
                     ->withInput()
-                    ->withErrors(['recaptcha' => 'reCAPTCHA verification failed. Please try again.']);
+                    ->withErrors(['recaptcha' => 'Security verification failed. Please try again.']);
+            }
+
+            $score = $result['score'] ?? 0;
+            if ($score < $minScore) {
+                \Log::warning('reCAPTCHA v3 score too low', [
+                    'score' => $score,
+                    'min_score' => $minScore,
+                    'ip' => $request->ip(),
+                ]);
+                return back()
+                    ->withInput()
+                    ->withErrors(['recaptcha' => 'Security verification failed. Please try again.']);
             }
         }
 

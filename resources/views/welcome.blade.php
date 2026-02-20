@@ -21,7 +21,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/css/intlTelInput.css">
     @if($recaptchaEnabled && $recaptchaSiteKey)
-    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    <script src="https://www.google.com/recaptcha/api.js?render={{ $recaptchaSiteKey }}"></script>
     @endif
     <style>
         * {
@@ -300,6 +300,27 @@
             width: 100%;
         }
 
+        .recaptcha-notice {
+            margin-top: 1rem;
+            font-size: 0.75rem;
+            color: #64748b;
+            text-align: center;
+        }
+
+        .recaptcha-notice a {
+            color: #94a3b8;
+            text-decoration: underline;
+        }
+
+        .recaptcha-notice a:hover {
+            color: #e2e8f0;
+        }
+
+        /* Hide reCAPTCHA badge (we show notice instead) */
+        .grecaptcha-badge {
+            visibility: hidden;
+        }
+
         .alert {
             padding: 1rem;
             border-radius: 8px;
@@ -385,10 +406,6 @@
 
         footer a:hover {
             color: #e2e8f0;
-        }
-
-        .g-recaptcha {
-            margin-top: 1rem;
         }
 
         /* Phone input with country code */
@@ -579,7 +596,7 @@
                         </div>
 
                         @if($recaptchaEnabled && $recaptchaSiteKey)
-                        <div class="g-recaptcha" data-sitekey="{{ $recaptchaSiteKey }}" data-theme="dark"></div>
+                        <input type="hidden" name="recaptcha_token" id="recaptcha_token">
                         @endif
 
                         <div class="form-actions">
@@ -590,6 +607,14 @@
                                 Send Inquiry
                             </button>
                         </div>
+
+                        @if($recaptchaEnabled && $recaptchaSiteKey)
+                        <p class="recaptcha-notice">
+                            This site is protected by reCAPTCHA and the Google
+                            <a href="https://policies.google.com/privacy" target="_blank">Privacy Policy</a> and
+                            <a href="https://policies.google.com/terms" target="_blank">Terms of Service</a> apply.
+                        </p>
+                        @endif
                     </form>
                 </div>
             </section>
@@ -637,6 +662,8 @@
             const phoneInput = document.querySelector('#phone');
             const phoneFullInput = document.querySelector('#phone_full');
             const countrySelect = document.querySelector('#country');
+            const form = document.querySelector('form');
+            const submitBtn = form.querySelector('button[type="submit"]');
 
             // Initialize intl-tel-input
             const iti = window.intlTelInput(phoneInput, {
@@ -659,12 +686,6 @@
                 utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/utils.js"
             });
 
-            // Update hidden field with full number on form submit
-            const form = phoneInput.closest('form');
-            form.addEventListener('submit', function() {
-                phoneFullInput.value = iti.getNumber();
-            });
-
             // Also update on input change
             phoneInput.addEventListener('change', function() {
                 phoneFullInput.value = iti.getNumber();
@@ -682,6 +703,29 @@
                     }
                 });
             }
+
+            // Handle form submission with reCAPTCHA v3
+            form.addEventListener('submit', function(e) {
+                // Update phone number
+                phoneFullInput.value = iti.getNumber();
+
+                @if($recaptchaEnabled && $recaptchaSiteKey)
+                e.preventDefault();
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<svg class="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Sending...';
+
+                grecaptcha.ready(function() {
+                    grecaptcha.execute('{{ $recaptchaSiteKey }}', {action: 'contact_form'}).then(function(token) {
+                        document.getElementById('recaptcha_token').value = token;
+                        form.submit();
+                    }).catch(function() {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" /></svg> Send Inquiry';
+                        alert('reCAPTCHA verification failed. Please try again.');
+                    });
+                });
+                @endif
+            });
         });
     </script>
 </body>

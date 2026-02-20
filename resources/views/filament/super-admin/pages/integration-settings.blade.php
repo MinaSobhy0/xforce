@@ -167,38 +167,13 @@
             </form>
         </x-filament::section>
 
-        {{-- reCAPTCHA --}}
-        <x-filament::section
-            icon="heroicon-o-shield-check"
-            icon-color="success"
-            collapsible
-        >
-            <x-slot name="heading">
-                reCAPTCHA
-            </x-slot>
-
-            <x-slot name="description">
-                Protect contact form and registration from spam and bots.
-            </x-slot>
-
-            <form wire:submit="saveRecaptcha">
-                {{ $this->recaptchaForm }}
-
-                <div class="mt-4">
-                    <x-filament::button type="submit">
-                        Save reCAPTCHA Settings
-                    </x-filament::button>
-                </div>
-            </form>
-        </x-filament::section>
-
         {{-- Integration Status --}}
         <x-filament::section>
             <x-slot name="heading">
                 Integration Status
             </x-slot>
 
-            <div class="grid grid-cols-2 md:grid-cols-6 gap-4">
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
                 <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 text-center">
                     <div class="text-2xl mb-1">
                         @if($whatsappData['whatsapp_enabled'] ?? false)
@@ -254,17 +229,6 @@
                         @endif
                     </div>
                     <div class="text-sm text-gray-600 dark:text-gray-400">Payments</div>
-                </div>
-
-                <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 text-center">
-                    <div class="text-2xl mb-1">
-                        @if($recaptchaData['recaptcha_enabled'] ?? false)
-                            <span class="text-green-500">&#10003;</span>
-                        @else
-                            <span class="text-gray-400">&#x2212;</span>
-                        @endif
-                    </div>
-                    <div class="text-sm text-gray-600 dark:text-gray-400">reCAPTCHA</div>
                 </div>
             </div>
         </x-filament::section>
