@@ -117,8 +117,7 @@
 
         {{-- Second Sidebar: Sub-items --}}
         <div
-            x-show="activeGroup !== null"
-            x-transition.opacity.duration.300ms
+            x-bind:class="activeGroup !== null ? 'opacity-100 translate-x-0 pointer-events-auto' : 'opacity-0 -translate-x-full pointer-events-none'"
             class="fi-sidebar-items w-56 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col shadow-xl ring-1 ring-gray-950/5 dark:ring-white/10 transition-all duration-300 ease-in-out"
         >
             {{-- Header with group name - aligned with topbar --}}
