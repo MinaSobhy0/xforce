@@ -7,6 +7,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class TenantUsage extends BaseModel
 {
+    /**
+     * This is a central table (not tenant-specific), so it uses the
+     * central/public schema connection instead of tenant connection.
+     */
+    protected $connection = 'pgsql';
+
     protected $table = 'tenant_usage';
 
     protected $fillable = [
