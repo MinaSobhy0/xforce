@@ -40,9 +40,9 @@
         ])
     }}
 >
-    <div class="flex h-full">
+    <div class="h-full flex">
         {{-- First Sidebar: Icons with labels --}}
-        <div class="fi-sidebar-icons flex flex-col w-24 bg-gray-50 dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800">
+        <div class="fi-sidebar-icons flex flex-col w-24 h-full bg-gray-50 dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800 shrink-0">
             {{-- Logo Area - aligned with topbar --}}
             <header class="flex h-16 items-center justify-center bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10">
                 @if ($homeUrl = filament()->getHomeUrl())
@@ -117,8 +117,10 @@
 
         {{-- Second Sidebar: Sub-items --}}
         <div
-            x-bind:class="activeGroup !== null ? 'opacity-100 translate-x-0 pointer-events-auto' : 'opacity-0 -translate-x-full pointer-events-none'"
-            class="fi-sidebar-items w-56 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col shadow-xl ring-1 ring-gray-950/5 dark:ring-white/10 transition-all duration-300 ease-in-out"
+            x-show="activeGroup !== null"
+            x-transition
+            x-cloak
+            class="fi-sidebar-items w-56 h-full bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 shadow-xl ring-1 ring-gray-950/5 dark:ring-white/10 shrink-0 flex flex-col"
         >
             {{-- Header with group name - aligned with topbar --}}
             <header class="flex h-16 items-center gap-x-4 px-4 bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10 shrink-0">
