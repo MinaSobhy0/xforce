@@ -72,7 +72,7 @@ class TenantResource extends Resource
                         ->unique(ignoreRecord: true)
                         ->maxLength(100)
                         ->prefix('https://')
-                        ->suffix('.xlinic.com')
+                        ->suffix('.x-linic.com')
                         ->helperText('This will be the clinic\'s URL'),
 
                     Forms\Components\TextInput::make('database_name')
@@ -258,7 +258,7 @@ class TenantResource extends Resource
                     ->sortable()
                     ->weight(FontWeight::Bold)
                     ->description(fn(Tenant $record): string =>
-                        $record->slug . '.xlinic.com'
+                        $record->slug . '.x-linic.com'
                     ),
 
                 // Plan Column
@@ -391,7 +391,7 @@ class TenantResource extends Resource
                     ->icon('heroicon-o-arrow-right-on-rectangle')
                     ->color('info')
                     ->url(fn(Tenant $record): string =>
-                        "https://{$record->slug}.xlinic.com/admin"
+                        "https://{$record->slug}.x-linic.com/admin"
                     )
                     ->openUrlInNewTab(),
 

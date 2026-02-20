@@ -39,6 +39,11 @@ class ViewTenant extends ViewRecord
                         $tenantService = app(TenantService::class);
                         $tenantService->createTenantDatabase($this->record);
 
+                        // Reset search_path to public schema for main connection
+                        DB::statement("SET search_path TO public");
+                        DB::purge('pgsql');
+                        DB::reconnect('pgsql');
+
                         Notification::make()
                             ->title('Database provisioned successfully')
                             ->body("Schema '{$this->record->database_name}' has been created and migrations have been run.")
@@ -48,6 +53,13 @@ class ViewTenant extends ViewRecord
                         $this->refreshFormData(['database_name']);
 
                     } catch (\Exception $e) {
+                        // Ensure we reset connection even on error
+                        try {
+                            DB::statement("SET search_path TO public");
+                            DB::purge('pgsql');
+                            DB::reconnect('pgsql');
+                        } catch (\Exception $ignored) {}
+
                         Log::error('Tenant database provisioning failed', [
                             'tenant_id' => $this->record->id,
                             'error' => $e->getMessage(),
@@ -67,7 +79,7 @@ class ViewTenant extends ViewRecord
                 ->icon('heroicon-o-arrow-right-on-rectangle')
                 ->color('info')
                 ->url(fn(): string =>
-                    "https://{$this->record->slug}.xlinic.com/admin"
+                    "https://{$this->record->slug}.x-linic.com/admin"
                 )
                 ->openUrlInNewTab()
                 ->visible(fn() => $this->schemaExists()),
@@ -261,6 +273,11 @@ class ViewTenant extends ViewRecord
                         // Recreate schema and run migrations
                         $tenantService->createTenantDatabase($this->record);
 
+                        // Reset search_path to public schema for main connection
+                        DB::statement("SET search_path TO public");
+                        DB::purge('pgsql');
+                        DB::reconnect('pgsql');
+
                         Notification::make()
                             ->title('Database reset successfully')
                             ->body("Schema '{$this->record->database_name}' has been dropped and recreated.")
@@ -268,6 +285,13 @@ class ViewTenant extends ViewRecord
                             ->send();
 
                     } catch (\Exception $e) {
+                        // Ensure we reset connection even on error
+                        try {
+                            DB::statement("SET search_path TO public");
+                            DB::purge('pgsql');
+                            DB::reconnect('pgsql');
+                        } catch (\Exception $ignored) {}
+
                         Log::error('Tenant database reset failed', [
                             'tenant_id' => $this->record->id,
                             'error' => $e->getMessage(),
@@ -321,7 +345,7 @@ class ViewTenant extends ViewRecord
                             Components\TextEntry::make('slug')
                                 ->label('')
                                 ->formatStateUsing(fn(string $state) =>
-                                    "{$state}.xlinic.com"
+                                    "{$state}.x-linic.com"
                                 )
                                 ->color('gray')
                                 ->copyable(),

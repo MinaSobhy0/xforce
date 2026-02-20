@@ -51,7 +51,7 @@ class OnboardingRequestResource extends Resource
                         ->maxLength(100)
                         ->unique(ignoreRecord: true)
                         ->alphaDash()
-                        ->helperText('Will be used for subdomain: slug.xlinic.com'),
+                        ->helperText('Will be used for subdomain: slug.x-linic.com'),
 
                     Forms\Components\Select::make('country')
                         ->options([
@@ -137,7 +137,7 @@ class OnboardingRequestResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('clinic_name')
                     ->label('Clinic')
-                    ->description(fn($record) => $record->slug . '.xlinic.com')
+                    ->description(fn($record) => $record->slug . '.x-linic.com')
                     ->searchable()
                     ->weight(FontWeight::Bold),
 
@@ -309,7 +309,7 @@ class OnboardingRequestResource extends Resource
                     Infolists\Components\TextEntry::make('clinic_name'),
                     Infolists\Components\TextEntry::make('slug')
                         ->label('Subdomain')
-                        ->formatStateUsing(fn($state) => $state . '.xlinic.com'),
+                        ->formatStateUsing(fn($state) => $state . '.x-linic.com'),
                     Infolists\Components\TextEntry::make('country'),
                     Infolists\Components\TextEntry::make('city'),
                     Infolists\Components\TextEntry::make('timezone'),

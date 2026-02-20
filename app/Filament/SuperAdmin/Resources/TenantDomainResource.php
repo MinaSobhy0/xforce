@@ -159,7 +159,7 @@ class TenantDomainResource extends Resource
                     ->modalWidth('lg')
                     ->modalContent(fn($record) => view('filament.super-admin.modals.dns-instructions', [
                         'record' => $record,
-                        'targetHost' => config('app.domain', 'xlinic.com'),
+                        'targetHost' => config('app.domain', 'x-linic.com'),
                     ])),
 
                 Tables\Actions\Action::make('verify_dns')

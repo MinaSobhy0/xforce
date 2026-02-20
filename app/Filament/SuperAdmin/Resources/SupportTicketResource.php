@@ -242,7 +242,7 @@ class SupportTicketResource extends Resource
                         ->label('Login As Clinic')
                         ->icon('heroicon-o-arrow-right-on-rectangle')
                         ->color('gray')
-                        ->url(fn($record) => "https://{$record->tenant->slug}.xlinic.com/admin")
+                        ->url(fn($record) => "https://{$record->tenant->slug}.x-linic.com/admin")
                         ->openUrlInNewTab(),
                 ])
                     ->label('More')
