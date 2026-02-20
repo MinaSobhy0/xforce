@@ -60,6 +60,9 @@ class TenantPanelProvider extends PanelProvider
                 NavigationGroup::make('Sales')
                     ->label(__('Sales'))
                     ->icon('heroicon-o-shopping-bag'),
+                NavigationGroup::make('Marketing')
+                    ->label(__('Marketing'))
+                    ->icon('heroicon-o-megaphone'),
                 NavigationGroup::make('Settings')
                     ->label(__('Settings'))
                     ->icon('heroicon-o-cog'),
@@ -110,6 +113,9 @@ class TenantPanelProvider extends PanelProvider
 
             // Discover Payroll module resources
             ->discoverResources(in: base_path('modules/Payroll/Filament/Resources'), for: 'Modules\\Payroll\\Filament\\Resources')
+
+            // Discover Marketing module resources
+            ->discoverResources(in: base_path('modules/Marketing/Filament/Resources'), for: 'Modules\\Marketing\\Filament\\Resources')
 
             // Default pages and widgets
             ->pages([

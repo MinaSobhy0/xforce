@@ -1,0 +1,15 @@
+{
+    "name": "Marketing",
+    "alias": "marketing",
+    "description": "Marketing automation with WhatsApp, SMS, and Email campaigns",
+    "keywords": ["marketing", "whatsapp", "sms", "email", "campaigns", "notifications"],
+    "priority": 7,
+    "providers": [
+        "Modules\\Marketing\\Providers\\MarketingServiceProvider",
+        "Modules\\Marketing\\Providers\\EventServiceProvider",
+        "Modules\\Marketing\\Providers\\RouteServiceProvider"
+    ],
+    "files": [],
+    "dependencies": ["Core", "Patients", "Booking"],
+    "tenant_module": true
+}
