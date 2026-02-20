@@ -242,13 +242,6 @@ class TenantResource extends Resource
                         ->label('Secondary Color')
                         ->default('#10B981')
                         ->helperText('Accent color for highlights'),
-
-                    Forms\Components\Textarea::make('custom_css')
-                        ->label('Custom CSS')
-                        ->rows(4)
-                        ->columnSpanFull()
-                        ->placeholder('.navbar { background: #custom; }')
-                        ->helperText('Advanced: Add custom CSS to override default styles'),
                 ]),
         ]);
     }
