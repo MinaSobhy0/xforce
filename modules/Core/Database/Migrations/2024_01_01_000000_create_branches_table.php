@@ -18,7 +18,10 @@ return new class extends Migration
             $table->string('city', 100)->nullable();
             $table->string('phone', 30)->nullable();
             $table->string('email')->nullable();
+            $table->text('google_maps_url')->nullable();
             $table->jsonb('working_hours')->nullable();
+            $table->string('timezone', 50)->nullable();
+            $table->string('currency_code', 10)->nullable();
             $table->boolean('is_active')->default(true);
             $table->boolean('is_main')->default(false);
             $table->integer('sort_order')->default(0);

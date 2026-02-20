@@ -52,11 +52,25 @@ class Branch extends BaseModel
     }
 
     /**
-     * Get the users assigned to this branch.
+     * Get the users assigned to this branch through UserBranchRole.
      */
-    public function users(): HasMany
+    public function users(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
     {
-        return $this->hasMany(\Modules\Auth\Models\User::class);
+        return $this->belongsToMany(
+            \Modules\Auth\Models\User::class,
+            'user_branch_roles',
+            'branch_id',
+            'user_id'
+        )->withPivot(['role_id', 'is_primary', 'is_active'])
+         ->wherePivot('is_active', true);
+    }
+
+    /**
+     * Get all branch role assignments.
+     */
+    public function branchRoles(): HasMany
+    {
+        return $this->hasMany(\Modules\Auth\Models\UserBranchRole::class);
     }
 
     /**

@@ -46,20 +46,10 @@ trait HasTenancy
             }
         });
 
-        // Auto-set tenant_id on creating (only on public schema)
+        // Auto-set tenant_id on creating
+        // Always set tenant_id if available, even on tenant schemas
+        // This maintains data consistency for cross-schema queries
         static::creating(function ($model) {
-            // Check if we're on a tenant schema
-            $searchPath = 'public';
-            try {
-                $result = \DB::select('SHOW search_path');
-                $searchPath = $result[0]->search_path ?? 'public';
-            } catch (\Exception $e) {}
-
-            // Skip if on tenant schema - no tenant_id needed
-            if (str_starts_with($searchPath, 'tenant_') || str_starts_with($searchPath, '"tenant_')) {
-                return;
-            }
-
             if (in_array('tenant_id', $model->getFillable()) && !$model->tenant_id) {
                 $tenantManager = app(\XLinic\Framework\Core\Tenancy\TenantManager::class);
                 $currentTenant = $tenantManager->current();

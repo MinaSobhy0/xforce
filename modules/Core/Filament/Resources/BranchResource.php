@@ -96,6 +96,37 @@ class BranchResource extends Resource
 
                 Forms\Components\Section::make(__('core::core.working_hours'))
                     ->schema([
+                        Forms\Components\Actions::make([
+                            Forms\Components\Actions\Action::make('quick_setup_standard')
+                                ->label('Standard (9 AM - 6 PM, Fri Off)')
+                                ->icon('heroicon-o-clock')
+                                ->color('primary')
+                                ->action(function (Forms\Set $set) {
+                                    $set('working_hours', static::getStandardHours());
+                                }),
+                            Forms\Components\Actions\Action::make('quick_setup_extended')
+                                ->label('Extended (8 AM - 10 PM)')
+                                ->icon('heroicon-o-sun')
+                                ->color('success')
+                                ->action(function (Forms\Set $set) {
+                                    $set('working_hours', static::getExtendedHours());
+                                }),
+                            Forms\Components\Actions\Action::make('quick_setup_clinic')
+                                ->label('Clinic (10 AM - 8 PM, Fri Off)')
+                                ->icon('heroicon-o-heart')
+                                ->color('info')
+                                ->action(function (Forms\Set $set) {
+                                    $set('working_hours', static::getClinicHours());
+                                }),
+                            Forms\Components\Actions\Action::make('quick_setup_24h')
+                                ->label('24/7')
+                                ->icon('heroicon-o-building-office')
+                                ->color('warning')
+                                ->action(function (Forms\Set $set) {
+                                    $set('working_hours', static::get24Hours());
+                                }),
+                        ])->columnSpanFull(),
+
                         Forms\Components\Repeater::make('working_hours')
                             ->label('')
                             ->schema([
@@ -128,11 +159,12 @@ class BranchResource extends Resource
                                     ->columnSpan(1),
                             ])
                             ->columns(5)
-                            ->defaultItems(7)
+                            ->default(static::getStandardHours())
                             ->reorderable(false)
+                            ->addable(false)
+                            ->deletable(false)
                             ->columnSpanFull(),
                     ])
-                    ->collapsed()
                     ->collapsible(),
 
                 Forms\Components\Section::make(__('core::core.settings'))
@@ -279,5 +311,69 @@ class BranchResource extends Resource
             $timezones[$timezone] = $timezone;
         }
         return $timezones;
+    }
+
+    /**
+     * Standard business hours (9 AM - 6 PM, Friday off).
+     */
+    protected static function getStandardHours(): array
+    {
+        return [
+            ['day' => 'sunday', 'open_time' => '09:00', 'close_time' => '18:00', 'is_closed' => false],
+            ['day' => 'monday', 'open_time' => '09:00', 'close_time' => '18:00', 'is_closed' => false],
+            ['day' => 'tuesday', 'open_time' => '09:00', 'close_time' => '18:00', 'is_closed' => false],
+            ['day' => 'wednesday', 'open_time' => '09:00', 'close_time' => '18:00', 'is_closed' => false],
+            ['day' => 'thursday', 'open_time' => '09:00', 'close_time' => '18:00', 'is_closed' => false],
+            ['day' => 'friday', 'open_time' => null, 'close_time' => null, 'is_closed' => true],
+            ['day' => 'saturday', 'open_time' => '09:00', 'close_time' => '18:00', 'is_closed' => false],
+        ];
+    }
+
+    /**
+     * Extended hours (8 AM - 10 PM, all days).
+     */
+    protected static function getExtendedHours(): array
+    {
+        return [
+            ['day' => 'sunday', 'open_time' => '08:00', 'close_time' => '22:00', 'is_closed' => false],
+            ['day' => 'monday', 'open_time' => '08:00', 'close_time' => '22:00', 'is_closed' => false],
+            ['day' => 'tuesday', 'open_time' => '08:00', 'close_time' => '22:00', 'is_closed' => false],
+            ['day' => 'wednesday', 'open_time' => '08:00', 'close_time' => '22:00', 'is_closed' => false],
+            ['day' => 'thursday', 'open_time' => '08:00', 'close_time' => '22:00', 'is_closed' => false],
+            ['day' => 'friday', 'open_time' => '08:00', 'close_time' => '22:00', 'is_closed' => false],
+            ['day' => 'saturday', 'open_time' => '08:00', 'close_time' => '22:00', 'is_closed' => false],
+        ];
+    }
+
+    /**
+     * Clinic hours (10 AM - 8 PM, Friday off).
+     */
+    protected static function getClinicHours(): array
+    {
+        return [
+            ['day' => 'sunday', 'open_time' => '10:00', 'close_time' => '20:00', 'is_closed' => false],
+            ['day' => 'monday', 'open_time' => '10:00', 'close_time' => '20:00', 'is_closed' => false],
+            ['day' => 'tuesday', 'open_time' => '10:00', 'close_time' => '20:00', 'is_closed' => false],
+            ['day' => 'wednesday', 'open_time' => '10:00', 'close_time' => '20:00', 'is_closed' => false],
+            ['day' => 'thursday', 'open_time' => '10:00', 'close_time' => '20:00', 'is_closed' => false],
+            ['day' => 'friday', 'open_time' => null, 'close_time' => null, 'is_closed' => true],
+            ['day' => 'saturday', 'open_time' => '10:00', 'close_time' => '20:00', 'is_closed' => false],
+        ];
+    }
+
+    /**
+     * 24/7 hours.
+     */
+    protected static function get24Hours(): array
+    {
+        return [
+            ['day' => 'sunday', 'open_time' => '00:00', 'close_time' => '23:59', 'is_closed' => false],
+            ['day' => 'monday', 'open_time' => '00:00', 'close_time' => '23:59', 'is_closed' => false],
+            ['day' => 'tuesday', 'open_time' => '00:00', 'close_time' => '23:59', 'is_closed' => false],
+            ['day' => 'wednesday', 'open_time' => '00:00', 'close_time' => '23:59', 'is_closed' => false],
+            ['day' => 'thursday', 'open_time' => '00:00', 'close_time' => '23:59', 'is_closed' => false],
+            ['day' => 'friday', 'open_time' => '00:00', 'close_time' => '23:59', 'is_closed' => false],
+            ['day' => 'saturday', 'open_time' => '00:00', 'close_time' => '23:59', 'is_closed' => false],
+        ];
     }
 }

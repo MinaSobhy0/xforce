@@ -2,6 +2,8 @@
 
 namespace XLinic\Framework\Core\Model;
 
+use App\Services\BranchContext;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use XLinic\Framework\Core\Model\Traits\HasTenancy;
@@ -178,12 +180,69 @@ abstract class BaseModel extends Model
             if (empty($model->{$model->getKeyName()})) {
                 $model->{$model->getKeyName()} = Str::orderedUuid()->toString();
             }
+
+            // Auto-set branch_id if model has it and not set
+            if ($model->hasBranchId() && !$model->branch_id) {
+                $branchIds = BranchContext::currentIds();
+                // Only auto-set if exactly one branch is selected
+                if (count($branchIds) === 1) {
+                    $model->branch_id = $branchIds[0];
+                }
+            }
         });
 
         // Apply model extensions
         static::created(function (self $model) {
             app(ModelRegistry::class)->applyExtensions($model);
         });
+
+        // Apply automatic branch scoping for models with branch_id
+        static::addGlobalScope('branch', function (Builder $builder) {
+            $model = $builder->getModel();
+
+            // Only apply if model has branch_id in fillable
+            if (!$model->hasBranchId()) {
+                return;
+            }
+
+            $branchIds = BranchContext::currentIds();
+
+            // If no branches selected (all branches), don't filter
+            if (empty($branchIds)) {
+                return;
+            }
+
+            // Filter by selected branch(es)
+            $builder->where(function ($query) use ($branchIds) {
+                $query->whereIn('branch_id', $branchIds)
+                      ->orWhereNull('branch_id'); // Include records without branch
+            });
+        });
+    }
+
+    /**
+     * Check if this model has branch_id field.
+     */
+    public function hasBranchId(): bool
+    {
+        return in_array('branch_id', $this->getFillable());
+    }
+
+    /**
+     * Scope to bypass branch filtering.
+     */
+    public function scopeAllBranches(Builder $query): Builder
+    {
+        return $query->withoutGlobalScope('branch');
+    }
+
+    /**
+     * Scope to specific branches.
+     */
+    public function scopeForBranches(Builder $query, array $branchIds): Builder
+    {
+        return $query->withoutGlobalScope('branch')
+                     ->whereIn('branch_id', $branchIds);
     }
 
     /**

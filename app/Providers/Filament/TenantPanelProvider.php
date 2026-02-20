@@ -12,6 +12,8 @@ use Filament\Navigation\NavigationGroup;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\View\PanelsRenderHook;
+use Illuminate\Contracts\View\View;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -85,6 +87,12 @@ class TenantPanelProvider extends PanelProvider
                 \Filament\Pages\Dashboard::class,
             ])
             ->widgets([])
+
+            // Branch Switcher in the topbar
+            ->renderHook(
+                PanelsRenderHook::TOPBAR_START,
+                fn (): View => view('filament.hooks.branch-switcher')
+            )
 
             // Middleware - IdentifyTenant MUST come first to switch database schema
             // RequireTenant ensures we have a valid tenant before proceeding
