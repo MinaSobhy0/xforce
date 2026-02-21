@@ -12,10 +12,6 @@ class RevenueReportPage extends BaseReportPage
 {
     protected static ?string $navigationIcon = 'heroicon-o-banknotes';
 
-    protected static ?string $navigationGroup = 'Finance';
-
-    protected static ?string $navigationParentItem = 'Reports';
-
     protected static ?int $navigationSort = 1;
 
     public static function getNavigationLabel(): string

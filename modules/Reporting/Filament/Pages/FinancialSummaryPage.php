@@ -12,10 +12,6 @@ class FinancialSummaryPage extends BaseReportPage
 {
     protected static ?string $navigationIcon = 'heroicon-o-calculator';
 
-    protected static ?string $navigationGroup = 'Finance';
-
-    protected static ?string $navigationParentItem = 'Reports';
-
     protected static ?int $navigationSort = 9;
 
     public static function getNavigationLabel(): string
