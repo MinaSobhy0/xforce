@@ -70,8 +70,9 @@ class WorkScheduleResource extends Resource
                                     ->relationship('branch', 'name')
                                     ->searchable()
                                     ->preload()
-                                    ->placeholder(__('booking::schedules.all_branches'))
-                                    ->helperText(__('booking::schedules.branch_help')),
+                                    ->default(fn () => current_branch_id())
+                                    ->disabled(fn () => current_branch_id() !== null)
+                                    ->dehydrated(),
 
                                 Forms\Components\ColorPicker::make('color')
                                     ->label(__('booking::schedules.fields.color')),
