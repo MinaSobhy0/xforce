@@ -196,6 +196,38 @@ class User extends BaseModel implements
         return $this->hasOne(UserProfile::class);
     }
 
+    public function practitionerAppointments(): HasMany
+    {
+        return $this->hasMany(\Modules\Booking\Models\Appointment::class, 'practitioner_id');
+    }
+
+    public function qualifiedServices(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(
+            \Modules\Services\Models\Service::class,
+            'service_qualified_staff',
+            'user_id',
+            'service_id'
+        )->withTimestamps();
+    }
+
+    public function staffProfile(): HasOne
+    {
+        return $this->hasOne(\Modules\Staff\Models\StaffProfile::class, 'user_id');
+    }
+
+    public function commissionRecords(): \Illuminate\Database\Eloquent\Relations\HasManyThrough
+    {
+        return $this->hasManyThrough(
+            \Modules\Staff\Models\StaffCommissionRecord::class,
+            \Modules\Staff\Models\StaffProfile::class,
+            'user_id',           // Foreign key on staff_profiles table
+            'staff_profile_id',  // Foreign key on staff_commission_records table
+            'id',                // Local key on users table
+            'id'                 // Local key on staff_profiles table
+        );
+    }
+
     // Scopes
     public function scopeActive($query)
     {
