@@ -42,7 +42,7 @@ class GiftCardReportPage extends BaseReportPage
         }
 
         $cardsSold = $soldQuery->count();
-        $totalSoldValue = $soldQuery->sum('initial_balance_minor');
+        $totalSoldValue = $soldQuery->sum('initial_value_minor');
 
         // Outstanding balance (all active cards)
         $outstandingQuery = GiftCard::query()
@@ -56,7 +56,7 @@ class GiftCardReportPage extends BaseReportPage
             $outstandingQuery->where('branch_id', $branchId);
         }
 
-        $outstandingBalance = $outstandingQuery->sum('current_balance_minor');
+        $outstandingBalance = $outstandingQuery->sum('remaining_value_minor');
         $activeCards = $outstandingQuery->count();
 
         // Redemptions in period
@@ -81,7 +81,7 @@ class GiftCardReportPage extends BaseReportPage
         }
 
         $expiredCards = $expiredQuery->count();
-        $expiredValue = $expiredQuery->sum('current_balance_minor');
+        $expiredValue = $expiredQuery->sum('remaining_value_minor');
 
         // Redemption rate
         $totalCards = GiftCard::when($branchId, fn ($q) => $q->where('branch_id', $branchId))->count();
@@ -130,7 +130,7 @@ class GiftCardReportPage extends BaseReportPage
             ->select(
                 DB::raw('DATE(created_at) as date'),
                 DB::raw('COUNT(*) as count'),
-                DB::raw('SUM(initial_balance_minor) as total')
+                DB::raw('SUM(initial_value_minor) as total')
             )
             ->orderBy('date')
             ->get();
@@ -163,7 +163,7 @@ class GiftCardReportPage extends BaseReportPage
             ->whereBetween('created_at', [$startDate, $endDate])
             ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->with('purchaser')
-            ->orderByDesc('initial_balance_minor')
+            ->orderByDesc('initial_value_minor')
             ->limit(10)
             ->get();
 
@@ -171,8 +171,8 @@ class GiftCardReportPage extends BaseReportPage
         $this->tableData = $topCards->map(fn ($card) => [
             'code' => $card->code,
             'purchaser' => $card->purchaser?->full_name ?? __('reporting::reporting.anonymous'),
-            'initial_value' => $this->formatCurrency($card->initial_balance_minor),
-            'current_balance' => $this->formatCurrency($card->current_balance_minor),
+            'initial_value' => $this->formatCurrency($card->initial_value_minor),
+            'current_balance' => $this->formatCurrency($card->remaining_value_minor),
             'status' => __('gift_cards::gift_cards.statuses.' . $card->status),
         ])->toArray();
     }
