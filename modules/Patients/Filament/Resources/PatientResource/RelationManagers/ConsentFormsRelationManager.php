@@ -3,6 +3,7 @@
 namespace Modules\Patients\Filament\Resources\PatientResource\RelationManagers;
 
 use Modules\Patients\Models\PatientConsentForm;
+use Modules\Patients\Filament\Forms\Components\SignaturePad;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
@@ -43,12 +44,21 @@ class ConsentFormsRelationManager extends RelationManager
                     ->label('Signature Type')
                     ->options(PatientConsentForm::SIGNATURE_TYPES)
                     ->default('drawn')
-                    ->required(),
+                    ->required()
+                    ->live(),
 
-                Forms\Components\Textarea::make('signature_data')
+                SignaturePad::make('signature_data')
                     ->label(__('patients::patients.consent.signature'))
-                    ->helperText('Paste signature data or draw signature')
-                    ->rows(3),
+                    ->visible(fn (Forms\Get $get) => $get('signature_type') === 'drawn')
+                    ->canvasWidth(500)
+                    ->canvasHeight(150)
+                    ->strokeColor('#1e40af')
+                    ->columnSpanFull(),
+
+                Forms\Components\TextInput::make('signature_data')
+                    ->label(__('patients::patients.consent.typed_signature'))
+                    ->visible(fn (Forms\Get $get) => $get('signature_type') === 'typed')
+                    ->placeholder(__('patients::patients.consent.type_full_name')),
 
                 Forms\Components\Grid::make(2)
                     ->schema([

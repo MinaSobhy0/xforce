@@ -59,4 +59,23 @@ return [
         'updated' => 'تم تحديث العلاج بنجاح.',
         'deleted' => 'تم حذف العلاج بنجاح.',
     ],
+
+    'category_tree' => [
+        'title' => 'شجرة الفئات',
+        'navigation' => 'شجرة الفئات',
+        'tree_view' => 'هيكل الفئات',
+        'list_view' => 'عرض القائمة',
+        'drag_hint' => 'اسحب الفئات لإعادة ترتيبها أو تداخلها',
+        'create_category' => 'إنشاء فئة',
+        'no_categories' => 'لا توجد فئات بعد',
+        'create_first' => 'أنشئ أول فئة علاج للبدء.',
+        'subcategories' => 'فئات فرعية',
+        'active' => 'نشط',
+        'inactive' => 'غير نشط',
+        'click_activate' => 'انقر للتفعيل',
+        'click_deactivate' => 'انقر للإلغاء',
+        'reordered' => 'تم إعادة ترتيب الفئات بنجاح',
+        'activated' => 'تم تفعيل الفئة',
+        'deactivated' => 'تم إلغاء تفعيل الفئة',
+    ],
 ];

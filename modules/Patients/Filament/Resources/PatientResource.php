@@ -4,6 +4,7 @@ namespace Modules\Patients\Filament\Resources;
 
 use Modules\Patients\Filament\Resources\PatientResource\Pages;
 use Modules\Patients\Filament\Resources\PatientResource\RelationManagers;
+use Modules\Patients\Filament\Forms\Components\FitzpatrickTypeSelector;
 use Modules\Patients\Models\Patient;
 use Modules\Patients\Models\PatientMedicalHistory;
 use Filament\Forms;
@@ -229,24 +230,25 @@ class PatientResource extends Resource
                         Forms\Components\Tabs\Tab::make(__('patients::patients.labels.medical_history'))
                             ->icon('heroicon-o-heart')
                             ->schema([
-                                Forms\Components\Section::make('Skin Assessment')
-                                    ->columns(3)
+                                Forms\Components\Section::make(__('patients::patients.sections.skin_assessment'))
                                     ->schema([
-                                        Forms\Components\Select::make('medicalHistory.fitzpatrick_type')
+                                        FitzpatrickTypeSelector::make('medicalHistory.fitzpatrick_type')
                                             ->label(__('patients::patients.medical.fitzpatrick_type'))
-                                            ->options(PatientMedicalHistory::FITZPATRICK_TYPES)
-                                            ->native(false),
+                                            ->columnSpanFull(),
 
-                                        Forms\Components\Select::make('medicalHistory.blood_type')
-                                            ->label(__('patients::patients.medical.blood_type'))
-                                            ->options(PatientMedicalHistory::BLOOD_TYPES),
+                                        Forms\Components\Grid::make(2)
+                                            ->schema([
+                                                Forms\Components\Select::make('medicalHistory.blood_type')
+                                                    ->label(__('patients::patients.medical.blood_type'))
+                                                    ->options(PatientMedicalHistory::BLOOD_TYPES),
 
-                                        Forms\Components\Select::make('medicalHistory.sun_exposure_level')
-                                            ->label('Sun Exposure')
-                                            ->options([
-                                                'minimal' => 'Minimal',
-                                                'moderate' => 'Moderate',
-                                                'high' => 'High',
+                                                Forms\Components\Select::make('medicalHistory.sun_exposure_level')
+                                                    ->label(__('patients::patients.medical.sun_exposure'))
+                                                    ->options([
+                                                        'minimal' => __('patients::patients.medical.sun_levels.minimal'),
+                                                        'moderate' => __('patients::patients.medical.sun_levels.moderate'),
+                                                        'high' => __('patients::patients.medical.sun_levels.high'),
+                                                    ]),
                                             ]),
                                     ]),
 

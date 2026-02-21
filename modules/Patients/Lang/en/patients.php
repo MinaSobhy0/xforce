@@ -67,6 +67,44 @@ return [
         'skin_concerns' => 'Skin Concerns',
         'pregnancy_status' => 'Pregnancy Status',
         'breastfeeding' => 'Breastfeeding',
+        'sun_response' => 'Sun Response',
+        'skin_characteristics' => 'Skin Characteristics',
+    ],
+
+    // Sections
+    'sections' => [
+        'skin_assessment' => 'Skin Assessment',
+        'personal_info' => 'Personal Information',
+        'contact_info' => 'Contact Information',
+        'medical_history' => 'Medical History',
+    ],
+
+    // Fitzpatrick Types
+    'fitzpatrick' => [
+        'type_i' => 'Type I',
+        'type_ii' => 'Type II',
+        'type_iii' => 'Type III',
+        'type_iv' => 'Type IV',
+        'type_v' => 'Type V',
+        'type_vi' => 'Type VI',
+        'desc_i' => 'Very fair skin, always burns, never tans',
+        'desc_ii' => 'Fair skin, burns easily, tans minimally',
+        'desc_iii' => 'Medium skin, sometimes burns, tans uniformly',
+        'desc_iv' => 'Olive skin, rarely burns, tans easily',
+        'desc_v' => 'Brown skin, very rarely burns',
+        'desc_vi' => 'Dark brown/black skin, never burns',
+        'char_i' => 'Very light or pale white, often with freckles',
+        'char_ii' => 'White to light beige',
+        'char_iii' => 'Beige to light brown',
+        'char_iv' => 'Light brown to olive',
+        'char_v' => 'Brown',
+        'char_vi' => 'Dark brown to black',
+        'sun_i' => 'Always burns, never tans',
+        'sun_ii' => 'Burns easily, tans with difficulty',
+        'sun_iii' => 'Sometimes mild burn, tans uniformly',
+        'sun_iv' => 'Rarely burns, tans with ease',
+        'sun_v' => 'Very rarely burns, tans very easily',
+        'sun_vi' => 'Never burns, deeply pigmented',
     ],
 
     // Consent Forms
@@ -77,9 +115,16 @@ return [
         'signed_by' => 'Signed By',
         'witness' => 'Witness',
         'signature' => 'Signature',
+        'typed_signature' => 'Typed Signature',
         'valid_until' => 'Valid Until',
         'download' => 'Download',
         'sign_new' => 'Sign New Form',
+        'sign_here' => 'Sign here',
+        'clear_signature' => 'Clear',
+        'signature_captured' => 'Signature captured',
+        'awaiting_signature' => 'Awaiting signature',
+        'signature_instruction' => 'Draw your signature using your mouse or finger. The signature will be saved automatically.',
+        'type_full_name' => 'Type your full legal name',
     ],
 
     // Photos

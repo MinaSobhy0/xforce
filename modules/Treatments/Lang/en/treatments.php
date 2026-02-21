@@ -59,4 +59,23 @@ return [
         'updated' => 'Treatment updated successfully.',
         'deleted' => 'Treatment deleted successfully.',
     ],
+
+    'category_tree' => [
+        'title' => 'Category Tree',
+        'navigation' => 'Category Tree',
+        'tree_view' => 'Category Structure',
+        'list_view' => 'List View',
+        'drag_hint' => 'Drag categories to reorder or nest them',
+        'create_category' => 'Create Category',
+        'no_categories' => 'No categories yet',
+        'create_first' => 'Create your first treatment category to get started.',
+        'subcategories' => 'subcategories',
+        'active' => 'Active',
+        'inactive' => 'Inactive',
+        'click_activate' => 'Click to activate',
+        'click_deactivate' => 'Click to deactivate',
+        'reordered' => 'Categories reordered successfully',
+        'activated' => 'Category activated',
+        'deactivated' => 'Category deactivated',
+    ],
 ];

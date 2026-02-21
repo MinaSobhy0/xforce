@@ -2565,9 +2565,9 @@ All 19 modules are implemented. The remaining items are polish and enhancement t
 - [x] **3.5** Auto-Invoice on Appointment Complete - CreateInvoiceOnAppointmentComplete listener
 
 ### Priority 4: UI Enhancements (Optional)
-- [ ] **4.1** Fitzpatrick Type Visual Selector - Skin tone image picker for patient medical history
-- [ ] **4.2** Consent Form Signature Pad - Digital signature capture for consent forms
-- [ ] **4.3** Treatment Category Tree - Drag-and-drop reorder for categories
+- [x] **4.1** Fitzpatrick Type Visual Selector - Skin tone image picker for patient medical history
+- [x] **4.2** Consent Form Signature Pad - Digital signature capture for consent forms
+- [x] **4.3** Treatment Category Tree - Drag-and-drop reorder for categories
 
 ### Implementation Progress:
 | Task | Status | Date |
@@ -2581,6 +2581,9 @@ All 19 modules are implemented. The remaining items are polish and enhancement t
 | 3.3 Package Session Selection | ✅ | 2026-02-21 |
 | 3.4 Member Discount Auto-Apply | ✅ | 2026-02-21 |
 | 3.5 Auto-Invoice on Complete | ✅ | 2026-02-21 |
+| 4.1 Fitzpatrick Type Visual Selector | ✅ | 2026-02-21 |
+| 4.2 Consent Form Signature Pad | ✅ | 2026-02-21 |
+| 4.3 Treatment Category Tree | ✅ | 2026-02-21 |
 
 ### Files Created/Modified:
 
@@ -2627,3 +2630,21 @@ All 19 modules are implemented. The remaining items are polish and enhancement t
 - `modules/GiftCards/Lang/ar/giftcards.php` (UPDATED)
 - `modules/Loyalty/Lang/en/loyalty.php` (UPDATED)
 - `modules/Loyalty/Lang/ar/loyalty.php` (UPDATED)
+
+**UI Enhancement Components:**
+- `modules/Patients/Filament/Forms/Components/FitzpatrickTypeSelector.php` (NEW)
+- `modules/Patients/Resources/views/filament/forms/components/fitzpatrick-type-selector.blade.php` (NEW)
+- `modules/Patients/Filament/Forms/Components/SignaturePad.php` (NEW)
+- `modules/Patients/Resources/views/filament/forms/components/signature-pad.blade.php` (NEW)
+- `modules/Patients/Providers/PatientsServiceProvider.php` (UPDATED - register views)
+- `modules/Patients/Filament/Resources/PatientResource.php` (UPDATED - use FitzpatrickTypeSelector)
+- `modules/Patients/Filament/Resources/PatientResource/RelationManagers/ConsentFormsRelationManager.php` (UPDATED - use SignaturePad)
+- `modules/Patients/Lang/en/patients.php` (UPDATED - Fitzpatrick & consent translations)
+- `modules/Patients/Lang/ar/patients.php` (UPDATED - Fitzpatrick & consent translations)
+- `modules/Treatments/Filament/Pages/CategoryTreePage.php` (NEW)
+- `modules/Treatments/resources/views/filament/pages/category-tree.blade.php` (NEW)
+- `modules/Treatments/resources/views/components/category-tree-item.blade.php` (NEW)
+- `modules/Treatments/Providers/TreatmentsServiceProvider.php` (UPDATED - register views)
+- `modules/Treatments/Lang/en/treatments.php` (UPDATED - category tree translations)
+- `modules/Treatments/Lang/ar/treatments.php` (UPDATED - category tree translations)
+- `app/Providers/Filament/TenantPanelProvider.php` (UPDATED - discover Treatments pages)
