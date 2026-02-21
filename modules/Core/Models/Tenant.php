@@ -260,6 +260,95 @@ class Tenant extends Model
         return $this->hasOne(\Modules\Core\Models\TenantUsage::class);
     }
 
+    /**
+     * Get or create the usage record for this tenant.
+     * Also computes actual usage from the tenant's database.
+     */
+    public function getOrCreateUsage(): TenantUsage
+    {
+        $usage = $this->usage;
+
+        if (!$usage) {
+            $usage = $this->usage()->create([
+                'tenant_id' => $this->id,
+            ]);
+            $this->setRelation('usage', $usage);
+        }
+
+        return $usage;
+    }
+
+    /**
+     * Compute and update usage statistics from tenant's actual data.
+     */
+    public function computeUsage(): TenantUsage
+    {
+        $usage = $this->getOrCreateUsage();
+
+        // Only compute if tenant has a provisioned database
+        if (!$this->database_name) {
+            return $usage;
+        }
+
+        try {
+            // Check if schema exists
+            $schemaExists = \DB::select(
+                "SELECT schema_name FROM information_schema.schemata WHERE schema_name = ?",
+                [$this->database_name]
+            );
+
+            if (empty($schemaExists)) {
+                return $usage;
+            }
+
+            // Switch to tenant schema and count records
+            \DB::statement("SET search_path TO \"{$this->database_name}\"");
+
+            $counts = [
+                'users' => $this->countTable('users'),
+                'branches' => $this->countTable('branches'),
+                'patients' => $this->countTable('patients'),
+                'appointments' => $this->countTable('appointments'),
+                'treatments' => $this->countTable('treatments'),
+                'equipment' => $this->countTable('equipment'),
+                'products' => $this->countTable('products'),
+            ];
+
+            // Reset search path
+            \DB::statement("SET search_path TO public");
+
+            // Update usage record
+            $usage->update($counts);
+            $usage->refresh();
+
+        } catch (\Exception $e) {
+            // Reset search path on error
+            try {
+                \DB::statement("SET search_path TO public");
+            } catch (\Exception $ignored) {}
+
+            \Log::warning('Failed to compute tenant usage', [
+                'tenant_id' => $this->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return $usage;
+    }
+
+    /**
+     * Count records in a tenant table (helper).
+     */
+    protected function countTable(string $table): int
+    {
+        try {
+            $result = \DB::select("SELECT COUNT(*) as count FROM \"{$table}\"");
+            return $result[0]->count ?? 0;
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
+
     public function plan(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(\App\Models\SubscriptionPlan::class, 'subscription_plan_id');

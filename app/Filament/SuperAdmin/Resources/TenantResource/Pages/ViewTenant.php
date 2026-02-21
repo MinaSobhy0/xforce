@@ -24,6 +24,20 @@ class ViewTenant extends BaseViewRecord
     protected static string $resource = TenantResource::class;
 
     /**
+     * Mount the page and compute tenant usage.
+     */
+    public function mount(int|string $record): void
+    {
+        parent::mount($record);
+
+        // Compute and update usage statistics
+        $this->record->computeUsage();
+
+        // Refresh the record to get the updated usage
+        $this->record->load('usage');
+    }
+
+    /**
      * Get list of tenant backups from storage.
      */
     public function getTenantBackups(): array
@@ -695,8 +709,8 @@ class ViewTenant extends BaseViewRecord
                                     Components\TextEntry::make('usage.branches')
                                         ->label('Branches')
                                         ->formatStateUsing(function ($state, Tenant $record) {
-                                            $limit = $record->plan?->max_branches ?? '∞';
-                                            return ((int) ($state ?? 1)) . ' / ' . $limit;
+                                            $limit = $record->max_branches ?? '∞';
+                                            return ((int) ($state ?? 0)) . ' / ' . $limit;
                                         }),
 
                                     Components\TextEntry::make('usage.equipment')
