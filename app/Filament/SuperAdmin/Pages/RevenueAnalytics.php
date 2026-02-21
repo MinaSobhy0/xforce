@@ -26,7 +26,7 @@ class RevenueAnalytics extends Page implements HasForms
 
     protected static ?string $navigationLabel = 'Revenue Analytics';
 
-    protected static ?string $navigationGroup = 'Billing';
+    protected static ?string $navigationGroup = 'Financials';
 
     protected static ?int $navigationSort = 3;
 

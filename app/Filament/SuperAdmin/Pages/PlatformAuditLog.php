@@ -18,7 +18,7 @@ class PlatformAuditLog extends Page implements HasTable
 
     protected static ?string $navigationLabel = 'Audit Log';
 
-    protected static ?string $navigationGroup = 'Monitoring';
+    protected static ?string $navigationGroup = 'System';
 
     protected static ?int $navigationSort = 4;
 

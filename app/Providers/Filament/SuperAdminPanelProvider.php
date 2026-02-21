@@ -67,9 +67,9 @@ class SuperAdminPanelProvider extends PanelProvider
                 NavigationGroup::make('CRM')
                     ->label(__('CRM'))
                     ->icon('heroicon-o-building-office-2'),
-                NavigationGroup::make('Billing & Plans')
-                    ->label(__('Billing & Plans'))
-                    ->icon('heroicon-o-credit-card'),
+                NavigationGroup::make('Financials')
+                    ->label(__('Financials'))
+                    ->icon('heroicon-o-banknotes'),
                 NavigationGroup::make('Support')
                     ->label(__('Support'))
                     ->icon('heroicon-o-lifebuoy'),

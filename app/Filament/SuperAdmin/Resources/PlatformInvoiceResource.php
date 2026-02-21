@@ -21,7 +21,7 @@ class PlatformInvoiceResource extends Resource
 
     protected static ?string $navigationLabel = 'Platform Invoices';
 
-    protected static ?string $navigationGroup = 'Billing & Plans';
+    protected static ?string $navigationGroup = 'Financials';
 
     protected static ?int $navigationSort = 2;
 

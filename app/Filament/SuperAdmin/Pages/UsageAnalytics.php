@@ -18,7 +18,7 @@ class UsageAnalytics extends Page implements HasForms
 
     protected static ?string $navigationLabel = 'Usage Analytics';
 
-    protected static ?string $navigationGroup = 'Monitoring';
+    protected static ?string $navigationGroup = 'Financials';
 
     protected static ?int $navigationSort = 1;
 
