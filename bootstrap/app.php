@@ -17,6 +17,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'tenant' => \XLinic\Framework\Core\Tenancy\TenantMiddleware::class,
             'quota' => \XLinic\Framework\Core\Quota\QuotaMiddleware::class,
             'identify-tenant' => \App\Http\Middleware\IdentifyTenant::class,
+
+            // Security middleware
+            'audit' => \App\Http\Middleware\AuditLogger::class,
+            'api-limit' => \App\Http\Middleware\ApiRateLimiter::class,
+            'ip-whitelist' => \App\Http\Middleware\IpWhitelist::class,
+            '2fa-enforce' => \App\Http\Middleware\TwoFactorEnforce::class,
         ]);
 
         // Add IdentifyTenant middleware globally for web routes
