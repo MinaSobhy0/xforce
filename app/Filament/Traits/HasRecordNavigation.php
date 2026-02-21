@@ -168,7 +168,9 @@ trait HasRecordNavigation
             ->icon($isRtl ? 'heroicon-o-chevron-right' : 'heroicon-o-chevron-left')
             ->color('gray')
             ->iconButton()
-            ->outlined()
+            ->extraAttributes([
+                'class' => 'border border-gray-300 dark:border-gray-600 rounded-lg',
+            ])
             ->disabled($previous === null)
             ->url($previous ? $this->getRecordNavigationUrl($previous) : null)
             ->tooltip(__('core::core.previous'));
@@ -178,7 +180,9 @@ trait HasRecordNavigation
             ->icon($isRtl ? 'heroicon-o-chevron-left' : 'heroicon-o-chevron-right')
             ->color('gray')
             ->iconButton()
-            ->outlined()
+            ->extraAttributes([
+                'class' => 'border border-gray-300 dark:border-gray-600 rounded-lg',
+            ])
             ->disabled($next === null)
             ->url($next ? $this->getRecordNavigationUrl($next) : null)
             ->tooltip(__('core::core.next'));
