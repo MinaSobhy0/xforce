@@ -133,7 +133,7 @@ class CampaignReportPage extends BaseReportPage
             ->select(
                 'channel',
                 DB::raw('COUNT(*) as campaigns'),
-                DB::raw('SUM(total_cost_minor) as cost')
+                DB::raw('COUNT(*) as total_campaigns')
             )
             ->get();
 
