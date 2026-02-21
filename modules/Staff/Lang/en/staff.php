@@ -11,6 +11,12 @@ return [
         'profiles' => 'Staff Profiles',
         'commission' => 'Commission',
         'commissions' => 'Commissions',
+        'schedule_assignment' => 'Schedule Assignment',
+        'schedule_assignments' => 'Schedule Assignments',
+    ],
+
+    'relation_managers' => [
+        'schedule_assignments' => 'Work Schedules',
     ],
 
     'sections' => [
@@ -53,6 +59,12 @@ return [
         'approved_at' => 'Approved At',
         'paid_at' => 'Paid At',
         'notes' => 'Notes',
+        'work_schedule' => 'Work Schedule',
+        'schedule' => 'Schedule',
+        'effective_from' => 'Effective From',
+        'effective_until' => 'Effective Until',
+        'is_primary' => 'Primary',
+        'is_primary_help' => 'Mark as primary schedule for this staff member',
     ],
 
     'commission_types' => [

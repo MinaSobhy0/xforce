@@ -221,6 +221,7 @@ class StaffProfileResource extends Resource
     public static function getRelations(): array
     {
         return [
+            RelationManagers\ScheduleAssignmentsRelationManager::class,
             RelationManagers\CommissionRulesRelationManager::class,
             RelationManagers\CommissionRecordsRelationManager::class,
         ];

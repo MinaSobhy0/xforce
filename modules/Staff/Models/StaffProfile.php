@@ -4,7 +4,9 @@ namespace Modules\Staff\Models;
 
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Modules\Auth\Models\User;
+use Modules\Booking\Models\PractitionerScheduleAssignment;
 use Modules\Core\Models\Branch;
 use Spatie\Translatable\HasTranslations;
 use XLinic\Framework\Core\Model\BaseModel;
@@ -94,6 +96,14 @@ class StaffProfile extends BaseModel
     public function commissionRecords(): HasMany
     {
         return $this->hasMany(StaffCommissionRecord::class);
+    }
+
+    /**
+     * Get schedule assignments for this staff member.
+     */
+    public function scheduleAssignments(): HasMany
+    {
+        return $this->hasMany(PractitionerScheduleAssignment::class, 'user_id', 'user_id');
     }
 
     /**

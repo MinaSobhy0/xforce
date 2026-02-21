@@ -11,6 +11,12 @@ return [
         'profiles' => 'ملفات الموظفين',
         'commission' => 'عمولة',
         'commissions' => 'العمولات',
+        'schedule_assignment' => 'تعيين جدول',
+        'schedule_assignments' => 'تعيينات الجدول',
+    ],
+
+    'relation_managers' => [
+        'schedule_assignments' => 'جداول العمل',
     ],
 
     'sections' => [
@@ -53,6 +59,12 @@ return [
         'approved_at' => 'تاريخ الموافقة',
         'paid_at' => 'تاريخ الدفع',
         'notes' => 'ملاحظات',
+        'work_schedule' => 'جدول العمل',
+        'schedule' => 'الجدول',
+        'effective_from' => 'ساري من',
+        'effective_until' => 'ساري حتى',
+        'is_primary' => 'رئيسي',
+        'is_primary_help' => 'تعيين كجدول رئيسي لهذا الموظف',
     ],
 
     'commission_types' => [
