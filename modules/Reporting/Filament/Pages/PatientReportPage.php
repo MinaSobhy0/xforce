@@ -4,6 +4,7 @@ namespace Modules\Reporting\Filament\Pages;
 
 use Modules\Patients\Models\Patient;
 use Modules\Booking\Models\Appointment;
+use Modules\Memberships\Models\MembershipSubscription;
 use Illuminate\Support\Facades\DB;
 
 class PatientReportPage extends BaseReportPage
@@ -81,8 +82,11 @@ class PatientReportPage extends BaseReportPage
             ? ($returnedPatients / count($prevPatientsQuery)) * 100
             : 0;
 
-        // VIP patients
-        $vipPatients = Patient::where('is_vip', true)->count();
+        // Members (patients with active memberships)
+        $vipPatients = MembershipSubscription::query()
+            ->where('status', 'active')
+            ->distinct('patient_id')
+            ->count('patient_id');
 
         // Stats cards
         $this->stats = [
