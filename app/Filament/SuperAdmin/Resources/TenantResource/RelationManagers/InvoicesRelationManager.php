@@ -16,6 +16,8 @@ class InvoicesRelationManager extends RelationManager
 
     protected static ?string $icon = 'heroicon-o-document-text';
 
+    protected static bool $isLazy = false;
+
     public function table(Tables\Table $table): Tables\Table
     {
         return $table

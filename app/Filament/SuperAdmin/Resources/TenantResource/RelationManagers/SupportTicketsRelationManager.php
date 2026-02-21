@@ -18,6 +18,8 @@ class SupportTicketsRelationManager extends RelationManager
 
     protected static ?string $icon = 'heroicon-o-ticket';
 
+    protected static bool $isLazy = false;
+
     public function infolist(Infolist $infolist): Infolist
     {
         return $infolist

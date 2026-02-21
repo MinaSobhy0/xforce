@@ -14,6 +14,8 @@ class ActivityLogRelationManager extends RelationManager
 
     protected static ?string $icon = 'heroicon-o-clock';
 
+    protected static bool $isLazy = false;
+
     public function table(Tables\Table $table): Tables\Table
     {
         return $table

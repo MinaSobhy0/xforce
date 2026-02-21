@@ -19,6 +19,8 @@ class UsersRelationManager extends RelationManager
 
     protected static ?string $recordTitleAttribute = 'email';
 
+    protected static bool $isLazy = false;
+
     public function form(Form $form): Form
     {
         return $form
