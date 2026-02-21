@@ -6,6 +6,7 @@ use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Modules\Marketing\Models\NotificationLog;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class NotificationStatsWidget extends BaseWidget
 {
@@ -13,6 +14,15 @@ class NotificationStatsWidget extends BaseWidget
 
     protected function getStats(): array
     {
+        // Check if table exists before querying
+        if (!Schema::hasTable('notification_logs')) {
+            return [
+                Stat::make(__('marketing::marketing.widgets.sent_today'), 0)
+                    ->description(__('marketing::marketing.widgets.no_messages_today'))
+                    ->color('gray'),
+            ];
+        }
+
         $today = NotificationLog::today();
         $todaySent = (clone $today)->where('status', NotificationLog::STATUS_SENT)->count();
         $todayDelivered = (clone $today)->where('status', NotificationLog::STATUS_DELIVERED)->count();
@@ -77,6 +87,10 @@ class NotificationStatsWidget extends BaseWidget
 
     protected function getHourlyData(): array
     {
+        if (!Schema::hasTable('notification_logs')) {
+            return [];
+        }
+
         return NotificationLog::whereDate('created_at', today())
             ->groupBy(DB::raw('EXTRACT(HOUR FROM created_at)'))
             ->orderBy(DB::raw('EXTRACT(HOUR FROM created_at)'))
