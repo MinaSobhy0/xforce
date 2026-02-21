@@ -39,15 +39,15 @@ class TenantOverviewWidget extends BaseWidget
         // Revenue this month
         $monthlyRevenue = class_exists(Invoice::class)
             ? Invoice::where('status', 'paid')
-                ->whereMonth('invoice_date', now()->month)
-                ->whereYear('invoice_date', now()->year)
+                ->whereMonth('issued_at', now()->month)
+                ->whereYear('issued_at', now()->year)
                 ->sum('paid_minor')
             : 0;
 
         $lastMonthRevenue = class_exists(Invoice::class)
             ? Invoice::where('status', 'paid')
-                ->whereMonth('invoice_date', now()->subMonth()->month)
-                ->whereYear('invoice_date', now()->subMonth()->year)
+                ->whereMonth('issued_at', now()->subMonth()->month)
+                ->whereYear('issued_at', now()->subMonth()->year)
                 ->sum('paid_minor')
             : 0;
 
@@ -57,8 +57,13 @@ class TenantOverviewWidget extends BaseWidget
 
         // Outstanding balance
         $outstandingBalance = class_exists(Invoice::class)
-            ? Invoice::whereIn('status', ['sent', 'partial', 'overdue'])
-                ->sum('remaining_minor')
+            ? Invoice::whereIn('status', [
+                    Invoice::STATUS_ISSUED,
+                    Invoice::STATUS_PARTIALLY_PAID,
+                    Invoice::STATUS_OVERDUE,
+                ])
+                ->selectRaw('COALESCE(SUM(total_minor - paid_minor), 0) as outstanding')
+                ->value('outstanding') ?? 0
             : 0;
 
         return [
