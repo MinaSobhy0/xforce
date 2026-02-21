@@ -9,5 +9,13 @@
     "Accounting": true,
     "Packages": true,
     "GiftCards": true,
-    "Memberships": true
+    "Memberships": true,
+    "Inventory": true,
+    "Staff": true,
+    "Payroll": true,
+    "Marketing": true,
+    "Loyalty": true,
+    "Reporting": true,
+    "PatientPortal": true,
+    "Api": true
 }
