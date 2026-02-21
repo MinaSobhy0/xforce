@@ -66,11 +66,8 @@ class CampaignReportPage extends BaseReportPage
         $clickRate = 0;
         $conversionRate = 0;
 
-        // Total campaign cost
-        $totalCost = Campaign::query()
-            ->whereBetween('created_at', [$startDate, $endDate])
-            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
-            ->sum('estimated_cost_minor');
+        // Total campaign cost (not tracked in current schema)
+        $totalCost = 0;
 
         // Revenue attributed to campaigns (not tracked yet)
         $campaignRevenue = 0;
