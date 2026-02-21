@@ -2,18 +2,36 @@
 
 namespace Modules\Core\Models;
 
-use XLinic\Framework\Core\Model\BaseModel;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Str;
 
-class TenantUsage extends BaseModel
+/**
+ * TenantUsage model - lives in public schema, not subject to tenant scoping.
+ * Uses base Laravel Model and 'central' connection to avoid tenant schema switching.
+ */
+class TenantUsage extends Model
 {
     /**
-     * This is a central table (not tenant-specific), so it uses the
-     * public schema explicitly to avoid tenant schema isolation.
+     * The connection to use (always public schema).
      */
-    protected $connection = 'pgsql';
+    protected $connection = 'central';
 
-    protected $table = 'public.tenant_usage';
+    protected $table = 'tenant_usage';
+
+    public $incrementing = false;
+    protected $keyType = 'string';
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::creating(function (self $model) {
+            if (empty($model->id)) {
+                $model->id = Str::orderedUuid()->toString();
+            }
+        });
+    }
 
     protected $fillable = [
         'tenant_id',

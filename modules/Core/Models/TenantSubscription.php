@@ -2,13 +2,34 @@
 
 namespace Modules\Core\Models;
 
-use XLinic\Framework\Core\Model\BaseModel;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
-class TenantSubscription extends BaseModel
+/**
+ * TenantSubscription model - lives in public schema, not subject to tenant scoping.
+ * Uses base Laravel Model and 'central' connection to avoid tenant schema switching.
+ */
+class TenantSubscription extends Model
 {
     use SoftDeletes;
+
+    protected $connection = 'central';
+    protected $table = 'tenant_subscriptions';
+    public $incrementing = false;
+    protected $keyType = 'string';
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::creating(function (self $model) {
+            if (empty($model->id)) {
+                $model->id = Str::orderedUuid()->toString();
+            }
+        });
+    }
 
     protected $fillable = [
         'tenant_id',

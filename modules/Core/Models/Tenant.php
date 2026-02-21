@@ -23,8 +23,9 @@ class Tenant extends Model
 
     /**
      * The connection to use (always public schema).
+     * Uses 'central' connection which is never modified by tenant middleware.
      */
-    protected $connection = 'pgsql';
+    protected $connection = 'central';
 
     /**
      * Indicates if the IDs are auto-incrementing.
