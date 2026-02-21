@@ -64,6 +64,7 @@ class QuickBookPage extends Page implements HasForms
     public function mount(): void
     {
         $this->selected_date = today()->format('Y-m-d');
+        $this->branch_id = current_branch_id();
     }
 
     public function form(Form $form): Form
@@ -128,6 +129,9 @@ class QuickBookPage extends Page implements HasForms
                                     ->label(__('booking::appointments.fields.branch'))
                                     ->options(Branch::pluck('name', 'id'))
                                     ->required()
+                                    ->default(fn () => current_branch_id())
+                                    ->disabled(fn () => current_branch_id() !== null)
+                                    ->dehydrated()
                                     ->live()
                                     ->afterStateUpdated(fn () => $this->loadSlots()),
                             ]),

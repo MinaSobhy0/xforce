@@ -53,6 +53,9 @@ class RoomResource extends Resource
                             ->required()
                             ->searchable()
                             ->preload()
+                            ->default(fn () => current_branch_id())
+                            ->disabled(fn () => current_branch_id() !== null)
+                            ->dehydrated()
                             ->columnSpan(1),
 
                         Forms\Components\TextInput::make('code')

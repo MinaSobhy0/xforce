@@ -96,6 +96,9 @@ class EquipmentResource extends Resource
                                             ->options(Branch::where('is_active', true)->pluck('name', 'id'))
                                             ->searchable()
                                             ->required()
+                                            ->default(fn () => current_branch_id())
+                                            ->disabled(fn () => current_branch_id() !== null)
+                                            ->dehydrated()
                                             ->live(),
 
                                         Forms\Components\Select::make('room_id')

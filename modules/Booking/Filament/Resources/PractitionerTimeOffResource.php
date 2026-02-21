@@ -64,6 +64,7 @@ class PractitionerTimeOffResource extends Resource
                             ->relationship('branch', 'name')
                             ->searchable()
                             ->preload()
+                            ->default(fn () => current_branch_id())
                             ->helperText(__('booking::time_off.fields.branch_help')),
                     ]),
 

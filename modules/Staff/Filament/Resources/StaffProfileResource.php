@@ -58,7 +58,10 @@ class StaffProfileResource extends Resource
                                     ->relationship('branch', 'id')
                                     ->getOptionLabelFromRecordUsing(fn (Branch $record) => $record->name)
                                     ->searchable()
-                                    ->preload(),
+                                    ->preload()
+                                    ->default(fn () => current_branch_id())
+                                    ->disabled(fn () => current_branch_id() !== null)
+                                    ->dehydrated(),
                             ]),
 
                         Forms\Components\Grid::make(2)

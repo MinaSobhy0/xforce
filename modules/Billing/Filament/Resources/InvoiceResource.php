@@ -77,7 +77,9 @@ class InvoiceResource extends Resource
                                     ->searchable()
                                     ->preload()
                                     ->required()
-                                    ->default(fn () => current_branch_id()),
+                                    ->default(fn () => current_branch_id())
+                                    ->disabled(fn () => current_branch_id() !== null)
+                                    ->dehydrated(),
 
                                 Forms\Components\Select::make('type')
                                     ->options(Invoice::TYPES)

@@ -72,7 +72,10 @@ class WaitlistResource extends Resource
                                     ->relationship('branch', 'name')
                                     ->searchable()
                                     ->preload()
-                                    ->required(),
+                                    ->required()
+                                    ->default(fn () => current_branch_id())
+                                    ->disabled(fn () => current_branch_id() !== null)
+                                    ->dehydrated(),
                             ]),
 
                         Forms\Components\Select::make('practitioner_id')
