@@ -10,6 +10,8 @@ use Filament\Navigation\NavigationGroup;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\View\PanelsRenderHook;
+use Illuminate\Contracts\View\View;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -71,6 +73,12 @@ class AdminPanelProvider extends PanelProvider
             // No default pages/widgets - use discovered ones
             ->pages([])
             ->widgets([])
+
+            // DatePicker click anywhere to open
+            ->renderHook(
+                PanelsRenderHook::BODY_END,
+                fn (): View => view('filament.hooks.datepicker-click')
+            )
 
             // Middleware - NO IdentifyTenant here (sys subdomain uses public schema)
             ->middleware([
