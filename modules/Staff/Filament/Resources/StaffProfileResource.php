@@ -61,11 +61,17 @@ class StaffProfileResource extends Resource
 
                                 Forms\Components\Select::make('branch_id')
                                     ->label(__('staff::staff.fields.branch'))
-                                    ->relationship('branch', 'id')
-                                    ->getOptionLabelFromRecordUsing(fn (Branch $record) => $record->name)
+                                    ->relationship('branch', 'name')
                                     ->searchable()
                                     ->preload()
-                                    ->default(fn () => current_branch_id())
+                                    ->required()
+                                    ->default(function () {
+                                        if ($branchId = current_branch_id()) {
+                                            return $branchId;
+                                        }
+                                        return Branch::active()->main()->value('id')
+                                            ?? Branch::active()->ordered()->value('id');
+                                    })
                                     ->disabled(fn () => current_branch_id() !== null)
                                     ->dehydrated(),
                             ]),
