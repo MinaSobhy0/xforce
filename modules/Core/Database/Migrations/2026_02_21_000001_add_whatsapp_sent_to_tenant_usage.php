@@ -9,8 +9,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('tenant_usage', function (Blueprint $table) {
-            $table->integer('branches')->default(0)->after('users');
-            $table->integer('whatsapp_sent')->default(0)->after('sms_sent');
+            if (!Schema::hasColumn('tenant_usage', 'branches')) {
+                $table->integer('branches')->default(0)->after('users');
+            }
+            if (!Schema::hasColumn('tenant_usage', 'whatsapp_sent')) {
+                $table->integer('whatsapp_sent')->default(0)->after('sms_sent');
+            }
         });
     }
 
