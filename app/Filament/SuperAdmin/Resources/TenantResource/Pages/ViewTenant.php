@@ -988,17 +988,22 @@ class ViewTenant extends BaseViewRecord
                                             ->icon('heroicon-o-cog-6-tooth')
                                             ->color('primary')
                                             ->modalHeading('Manage Tenant Modules')
-                                            ->modalDescription('Select which modules this tenant can access. Changes take effect immediately.')
+                                            ->modalDescription('Select which modules this tenant can access. Dependencies are validated automatically.')
                                             ->form(function () {
                                                 $allModules = \App\Models\Module::whereRaw('is_active = true')
                                                     ->orderBy('category')
                                                     ->orderBy('sort_order')
                                                     ->get();
 
-                                                $options = $allModules->mapWithKeys(function ($module) {
+                                                // Load dependencies from module.json files
+                                                $moduleDeps = $this->getModuleDependencies();
+
+                                                $options = $allModules->mapWithKeys(function ($module) use ($moduleDeps) {
                                                     $emoji = $module->icon_emoji ?? '📦';
                                                     $category = ucfirst($module->category ?? 'other');
-                                                    return [$module->code => "{$emoji} {$module->name} ({$category})"];
+                                                    $deps = $moduleDeps[strtolower($module->code)] ?? [];
+                                                    $depStr = !empty($deps) ? ' → requires: ' . implode(', ', $deps) : '';
+                                                    return [$module->code => "{$emoji} {$module->name} ({$category}){$depStr}"];
                                                 })->toArray();
 
                                                 return [
@@ -1007,18 +1012,56 @@ class ViewTenant extends BaseViewRecord
                                                         ->options($options)
                                                         ->columns(2)
                                                         ->searchable()
-                                                        ->bulkToggleable(),
+                                                        ->bulkToggleable()
+                                                        ->descriptions([
+                                                            'core' => 'Required - cannot be disabled',
+                                                            'auth' => 'Required - cannot be disabled',
+                                                        ]),
                                                 ];
                                             })
                                             ->fillForm(fn (Tenant $record): array => [
                                                 'modules' => $record->features ?? [],
                                             ])
                                             ->action(function (array $data, Tenant $record) {
-                                                $record->update(['features' => $data['modules'] ?? []]);
+                                                $selectedModules = $data['modules'] ?? [];
+
+                                                // Always include core modules
+                                                if (!in_array('core', $selectedModules)) {
+                                                    $selectedModules[] = 'core';
+                                                }
+                                                if (!in_array('auth', $selectedModules)) {
+                                                    $selectedModules[] = 'auth';
+                                                }
+
+                                                // Validate dependencies
+                                                $moduleDeps = $this->getModuleDependencies();
+                                                $errors = [];
+
+                                                foreach ($selectedModules as $moduleCode) {
+                                                    $deps = $moduleDeps[strtolower($moduleCode)] ?? [];
+                                                    foreach ($deps as $dep) {
+                                                        $depLower = strtolower($dep);
+                                                        if (!in_array($depLower, array_map('strtolower', $selectedModules))) {
+                                                            $errors[] = ucfirst($moduleCode) . " requires " . ucfirst($dep);
+                                                        }
+                                                    }
+                                                }
+
+                                                if (!empty($errors)) {
+                                                    Notification::make()
+                                                        ->title('Dependency Error')
+                                                        ->body("Missing dependencies:\n• " . implode("\n• ", $errors))
+                                                        ->danger()
+                                                        ->persistent()
+                                                        ->send();
+                                                    return;
+                                                }
+
+                                                $record->update(['features' => $selectedModules]);
 
                                                 Notification::make()
                                                     ->title('Modules updated')
-                                                    ->body(count($data['modules'] ?? []) . ' modules are now active for this tenant.')
+                                                    ->body(count($selectedModules) . ' modules are now active for this tenant.')
                                                     ->success()
                                                     ->send();
                                             }),
@@ -1325,5 +1368,74 @@ class ViewTenant extends BaseViewRecord
         } catch (\Exception $e) {
             return false;
         }
+    }
+
+    /**
+     * Get module dependencies from module.json files.
+     *
+     * @return array<string, array<string>> Module code => [dependency codes]
+     */
+    protected function getModuleDependencies(): array
+    {
+        static $cache = null;
+
+        if ($cache !== null) {
+            return $cache;
+        }
+
+        $cache = [];
+        $modulesPath = base_path('modules');
+
+        if (!\Illuminate\Support\Facades\File::isDirectory($modulesPath)) {
+            return $cache;
+        }
+
+        $directories = \Illuminate\Support\Facades\File::directories($modulesPath);
+
+        foreach ($directories as $directory) {
+            $moduleJsonPath = $directory . '/module.json';
+
+            if (!\Illuminate\Support\Facades\File::exists($moduleJsonPath)) {
+                continue;
+            }
+
+            try {
+                $json = json_decode(\Illuminate\Support\Facades\File::get($moduleJsonPath), true);
+
+                if (!$json) {
+                    continue;
+                }
+
+                $code = strtolower($json['alias'] ?? $json['name'] ?? basename($directory));
+                $dependencies = [];
+
+                // Parse dependencies - can be array of strings or single string
+                if (isset($json['dependencies'])) {
+                    if (is_array($json['dependencies'])) {
+                        foreach ($json['dependencies'] as $dep) {
+                            if (is_string($dep)) {
+                                $dependencies[] = strtolower($dep);
+                            }
+                        }
+                    } elseif (is_string($json['dependencies'])) {
+                        // Handle comma-separated or bracket format
+                        $deps = preg_replace('/[\[\]]/', '', $json['dependencies']);
+                        foreach (explode(',', $deps) as $dep) {
+                            $dep = trim($dep);
+                            if (!empty($dep)) {
+                                $dependencies[] = strtolower($dep);
+                            }
+                        }
+                    }
+                }
+
+                $cache[$code] = $dependencies;
+
+            } catch (\Exception $e) {
+                continue;
+            }
+        }
+
+        return $cache;
     }
 }
