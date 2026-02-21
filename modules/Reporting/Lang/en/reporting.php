@@ -44,6 +44,7 @@ return [
 
     // Revenue Report
     'total_revenue' => 'Total Revenue',
+    'total_invoices' => 'Total Invoices',
     'invoices_issued' => 'Invoices Issued',
     'outstanding' => 'Outstanding',
     'average_invoice' => 'Average Invoice',
@@ -52,6 +53,8 @@ return [
     'daily_revenue' => 'Daily Revenue',
     'treatment' => 'Treatment',
     'invoices' => 'Invoices',
+    'payments' => 'Payments',
+    'paid' => 'Paid',
 
     // Patient Report
     'new_patients' => 'New Patients',

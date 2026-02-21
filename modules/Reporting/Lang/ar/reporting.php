@@ -44,6 +44,7 @@ return [
 
     // Revenue Report
     'total_revenue' => 'إجمالي الإيرادات',
+    'total_invoices' => 'إجمالي الفواتير',
     'invoices_issued' => 'الفواتير الصادرة',
     'outstanding' => 'المستحق',
     'average_invoice' => 'متوسط الفاتورة',
@@ -52,6 +53,8 @@ return [
     'daily_revenue' => 'الإيرادات اليومية',
     'treatment' => 'العلاج',
     'invoices' => 'الفواتير',
+    'payments' => 'المدفوعات',
+    'paid' => 'مدفوع',
 
     // Patient Report
     'new_patients' => 'المرضى الجدد',
