@@ -127,6 +127,11 @@ class Treatment extends BaseModel
         return $this->hasMany(\Modules\Booking\Models\Appointment::class);
     }
 
+    public function packageItems(): HasMany
+    {
+        return $this->hasMany(\Modules\Packages\Models\PackageItem::class);
+    }
+
     public function getPriceForBranch(string $branchId): int
     {
         $branchPrice = $this->branchPricing()
