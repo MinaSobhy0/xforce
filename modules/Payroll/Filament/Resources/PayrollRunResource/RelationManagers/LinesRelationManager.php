@@ -9,7 +9,6 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Notifications\Notification;
 use Modules\Payroll\Models\PayrollLine;
-use Modules\Payroll\Services\SalarySlipPdfService;
 use Modules\Staff\Models\StaffProfile;
 
 class LinesRelationManager extends RelationManager
@@ -181,10 +180,8 @@ class LinesRelationManager extends RelationManager
                     ->label(__('payroll::payroll.actions.download_payslip'))
                     ->icon('heroicon-o-document-arrow-down')
                     ->color('success')
-                    ->action(function (PayrollLine $record) {
-                        $service = app(SalarySlipPdfService::class);
-                        return $service->download($record);
-                    }),
+                    ->url(fn (PayrollLine $record) => route('payroll.payslip.download', $record))
+                    ->openUrlInNewTab(),
 
                 Tables\Actions\DeleteAction::make()
                     ->visible(fn () => $this->ownerRecord->isEditable()),

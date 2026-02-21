@@ -13,7 +13,6 @@ use Filament\Infolists\Infolist;
 use Modules\Payroll\Models\PayrollLine;
 use Modules\Payroll\Models\PayrollRun;
 use Modules\Payroll\Filament\Resources\PayslipResource\Pages;
-use Modules\Payroll\Services\SalarySlipPdfService;
 
 class PayslipResource extends Resource
 {
@@ -267,10 +266,8 @@ class PayslipResource extends Resource
                     ->label(__('payroll::payroll.actions.download_payslip'))
                     ->icon('heroicon-o-document-arrow-down')
                     ->color('success')
-                    ->action(function (PayrollLine $record) {
-                        $service = app(SalarySlipPdfService::class);
-                        return $service->download($record);
-                    }),
+                    ->url(fn (PayrollLine $record) => route('payroll.payslip.download', $record))
+                    ->openUrlInNewTab(),
             ])
             ->bulkActions([])
             ->defaultSort('created_at', 'desc');
