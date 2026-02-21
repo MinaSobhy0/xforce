@@ -121,15 +121,15 @@ class InventoryReportPage extends BaseReportPage
         $topConsumed = DB::table('stock_movements')
             ->join('products', 'stock_movements.product_id', '=', 'products.id')
             ->whereBetween('stock_movements.created_at', [$startDate, $endDate])
-            ->where('stock_movements.type', 'out')
-            ->when($branchId, fn ($q) => $q->where('stock_movements.from_branch_id', $branchId))
-            ->groupBy('products.id', 'products.name', 'products.sku')
+            ->whereIn('stock_movements.movement_type', ['out', 'appointment_consume', 'waste'])
+            ->when($branchId, fn ($q) => $q->where('stock_movements.branch_id', $branchId))
+            ->groupBy('products.id', 'products.name', 'products.sku', 'products.cost_price_minor')
             ->select(
                 'products.id',
                 'products.name',
                 'products.sku',
                 DB::raw('SUM(stock_movements.quantity) as consumed'),
-                DB::raw('SUM(stock_movements.quantity * stock_movements.cost_per_unit_minor) as total_cost')
+                DB::raw('SUM(stock_movements.quantity * products.cost_price_minor) as total_cost')
             )
             ->orderByDesc('consumed')
             ->limit(10)
@@ -140,12 +140,13 @@ class InventoryReportPage extends BaseReportPage
             ->whereBetween('created_at', [$startDate, $endDate])
             ->when($branchId, function ($q) use ($branchId) {
                 $q->where(function ($sq) use ($branchId) {
-                    $sq->where('from_branch_id', $branchId)
-                        ->orWhere('to_branch_id', $branchId);
+                    $sq->where('source_branch_id', $branchId)
+                        ->orWhere('destination_branch_id', $branchId)
+                        ->orWhere('branch_id', $branchId);
                 });
             })
-            ->groupBy('type')
-            ->select('type', DB::raw('SUM(quantity) as total'))
+            ->groupBy('movement_type')
+            ->select('movement_type', DB::raw('SUM(quantity) as total'))
             ->get();
 
         // Chart data
