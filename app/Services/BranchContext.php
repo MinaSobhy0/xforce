@@ -146,4 +146,104 @@ class BranchContext
             return collect();
         }
     }
+
+    /**
+     * Get the user's allowed branch IDs.
+     * Returns all branches for super admins, otherwise returns assigned branches.
+     */
+    public static function userAllowedIds(): array
+    {
+        $user = auth()->user();
+
+        if (!$user) {
+            return [];
+        }
+
+        // Super admins can access all branches
+        if (static::isSuperAdmin($user)) {
+            return static::all()->pluck('id')->toArray();
+        }
+
+        // Get branches from user's branch role assignments
+        return \Modules\Auth\Models\UserBranchRole::query()
+            ->active()
+            ->valid()
+            ->forUser($user->id)
+            ->pluck('branch_id')
+            ->unique()
+            ->toArray();
+    }
+
+    /**
+     * Get the user's allowed branches as a collection.
+     */
+    public static function userAllowed(): Collection
+    {
+        $ids = static::userAllowedIds();
+
+        if (empty($ids)) {
+            return collect();
+        }
+
+        try {
+            return Branch::whereIn('id', $ids)
+                ->where('is_active', true)
+                ->orderBy('is_main', 'desc')
+                ->orderBy('sort_order')
+                ->orderBy('name')
+                ->get();
+        } catch (\Exception $e) {
+            return collect();
+        }
+    }
+
+    /**
+     * Get the user's primary branch ID.
+     */
+    public static function userPrimaryId(): ?string
+    {
+        $user = auth()->user();
+
+        if (!$user) {
+            return null;
+        }
+
+        // For super admins, return the main branch
+        if (static::isSuperAdmin($user)) {
+            $mainBranch = Branch::where('is_main', true)->first();
+            return $mainBranch?->id;
+        }
+
+        // Get primary branch from UserBranchRole
+        $primaryAssignment = \Modules\Auth\Models\UserBranchRole::query()
+            ->active()
+            ->valid()
+            ->primary()
+            ->forUser($user->id)
+            ->first();
+
+        if ($primaryAssignment) {
+            return $primaryAssignment->branch_id;
+        }
+
+        // Fall back to first allowed branch
+        $allowedIds = static::userAllowedIds();
+        return $allowedIds[0] ?? null;
+    }
+
+    /**
+     * Check if user is a super admin with all-branch access.
+     */
+    protected static function isSuperAdmin($user): bool
+    {
+        if ($user->hasRole(['super-admin', 'super_admin', 'tenant-owner', 'tenant_owner', 'owner', 'admin'])) {
+            return true;
+        }
+
+        if ($user->can('access-all-branches')) {
+            return true;
+        }
+
+        return false;
+    }
 }
