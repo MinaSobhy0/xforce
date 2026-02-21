@@ -4,6 +4,9 @@ return [
     'navigation' => [
         'runs' => 'Payroll Runs',
         'payslips' => 'Payslips',
+        'rule_categories' => 'Rule Categories',
+        'salary_rules' => 'Salary Rules',
+        'salary_structures' => 'Salary Structures',
     ],
 
     'labels' => [
@@ -11,6 +14,12 @@ return [
         'runs' => 'Payroll Runs',
         'payslip' => 'Payslip',
         'payslips' => 'Payslips',
+        'rule_category' => 'Rule Category',
+        'rule_categories' => 'Rule Categories',
+        'salary_rule' => 'Salary Rule',
+        'salary_rules' => 'Salary Rules',
+        'salary_structure' => 'Salary Structure',
+        'salary_structures' => 'Salary Structures',
     ],
 
     'sections' => [
@@ -21,6 +30,11 @@ return [
         'earnings' => 'Earnings',
         'deductions' => 'Deductions',
         'net' => 'Net Pay',
+        'basic_info' => 'Basic Information',
+        'settings' => 'Settings',
+        'calculation' => 'Calculation',
+        'conditions' => 'Conditions',
+        'advanced' => 'Advanced',
     ],
 
     'fields' => [
@@ -43,6 +57,57 @@ return [
         'total_deductions' => 'Total Deductions',
         'paid_at' => 'Paid At',
         'notes' => 'Notes',
+        'name' => 'Name',
+        'code' => 'Code',
+        'description' => 'Description',
+        'type' => 'Type',
+        'is_active' => 'Active',
+        'category' => 'Category',
+        'amount_type' => 'Amount Type',
+        'amount_fixed' => 'Fixed Amount',
+        'amount_percentage' => 'Percentage',
+        'amount_formula' => 'Formula',
+        'percentage_base' => 'Percentage Base',
+        'condition_type' => 'Condition Type',
+        'condition_formula' => 'Condition Formula',
+        'field_mapping' => 'Field Mapping',
+        'sequence' => 'Sequence',
+        'value' => 'Value',
+        'rules_count' => 'Rules',
+        'employees_count' => 'Employees',
+        'pay_frequency' => 'Pay Frequency',
+        'currency' => 'Currency',
+        'salary_rule' => 'Salary Rule',
+        'created_at' => 'Created At',
+    ],
+
+    'types' => [
+        'earning' => 'Earning',
+        'deduction' => 'Deduction',
+        'allowance' => 'Allowance',
+        'benefit' => 'Benefit',
+        'gross' => 'Gross',
+        'net' => 'Net',
+    ],
+
+    'amount_types' => [
+        'fixed' => 'Fixed Amount',
+        'percentage' => 'Percentage',
+        'formula' => 'Formula',
+    ],
+
+    'condition_types' => [
+        'always' => 'Always Apply',
+        'range' => 'Range Condition',
+        'formula' => 'Formula Condition',
+    ],
+
+    'pay_frequencies' => [
+        'monthly' => 'Monthly',
+        'bi-weekly' => 'Bi-Weekly',
+        'weekly' => 'Weekly',
+        'daily' => 'Daily',
+        'hourly' => 'Hourly',
     ],
 
     'statuses' => [
@@ -59,6 +124,8 @@ return [
         'download_payslip' => 'Download Payslip',
         'add_payslip' => 'Add Payslip',
         'generate_all' => 'Generate All Staff',
+        'duplicate' => 'Duplicate',
+        'edit_sequence' => 'Edit Sequence',
     ],
 
     'messages' => [
@@ -67,6 +134,20 @@ return [
         'cancelled' => 'Payroll cancelled',
         'generate_all_confirm' => 'This will generate payslips for all active staff members who don\'t have one yet in this payroll run.',
         'generated_count' => ':count payslips generated successfully',
+        'cannot_delete_category' => 'Cannot delete category with assigned rules',
+        'cannot_delete_structure' => 'Cannot delete structure with assigned employees',
+        'structure_duplicated' => 'Salary structure duplicated successfully',
+    ],
+
+    'help' => [
+        'code_unique' => 'Unique code for identification. Use alphanumeric characters and dashes only.',
+        'category_active' => 'Inactive categories will not be available for new rules.',
+        'amount_fixed' => 'Enter the fixed amount in EGP.',
+        'percentage_base' => 'Leave empty to use base salary as the percentage base.',
+        'formula_examples' => 'Examples: base_salary * 0.10, worked_days * 100, base_salary > 5000 ? 500 : 300',
+        'condition_formula' => 'Formula that returns true/false to determine if this rule applies.',
+        'field_mapping' => 'Map to a specific field like contract.salary or employee.allowance.',
+        'sequence' => 'Order in which rules are calculated. Lower numbers are calculated first.',
     ],
 
     'pdf' => [

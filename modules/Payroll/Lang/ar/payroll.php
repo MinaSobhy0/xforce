@@ -4,6 +4,9 @@ return [
     'navigation' => [
         'runs' => 'دورات الرواتب',
         'payslips' => 'كشوف الرواتب',
+        'rule_categories' => 'فئات القواعد',
+        'salary_rules' => 'قواعد الراتب',
+        'salary_structures' => 'هياكل الرواتب',
     ],
 
     'labels' => [
@@ -11,6 +14,12 @@ return [
         'runs' => 'دورات الرواتب',
         'payslip' => 'كشف راتب',
         'payslips' => 'كشوف الرواتب',
+        'rule_category' => 'فئة قاعدة',
+        'rule_categories' => 'فئات القواعد',
+        'salary_rule' => 'قاعدة راتب',
+        'salary_rules' => 'قواعد الراتب',
+        'salary_structure' => 'هيكل راتب',
+        'salary_structures' => 'هياكل الرواتب',
     ],
 
     'sections' => [
@@ -21,6 +30,11 @@ return [
         'earnings' => 'الإيرادات',
         'deductions' => 'الخصومات',
         'net' => 'صافي الراتب',
+        'basic_info' => 'المعلومات الأساسية',
+        'settings' => 'الإعدادات',
+        'calculation' => 'الحساب',
+        'conditions' => 'الشروط',
+        'advanced' => 'متقدم',
     ],
 
     'fields' => [
@@ -43,6 +57,57 @@ return [
         'total_deductions' => 'إجمالي الخصومات',
         'paid_at' => 'تاريخ الدفع',
         'notes' => 'ملاحظات',
+        'name' => 'الاسم',
+        'code' => 'الكود',
+        'description' => 'الوصف',
+        'type' => 'النوع',
+        'is_active' => 'نشط',
+        'category' => 'الفئة',
+        'amount_type' => 'نوع المبلغ',
+        'amount_fixed' => 'مبلغ ثابت',
+        'amount_percentage' => 'نسبة مئوية',
+        'amount_formula' => 'معادلة',
+        'percentage_base' => 'أساس النسبة',
+        'condition_type' => 'نوع الشرط',
+        'condition_formula' => 'معادلة الشرط',
+        'field_mapping' => 'ربط الحقل',
+        'sequence' => 'الترتيب',
+        'value' => 'القيمة',
+        'rules_count' => 'القواعد',
+        'employees_count' => 'الموظفون',
+        'pay_frequency' => 'تكرار الدفع',
+        'currency' => 'العملة',
+        'salary_rule' => 'قاعدة الراتب',
+        'created_at' => 'تاريخ الإنشاء',
+    ],
+
+    'types' => [
+        'earning' => 'إيراد',
+        'deduction' => 'خصم',
+        'allowance' => 'بدل',
+        'benefit' => 'ميزة',
+        'gross' => 'إجمالي',
+        'net' => 'صافي',
+    ],
+
+    'amount_types' => [
+        'fixed' => 'مبلغ ثابت',
+        'percentage' => 'نسبة مئوية',
+        'formula' => 'معادلة',
+    ],
+
+    'condition_types' => [
+        'always' => 'تطبيق دائم',
+        'range' => 'شرط نطاق',
+        'formula' => 'شرط معادلة',
+    ],
+
+    'pay_frequencies' => [
+        'monthly' => 'شهري',
+        'bi-weekly' => 'كل أسبوعين',
+        'weekly' => 'أسبوعي',
+        'daily' => 'يومي',
+        'hourly' => 'بالساعة',
     ],
 
     'statuses' => [
@@ -59,6 +124,8 @@ return [
         'download_payslip' => 'تحميل كشف الراتب',
         'add_payslip' => 'إضافة كشف راتب',
         'generate_all' => 'إنشاء لجميع الموظفين',
+        'duplicate' => 'نسخ',
+        'edit_sequence' => 'تعديل الترتيب',
     ],
 
     'messages' => [
@@ -67,6 +134,20 @@ return [
         'cancelled' => 'تم إلغاء الرواتب',
         'generate_all_confirm' => 'سيتم إنشاء كشوف رواتب لجميع الموظفين النشطين الذين ليس لديهم كشف في هذه الدورة.',
         'generated_count' => 'تم إنشاء :count كشف راتب بنجاح',
+        'cannot_delete_category' => 'لا يمكن حذف فئة لها قواعد مرتبطة',
+        'cannot_delete_structure' => 'لا يمكن حذف هيكل له موظفون مرتبطون',
+        'structure_duplicated' => 'تم نسخ هيكل الراتب بنجاح',
+    ],
+
+    'help' => [
+        'code_unique' => 'كود فريد للتعريف. استخدم أحرف وأرقام وشرطات فقط.',
+        'category_active' => 'الفئات غير النشطة لن تكون متاحة للقواعد الجديدة.',
+        'amount_fixed' => 'أدخل المبلغ الثابت بالجنيه المصري.',
+        'percentage_base' => 'اتركه فارغاً لاستخدام الراتب الأساسي كأساس النسبة.',
+        'formula_examples' => 'أمثلة: base_salary * 0.10, worked_days * 100, base_salary > 5000 ? 500 : 300',
+        'condition_formula' => 'معادلة تعيد صح/خطأ لتحديد إذا كانت هذه القاعدة تنطبق.',
+        'field_mapping' => 'ربط بحقل معين مثل contract.salary أو employee.allowance.',
+        'sequence' => 'الترتيب الذي يتم فيه حساب القواعد. الأرقام الأصغر تحسب أولاً.',
     ],
 
     'pdf' => [
