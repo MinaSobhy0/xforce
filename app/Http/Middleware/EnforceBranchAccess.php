@@ -29,8 +29,14 @@ class EnforceBranchAccess
 
         // Skip for super admins (tenant owners)
         if ($this->isSuperAdmin($user)) {
+            \Log::debug('EnforceBranchAccess: User is super admin, skipping', ['user_id' => $user->id]);
             return $next($request);
         }
+
+        \Log::debug('EnforceBranchAccess: Checking branch access', [
+            'user_id' => $user->id,
+            'roles' => $user->getRoleNames()->toArray(),
+        ]);
 
         // Get user's assigned branches
         $assignedBranchIds = $this->getUserAssignedBranchIds($user);
