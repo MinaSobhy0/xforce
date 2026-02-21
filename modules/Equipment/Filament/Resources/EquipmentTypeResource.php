@@ -16,7 +16,7 @@ class EquipmentTypeResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-squares-2x2';
 
-    protected static ?string $navigationGroup = 'Operations';
+    protected static ?string $navigationGroup = 'Settings';
 
     protected static ?int $navigationSort = 32;
 

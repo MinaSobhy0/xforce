@@ -21,7 +21,7 @@ class WaitlistResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-queue-list';
 
-    protected static ?string $navigationGroup = 'Operations';
+    protected static ?string $navigationGroup = 'Booking';
 
     protected static ?int $navigationSort = 14;
 

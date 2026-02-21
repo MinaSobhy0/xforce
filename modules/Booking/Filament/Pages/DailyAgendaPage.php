@@ -24,7 +24,7 @@ class DailyAgendaPage extends Page implements HasForms, HasTable
 
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-list';
 
-    protected static ?string $navigationGroup = 'Operations';
+    protected static ?string $navigationGroup = 'Booking';
 
     protected static ?int $navigationSort = 11;
 

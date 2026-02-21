@@ -23,7 +23,7 @@ class PatientResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
 
-    protected static ?string $navigationGroup = 'CRM';
+    protected static ?string $navigationGroup = 'Patients';
 
     protected static ?int $navigationSort = 10;
 

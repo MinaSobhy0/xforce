@@ -50,24 +50,37 @@ class TenantPanelProvider extends PanelProvider
                 NavigationGroup::make()
                     ->label(__('Dashboard'))
                     ->icon('heroicon-o-home'),
-                NavigationGroup::make('CRM')
-                    ->label(__('CRM'))
+                NavigationGroup::make('Patients')
+                    ->label(__('Patients'))
                     ->icon('heroicon-o-user-group'),
-                NavigationGroup::make('Operations')
-                    ->label(__('Operations'))
-                    ->icon('heroicon-o-cog-6-tooth'),
+                NavigationGroup::make('Booking')
+                    ->label(__('Booking'))
+                    ->icon('heroicon-o-calendar-days'),
+                NavigationGroup::make('Treatments')
+                    ->label(__('Treatments'))
+                    ->icon('heroicon-o-sparkles'),
                 NavigationGroup::make('Finance')
                     ->label(__('Finance'))
-                    ->icon('heroicon-o-banknotes'),
+                    ->icon('heroicon-o-banknotes')
+                    ->collapsible(),
                 NavigationGroup::make('Sales')
                     ->label(__('Sales'))
                     ->icon('heroicon-o-shopping-bag'),
+                NavigationGroup::make('Inventory')
+                    ->label(__('Inventory'))
+                    ->icon('heroicon-o-cube'),
+                NavigationGroup::make('Staff')
+                    ->label(__('Staff'))
+                    ->icon('heroicon-o-users'),
                 NavigationGroup::make('Marketing')
                     ->label(__('Marketing'))
                     ->icon('heroicon-o-megaphone'),
+                NavigationGroup::make('Reports')
+                    ->label(__('Reports'))
+                    ->icon('heroicon-o-chart-bar'),
                 NavigationGroup::make('Settings')
                     ->label(__('Settings'))
-                    ->icon('heroicon-o-cog'),
+                    ->icon('heroicon-o-cog-6-tooth'),
             ])
 
             // Discover Core module resources and pages

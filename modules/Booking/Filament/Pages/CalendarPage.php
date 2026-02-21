@@ -19,7 +19,7 @@ class CalendarPage extends Page implements HasForms
 
     protected static ?string $navigationIcon = 'heroicon-o-calendar-days';
 
-    protected static ?string $navigationGroup = 'Operations';
+    protected static ?string $navigationGroup = 'Booking';
 
     protected static ?int $navigationSort = 10;
 
