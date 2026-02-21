@@ -85,48 +85,40 @@ class WorkScheduleResource extends Resource
 
                 Forms\Components\Section::make(__('booking::schedules.sections.weekly_schedule'))
                     ->description(__('booking::schedules.weekly_schedule_help'))
-                    ->schema([
-                        Forms\Components\Repeater::make('weekly_hours')
-                            ->label('')
-                            ->schema([
-                                Forms\Components\Toggle::make('is_working')
-                                    ->label(__('booking::schedules.fields.is_working'))
-                                    ->default(true)
-                                    ->live()
-                                    ->columnSpan(1),
+                    ->schema(
+                        collect(WorkSchedule::DAYS)->map(fn ($dayName, $dayIndex) =>
+                            Forms\Components\Fieldset::make($dayName)
+                                ->schema([
+                                    Forms\Components\Toggle::make("weekly_hours.{$dayIndex}.is_working")
+                                        ->label(__('booking::schedules.fields.is_working'))
+                                        ->default($dayIndex !== 5) // Friday off by default
+                                        ->live(),
 
-                                Forms\Components\TimePicker::make('start_time')
-                                    ->label(__('booking::schedules.fields.start_time'))
-                                    ->seconds(false)
-                                    ->default('09:00')
-                                    ->visible(fn (Forms\Get $get) => $get('is_working'))
-                                    ->required(fn (Forms\Get $get) => $get('is_working')),
+                                    Forms\Components\TimePicker::make("weekly_hours.{$dayIndex}.start_time")
+                                        ->label(__('booking::schedules.fields.start_time'))
+                                        ->seconds(false)
+                                        ->default('09:00')
+                                        ->visible(fn (Forms\Get $get) => $get("weekly_hours.{$dayIndex}.is_working")),
 
-                                Forms\Components\TimePicker::make('end_time')
-                                    ->label(__('booking::schedules.fields.end_time'))
-                                    ->seconds(false)
-                                    ->default('17:00')
-                                    ->visible(fn (Forms\Get $get) => $get('is_working'))
-                                    ->required(fn (Forms\Get $get) => $get('is_working')),
+                                    Forms\Components\TimePicker::make("weekly_hours.{$dayIndex}.end_time")
+                                        ->label(__('booking::schedules.fields.end_time'))
+                                        ->seconds(false)
+                                        ->default('17:00')
+                                        ->visible(fn (Forms\Get $get) => $get("weekly_hours.{$dayIndex}.is_working")),
 
-                                Forms\Components\TimePicker::make('break_start')
-                                    ->label(__('booking::schedules.fields.break_start'))
-                                    ->seconds(false)
-                                    ->visible(fn (Forms\Get $get) => $get('is_working')),
+                                    Forms\Components\TimePicker::make("weekly_hours.{$dayIndex}.break_start")
+                                        ->label(__('booking::schedules.fields.break_start'))
+                                        ->seconds(false)
+                                        ->visible(fn (Forms\Get $get) => $get("weekly_hours.{$dayIndex}.is_working")),
 
-                                Forms\Components\TimePicker::make('break_end')
-                                    ->label(__('booking::schedules.fields.break_end'))
-                                    ->seconds(false)
-                                    ->visible(fn (Forms\Get $get) => $get('is_working')),
-                            ])
-                            ->columns(5)
-                            ->defaultItems(7)
-                            ->addable(false)
-                            ->deletable(false)
-                            ->reorderable(false)
-                            ->itemLabel(fn (array $state, int $key): string => WorkSchedule::DAYS[$key] ?? "Day $key")
-                            ->default(WorkSchedule::getDefaultWeeklyHours()),
-                    ]),
+                                    Forms\Components\TimePicker::make("weekly_hours.{$dayIndex}.break_end")
+                                        ->label(__('booking::schedules.fields.break_end'))
+                                        ->seconds(false)
+                                        ->visible(fn (Forms\Get $get) => $get("weekly_hours.{$dayIndex}.is_working")),
+                                ])
+                                ->columns(5)
+                        )->toArray()
+                    ),
 
                 Forms\Components\Section::make(__('booking::schedules.sections.slot_settings'))
                     ->schema([
