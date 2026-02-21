@@ -5,7 +5,7 @@ namespace Modules\Api\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
-use Modules\Treatments\Models\Treatment;
+use Modules\Services\Models\Service;
 use Modules\Core\Models\Branch;
 use Modules\Booking\Models\Appointment;
 use Modules\Auth\Models\User;
@@ -14,23 +14,23 @@ use Carbon\Carbon;
 class BookingController extends BaseApiController
 {
     /**
-     * Get available treatments for booking
+     * Get available services for booking
      */
-    public function treatments(Request $request): JsonResponse
+    public function services(Request $request): JsonResponse
     {
-        $treatments = Treatment::where('is_active', true)
+        $services = Service::where('is_active', true)
             ->where('is_bookable_online', true)
             ->get()
-            ->map(fn ($t) => [
-                'id' => $t->id,
-                'name' => $this->getTranslatedName($t->name),
-                'description' => $this->getTranslatedName($t->description),
-                'duration_minutes' => $t->duration_minutes,
-                'price' => $t->price_minor / 100,
+            ->map(fn ($s) => [
+                'id' => $s->id,
+                'name' => $this->getTranslatedName($s->name),
+                'description' => $this->getTranslatedName($s->description),
+                'duration_minutes' => $s->duration_minutes,
+                'price' => $s->price_minor / 100,
                 'currency' => 'EGP',
             ]);
 
-        return $this->success($treatments);
+        return $this->success($services);
     }
 
     /**
@@ -56,14 +56,14 @@ class BookingController extends BaseApiController
     public function availableSlots(Request $request): JsonResponse
     {
         $request->validate([
-            'treatment_id' => 'required|exists:treatments,id',
+            'service_id' => 'required|exists:services,id',
             'branch_id' => 'required|exists:branches,id',
             'date' => 'required|date|after:today',
         ]);
 
-        $treatment = Treatment::find($request->treatment_id);
+        $service = Service::find($request->service_id);
         $date = Carbon::parse($request->date);
-        $duration = $treatment->duration_minutes ?? 30;
+        $duration = $service->duration_minutes ?? 30;
 
         // Get practitioners at this branch
         $practitioners = User::whereHas('roles', fn ($q) => $q->whereIn('name', ['practitioner', 'doctor', 'therapist']))
@@ -134,7 +134,7 @@ class BookingController extends BaseApiController
     public function book(Request $request): JsonResponse
     {
         $request->validate([
-            'treatment_id' => 'required|exists:treatments,id',
+            'service_id' => 'required|exists:services,id',
             'branch_id' => 'required|exists:branches,id',
             'practitioner_id' => 'required|exists:users,id',
             'date' => 'required|date|after:today',
@@ -142,8 +142,8 @@ class BookingController extends BaseApiController
         ]);
 
         $patient = $request->user();
-        $treatment = Treatment::find($request->treatment_id);
-        $duration = $treatment->duration_minutes ?? 30;
+        $service = Service::find($request->service_id);
+        $duration = $service->duration_minutes ?? 30;
 
         $startTime = Carbon::parse($request->date . ' ' . $request->start_time);
         $endTime = $startTime->copy()->addMinutes($duration);
@@ -173,7 +173,7 @@ class BookingController extends BaseApiController
 
             $appointment = Appointment::create([
                 'patient_id' => $patient->id,
-                'treatment_id' => $request->treatment_id,
+                'service_id' => $request->service_id,
                 'branch_id' => $request->branch_id,
                 'practitioner_id' => $request->practitioner_id,
                 'date' => $request->date,

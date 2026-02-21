@@ -19,7 +19,7 @@ class DemoInvoiceSeeder extends Seeder
         // Create invoices for completed appointments
         $completedAppointments = Appointment::where('status', Appointment::STATUS_COMPLETED)
             ->whereDoesntHave('invoice')
-            ->with(['patient', 'treatment', 'branch'])
+            ->with(['patient', 'service', 'branch'])
             ->get();
 
         $invoiceCount = 0;
@@ -66,10 +66,10 @@ class DemoInvoiceSeeder extends Seeder
             // Create invoice line
             InvoiceLine::create([
                 'invoice_id' => $invoice->id,
-                'treatment_id' => $appointment->treatment_id,
-                'description' => is_array($appointment->treatment?->name)
-                    ? ($appointment->treatment->name['en'] ?? 'Treatment')
-                    : ($appointment->treatment?->name ?? 'Treatment'),
+                'service_id' => $appointment->service_id,
+                'description' => is_array($appointment->service?->name)
+                    ? ($appointment->service->name['en'] ?? 'Service')
+                    : ($appointment->service?->name ?? 'Service'),
                 'quantity' => 1,
                 'unit_price_minor' => $subtotal,
                 'discount_minor' => $discount,

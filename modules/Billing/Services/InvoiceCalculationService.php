@@ -5,7 +5,7 @@ namespace Modules\Billing\Services;
 use Modules\Billing\Models\Invoice;
 use Modules\Billing\Models\InvoiceLine;
 use Modules\Billing\Models\TaxRate;
-use Modules\Treatments\Models\Treatment;
+use Modules\Services\Models\Service;
 
 class InvoiceCalculationService
 {
@@ -96,24 +96,24 @@ class InvoiceCalculationService
     }
 
     /**
-     * Create invoice line from treatment.
+     * Create invoice line from service.
      */
-    public function createLineFromTreatment(
-        Treatment $treatment,
+    public function createLineFromService(
+        Service $service,
         float $quantity = 1,
         ?string $branchId = null
     ): array {
         $price = $branchId
-            ? $treatment->getEffectivePrice($branchId)
-            : $treatment->base_price_minor;
+            ? $service->getEffectivePrice($branchId)
+            : $service->base_price_minor;
 
         $taxRate = $this->getDefaultTaxRate();
 
         $calculated = $this->calculateLine($price, $quantity, 0, 'fixed', $taxRate);
 
         return [
-            'treatment_id' => $treatment->id,
-            'description' => $treatment->name,
+            'service_id' => $service->id,
+            'description' => $service->name,
             'quantity' => $quantity,
             'unit_price_minor' => $price,
             'discount_minor' => 0,
@@ -131,7 +131,7 @@ class InvoiceCalculationService
         string $patientId,
         string $branchId,
         string $appointmentId,
-        string $treatmentId,
+        string $serviceId,
         int $priceMinor,
         int $discountMinor = 0,
         ?string $createdByUserId = null
@@ -159,8 +159,8 @@ class InvoiceCalculationService
         ]);
 
         $invoice->lines()->create([
-            'treatment_id' => $treatmentId,
-            'description' => Treatment::find($treatmentId)?->name ?? 'Treatment',
+            'service_id' => $serviceId,
+            'description' => Service::find($serviceId)?->name ?? 'Service',
             'quantity' => 1,
             'unit_price_minor' => $priceMinor,
             'discount_minor' => $discountMinor,

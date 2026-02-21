@@ -115,20 +115,20 @@ class PackageSubscription extends BaseModel
         return max(0, $totalSessions - $this->sessions_used);
     }
 
-    public function getSessionsUsedByTreatment(string $treatmentId): int
+    public function getSessionsUsedByService(string $serviceId): int
     {
-        return $this->usages()->where('treatment_id', $treatmentId)->count();
+        return $this->usages()->where('service_id', $serviceId)->count();
     }
 
-    public function getSessionsRemainingByTreatment(string $treatmentId): int
+    public function getSessionsRemainingByService(string $serviceId): int
     {
-        $totalForTreatment = $this->package?->getTreatmentQuantity($treatmentId) ?? 0;
-        return max(0, $totalForTreatment - $this->getSessionsUsedByTreatment($treatmentId));
+        $totalForService = $this->package?->getServiceQuantity($serviceId) ?? 0;
+        return max(0, $totalForService - $this->getSessionsUsedByService($serviceId));
     }
 
-    public function hasRemainingSessionsForTreatment(string $treatmentId): bool
+    public function hasRemainingSessionsForService(string $serviceId): bool
     {
-        return $this->getSessionsRemainingByTreatment($treatmentId) > 0;
+        return $this->getSessionsRemainingByService($serviceId) > 0;
     }
 
     public function getUsageProgressAttribute(): float
@@ -316,10 +316,10 @@ class PackageSubscription extends BaseModel
         return $query->where('patient_id', $patientId);
     }
 
-    public function scopeForTreatment($query, string $treatmentId)
+    public function scopeForService($query, string $serviceId)
     {
-        return $query->whereHas('package.items', function ($q) use ($treatmentId) {
-            $q->where('treatment_id', $treatmentId);
+        return $query->whereHas('package.items', function ($q) use ($serviceId) {
+            $q->where('service_id', $serviceId);
         });
     }
 }

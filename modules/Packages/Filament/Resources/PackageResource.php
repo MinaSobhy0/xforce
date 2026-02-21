@@ -3,7 +3,7 @@
 namespace Modules\Packages\Filament\Resources;
 
 use Modules\Packages\Models\Package;
-use Modules\Treatments\Models\Treatment;
+use Modules\Services\Models\Service;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -114,12 +114,12 @@ class PackageResource extends Resource
                         Forms\Components\Repeater::make('items')
                             ->relationship('items')
                             ->schema([
-                                Forms\Components\Select::make('treatment_id')
-                                    ->label(__('packages::packages.fields.treatment'))
-                                    ->options(fn () => Treatment::active()
+                                Forms\Components\Select::make('service_id')
+                                    ->label(__('packages::packages.fields.service'))
+                                    ->options(fn () => Service::active()
                                         ->get()
-                                        ->mapWithKeys(fn ($treatment) => [
-                                            $treatment->id => $treatment->translated_name . ' (' . $treatment->formatted_price . ')'
+                                        ->mapWithKeys(fn ($service) => [
+                                            $service->id => $service->translated_name . ' (' . $service->formatted_price . ')'
                                         ]))
                                     ->required()
                                     ->searchable()
@@ -138,8 +138,8 @@ class PackageResource extends Resource
                             ->reorderable()
                             ->collapsible()
                             ->itemLabel(fn (array $state): ?string =>
-                                isset($state['treatment_id'])
-                                    ? Treatment::find($state['treatment_id'])?->translated_name . ' × ' . ($state['quantity'] ?? 1)
+                                isset($state['service_id'])
+                                    ? Service::find($state['service_id'])?->translated_name . ' × ' . ($state['quantity'] ?? 1)
                                     : null
                             ),
                     ]),
@@ -172,9 +172,9 @@ class PackageResource extends Resource
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('items_count')
-                    ->label(__('packages::packages.fields.treatments'))
+                    ->label(__('packages::packages.fields.services'))
                     ->counts('items')
-                    ->suffix(' ' . __('packages::packages.fields.treatments_suffix')),
+                    ->suffix(' ' . __('packages::packages.fields.services_suffix')),
 
                 Tables\Columns\TextColumn::make('total_sessions')
                     ->label(__('packages::packages.fields.sessions'))

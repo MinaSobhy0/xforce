@@ -221,7 +221,7 @@ class AccessPolicyResource extends Resource
             \Modules\Staff\Models\StaffProfile::class => 'Staff Profile',
             \Modules\Equipment\Models\Equipment::class => 'Equipment',
             \Modules\Inventory\Models\Product::class => 'Product',
-            \Modules\Treatments\Models\Treatment::class => 'Treatment',
+            \Modules\Services\Models\Service::class => 'Service',
         ];
     }
 }

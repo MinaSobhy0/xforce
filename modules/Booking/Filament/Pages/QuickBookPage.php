@@ -7,7 +7,7 @@ use Modules\Booking\Services\AvailabilityService;
 use Modules\Auth\Models\User;
 use Modules\Core\Models\Branch;
 use Modules\Patients\Models\Patient;
-use Modules\Treatments\Models\Treatment;
+use Modules\Services\Models\Service;
 use Filament\Pages\Page;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\DatePicker;
@@ -36,7 +36,7 @@ class QuickBookPage extends Page implements HasForms
 
     // Form state
     public ?string $patient_id = null;
-    public ?string $treatment_id = null;
+    public ?string $service_id = null;
     public ?string $branch_id = null;
     public ?string $practitioner_id = null;
     public ?string $selected_date = null;
@@ -108,15 +108,15 @@ class QuickBookPage extends Page implements HasForms
                     ->schema([
                         Grid::make(2)
                             ->schema([
-                                Select::make('treatment_id')
-                                    ->label(__('booking::appointments.fields.treatment'))
+                                Select::make('service_id')
+                                    ->label(__('booking::appointments.fields.service'))
                                     ->options(function () {
-                                        return Treatment::query()
+                                        return Service::query()
                                             ->active()
                                             ->ordered()
                                             ->get()
-                                            ->mapWithKeys(fn ($treatment) => [
-                                                $treatment->id => $treatment->translated_name . ' (' . $treatment->duration_minutes . ' min)',
+                                            ->mapWithKeys(fn ($service) => [
+                                                $service->id => $service->translated_name . ' (' . $service->duration_minutes . ' min)',
                                             ]);
                                     })
                                     ->searchable()
@@ -180,7 +180,7 @@ class QuickBookPage extends Page implements HasForms
         $this->availableSlots = [];
         $this->clearSelectedSlot();
 
-        if (!$this->treatment_id || !$this->branch_id || !$this->selected_date) {
+        if (!$this->service_id || !$this->branch_id || !$this->selected_date) {
             return;
         }
 
@@ -192,15 +192,15 @@ class QuickBookPage extends Page implements HasForms
             $this->availableSlots = $availabilityService->getAvailableSlotsAnyPractitioner(
                 $this->branch_id,
                 $date,
-                $this->treatment_id
+                $this->service_id
             );
         } else {
             // Get slots for specific practitioner
-            $slots = $availabilityService->getAvailableSlotsForTreatment(
+            $slots = $availabilityService->getAvailableSlotsForService(
                 $this->practitioner_id,
                 $this->branch_id,
                 $date,
-                $this->treatment_id
+                $this->service_id
             );
 
             // Add practitioner info to slots
@@ -243,9 +243,9 @@ class QuickBookPage extends Page implements HasForms
             return;
         }
 
-        if (!$this->treatment_id) {
+        if (!$this->service_id) {
             Notification::make()
-                ->title(__('booking::appointments.validation.treatment_required'))
+                ->title(__('booking::appointments.validation.service_required'))
                 ->danger()
                 ->send();
             return;
@@ -271,17 +271,17 @@ class QuickBookPage extends Page implements HasForms
         try {
             DB::beginTransaction();
 
-            $treatment = Treatment::find($this->treatment_id);
+            $service = Service::find($this->service_id);
             $date = Carbon::parse($this->selected_date);
 
             // Calculate end time
             $startTime = Carbon::parse($this->selected_slot_start);
-            $endTime = $startTime->copy()->addMinutes($treatment->duration_minutes);
+            $endTime = $startTime->copy()->addMinutes($service->duration_minutes);
 
             // Create the appointment
             $appointment = Appointment::create([
                 'patient_id' => $this->patient_id,
-                'treatment_id' => $this->treatment_id,
+                'service_id' => $this->service_id,
                 'branch_id' => $this->branch_id,
                 'practitioner_id' => $practitionerId,
                 'room_id' => $this->selected_slot_room_id,
@@ -289,8 +289,8 @@ class QuickBookPage extends Page implements HasForms
                 'date' => $date,
                 'start_time' => $this->selected_slot_start,
                 'end_time' => $endTime->format('H:i'),
-                'duration_minutes' => $treatment->duration_minutes,
-                'price_minor' => $treatment->getPriceForBranch($this->branch_id),
+                'duration_minutes' => $service->duration_minutes,
+                'price_minor' => $service->getPriceForBranch($this->branch_id),
                 'status' => Appointment::STATUS_SCHEDULED,
                 'source' => Appointment::SOURCE_PHONE,
             ]);
@@ -328,14 +328,14 @@ class QuickBookPage extends Page implements HasForms
             ? User::find($this->selected_slot_practitioner_id)
             : null;
 
-        $treatment = $this->treatment_id ? Treatment::find($this->treatment_id) : null;
+        $service = $this->service_id ? Service::find($this->service_id) : null;
 
         return [
             'start' => $this->selected_slot_start,
             'end' => $this->selected_slot_end,
             'practitioner_name' => $practitioner?->full_name ?? $practitioner?->name ?? '',
-            'treatment_name' => $treatment?->translated_name ?? '',
-            'duration' => $treatment?->duration_minutes ?? 0,
+            'service_name' => $service?->translated_name ?? '',
+            'duration' => $service?->duration_minutes ?? 0,
         ];
     }
 

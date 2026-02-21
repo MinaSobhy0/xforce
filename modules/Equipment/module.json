@@ -10,7 +10,7 @@
     "providers": [
         "Modules\\Equipment\\Providers\\EquipmentServiceProvider"
     ],
-    "dependencies": ["Core", "Treatments"],
+    "dependencies": ["Core", "Services"],
     "optional_dependencies": [],
     "models": [
         "Modules\\Equipment\\Models\\EquipmentType",

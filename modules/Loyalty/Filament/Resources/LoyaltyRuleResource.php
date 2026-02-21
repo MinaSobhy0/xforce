@@ -131,16 +131,16 @@ class LoyaltyRuleResource extends Resource
 
                 Forms\Components\Section::make(__('loyalty::loyalty.sections.targeting'))
                     ->schema([
-                        Forms\Components\Select::make('treatment_id')
-                            ->label(__('loyalty::loyalty.fields.treatment'))
-                            ->relationship('treatment', 'name->en')
+                        Forms\Components\Select::make('service_id')
+                            ->label(__('loyalty::loyalty.fields.service'))
+                            ->relationship('service', 'name->en')
                             ->searchable()
                             ->preload()
-                            ->helperText('Leave empty to apply to all treatments'),
+                            ->helperText('Leave empty to apply to all services'),
 
-                        Forms\Components\Select::make('treatment_category_id')
-                            ->label(__('loyalty::loyalty.fields.treatment_category'))
-                            ->relationship('treatmentCategory', 'name->en')
+                        Forms\Components\Select::make('service_category_id')
+                            ->label(__('loyalty::loyalty.fields.service_category'))
+                            ->relationship('serviceCategory', 'name->en')
                             ->searchable()
                             ->preload()
                             ->helperText('Leave empty to apply to all categories'),

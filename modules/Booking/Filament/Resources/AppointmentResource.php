@@ -9,7 +9,7 @@ use Modules\Auth\Models\User;
 use Modules\Core\Models\Branch;
 use Modules\Core\Models\Room;
 use Modules\Patients\Models\Patient;
-use Modules\Treatments\Models\Treatment;
+use Modules\Services\Models\Service;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -86,23 +86,23 @@ class AppointmentResource extends Resource
                                 }),
                         ]),
 
-                    Forms\Components\Wizard\Step::make(__('booking::appointments.wizard.treatment'))
+                    Forms\Components\Wizard\Step::make(__('booking::appointments.wizard.service'))
                         ->icon('heroicon-o-sparkles')
                         ->schema([
-                            Forms\Components\Select::make('treatment_id')
-                                ->label(__('booking::appointments.fields.treatment'))
-                                ->relationship('treatment', 'code')
-                                ->getOptionLabelFromRecordUsing(fn (Treatment $record) => $record->translated_name)
+                            Forms\Components\Select::make('service_id')
+                                ->label(__('booking::appointments.fields.service'))
+                                ->relationship('service', 'code')
+                                ->getOptionLabelFromRecordUsing(fn (Service $record) => $record->translated_name)
                                 ->searchable()
                                 ->preload()
                                 ->required()
                                 ->live()
                                 ->afterStateUpdated(function (Forms\Set $set, ?string $state) {
                                     if ($state) {
-                                        $treatment = Treatment::find($state);
-                                        if ($treatment) {
-                                            $set('duration_minutes', $treatment->duration_minutes);
-                                            $set('price_minor', $treatment->base_price_minor);
+                                        $service = Service::find($state);
+                                        if ($service) {
+                                            $set('duration_minutes', $service->duration_minutes);
+                                            $set('price_minor', $service->base_price_minor);
                                         }
                                     }
                                 }),
@@ -252,8 +252,8 @@ class AppointmentResource extends Resource
                     ->searchable(['first_name', 'last_name'])
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('treatment.translated_name')
-                    ->label(__('booking::appointments.fields.treatment'))
+                Tables\Columns\TextColumn::make('service.translated_name')
+                    ->label(__('booking::appointments.fields.service'))
                     ->searchable()
                     ->sortable()
                     ->toggleable(),
@@ -314,10 +314,10 @@ class AppointmentResource extends Resource
                     ->preload()
                     ->searchable(),
 
-                Tables\Filters\SelectFilter::make('treatment_id')
-                    ->label(__('booking::appointments.fields.treatment'))
-                    ->relationship('treatment', 'code')
-                    ->getOptionLabelFromRecordUsing(fn (Treatment $record) => $record->translated_name)
+                Tables\Filters\SelectFilter::make('service_id')
+                    ->label(__('booking::appointments.fields.service'))
+                    ->relationship('service', 'code')
+                    ->getOptionLabelFromRecordUsing(fn (Service $record) => $record->translated_name)
                     ->preload()
                     ->searchable(),
 
@@ -473,8 +473,8 @@ class AppointmentResource extends Resource
                                     ->label(__('booking::appointments.fields.room'))
                                     ->placeholder('-'),
 
-                                Infolists\Components\TextEntry::make('treatment.translated_name')
-                                    ->label(__('booking::appointments.fields.treatment')),
+                                Infolists\Components\TextEntry::make('service.translated_name')
+                                    ->label(__('booking::appointments.fields.service')),
                             ]),
                     ]),
 
@@ -555,7 +555,7 @@ class AppointmentResource extends Resource
     public static function getRelations(): array
     {
         return [
-            RelationManagers\TreatmentNoteRelationManager::class,
+            RelationManagers\ServiceNoteRelationManager::class,
         ];
     }
 
@@ -572,6 +572,6 @@ class AppointmentResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->with(['patient', 'treatment', 'practitioner', 'branch', 'room']);
+            ->with(['patient', 'service', 'practitioner', 'branch', 'room']);
     }
 }

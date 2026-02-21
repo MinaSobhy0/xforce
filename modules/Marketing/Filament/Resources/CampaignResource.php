@@ -102,7 +102,7 @@ class CampaignResource extends Resource
                                         'last_visit_days_ago' => __('marketing::marketing.filter_fields.last_visit'),
                                         'total_spent_min' => __('marketing::marketing.filter_fields.total_spent_min'),
                                         'total_spent_max' => __('marketing::marketing.filter_fields.total_spent_max'),
-                                        'treatment_id' => __('marketing::marketing.filter_fields.treatment'),
+                                        'service_id' => __('marketing::marketing.filter_fields.service'),
                                         'branch_id' => __('marketing::marketing.filter_fields.branch'),
                                         'gender' => __('marketing::marketing.filter_fields.gender'),
                                         'is_vip' => __('marketing::marketing.filter_fields.is_vip'),

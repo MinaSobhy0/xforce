@@ -23,7 +23,7 @@ class PatientPhoto extends BaseModel implements HasMedia
     protected $fillable = [
         'patient_id',
         'appointment_id',
-        'treatment_id',
+        'service_id',
         'type',
         'body_area',
         'description',
@@ -48,9 +48,9 @@ class PatientPhoto extends BaseModel implements HasMedia
      * Photo types.
      */
     public const TYPES = [
-        'before' => 'Before Treatment',
-        'after' => 'After Treatment',
-        'during' => 'During Treatment',
+        'before' => 'Before Service',
+        'after' => 'After Service',
+        'during' => 'During Service',
         'consultation' => 'Consultation',
         'progress' => 'Progress',
         'reaction' => 'Reaction/Side Effect',
@@ -124,11 +124,11 @@ class PatientPhoto extends BaseModel implements HasMedia
     }
 
     /**
-     * Get the treatment (if linked).
+     * Get the service (if linked).
      */
-    public function treatment(): BelongsTo
+    public function service(): BelongsTo
     {
-        return $this->belongsTo(\Modules\Treatments\Models\Treatment::class);
+        return $this->belongsTo(\Modules\Services\Models\Service::class);
     }
 
     /**
@@ -220,15 +220,15 @@ class PatientPhoto extends BaseModel implements HasMedia
     }
 
     /**
-     * Scope: For a specific treatment.
+     * Scope: For a specific service.
      */
-    public function scopeForTreatment($query, string $treatmentId)
+    public function scopeForService($query, string $serviceId)
     {
-        return $query->where('treatment_id', $treatmentId);
+        return $query->where('service_id', $serviceId);
     }
 
     /**
-     * Get paired photos (before/after for same area and treatment).
+     * Get paired photos (before/after for same area and service).
      */
     public function getPairedPhoto(): ?self
     {
@@ -236,7 +236,7 @@ class PatientPhoto extends BaseModel implements HasMedia
 
         return static::where('patient_id', $this->patient_id)
             ->where('body_area', $this->body_area)
-            ->where('treatment_id', $this->treatment_id)
+            ->where('service_id', $this->service_id)
             ->where('type', $oppositeType)
             ->orderByDesc('taken_at')
             ->first();

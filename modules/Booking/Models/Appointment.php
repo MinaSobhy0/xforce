@@ -13,7 +13,7 @@ use Modules\Auth\Models\User;
 use Modules\Core\Models\Branch;
 use Modules\Core\Models\Room;
 use Modules\Patients\Models\Patient;
-use Modules\Treatments\Models\Treatment;
+use Modules\Services\Models\Service;
 
 class Appointment extends BaseModel
 {
@@ -26,7 +26,7 @@ class Appointment extends BaseModel
         'tenant_id',
         'code',
         'patient_id',
-        'treatment_id',
+        'service_id',
         'branch_id',
         'practitioner_id',
         'room_id',
@@ -131,9 +131,9 @@ class Appointment extends BaseModel
         return $this->belongsTo(Patient::class);
     }
 
-    public function treatment(): BelongsTo
+    public function service(): BelongsTo
     {
-        return $this->belongsTo(Treatment::class);
+        return $this->belongsTo(Service::class);
     }
 
     public function branch(): BelongsTo
@@ -161,9 +161,9 @@ class Appointment extends BaseModel
         return $this->belongsTo(Appointment::class, 'rescheduled_from_id');
     }
 
-    public function treatmentNote(): HasOne
+    public function serviceNote(): HasOne
     {
-        return $this->hasOne(AppointmentTreatmentNote::class);
+        return $this->hasOne(AppointmentServiceNote::class);
     }
 
     // Accessors
@@ -304,7 +304,7 @@ class Appointment extends BaseModel
         $newAppointment = self::create(array_merge([
             'tenant_id' => $this->tenant_id,
             'patient_id' => $this->patient_id,
-            'treatment_id' => $this->treatment_id,
+            'service_id' => $this->service_id,
             'branch_id' => $this->branch_id,
             'practitioner_id' => $this->practitioner_id,
             'price_minor' => $this->price_minor,
@@ -428,9 +428,9 @@ class Appointment extends BaseModel
         return $query->where('patient_id', $patientId);
     }
 
-    public function scopeForTreatment($query, string $treatmentId)
+    public function scopeForService($query, string $serviceId)
     {
-        return $query->where('treatment_id', $treatmentId);
+        return $query->where('service_id', $serviceId);
     }
 
     public function scopeByStatus($query, string $status)

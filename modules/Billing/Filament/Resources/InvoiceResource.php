@@ -9,7 +9,7 @@ use Modules\Billing\Models\InvoiceLine;
 use Modules\Billing\Models\TaxRate;
 use Modules\Patients\Models\Patient;
 use Modules\Core\Models\Branch;
-use Modules\Treatments\Models\Treatment;
+use Modules\Services\Models\Service;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -97,21 +97,21 @@ class InvoiceResource extends Resource
                                 Forms\Components\Repeater::make('lines')
                                     ->relationship()
                                     ->schema([
-                                        Forms\Components\Select::make('treatment_id')
-                                            ->label('Treatment')
-                                            ->options(Treatment::query()->where('is_active', true)->pluck('name', 'id'))
+                                        Forms\Components\Select::make('service_id')
+                                            ->label('Service')
+                                            ->options(Service::query()->where('is_active', true)->pluck('name', 'id'))
                                             ->searchable()
                                             ->preload()
                                             ->reactive()
                                             ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
                                                 if ($state) {
-                                                    $treatment = Treatment::find($state);
-                                                    if ($treatment) {
+                                                    $service = Service::find($state);
+                                                    if ($service) {
                                                         $branchId = $get('../../branch_id');
                                                         $price = $branchId
-                                                            ? $treatment->getEffectivePrice($branchId)
-                                                            : $treatment->base_price_minor;
-                                                        $set('description', $treatment->name);
+                                                            ? $service->getEffectivePrice($branchId)
+                                                            : $service->base_price_minor;
+                                                        $set('description', $service->name);
                                                         $set('unit_price_minor', $price);
                                                         $set('tax_rate', TaxRate::getDefault()?->rate ?? 14);
                                                     }

@@ -7,7 +7,7 @@ use Modules\Booking\Models\Waitlist;
 use Modules\Booking\Models\PractitionerSchedule;
 use Modules\Auth\Models\User;
 use Modules\Patients\Models\Patient;
-use Modules\Treatments\Models\Treatment;
+use Modules\Services\Models\Service;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -55,14 +55,14 @@ class WaitlistResource extends Resource
                             ->required(),
                     ]),
 
-                Forms\Components\Section::make(__('booking::waitlist.sections.treatment'))
+                Forms\Components\Section::make(__('booking::waitlist.sections.service'))
                     ->schema([
                         Forms\Components\Grid::make(2)
                             ->schema([
-                                Forms\Components\Select::make('treatment_id')
-                                    ->label(__('booking::waitlist.fields.treatment'))
-                                    ->relationship('treatment', 'code')
-                                    ->getOptionLabelFromRecordUsing(fn (Treatment $record) => $record->translated_name)
+                                Forms\Components\Select::make('service_id')
+                                    ->label(__('booking::waitlist.fields.service'))
+                                    ->relationship('service', 'code')
+                                    ->getOptionLabelFromRecordUsing(fn (Service $record) => $record->translated_name)
                                     ->searchable()
                                     ->preload()
                                     ->required(),
@@ -133,8 +133,8 @@ class WaitlistResource extends Resource
                     ->label(__('patients::patients.fields.phone'))
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('treatment.translated_name')
-                    ->label(__('booking::waitlist.fields.treatment'))
+                Tables\Columns\TextColumn::make('service.translated_name')
+                    ->label(__('booking::waitlist.fields.service'))
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('branch.name')
@@ -203,10 +203,10 @@ class WaitlistResource extends Resource
                     ->preload()
                     ->searchable(),
 
-                Tables\Filters\SelectFilter::make('treatment_id')
-                    ->label(__('booking::waitlist.fields.treatment'))
-                    ->relationship('treatment', 'code')
-                    ->getOptionLabelFromRecordUsing(fn (Treatment $record) => $record->translated_name)
+                Tables\Filters\SelectFilter::make('service_id')
+                    ->label(__('booking::waitlist.fields.service'))
+                    ->relationship('service', 'code')
+                    ->getOptionLabelFromRecordUsing(fn (Service $record) => $record->translated_name)
                     ->preload()
                     ->searchable(),
 
@@ -234,7 +234,7 @@ class WaitlistResource extends Resource
                         ->color('success')
                         ->url(fn (Waitlist $record): string => route('filament.tenant.resources.appointments.create', [
                             'patient_id' => $record->patient_id,
-                            'treatment_id' => $record->treatment_id,
+                            'service_id' => $record->service_id,
                             'branch_id' => $record->branch_id,
                         ]))
                         ->visible(fn (Waitlist $record): bool => $record->isActive()),
@@ -283,6 +283,6 @@ class WaitlistResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->with(['patient', 'treatment', 'branch', 'practitioner']);
+            ->with(['patient', 'service', 'branch', 'practitioner']);
     }
 }

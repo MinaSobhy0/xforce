@@ -7,9 +7,11 @@ use XLinic\Framework\Core\Model\Traits\HasTenancy;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Modules\Auth\Models\User;
 
-class AppointmentTreatmentNote extends BaseModel
+class AppointmentServiceNote extends BaseModel
 {
     use HasTenancy;
+
+    protected $table = 'appointment_service_notes';
 
     protected $fillable = [
         'tenant_id',
@@ -51,7 +53,7 @@ class AppointmentTreatmentNote extends BaseModel
         'painful' => 'Painful',
     ];
 
-    // Common treatment areas
+    // Common service areas
     public const COMMON_AREAS = [
         'face' => 'Face',
         'neck' => 'Neck',

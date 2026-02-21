@@ -5,7 +5,7 @@ namespace Modules\Packages\Models;
 use XLinic\Framework\Core\Model\BaseModel;
 use XLinic\Framework\Core\Model\Traits\HasTenancy;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Modules\Treatments\Models\Treatment;
+use Modules\Services\Models\Service;
 
 class PackageItem extends BaseModel
 {
@@ -14,7 +14,7 @@ class PackageItem extends BaseModel
     protected $fillable = [
         'tenant_id',
         'package_id',
-        'treatment_id',
+        'service_id',
         'quantity',
         'sort_order',
     ];
@@ -30,15 +30,15 @@ class PackageItem extends BaseModel
         return $this->belongsTo(Package::class);
     }
 
-    public function treatment(): BelongsTo
+    public function service(): BelongsTo
     {
-        return $this->belongsTo(Treatment::class);
+        return $this->belongsTo(Service::class);
     }
 
     // Accessors
-    public function getTreatmentNameAttribute(): string
+    public function getServiceNameAttribute(): string
     {
-        return $this->treatment?->translated_name ?? '';
+        return $this->service?->translated_name ?? '';
     }
 
     // Scopes

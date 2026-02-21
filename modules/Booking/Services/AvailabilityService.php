@@ -5,7 +5,7 @@ namespace Modules\Booking\Services;
 use Modules\Booking\Models\Appointment;
 use Modules\Booking\Models\PractitionerSchedule;
 use Modules\Booking\Models\PractitionerTimeOff;
-use Modules\Treatments\Models\Treatment;
+use Modules\Services\Models\Service;
 use Modules\Equipment\Models\Equipment;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -327,26 +327,26 @@ class AvailabilityService
     }
 
     /**
-     * Get available slots for a treatment, considering equipment requirements.
-     * Uses treatment duration + buffer time and checks equipment availability.
+     * Get available slots for a service, considering equipment requirements.
+     * Uses service duration + buffer time and checks equipment availability.
      */
-    public function getAvailableSlotsForTreatment(
+    public function getAvailableSlotsForService(
         string $practitionerId,
         string $branchId,
         Carbon $date,
-        string $treatmentId
+        string $serviceId
     ): array {
-        $treatment = Treatment::find($treatmentId);
-        if (!$treatment) {
+        $service = Service::find($serviceId);
+        if (!$service) {
             return [];
         }
 
-        $duration = $treatment->duration_minutes + ($treatment->buffer_minutes ?? 0);
+        $duration = $service->duration_minutes + ($service->buffer_minutes ?? 0);
 
-        // Get required equipment types from treatment
+        // Get required equipment types from service
         $requiredEquipmentTypeIds = [];
-        if (method_exists($treatment, 'requiredEquipmentTypes')) {
-            $requiredEquipmentTypeIds = $treatment->requiredEquipmentTypes()
+        if (method_exists($service, 'requiredEquipmentTypes')) {
+            $requiredEquipmentTypeIds = $service->requiredEquipmentTypes()
                 ->wherePivot('is_required', true)
                 ->pluck('equipment_types.id')
                 ->toArray();
@@ -386,21 +386,21 @@ class AvailabilityService
     }
 
     /**
-     * Get available slots across ALL practitioners for a treatment.
+     * Get available slots across ALL practitioners for a service.
      * Returns slots with practitioner info attached, grouped by time.
      */
     public function getAvailableSlotsAnyPractitioner(
         string $branchId,
         Carbon $date,
-        string $treatmentId
+        string $serviceId
     ): array {
-        $treatment = Treatment::find($treatmentId);
-        if (!$treatment) {
+        $service = Service::find($serviceId);
+        if (!$service) {
             return [];
         }
 
         $dayOfWeek = $date->dayOfWeek;
-        $duration = $treatment->duration_minutes + ($treatment->buffer_minutes ?? 0);
+        $duration = $service->duration_minutes + ($service->buffer_minutes ?? 0);
 
         // Get all practitioners with schedules on this day at this branch
         $schedules = PractitionerSchedule::query()
@@ -417,11 +417,11 @@ class AvailabilityService
                 continue;
             }
 
-            $slots = $this->getAvailableSlotsForTreatment(
+            $slots = $this->getAvailableSlotsForService(
                 $schedule->user_id,
                 $branchId,
                 $date,
-                $treatmentId
+                $serviceId
             );
 
             foreach ($slots as $slot) {
@@ -482,15 +482,15 @@ class AvailabilityService
     }
 
     /**
-     * Get available slots for a practitioner with treatment context.
+     * Get available slots for a practitioner with service context.
      * Wrapper that includes equipment info in slot data.
      */
     public function getSlotsWithEquipment(
         string $practitionerId,
         string $branchId,
         Carbon $date,
-        string $treatmentId
+        string $serviceId
     ): array {
-        return $this->getAvailableSlotsForTreatment($practitionerId, $branchId, $date, $treatmentId);
+        return $this->getAvailableSlotsForService($practitionerId, $branchId, $date, $serviceId);
     }
 }

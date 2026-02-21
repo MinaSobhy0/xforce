@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Modules\Auth\Models\User;
 use Modules\Core\Models\Branch;
 use Modules\Patients\Models\Patient;
-use Modules\Treatments\Models\Treatment;
+use Modules\Services\Models\Service;
 
 class Waitlist extends BaseModel
 {
@@ -19,7 +19,7 @@ class Waitlist extends BaseModel
     protected $fillable = [
         'tenant_id',
         'patient_id',
-        'treatment_id',
+        'service_id',
         'branch_id',
         'practitioner_id',
         'preferred_days',
@@ -105,9 +105,9 @@ class Waitlist extends BaseModel
         return $this->belongsTo(Patient::class);
     }
 
-    public function treatment(): BelongsTo
+    public function service(): BelongsTo
     {
-        return $this->belongsTo(Treatment::class);
+        return $this->belongsTo(Service::class);
     }
 
     public function branch(): BelongsTo
@@ -270,9 +270,9 @@ class Waitlist extends BaseModel
         return $query->where('patient_id', $patientId);
     }
 
-    public function scopeForTreatment($query, string $treatmentId)
+    public function scopeForService($query, string $serviceId)
     {
-        return $query->where('treatment_id', $treatmentId);
+        return $query->where('service_id', $serviceId);
     }
 
     public function scopeForBranch($query, string $branchId)

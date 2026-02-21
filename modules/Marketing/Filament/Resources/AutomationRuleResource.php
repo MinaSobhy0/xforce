@@ -129,7 +129,7 @@ class AutomationRuleResource extends Resource
                                 Forms\Components\Select::make('field')
                                     ->label(__('marketing::marketing.fields.condition_field'))
                                     ->options([
-                                        'treatment_id' => __('marketing::marketing.condition_fields.treatment'),
+                                        'service_id' => __('marketing::marketing.condition_fields.service'),
                                         'branch_id' => __('marketing::marketing.condition_fields.branch'),
                                         'is_vip' => __('marketing::marketing.condition_fields.is_vip'),
                                         'is_new_patient' => __('marketing::marketing.condition_fields.is_new_patient'),

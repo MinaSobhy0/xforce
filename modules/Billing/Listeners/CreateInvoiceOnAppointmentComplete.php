@@ -41,9 +41,9 @@ class CreateInvoiceOnAppointmentComplete implements ShouldQueue
             return;
         }
 
-        // Skip if appointment has no treatment or price
-        if (!$appointment->treatment_id || !$appointment->price_minor) {
-            Log::debug("Appointment {$appointment->id} has no treatment or price, skipping auto-invoice");
+        // Skip if appointment has no service or price
+        if (!$appointment->service_id || !$appointment->price_minor) {
+            Log::debug("Appointment {$appointment->id} has no service or price, skipping auto-invoice");
             return;
         }
 
@@ -78,7 +78,7 @@ class CreateInvoiceOnAppointmentComplete implements ShouldQueue
             $appointment->patient_id,
             $appointment->branch_id,
             $appointment->id,
-            $appointment->treatment_id,
+            $appointment->service_id,
             $appointment->price_minor,
             $appointment->discount_minor ?? 0,
             auth()->id()

@@ -6,7 +6,7 @@
         </x-filament::section>
 
         {{-- Available Slots Grid --}}
-        @if($this->treatment_id && $this->branch_id && $this->selected_date)
+        @if($this->service_id && $this->branch_id && $this->selected_date)
             <x-filament::section>
                 <x-slot name="heading">
                     {{ __('booking::appointments.available_slots') }} - {{ $this->getFormattedDate() }}
@@ -97,8 +97,8 @@
                         <div class="flex items-center space-x-3 rtl:space-x-reverse">
                             <x-heroicon-o-beaker class="h-5 w-5 text-gray-400" />
                             <div>
-                                <span class="text-sm text-gray-500 dark:text-gray-400">{{ __('booking::appointments.fields.treatment') }}</span>
-                                <p class="font-semibold text-gray-900 dark:text-white">{{ $slotInfo['treatment_name'] }}</p>
+                                <span class="text-sm text-gray-500 dark:text-gray-400">{{ __('booking::appointments.fields.service') }}</span>
+                                <p class="font-semibold text-gray-900 dark:text-white">{{ $slotInfo['service_name'] }}</p>
                             </div>
                         </div>
                     </div>

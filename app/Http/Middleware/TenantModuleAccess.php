@@ -131,10 +131,15 @@ class TenantModuleAccess
      */
     protected function hasModuleAddon(Tenant $tenant, string $moduleCode): bool
     {
-        return $tenant->activeAddOns()
-            ->where('type', 'module')
-            ->where('code', $moduleCode)
-            ->exists();
+        try {
+            return $tenant->activeAddOns()
+                ->where('type', 'module')
+                ->where('code', $moduleCode)
+                ->exists();
+        } catch (\Exception $e) {
+            // Table may not exist yet
+            return false;
+        }
     }
 
     /**

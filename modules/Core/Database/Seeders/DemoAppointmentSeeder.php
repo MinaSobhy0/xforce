@@ -5,7 +5,7 @@ namespace Modules\Core\Database\Seeders;
 use Illuminate\Database\Seeder;
 use Modules\Booking\Models\Appointment;
 use Modules\Patients\Models\Patient;
-use Modules\Treatments\Models\Treatment;
+use Modules\Services\Models\Service;
 use Modules\Core\Models\Branch;
 use Modules\Core\Models\Room;
 use Modules\Auth\Models\User;
@@ -19,12 +19,12 @@ class DemoAppointmentSeeder extends Seeder
     public function run(): void
     {
         $patients = Patient::all();
-        $treatments = Treatment::where('is_active', true)->get();
+        $services = Service::where('is_active', true)->get();
         $branch = Branch::where('is_headquarters', true)->first();
         $room = Room::where('branch_id', $branch?->id)->where('type', 'treatment')->first();
         $practitioner = User::first();
 
-        if ($patients->isEmpty() || $treatments->isEmpty() || !$branch || !$practitioner) {
+        if ($patients->isEmpty() || $services->isEmpty() || !$branch || !$practitioner) {
             $this->command->warn('Missing required data for appointments. Skipping...');
             return;
         }
@@ -53,7 +53,7 @@ class DemoAppointmentSeeder extends Seeder
 
             for ($i = 0; $i < $appointmentsPerDay; $i++) {
                 $patient = $patients->random();
-                $treatment = $treatments->random();
+                $service = $services->random();
                 $startHour = rand(9, 18);
                 $startTime = sprintf('%02d:00', $startHour);
 
@@ -67,16 +67,16 @@ class DemoAppointmentSeeder extends Seeder
                     ['code' => $code],
                     [
                         'patient_id' => $patient->id,
-                        'treatment_id' => $treatment->id,
+                        'service_id' => $service->id,
                         'branch_id' => $branch->id,
                         'room_id' => $room?->id,
                         'practitioner_user_id' => $practitioner->id,
                         'date' => $date->toDateString(),
                         'start_time' => $startTime,
-                        'end_time' => Carbon::parse($startTime)->addMinutes($treatment->duration_minutes)->format('H:i'),
-                        'duration_minutes' => $treatment->duration_minutes,
+                        'end_time' => Carbon::parse($startTime)->addMinutes($service->duration_minutes)->format('H:i'),
+                        'duration_minutes' => $service->duration_minutes,
                         'status' => $status,
-                        'price_minor' => $treatment->price_minor,
+                        'price_minor' => $service->price_minor,
                         'discount_minor' => rand(0, 1) ? rand(5000, 20000) : 0,
                         'source' => ['walk_in', 'phone', 'website'][array_rand(['walk_in', 'phone', 'website'])],
                         'confirmed_at' => in_array($status, [Appointment::STATUS_CONFIRMED, Appointment::STATUS_COMPLETED])
@@ -102,7 +102,7 @@ class DemoAppointmentSeeder extends Seeder
 
             for ($i = 0; $i < $appointmentsPerDay; $i++) {
                 $patient = $patients->random();
-                $treatment = $treatments->random();
+                $service = $services->random();
                 $startHour = rand(10, 17);
                 $startTime = sprintf('%02d:00', $startHour);
 
@@ -112,16 +112,16 @@ class DemoAppointmentSeeder extends Seeder
                     ['code' => $code],
                     [
                         'patient_id' => $patient->id,
-                        'treatment_id' => $treatment->id,
+                        'service_id' => $service->id,
                         'branch_id' => $branch->id,
                         'room_id' => $room?->id,
                         'practitioner_user_id' => $practitioner->id,
                         'date' => $date->toDateString(),
                         'start_time' => $startTime,
-                        'end_time' => Carbon::parse($startTime)->addMinutes($treatment->duration_minutes)->format('H:i'),
-                        'duration_minutes' => $treatment->duration_minutes,
+                        'end_time' => Carbon::parse($startTime)->addMinutes($service->duration_minutes)->format('H:i'),
+                        'duration_minutes' => $service->duration_minutes,
                         'status' => rand(0, 1) ? Appointment::STATUS_CONFIRMED : Appointment::STATUS_SCHEDULED,
-                        'price_minor' => $treatment->price_minor,
+                        'price_minor' => $service->price_minor,
                         'discount_minor' => 0,
                         'source' => 'phone',
                     ]

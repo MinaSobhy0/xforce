@@ -5,7 +5,7 @@ namespace Modules\Packages\Models;
 use XLinic\Framework\Core\Model\BaseModel;
 use XLinic\Framework\Core\Model\Traits\HasTenancy;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Modules\Treatments\Models\Treatment;
+use Modules\Services\Models\Service;
 use Modules\Booking\Models\Appointment;
 use Modules\Auth\Models\User;
 
@@ -18,7 +18,7 @@ class PackageSessionUsage extends BaseModel
     protected $fillable = [
         'tenant_id',
         'subscription_id',
-        'treatment_id',
+        'service_id',
         'appointment_id',
         'used_at',
         'used_by_user_id',
@@ -54,9 +54,9 @@ class PackageSessionUsage extends BaseModel
         return $this->belongsTo(PackageSubscription::class, 'subscription_id');
     }
 
-    public function treatment(): BelongsTo
+    public function service(): BelongsTo
     {
-        return $this->belongsTo(Treatment::class);
+        return $this->belongsTo(Service::class);
     }
 
     public function appointment(): BelongsTo
@@ -70,9 +70,9 @@ class PackageSessionUsage extends BaseModel
     }
 
     // Accessors
-    public function getTreatmentNameAttribute(): string
+    public function getServiceNameAttribute(): string
     {
-        return $this->treatment?->translated_name ?? '';
+        return $this->service?->translated_name ?? '';
     }
 
     public function getPatientNameAttribute(): string
@@ -86,9 +86,9 @@ class PackageSessionUsage extends BaseModel
         return $query->where('subscription_id', $subscriptionId);
     }
 
-    public function scopeForTreatment($query, string $treatmentId)
+    public function scopeForService($query, string $serviceId)
     {
-        return $query->where('treatment_id', $treatmentId);
+        return $query->where('service_id', $serviceId);
     }
 
     public function scopeForDateRange($query, $start, $end)

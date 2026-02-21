@@ -4,7 +4,7 @@ namespace Modules\Billing\Filament\Resources\InvoiceResource\RelationManagers;
 
 use Modules\Billing\Models\InvoiceLine;
 use Modules\Billing\Models\TaxRate;
-use Modules\Treatments\Models\Treatment;
+use Modules\Services\Models\Service;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
@@ -21,18 +21,18 @@ class LinesRelationManager extends RelationManager
     {
         return $form
             ->schema([
-                Forms\Components\Select::make('treatment_id')
-                    ->label('Treatment')
-                    ->options(Treatment::query()->where('is_active', true)->pluck('name', 'id'))
+                Forms\Components\Select::make('service_id')
+                    ->label('Service')
+                    ->options(Service::query()->where('is_active', true)->pluck('name', 'id'))
                     ->searchable()
                     ->preload()
                     ->reactive()
                     ->afterStateUpdated(function ($state, Forms\Set $set) {
                         if ($state) {
-                            $treatment = Treatment::find($state);
-                            if ($treatment) {
-                                $set('description', $treatment->name);
-                                $set('unit_price_minor', $treatment->base_price_minor / 100);
+                            $service = Service::find($state);
+                            if ($service) {
+                                $set('description', $service->name);
+                                $set('unit_price_minor', $service->base_price_minor / 100);
                                 $set('tax_rate', TaxRate::getDefault()?->rate ?? 14);
                             }
                         }

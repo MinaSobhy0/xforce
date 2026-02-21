@@ -153,7 +153,7 @@
             "users",
             "patients",
             "appointments",
-            "treatments",
+            "services",
             "inventory"
         ]
     }

@@ -3,8 +3,8 @@
 namespace Modules\Staff\Models;
 
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Modules\Treatments\Models\Treatment;
-use Modules\Treatments\Models\TreatmentCategory;
+use Modules\Services\Models\Service;
+use Modules\Services\Models\ServiceCategory;
 use XLinic\Framework\Core\Model\BaseModel;
 
 class StaffCommission extends BaseModel
@@ -14,8 +14,8 @@ class StaffCommission extends BaseModel
     protected $fillable = [
         'tenant_id',
         'staff_profile_id',
-        'treatment_id',
-        'treatment_category_id',
+        'service_id',
+        'service_category_id',
         'commission_type',
         'flat_amount_minor',
         'percentage',
@@ -62,19 +62,19 @@ class StaffCommission extends BaseModel
     }
 
     /**
-     * Get the treatment.
+     * Get the service.
      */
-    public function treatment(): BelongsTo
+    public function service(): BelongsTo
     {
-        return $this->belongsTo(Treatment::class);
+        return $this->belongsTo(Service::class);
     }
 
     /**
-     * Get the treatment category.
+     * Get the service category.
      */
-    public function treatmentCategory(): BelongsTo
+    public function serviceCategory(): BelongsTo
     {
-        return $this->belongsTo(TreatmentCategory::class);
+        return $this->belongsTo(ServiceCategory::class);
     }
 
     /**

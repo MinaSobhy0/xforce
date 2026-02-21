@@ -4,12 +4,14 @@ namespace Modules\Equipment\Models;
 
 use XLinic\Framework\Core\Model\BaseModel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Modules\Treatments\Models\Treatment;
+use Modules\Services\Models\Service;
 
-class TreatmentEquipmentRequirement extends BaseModel
+class ServiceEquipmentRequirement extends BaseModel
 {
+    protected $table = 'service_equipment_requirements';
+
     protected $fillable = [
-        'treatment_id',
+        'service_id',
         'equipment_type_id',
         'is_required',
     ];
@@ -18,9 +20,9 @@ class TreatmentEquipmentRequirement extends BaseModel
         'is_required' => 'boolean',
     ];
 
-    public function treatment(): BelongsTo
+    public function service(): BelongsTo
     {
-        return $this->belongsTo(Treatment::class);
+        return $this->belongsTo(Service::class);
     }
 
     public function equipmentType(): BelongsTo

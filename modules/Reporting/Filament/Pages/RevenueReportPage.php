@@ -4,7 +4,7 @@ namespace Modules\Reporting\Filament\Pages;
 
 use Modules\Billing\Models\Invoice;
 use Modules\Billing\Models\Payment;
-use Modules\Treatments\Models\Treatment;
+use Modules\Services\Models\Service;
 use Modules\Core\Models\Branch;
 use Illuminate\Support\Facades\DB;
 
@@ -105,17 +105,17 @@ class RevenueReportPage extends BaseReportPage
             ],
         ];
 
-        // Revenue by treatment
-        $revenueByTreatment = DB::table('payments')
+        // Revenue by service
+        $revenueByService = DB::table('payments')
             ->join('invoices', 'payments.invoice_id', '=', 'invoices.id')
             ->join('invoice_lines', 'invoices.id', '=', 'invoice_lines.invoice_id')
-            ->join('treatments', 'invoice_lines.treatment_id', '=', 'treatments.id')
+            ->join('services', 'invoice_lines.service_id', '=', 'services.id')
             ->whereBetween('payments.paid_at', [$startDate, $endDate])
             ->when($branchId, fn ($q) => $q->where('invoices.branch_id', $branchId))
-            ->groupBy('treatments.id', 'treatments.name')
+            ->groupBy('services.id', 'services.name')
             ->select(
-                'treatments.id',
-                'treatments.name',
+                'services.id',
+                'services.name',
                 DB::raw('SUM(payments.amount_minor) as total_revenue'),
                 DB::raw('COUNT(DISTINCT payments.id) as payment_count')
             )
@@ -166,8 +166,8 @@ class RevenueReportPage extends BaseReportPage
         ];
 
         // Table data
-        $this->tableData = $revenueByTreatment->map(fn ($item) => [
-            'treatment' => is_array(json_decode($item->name, true))
+        $this->tableData = $revenueByService->map(fn ($item) => [
+            'service' => is_array(json_decode($item->name, true))
                 ? (json_decode($item->name, true)['en'] ?? $item->name)
                 : $item->name,
             'revenue' => $this->formatCurrency($item->total_revenue),
@@ -212,7 +212,7 @@ class RevenueReportPage extends BaseReportPage
     protected function getTableColumns(): array
     {
         return [
-            ['key' => 'treatment', 'label' => __('reporting::reporting.treatment')],
+            ['key' => 'service', 'label' => __('reporting::reporting.service')],
             ['key' => 'revenue', 'label' => __('reporting::reporting.revenue')],
             ['key' => 'payments', 'label' => __('reporting::reporting.payments')],
             ['key' => 'percentage', 'label' => __('reporting::reporting.percentage')],

@@ -16,7 +16,7 @@ use Filament\Forms\Components\Wizard\Step;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Modules\Treatments\Models\Treatment;
+use Modules\Services\Models\Service;
 use Modules\Core\Models\Branch;
 use Modules\Booking\Models\Appointment;
 use Modules\Auth\Models\User;
@@ -33,7 +33,7 @@ class BookAppointment extends Page implements HasForms
     protected static ?int $navigationSort = 2;
 
     public ?array $data = [];
-    public ?string $selectedTreatment = null;
+    public ?string $selectedService = null;
     public ?string $selectedBranch = null;
     public ?string $selectedDate = null;
     public ?string $selectedTime = null;
@@ -60,31 +60,31 @@ class BookAppointment extends Page implements HasForms
         return $form
             ->schema([
                 Wizard::make([
-                    Step::make(__('patientportal::portal.select_treatment'))
+                    Step::make(__('patientportal::portal.select_service'))
                         ->icon('heroicon-o-heart')
                         ->schema([
-                            Select::make('treatment_id')
-                                ->label(__('patientportal::portal.treatment'))
-                                ->options($this->getTreatmentOptions())
+                            Select::make('service_id')
+                                ->label(__('patientportal::portal.service'))
+                                ->options($this->getServiceOptions())
                                 ->searchable()
                                 ->required()
                                 ->reactive()
-                                ->afterStateUpdated(fn ($state) => $this->selectedTreatment = $state),
+                                ->afterStateUpdated(fn ($state) => $this->selectedService = $state),
 
-                            Placeholder::make('treatment_info')
+                            Placeholder::make('service_info')
                                 ->label('')
                                 ->content(function ($get) {
-                                    $treatmentId = $get('treatment_id');
-                                    if (!$treatmentId) return '';
+                                    $serviceId = $get('service_id');
+                                    if (!$serviceId) return '';
 
-                                    $treatment = Treatment::find($treatmentId);
-                                    if (!$treatment) return '';
+                                    $service = Service::find($serviceId);
+                                    if (!$service) return '';
 
-                                    return view('patientportal::components.treatment-info', [
-                                        'treatment' => $treatment,
+                                    return view('patientportal::components.service-info', [
+                                        'service' => $service,
                                     ]);
                                 })
-                                ->visible(fn ($get) => filled($get('treatment_id'))),
+                                ->visible(fn ($get) => filled($get('service_id'))),
                         ]),
 
                     Step::make(__('patientportal::portal.select_branch'))
@@ -129,7 +129,7 @@ class BookAppointment extends Page implements HasForms
                             Placeholder::make('summary')
                                 ->label(__('patientportal::portal.booking_summary'))
                                 ->content(fn ($get) => view('patientportal::components.booking-summary', [
-                                    'treatment' => Treatment::find($get('treatment_id')),
+                                    'service' => Service::find($get('service_id')),
                                     'branch' => Branch::find($get('branch_id')),
                                     'date' => $get('date'),
                                     'time' => $get('time_slot'),
@@ -162,7 +162,7 @@ class BookAppointment extends Page implements HasForms
 
             $appointment = Appointment::create([
                 'patient_id' => $patient->id,
-                'treatment_id' => $data['treatment_id'],
+                'service_id' => $data['service_id'],
                 'branch_id' => $data['branch_id'],
                 'practitioner_id' => $slot['practitioner_id'],
                 'date' => $data['date'],
@@ -198,13 +198,13 @@ class BookAppointment extends Page implements HasForms
         }
     }
 
-    protected function getTreatmentOptions(): array
+    protected function getServiceOptions(): array
     {
-        return Treatment::where('is_active', true)
+        return Service::where('is_active', true)
             ->where('is_bookable_online', true)
             ->get()
-            ->mapWithKeys(fn ($t) => [
-                $t->id => $t->name . ' (' . number_format($t->price_minor / 100, 2) . ' EGP)',
+            ->mapWithKeys(fn ($s) => [
+                $s->id => $s->name . ' (' . number_format($s->price_minor / 100, 2) . ' EGP)',
             ])
             ->toArray();
     }
@@ -219,16 +219,16 @@ class BookAppointment extends Page implements HasForms
 
     protected function loadAvailableSlots(?string $date): void
     {
-        if (!$date || !$this->data['treatment_id'] || !$this->data['branch_id']) {
+        if (!$date || !$this->data['service_id'] || !$this->data['branch_id']) {
             $this->availableSlots = [];
             return;
         }
 
-        $treatment = Treatment::find($this->data['treatment_id']);
+        $service = Service::find($this->data['service_id']);
         $branchId = $this->data['branch_id'];
-        $duration = $treatment->duration_minutes ?? 30;
+        $duration = $service->duration_minutes ?? 30;
 
-        // Get practitioners who can perform this treatment at this branch
+        // Get practitioners who can perform this service at this branch
         $practitioners = User::whereHas('roles', fn ($q) => $q->whereIn('name', ['practitioner', 'doctor', 'therapist']))
             ->where('branch_id', $branchId)
             ->where('is_active', true)

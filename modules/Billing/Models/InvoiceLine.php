@@ -5,7 +5,7 @@ namespace Modules\Billing\Models;
 use XLinic\Framework\Core\Model\BaseModel;
 use XLinic\Framework\Core\Model\Traits\HasTenancy;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Modules\Treatments\Models\Treatment;
+use Modules\Services\Models\Service;
 
 class InvoiceLine extends BaseModel
 {
@@ -14,7 +14,7 @@ class InvoiceLine extends BaseModel
     protected $fillable = [
         'tenant_id',
         'invoice_id',
-        'treatment_id',
+        'service_id',
         'description',
         'quantity',
         'unit_price_minor',
@@ -68,9 +68,9 @@ class InvoiceLine extends BaseModel
         return $this->belongsTo(Invoice::class);
     }
 
-    public function treatment(): BelongsTo
+    public function service(): BelongsTo
     {
-        return $this->belongsTo(Treatment::class);
+        return $this->belongsTo(Service::class);
     }
 
     // Calculate line totals

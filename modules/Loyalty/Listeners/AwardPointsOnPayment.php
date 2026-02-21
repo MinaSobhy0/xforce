@@ -34,14 +34,14 @@ class AwardPointsOnPayment implements ShouldQueue
         // Calculate points based on payment amount
         $amountMinor = $payment->amount_minor;
 
-        // Get treatment info from invoice lines for targeted rules
-        $treatmentId = null;
+        // Get service info from invoice lines for targeted rules
+        $serviceId = null;
         $categoryId = null;
 
-        $firstLine = $invoice->lines()->whereNotNull('treatment_id')->first();
-        if ($firstLine && $firstLine->treatment) {
-            $treatmentId = $firstLine->treatment_id;
-            $categoryId = $firstLine->treatment->category_id;
+        $firstLine = $invoice->lines()->whereNotNull('service_id')->first();
+        if ($firstLine && $firstLine->service) {
+            $serviceId = $firstLine->service_id;
+            $categoryId = $firstLine->service->category_id;
         }
 
         // Find applicable rule

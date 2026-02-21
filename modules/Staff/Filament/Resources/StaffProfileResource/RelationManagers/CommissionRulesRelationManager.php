@@ -8,8 +8,8 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Modules\Staff\Models\StaffCommission;
-use Modules\Treatments\Models\Treatment;
-use Modules\Treatments\Models\TreatmentCategory;
+use Modules\Services\Models\Service;
+use Modules\Services\Models\ServiceCategory;
 
 class CommissionRulesRelationManager extends RelationManager
 {
@@ -21,22 +21,22 @@ class CommissionRulesRelationManager extends RelationManager
     {
         return $form
             ->schema([
-                Forms\Components\Select::make('treatment_id')
-                    ->label(__('staff::staff.fields.treatment'))
-                    ->relationship('treatment', 'id')
-                    ->getOptionLabelFromRecordUsing(fn (Treatment $record) => $record->getTranslation('name', app()->getLocale()))
+                Forms\Components\Select::make('service_id')
+                    ->label(__('staff::staff.fields.service'))
+                    ->relationship('service', 'id')
+                    ->getOptionLabelFromRecordUsing(fn (Service $record) => $record->getTranslation('name', app()->getLocale()))
                     ->searchable()
                     ->preload()
                     ->nullable(),
 
-                Forms\Components\Select::make('treatment_category_id')
+                Forms\Components\Select::make('service_category_id')
                     ->label(__('staff::staff.fields.category'))
-                    ->relationship('treatmentCategory', 'id')
-                    ->getOptionLabelFromRecordUsing(fn (TreatmentCategory $record) => $record->getTranslation('name', app()->getLocale()))
+                    ->relationship('serviceCategory', 'id')
+                    ->getOptionLabelFromRecordUsing(fn (ServiceCategory $record) => $record->getTranslation('name', app()->getLocale()))
                     ->searchable()
                     ->preload()
                     ->nullable()
-                    ->helperText('Applies to all treatments in this category if no specific treatment is selected'),
+                    ->helperText('Applies to all services in this category if no specific service is selected'),
 
                 Forms\Components\Select::make('commission_type')
                     ->label(__('staff::staff.fields.commission_type'))
@@ -81,14 +81,14 @@ class CommissionRulesRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('id')
             ->columns([
-                Tables\Columns\TextColumn::make('treatment.name')
-                    ->label(__('staff::staff.fields.treatment'))
-                    ->getStateUsing(fn (StaffCommission $record) => $record->treatment?->getTranslation('name', app()->getLocale()))
-                    ->placeholder('All treatments'),
+                Tables\Columns\TextColumn::make('service.name')
+                    ->label(__('staff::staff.fields.service'))
+                    ->getStateUsing(fn (StaffCommission $record) => $record->service?->getTranslation('name', app()->getLocale()))
+                    ->placeholder('All services'),
 
-                Tables\Columns\TextColumn::make('treatmentCategory.name')
+                Tables\Columns\TextColumn::make('serviceCategory.name')
                     ->label(__('staff::staff.fields.category'))
-                    ->getStateUsing(fn (StaffCommission $record) => $record->treatmentCategory?->getTranslation('name', app()->getLocale()))
+                    ->getStateUsing(fn (StaffCommission $record) => $record->serviceCategory?->getTranslation('name', app()->getLocale()))
                     ->placeholder('-'),
 
                 Tables\Columns\TextColumn::make('commission_type')

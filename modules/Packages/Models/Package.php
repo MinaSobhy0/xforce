@@ -108,16 +108,16 @@ class Package extends BaseModel
     }
 
     // Query helpers
-    public function getTreatmentQuantity(string $treatmentId): int
+    public function getServiceQuantity(string $serviceId): int
     {
         return $this->items()
-            ->where('treatment_id', $treatmentId)
+            ->where('service_id', $serviceId)
             ->value('quantity') ?? 0;
     }
 
-    public function hasTreatment(string $treatmentId): bool
+    public function hasService(string $serviceId): bool
     {
-        return $this->items()->where('treatment_id', $treatmentId)->exists();
+        return $this->items()->where('service_id', $serviceId)->exists();
     }
 
     // Scopes

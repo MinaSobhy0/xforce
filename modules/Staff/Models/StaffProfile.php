@@ -146,12 +146,12 @@ class StaffProfile extends BaseModel
     /**
      * Calculate commission for an amount.
      */
-    public function calculateCommission(int $amountMinor, ?string $treatmentId = null): int
+    public function calculateCommission(int $amountMinor, ?string $serviceId = null): int
     {
-        // Check if there's a specific commission rule for this treatment
-        if ($treatmentId) {
+        // Check if there's a specific commission rule for this service
+        if ($serviceId) {
             $rule = $this->commissionRules()
-                ->where('treatment_id', $treatmentId)
+                ->where('service_id', $serviceId)
                 ->where('is_active', true)
                 ->first();
 

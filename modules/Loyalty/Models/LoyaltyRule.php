@@ -6,8 +6,8 @@ use XLinic\Framework\Core\Model\BaseModel;
 use XLinic\Framework\Core\Model\Traits\HasTenancy;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Modules\Treatments\Models\Treatment;
-use Modules\Treatments\Models\TreatmentCategory;
+use Modules\Services\Models\Service;
+use Modules\Services\Models\ServiceCategory;
 
 class LoyaltyRule extends BaseModel
 {
@@ -32,8 +32,8 @@ class LoyaltyRule extends BaseModel
         'points_per_currency_unit',
         'min_spend_minor',
         'max_points_per_transaction',
-        'treatment_id',
-        'treatment_category_id',
+        'service_id',
+        'service_category_id',
         'multiplier',
         'conditions',
         'is_active',
@@ -87,14 +87,14 @@ class LoyaltyRule extends BaseModel
         ];
     }
 
-    public function treatment(): BelongsTo
+    public function service(): BelongsTo
     {
-        return $this->belongsTo(Treatment::class);
+        return $this->belongsTo(Service::class);
     }
 
-    public function treatmentCategory(): BelongsTo
+    public function serviceCategory(): BelongsTo
     {
-        return $this->belongsTo(TreatmentCategory::class);
+        return $this->belongsTo(ServiceCategory::class);
     }
 
     public function isValid(): bool

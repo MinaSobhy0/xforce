@@ -3,7 +3,7 @@
 namespace Modules\Memberships\Filament\Resources;
 
 use Modules\Memberships\Models\Membership;
-use Modules\Treatments\Models\Treatment;
+use Modules\Services\Models\Service;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -121,7 +121,7 @@ class MembershipResource extends Resource
 
                         Forms\Components\KeyValue::make('included_sessions_monthly')
                             ->label(__('memberships::memberships.fields.included_sessions'))
-                            ->keyLabel(__('memberships::memberships.fields.treatment_id'))
+                            ->keyLabel(__('memberships::memberships.fields.service_id'))
                             ->valueLabel(__('memberships::memberships.fields.sessions_per_month'))
                             ->addActionLabel(__('memberships::memberships.actions.add_session'))
                             ->reorderable(false),

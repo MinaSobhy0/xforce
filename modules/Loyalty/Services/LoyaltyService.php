@@ -130,7 +130,7 @@ class LoyaltyService
     /**
      * Calculate points for a payment amount.
      */
-    public function calculatePointsForPayment(int $amountMinor, ?string $treatmentId = null, ?string $categoryId = null): int
+    public function calculatePointsForPayment(int $amountMinor, ?string $serviceId = null, ?string $categoryId = null): int
     {
         $rules = LoyaltyRule::active()
             ->byType(LoyaltyRule::TYPE_PER_SPEND)
@@ -140,11 +140,11 @@ class LoyaltyService
         $totalPoints = 0;
 
         foreach ($rules as $rule) {
-            // Check if rule is specific to treatment/category
-            if ($rule->treatment_id && $rule->treatment_id !== $treatmentId) {
+            // Check if rule is specific to service/category
+            if ($rule->service_id && $rule->service_id !== $serviceId) {
                 continue;
             }
-            if ($rule->treatment_category_id && $rule->treatment_category_id !== $categoryId) {
+            if ($rule->service_category_id && $rule->service_category_id !== $categoryId) {
                 continue;
             }
 

@@ -10,11 +10,11 @@
     "providers": [
         "Modules\\Booking\\Providers\\BookingServiceProvider"
     ],
-    "dependencies": ["Core", "Auth", "Patients", "Treatments"],
+    "dependencies": ["Core", "Auth", "Patients", "Services"],
     "optional_dependencies": ["Equipment"],
     "models": [
         "Modules\\Booking\\Models\\Appointment",
-        "Modules\\Booking\\Models\\AppointmentTreatmentNote",
+        "Modules\\Booking\\Models\\AppointmentServiceNote",
         "Modules\\Booking\\Models\\PractitionerSchedule",
         "Modules\\Booking\\Models\\PractitionerTimeOff",
         "Modules\\Booking\\Models\\Waitlist"

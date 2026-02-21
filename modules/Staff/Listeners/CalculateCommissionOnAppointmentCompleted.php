@@ -40,7 +40,7 @@ class CalculateCommissionOnAppointmentCompleted
         // Calculate commission
         $commissionAmount = $staffProfile->calculateCommission(
             $revenueMinor,
-            $appointment->treatment_id
+            $appointment->service_id
         );
 
         if ($commissionAmount <= 0) {
@@ -70,9 +70,9 @@ class CalculateCommissionOnAppointmentCompleted
             return $appointment->invoiceLine->total_minor ?? 0;
         }
 
-        // Fall back to treatment price
-        if ($appointment->treatment) {
-            return $appointment->treatment->price_minor ?? 0;
+        // Fall back to service price
+        if ($appointment->service) {
+            return $appointment->service->price_minor ?? 0;
         }
 
         // Use final price if set on appointment
