@@ -1,0 +1,172 @@
+<?php
+
+return [
+    // Navigation
+    'navigation' => [
+        'create_booking' => 'حجز جديد',
+    ],
+
+    // Titles
+    'title' => [
+        'create_booking' => 'إنشاء حجز',
+    ],
+
+    // Headings
+    'heading' => [
+        'create_booking' => 'إنشاء حجز جديد',
+    ],
+
+    // Sections
+    'sections' => [
+        'patient_service' => 'المريض والخدمة',
+        'patient_service_desc' => 'اختر المريض والخدمات للحجز',
+        'schedule' => 'الجدول',
+        'schedule_desc' => 'اختر التاريخ وابحث عن الأوقات المتاحة',
+        'notes' => 'ملاحظات إضافية',
+        'booking_cart' => 'سلة الحجز',
+        'active_packages' => 'الباقات النشطة',
+        'purchase_package' => 'شراء باقة جديدة',
+    ],
+
+    // Steps
+    'steps' => [
+        'patient' => 'المريض',
+        'patient_description' => 'ابحث عن مريض موجود أو أنشئ مريضاً جديداً',
+        'booking_type' => 'نوع الحجز',
+        'booking_type_description' => 'اختر كيف تريد حجز هذا الموعد',
+        'service' => 'الخدمة',
+        'service_description' => 'اختر الخدمات للحجز',
+        'package_service' => 'خدمة الباقة',
+        'package_service_description' => 'اختر خدمة من باقتك',
+        'slot' => 'التاريخ والوقت',
+        'slot_description' => 'اختر التاريخ والوقت المتاح',
+        'confirm' => 'تأكيد',
+        'confirm_description' => 'راجع وأكد حجزك',
+    ],
+
+    // Booking types
+    'booking_types' => [
+        'service' => 'حجز خدمة',
+        'package' => 'استخدام باقة',
+        'service_description' => 'احجز خدمة واحدة أو عدة خدمات',
+        'package_description' => 'استخدم جلسات من باقة موجودة',
+    ],
+
+    // Fields
+    'fields' => [
+        'patient' => 'المريض',
+        'booking_type' => 'نوع الحجز',
+        'services' => 'الخدمات',
+        'service' => 'الخدمة',
+        'duration' => 'المدة',
+        'duration_override' => 'المدة',
+        'package' => 'الباقة',
+        'duration_override_help' => 'اتركه فارغاً لاستخدام المدة الافتراضية',
+        'price' => 'السعر',
+        'select_package' => 'اختر الباقة',
+        'select_service_from_package' => 'اختر الخدمة',
+        'select_new_package' => 'اختر باقة للشراء',
+        'new_package_help' => 'اشترِ باقة جديدة لهذا المريض',
+        'branch' => 'الفرع',
+        'date' => 'التاريخ',
+        'date_from' => 'من تاريخ',
+        'date_to' => 'إلى تاريخ',
+        'summary' => 'ملخص الحجز',
+        'notes' => 'ملاحظات',
+        'source' => 'مصدر الحجز',
+    ],
+
+    // Sections
+    'sections' => [
+        'active_packages' => 'الباقات النشطة',
+        'purchase_package' => 'شراء باقة جديدة',
+        'booking_cart' => 'المواعيد المحددة',
+    ],
+
+    // Labels
+    'labels' => [
+        'active_packages' => 'باقة نشطة',
+        'sessions_remaining' => ':count جلسات متبقية',
+        'expires_in' => 'تنتهي خلال :days يوم',
+        'expires' => 'تنتهي :date',
+        'from_package' => 'من الباقة',
+        'patient' => 'المريض',
+        'appointments' => 'المواعيد',
+        'appointments_count' => 'موعد/مواعيد',
+        'total' => 'الإجمالي',
+        'total_duration' => 'المدة الإجمالية',
+        'available_slots' => 'الأوقات المتاحة',
+        'group_by' => 'تجميع حسب',
+        'time' => 'الوقت',
+        'service' => 'الخدمة',
+        'practitioner' => 'الممارس',
+        'selected_slots' => 'الأوقات المحددة',
+        'selected' => 'محدد',
+        'practitioners_available' => 'ممارسون متاحون',
+        'room_assigned' => 'الغرفة المعينة',
+        'equipment_assigned' => 'المعدات المعينة',
+        'usage_progress' => 'تقدم الاستخدام',
+        'select_package_to_purchase' => 'اختر باقة للشراء',
+        'sessions' => 'جلسات',
+        'click_to_select' => 'انقر للاختيار',
+    ],
+
+    // Placeholders
+    'placeholders' => [
+        'select_package' => 'اختر باقة...',
+    ],
+
+    // Actions
+    'actions' => [
+        'add_service' => 'إضافة خدمة أخرى',
+        'generate_slots' => 'البحث عن الأوقات المتاحة',
+        'find_next' => 'البحث عن الوقت التالي',
+        'select_slot' => 'اختيار',
+        'previous' => 'السابق',
+        'next' => 'التالي',
+        'confirm_booking' => 'تأكيد الحجز',
+        'clear_all' => 'مسح الكل',
+        'remove' => 'إزالة',
+        'purchase_package' => 'شراء باقة جديدة',
+        'cancel' => 'إلغاء',
+        'purchase' => 'شراء',
+    ],
+
+    // Messages
+    'messages' => [
+        'select_patient_first' => 'الرجاء اختيار مريض أولاً',
+        'no_active_packages' => 'لا توجد باقات نشطة لهذا المريض',
+        'no_packages_available' => 'لا توجد باقات متاحة. يمكنك شراء واحدة جديدة أدناه.',
+        'no_slots_found' => 'لم يتم العثور على أوقات متاحة. جرب تاريخاً مختلفاً أو ابحث عن الأوقات.',
+        'no_slots_available' => 'لا توجد أوقات متاحة',
+        'try_different_date' => 'جرب اختيار تاريخ مختلف أو تحقق من توفر الممارس.',
+        'next_available_found' => 'تم العثور على الوقت المتاح التالي',
+        'date_updated' => 'تم تحديث التاريخ إلى :date',
+        'no_availability' => 'لم يتم العثور على أوقات متاحة في الـ 30 يوماً القادمة',
+        'slot_added' => 'تمت إضافة الوقت',
+        'slots_found' => 'تم العثور على أوقات',
+        'slots_count' => 'تم العثور على :count وقت/أوقات متاحة',
+        'booking_created' => 'تم إنشاء الحجز بنجاح',
+        'appointments_created' => 'تم إنشاء :count موعد/مواعيد.',
+        'booking_failed' => 'فشل الحجز',
+        'confirm_clear_cart' => 'هل أنت متأكد من رغبتك في مسح جميع الأوقات المحددة؟',
+        'cart_empty' => 'لا توجد مواعيد بعد',
+        'select_slots_hint' => 'اختر الأوقات من الخيارات المتاحة',
+        'no_slots' => 'لا توجد أوقات متاحة',
+        'generate_slots_hint' => 'انقر على "البحث عن الأوقات المتاحة" لرؤية الأوقات المتاحة',
+        'click_generate_slots' => 'انقر على "البحث عن الأوقات المتاحة" لرؤية أوقات المواعيد المتاحة',
+    ],
+
+    // Validation
+    'validation' => [
+        'patient_required' => 'الرجاء اختيار مريض',
+        'service_required' => 'الرجاء اختيار خدمة واحدة على الأقل',
+        'package_service_required' => 'الرجاء اختيار باقة وخدمة',
+        'slot_required' => 'الرجاء اختيار وقت واحد على الأقل',
+        'branch_date_required' => 'الرجاء اختيار فرع وتاريخ أولاً',
+        'service_branch_required' => 'الرجاء اختيار خدمة وفرع أولاً',
+    ],
+
+    // Minutes
+    'minutes' => 'دقيقة',
+];

@@ -3,6 +3,11 @@
 namespace Modules\Booking\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Livewire\Livewire;
+use Modules\Booking\Livewire\SlotGrid;
+use Modules\Booking\Livewire\BookingCart;
+use Modules\Booking\Livewire\PatientPackages;
+use Modules\Booking\Services\SlotGenerationService;
 
 class BookingServiceProvider extends ServiceProvider
 {
@@ -13,6 +18,11 @@ class BookingServiceProvider extends ServiceProvider
     {
         $this->app->register(RouteServiceProvider::class);
         $this->app->register(EventServiceProvider::class);
+
+        // Register SlotGenerationService as singleton
+        $this->app->singleton(SlotGenerationService::class, function ($app) {
+            return new SlotGenerationService();
+        });
     }
 
     public function boot(): void
@@ -20,7 +30,15 @@ class BookingServiceProvider extends ServiceProvider
         $this->registerTranslations();
         $this->registerConfig();
         $this->registerViews();
+        $this->registerLivewireComponents();
         $this->loadMigrationsFrom(module_path($this->moduleName, 'Database/Migrations'));
+    }
+
+    protected function registerLivewireComponents(): void
+    {
+        Livewire::component('booking::slot-grid', SlotGrid::class);
+        Livewire::component('booking::booking-cart', BookingCart::class);
+        Livewire::component('booking::patient-packages', PatientPackages::class);
     }
 
     protected function registerViews(): void

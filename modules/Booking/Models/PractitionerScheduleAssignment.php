@@ -5,9 +5,11 @@ namespace Modules\Booking\Models;
 use XLinic\Framework\Core\Model\BaseModel;
 use XLinic\Framework\Core\Model\Traits\HasTenancy;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Modules\Auth\Models\User;
 use Modules\Core\Models\Branch;
+use Modules\Staff\Models\StaffProfile;
 
 class PractitionerScheduleAssignment extends BaseModel
 {
@@ -15,7 +17,7 @@ class PractitionerScheduleAssignment extends BaseModel
 
     protected $fillable = [
         'tenant_id',
-        'user_id',
+        'staff_profile_id',
         'work_schedule_id',
         'branch_id',
         'effective_from',
@@ -36,9 +38,24 @@ class PractitionerScheduleAssignment extends BaseModel
 
     // Relationships
 
-    public function practitioner(): BelongsTo
+    public function staffProfile(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(StaffProfile::class);
+    }
+
+    /**
+     * Get the practitioner (user) through staff profile.
+     */
+    public function practitioner(): HasOneThrough
+    {
+        return $this->hasOneThrough(
+            User::class,
+            StaffProfile::class,
+            'id', // Foreign key on staff_profiles
+            'id', // Foreign key on users
+            'staff_profile_id', // Local key on schedule_assignments
+            'user_id' // Local key on staff_profiles
+        );
     }
 
     public function workSchedule(): BelongsTo
@@ -210,9 +227,22 @@ class PractitionerScheduleAssignment extends BaseModel
         });
     }
 
+    /**
+     * Scope by staff profile ID.
+     */
+    public function scopeForStaffProfile($query, string $staffProfileId)
+    {
+        return $query->where('staff_profile_id', $staffProfileId);
+    }
+
+    /**
+     * Scope by user ID (through staff profile).
+     */
     public function scopeForPractitioner($query, string $userId)
     {
-        return $query->where('user_id', $userId);
+        return $query->whereHas('staffProfile', function ($q) use ($userId) {
+            $q->where('user_id', $userId);
+        });
     }
 
     public function scopeForBranch($query, string $branchId)

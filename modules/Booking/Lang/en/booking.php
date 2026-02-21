@@ -1,0 +1,172 @@
+<?php
+
+return [
+    // Navigation
+    'navigation' => [
+        'create_booking' => 'New Booking',
+    ],
+
+    // Titles
+    'title' => [
+        'create_booking' => 'Create Booking',
+    ],
+
+    // Headings
+    'heading' => [
+        'create_booking' => 'Create New Booking',
+    ],
+
+    // Sections
+    'sections' => [
+        'patient_service' => 'Patient & Service',
+        'patient_service_desc' => 'Select patient and choose services to book',
+        'schedule' => 'Schedule',
+        'schedule_desc' => 'Select date and find available time slots',
+        'notes' => 'Additional Notes',
+        'booking_cart' => 'Booking Cart',
+        'active_packages' => 'Active Packages',
+        'purchase_package' => 'Purchase New Package',
+    ],
+
+    // Steps (kept for backwards compatibility)
+    'steps' => [
+        'patient' => 'Patient',
+        'patient_description' => 'Search for an existing patient or create a new one',
+        'booking_type' => 'Booking Type',
+        'booking_type_description' => 'Choose how you want to book this appointment',
+        'service' => 'Service',
+        'service_description' => 'Select the services to book',
+        'package_service' => 'Package Service',
+        'package_service_description' => 'Select a service from your package',
+        'slot' => 'Date & Time',
+        'slot_description' => 'Select the date and available time slot',
+        'confirm' => 'Confirm',
+        'confirm_description' => 'Review and confirm your booking',
+    ],
+
+    // Booking types
+    'booking_types' => [
+        'service' => 'Book Service',
+        'package' => 'Use Package',
+        'service_description' => 'Book a single service or multiple services',
+        'package_description' => 'Use sessions from an existing package',
+    ],
+
+    // Fields
+    'fields' => [
+        'patient' => 'Patient',
+        'booking_type' => 'Booking Type',
+        'services' => 'Services',
+        'service' => 'Service',
+        'duration' => 'Duration',
+        'duration_override' => 'Duration',
+        'package' => 'Package',
+        'duration_override_help' => 'Leave empty to use default duration',
+        'price' => 'Price',
+        'select_package' => 'Select Package',
+        'select_service_from_package' => 'Select Service',
+        'select_new_package' => 'Select Package to Purchase',
+        'new_package_help' => 'Purchase a new package for this patient',
+        'branch' => 'Branch',
+        'date' => 'Date',
+        'date_from' => 'From Date',
+        'date_to' => 'To Date',
+        'summary' => 'Booking Summary',
+        'notes' => 'Notes',
+        'source' => 'Booking Source',
+    ],
+
+    // Sections
+    'sections' => [
+        'active_packages' => 'Active Packages',
+        'purchase_package' => 'Purchase New Package',
+        'booking_cart' => 'Selected Appointments',
+    ],
+
+    // Labels
+    'labels' => [
+        'active_packages' => 'active package(s)',
+        'sessions_remaining' => ':count sessions remaining',
+        'expires_in' => 'Expires in :days days',
+        'expires' => 'Expires :date',
+        'from_package' => 'From Package',
+        'patient' => 'Patient',
+        'appointments' => 'Appointments',
+        'appointments_count' => 'appointment(s)',
+        'total' => 'Total',
+        'total_duration' => 'Total Duration',
+        'available_slots' => 'Available Slots',
+        'group_by' => 'Group by',
+        'time' => 'Time',
+        'service' => 'Service',
+        'practitioner' => 'Practitioner',
+        'selected_slots' => 'Selected Slots',
+        'selected' => 'Selected',
+        'practitioners_available' => 'Practitioners available',
+        'room_assigned' => 'Room assigned',
+        'equipment_assigned' => 'Equipment assigned',
+        'usage_progress' => 'Usage Progress',
+        'select_package_to_purchase' => 'Select a Package to Purchase',
+        'sessions' => 'sessions',
+        'click_to_select' => 'Click to select',
+    ],
+
+    // Placeholders
+    'placeholders' => [
+        'select_package' => 'Select a package...',
+    ],
+
+    // Actions
+    'actions' => [
+        'add_service' => 'Add Another Service',
+        'generate_slots' => 'Find Available Slots',
+        'find_next' => 'Find Next Available',
+        'select_slot' => 'Select',
+        'previous' => 'Previous',
+        'next' => 'Next',
+        'confirm_booking' => 'Confirm Booking',
+        'clear_all' => 'Clear All',
+        'remove' => 'Remove',
+        'purchase_package' => 'Purchase New Package',
+        'cancel' => 'Cancel',
+        'purchase' => 'Purchase',
+    ],
+
+    // Messages
+    'messages' => [
+        'select_patient_first' => 'Please select a patient first',
+        'no_active_packages' => 'No active packages found for this patient',
+        'no_packages_available' => 'No packages available. You can purchase a new one below.',
+        'no_slots_found' => 'No available slots found. Try a different date or generate slots.',
+        'no_slots_available' => 'No Slots Available',
+        'try_different_date' => 'Try selecting a different date or check practitioner availability.',
+        'next_available_found' => 'Found Next Available Slot',
+        'date_updated' => 'Date updated to :date',
+        'no_availability' => 'No availability found in the next 30 days',
+        'slot_added' => 'Slot Added',
+        'slots_found' => 'Slots Found',
+        'slots_count' => ':count available slot(s) found',
+        'booking_created' => 'Booking Created Successfully',
+        'appointments_created' => ':count appointment(s) have been created.',
+        'booking_failed' => 'Booking Failed',
+        'confirm_clear_cart' => 'Are you sure you want to clear all selected slots?',
+        'cart_empty' => 'No appointments yet',
+        'select_slots_hint' => 'Select time slots from the available options',
+        'no_slots' => 'No Available Slots',
+        'generate_slots_hint' => 'Click "Find Available Slots" to see available times',
+        'click_generate_slots' => 'Click "Find Available Slots" to see available appointment times',
+    ],
+
+    // Validation
+    'validation' => [
+        'patient_required' => 'Please select a patient',
+        'service_required' => 'Please select at least one service',
+        'package_service_required' => 'Please select a package and service',
+        'slot_required' => 'Please select at least one time slot',
+        'branch_date_required' => 'Please select a branch and date first',
+        'service_branch_required' => 'Please select a service and branch first',
+    ],
+
+    // Minutes
+    'minutes' => 'min',
+];

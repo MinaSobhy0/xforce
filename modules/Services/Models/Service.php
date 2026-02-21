@@ -14,6 +14,7 @@ use Modules\Equipment\Models\EquipmentType;
 use Modules\Equipment\Models\Equipment;
 use Modules\Core\Models\Room;
 use Modules\Auth\Models\User;
+use Modules\Staff\Models\StaffProfile;
 use Carbon\Carbon;
 
 class Service extends BaseModel
@@ -140,9 +141,22 @@ class Service extends BaseModel
         return $this->hasMany(\Modules\Packages\Models\PackageItem::class);
     }
 
+    /**
+     * Get qualified staff profiles for this service.
+     */
     public function qualifiedStaff(): BelongsToMany
     {
-        return $this->belongsToMany(User::class, 'service_qualified_staff')
+        return $this->belongsToMany(StaffProfile::class, 'service_qualified_staff', 'service_id', 'staff_profile_id')
+            ->withTimestamps();
+    }
+
+    /**
+     * Get qualified staff users through staff profiles.
+     */
+    public function qualifiedStaffUsers(): BelongsToMany
+    {
+        return $this->belongsToMany(StaffProfile::class, 'service_qualified_staff', 'service_id', 'staff_profile_id')
+            ->with('user')
             ->withTimestamps();
     }
 
