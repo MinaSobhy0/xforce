@@ -8,12 +8,15 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Modules\Payroll\Models\PayrollLine;
+use Modules\Payroll\Services\SalarySlipPdfService;
 
 class LinesRelationManager extends RelationManager
 {
     protected static string $relationship = 'lines';
 
-    protected static ?string $title = 'Salary Details';
+    protected static ?string $title = 'Payslips';
+
+    protected static bool $isLazy = false;
 
     public function form(Form $form): Form
     {
@@ -50,7 +53,8 @@ class LinesRelationManager extends RelationManager
             ->columns([
                 Tables\Columns\TextColumn::make('staffProfile.user.name')
                     ->label(__('payroll::payroll.fields.employee'))
-                    ->searchable(),
+                    ->searchable()
+                    ->sortable(),
 
                 Tables\Columns\TextColumn::make('staffProfile.job_title')
                     ->label(__('payroll::payroll.fields.job_title')),
@@ -73,11 +77,13 @@ class LinesRelationManager extends RelationManager
 
                 Tables\Columns\TextColumn::make('tax')
                     ->label(__('payroll::payroll.fields.tax'))
-                    ->money('EGP'),
+                    ->money('EGP')
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('social_insurance')
                     ->label(__('payroll::payroll.fields.social_insurance'))
-                    ->money('EGP'),
+                    ->money('EGP')
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('net_salary')
                     ->label(__('payroll::payroll.fields.net_salary'))
@@ -89,6 +95,15 @@ class LinesRelationManager extends RelationManager
             ->actions([
                 Tables\Actions\EditAction::make()
                     ->visible(fn () => $this->ownerRecord->isEditable()),
+
+                Tables\Actions\Action::make('download_pdf')
+                    ->label(__('payroll::payroll.actions.download_payslip'))
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->color('success')
+                    ->action(function (PayrollLine $record) {
+                        $service = app(SalarySlipPdfService::class);
+                        return $service->download($record);
+                    }),
             ])
             ->bulkActions([]);
     }

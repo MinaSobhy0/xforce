@@ -3,17 +3,24 @@
 return [
     'navigation' => [
         'runs' => 'دورات الرواتب',
+        'payslips' => 'كشوف الرواتب',
     ],
 
     'labels' => [
         'run' => 'دورة رواتب',
         'runs' => 'دورات الرواتب',
+        'payslip' => 'كشف راتب',
+        'payslips' => 'كشوف الرواتب',
     ],
 
     'sections' => [
         'period' => 'الفترة',
         'totals' => 'الإجماليات',
         'notes' => 'ملاحظات',
+        'employee' => 'بيانات الموظف',
+        'earnings' => 'الإيرادات',
+        'deductions' => 'الخصومات',
+        'net' => 'صافي الراتب',
     ],
 
     'fields' => [
@@ -32,6 +39,8 @@ return [
         'tax' => 'الضرائب',
         'social_insurance' => 'التأمينات الاجتماعية',
         'net_salary' => 'صافي الراتب',
+        'gross_salary' => 'إجمالي الراتب',
+        'total_deductions' => 'إجمالي الخصومات',
         'paid_at' => 'تاريخ الدفع',
         'notes' => 'ملاحظات',
     ],
@@ -47,6 +56,7 @@ return [
         'approve' => 'موافقة',
         'pay' => 'تحديد كمدفوع',
         'cancel' => 'إلغاء',
+        'download_payslip' => 'تحميل كشف الراتب',
     ],
 
     'messages' => [

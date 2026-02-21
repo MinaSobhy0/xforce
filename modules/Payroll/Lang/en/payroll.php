@@ -3,17 +3,24 @@
 return [
     'navigation' => [
         'runs' => 'Payroll Runs',
+        'payslips' => 'Payslips',
     ],
 
     'labels' => [
         'run' => 'Payroll Run',
         'runs' => 'Payroll Runs',
+        'payslip' => 'Payslip',
+        'payslips' => 'Payslips',
     ],
 
     'sections' => [
         'period' => 'Period',
         'totals' => 'Totals',
         'notes' => 'Notes',
+        'employee' => 'Employee Information',
+        'earnings' => 'Earnings',
+        'deductions' => 'Deductions',
+        'net' => 'Net Pay',
     ],
 
     'fields' => [
@@ -32,6 +39,8 @@ return [
         'tax' => 'Tax',
         'social_insurance' => 'Social Insurance',
         'net_salary' => 'Net Salary',
+        'gross_salary' => 'Gross Salary',
+        'total_deductions' => 'Total Deductions',
         'paid_at' => 'Paid At',
         'notes' => 'Notes',
     ],
@@ -47,6 +56,7 @@ return [
         'approve' => 'Approve',
         'pay' => 'Mark as Paid',
         'cancel' => 'Cancel',
+        'download_payslip' => 'Download Payslip',
     ],
 
     'messages' => [
