@@ -14,6 +14,7 @@ class PayrollServiceProvider extends ServiceProvider
     {
         $this->registerConfig();
         $this->registerTranslations();
+        $this->registerViews();
         $this->loadMigrationsFrom(module_path($this->moduleName, 'Database/Migrations'));
     }
 
@@ -38,5 +39,10 @@ class PayrollServiceProvider extends ServiceProvider
     protected function registerTranslations(): void
     {
         $this->loadTranslationsFrom(module_path($this->moduleName, 'Lang'), $this->moduleNameLower);
+    }
+
+    protected function registerViews(): void
+    {
+        $this->loadViewsFrom(module_path($this->moduleName, 'resources/views'), $this->moduleNameLower);
     }
 }
