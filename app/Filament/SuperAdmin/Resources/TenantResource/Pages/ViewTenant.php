@@ -989,7 +989,7 @@ class ViewTenant extends BaseViewRecord
                                             ->color('primary')
                                             ->modalHeading('Manage Tenant Modules')
                                             ->modalDescription('Select which modules this tenant can access. Changes take effect immediately.')
-                                            ->form(function (Tenant $record) {
+                                            ->form(function () {
                                                 $allModules = \App\Models\Module::whereRaw('is_active = true')
                                                     ->orderBy('category')
                                                     ->orderBy('sort_order')
@@ -1005,12 +1005,14 @@ class ViewTenant extends BaseViewRecord
                                                     Forms\Components\CheckboxList::make('modules')
                                                         ->label('Available Modules')
                                                         ->options($options)
-                                                        ->default($record->features ?? [])
                                                         ->columns(2)
                                                         ->searchable()
                                                         ->bulkToggleable(),
                                                 ];
                                             })
+                                            ->fillForm(fn (Tenant $record): array => [
+                                                'modules' => $record->features ?? [],
+                                            ])
                                             ->action(function (array $data, Tenant $record) {
                                                 $record->update(['features' => $data['modules'] ?? []]);
 
