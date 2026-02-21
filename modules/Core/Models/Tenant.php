@@ -60,6 +60,10 @@ class Tenant extends Model
         'max_branches',
         'max_patients',
         'max_storage_mb',
+        'extra_users',
+        'extra_branches',
+        'extra_patients',
+        'extra_storage_mb',
         'timezone',
         'locale',
         'currency',
@@ -91,6 +95,10 @@ class Tenant extends Model
         'max_branches' => 'integer',
         'max_patients' => 'integer',
         'max_storage_mb' => 'integer',
+        'extra_users' => 'integer',
+        'extra_branches' => 'integer',
+        'extra_patients' => 'integer',
+        'extra_storage_mb' => 'integer',
         'tax_rate' => 'decimal:4',
         'meta' => 'array',
         'status' => TenantStatus::class,
@@ -467,40 +475,93 @@ class Tenant extends Model
         return min(100, ($current / $limit) * 100);
     }
 
-    public function canAddUser(): bool
+    /**
+     * Get effective limit for a resource (plan limit + additional purchased).
+     * Returns null for unlimited resources.
+     */
+    public function getEffectiveLimit(string $resource): ?int
     {
-        if (!$this->usage) {
-            return true;
+        // These resources are unlimited
+        $unlimitedResources = ['treatments', 'products', 'equipment'];
+        if (in_array($resource, $unlimitedResources)) {
+            return null; // null = unlimited
         }
 
-        return ($this->usage->users ?? 0) < ($this->max_users ?? 10);
+        // Get base limit from plan
+        $planLimit = $this->plan?->{"max_{$resource}"} ?? 0;
+
+        // Get additional purchased (stored in tenant's max_* fields as extra)
+        // If tenant has a plan, treat tenant's max_* as "additional" on top of plan
+        // If no plan, use tenant's max_* as the total limit
+        if ($this->plan) {
+            $additional = $this->{"extra_{$resource}"} ?? 0;
+            return $planLimit + $additional;
+        }
+
+        // Fallback to tenant's own limits if no plan
+        return $this->{"max_{$resource}"} ?? match ($resource) {
+            'users' => 10,
+            'branches' => 1,
+            'patients' => 1000,
+            'storage_mb' => 1024,
+            default => 0,
+        };
+    }
+
+    /**
+     * Get plan limit for a resource (without additional).
+     */
+    public function getPlanLimit(string $resource): ?int
+    {
+        // Unlimited resources
+        if (in_array($resource, ['treatments', 'products', 'equipment'])) {
+            return null;
+        }
+
+        return $this->plan?->{"max_{$resource}"};
+    }
+
+    /**
+     * Get additional purchased amount for a resource.
+     */
+    public function getAdditionalPurchased(string $resource): int
+    {
+        return $this->{"extra_{$resource}"} ?? 0;
+    }
+
+    public function canAddUser(): bool
+    {
+        $limit = $this->getEffectiveLimit('users');
+        if ($limit === null) return true; // unlimited
+
+        $current = $this->usage->users ?? 0;
+        return $current < $limit;
     }
 
     public function canAddPatient(): bool
     {
-        if (!$this->usage) {
-            return true;
-        }
+        $limit = $this->getEffectiveLimit('patients');
+        if ($limit === null) return true; // unlimited
 
-        return ($this->usage->patients ?? 0) < ($this->max_patients ?? 1000);
+        $current = $this->usage->patients ?? 0;
+        return $current < $limit;
     }
 
     public function canAddBranch(): bool
     {
-        if (!$this->usage) {
-            return true;
-        }
+        $limit = $this->getEffectiveLimit('branches');
+        if ($limit === null) return true; // unlimited
 
-        return ($this->usage->branches ?? 0) < ($this->max_branches ?? 1);
+        $current = $this->usage->branches ?? 0;
+        return $current < $limit;
     }
 
     public function getRemainingStorage(): int
     {
-        if (!$this->usage) {
-            return $this->max_storage_mb ?? 1024;
-        }
+        $limit = $this->getEffectiveLimit('storage_mb') ?? 1024;
+        $used = $this->usage->storage_mb ?? 0;
 
-        return max(0, ($this->max_storage_mb ?? 1024) - ($this->usage->storage_mb ?? 0));
+        return max(0, $limit - $used);
     }
 
     public function getDisplayName(): string

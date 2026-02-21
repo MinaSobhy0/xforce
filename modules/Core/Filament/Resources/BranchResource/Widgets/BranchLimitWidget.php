@@ -22,7 +22,17 @@ class BranchLimitWidget extends Widget
 
         if ($tenant) {
             $this->currentCount = Branch::count();
-            $this->maxBranches = $tenant->max_branches ?? PHP_INT_MAX;
+
+            // Get effective limit from plan + extra purchased
+            $planLimit = $tenant->plan?->max_branches ?? 0;
+            $extraBranches = $tenant->extra_branches ?? 0;
+            $this->maxBranches = $planLimit + $extraBranches;
+
+            // If no limit set, treat as unlimited
+            if ($this->maxBranches <= 0) {
+                $this->maxBranches = PHP_INT_MAX;
+            }
+
             $this->isAtLimit = $this->currentCount >= $this->maxBranches;
             $this->isNearLimit = !$this->isAtLimit && ($this->maxBranches - $this->currentCount) <= 1;
         }
@@ -39,7 +49,12 @@ class BranchLimitWidget extends Widget
             return false;
         }
 
-        // Only show if max_branches is a reasonable limit (not unlimited)
-        return ($tenant->max_branches ?? PHP_INT_MAX) < 999;
+        // Get effective limit from plan + extra purchased
+        $planLimit = $tenant->plan?->max_branches ?? 0;
+        $extraBranches = $tenant->extra_branches ?? 0;
+        $total = $planLimit + $extraBranches;
+
+        // Only show if there's a reasonable limit (not unlimited)
+        return $total > 0 && $total < 999;
     }
 }

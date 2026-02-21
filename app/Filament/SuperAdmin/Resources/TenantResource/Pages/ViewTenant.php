@@ -682,18 +682,58 @@ class ViewTenant extends BaseViewRecord
                         ->icon('heroicon-o-chart-bar')
                         ->schema([
                             Components\Section::make('Hard Limits')
-                                ->columns(3)
+                                ->description('Limits from subscription plan + additional purchased')
+                                ->columns(4)
                                 ->schema([
                                     Components\TextEntry::make('usage.users')
                                         ->label('Users')
                                         ->formatStateUsing(function ($state, Tenant $record) {
-                                            $limit = $record->max_users ?? '∞';
-                                            return ((int) ($state ?? 0)) . ' / ' . $limit;
+                                            $current = (int) ($state ?? 0);
+                                            $planLimit = $record->plan?->max_users ?? 0;
+                                            $extra = $record->extra_users ?? 0;
+                                            $total = $planLimit + $extra;
+
+                                            if ($total <= 0) return "{$current} / ∞";
+
+                                            $label = "{$current} / {$total}";
+                                            if ($extra > 0) {
+                                                $label .= " ({$planLimit} + {$extra})";
+                                            }
+                                            return $label;
                                         })
                                         ->color(function ($state, Tenant $record) {
-                                            $limit = $record->max_users;
-                                            if (!$limit || !is_numeric($limit)) return 'gray';
-                                            $pct = ((int) ($state ?? 0)) / (int) $limit * 100;
+                                            $planLimit = $record->plan?->max_users ?? 0;
+                                            $extra = $record->extra_users ?? 0;
+                                            $total = $planLimit + $extra;
+                                            if ($total <= 0) return 'gray';
+                                            $pct = ((int) ($state ?? 0)) / $total * 100;
+                                            if ($pct >= 90) return 'danger';
+                                            if ($pct >= 70) return 'warning';
+                                            return 'success';
+                                        }),
+
+                                    Components\TextEntry::make('usage.branches')
+                                        ->label('Branches')
+                                        ->formatStateUsing(function ($state, Tenant $record) {
+                                            $current = (int) ($state ?? 0);
+                                            $planLimit = $record->plan?->max_branches ?? 0;
+                                            $extra = $record->extra_branches ?? 0;
+                                            $total = $planLimit + $extra;
+
+                                            if ($total <= 0) return "{$current} / ∞";
+
+                                            $label = "{$current} / {$total}";
+                                            if ($extra > 0) {
+                                                $label .= " ({$planLimit} + {$extra})";
+                                            }
+                                            return $label;
+                                        })
+                                        ->color(function ($state, Tenant $record) {
+                                            $planLimit = $record->plan?->max_branches ?? 0;
+                                            $extra = $record->extra_branches ?? 0;
+                                            $total = $planLimit + $extra;
+                                            if ($total <= 0) return 'gray';
+                                            $pct = ((int) ($state ?? 0)) / $total * 100;
                                             if ($pct >= 90) return 'danger';
                                             if ($pct >= 70) return 'warning';
                                             return 'success';
@@ -702,51 +742,78 @@ class ViewTenant extends BaseViewRecord
                                     Components\TextEntry::make('usage.patients')
                                         ->label('Patients')
                                         ->formatStateUsing(function ($state, Tenant $record) {
-                                            $limit = $record->max_patients ?? '∞';
-                                            return ((int) ($state ?? 0)) . ' / ' . $limit;
+                                            $current = (int) ($state ?? 0);
+                                            $planLimit = $record->plan?->max_patients ?? 0;
+                                            $extra = $record->extra_patients ?? 0;
+                                            $total = $planLimit + $extra;
+
+                                            if ($total <= 0) return "{$current} / ∞";
+
+                                            $label = "{$current} / {$total}";
+                                            if ($extra > 0) {
+                                                $label .= " ({$planLimit} + {$extra})";
+                                            }
+                                            return $label;
+                                        })
+                                        ->color(function ($state, Tenant $record) {
+                                            $planLimit = $record->plan?->max_patients ?? 0;
+                                            $extra = $record->extra_patients ?? 0;
+                                            $total = $planLimit + $extra;
+                                            if ($total <= 0) return 'gray';
+                                            $pct = ((int) ($state ?? 0)) / $total * 100;
+                                            if ($pct >= 90) return 'danger';
+                                            if ($pct >= 70) return 'warning';
+                                            return 'success';
                                         }),
 
-                                    Components\TextEntry::make('usage.branches')
-                                        ->label('Branches')
+                                    Components\TextEntry::make('usage.storage_mb')
+                                        ->label('Storage')
                                         ->formatStateUsing(function ($state, Tenant $record) {
-                                            $limit = $record->max_branches ?? '∞';
-                                            return ((int) ($state ?? 0)) . ' / ' . $limit;
-                                        }),
+                                            $used = round(((float) ($state ?? 0)) / 1024, 2);
+                                            $planLimit = $record->plan?->max_storage_mb ?? 0;
+                                            $extra = $record->extra_storage_mb ?? 0;
+                                            $total = $planLimit + $extra;
 
-                                    Components\TextEntry::make('usage.equipment')
-                                        ->label('Equipment')
-                                        ->formatStateUsing(function ($state, Tenant $record) {
-                                            $limit = $record->plan?->max_equipment ?? '∞';
-                                            return ((int) ($state ?? 0)) . ' / ' . $limit;
-                                        }),
+                                            if ($total <= 0) return "{$used} GB / ∞";
 
-                                    Components\TextEntry::make('usage.products')
-                                        ->label('Products')
-                                        ->formatStateUsing(function ($state, Tenant $record) {
-                                            $limit = $record->plan?->max_products ?? '∞';
-                                            return ((int) ($state ?? 0)) . ' / ' . $limit;
-                                        }),
-
-                                    Components\TextEntry::make('usage.treatments')
-                                        ->label('Treatments')
-                                        ->formatStateUsing(function ($state, Tenant $record) {
-                                            $limit = $record->plan?->max_treatments ?? '∞';
-                                            return ((int) ($state ?? 0)) . ' / ' . $limit;
+                                            $limitGb = round($total / 1024, 1);
+                                            return "{$used} GB / {$limitGb} GB";
+                                        })
+                                        ->color(function ($state, Tenant $record) {
+                                            $planLimit = $record->plan?->max_storage_mb ?? 0;
+                                            $extra = $record->extra_storage_mb ?? 0;
+                                            $total = $planLimit + $extra;
+                                            if ($total <= 0) return 'gray';
+                                            $pct = ((float) ($state ?? 0)) / $total * 100;
+                                            if ($pct >= 90) return 'danger';
+                                            if ($pct >= 70) return 'warning';
+                                            return 'success';
                                         }),
                                 ]),
 
-                            Components\Section::make('Storage Breakdown')
-                                ->columns(4)
+                            Components\Section::make('Unlimited Resources')
+                                ->description('These resources have no limits')
+                                ->columns(3)
                                 ->schema([
-                                    Components\TextEntry::make('usage.storage_mb')
-                                        ->label('Total Used')
-                                        ->formatStateUsing(function ($state, Tenant $record) {
-                                            $used = round(((float) ($state ?? 0)) / 1024, 2);
-                                            $limit = $record->max_storage_mb;
-                                            $limitGb = $limit ? round((float) $limit / 1024, 1) : '∞';
-                                            return "{$used} GB / {$limitGb} GB";
-                                        }),
+                                    Components\TextEntry::make('usage.treatments')
+                                        ->label('Treatments')
+                                        ->formatStateUsing(fn($state) => ((int) ($state ?? 0)) . ' (unlimited)')
+                                        ->color('success'),
 
+                                    Components\TextEntry::make('usage.equipment')
+                                        ->label('Equipment')
+                                        ->formatStateUsing(fn($state) => ((int) ($state ?? 0)) . ' (unlimited)')
+                                        ->color('success'),
+
+                                    Components\TextEntry::make('usage.products')
+                                        ->label('Products')
+                                        ->formatStateUsing(fn($state) => ((int) ($state ?? 0)) . ' (unlimited)')
+                                        ->color('success'),
+                                ]),
+
+                            Components\Section::make('Storage Breakdown')
+                                ->columns(3)
+                                ->schema([
                                     Components\TextEntry::make('usage.storage_photos_mb')
                                         ->label('Photos')
                                         ->formatStateUsing(fn($state) => round(((float) ($state ?? 0)) / 1024, 2) . ' GB')

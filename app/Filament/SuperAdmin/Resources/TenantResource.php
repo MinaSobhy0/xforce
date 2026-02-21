@@ -183,27 +183,65 @@ class TenantResource extends Resource
                         ->required(),
                 ]),
 
-            Forms\Components\Section::make('Limits')
+            Forms\Components\Section::make('Additional Resources')
                 ->icon('heroicon-o-adjustments-horizontal')
+                ->description('Extra resources purchased beyond plan limits. Total limit = Plan limit + Extra.')
                 ->columns(4)
                 ->schema([
+                    Forms\Components\TextInput::make('extra_users')
+                        ->label('Extra Users')
+                        ->helperText(fn ($record) => $record?->plan ? 'Plan: ' . ($record->plan->max_users ?? 0) : 'No plan')
+                        ->numeric()
+                        ->default(0)
+                        ->minValue(0),
+                    Forms\Components\TextInput::make('extra_branches')
+                        ->label('Extra Branches')
+                        ->helperText(fn ($record) => $record?->plan ? 'Plan: ' . ($record->plan->max_branches ?? 0) : 'No plan')
+                        ->numeric()
+                        ->default(0)
+                        ->minValue(0),
+                    Forms\Components\TextInput::make('extra_patients')
+                        ->label('Extra Patients')
+                        ->helperText(fn ($record) => $record?->plan ? 'Plan: ' . ($record->plan->max_patients ?? 0) : 'No plan')
+                        ->numeric()
+                        ->default(0)
+                        ->minValue(0),
+                    Forms\Components\TextInput::make('extra_storage_mb')
+                        ->label('Extra Storage')
+                        ->helperText(fn ($record) => $record?->plan ? 'Plan: ' . ($record->plan->max_storage_mb ?? 0) . ' MB' : 'No plan')
+                        ->numeric()
+                        ->default(0)
+                        ->minValue(0)
+                        ->suffix('MB'),
+                ]),
+
+            Forms\Components\Section::make('Legacy Limits (Deprecated)')
+                ->icon('heroicon-o-archive-box')
+                ->description('These fields are deprecated. Limits should come from the subscription plan.')
+                ->columns(4)
+                ->collapsed()
+                ->schema([
                     Forms\Components\TextInput::make('max_users')
-                        ->label('Max Users')
+                        ->label('Max Users (Legacy)')
                         ->numeric()
-                        ->default(10),
+                        ->default(10)
+                        ->disabled(),
                     Forms\Components\TextInput::make('max_branches')
-                        ->label('Max Branches')
+                        ->label('Max Branches (Legacy)')
                         ->numeric()
-                        ->default(1),
+                        ->default(1)
+                        ->disabled(),
                     Forms\Components\TextInput::make('max_patients')
-                        ->label('Max Patients')
+                        ->label('Max Patients (Legacy)')
                         ->numeric()
-                        ->default(1000),
+                        ->default(1000)
+                        ->disabled(),
                     Forms\Components\TextInput::make('max_storage_mb')
-                        ->label('Max Storage')
+                        ->label('Max Storage (Legacy)')
                         ->numeric()
                         ->default(1024)
-                        ->suffix('MB'),
+                        ->suffix('MB')
+                        ->disabled(),
                 ]),
 
             Forms\Components\Section::make('Branding')
@@ -301,14 +339,18 @@ class TenantResource extends Resource
                 Tables\Columns\TextColumn::make('usage.users')
                     ->label('Users')
                     ->formatStateUsing(function ($state, Tenant $record): string {
-                        $limit = $record->max_users;
-                        $limitStr = $limit ? $limit : '∞';
+                        $planLimit = $record->plan?->max_users ?? 0;
+                        $extra = $record->extra_users ?? 0;
+                        $total = $planLimit + $extra;
+                        $limitStr = $total > 0 ? $total : '∞';
                         return ($state ?? 0) . '/' . $limitStr;
                     })
                     ->color(function ($state, Tenant $record): string {
-                        $limit = $record->max_users;
-                        if (! $limit) return 'gray';
-                        $pct = ($state ?? 0) / $limit * 100;
+                        $planLimit = $record->plan?->max_users ?? 0;
+                        $extra = $record->extra_users ?? 0;
+                        $total = $planLimit + $extra;
+                        if ($total <= 0) return 'gray';
+                        $pct = ($state ?? 0) / $total * 100;
                         if ($pct >= 90) return 'danger';
                         if ($pct >= 70) return 'warning';
                         return 'gray';

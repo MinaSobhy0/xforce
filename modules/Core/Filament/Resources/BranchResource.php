@@ -50,7 +50,16 @@ class BranchResource extends Resource
         }
 
         $currentBranchCount = Branch::count();
-        $maxBranches = $tenant->max_branches ?? PHP_INT_MAX;
+
+        // Get effective limit from plan + extra purchased
+        $planLimit = $tenant->plan?->max_branches ?? 0;
+        $extraBranches = $tenant->extra_branches ?? 0;
+        $maxBranches = $planLimit + $extraBranches;
+
+        // If no limit set (0), allow unlimited
+        if ($maxBranches <= 0) {
+            return true;
+        }
 
         return $currentBranchCount < $maxBranches;
     }

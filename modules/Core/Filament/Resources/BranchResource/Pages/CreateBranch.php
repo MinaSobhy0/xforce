@@ -12,6 +12,19 @@ class CreateBranch extends CreateRecord
     protected static string $resource = BranchResource::class;
 
     /**
+     * Get the effective branch limit (plan + extra purchased).
+     */
+    protected function getMaxBranches($tenant): int
+    {
+        $planLimit = $tenant->plan?->max_branches ?? 0;
+        $extraBranches = $tenant->extra_branches ?? 0;
+        $total = $planLimit + $extraBranches;
+
+        // If no limit set, return a very high number
+        return $total > 0 ? $total : PHP_INT_MAX;
+    }
+
+    /**
      * Check if tenant can create more branches before mounting the page.
      */
     public function mount(): void
@@ -23,7 +36,7 @@ class CreateBranch extends CreateRecord
 
         if ($tenant) {
             $currentBranchCount = Branch::count();
-            $maxBranches = $tenant->max_branches ?? PHP_INT_MAX;
+            $maxBranches = $this->getMaxBranches($tenant);
 
             if ($currentBranchCount >= $maxBranches) {
                 Notification::make()
@@ -58,7 +71,7 @@ class CreateBranch extends CreateRecord
 
         if ($tenant) {
             $currentBranchCount = Branch::count();
-            $maxBranches = $tenant->max_branches ?? PHP_INT_MAX;
+            $maxBranches = $this->getMaxBranches($tenant);
 
             if ($currentBranchCount >= $maxBranches) {
                 Notification::make()
