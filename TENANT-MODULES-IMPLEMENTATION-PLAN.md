@@ -3,7 +3,7 @@
 ## You have: Super Admin panel + Framework kernel done
 ## Building: All clinic-side modules
 
-**Last Updated:** 2026-02-21 (Added missing components: events, migrations, Accounting reports)
+**Last Updated:** 2026-02-21 (Added dashboard widgets, double-booking validation, invoice PDF)
 
 ---
 
@@ -2450,7 +2450,7 @@ This is what makes the system truly modular.
 | 9 | PatientPortal | Done | ~85% |
 | 9 | Api | Done | ~90% |
 
-**Overall Progress: ~97% (19 of 19 modules implemented, events and reports complete)**
+**Overall Progress: ~98% (19 of 19 modules implemented, dashboard widgets and PDF complete)**
 
 Note: Marketing module is unified (WhatsApp + SMS + Email), reducing total from 21 to 19 modules.
 
@@ -2458,14 +2458,15 @@ Note: Marketing module is unified (WhatsApp + SMS + Email), reducing total from 
 - ~~**Cross-module integration**: Event wiring for listeners~~ ✅ DONE (Events created: AppointmentCompleted, AppointmentConfirmed, AppointmentCancelled, InvoicePaid, PaymentReceived; Marketing EventServiceProvider enabled)
 - ~~**Core migrations**: activities and audit_logs tables~~ ✅ DONE (migrations created, pending execution)
 - ~~**Accounting report pages**: 5 financial report pages~~ ✅ DONE (TrialBalance, ProfitLoss, BalanceSheet, GeneralLedger, CashFlow + views + translations)
-- **Dashboard widgets**: Low stock alerts, commission pending count, notification stats
-- **PDF generation**: Salary slips, reports, invoices
+- ~~**Dashboard widgets**: Low stock alerts, commission pending, notification stats~~ ✅ DONE (5 widgets: TenantOverview, AppointmentStats, CommissionPending, LowStockAlert, NotificationStats)
+- ~~**PDF generation**: Invoice PDF~~ ✅ DONE (InvoicePdfService with DomPDF, RTL support)
+- ~~**Double-booking prevention**: Validation logic for appointments~~ ✅ DONE (DoubleBookingValidator for practitioner, room, equipment conflicts)
 - **Extensions**: Form extensions to add tabs to Patient, User, Treatment forms
 - **Seeders**: Sample data seeders for demo/testing
 - **Quota integration**: Marketing messages count against plan limits
-- **Double-booking prevention**: Validation logic for appointments (practitioner, room, equipment)
 - **Access policy enforcement**: Middleware to filter data by branch for scoped roles
 - **Module management (tenant-level)**: Currently only at SuperAdmin level
+- **PDF generation (remaining)**: Salary slips, financial reports
 
 ---
 
@@ -2481,4 +2482,4 @@ Note: Marketing module is unified (WhatsApp + SMS + Email), reducing total from 
 8. ~~**Batch 8: Loyalty Module** - Points system, referrals, rewards~~ ✅ DONE
 9. ~~**Continue Batch 8: Reporting Module** - 9 analytics report pages~~ ✅ DONE
 10. ~~**Start Batch 9: Patient Portal + API** - Self-service, REST endpoints~~ ✅ DONE
-11. **Integration & Polish** - Event wiring, dashboard widgets, PDF generation
+11. ~~**Integration & Polish** - Event wiring, dashboard widgets, PDF generation~~ ✅ MOSTLY DONE (remaining: form extensions, seeders, quota integration)
