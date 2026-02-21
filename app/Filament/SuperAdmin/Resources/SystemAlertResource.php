@@ -21,7 +21,7 @@ class SystemAlertResource extends Resource
 
     protected static ?string $navigationLabel = 'System Alerts';
 
-    protected static ?string $navigationGroup = 'Monitoring';
+    protected static ?string $navigationGroup = 'System';
 
     protected static ?int $navigationSort = 3;
 

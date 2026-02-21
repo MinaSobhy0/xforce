@@ -26,7 +26,7 @@ class TenantResource extends Resource
 
     protected static ?string $navigationLabel = 'Clinics';
 
-    protected static ?string $navigationGroup = 'Tenants';
+    protected static ?string $navigationGroup = 'CRM';
 
     protected static ?int $navigationSort = 1;
 

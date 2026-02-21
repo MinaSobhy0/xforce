@@ -19,7 +19,7 @@ class TenantDomainResource extends Resource
 
     protected static ?string $navigationLabel = 'Domains & DNS';
 
-    protected static ?string $navigationGroup = 'System';
+    protected static ?string $navigationGroup = 'CRM';
 
     protected static ?int $navigationSort = 5;
 

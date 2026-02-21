@@ -19,7 +19,7 @@ class ContactInquiryResource extends Resource
 
     protected static ?string $navigationLabel = 'Contact Inquiries';
 
-    protected static ?string $navigationGroup = 'Leads';
+    protected static ?string $navigationGroup = 'CRM';
 
     protected static ?int $navigationSort = 1;
 

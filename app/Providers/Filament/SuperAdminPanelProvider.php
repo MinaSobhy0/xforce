@@ -62,23 +62,17 @@ class SuperAdminPanelProvider extends PanelProvider
             ->sidebarCollapsibleOnDesktop(false)
             ->sidebarFullyCollapsibleOnDesktop(false)
 
-            // Navigation Groups with icons for double sidebar
+            // Navigation Groups - Simplified structure
             ->navigationGroups([
-                NavigationGroup::make('Tenants')
-                    ->label(__('Tenants'))
+                NavigationGroup::make('CRM')
+                    ->label(__('CRM'))
                     ->icon('heroicon-o-building-office-2'),
-                NavigationGroup::make('Billing')
-                    ->label(__('Billing'))
+                NavigationGroup::make('Billing & Plans')
+                    ->label(__('Billing & Plans'))
                     ->icon('heroicon-o-credit-card'),
-                NavigationGroup::make('Plans & Modules')
-                    ->label(__('Plans & Modules'))
-                    ->icon('heroicon-o-cube'),
                 NavigationGroup::make('Support')
                     ->label(__('Support'))
                     ->icon('heroicon-o-lifebuoy'),
-                NavigationGroup::make('Monitoring')
-                    ->label(__('Monitoring'))
-                    ->icon('heroicon-o-chart-bar'),
                 NavigationGroup::make('System')
                     ->label(__('System'))
                     ->icon('heroicon-o-cog-6-tooth'),

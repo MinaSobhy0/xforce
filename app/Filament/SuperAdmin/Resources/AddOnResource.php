@@ -16,7 +16,7 @@ class AddOnResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-squares-plus';
 
-    protected static ?string $navigationGroup = 'Plans & Modules';
+    protected static ?string $navigationGroup = 'Billing & Plans';
 
     protected static ?string $navigationLabel = 'Add-Ons';
 

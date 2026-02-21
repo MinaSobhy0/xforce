@@ -22,7 +22,7 @@ class EmailTemplateResource extends Resource
 
     protected static ?string $navigationLabel = 'Email Templates';
 
-    protected static ?string $navigationGroup = 'System';
+    protected static ?string $navigationGroup = 'Support';
 
     protected static ?int $navigationSort = 2;
 
