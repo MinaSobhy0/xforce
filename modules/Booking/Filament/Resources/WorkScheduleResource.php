@@ -70,6 +70,7 @@ class WorkScheduleResource extends Resource
                                     ->relationship('branch', 'name')
                                     ->searchable()
                                     ->preload()
+                                    ->required()
                                     ->default(fn () => current_branch_id())
                                     ->disabled(fn () => current_branch_id() !== null)
                                     ->dehydrated(),
