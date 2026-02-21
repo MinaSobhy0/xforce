@@ -57,12 +57,16 @@ return [
         'pay' => 'Mark as Paid',
         'cancel' => 'Cancel',
         'download_payslip' => 'Download Payslip',
+        'add_payslip' => 'Add Payslip',
+        'generate_all' => 'Generate All Staff',
     ],
 
     'messages' => [
         'approved' => 'Payroll approved successfully',
         'paid' => 'Payroll marked as paid',
         'cancelled' => 'Payroll cancelled',
+        'generate_all_confirm' => 'This will generate payslips for all active staff members who don\'t have one yet in this payroll run.',
+        'generated_count' => ':count payslips generated successfully',
     ],
 
     'pdf' => [
