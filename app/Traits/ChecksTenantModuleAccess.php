@@ -82,26 +82,14 @@ trait ChecksTenantModuleAccess
 
     /**
      * Check if tenant has access to a module.
+     *
+     * The tenant's `features` array is the ONLY source of truth for module access.
+     * Plan's included_module_codes are only used to initialize features, not for runtime checks.
      */
     protected static function tenantHasModuleAccess(Tenant $tenant, string $moduleCode): bool
     {
-        // Check tenant's features array (direct assignment)
-        if ($tenant->hasFeature($moduleCode)) {
-            return true;
-        }
-
-        // Check subscription plan's included modules
-        $plan = $tenant->plan;
-        if ($plan && method_exists($plan, 'hasModule') && $plan->hasModule($moduleCode)) {
-            return true;
-        }
-
-        // Check plan's included_module_codes
-        if ($plan && is_array($plan->included_module_codes) && in_array($moduleCode, $plan->included_module_codes)) {
-            return true;
-        }
-
-        return false;
+        // Features array is the authoritative source for module access
+        return $tenant->hasFeature($moduleCode);
     }
 
     /**

@@ -79,6 +79,9 @@ class TenantModuleAccess
 
     /**
      * Check if tenant has access to a module.
+     *
+     * The tenant's `features` array is the ONLY source of truth for module access.
+     * Plan's included_module_codes are only used to initialize features, not for runtime checks.
      */
     protected function tenantHasModuleAccess(Tenant $tenant, string $moduleCode): bool
     {
@@ -93,23 +96,8 @@ class TenantModuleAccess
             return false;
         }
 
-        // Check tenant's subscription plan
-        $plan = $tenant->plan;
-        if ($plan && $plan->hasModule($moduleCode)) {
-            return true;
-        }
-
-        // Check tenant's features array (legacy support)
-        if ($tenant->hasFeature($moduleCode)) {
-            return true;
-        }
-
-        // Check tenant's addon subscriptions
-        if ($this->hasModuleAddon($tenant, $moduleCode)) {
-            return true;
-        }
-
-        return false;
+        // Features array is the authoritative source for module access
+        return $tenant->hasFeature($moduleCode);
     }
 
     /**
