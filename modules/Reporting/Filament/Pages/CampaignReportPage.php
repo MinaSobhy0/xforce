@@ -53,35 +53,27 @@ class CampaignReportPage extends BaseReportPage
                 }
             });
 
-        $totalSent = (clone $recipientsQuery)->where('status', 'sent')->count();
-        $delivered = (clone $recipientsQuery)->where('status', 'delivered')->count();
-        $opened = (clone $recipientsQuery)->whereNotNull('opened_at')->count();
-        $clicked = (clone $recipientsQuery)->whereNotNull('clicked_at')->count();
+        $totalSent = (clone $recipientsQuery)->whereIn('status', ['sent', 'delivered', 'read'])->count();
+        $delivered = (clone $recipientsQuery)->whereIn('status', ['delivered', 'read'])->count();
+        $opened = (clone $recipientsQuery)->whereNotNull('read_at')->count();
+        $clicked = $opened; // No click tracking available
         $failed = (clone $recipientsQuery)->where('status', 'failed')->count();
-        $converted = (clone $recipientsQuery)->whereNotNull('converted_at')->count();
+        $converted = 0; // No conversion tracking in CampaignRecipient
 
         // Rates
         $deliveryRate = $totalSent > 0 ? ($delivered / $totalSent) * 100 : 0;
         $openRate = $delivered > 0 ? ($opened / $delivered) * 100 : 0;
-        $clickRate = $opened > 0 ? ($clicked / $opened) * 100 : 0;
-        $conversionRate = $clicked > 0 ? ($converted / $clicked) * 100 : 0;
+        $clickRate = 0;
+        $conversionRate = 0;
 
         // Total campaign cost
         $totalCost = Campaign::query()
             ->whereBetween('created_at', [$startDate, $endDate])
             ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
-            ->sum('total_cost_minor');
+            ->sum('estimated_cost_minor');
 
-        // Revenue attributed to campaigns
-        $campaignRevenue = CampaignRecipient::query()
-            ->whereNotNull('converted_at')
-            ->whereHas('campaign', function ($q) use ($startDate, $endDate, $branchId) {
-                $q->whereBetween('created_at', [$startDate, $endDate]);
-                if ($branchId) {
-                    $q->where('branch_id', $branchId);
-                }
-            })
-            ->sum('conversion_value_minor');
+        // Revenue attributed to campaigns (not tracked yet)
+        $campaignRevenue = 0;
 
         // ROI
         $roi = $totalCost > 0 ? (($campaignRevenue - $totalCost) / $totalCost) * 100 : 0;
@@ -128,9 +120,8 @@ class CampaignReportPage extends BaseReportPage
             ->where('status', 'sent')
             ->withCount([
                 'recipients',
-                'recipients as delivered_count' => fn ($q) => $q->where('status', 'delivered'),
-                'recipients as opened_count' => fn ($q) => $q->whereNotNull('opened_at'),
-                'recipients as converted_count' => fn ($q) => $q->whereNotNull('converted_at'),
+                'recipients as delivered_count' => fn ($q) => $q->whereIn('status', ['delivered', 'read']),
+                'recipients as opened_count' => fn ($q) => $q->whereNotNull('read_at'),
             ])
             ->orderByDesc('created_at')
             ->limit(10)
@@ -182,16 +173,12 @@ class CampaignReportPage extends BaseReportPage
                 ? ($campaign->opened_count / $campaign->delivered_count) * 100
                 : 0;
 
-            $convRate = $campaign->opened_count > 0
-                ? ($campaign->converted_count / $campaign->opened_count) * 100
-                : 0;
-
             return [
                 'campaign' => $name,
                 'channel' => ucfirst($campaign->channel),
                 'recipients' => $campaign->recipients_count,
+                'delivered' => $campaign->delivered_count,
                 'open_rate' => $this->formatPercentage($openRate),
-                'conversion_rate' => $this->formatPercentage($convRate),
             ];
         })->toArray();
     }
@@ -229,8 +216,8 @@ class CampaignReportPage extends BaseReportPage
             ['key' => 'campaign', 'label' => __('reporting::reporting.campaign')],
             ['key' => 'channel', 'label' => __('reporting::reporting.channel')],
             ['key' => 'recipients', 'label' => __('reporting::reporting.recipients')],
+            ['key' => 'delivered', 'label' => __('reporting::reporting.delivered')],
             ['key' => 'open_rate', 'label' => __('reporting::reporting.open_rate')],
-            ['key' => 'conversion_rate', 'label' => __('reporting::reporting.conversion_rate')],
         ];
     }
 }
