@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\PlatformSetting;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -13,18 +14,15 @@ use Symfony\Component\HttpFoundation\Response;
  * This is different from EnsureTwoFactorAuthenticated which verifies
  * an already-configured 2FA - this middleware ensures 2FA is SET UP.
  *
+ * Reads settings from PlatformSetting (set via /platform/two-factor-settings):
+ *   - require_2fa_super_admin
+ *   - require_2fa_admin
+ *   - require_2fa_tenant_owner
+ *
  * Usage in routes:
- *   Route::middleware('2fa-enforce')->group(...)           // Enforce for all authenticated users
+ *   Route::middleware('2fa-enforce')->group(...)           // Enforce based on platform settings
  *   Route::middleware('2fa-enforce:admin')->group(...)     // Enforce only for admin role
  *   Route::middleware('2fa-enforce:admin,manager')->group(...) // Enforce for multiple roles
- *
- * Configuration (config/security.php):
- *   '2fa' => [
- *       'enforce' => true,
- *       'enforce_for_roles' => ['admin', 'manager', 'owner'],
- *       'grace_period_days' => 7,  // Days before enforcement kicks in
- *       'setup_route' => 'profile.2fa.setup',
- *   ]
  */
 class TwoFactorEnforce
 {
@@ -129,12 +127,32 @@ class TwoFactorEnforce
             return $this->userHasAnyRole($user, $specifiedRoles);
         }
 
-        // Otherwise, check config for enforced roles
-        $enforcedRoles = config('security.2fa.enforce_for_roles', []);
+        // Check PlatformSetting for role-based 2FA requirements
+        $enforcedRoles = [];
 
-        // If no roles specified in config, enforce for all users
+        if (PlatformSetting::get('require_2fa_super_admin', false)) {
+            $enforcedRoles[] = 'super_admin';
+            $enforcedRoles[] = 'super-admin';
+        }
+
+        if (PlatformSetting::get('require_2fa_admin', false)) {
+            $enforcedRoles[] = 'admin';
+            $enforcedRoles[] = 'administrator';
+        }
+
+        if (PlatformSetting::get('require_2fa_tenant_owner', false)) {
+            $enforcedRoles[] = 'owner';
+            $enforcedRoles[] = 'tenant_owner';
+        }
+
+        // Fall back to config if no platform settings
         if (empty($enforcedRoles)) {
-            return true;
+            $enforcedRoles = config('security.2fa.enforce_for_roles', []);
+        }
+
+        // If no roles specified anywhere, don't enforce
+        if (empty($enforcedRoles)) {
+            return false;
         }
 
         return $this->userHasAnyRole($user, $enforcedRoles);

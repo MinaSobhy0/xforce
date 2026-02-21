@@ -169,6 +169,7 @@ class TenantPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
+                \App\Http\Middleware\TwoFactorEnforce::class,
             ]);
     }
 
