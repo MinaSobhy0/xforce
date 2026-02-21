@@ -14,7 +14,6 @@ use Modules\Billing\Models\Payment;
 use Modules\Billing\Models\Expense;
 use Modules\Payroll\Models\PayrollRun;
 use Carbon\Carbon;
-use Modules\Billing\Filament\Clusters\Reports;
 
 class CashFlowPage extends Page implements HasForms
 {
@@ -24,7 +23,9 @@ class CashFlowPage extends Page implements HasForms
 
     protected static string $view = 'accounting::filament.pages.cash-flow';
 
-    protected static ?string $cluster = Reports::class;
+    protected static ?string $navigationGroup = 'Finance';
+
+    protected static ?string $navigationParentItem = 'Reports';
 
 
     protected static ?int $navigationSort = 5;

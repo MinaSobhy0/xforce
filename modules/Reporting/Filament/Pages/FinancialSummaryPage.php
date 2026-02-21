@@ -6,14 +6,15 @@ use Modules\Billing\Models\Invoice;
 use Modules\Billing\Models\Payment;
 use Modules\Payroll\Models\PayrollRun;
 use Modules\Inventory\Models\PurchaseOrder;
-use Modules\Billing\Filament\Clusters\Reports;
 use Illuminate\Support\Facades\DB;
 
 class FinancialSummaryPage extends BaseReportPage
 {
     protected static ?string $navigationIcon = 'heroicon-o-calculator';
 
-    protected static ?string $cluster = Reports::class;
+    protected static ?string $navigationGroup = 'Finance';
+
+    protected static ?string $navigationParentItem = 'Reports';
 
     protected static ?int $navigationSort = 10;
 

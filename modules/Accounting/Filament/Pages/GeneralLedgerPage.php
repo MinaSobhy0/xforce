@@ -14,7 +14,6 @@ use Illuminate\Support\Facades\DB;
 use Modules\Accounting\Models\ChartOfAccount;
 use Modules\Accounting\Models\JournalEntryLine;
 use Carbon\Carbon;
-use Modules\Billing\Filament\Clusters\Reports;
 
 class GeneralLedgerPage extends Page implements HasForms
 {
@@ -24,7 +23,9 @@ class GeneralLedgerPage extends Page implements HasForms
 
     protected static string $view = 'accounting::filament.pages.general-ledger';
 
-    protected static ?string $cluster = Reports::class;
+    protected static ?string $navigationGroup = 'Finance';
+
+    protected static ?string $navigationParentItem = 'Reports';
 
 
     protected static ?int $navigationSort = 4;

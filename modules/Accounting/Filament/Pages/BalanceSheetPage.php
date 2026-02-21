@@ -14,7 +14,6 @@ use Modules\Accounting\Models\ChartOfAccount;
 use Modules\Accounting\Models\JournalEntryLine;
 use Modules\Accounting\Services\BalanceSheetPdfService;
 use Carbon\Carbon;
-use Modules\Billing\Filament\Clusters\Reports;
 
 class BalanceSheetPage extends Page implements HasForms
 {
@@ -24,7 +23,9 @@ class BalanceSheetPage extends Page implements HasForms
 
     protected static string $view = 'accounting::filament.pages.balance-sheet';
 
-    protected static ?string $cluster = Reports::class;
+    protected static ?string $navigationGroup = 'Finance';
+
+    protected static ?string $navigationParentItem = 'Reports';
 
 
     protected static ?int $navigationSort = 3;

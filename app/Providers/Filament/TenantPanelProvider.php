@@ -9,6 +9,7 @@ use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Navigation\NavigationGroup;
+use Filament\Navigation\NavigationItem;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\SpatieLaravelTranslatablePlugin;
@@ -104,10 +105,9 @@ class TenantPanelProvider extends PanelProvider
             ->discoverResources(in: base_path('modules/Booking/Filament/Resources'), for: 'Modules\\Booking\\Filament\\Resources')
             ->discoverPages(in: base_path('modules/Booking/Filament/Pages'), for: 'Modules\\Booking\\Filament\\Pages')
 
-            // Discover Billing module resources and clusters
+            // Discover Billing module resources
             ->discoverResources(in: base_path('modules/Billing/Filament/Resources'), for: 'Modules\\Billing\\Filament\\Resources')
             ->discoverPages(in: base_path('modules/Billing/Filament/Pages'), for: 'Modules\\Billing\\Filament\\Pages')
-            ->discoverClusters(in: base_path('modules/Billing/Filament/Clusters'), for: 'Modules\\Billing\\Filament\\Clusters')
 
             // Discover Accounting module resources
             ->discoverResources(in: base_path('modules/Accounting/Filament/Resources'), for: 'Modules\\Accounting\\Filament\\Resources')
@@ -154,6 +154,13 @@ class TenantPanelProvider extends PanelProvider
                 \Modules\Marketing\Filament\Widgets\NotificationStatsWidget::class,
             ])
 
+            // Parent navigation item for Reports submenu
+            ->navigationItems([
+                NavigationItem::make('Reports')
+                    ->group('Finance')
+                    ->icon('heroicon-o-chart-bar')
+                    ->sort(20),
+            ])
 
             // Plugins
             ->plugin(

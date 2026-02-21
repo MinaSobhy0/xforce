@@ -6,14 +6,15 @@ use Modules\Billing\Models\Invoice;
 use Modules\Billing\Models\Payment;
 use Modules\Treatments\Models\Treatment;
 use Modules\Core\Models\Branch;
-use Modules\Billing\Filament\Clusters\Reports;
 use Illuminate\Support\Facades\DB;
 
 class RevenueReportPage extends BaseReportPage
 {
     protected static ?string $navigationIcon = 'heroicon-o-banknotes';
 
-    protected static ?string $cluster = Reports::class;
+    protected static ?string $navigationGroup = 'Finance';
+
+    protected static ?string $navigationParentItem = 'Reports';
 
     protected static ?int $navigationSort = 11;
 
