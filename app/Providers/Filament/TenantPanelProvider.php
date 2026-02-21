@@ -9,6 +9,7 @@ use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Navigation\NavigationGroup;
+use Filament\Navigation\NavigationItem;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\SpatieLaravelTranslatablePlugin;
@@ -151,6 +152,23 @@ class TenantPanelProvider extends PanelProvider
                 \Modules\Staff\Filament\Widgets\CommissionPendingWidget::class,
                 \Modules\Inventory\Filament\Widgets\LowStockAlertWidget::class,
                 \Modules\Marketing\Filament\Widgets\NotificationStatsWidget::class,
+            ])
+
+            // Custom navigation items for submenus
+            ->navigationItems([
+                NavigationItem::make('Reports')
+                    ->group('Finance')
+                    ->icon('heroicon-o-chart-bar')
+                    ->sort(20)
+                    ->isActiveWhen(fn () => request()->routeIs('filament.tenant.pages.profit-loss*')
+                        || request()->routeIs('filament.tenant.pages.balance-sheet*')
+                        || request()->routeIs('filament.tenant.pages.cash-flow*')
+                        || request()->routeIs('filament.tenant.pages.trial-balance*')
+                        || request()->routeIs('filament.tenant.pages.general-ledger*')
+                        || request()->routeIs('filament.tenant.pages.revenue-report*')
+                        || request()->routeIs('filament.tenant.pages.financial-summary*')
+                    )
+                    ->url(fn () => route('filament.tenant.pages.profit-loss')),
             ])
 
             // Plugins

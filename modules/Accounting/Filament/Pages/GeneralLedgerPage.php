@@ -25,6 +25,8 @@ class GeneralLedgerPage extends Page implements HasForms
 
     protected static ?string $navigationGroup = 'Finance';
 
+    protected static ?string $navigationParentItem = 'Reports';
+
     protected static ?int $navigationSort = 4;
 
     public ?string $start_date = null;

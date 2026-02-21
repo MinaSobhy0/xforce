@@ -14,7 +14,9 @@ class RevenueReportPage extends BaseReportPage
 
     protected static ?string $navigationGroup = 'Finance';
 
-    protected static ?int $navigationSort = 31;
+    protected static ?string $navigationParentItem = 'Reports';
+
+    protected static ?int $navigationSort = 11;
 
     public static function getNavigationLabel(): string
     {

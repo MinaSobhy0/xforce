@@ -25,6 +25,8 @@ class BalanceSheetPage extends Page implements HasForms
 
     protected static ?string $navigationGroup = 'Finance';
 
+    protected static ?string $navigationParentItem = 'Reports';
+
     protected static ?int $navigationSort = 3;
 
     public ?string $as_of_date = null;

@@ -25,6 +25,8 @@ class TrialBalancePage extends Page implements HasForms
 
     protected static ?string $navigationGroup = 'Finance';
 
+    protected static ?string $navigationParentItem = 'Reports';
+
     protected static ?int $navigationSort = 1;
 
     public ?string $as_of_date = null;
