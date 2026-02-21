@@ -1,29 +1,77 @@
 <?php
 
 return [
-    'navigation' => 'Schedules',
+    'navigation' => 'Practitioner Schedules',
     'singular' => 'Schedule',
     'plural' => 'Practitioner Schedules',
 
+    'work_schedules' => 'Work Schedules',
+    'work_schedule' => 'Work Schedule',
+
     'sections' => [
+        'basic_info' => 'Basic Information',
         'practitioner' => 'Practitioner',
         'schedule' => 'Working Hours',
+        'weekly_schedule' => 'Weekly Schedule',
+        'slot_settings' => 'Appointment Slot Settings',
         'break' => 'Break Time',
+        'status' => 'Status',
     ],
 
     'fields' => [
+        'name' => 'Schedule Name',
+        'code' => 'Code',
+        'description' => 'Description',
+        'color' => 'Color',
         'practitioner' => 'Practitioner',
+        'practitioners' => 'Practitioners',
         'branch' => 'Branch',
         'day_of_week' => 'Day',
         'start_time' => 'Start Time',
         'end_time' => 'End Time',
         'break_start' => 'Break Start',
         'break_end' => 'Break End',
+        'is_working' => 'Working',
         'is_available' => 'Available',
+        'is_active' => 'Active',
+        'is_primary' => 'Primary Schedule',
         'hours' => 'Working Hours',
+        'hours_week' => 'Hours/Week',
         'break' => 'Break',
+        'schedule' => 'Schedule',
+        'slot' => 'Slot',
+        'slot_duration' => 'Slot Duration',
+        'buffer_time' => 'Buffer Time',
+        'max_daily' => 'Max Daily Appointments',
         'max_appointments' => 'Max Appointments',
         'max_appointments_help' => 'Leave empty for unlimited',
         'notes' => 'Notes',
+        'sort_order' => 'Sort Order',
+        'effective_from' => 'Effective From',
+        'effective_until' => 'Effective Until',
+        'from' => 'From',
+        'until' => 'Until',
+        'primary' => 'Primary',
+        'active' => 'Active',
+    ],
+
+    'all_branches' => 'All Branches',
+    'branch_help' => 'Leave empty to apply to all branches',
+    'weekly_schedule_help' => 'Configure working hours for each day of the week',
+    'buffer_time_help' => 'Minutes between appointments',
+    'unlimited' => 'Unlimited',
+    'minutes' => 'min',
+    'use_schedule_branch' => 'Use schedule branch',
+    'override_branch_help' => 'Override the schedule\'s branch for this practitioner',
+    'immediately' => 'Immediately',
+    'indefinitely' => 'Indefinitely',
+    'primary_help' => 'Mark as primary schedule for this practitioner',
+
+    'actions' => [
+        'duplicate' => 'Duplicate',
+    ],
+
+    'filters' => [
+        'currently_effective' => 'Currently Effective',
     ],
 ];
