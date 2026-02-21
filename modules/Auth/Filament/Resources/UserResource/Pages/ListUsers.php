@@ -1,8 +1,8 @@
 <?php
 
-namespace Modules\Auth\Resources\UserResource\Pages;
+namespace Modules\Auth\Filament\Resources\UserResource\Pages;
 
-use Modules\Auth\Resources\UserResource;
+use Modules\Auth\Filament\Resources\UserResource;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Resources\Components\Tab;
@@ -27,12 +27,12 @@ class ListUsers extends ListRecords
                 ->badge($this->getModel()::count()),
 
             'active' => Tab::make(__('Active'))
-                ->modifyQueryUsing(fn (Builder $query) => $query->where('is_active', true))
-                ->badge($this->getModel()::where('is_active', true)->count()),
+                ->modifyQueryUsing(fn (Builder $query) => $query->where('status', 'active'))
+                ->badge($this->getModel()::where('status', 'active')->count()),
 
             'inactive' => Tab::make(__('Inactive'))
-                ->modifyQueryUsing(fn (Builder $query) => $query->where('is_active', false))
-                ->badge($this->getModel()::where('is_active', false)->count()),
+                ->modifyQueryUsing(fn (Builder $query) => $query->where('status', 'inactive'))
+                ->badge($this->getModel()::where('status', 'inactive')->count()),
 
             'unverified' => Tab::make(__('Unverified'))
                 ->modifyQueryUsing(fn (Builder $query) => $query->whereNull('email_verified_at'))

@@ -1,6 +1,6 @@
 <?php
 
-namespace Modules\Auth\Resources\UserResource\Widgets;
+namespace Modules\Auth\Filament\Resources\UserResource\Widgets;
 
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;

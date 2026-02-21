@@ -1,8 +1,8 @@
 <?php
 
-namespace Modules\Auth\Resources\UserResource\Pages;
+namespace Modules\Auth\Filament\Resources\UserResource\Pages;
 
-use Modules\Auth\Resources\UserResource;
+use Modules\Auth\Filament\Resources\UserResource;
 use Filament\Actions;
 use App\Filament\Resources\Pages\BaseEditRecord;
 use Filament\Notifications\Notification;
@@ -43,7 +43,7 @@ class EditUser extends BaseEditRecord
 
         // Log significant changes
         $significantChanges = array_intersect_key($changes, array_flip([
-            'name', 'email', 'is_active', 'email_verified_at', 'two_factor_enabled'
+            'first_name', 'last_name', 'email', 'status', 'email_verified_at', 'two_factor_enabled'
         ]));
 
         if (!empty($significantChanges)) {
@@ -55,8 +55,8 @@ class EditUser extends BaseEditRecord
         }
 
         // Send notifications for specific changes
-        if (array_key_exists('is_active', $changes)) {
-            $status = $changes['is_active'] ? 'activated' : 'deactivated';
+        if (array_key_exists('status', $changes)) {
+            $status = $changes['status'] === 'active' ? 'activated' : 'deactivated';
 
             Notification::make()
                 ->title(__('User account :status', ['status' => $status]))

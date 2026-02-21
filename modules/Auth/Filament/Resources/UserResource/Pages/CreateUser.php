@@ -1,8 +1,8 @@
 <?php
 
-namespace Modules\Auth\Resources\UserResource\Pages;
+namespace Modules\Auth\Filament\Resources\UserResource\Pages;
 
-use Modules\Auth\Resources\UserResource;
+use Modules\Auth\Filament\Resources\UserResource;
 use Filament\Resources\Pages\CreateRecord;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Str;

@@ -1,8 +1,8 @@
 <?php
 
-namespace Modules\Auth\Resources\UserResource\Pages;
+namespace Modules\Auth\Filament\Resources\UserResource\Pages;
 
-use Modules\Auth\Resources\UserResource;
+use Modules\Auth\Filament\Resources\UserResource;
 use Filament\Actions;
 use App\Filament\Resources\Pages\BaseViewRecord;
 use Filament\Notifications\Notification;
@@ -34,7 +34,7 @@ class ViewUser extends BaseViewRecord
                         ->success()
                         ->send();
                 })
-                ->visible(fn () => $this->getRecord()->is_active && !$this->getRecord()->hasRole('super_admin')),
+                ->visible(fn () => $this->getRecord()->status === 'active' && !$this->getRecord()->hasRole('super_admin')),
 
             Actions\Action::make('resetPassword')
                 ->label(__('Reset Password'))
@@ -89,29 +89,29 @@ class ViewUser extends BaseViewRecord
                 }),
 
             Actions\Action::make('toggleActivation')
-                ->label(fn () => $this->getRecord()->is_active ? __('Deactivate') : __('Activate'))
-                ->icon(fn () => $this->getRecord()->is_active ? 'heroicon-o-pause' : 'heroicon-o-play')
-                ->color(fn () => $this->getRecord()->is_active ? 'warning' : 'success')
+                ->label(fn () => $this->getRecord()->status === 'active' ? __('Deactivate') : __('Activate'))
+                ->icon(fn () => $this->getRecord()->status === 'active' ? 'heroicon-o-pause' : 'heroicon-o-play')
+                ->color(fn () => $this->getRecord()->status === 'active' ? 'warning' : 'success')
                 ->requiresConfirmation()
-                ->modalDescription(fn () => $this->getRecord()->is_active
+                ->modalDescription(fn () => $this->getRecord()->status === 'active'
                     ? __('This will deactivate the user account and prevent login.')
                     : __('This will activate the user account and allow login.'))
                 ->action(function () {
-                    $newStatus = !$this->getRecord()->is_active;
+                    $newStatus = $this->getRecord()->status === 'active' ? 'inactive' : 'active';
 
-                    $this->getRecord()->update(['is_active' => $newStatus]);
+                    $this->getRecord()->update(['status' => $newStatus]);
 
                     activity()
                         ->causedBy(auth()->user())
                         ->performedOn($this->getRecord())
-                        ->log($newStatus ? 'User account activated' : 'User account deactivated');
+                        ->log($newStatus === 'active' ? 'User account activated' : 'User account deactivated');
 
                     Notification::make()
-                        ->title($newStatus ? __('User activated') : __('User deactivated'))
+                        ->title($newStatus === 'active' ? __('User activated') : __('User deactivated'))
                         ->success()
                         ->send();
 
-                    $this->refreshFormData(['is_active']);
+                    $this->refreshFormData(['status']);
                 }),
 
             Actions\Action::make('verifyEmail')

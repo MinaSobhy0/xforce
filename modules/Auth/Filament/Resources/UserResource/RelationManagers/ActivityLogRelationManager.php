@@ -1,6 +1,6 @@
 <?php
 
-namespace Modules\Auth\Resources\UserResource\RelationManagers;
+namespace Modules\Auth\Filament\Resources\UserResource\RelationManagers;
 
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -23,8 +23,9 @@ class ActivityLogRelationManager extends RelationManager
                     ->label(__('Activity'))
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('causer.name')
+                Tables\Columns\TextColumn::make('causer.email')
                     ->label(__('Performed By'))
+                    ->formatStateUsing(fn ($record) => $record->causer ? "{$record->causer->first_name} {$record->causer->last_name}" : __('System'))
                     ->default(__('System')),
 
                 Tables\Columns\TextColumn::make('subject_type')

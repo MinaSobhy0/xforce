@@ -1,6 +1,6 @@
 <?php
 
-namespace Modules\Auth\Resources\UserResource\Widgets;
+namespace Modules\Auth\Filament\Resources\UserResource\Widgets;
 
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
@@ -11,7 +11,7 @@ class UserStatsWidget extends BaseWidget
     protected function getStats(): array
     {
         $totalUsers = User::count();
-        $activeUsers = User::where('is_active', true)->count();
+        $activeUsers = User::where('status', 'active')->count();
         $verifiedUsers = User::whereNotNull('email_verified_at')->count();
         $twoFactorUsers = User::where('two_factor_enabled', true)->count();
         $recentLogins = User::where('last_login_at', '>=', now()->subDays(7))->count();

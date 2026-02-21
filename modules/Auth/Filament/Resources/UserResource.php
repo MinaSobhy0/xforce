@@ -1,6 +1,6 @@
 <?php
 
-namespace Modules\Auth\Resources;
+namespace Modules\Auth\Filament\Resources;
 
 use XLinic\Framework\Core\Filament\BaseResource;
 use Modules\Auth\Models\User;
@@ -11,8 +11,8 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
-use Modules\Auth\Resources\UserResource\Pages;
-use Modules\Auth\Resources\UserResource\RelationManagers;
+use Modules\Auth\Filament\Resources\UserResource\Pages;
+use Modules\Auth\Filament\Resources\UserResource\RelationManagers;
 use Filament\Support\Enums\FontWeight;
 use Filament\Tables\Enums\FiltersLayout;
 use Illuminate\Database\Eloquent\Builder;
@@ -22,7 +22,7 @@ class UserResource extends BaseResource
 {
     protected static ?string $model = User::class;
     protected static ?string $navigationIcon = 'heroicon-o-users';
-    protected static ?string $navigationGroup = 'User Management';
+    protected static ?string $navigationGroup = 'Settings';
     protected static ?int $navigationSort = 10;
     protected static ?string $moduleCode = 'auth';
 
