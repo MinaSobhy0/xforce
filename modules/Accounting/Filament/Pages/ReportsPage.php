@@ -12,9 +12,8 @@ class ReportsPage extends Page
 
     protected static ?int $navigationSort = 20;
 
-    protected static ?string $slug = 'reports';
+    protected static ?string $slug = 'finance-reports';
 
-    // This is a dummy view - we redirect immediately
     protected static string $view = 'accounting::filament.pages.reports-redirect';
 
     public static function getNavigationLabel(): string
@@ -22,9 +21,8 @@ class ReportsPage extends Page
         return __('Reports');
     }
 
-    public function mount(): void
+    public static function canAccess(): bool
     {
-        // Redirect to P&L as the default report
-        $this->redirect(ProfitLossPage::getUrl());
+        return true;
     }
 }
