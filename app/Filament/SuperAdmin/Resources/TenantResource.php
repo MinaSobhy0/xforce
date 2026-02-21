@@ -470,7 +470,7 @@ class TenantResource extends Resource
                             ->searchable()
                             ->required(),
                     ])
-                    ->action(function (Tenant $record, array $data): void {
+                    ->action(function (Tenant $record, array $data) {
                         try {
                             $schemaName = $record->database_name;
                             \DB::statement("SET search_path TO \"{$schemaName}\"");
@@ -485,24 +485,11 @@ class TenantResource extends Resource
                                     'impersonation_token_expires_at' => $expiresAt,
                                 ]);
 
-                            $user = \DB::table('users')->where('id', $data['user_id'])->first();
-
                             \DB::statement("SET search_path TO public");
 
                             $url = "https://{$record->slug}.x-linic.com/admin/impersonate?token={$token}&user={$data['user_id']}";
 
-                            Notification::make()
-                                ->title("Login link for {$user->first_name} {$user->last_name}")
-                                ->body("Expires in 5 minutes")
-                                ->actions([
-                                    \Filament\Notifications\Actions\Action::make('login')
-                                        ->label('Open Login Link')
-                                        ->url($url)
-                                        ->openUrlInNewTab(),
-                                ])
-                                ->success()
-                                ->persistent()
-                                ->send();
+                            return redirect()->away($url);
 
                         } catch (\Exception $e) {
                             \DB::statement("SET search_path TO public");

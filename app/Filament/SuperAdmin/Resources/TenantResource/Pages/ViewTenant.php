@@ -319,7 +319,7 @@ class ViewTenant extends BaseViewRecord
                         ->searchable()
                         ->required(),
                 ])
-                ->action(function (array $data): void {
+                ->action(function (array $data) {
                     try {
                         $schemaName = $this->record->database_name;
                         DB::statement("SET search_path TO \"{$schemaName}\"");
@@ -336,25 +336,12 @@ class ViewTenant extends BaseViewRecord
                                 'impersonation_token_expires_at' => $expiresAt,
                             ]);
 
-                        $user = DB::table('users')->where('id', $data['user_id'])->first();
-
                         DB::statement("SET search_path TO public");
 
-                        // Build the impersonation URL
+                        // Build the impersonation URL and redirect directly
                         $url = "https://{$this->record->slug}.x-linic.com/admin/impersonate?token={$token}&user={$data['user_id']}";
 
-                        Notification::make()
-                            ->title("Login link generated for {$user->first_name} {$user->last_name}")
-                            ->body("Click the link below to login (expires in 5 minutes)")
-                            ->actions([
-                                \Filament\Notifications\Actions\Action::make('login')
-                                    ->label('Open Login Link')
-                                    ->url($url)
-                                    ->openUrlInNewTab(),
-                            ])
-                            ->success()
-                            ->persistent()
-                            ->send();
+                        return redirect()->away($url);
 
                     } catch (\Exception $e) {
                         DB::statement("SET search_path TO public");
