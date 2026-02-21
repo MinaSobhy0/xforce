@@ -2,6 +2,7 @@
 
 namespace Modules\Booking\Filament\Resources;
 
+use App\Traits\ChecksTenantModuleAccess;
 use Modules\Booking\Filament\Resources\PractitionerTimeOffResource\Pages;
 use Modules\Booking\Models\PractitionerTimeOff;
 use Modules\Auth\Models\User;
@@ -14,7 +15,11 @@ use Illuminate\Database\Eloquent\Builder;
 
 class PractitionerTimeOffResource extends Resource
 {
+    use ChecksTenantModuleAccess;
+
     protected static ?string $model = PractitionerTimeOff::class;
+
+    protected static ?string $moduleCode = 'booking';
 
     protected static ?string $navigationIcon = 'heroicon-o-calendar';
 

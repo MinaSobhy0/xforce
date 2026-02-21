@@ -2,6 +2,7 @@
 
 namespace Modules\Billing\Filament\Resources;
 
+use App\Traits\ChecksTenantModuleAccess;
 use Modules\Billing\Filament\Resources\TaxRateResource\Pages;
 use Modules\Billing\Models\TaxRate;
 use Filament\Forms;
@@ -12,7 +13,11 @@ use Filament\Tables\Table;
 
 class TaxRateResource extends Resource
 {
+    use ChecksTenantModuleAccess;
+
     protected static ?string $model = TaxRate::class;
+
+    protected static ?string $moduleCode = 'billing';
 
     protected static ?string $navigationIcon = 'heroicon-o-receipt-percent';
 

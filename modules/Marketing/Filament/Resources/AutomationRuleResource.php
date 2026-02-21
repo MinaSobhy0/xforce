@@ -2,6 +2,7 @@
 
 namespace Modules\Marketing\Filament\Resources;
 
+use App\Traits\ChecksTenantModuleAccess;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -13,7 +14,11 @@ use Modules\Marketing\Models\MessageTemplate;
 
 class AutomationRuleResource extends Resource
 {
+    use ChecksTenantModuleAccess;
+
     protected static ?string $model = AutomationRule::class;
+
+    protected static ?string $moduleCode = 'marketing';
 
     protected static ?string $navigationIcon = 'heroicon-o-bolt';
 

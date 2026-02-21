@@ -2,6 +2,7 @@
 
 namespace Modules\Services\Filament\Resources;
 
+use App\Traits\ChecksTenantModuleAccess;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -13,7 +14,11 @@ use Illuminate\Database\Eloquent\Builder;
 
 class ServiceCategoryResource extends Resource
 {
+    use ChecksTenantModuleAccess;
+
     protected static ?string $model = ServiceCategory::class;
+
+    protected static ?string $moduleCode = 'services';
 
     protected static ?string $navigationIcon = 'heroicon-o-folder';
 

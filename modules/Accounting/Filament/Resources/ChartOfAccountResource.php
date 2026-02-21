@@ -2,6 +2,7 @@
 
 namespace Modules\Accounting\Filament\Resources;
 
+use App\Traits\ChecksTenantModuleAccess;
 use Modules\Accounting\Filament\Resources\ChartOfAccountResource\Pages;
 use Modules\Accounting\Models\ChartOfAccount;
 use Filament\Forms;
@@ -14,7 +15,11 @@ use Illuminate\Database\Eloquent\Builder;
 
 class ChartOfAccountResource extends Resource
 {
+    use ChecksTenantModuleAccess;
+
     protected static ?string $model = ChartOfAccount::class;
+
+    protected static ?string $moduleCode = 'accounting';
 
     protected static ?string $navigationIcon = 'heroicon-o-list-bullet';
 

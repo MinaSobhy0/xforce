@@ -2,6 +2,7 @@
 
 namespace Modules\Equipment\Filament\Resources;
 
+use App\Traits\ChecksTenantModuleAccess;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -12,7 +13,11 @@ use Modules\Equipment\Models\EquipmentType;
 
 class EquipmentTypeResource extends Resource
 {
+    use ChecksTenantModuleAccess;
+
     protected static ?string $model = EquipmentType::class;
+
+    protected static ?string $moduleCode = 'equipment';
 
     protected static ?string $navigationIcon = 'heroicon-o-squares-2x2';
 

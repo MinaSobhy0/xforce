@@ -2,6 +2,7 @@
 
 namespace Modules\Patients\Filament\Resources;
 
+use App\Traits\ChecksTenantModuleAccess;
 use Modules\Patients\Filament\Resources\PatientResource\Pages;
 use Modules\Patients\Filament\Resources\PatientResource\RelationManagers;
 use Modules\Patients\Filament\Forms\Components\FitzpatrickTypeSelector;
@@ -19,7 +20,11 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class PatientResource extends Resource
 {
+    use ChecksTenantModuleAccess;
+
     protected static ?string $model = Patient::class;
+
+    protected static ?string $moduleCode = 'patients';
 
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
 
