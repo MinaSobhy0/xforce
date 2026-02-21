@@ -52,15 +52,28 @@ class UserResource extends BaseResource
                             ->schema([
                                 Forms\Components\Grid::make(2)
                                     ->schema([
-                                        Forms\Components\TextInput::make('name')
-                                            ->label(__('Full Name'))
+                                        Forms\Components\TextInput::make('first_name')
+                                            ->label(__('First Name'))
                                             ->required()
-                                            ->maxLength(255)
-                                            ->live(onBlur: true),
+                                            ->maxLength(255),
 
+                                        Forms\Components\TextInput::make('last_name')
+                                            ->label(__('Last Name'))
+                                            ->required()
+                                            ->maxLength(255),
+                                    ]),
+
+                                Forms\Components\Grid::make(2)
+                                    ->schema([
                                         Forms\Components\TextInput::make('email')
                                             ->label(__('Email Address'))
                                             ->email()
+                                            ->required()
+                                            ->unique(ignoreRecord: true)
+                                            ->maxLength(255),
+
+                                        Forms\Components\TextInput::make('username')
+                                            ->label(__('Username'))
                                             ->required()
                                             ->unique(ignoreRecord: true)
                                             ->maxLength(255),
@@ -122,9 +135,15 @@ class UserResource extends BaseResource
 
                                 Forms\Components\Grid::make(3)
                                     ->schema([
-                                        Forms\Components\Toggle::make('is_active')
-                                            ->label(__('Active'))
-                                            ->default(true),
+                                        Forms\Components\Select::make('status')
+                                            ->label(__('Status'))
+                                            ->options([
+                                                'active' => __('Active'),
+                                                'inactive' => __('Inactive'),
+                                                'suspended' => __('Suspended'),
+                                            ])
+                                            ->default('active')
+                                            ->required(),
 
                                         Forms\Components\Toggle::make('email_verified_at')
                                             ->label(__('Email Verified'))
@@ -244,8 +263,8 @@ class UserResource extends BaseResource
 
                 Tables\Columns\TextColumn::make('name')
                     ->label(__('Name'))
-                    ->searchable()
-                    ->sortable()
+                    ->searchable(['first_name', 'last_name'])
+                    ->sortable(['first_name'])
                     ->weight(FontWeight::Medium),
 
                 Tables\Columns\TextColumn::make('email')
@@ -265,11 +284,15 @@ class UserResource extends BaseResource
                         'success' => 'user',
                     ]),
 
-                Tables\Columns\IconColumn::make('is_active')
-                    ->label(__('Active'))
-                    ->boolean()
-                    ->trueIcon('heroicon-o-check-circle')
-                    ->falseIcon('heroicon-o-x-circle'),
+                Tables\Columns\TextColumn::make('status')
+                    ->label(__('Status'))
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'active' => 'success',
+                        'inactive' => 'gray',
+                        'suspended' => 'danger',
+                        default => 'gray',
+                    }),
 
                 Tables\Columns\IconColumn::make('email_verified_at')
                     ->label(__('Verified'))
@@ -299,9 +322,13 @@ class UserResource extends BaseResource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\TernaryFilter::make('is_active')
-                    ->label(__('Active'))
-                    ->boolean(),
+                Tables\Filters\SelectFilter::make('status')
+                    ->label(__('Status'))
+                    ->options([
+                        'active' => __('Active'),
+                        'inactive' => __('Inactive'),
+                        'suspended' => __('Suspended'),
+                    ]),
 
                 Tables\Filters\TernaryFilter::make('email_verified_at')
                     ->label(__('Email Verified'))
@@ -332,7 +359,7 @@ class UserResource extends BaseResource
                         // Impersonation logic would go here
                         // This is a placeholder for the functionality
                     })
-                    ->visible(fn (User $record) => $record->is_active && !$record->hasRole('super_admin')),
+                    ->visible(fn (User $record) => $record->status === 'active' && !$record->hasRole('super_admin')),
 
                 Tables\Actions\Action::make('resetPassword')
                     ->label(__('Reset Password'))
@@ -363,14 +390,14 @@ class UserResource extends BaseResource
                         ->label(__('Activate'))
                         ->icon('heroicon-o-check')
                         ->color('success')
-                        ->action(fn ($records) => $records->each->update(['is_active' => true])),
+                        ->action(fn ($records) => $records->each->update(['status' => 'active'])),
 
                     Tables\Actions\BulkAction::make('deactivate')
                         ->label(__('Deactivate'))
                         ->icon('heroicon-o-x-mark')
                         ->color('danger')
                         ->requiresConfirmation()
-                        ->action(fn ($records) => $records->each->update(['is_active' => false])),
+                        ->action(fn ($records) => $records->each->update(['status' => 'inactive'])),
 
                     Tables\Actions\BulkAction::make('forcePasswordChange')
                         ->label(__('Force Password Change'))
@@ -415,9 +442,15 @@ class UserResource extends BaseResource
                     ->schema([
                         Infolists\Components\Grid::make(4)
                             ->schema([
-                                Infolists\Components\IconEntry::make('is_active')
-                                    ->label(__('Active'))
-                                    ->boolean(),
+                                Infolists\Components\TextEntry::make('status')
+                                    ->label(__('Status'))
+                                    ->badge()
+                                    ->color(fn (string $state): string => match ($state) {
+                                        'active' => 'success',
+                                        'inactive' => 'gray',
+                                        'suspended' => 'danger',
+                                        default => 'gray',
+                                    }),
                                 Infolists\Components\IconEntry::make('email_verified_at')
                                     ->label(__('Email Verified'))
                                     ->boolean(),
