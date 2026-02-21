@@ -29,7 +29,7 @@ return [
     'settings_saved' => 'Settings saved successfully',
 
     // Modules
-    'modules' => 'Modules',
+    'modules_label' => 'Modules',
     'module_management' => 'Module Management',
     'activate_module' => 'Activate Module',
     'deactivate_module' => 'Deactivate Module',
@@ -268,7 +268,7 @@ return [
     ],
 
     // Module Names & Descriptions
-    'modules' => [
+    'module_info' => [
         'core' => 'Core System',
         'core_description' => 'Branches, rooms, settings, and system configuration',
         'auth' => 'Authentication',

@@ -29,7 +29,7 @@ return [
     'settings_saved' => 'تم حفظ الإعدادات بنجاح',
 
     // Modules
-    'modules' => 'الوحدات',
+    'modules_label' => 'الوحدات',
     'module_management' => 'إدارة الوحدات',
     'activate_module' => 'تفعيل الوحدة',
     'deactivate_module' => 'إلغاء تفعيل الوحدة',
@@ -181,7 +181,7 @@ return [
     ],
 
     // Module Names & Descriptions
-    'modules' => [
+    'module_info' => [
         'core' => 'النظام الأساسي',
         'core_description' => 'الفروع والغرف والإعدادات وتكوين النظام',
         'auth' => 'المصادقة',
