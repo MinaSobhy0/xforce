@@ -5,6 +5,70 @@ return [
     'module_name' => 'Authentication',
     'module_description' => 'User authentication, roles and permissions management',
 
+    // Navigation
+    'navigation' => [
+        'users' => 'Users',
+        'roles' => 'Roles',
+        'access_policies' => 'Access Policies',
+    ],
+
+    // Labels
+    'labels' => [
+        'user' => 'User',
+        'users' => 'Users',
+        'role' => 'Role',
+        'roles' => 'Roles',
+        'access_policy' => 'Access Policy',
+        'access_policies' => 'Access Policies',
+    ],
+
+    // Sections
+    'sections' => [
+        'user_details' => 'User Details',
+        'policy_details' => 'Policy Details',
+        'permissions' => 'Permissions',
+        'domain_filter' => 'Domain Filter (Record Rules)',
+    ],
+
+    // Fields
+    'fields' => [
+        'name' => 'Name',
+        'model_type' => 'Model Type',
+        'role' => 'Role',
+        'apply_to_all_roles' => 'Apply to All Roles',
+        'priority' => 'Priority',
+        'description' => 'Description',
+        'is_active' => 'Active',
+        'perm_read' => 'Read',
+        'perm_create' => 'Create',
+        'perm_update' => 'Update',
+        'perm_delete' => 'Delete',
+        'conditions' => 'Conditions',
+        'field' => 'Field',
+        'operator' => 'Operator',
+        'value' => 'Value',
+        'read' => 'Read',
+        'create' => 'Create',
+        'update' => 'Update',
+        'delete' => 'Delete',
+        'active' => 'Active',
+    ],
+
+    // Helpers
+    'helpers' => [
+        'apply_to_all_roles' => 'When enabled, this policy applies to all roles regardless of role selection',
+        'priority' => 'Lower number = higher priority. Policies are evaluated in priority order.',
+        'placeholders' => 'Use {user.id}, {user.branch_id}, {user.tenant_id}, {today}, {now}',
+    ],
+
+    // Actions
+    'actions' => [
+        'add_condition' => 'Add Condition',
+    ],
+
+    // Other
+    'all_roles' => 'All Roles',
+
     // Users
     'user' => 'User',
     'users' => 'Users',
