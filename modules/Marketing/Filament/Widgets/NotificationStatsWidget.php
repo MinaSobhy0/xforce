@@ -78,8 +78,8 @@ class NotificationStatsWidget extends BaseWidget
     protected function getHourlyData(): array
     {
         return NotificationLog::whereDate('created_at', today())
-            ->groupBy(DB::raw('HOUR(created_at)'))
-            ->orderBy(DB::raw('HOUR(created_at)'))
+            ->groupBy(DB::raw('EXTRACT(HOUR FROM created_at)'))
+            ->orderBy(DB::raw('EXTRACT(HOUR FROM created_at)'))
             ->pluck(DB::raw('COUNT(*)'))
             ->toArray();
     }
