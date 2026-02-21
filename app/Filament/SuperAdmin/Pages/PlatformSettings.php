@@ -383,12 +383,23 @@ class PlatformSettings extends Page implements HasForms
                 ->icon('heroicon-o-arrow-path')
                 ->color('gray')
                 ->requiresConfirmation()
+                ->modalDescription('This will start backing up all active tenants. This may take several minutes depending on the number of tenants.')
                 ->action(function () {
-                    Notification::make()
-                        ->title('Backup initiated')
-                        ->body('The backup has been queued.')
-                        ->success()
-                        ->send();
+                    try {
+                        \Illuminate\Support\Facades\Artisan::call('tenants:backup', ['--force' => true]);
+
+                        Notification::make()
+                            ->title('Backup started')
+                            ->body('All tenant backups have been queued. Check the Backup History for progress.')
+                            ->success()
+                            ->send();
+                    } catch (\Exception $e) {
+                        Notification::make()
+                            ->title('Backup failed')
+                            ->body($e->getMessage())
+                            ->danger()
+                            ->send();
+                    }
                 }),
         ];
     }

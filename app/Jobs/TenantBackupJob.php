@@ -34,12 +34,23 @@ class TenantBackupJob implements ShouldQueue
 
         try {
             // Get database connection details
-            $dbHost = $this->tenant->database_host ?? config('database.connections.pgsql.host');
-            $dbPort = $this->tenant->database_port ?? config('database.connections.pgsql.port');
+            // Use direct PostgreSQL port (5432) instead of PgBouncer (6432) for pg_dump
+            $dbHost = env('DB_HOST_DIRECT', $this->tenant->database_host ?? config('database.connections.pgsql.host'));
+            $dbPort = env('DB_PORT_DIRECT', 5432); // Direct PostgreSQL port, not PgBouncer
             $dbName = config('database.connections.pgsql.database'); // Main database
             $dbUser = $this->tenant->database_username ?? config('database.connections.pgsql.username');
             $dbPass = $this->tenant->database_password ?? config('database.connections.pgsql.password');
             $schema = $this->tenant->database_name; // Tenant schema name
+
+            // Check if tenant schema exists before attempting backup
+            if (!$this->schemaExists($schema, $dbHost, $dbPort, $dbName, $dbUser, $dbPass)) {
+                Log::warning('Skipping backup - tenant schema not provisioned', [
+                    'tenant_id' => $this->tenant->id,
+                    'schema' => $schema,
+                ]);
+                $this->backup->markFailed('Schema not provisioned');
+                return;
+            }
 
             // Create backup directory if it doesn't exist
             $backupDir = storage_path('app/backups/tenants/' . $this->tenant->id);
@@ -133,5 +144,32 @@ class TenantBackupJob implements ShouldQueue
             'backup_id' => $this->backup->id,
             'error' => $exception->getMessage(),
         ]);
+    }
+
+    /**
+     * Check if the tenant schema exists in the database.
+     */
+    protected function schemaExists(string $schema, string $host, int $port, string $database, string $user, string $password): bool
+    {
+        try {
+            $command = sprintf(
+                'PGPASSWORD=%s psql -h %s -p %s -U %s -d %s -tAc "SELECT 1 FROM information_schema.schemata WHERE schema_name = %s" 2>/dev/null',
+                escapeshellarg($password),
+                escapeshellarg($host),
+                escapeshellarg($port),
+                escapeshellarg($user),
+                escapeshellarg($database),
+                escapeshellarg($schema)
+            );
+
+            $output = trim(shell_exec($command) ?? '');
+            return $output === '1';
+        } catch (\Exception $e) {
+            Log::warning('Failed to check schema existence', [
+                'schema' => $schema,
+                'error' => $e->getMessage(),
+            ]);
+            return false;
+        }
     }
 }
