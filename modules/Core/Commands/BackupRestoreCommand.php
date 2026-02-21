@@ -149,7 +149,12 @@ class BackupRestoreCommand extends Command
 
     protected function restoreDatabase(Tenant $tenant, string $backupPath, array $dbManifest, string $disk): void
     {
-        $config = $tenant->getDatabaseConfig();
+        // Use main database config (tenants use schema-based isolation)
+        $config = config('database.connections.pgsql');
+        // Connect directly to PostgreSQL, not PgBouncer
+        $host = env('DB_HOST_DIRECT', $config['host']);
+        $port = env('DB_PORT_DIRECT', 5432); // Direct PostgreSQL port, not PgBouncer
+
         $filename = $dbManifest['filename'];
         $isCompressed = str_ends_with($filename, '.gz');
 
@@ -185,15 +190,35 @@ class BackupRestoreCommand extends Command
             }
         }
 
-        // Restore using psql
         $env = ['PGPASSWORD' => $config['password']];
+        $schemaName = $tenant->database_name;
 
-        $command = [
+        // First, drop the existing schema if it exists (CASCADE to drop all objects)
+        $dropSchemaCommand = [
             'psql',
-            '-h', $config['host'],
-            '-p', (string) ($config['port'] ?? 5432),
+            '-h', $host,
+            '-p', (string) $port,
             '-U', $config['username'],
             '-d', $config['database'],
+            '-c', "DROP SCHEMA IF EXISTS \"{$schemaName}\" CASCADE;",
+        ];
+
+        $dropProcess = new Process($dropSchemaCommand, null, $env);
+        $dropProcess->setTimeout(300);
+        $dropProcess->run();
+
+        if (!$dropProcess->isSuccessful()) {
+            // Log but don't fail - schema might not exist
+            \Log::warning("Schema drop returned error (may be ok if schema didn't exist): " . $dropProcess->getErrorOutput());
+        }
+
+        // Restore using psql - connect to main database, restore creates the schema from backup
+        $command = [
+            'psql',
+            '-h', $host,
+            '-p', (string) $port,
+            '-U', $config['username'],
+            '-d', $config['database'], // Main database (e.g., xlinic)
             '-f', $sqlPath,
         ];
 

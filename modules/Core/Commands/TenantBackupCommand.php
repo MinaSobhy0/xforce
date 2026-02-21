@@ -11,7 +11,7 @@ use Symfony\Component\Process\Process;
 
 class TenantBackupCommand extends Command
 {
-    protected $signature = 'tenants:backup
+    protected $signature = 'tenant:backup
                             {tenant? : Tenant ID or slug (optional, backs up all if not specified)}
                             {--disk=local : Storage disk for backup}
                             {--only-database : Only backup database, skip files}
@@ -126,7 +126,14 @@ class TenantBackupCommand extends Command
 
     protected function backupDatabase(Tenant $tenant, string $backupDir, string $disk, bool $compress): ?array
     {
-        $config = $tenant->getDatabaseConfig();
+        // Use main database config (tenants use schema-based isolation)
+        $mainConfig = config('database.connections.pgsql');
+        $tenantConfig = $tenant->getDatabaseConfig();
+
+        // Connect directly to PostgreSQL, not PgBouncer
+        $host = env('DB_HOST_DIRECT', $mainConfig['host']);
+        $port = env('DB_PORT_DIRECT', 5432); // Direct PostgreSQL port
+
         $filename = $compress ? 'database.sql.gz' : 'database.sql';
         $tempPath = storage_path("app/temp/{$tenant->id}_{$filename}");
 
@@ -135,23 +142,24 @@ class TenantBackupCommand extends Command
             mkdir(dirname($tempPath), 0755, true);
         }
 
-        // Build pg_dump command
+        // Build pg_dump command - dump from main database, specific schema
         $command = [
             'pg_dump',
-            '-h', $config['host'],
-            '-p', (string) ($config['port'] ?? 5432),
-            '-U', $config['username'],
-            '-d', $config['database'],
+            '-h', $host,
+            '-p', (string) $port,
+            '-U', $mainConfig['username'],
+            '-d', $mainConfig['database'], // Main database (e.g., xlinic)
             '--no-owner',
             '--no-acl',
             '-F', 'p', // Plain text format
         ];
 
-        if ($config['schema'] ?? null) {
-            $command[] = '--schema=' . $config['schema'];
+        // Dump only the tenant's schema
+        if ($tenantConfig['schema'] ?? null) {
+            $command[] = '--schema=' . $tenantConfig['schema'];
         }
 
-        $env = ['PGPASSWORD' => $config['password']];
+        $env = ['PGPASSWORD' => $mainConfig['password']];
 
         if ($compress) {
             // Pipe through gzip

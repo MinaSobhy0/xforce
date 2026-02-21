@@ -81,23 +81,42 @@ class ViewTenant extends BaseViewRecord
     public function restoreBackup(string $path): void
     {
         try {
-            Artisan::call('backup:restore', [
+            $exitCode = Artisan::call('backup:restore', [
                 'path' => $path,
                 '--tenant' => $this->record->id,
                 '--force' => true,
             ]);
 
-            Notification::make()
-                ->title('Backup restored successfully')
-                ->body('The tenant has been restored from the selected backup.')
-                ->success()
-                ->send();
+            $output = Artisan::output();
+
+            if ($exitCode === 0) {
+                Notification::make()
+                    ->title('Backup restored successfully')
+                    ->body('The tenant database has been restored from the selected backup.')
+                    ->success()
+                    ->send();
+            } else {
+                Log::error('Backup restore command failed', [
+                    'tenant_id' => $this->record->id,
+                    'path' => $path,
+                    'exit_code' => $exitCode,
+                    'output' => $output,
+                ]);
+
+                Notification::make()
+                    ->title('Restore failed')
+                    ->body('Command failed with exit code: ' . $exitCode)
+                    ->danger()
+                    ->persistent()
+                    ->send();
+            }
 
         } catch (\Exception $e) {
             Log::error('Backup restore failed', [
                 'tenant_id' => $this->record->id,
                 'path' => $path,
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
 
             Notification::make()
@@ -978,7 +997,7 @@ class ViewTenant extends BaseViewRecord
                                             ->modalSubmitActionLabel('Start Backup')
                                             ->action(function (Tenant $record) {
                                                 try {
-                                                    Artisan::call('tenants:backup', [
+                                                    Artisan::call('tenant:backup', [
                                                         'tenant' => $record->id,
                                                         '--compress' => true,
                                                     ]);
@@ -1010,7 +1029,7 @@ class ViewTenant extends BaseViewRecord
                                             ->requiresConfirmation()
                                             ->action(function (Tenant $record) {
                                                 try {
-                                                    Artisan::call('tenants:backup', [
+                                                    Artisan::call('tenant:backup', [
                                                         'tenant' => $record->id,
                                                         '--only-database' => true,
                                                         '--compress' => true,
