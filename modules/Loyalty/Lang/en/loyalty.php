@@ -127,6 +127,7 @@ return [
         'redeemed' => 'Points redeemed',
         'points_expired' => 'Points expired due to inactivity',
         'manual_adjustment' => 'Manual adjustment by admin',
+        'invoice_payment' => 'Points used for invoice :invoice payment',
     ],
 
     // Messages

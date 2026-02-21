@@ -68,4 +68,6 @@ return [
         'adjusted' => 'Gift card adjusted successfully',
         'cancelled' => 'Gift card cancelled successfully',
     ],
+
+    'redemption_for_invoice' => 'Redemption for invoice :invoice',
 ];

@@ -127,6 +127,7 @@ return [
         'redeemed' => 'نقاط مستبدلة',
         'points_expired' => 'نقاط منتهية بسبب عدم النشاط',
         'manual_adjustment' => 'تعديل يدوي من المسؤول',
+        'invoice_payment' => 'نقاط مستخدمة لدفع الفاتورة :invoice',
     ],
 
     // Messages

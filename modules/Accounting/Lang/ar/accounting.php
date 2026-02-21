@@ -49,9 +49,13 @@ return [
     'total_revenue' => 'إجمالي الإيرادات',
     'total_expenses' => 'إجمالي المصروفات',
     'net_income' => 'صافي الدخل',
+    'net_profit' => 'صافي الربح',
+    'net_loss' => 'صافي الخسارة',
     'no_revenues' => 'لا توجد إيرادات',
     'no_expenses' => 'لا توجد مصروفات',
+    'no_revenue' => 'لا توجد حسابات إيرادات بها نشاط',
     'summary' => 'الملخص',
+    'to' => 'إلى',
 
     // Balance Sheet
     'assets' => 'الأصول',
@@ -60,10 +64,13 @@ return [
     'total_assets' => 'إجمالي الأصول',
     'total_liabilities' => 'إجمالي الخصوم',
     'total_equity' => 'إجمالي حقوق الملكية',
+    'total_liabilities_equity' => 'إجمالي الخصوم وحقوق الملكية',
     'retained_earnings' => 'الأرباح المحتجزة',
     'balance_check' => 'التحقق من التوازن',
     'balanced' => 'متوازن',
     'not_balanced' => 'غير متوازن',
+    'balance_sheet_balanced' => 'الميزانية العمومية متوازنة (الأصول = الخصوم + حقوق الملكية)',
+    'balance_sheet_not_balanced' => 'الميزانية العمومية غير متوازنة!',
     'status' => 'الحالة',
     'no_assets' => 'لا توجد أصول',
     'no_liabilities' => 'لا توجد خصوم',
@@ -105,6 +112,17 @@ return [
     'no_activities' => 'لا توجد أنشطة',
     'no_investing_activities' => 'لا توجد أنشطة استثمارية',
     'no_financing_activities' => 'لا توجد أنشطة تمويلية',
+
+    // PDF
+    'generated_at' => 'تاريخ الإنشاء',
+
+    'types' => [
+        'asset' => 'أصول',
+        'liability' => 'خصوم',
+        'equity' => 'حقوق الملكية',
+        'revenue' => 'إيرادات',
+        'expense' => 'مصروفات',
+    ],
 
     'account_types' => [
         'asset' => 'أصول',

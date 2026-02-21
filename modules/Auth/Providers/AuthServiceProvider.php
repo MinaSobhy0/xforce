@@ -26,6 +26,11 @@ class AuthServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->register(RouteServiceProvider::class);
+
+        // Register AccessPolicyService as a singleton
+        $this->app->singleton(\Modules\Auth\Services\AccessPolicyService::class, function ($app) {
+            return new \Modules\Auth\Services\AccessPolicyService();
+        });
     }
 
     protected function registerConfig(): void

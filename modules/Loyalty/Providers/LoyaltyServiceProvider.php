@@ -3,11 +3,7 @@
 namespace Modules\Loyalty\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Facades\Event;
 use Modules\Loyalty\Services\LoyaltyService;
-use Modules\Loyalty\Listeners\AwardPointsOnPayment;
-use Modules\Loyalty\Listeners\AwardPointsOnVisit;
-use Modules\Loyalty\Listeners\AwardReferralBonus;
 
 class LoyaltyServiceProvider extends ServiceProvider
 {
@@ -19,12 +15,12 @@ class LoyaltyServiceProvider extends ServiceProvider
         $this->registerConfig();
         $this->registerTranslations();
         $this->loadMigrationsFrom(module_path($this->moduleName, 'Database/Migrations'));
-        $this->registerListeners();
     }
 
     public function register(): void
     {
         $this->app->register(RouteServiceProvider::class);
+        $this->app->register(EventServiceProvider::class);
 
         // Register the LoyaltyService as a singleton
         $this->app->singleton(LoyaltyService::class, function ($app) {
@@ -48,27 +44,6 @@ class LoyaltyServiceProvider extends ServiceProvider
     protected function registerTranslations(): void
     {
         $this->loadTranslationsFrom(module_path($this->moduleName, 'Lang'), $this->moduleNameLower);
-    }
-
-    protected function registerListeners(): void
-    {
-        // Listen for payment events to award points
-        Event::listen(
-            \Modules\Billing\Events\PaymentReceived::class,
-            AwardPointsOnPayment::class
-        );
-
-        // Listen for appointment completion to award visit points
-        Event::listen(
-            \Modules\Booking\Events\AppointmentCompleted::class,
-            AwardPointsOnVisit::class
-        );
-
-        // Listen for referral completion
-        Event::listen(
-            \Modules\Loyalty\Events\ReferralCompleted::class,
-            AwardReferralBonus::class
-        );
     }
 
     public function provides(): array

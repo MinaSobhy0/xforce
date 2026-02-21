@@ -75,4 +75,31 @@ return [
         'notes' => 'Notes',
         'thank_you' => 'Thank you for your business!',
     ],
+
+    // Payment integration errors
+    'errors' => [
+        'gift_card_not_found' => 'Gift card not found',
+        'gift_card_not_redeemable' => 'Gift card cannot be redeemed (status: :status)',
+        'nothing_to_pay' => 'Nothing to pay',
+        'no_patient_on_invoice' => 'Invoice has no associated patient',
+        'no_loyalty_points' => 'Patient has no loyalty points available',
+        'insufficient_points' => 'Insufficient loyalty points (requested: :requested, available: :available)',
+    ],
+
+    // Payment notes
+    'notes' => [
+        'gift_card_payment' => 'Payment via gift card :code',
+        'loyalty_points_payment' => 'Payment via :points loyalty points',
+        'member_discount_applied' => 'Member discount applied (:tier tier, :percentage%)',
+    ],
+
+    // Loyalty points
+    'loyalty_points' => 'Loyalty Points',
+    'points_balance' => 'Points Balance',
+    'points_value' => 'Points Value',
+    'use_points' => 'Use Points',
+
+    // Member discount
+    'member_discount' => 'Member Discount',
+    'membership_tier' => 'Membership Tier',
 ];

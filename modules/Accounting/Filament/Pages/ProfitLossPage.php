@@ -12,6 +12,7 @@ use Filament\Actions\Action;
 use Illuminate\Support\Facades\DB;
 use Modules\Accounting\Models\ChartOfAccount;
 use Modules\Accounting\Models\JournalEntryLine;
+use Modules\Accounting\Services\ProfitLossPdfService;
 use Carbon\Carbon;
 
 class ProfitLossPage extends Page implements HasForms
@@ -152,7 +153,11 @@ class ProfitLossPage extends Page implements HasForms
 
     public function exportPdf()
     {
-        // PDF export implementation
+        $service = app(ProfitLossPdfService::class);
+        return $service->download(
+            $this->start_date ?? now()->startOfMonth()->format('Y-m-d'),
+            $this->end_date ?? now()->format('Y-m-d')
+        );
     }
 
     protected function formatCurrency(int $amountMinor): string

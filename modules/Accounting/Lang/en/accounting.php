@@ -49,9 +49,13 @@ return [
     'total_revenue' => 'Total Revenue',
     'total_expenses' => 'Total Expenses',
     'net_income' => 'Net Income',
+    'net_profit' => 'Net Profit',
+    'net_loss' => 'Net Loss',
     'no_revenues' => 'No revenue entries',
     'no_expenses' => 'No expense entries',
+    'no_revenue' => 'No revenue accounts with activity',
     'summary' => 'Summary',
+    'to' => 'to',
 
     // Balance Sheet
     'assets' => 'Assets',
@@ -60,10 +64,13 @@ return [
     'total_assets' => 'Total Assets',
     'total_liabilities' => 'Total Liabilities',
     'total_equity' => 'Total Equity',
+    'total_liabilities_equity' => 'Total Liabilities & Equity',
     'retained_earnings' => 'Retained Earnings',
     'balance_check' => 'Balance Check',
     'balanced' => 'Balanced',
     'not_balanced' => 'Not Balanced',
+    'balance_sheet_balanced' => 'Balance sheet is balanced (Assets = Liabilities + Equity)',
+    'balance_sheet_not_balanced' => 'Balance sheet is NOT balanced!',
     'status' => 'Status',
     'no_assets' => 'No assets',
     'no_liabilities' => 'No liabilities',
@@ -105,6 +112,17 @@ return [
     'no_activities' => 'No activities',
     'no_investing_activities' => 'No investing activities',
     'no_financing_activities' => 'No financing activities',
+
+    // PDF
+    'generated_at' => 'Generated at',
+
+    'types' => [
+        'asset' => 'Asset',
+        'liability' => 'Liability',
+        'equity' => 'Equity',
+        'revenue' => 'Revenue',
+        'expense' => 'Expense',
+    ],
 
     'account_types' => [
         'asset' => 'Asset',

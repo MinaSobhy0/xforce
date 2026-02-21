@@ -3,9 +3,8 @@
 namespace Modules\Billing\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Facades\Event;
 use Modules\Billing\Services\InvoiceCalculationService;
-use Modules\Booking\Models\Appointment;
+use Modules\Billing\Services\PaymentIntegrationService;
 
 class BillingServiceProvider extends ServiceProvider
 {
@@ -15,9 +14,11 @@ class BillingServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->register(RouteServiceProvider::class);
+        $this->app->register(EventServiceProvider::class);
 
         // Register services
         $this->app->singleton(InvoiceCalculationService::class);
+        $this->app->singleton(PaymentIntegrationService::class);
     }
 
     public function boot(): void
@@ -73,6 +74,7 @@ class BillingServiceProvider extends ServiceProvider
     {
         return [
             InvoiceCalculationService::class,
+            PaymentIntegrationService::class,
         ];
     }
 }

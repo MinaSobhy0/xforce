@@ -68,4 +68,6 @@ return [
         'adjusted' => 'تم تعديل بطاقة الهدية بنجاح',
         'cancelled' => 'تم إلغاء بطاقة الهدية بنجاح',
     ],
+
+    'redemption_for_invoice' => 'استرداد للفاتورة :invoice',
 ];

@@ -75,4 +75,31 @@ return [
         'notes' => 'ملاحظات',
         'thank_you' => 'شكراً لتعاملكم معنا!',
     ],
+
+    // أخطاء تكامل الدفع
+    'errors' => [
+        'gift_card_not_found' => 'بطاقة الهدايا غير موجودة',
+        'gift_card_not_redeemable' => 'لا يمكن استخدام بطاقة الهدايا (الحالة: :status)',
+        'nothing_to_pay' => 'لا يوجد مبلغ للدفع',
+        'no_patient_on_invoice' => 'الفاتورة غير مرتبطة بمريض',
+        'no_loyalty_points' => 'لا توجد نقاط ولاء متاحة للمريض',
+        'insufficient_points' => 'نقاط الولاء غير كافية (المطلوب: :requested، المتاح: :available)',
+    ],
+
+    // ملاحظات الدفع
+    'notes' => [
+        'gift_card_payment' => 'دفع عبر بطاقة الهدايا :code',
+        'loyalty_points_payment' => 'دفع عبر :points نقطة ولاء',
+        'member_discount_applied' => 'تم تطبيق خصم العضوية (فئة :tier، :percentage%)',
+    ],
+
+    // نقاط الولاء
+    'loyalty_points' => 'نقاط الولاء',
+    'points_balance' => 'رصيد النقاط',
+    'points_value' => 'قيمة النقاط',
+    'use_points' => 'استخدام النقاط',
+
+    // خصم العضوية
+    'member_discount' => 'خصم العضوية',
+    'membership_tier' => 'فئة العضوية',
 ];

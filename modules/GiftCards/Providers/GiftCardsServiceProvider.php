@@ -3,9 +3,6 @@
 namespace Modules\GiftCards\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Facades\Event;
-use Modules\Billing\Events\InvoicePaid;
-use Modules\GiftCards\Listeners\ActivateGiftCardOnInvoicePaid;
 
 class GiftCardsServiceProvider extends ServiceProvider
 {
@@ -17,12 +14,12 @@ class GiftCardsServiceProvider extends ServiceProvider
         $this->registerConfig();
         $this->registerTranslations();
         $this->loadMigrationsFrom(module_path($this->moduleName, 'Database/Migrations'));
-        $this->registerListeners();
     }
 
     public function register(): void
     {
         $this->app->register(RouteServiceProvider::class);
+        $this->app->register(EventServiceProvider::class);
     }
 
     protected function registerConfig(): void
@@ -40,14 +37,6 @@ class GiftCardsServiceProvider extends ServiceProvider
     protected function registerTranslations(): void
     {
         $this->loadTranslationsFrom(module_path($this->moduleName, 'Lang'), $this->moduleNameLower);
-    }
-
-    protected function registerListeners(): void
-    {
-        // Activate gift card when purchase invoice is paid
-        if (class_exists(InvoicePaid::class)) {
-            Event::listen(InvoicePaid::class, ActivateGiftCardOnInvoicePaid::class);
-        }
     }
 
     public function provides(): array

@@ -12,6 +12,7 @@ use Filament\Actions\Action;
 use Illuminate\Support\Facades\DB;
 use Modules\Accounting\Models\ChartOfAccount;
 use Modules\Accounting\Models\JournalEntryLine;
+use Modules\Accounting\Services\BalanceSheetPdfService;
 use Carbon\Carbon;
 
 class BalanceSheetPage extends Page implements HasForms
@@ -166,7 +167,8 @@ class BalanceSheetPage extends Page implements HasForms
 
     public function exportPdf()
     {
-        // PDF export implementation
+        $service = app(BalanceSheetPdfService::class);
+        return $service->download($this->as_of_date ?? now()->format('Y-m-d'));
     }
 
     protected function formatCurrency(int $amountMinor): string
