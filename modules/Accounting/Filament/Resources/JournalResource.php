@@ -20,7 +20,7 @@ class JournalResource extends Resource
 
     protected static ?string $navigationGroup = 'Finance';
 
-    protected static ?int $navigationSort = 11;
+    protected static ?int $navigationSort = 24;
 
     protected static ?string $recordTitleAttribute = 'code';
 

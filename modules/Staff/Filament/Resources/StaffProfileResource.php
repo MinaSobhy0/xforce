@@ -19,7 +19,7 @@ class StaffProfileResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
 
-    protected static ?string $navigationGroup = 'Staff';
+    protected static ?string $navigationGroup = 'Operations';
 
     protected static ?int $navigationSort = 40;
 

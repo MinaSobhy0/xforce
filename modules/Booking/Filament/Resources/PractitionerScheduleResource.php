@@ -18,7 +18,7 @@ class PractitionerScheduleResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-clock';
 
-    protected static ?string $navigationGroup = 'Booking';
+    protected static ?string $navigationGroup = 'Operations';
 
     protected static ?int $navigationSort = 12;
 

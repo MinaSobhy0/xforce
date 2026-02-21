@@ -20,7 +20,7 @@ class FiscalPeriodResource extends Resource
 
     protected static ?string $navigationGroup = 'Finance';
 
-    protected static ?int $navigationSort = 13;
+    protected static ?int $navigationSort = 27;
 
     protected static ?string $recordTitleAttribute = 'name';
 

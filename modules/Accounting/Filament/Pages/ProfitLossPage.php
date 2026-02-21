@@ -23,11 +23,9 @@ class ProfitLossPage extends Page implements HasForms
 
     protected static string $view = 'accounting::filament.pages.profit-loss';
 
-    protected static ?string $navigationGroup = 'Finance';
+    protected static ?string $navigationGroup = 'Financial Reports';
 
-    protected static ?string $navigationParentItem = 'Reports';
-
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 2;
 
     public ?string $start_date = null;
     public ?string $end_date = null;

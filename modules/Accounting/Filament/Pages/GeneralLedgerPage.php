@@ -23,10 +23,7 @@ class GeneralLedgerPage extends Page implements HasForms
 
     protected static string $view = 'accounting::filament.pages.general-ledger';
 
-    protected static ?string $navigationGroup = 'Finance';
-
-    protected static ?string $navigationParentItem = 'Reports';
-
+    protected static ?string $navigationGroup = 'Financial Reports';
 
     protected static ?int $navigationSort = 4;
 

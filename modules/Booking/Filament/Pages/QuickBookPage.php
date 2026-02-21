@@ -28,7 +28,7 @@ class QuickBookPage extends Page implements HasForms
 
     protected static ?string $navigationIcon = 'heroicon-o-bolt';
 
-    protected static ?string $navigationGroup = 'Booking';
+    protected static ?string $navigationGroup = 'Operations';
 
     protected static ?int $navigationSort = 5;
 

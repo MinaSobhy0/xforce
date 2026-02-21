@@ -24,7 +24,7 @@ class JournalEntryResource extends Resource
 
     protected static ?string $navigationGroup = 'Finance';
 
-    protected static ?int $navigationSort = 12;
+    protected static ?int $navigationSort = 26;
 
     protected static ?string $recordTitleAttribute = 'code';
 
