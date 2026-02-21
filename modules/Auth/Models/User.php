@@ -289,16 +289,26 @@ class User extends BaseModel implements
 
     public function canAccessPanel(Panel $panel): bool
     {
+        $panelId = $panel->getId();
+
         if (!$this->isActive()) {
+            \Log::warning('canAccessPanel DENIED: user not active', [
+                'user_id' => $this->id,
+                'panel' => $panelId,
+            ]);
             return false;
         }
 
         if ($this->isLocked()) {
+            \Log::warning('canAccessPanel DENIED: user locked', [
+                'user_id' => $this->id,
+                'panel' => $panelId,
+            ]);
             return false;
         }
 
         // Check panel-specific access
-        return match ($panel->getId()) {
+        $result = match ($panelId) {
             // Tenant panel (clinic management) - only users WITH a tenant_id
             'tenant', 'admin' => $this->tenant_id !== null && $this->hasAnyRole(['admin', 'manager', 'staff', 'doctor', 'nurse', 'technician', 'receptionist', 'owner']),
             // Patient portal
@@ -307,6 +317,17 @@ class User extends BaseModel implements
             'super-admin' => $this->tenant_id === null && $this->hasRole('super_admin'),
             default => false,
         };
+
+        if (!$result) {
+            \Log::warning('canAccessPanel DENIED: panel access check failed', [
+                'user_id' => $this->id,
+                'panel' => $panelId,
+                'tenant_id' => $this->tenant_id,
+                'roles' => $this->getRoleNames()->toArray(),
+            ]);
+        }
+
+        return $result;
     }
 
     // Account management methods
