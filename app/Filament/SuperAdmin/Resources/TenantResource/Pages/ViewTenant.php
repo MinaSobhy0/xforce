@@ -683,7 +683,7 @@ class ViewTenant extends BaseViewRecord
                         ->schema([
                             Components\Section::make('Hard Limits')
                                 ->description('Limits from subscription plan + additional purchased')
-                                ->columns(4)
+                                ->columns(3)
                                 ->schema([
                                     Components\TextEntry::make('usage.users')
                                         ->label('Users')
@@ -739,33 +739,6 @@ class ViewTenant extends BaseViewRecord
                                             return 'success';
                                         }),
 
-                                    Components\TextEntry::make('usage.patients')
-                                        ->label('Patients')
-                                        ->formatStateUsing(function ($state, Tenant $record) {
-                                            $current = (int) ($state ?? 0);
-                                            $planLimit = $record->plan?->max_patients ?? 0;
-                                            $extra = $record->extra_patients ?? 0;
-                                            $total = $planLimit + $extra;
-
-                                            if ($total <= 0) return "{$current} / ∞";
-
-                                            $label = "{$current} / {$total}";
-                                            if ($extra > 0) {
-                                                $label .= " ({$planLimit} + {$extra})";
-                                            }
-                                            return $label;
-                                        })
-                                        ->color(function ($state, Tenant $record) {
-                                            $planLimit = $record->plan?->max_patients ?? 0;
-                                            $extra = $record->extra_patients ?? 0;
-                                            $total = $planLimit + $extra;
-                                            if ($total <= 0) return 'gray';
-                                            $pct = ((int) ($state ?? 0)) / $total * 100;
-                                            if ($pct >= 90) return 'danger';
-                                            if ($pct >= 70) return 'warning';
-                                            return 'success';
-                                        }),
-
                                     Components\TextEntry::make('usage.storage_mb')
                                         ->label('Storage')
                                         ->formatStateUsing(function ($state, Tenant $record) {
@@ -793,8 +766,13 @@ class ViewTenant extends BaseViewRecord
 
                             Components\Section::make('Unlimited Resources')
                                 ->description('These resources have no limits')
-                                ->columns(3)
+                                ->columns(4)
                                 ->schema([
+                                    Components\TextEntry::make('usage.patients')
+                                        ->label('Patients')
+                                        ->formatStateUsing(fn($state) => ((int) ($state ?? 0)) . ' (unlimited)')
+                                        ->color('success'),
+
                                     Components\TextEntry::make('usage.treatments')
                                         ->label('Treatments')
                                         ->formatStateUsing(fn($state) => ((int) ($state ?? 0)) . ' (unlimited)')

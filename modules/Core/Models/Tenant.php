@@ -482,7 +482,7 @@ class Tenant extends Model
     public function getEffectiveLimit(string $resource): ?int
     {
         // These resources are unlimited
-        $unlimitedResources = ['treatments', 'products', 'equipment'];
+        $unlimitedResources = ['treatments', 'products', 'equipment', 'patients'];
         if (in_array($resource, $unlimitedResources)) {
             return null; // null = unlimited
         }
@@ -540,11 +540,8 @@ class Tenant extends Model
 
     public function canAddPatient(): bool
     {
-        $limit = $this->getEffectiveLimit('patients');
-        if ($limit === null) return true; // unlimited
-
-        $current = $this->usage->patients ?? 0;
-        return $current < $limit;
+        // Patients are unlimited
+        return true;
     }
 
     public function canAddBranch(): bool

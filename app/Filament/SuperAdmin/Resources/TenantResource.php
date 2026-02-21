@@ -185,8 +185,8 @@ class TenantResource extends Resource
 
             Forms\Components\Section::make('Additional Resources')
                 ->icon('heroicon-o-adjustments-horizontal')
-                ->description('Extra resources purchased beyond plan limits. Total limit = Plan limit + Extra.')
-                ->columns(4)
+                ->description('Extra resources purchased beyond plan limits. Total limit = Plan limit + Extra. Patients, treatments, equipment, products are unlimited.')
+                ->columns(3)
                 ->schema([
                     Forms\Components\TextInput::make('extra_users')
                         ->label('Extra Users')
@@ -197,12 +197,6 @@ class TenantResource extends Resource
                     Forms\Components\TextInput::make('extra_branches')
                         ->label('Extra Branches')
                         ->helperText(fn ($record) => $record?->plan ? 'Plan: ' . ($record->plan->max_branches ?? 0) : 'No plan')
-                        ->numeric()
-                        ->default(0)
-                        ->minValue(0),
-                    Forms\Components\TextInput::make('extra_patients')
-                        ->label('Extra Patients')
-                        ->helperText(fn ($record) => $record?->plan ? 'Plan: ' . ($record->plan->max_patients ?? 0) : 'No plan')
                         ->numeric()
                         ->default(0)
                         ->minValue(0),
