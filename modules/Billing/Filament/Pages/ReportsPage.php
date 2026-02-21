@@ -21,8 +21,13 @@ class ReportsPage extends Page
         return __('Reports');
     }
 
-    public function getTitle(): string
+    public static function shouldRegisterNavigation(): bool
     {
-        return __('Financial Reports');
+        return true;
+    }
+
+    public function mount(): \Illuminate\Http\RedirectResponse
+    {
+        return redirect('/admin/profit-loss');
     }
 }
