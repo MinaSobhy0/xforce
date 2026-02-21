@@ -47,13 +47,13 @@ class InventoryReportPage extends BaseReportPage
         }
 
         $stockValuation = $stockValuationQuery
-            ->select(DB::raw('SUM(stock_levels.quantity * products.cost_price_minor) as total'))
+            ->select(DB::raw('SUM(stock_levels.quantity_on_hand * products.cost_price_minor) as total'))
             ->value('total') ?? 0;
 
         // Low stock products
         $lowStockQuery = DB::table('stock_levels')
             ->join('products', 'stock_levels.product_id', '=', 'products.id')
-            ->whereColumn('stock_levels.quantity', '<=', 'products.reorder_point');
+            ->whereColumn('stock_levels.quantity_on_hand', '<=', 'products.reorder_point');
 
         if ($branchId) {
             $lowStockQuery->where('stock_levels.branch_id', $branchId);
