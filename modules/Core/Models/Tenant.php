@@ -2,15 +2,39 @@
 
 namespace Modules\Core\Models;
 
-use XLinic\Framework\Core\Model\BaseModel;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
-class Tenant extends BaseModel
+/**
+ * Tenant model - lives in public schema, not subject to tenant scoping.
+ * Uses base Laravel Model instead of BaseModel to avoid HasTenancy trait.
+ */
+class Tenant extends Model
 {
     use SoftDeletes;
+
+    /**
+     * The table associated with the model.
+     */
+    protected $table = 'tenants';
+
+    /**
+     * The connection to use (always public schema).
+     */
+    protected $connection = 'pgsql';
+
+    /**
+     * Indicates if the IDs are auto-incrementing.
+     */
+    public $incrementing = false;
+
+    /**
+     * The data type of the auto-incrementing ID.
+     */
+    protected $keyType = 'string';
 
     protected $fillable = [
         'name',
@@ -81,7 +105,12 @@ class Tenant extends BaseModel
     {
         parent::boot();
 
+        // Auto-generate UUID on creating (since we're not using BaseModel)
         static::creating(function (self $tenant) {
+            if (empty($tenant->id)) {
+                $tenant->id = Str::orderedUuid()->toString();
+            }
+
             if (empty($tenant->slug)) {
                 $tenant->slug = Str::slug($tenant->name);
             }
