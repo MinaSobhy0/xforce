@@ -445,6 +445,8 @@ class UserResource extends BaseResource
         return [
             RelationManagers\ActivityLogRelationManager::class,
             RelationManagers\SessionsRelationManager::class,
+            RelationManagers\AppointmentsRelationManager::class,
+            RelationManagers\CommissionsRelationManager::class,
         ];
     }
 

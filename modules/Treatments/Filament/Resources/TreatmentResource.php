@@ -365,6 +365,8 @@ class TreatmentResource extends Resource
     {
         return [
             RelationManagers\BranchPricingRelationManager::class,
+            RelationManagers\AppointmentsRelationManager::class,
+            RelationManagers\PackageItemsRelationManager::class,
         ];
     }
 
