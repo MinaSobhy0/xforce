@@ -52,7 +52,7 @@ return [
 
         // Grace period in days before enforcement kicks in
         // Set to 0 to enforce immediately
-        'grace_period_days' => env('2FA_GRACE_PERIOD_DAYS', 7),
+        'grace_period_days' => env('2FA_GRACE_PERIOD_DAYS', 0),
 
         // Route name for 2FA setup page
         'setup_route' => 'filament.admin.auth.profile',

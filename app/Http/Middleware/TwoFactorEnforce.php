@@ -35,6 +35,8 @@ class TwoFactorEnforce
         '2fa*',
         'logout',
         'livewire/*',
+        'platform/two-factor-settings*',  // SuperAdmin 2FA setup
+        'admin/two-factor-settings*',     // Tenant admin 2FA setup
     ];
 
     /**
@@ -66,6 +68,11 @@ class TwoFactorEnforce
 
         // Check if enforcement applies to this user
         if (!$this->shouldEnforce($user, $roles)) {
+            \Log::debug('2FA Enforce: Not enforcing for user', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'roles' => method_exists($user, 'roles') ? $user->roles->pluck('name')->toArray() : [],
+            ]);
             return $next($request);
         }
 
@@ -75,6 +82,12 @@ class TwoFactorEnforce
             $this->addGracePeriodWarning($request, $user);
             return $next($request);
         }
+
+        \Log::info('2FA Enforce: Redirecting user to 2FA setup', [
+            'user_id' => $user->id,
+            'email' => $user->email,
+            'redirect_url' => $this->get2FASetupUrl(),
+        ]);
 
         // Redirect to 2FA setup
         return $this->redirectTo2FASetup($request);
@@ -308,23 +321,15 @@ class TwoFactorEnforce
      */
     protected function get2FASetupUrl(): string
     {
-        $routeName = config('security.2fa.setup_route', 'profile.two-factor.setup');
+        // Determine the correct URL based on the current panel/domain
+        $host = request()->getHost();
 
-        try {
-            return route($routeName);
-        } catch (\Exception $e) {
-            // Fallback URLs
-            $fallbacks = [
-                '/admin/user/two-factor-authentication',
-                '/profile/two-factor',
-                '/settings/security',
-            ];
-
-            foreach ($fallbacks as $fallback) {
-                return url($fallback);
-            }
+        // SuperAdmin panel (sys.x-linic.com)
+        if (str_contains($host, 'sys.')) {
+            return url('/platform/two-factor-settings');
         }
 
-        return url('/profile');
+        // Tenant panel (tenant.x-linic.com)
+        return url('/admin/two-factor-settings');
     }
 }
