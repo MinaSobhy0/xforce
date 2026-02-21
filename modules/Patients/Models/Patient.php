@@ -10,13 +10,16 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Auth\Authenticatable as AuthenticatableTrait;
 
-class Patient extends BaseModel
+class Patient extends BaseModel implements Authenticatable
 {
     use HasTenancy,
         HasActivity,
         HasSequence,
-        SoftDeletes;
+        SoftDeletes,
+        AuthenticatableTrait;
 
     /**
      * Sequence code for auto-generation.

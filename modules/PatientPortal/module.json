@@ -1,0 +1,12 @@
+{
+    "name": "PatientPortal",
+    "alias": "patientportal",
+    "description": "Self-service patient portal with appointment booking, invoices, and loyalty",
+    "keywords": ["portal", "patient", "self-service", "booking"],
+    "priority": 54,
+    "providers": [
+        "Modules\\PatientPortal\\Providers\\PatientPortalServiceProvider",
+        "Modules\\PatientPortal\\Providers\\PortalPanelProvider"
+    ],
+    "files": []
+}

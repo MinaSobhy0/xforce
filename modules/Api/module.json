@@ -1,0 +1,12 @@
+{
+    "name": "Api",
+    "alias": "api",
+    "description": "REST API with Laravel Sanctum for patient and staff authentication",
+    "keywords": ["api", "rest", "sanctum", "json"],
+    "priority": 55,
+    "providers": [
+        "Modules\\Api\\Providers\\ApiServiceProvider",
+        "Modules\\Api\\Providers\\RouteServiceProvider"
+    ],
+    "files": []
+}
