@@ -5,10 +5,11 @@ namespace App\Filament\SuperAdmin\Resources\SubscriptionPlanResource\Pages;
 use App\Filament\SuperAdmin\Resources\SubscriptionPlanResource;
 use Filament\Actions;
 use App\Filament\Resources\Pages\BaseEditRecord;
+use Filament\Resources\Pages\EditRecord\Concerns\Translatable;
 
 class EditSubscriptionPlan extends BaseEditRecord
 {
-    use EditRecord\Concerns\Translatable;
+    use Translatable;
 
     protected static string $resource = SubscriptionPlanResource::class;
 

@@ -5,10 +5,11 @@ namespace App\Filament\SuperAdmin\Resources\AnnouncementResource\Pages;
 use App\Filament\SuperAdmin\Resources\AnnouncementResource;
 use Filament\Actions;
 use App\Filament\Resources\Pages\BaseEditRecord;
+use Filament\Resources\Pages\EditRecord\Concerns\Translatable;
 
 class EditAnnouncement extends BaseEditRecord
 {
-    use EditRecord\Concerns\Translatable;
+    use Translatable;
 
     protected static string $resource = AnnouncementResource::class;
 

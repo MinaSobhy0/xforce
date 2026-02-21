@@ -5,10 +5,11 @@ namespace App\Filament\SuperAdmin\Resources\ModuleResource\Pages;
 use App\Filament\SuperAdmin\Resources\ModuleResource;
 use Filament\Actions;
 use App\Filament\Resources\Pages\BaseEditRecord;
+use Filament\Resources\Pages\EditRecord\Concerns\Translatable;
 
 class EditModule extends BaseEditRecord
 {
-    use EditRecord\Concerns\Translatable;
+    use Translatable;
 
     protected static string $resource = ModuleResource::class;
 

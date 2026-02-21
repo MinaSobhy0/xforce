@@ -5,10 +5,11 @@ namespace App\Filament\SuperAdmin\Resources\EmailTemplateResource\Pages;
 use App\Filament\SuperAdmin\Resources\EmailTemplateResource;
 use Filament\Actions;
 use App\Filament\Resources\Pages\BaseEditRecord;
+use Filament\Resources\Pages\EditRecord\Concerns\Translatable;
 
 class EditEmailTemplate extends BaseEditRecord
 {
-    use EditRecord\Concerns\Translatable;
+    use Translatable;
 
     protected static string $resource = EmailTemplateResource::class;
 
