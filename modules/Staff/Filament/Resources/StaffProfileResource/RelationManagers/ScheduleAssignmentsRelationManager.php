@@ -134,7 +134,6 @@ class ScheduleAssignmentsRelationManager extends RelationManager
             ->headerActions([
                 Tables\Actions\CreateAction::make()
                     ->mutateFormDataUsing(function (array $data): array {
-                        $data['tenant_id'] = tenant_id();
                         $data['user_id'] = $this->getOwnerRecord()->user_id;
                         return $data;
                     }),

@@ -112,11 +112,7 @@ class PractitionersRelationManager extends RelationManager
                     ->default(true),
             ])
             ->headerActions([
-                Tables\Actions\CreateAction::make()
-                    ->mutateFormDataUsing(function (array $data): array {
-                        $data['tenant_id'] = tenant_id();
-                        return $data;
-                    }),
+                Tables\Actions\CreateAction::make(),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
