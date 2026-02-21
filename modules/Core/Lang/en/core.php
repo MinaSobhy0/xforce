@@ -220,6 +220,13 @@ return [
     'record_deleted' => 'Record deleted successfully',
     'error_occurred' => 'An error occurred',
 
+    // Errors
+    'errors' => [
+        'no_branch_assigned' => 'You are not assigned to any branch. Please contact your administrator.',
+        'unauthorized_branch' => 'You do not have access to this branch.',
+        'access_denied' => 'Access denied.',
+    ],
+
     // Dashboard Widgets
     'widgets' => [
         'total_patients' => 'Total Patients',

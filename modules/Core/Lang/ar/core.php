@@ -133,6 +133,13 @@ return [
     'record_deleted' => 'تم حذف السجل بنجاح',
     'error_occurred' => 'حدث خطأ',
 
+    // Errors
+    'errors' => [
+        'no_branch_assigned' => 'لم يتم تعيينك لأي فرع. يرجى الاتصال بالمسؤول.',
+        'unauthorized_branch' => 'ليس لديك صلاحية الوصول لهذا الفرع.',
+        'access_denied' => 'تم رفض الوصول.',
+    ],
+
     // Dashboard Widgets
     'widgets' => [
         'total_patients' => 'إجمالي المرضى',

@@ -242,4 +242,14 @@ return [
         'monthly_delivery_rate' => 'Monthly Delivery Rate',
         'messages_this_month' => 'messages this month',
     ],
+
+    'quota' => [
+        'exceeded' => ':channel quota exceeded. Remaining: :remaining messages.',
+        'exhausted' => ':channel quota exhausted. Please upgrade your plan or wait for the next billing cycle.',
+        'near_limit' => ':channel quota nearly exhausted (:remaining remaining).',
+        'remaining' => ':remaining :channel messages remaining',
+        'whatsapp' => 'WhatsApp',
+        'sms' => 'SMS',
+        'email' => 'Email',
+    ],
 ];

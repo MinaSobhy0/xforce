@@ -242,4 +242,14 @@ return [
         'monthly_delivery_rate' => 'معدل التسليم الشهري',
         'messages_this_month' => 'رسالة هذا الشهر',
     ],
+
+    'quota' => [
+        'exceeded' => 'تم تجاوز حصة :channel. المتبقي: :remaining رسالة.',
+        'exhausted' => 'نفدت حصة :channel. يرجى ترقية خطتك أو انتظار دورة الفوترة التالية.',
+        'near_limit' => 'حصة :channel على وشك النفاد (:remaining متبقية).',
+        'remaining' => ':remaining رسالة :channel متبقية',
+        'whatsapp' => 'واتساب',
+        'sms' => 'رسالة نصية',
+        'email' => 'بريد إلكتروني',
+    ],
 ];

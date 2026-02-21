@@ -26,6 +26,7 @@ class TenantUsage extends BaseModel
         'api_requests',
         'email_sent',
         'sms_sent',
+        'whatsapp_sent',
         'reports_generated',
         'last_login_at',
         'last_activity_at',
@@ -43,6 +44,7 @@ class TenantUsage extends BaseModel
         'api_requests' => 'integer',
         'email_sent' => 'integer',
         'sms_sent' => 'integer',
+        'whatsapp_sent' => 'integer',
         'reports_generated' => 'integer',
         'monthly_stats' => 'array',
         'yearly_stats' => 'array',
@@ -105,6 +107,7 @@ class TenantUsage extends BaseModel
             'api_requests' => $this->api_requests,
             'email_sent' => $this->email_sent,
             'sms_sent' => $this->sms_sent,
+            'whatsapp_sent' => $this->whatsapp_sent,
             'reports_generated' => $this->reports_generated,
         ];
 
@@ -119,6 +122,7 @@ class TenantUsage extends BaseModel
             'api_requests' => 0,
             'email_sent' => 0,
             'sms_sent' => 0,
+            'whatsapp_sent' => 0,
             'reports_generated' => 0,
         ]);
     }
@@ -151,9 +155,41 @@ class TenantUsage extends BaseModel
             'api_requests' => 100000,
             'email_sent' => 1000,
             'sms_sent' => 500,
+            'whatsapp_sent' => 500,
             'reports_generated' => 100,
             default => 0,
         };
+    }
+
+    /**
+     * Get the usage metric name for a messaging channel.
+     */
+    public static function getChannelMetric(string $channel): string
+    {
+        return match ($channel) {
+            'whatsapp' => 'whatsapp_sent',
+            'sms' => 'sms_sent',
+            'email' => 'email_sent',
+            default => throw new \InvalidArgumentException("Unknown channel: {$channel}"),
+        };
+    }
+
+    /**
+     * Check if sending via channel is allowed (quota not exceeded).
+     */
+    public function canSendViaChannel(string $channel): bool
+    {
+        $metric = self::getChannelMetric($channel);
+        return !$this->isOverLimit($metric);
+    }
+
+    /**
+     * Track message sent via channel.
+     */
+    public function trackMessageSent(string $channel, int $count = 1): void
+    {
+        $metric = self::getChannelMetric($channel);
+        $this->incrementUsage($metric, $count);
     }
 
     public function getMonthlyUsage(string $month = null): array

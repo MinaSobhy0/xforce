@@ -3,6 +3,7 @@
 namespace Modules\Marketing\Services;
 
 use Illuminate\Support\Facades\Log;
+use Modules\Marketing\Exceptions\QuotaExceededException;
 use Modules\Marketing\Models\MessageTemplate;
 use Modules\Marketing\Models\NotificationLog;
 use Modules\Patients\Models\Patient;
@@ -12,11 +13,14 @@ class NotificationService
     public function __construct(
         protected WhatsAppService $whatsAppService,
         protected SmsService $smsService,
-        protected EmailService $emailService
+        protected EmailService $emailService,
+        protected MessageQuotaService $quotaService
     ) {}
 
     /**
      * Send a notification using the specified channel.
+     *
+     * @throws QuotaExceededException
      */
     public function send(
         string $channel,
@@ -25,12 +29,27 @@ class NotificationService
         ?string $subject = null,
         array $options = []
     ): array {
-        return match ($channel) {
+        // Check quota before sending (unless explicitly skipped)
+        $skipQuotaCheck = $options['skip_quota_check'] ?? false;
+        $tenantId = $options['tenant_id'] ?? null;
+
+        if (!$skipQuotaCheck) {
+            $this->quotaService->checkQuota($channel, $tenantId);
+        }
+
+        $result = match ($channel) {
             NotificationLog::CHANNEL_WHATSAPP => $this->sendWhatsApp($recipientAddress, $content, $options),
             NotificationLog::CHANNEL_SMS => $this->sendSms($recipientAddress, $content),
             NotificationLog::CHANNEL_EMAIL => $this->sendEmail($recipientAddress, $subject ?? '', $content),
             default => ['success' => false, 'error' => 'Unknown channel'],
         };
+
+        // Track usage if message was sent successfully
+        if ($result['success'] && !$skipQuotaCheck) {
+            $this->quotaService->trackUsage($channel, $tenantId);
+        }
+
+        return $result;
     }
 
     /**
@@ -54,6 +73,19 @@ class NotificationService
                 $template,
                 $patient,
                 'No recipient address available',
+                $referenceType,
+                $referenceId
+            );
+        }
+
+        // Check quota before proceeding
+        try {
+            $this->quotaService->checkQuota($template->channel, $patient->tenant_id);
+        } catch (QuotaExceededException $e) {
+            return $this->createFailedLog(
+                $template,
+                $patient,
+                $e->getMessage(),
                 $referenceType,
                 $referenceId
             );
@@ -86,7 +118,7 @@ class NotificationService
             'queued_at' => now(),
         ]);
 
-        // Send based on channel
+        // Send based on channel (skip quota check since we already checked)
         $result = $this->send(
             $template->channel,
             $recipientAddress,
@@ -95,12 +127,16 @@ class NotificationService
             [
                 'whatsapp_template_name' => $template->whatsapp_template_name,
                 'variables' => $variables,
+                'skip_quota_check' => true,
+                'tenant_id' => $patient->tenant_id,
             ]
         );
 
         // Update log with result
         if ($result['success']) {
             $log->markAsSent($result['message_id'] ?? null, $result['response'] ?? null);
+            // Track usage after successful send
+            $this->quotaService->trackUsage($template->channel, $patient->tenant_id);
         } else {
             $log->markAsFailed($result['error'] ?? 'Unknown error');
         }
@@ -253,5 +289,37 @@ class NotificationService
         }
 
         return $channels;
+    }
+
+    /**
+     * Get remaining quota for a channel.
+     */
+    public function getRemainingQuota(string $channel, ?string $tenantId = null): int
+    {
+        return $this->quotaService->getRemainingQuota($channel, $tenantId);
+    }
+
+    /**
+     * Get messaging quota usage summary.
+     */
+    public function getQuotaUsageSummary(?string $tenantId = null): array
+    {
+        return $this->quotaService->getUsageSummary($tenantId);
+    }
+
+    /**
+     * Check if quota is near limit for any channel.
+     */
+    public function hasQuotaWarnings(?string $tenantId = null): bool
+    {
+        $summary = $this->quotaService->getUsageSummary($tenantId);
+
+        foreach ($summary as $channel => $data) {
+            if ($data['near_limit']) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
