@@ -4,7 +4,6 @@ namespace Modules\Reporting\Filament\Pages;
 
 use Modules\Billing\Models\Invoice;
 use Modules\Billing\Models\Payment;
-use Modules\Billing\Models\Expense;
 use Modules\Payroll\Models\PayrollRun;
 use Modules\Inventory\Models\PurchaseOrder;
 use Illuminate\Support\Facades\DB;
@@ -59,15 +58,8 @@ class FinancialSummaryPage extends BaseReportPage
             ->where('due_date', '<', now())
             ->sum(DB::raw('total_minor - paid_minor'));
 
-        // Expenses
-        $expensesQuery = Expense::query()
-            ->whereBetween('expense_date', [$startDate, $endDate]);
-
-        if ($branchId) {
-            $expensesQuery->where('branch_id', $branchId);
-        }
-
-        $totalExpenses = $expensesQuery->sum('amount_minor');
+        // Expenses (not tracked in current schema)
+        $totalExpenses = 0;
 
         // Payroll costs
         $payrollQuery = PayrollRun::query()
