@@ -50,16 +50,6 @@ class ServiceRoomsRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn ($query) => $query->select([
-                'rooms.id',
-                'rooms.tenant_id',
-                'rooms.branch_id',
-                'rooms.name',
-                'rooms.code',
-                'rooms.room_type',
-                'rooms.is_active',
-                'rooms.is_bookable',
-            ]))
             ->columns([
                 Tables\Columns\TextColumn::make('name')
                     ->label(__('services::services.rooms.room'))
@@ -85,16 +75,23 @@ class ServiceRoomsRelationManager extends RelationManager
             ->filters([])
             ->headerActions([
                 Tables\Actions\AttachAction::make()
-                    ->preloadRecordSelect()
-                    ->recordSelectOptionsQuery(fn ($query) => $query->active()->bookable()->select([
-                        'rooms.id',
-                        'rooms.branch_id',
-                        'rooms.name',
-                        'rooms.code',
-                    ]))
-                    ->recordTitle(fn (Room $record) => $record->getDisplayName())
+                    ->label(__('services::services.rooms.add_room'))
+                    ->icon('heroicon-o-plus')
+                    ->modalHeading(__('services::services.rooms.add_room'))
                     ->form(fn (Tables\Actions\AttachAction $action): array => [
-                        $action->getRecordSelect(),
+                        Forms\Components\Select::make('recordId')
+                            ->label(__('services::services.rooms.room'))
+                            ->options(function () {
+                                $attachedIds = $this->ownerRecord->rooms()->pluck('rooms.id')->toArray();
+                                return Room::query()
+                                    ->active()
+                                    ->bookable()
+                                    ->whereNotIn('id', $attachedIds)
+                                    ->get()
+                                    ->mapWithKeys(fn ($room) => [$room->id => $room->getDisplayName()]);
+                            })
+                            ->searchable()
+                            ->required(),
                         Forms\Components\Toggle::make('is_primary')
                             ->label(__('services::services.rooms.is_primary'))
                             ->default(false),
@@ -139,11 +136,13 @@ class ServiceRoomsRelationManager extends RelationManager
                             ->title(__('services::services.rooms.primary_updated'))
                             ->send();
                     }),
-                Tables\Actions\DetachAction::make(),
+                Tables\Actions\DetachAction::make()
+                    ->label(__('services::services.actions.remove')),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DetachBulkAction::make(),
+                    Tables\Actions\DetachBulkAction::make()
+                        ->label(__('services::services.actions.remove_selected')),
                 ]),
             ])
             ->defaultSort('pivot_priority');

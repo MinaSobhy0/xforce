@@ -73,6 +73,7 @@ return [
         'job_title' => 'المسمى الوظيفي',
         'email' => 'البريد الإلكتروني',
         'phone' => 'الهاتف',
+        'add_staff' => 'إضافة موظف',
     ],
 
     'rooms' => [
@@ -85,6 +86,7 @@ return [
         'type' => 'نوع الغرفة',
         'set_as_primary' => 'تعيين كرئيسية',
         'primary_updated' => 'تم تحديث الغرفة الرئيسية بنجاح',
+        'add_room' => 'إضافة غرفة',
     ],
 
     'equipment' => [
@@ -98,6 +100,12 @@ return [
         'is_mandatory_help' => 'إذا تم التفعيل، يجب أن تكون هذه المعدات متاحة لحجز الخدمة',
         'mark_optional' => 'تعيين كاختياري',
         'mark_mandatory' => 'تعيين كإلزامي',
+        'add_equipment' => 'إضافة معدات',
+    ],
+
+    'actions' => [
+        'remove' => 'إزالة',
+        'remove_selected' => 'إزالة المحدد',
     ],
 
     'consent' => [

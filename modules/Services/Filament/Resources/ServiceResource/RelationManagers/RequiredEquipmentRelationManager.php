@@ -84,11 +84,22 @@ class RequiredEquipmentRelationManager extends RelationManager
             ])
             ->headerActions([
                 Tables\Actions\AttachAction::make()
-                    ->preloadRecordSelect()
-                    ->recordSelectOptionsQuery(fn ($query) => $query->where('status', Equipment::STATUS_ACTIVE))
-                    ->recordTitle(fn (Equipment $record) => "{$record->name} ({$record->code})")
+                    ->label(__('services::services.equipment.add_equipment'))
+                    ->icon('heroicon-o-plus')
+                    ->modalHeading(__('services::services.equipment.add_equipment'))
                     ->form(fn (Tables\Actions\AttachAction $action): array => [
-                        $action->getRecordSelect(),
+                        Forms\Components\Select::make('recordId')
+                            ->label(__('services::services.equipment.equipment'))
+                            ->options(function () {
+                                $attachedIds = $this->ownerRecord->requiredEquipment()->pluck('equipment.id')->toArray();
+                                return Equipment::query()
+                                    ->where('status', Equipment::STATUS_ACTIVE)
+                                    ->whereNotIn('id', $attachedIds)
+                                    ->get()
+                                    ->mapWithKeys(fn ($eq) => [$eq->id => "{$eq->name} ({$eq->code})"]);
+                            })
+                            ->searchable()
+                            ->required(),
                         Forms\Components\Toggle::make('is_mandatory')
                             ->label(__('services::services.equipment.is_mandatory'))
                             ->default(true),
@@ -109,11 +120,13 @@ class RequiredEquipmentRelationManager extends RelationManager
                             ['is_mandatory' => !$record->pivot->is_mandatory]
                         );
                     }),
-                Tables\Actions\DetachAction::make(),
+                Tables\Actions\DetachAction::make()
+                    ->label(__('services::services.actions.remove')),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DetachBulkAction::make(),
+                    Tables\Actions\DetachBulkAction::make()
+                        ->label(__('services::services.actions.remove_selected')),
                 ]),
             ]);
     }

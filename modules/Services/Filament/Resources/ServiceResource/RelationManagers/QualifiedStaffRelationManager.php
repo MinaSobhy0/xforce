@@ -37,16 +37,6 @@ class QualifiedStaffRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn ($query) => $query->select([
-                'users.id',
-                'users.tenant_id',
-                'users.first_name',
-                'users.last_name',
-                'users.email',
-                'users.phone',
-                'users.job_title',
-                'users.status',
-            ]))
             ->columns([
                 Tables\Columns\TextColumn::make('first_name')
                     ->label(__('services::services.staff.name'))
@@ -68,22 +58,31 @@ class QualifiedStaffRelationManager extends RelationManager
             ->filters([])
             ->headerActions([
                 Tables\Actions\AttachAction::make()
-                    ->preloadRecordSelect()
-                    ->recordSelectOptionsQuery(fn ($query) => $query->active()->select([
-                        'users.id',
-                        'users.first_name',
-                        'users.last_name',
-                        'users.email',
-                        'users.status',
-                    ]))
-                    ->recordTitle(fn (User $record) => $record->full_name),
+                    ->label(__('services::services.staff.add_staff'))
+                    ->icon('heroicon-o-plus')
+                    ->modalHeading(__('services::services.staff.add_staff'))
+                    ->recordSelect(fn () => Forms\Components\Select::make('recordId')
+                        ->label(__('services::services.staff.practitioner'))
+                        ->options(function () {
+                            $attachedIds = $this->ownerRecord->qualifiedStaff()->pluck('users.id')->toArray();
+                            return User::query()
+                                ->active()
+                                ->whereNotIn('id', $attachedIds)
+                                ->get()
+                                ->pluck('full_name', 'id');
+                        })
+                        ->searchable()
+                        ->required()
+                    ),
             ])
             ->actions([
-                Tables\Actions\DetachAction::make(),
+                Tables\Actions\DetachAction::make()
+                    ->label(__('services::services.actions.remove')),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DetachBulkAction::make(),
+                    Tables\Actions\DetachBulkAction::make()
+                        ->label(__('services::services.actions.remove_selected')),
                 ]),
             ]);
     }

@@ -73,6 +73,7 @@ return [
         'job_title' => 'Job Title',
         'email' => 'Email',
         'phone' => 'Phone',
+        'add_staff' => 'Add Staff',
     ],
 
     'rooms' => [
@@ -85,6 +86,7 @@ return [
         'type' => 'Room Type',
         'set_as_primary' => 'Set as Primary',
         'primary_updated' => 'Primary room updated successfully',
+        'add_room' => 'Add Room',
     ],
 
     'equipment' => [
@@ -98,6 +100,12 @@ return [
         'is_mandatory_help' => 'If enabled, this equipment must be available to book the service',
         'mark_optional' => 'Mark as Optional',
         'mark_mandatory' => 'Mark as Mandatory',
+        'add_equipment' => 'Add Equipment',
+    ],
+
+    'actions' => [
+        'remove' => 'Remove',
+        'remove_selected' => 'Remove Selected',
     ],
 
     'consent' => [

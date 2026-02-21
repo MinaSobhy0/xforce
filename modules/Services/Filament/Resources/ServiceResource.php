@@ -308,58 +308,74 @@ class ServiceResource extends Resource
                                 Forms\Components\Section::make(__('services::services.sections.qualified_staff'))
                                     ->description(__('services::services.sections.qualified_staff_description'))
                                     ->schema([
-                                        Forms\Components\Select::make('qualifiedStaff')
+                                        Forms\Components\Select::make('qualified_staff_ids')
                                             ->label(__('services::services.fields.qualified_staff'))
-                                            ->relationship(
-                                                'qualifiedStaff',
-                                                'first_name',
-                                                modifyQueryUsing: fn (Builder $query) => $query->select([
-                                                    'users.id',
-                                                    'users.first_name',
-                                                    'users.last_name',
-                                                    'users.email',
-                                                    'users.status',
-                                                ])->active()
+                                            ->options(fn () => User::query()
+                                                ->active()
+                                                ->get()
+                                                ->pluck('full_name', 'id')
                                             )
-                                            ->getOptionLabelFromRecordUsing(fn (User $record) => $record->full_name)
                                             ->multiple()
+                                            ->searchable()
                                             ->preload()
-                                            ->searchable(),
+                                            ->afterStateHydrated(function ($component, $state, $record) {
+                                                if ($record) {
+                                                    $component->state($record->qualifiedStaff->pluck('id')->toArray());
+                                                }
+                                            })
+                                            ->dehydrated(false)
+                                            ->saveRelationshipsUsing(function ($record, $state) {
+                                                $record->qualifiedStaff()->sync($state ?? []);
+                                            }),
                                     ]),
 
                                 Forms\Components\Section::make(__('services::services.sections.rooms'))
                                     ->description(__('services::services.sections.rooms_description'))
                                     ->schema([
-                                        Forms\Components\Select::make('rooms')
+                                        Forms\Components\Select::make('room_ids')
                                             ->label(__('services::services.fields.service_rooms'))
-                                            ->relationship(
-                                                'rooms',
-                                                'name',
-                                                modifyQueryUsing: fn (Builder $query) => $query->select([
-                                                    'rooms.id',
-                                                    'rooms.branch_id',
-                                                    'rooms.name',
-                                                    'rooms.code',
-                                                    'rooms.is_active',
-                                                    'rooms.is_bookable',
-                                                ])->active()->bookable()
+                                            ->options(fn () => Room::query()
+                                                ->active()
+                                                ->bookable()
+                                                ->get()
+                                                ->mapWithKeys(fn ($room) => [$room->id => $room->getDisplayName()])
                                             )
-                                            ->getOptionLabelFromRecordUsing(fn (Room $record) => $record->getDisplayName())
                                             ->multiple()
+                                            ->searchable()
                                             ->preload()
-                                            ->searchable(),
+                                            ->afterStateHydrated(function ($component, $state, $record) {
+                                                if ($record) {
+                                                    $component->state($record->rooms->pluck('id')->toArray());
+                                                }
+                                            })
+                                            ->dehydrated(false)
+                                            ->saveRelationshipsUsing(function ($record, $state) {
+                                                $record->rooms()->sync($state ?? []);
+                                            }),
                                     ]),
 
                                 Forms\Components\Section::make(__('services::services.sections.required_equipment'))
                                     ->description(__('services::services.sections.required_equipment_description'))
                                     ->schema([
-                                        Forms\Components\Select::make('requiredEquipment')
+                                        Forms\Components\Select::make('equipment_ids')
                                             ->label(__('services::services.fields.required_equipment'))
-                                            ->relationship('requiredEquipment', 'name')
-                                            ->getOptionLabelFromRecordUsing(fn (Equipment $record) => "{$record->name} ({$record->code})")
+                                            ->options(fn () => Equipment::query()
+                                                ->where('status', Equipment::STATUS_ACTIVE)
+                                                ->get()
+                                                ->mapWithKeys(fn ($eq) => [$eq->id => "{$eq->name} ({$eq->code})"])
+                                            )
                                             ->multiple()
+                                            ->searchable()
                                             ->preload()
-                                            ->searchable(),
+                                            ->afterStateHydrated(function ($component, $state, $record) {
+                                                if ($record) {
+                                                    $component->state($record->requiredEquipment->pluck('id')->toArray());
+                                                }
+                                            })
+                                            ->dehydrated(false)
+                                            ->saveRelationshipsUsing(function ($record, $state) {
+                                                $record->requiredEquipment()->sync($state ?? []);
+                                            }),
                                     ]),
 
                                 Forms\Components\Section::make(__('services::services.sections.time_restrictions'))
@@ -482,9 +498,6 @@ class ServiceResource extends Resource
     {
         return [
             RelationManagers\BranchPricingRelationManager::class,
-            RelationManagers\QualifiedStaffRelationManager::class,
-            RelationManagers\ServiceRoomsRelationManager::class,
-            RelationManagers\RequiredEquipmentRelationManager::class,
             RelationManagers\AppointmentsRelationManager::class,
             RelationManagers\PackageItemsRelationManager::class,
         ];
