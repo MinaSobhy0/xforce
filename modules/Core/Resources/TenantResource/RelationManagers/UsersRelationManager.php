@@ -15,7 +15,7 @@ class UsersRelationManager extends RelationManager
 {
     protected static string $relationship = 'users';
 
-    protected static ?string $recordTitleAttribute = 'name';
+    protected static ?string $recordTitleAttribute = 'email';
 
     public function form(Form $form): Form
     {
@@ -23,37 +23,44 @@ class UsersRelationManager extends RelationManager
             ->schema([
                 Forms\Components\Grid::make(2)
                     ->schema([
-                        Forms\Components\TextInput::make('name')
-                            ->label(__('Name'))
+                        Forms\Components\TextInput::make('first_name')
+                            ->label(__('First Name'))
                             ->required()
                             ->maxLength(255),
 
+                        Forms\Components\TextInput::make('last_name')
+                            ->label(__('Last Name'))
+                            ->required()
+                            ->maxLength(255),
+                    ]),
+
+                Forms\Components\Grid::make(2)
+                    ->schema([
                         Forms\Components\TextInput::make('email')
                             ->label(__('Email'))
                             ->email()
                             ->required()
                             ->unique(ignoreRecord: true)
                             ->maxLength(255),
-                    ]),
 
-                Forms\Components\Grid::make(2)
-                    ->schema([
                         Forms\Components\TextInput::make('phone')
                             ->label(__('Phone'))
                             ->tel()
                             ->nullable()
                             ->maxLength(20),
-
-                        Forms\Components\Select::make('roles')
-                            ->label(__('Roles'))
-                            ->relationship('roles', 'name')
-                            ->multiple()
-                            ->preload(),
                     ]),
 
-                Forms\Components\Toggle::make('is_active')
+                Forms\Components\Select::make('roles')
+                    ->label(__('Roles'))
+                    ->relationship('roles', 'name')
+                    ->multiple()
+                    ->preload(),
+
+                Forms\Components\Toggle::make('status')
                     ->label(__('Active'))
-                    ->default(true),
+                    ->onValue('active')
+                    ->offValue('inactive')
+                    ->default('active'),
 
                 Forms\Components\DateTimePicker::make('email_verified_at')
                     ->label(__('Email Verified At'))
@@ -64,17 +71,18 @@ class UsersRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
-            ->recordTitleAttribute('name')
+            ->recordTitleAttribute('email')
             ->columns([
                 Tables\Columns\ImageColumn::make('avatar_url')
                     ->label(__('Avatar'))
                     ->circular()
                     ->defaultImageUrl(url('/images/default-avatar.png')),
 
-                Tables\Columns\TextColumn::make('name')
+                Tables\Columns\TextColumn::make('full_name')
                     ->label(__('Name'))
-                    ->searchable()
-                    ->sortable(),
+                    ->state(fn ($record) => trim("{$record->first_name} {$record->last_name}"))
+                    ->searchable(['first_name', 'last_name'])
+                    ->sortable(['first_name']),
 
                 Tables\Columns\TextColumn::make('email')
                     ->label(__('Email'))
@@ -86,9 +94,15 @@ class UsersRelationManager extends RelationManager
                     ->badge()
                     ->separator(','),
 
-                Tables\Columns\IconColumn::make('is_active')
-                    ->label(__('Active'))
-                    ->boolean(),
+                Tables\Columns\TextColumn::make('status')
+                    ->label(__('Status'))
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'active' => 'success',
+                        'inactive' => 'gray',
+                        'suspended' => 'danger',
+                        default => 'gray',
+                    }),
 
                 Tables\Columns\IconColumn::make('email_verified_at')
                     ->label(__('Verified'))
@@ -109,9 +123,13 @@ class UsersRelationManager extends RelationManager
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\TernaryFilter::make('is_active')
-                    ->label(__('Active'))
-                    ->boolean(),
+                Tables\Filters\SelectFilter::make('status')
+                    ->label(__('Status'))
+                    ->options([
+                        'active' => 'Active',
+                        'inactive' => 'Inactive',
+                        'suspended' => 'Suspended',
+                    ]),
 
                 Tables\Filters\TernaryFilter::make('email_verified_at')
                     ->label(__('Email Verified'))
@@ -136,7 +154,7 @@ class UsersRelationManager extends RelationManager
                         // Logic to impersonate user would go here
                         // This is a placeholder for the functionality
                     })
-                    ->visible(fn (User $record) => $record->is_active),
+                    ->visible(fn (User $record) => $record->status === 'active'),
 
                 Tables\Actions\Action::make('resetPassword')
                     ->label(__('Reset Password'))
@@ -162,14 +180,14 @@ class UsersRelationManager extends RelationManager
                         ->label(__('Activate'))
                         ->icon('heroicon-o-check')
                         ->color('success')
-                        ->action(fn ($records) => $records->each->update(['is_active' => true])),
+                        ->action(fn ($records) => $records->each->update(['status' => 'active'])),
 
                     Tables\Actions\BulkAction::make('deactivate')
                         ->label(__('Deactivate'))
                         ->icon('heroicon-o-x-mark')
                         ->color('danger')
                         ->requiresConfirmation()
-                        ->action(fn ($records) => $records->each->update(['is_active' => false])),
+                        ->action(fn ($records) => $records->each->update(['status' => 'inactive'])),
                 ]),
             ]);
     }
