@@ -9,7 +9,6 @@ use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Navigation\NavigationGroup;
-use Filament\Navigation\NavigationItem;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\SpatieLaravelTranslatablePlugin;
@@ -105,9 +104,10 @@ class TenantPanelProvider extends PanelProvider
             ->discoverResources(in: base_path('modules/Booking/Filament/Resources'), for: 'Modules\\Booking\\Filament\\Resources')
             ->discoverPages(in: base_path('modules/Booking/Filament/Pages'), for: 'Modules\\Booking\\Filament\\Pages')
 
-            // Discover Billing module resources
+            // Discover Billing module resources and clusters
             ->discoverResources(in: base_path('modules/Billing/Filament/Resources'), for: 'Modules\\Billing\\Filament\\Resources')
             ->discoverPages(in: base_path('modules/Billing/Filament/Pages'), for: 'Modules\\Billing\\Filament\\Pages')
+            ->discoverClusters(in: base_path('modules/Billing/Filament/Clusters'), for: 'Modules\\Billing\\Filament\\Clusters')
 
             // Discover Accounting module resources
             ->discoverResources(in: base_path('modules/Accounting/Filament/Resources'), for: 'Modules\\Accounting\\Filament\\Resources')
@@ -154,22 +154,6 @@ class TenantPanelProvider extends PanelProvider
                 \Modules\Marketing\Filament\Widgets\NotificationStatsWidget::class,
             ])
 
-            // Custom navigation items for submenus
-            ->navigationItems([
-                NavigationItem::make('Reports')
-                    ->group('Finance')
-                    ->icon('heroicon-o-chart-bar')
-                    ->sort(20)
-                    ->isActiveWhen(fn () => str_contains(request()->path(), '/profit-loss')
-                        || str_contains(request()->path(), '/balance-sheet')
-                        || str_contains(request()->path(), '/cash-flow')
-                        || str_contains(request()->path(), '/trial-balance')
-                        || str_contains(request()->path(), '/general-ledger')
-                        || str_contains(request()->path(), '/revenue-report')
-                        || str_contains(request()->path(), '/financial-summary')
-                    )
-                    ->url('/admin/profit-loss'),
-            ])
 
             // Plugins
             ->plugin(
