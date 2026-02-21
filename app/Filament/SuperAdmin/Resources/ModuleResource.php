@@ -122,8 +122,9 @@ class ModuleResource extends Resource
                             }),
                     ]),
 
-                    Forms\Components\CheckboxList::make('dependencies')
+                    Forms\Components\Select::make('dependencies')
                         ->label('Required Modules')
+                        ->multiple()
                         ->options(function () {
                             return Module::orderBy('category')
                                 ->orderBy('sort_order')
@@ -134,8 +135,8 @@ class ModuleResource extends Resource
                                 })
                                 ->toArray();
                         })
-                        ->columns(3)
-                        ->searchable(),
+                        ->searchable()
+                        ->preload(),
                 ]),
         ]);
     }
