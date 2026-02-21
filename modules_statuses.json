@@ -2,7 +2,7 @@
     "Core": true,
     "Auth": true,
     "Patients": true,
-    "Treatments": true,
+    "Services": true,
     "Equipment": true,
     "Booking": true,
     "Billing": true,
