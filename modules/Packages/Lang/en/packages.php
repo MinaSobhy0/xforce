@@ -4,6 +4,7 @@ return [
     'navigation_label' => 'Packages',
     'model_label' => 'Package',
     'plural_label' => 'Packages',
+    'packages' => 'Packages',
 
     'sections' => [
         'basic_info' => 'Package Information',

@@ -4,6 +4,7 @@ return [
     'navigation_label' => 'الباقات',
     'model_label' => 'باقة',
     'plural_label' => 'الباقات',
+    'packages' => 'الباقات',
 
     'sections' => [
         'basic_info' => 'معلومات الباقة',
