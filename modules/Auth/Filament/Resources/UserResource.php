@@ -159,6 +159,27 @@ class UserResource extends BaseResource
                                     ->preload()
                                     ->searchable(),
 
+                                Forms\Components\Select::make('branch_ids')
+                                    ->label(__('Allowed Branches'))
+                                    ->options(fn () => \Modules\Core\Models\Branch::where('is_active', true)
+                                        ->orderBy('is_main', 'desc')
+                                        ->orderBy('name')
+                                        ->pluck('name', 'id'))
+                                    ->multiple()
+                                    ->preload()
+                                    ->searchable()
+                                    ->helperText(__('Select branches this user can access. Leave empty for no branch restriction (admin only).'))
+                                    ->afterStateHydrated(function (Forms\Components\Select $component, ?User $record) {
+                                        if ($record) {
+                                            $branchIds = $record->branchRoles()
+                                                ->where('is_active', true)
+                                                ->pluck('branch_id')
+                                                ->toArray();
+                                            $component->state($branchIds);
+                                        }
+                                    })
+                                    ->dehydrated(false),
+
                                 Forms\Components\DateTimePicker::make('last_login_at')
                                     ->label(__('Last Login'))
                                     ->nullable()
@@ -471,7 +492,6 @@ class UserResource extends BaseResource
     public static function getRelations(): array
     {
         return [
-            RelationManagers\BranchRolesRelationManager::class,
             RelationManagers\ActivityLogRelationManager::class,
             RelationManagers\SessionsRelationManager::class,
             RelationManagers\AppointmentsRelationManager::class,

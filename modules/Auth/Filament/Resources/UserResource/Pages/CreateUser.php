@@ -3,6 +3,8 @@
 namespace Modules\Auth\Filament\Resources\UserResource\Pages;
 
 use Modules\Auth\Filament\Resources\UserResource;
+use Modules\Auth\Models\UserBranchRole;
+use Modules\Auth\Models\Role;
 use Filament\Resources\Pages\CreateRecord;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Str;
@@ -35,6 +37,9 @@ class CreateUser extends CreateRecord
     {
         $user = $this->getRecord();
 
+        // Sync branch assignments
+        $this->syncBranches($user);
+
         try {
             // Send welcome email notification
             if (config('mail.notifications_enabled', true)) {
@@ -66,5 +71,39 @@ class CreateUser extends CreateRecord
             ->causedBy(auth()->user())
             ->performedOn($user)
             ->log('User account created');
+    }
+
+    /**
+     * Sync branch assignments for the user.
+     */
+    protected function syncBranches($user): void
+    {
+        $branchIds = $this->data['branch_ids'] ?? [];
+
+        if (empty($branchIds)) {
+            return;
+        }
+
+        // Get default role (first user role or default)
+        $defaultRoleId = $user->roles->first()?->id ?? Role::where('name', 'user')->first()?->id;
+
+        // Delete existing branch assignments
+        UserBranchRole::where('user_id', $user->id)->delete();
+
+        // Create new assignments
+        $isFirst = true;
+        foreach ($branchIds as $branchId) {
+            UserBranchRole::create([
+                'tenant_id' => $user->tenant_id,
+                'user_id' => $user->id,
+                'branch_id' => $branchId,
+                'role_id' => $defaultRoleId,
+                'is_primary' => $isFirst,
+                'is_active' => true,
+                'assigned_at' => now(),
+                'assigned_by' => auth()->id(),
+            ]);
+            $isFirst = false;
+        }
     }
 }
