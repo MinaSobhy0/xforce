@@ -123,7 +123,7 @@ return [
         'locked' => 'Locked',
     ],
 
-    'actions' => [
+    'entry_actions' => [
         'post' => 'Post Entry',
         'reverse' => 'Reverse Entry',
         'close_period' => 'Close Period',

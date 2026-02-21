@@ -75,6 +75,17 @@ return [
     'closing_balance' => 'الرصيد الختامي',
     'select_account_prompt' => 'يرجى اختيار حساب لعرض دفتر الأستاذ',
     'no_entries' => 'لا توجد قيود',
+    'account_balances' => 'أرصدة الحسابات',
+    'account_type' => 'نوع الحساب',
+    'all_types' => 'جميع الأنواع',
+    'all_accounts' => 'جميع الحسابات',
+    'code' => 'الكود',
+    'total' => 'الإجمالي',
+    'view' => 'عرض',
+    'actions' => 'الإجراءات',
+    'back_to_all' => 'العودة لجميع الحسابات',
+    'no_account_activity' => 'لا يوجد نشاط في الحسابات خلال الفترة المحددة',
+    'revenue' => 'إيرادات',
 
     // Cash Flow
     'operating_activities' => 'الأنشطة التشغيلية',
@@ -112,7 +123,7 @@ return [
         'locked' => 'مقفل',
     ],
 
-    'actions' => [
+    'entry_actions' => [
         'post' => 'ترحيل القيد',
         'reverse' => 'عكس القيد',
         'close_period' => 'إغلاق الفترة',
