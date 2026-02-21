@@ -26,6 +26,15 @@ class BaseEditRecord extends EditRecord
      */
     public bool $persistActiveRelationManagerTabInQueryString = false;
 
+    /**
+     * Preload all relation managers instead of lazy-loading.
+     * This ensures instant tab switching without loading delays.
+     */
+    public function getRelationManagersContentIsLazy(): bool
+    {
+        return false;
+    }
+
     protected function getHeaderActions(): array
     {
         $actions = [];
