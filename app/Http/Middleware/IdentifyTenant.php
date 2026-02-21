@@ -30,44 +30,24 @@ class IdentifyTenant
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $host = $request->getHost();
         $subdomain = $this->extractSubdomain($request);
-
-        $requestId = substr(md5(microtime()), 0, 6);
-        \Log::warning("IdentifyTenant[$requestId] START", [
-            'host' => $host,
-            'subdomain' => $subdomain,
-            'path' => $request->path(),
-            'referer' => $request->header('referer'),
-            'origin' => $request->header('origin'),
-        ]);
 
         // Skip if no subdomain or if it's an excluded subdomain
         if (!$subdomain || in_array($subdomain, $this->excludedSubdomains)) {
-            \Log::warning("IdentifyTenant[$requestId] SKIPPED - excluded subdomain");
             return $next($request);
         }
 
         // Ensure we query the public schema for tenants table
-        // This is important for Livewire persistent middleware which may run
-        // after the schema has already been switched
         Config::set('database.connections.pgsql.search_path', 'public');
         DB::purge('pgsql');
         DB::reconnect('pgsql');
 
         // Find tenant by slug (subdomain)
-        try {
-            $tenant = Tenant::where('slug', $subdomain)
-                ->where('status', 'active')
-                ->first();
-            \Log::warning('IdentifyTenant: tenant found', ['tenant' => $tenant ? $tenant->name : 'NOT FOUND']);
-        } catch (\Exception $e) {
-            \Log::error('IdentifyTenant: tenant lookup FAILED', ['error' => $e->getMessage()]);
-            throw $e;
-        }
+        $tenant = Tenant::where('slug', $subdomain)
+            ->where('status', 'active')
+            ->first();
 
         if (!$tenant) {
-            // Tenant not found - show error or redirect
             abort(404, "Clinic not found: {$subdomain}");
         }
 
@@ -78,7 +58,6 @@ class IdentifyTenant
 
         // Switch to tenant's PostgreSQL schema
         $this->switchToTenantSchema($tenant);
-        \Log::warning('IdentifyTenant: schema switched', ['schema' => $tenant->database_name]);
 
         // Store tenant in request and TenantManager for later use
         $request->attributes->set('tenant', $tenant);
@@ -87,24 +66,6 @@ class IdentifyTenant
         // Set tenant in TenantManager (used by HasTenancy trait)
         $tenantManager = app(\XLinic\Framework\Core\Tenancy\TenantManager::class);
         $tenantManager->setCurrentTenant($tenant);
-
-        // Verify TenantManager has tenant
-        $verifyTenant = $tenantManager->current();
-        \Log::warning('IdentifyTenant: COMPLETE', [
-            'tenantId' => $tenant->id,
-            'managerHasTenant' => $verifyTenant ? 'yes' : 'no',
-            'managerId' => $verifyTenant?->id,
-        ]);
-
-        // Log SQL queries for users table
-        DB::listen(function ($query) {
-            if (stripos($query->sql, 'users') !== false && stripos($query->sql, 'select') !== false) {
-                \Log::warning('SQL Query on users', [
-                    'sql' => $query->sql,
-                    'bindings' => $query->bindings,
-                ]);
-            }
-        });
 
         $response = $next($request);
 
