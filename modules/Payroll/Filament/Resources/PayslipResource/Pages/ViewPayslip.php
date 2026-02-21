@@ -17,7 +17,7 @@ class ViewPayslip extends ViewRecord
                 ->label(__('payroll::payroll.actions.download_payslip'))
                 ->icon('heroicon-o-document-arrow-down')
                 ->color('success')
-                ->url(fn () => route('payroll.payslip.download', $this->record))
+                ->url(fn () => \Illuminate\Support\Facades\URL::signedRoute('payroll.payslip.download', $this->record))
                 ->openUrlInNewTab(),
         ];
     }

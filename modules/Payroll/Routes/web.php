@@ -6,7 +6,7 @@ use Modules\Payroll\Services\SalarySlipPdfService;
 
 // Web routes for Payroll module
 
-Route::middleware(['web', 'auth'])->prefix('payroll')->name('payroll.')->group(function () {
+Route::middleware(['web', 'signed'])->prefix('payroll')->name('payroll.')->group(function () {
     Route::get('/payslip/{payrollLine}/download', function (PayrollLine $payrollLine) {
         $service = app(SalarySlipPdfService::class);
         return $service->download($payrollLine);

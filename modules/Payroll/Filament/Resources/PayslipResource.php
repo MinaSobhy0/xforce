@@ -266,7 +266,7 @@ class PayslipResource extends Resource
                     ->label(__('payroll::payroll.actions.download_payslip'))
                     ->icon('heroicon-o-document-arrow-down')
                     ->color('success')
-                    ->url(fn (PayrollLine $record) => route('payroll.payslip.download', $record))
+                    ->url(fn (PayrollLine $record) => \Illuminate\Support\Facades\URL::signedRoute('payroll.payslip.download', $record))
                     ->openUrlInNewTab(),
             ])
             ->bulkActions([])
