@@ -113,7 +113,8 @@ class TenantOverviewWidget extends BaseWidget
         return Patient::where('created_at', '>=', now()->subDays(7))
             ->groupBy(DB::raw('DATE(created_at)'))
             ->orderBy(DB::raw('DATE(created_at)'))
-            ->pluck(DB::raw('COUNT(*)'))
+            ->select(DB::raw('COUNT(*) as count'))
+            ->pluck('count')
             ->toArray();
     }
 
