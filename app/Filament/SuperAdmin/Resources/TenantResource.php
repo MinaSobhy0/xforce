@@ -183,59 +183,47 @@ class TenantResource extends Resource
                         ->required(),
                 ]),
 
-            Forms\Components\Section::make('Additional Resources')
+            Forms\Components\Section::make('Resource Limits')
                 ->icon('heroicon-o-adjustments-horizontal')
-                ->description('Extra resources purchased beyond plan limits. Total limit = Plan limit + Extra. Patients, treatments, equipment, products are unlimited.')
+                ->description('Limits are determined by the subscription plan. You can add extra resources below. Patients, treatments, equipment, and products are unlimited for all plans.')
                 ->columns(3)
                 ->schema([
+                    Forms\Components\Placeholder::make('plan_limits_info')
+                        ->label('Plan Limits')
+                        ->content(function ($record) {
+                            if (!$record?->plan) {
+                                return 'No plan selected - using default limits';
+                            }
+                            $plan = $record->plan;
+                            return "Users: {$plan->max_users} | Branches: {$plan->max_branches} | Storage: {$plan->max_storage_mb} MB";
+                        })
+                        ->columnSpanFull(),
+
                     Forms\Components\TextInput::make('extra_users')
                         ->label('Extra Users')
-                        ->helperText(fn ($record) => $record?->plan ? 'Plan: ' . ($record->plan->max_users ?? 0) : 'No plan')
+                        ->helperText(fn ($record) => $record?->plan
+                            ? 'Total: ' . (($record->plan->max_users ?? 0) + ($record->extra_users ?? 0)) . ' users'
+                            : 'Plan limit + this extra amount')
                         ->numeric()
                         ->default(0)
                         ->minValue(0),
                     Forms\Components\TextInput::make('extra_branches')
                         ->label('Extra Branches')
-                        ->helperText(fn ($record) => $record?->plan ? 'Plan: ' . ($record->plan->max_branches ?? 0) : 'No plan')
+                        ->helperText(fn ($record) => $record?->plan
+                            ? 'Total: ' . (($record->plan->max_branches ?? 0) + ($record->extra_branches ?? 0)) . ' branches'
+                            : 'Plan limit + this extra amount')
                         ->numeric()
                         ->default(0)
                         ->minValue(0),
                     Forms\Components\TextInput::make('extra_storage_mb')
-                        ->label('Extra Storage')
-                        ->helperText(fn ($record) => $record?->plan ? 'Plan: ' . ($record->plan->max_storage_mb ?? 0) . ' MB' : 'No plan')
+                        ->label('Extra Storage (MB)')
+                        ->helperText(fn ($record) => $record?->plan
+                            ? 'Total: ' . (($record->plan->max_storage_mb ?? 0) + ($record->extra_storage_mb ?? 0)) . ' MB'
+                            : 'Plan limit + this extra amount')
                         ->numeric()
                         ->default(0)
                         ->minValue(0)
                         ->suffix('MB'),
-                ]),
-
-            Forms\Components\Section::make('Legacy Limits (Deprecated)')
-                ->icon('heroicon-o-archive-box')
-                ->description('These fields are deprecated. Limits should come from the subscription plan.')
-                ->columns(4)
-                ->collapsed()
-                ->schema([
-                    Forms\Components\TextInput::make('max_users')
-                        ->label('Max Users (Legacy)')
-                        ->numeric()
-                        ->default(10)
-                        ->disabled(),
-                    Forms\Components\TextInput::make('max_branches')
-                        ->label('Max Branches (Legacy)')
-                        ->numeric()
-                        ->default(1)
-                        ->disabled(),
-                    Forms\Components\TextInput::make('max_patients')
-                        ->label('Max Patients (Legacy)')
-                        ->numeric()
-                        ->default(1000)
-                        ->disabled(),
-                    Forms\Components\TextInput::make('max_storage_mb')
-                        ->label('Max Storage (Legacy)')
-                        ->numeric()
-                        ->default(1024)
-                        ->suffix('MB')
-                        ->disabled(),
                 ]),
 
             Forms\Components\Section::make('Branding')
