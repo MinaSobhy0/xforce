@@ -4,11 +4,11 @@ namespace Modules\Marketing\Filament\Resources\NotificationLogResource\Pages;
 
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
-use Filament\Resources\Pages\ViewRecord;
+use App\Filament\Resources\Pages\BaseViewRecord;
 use Modules\Marketing\Filament\Resources\NotificationLogResource;
 use Modules\Marketing\Models\NotificationLog;
 
-class ViewNotificationLog extends ViewRecord
+class ViewNotificationLog extends BaseViewRecord
 {
     protected static string $resource = NotificationLogResource::class;
 

@@ -3,16 +3,16 @@
 namespace Modules\Payroll\Filament\Resources\PayrollRunResource\Pages;
 
 use Filament\Actions;
-use Filament\Resources\Pages\ViewRecord;
+use App\Filament\Resources\Pages\BaseViewRecord;
 use Filament\Notifications\Notification;
 use Modules\Payroll\Models\PayrollRun;
 use Modules\Payroll\Filament\Resources\PayrollRunResource;
 
-class ViewPayrollRun extends ViewRecord
+class ViewPayrollRun extends BaseViewRecord
 {
     protected static string $resource = PayrollRunResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getViewHeaderActions(): array
     {
         return [
             Actions\EditAction::make()

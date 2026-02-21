@@ -5,15 +5,15 @@ namespace Modules\GiftCards\Filament\Resources\GiftCardResource\Pages;
 use Modules\GiftCards\Filament\Resources\GiftCardResource;
 use Modules\GiftCards\Models\GiftCard;
 use Filament\Actions;
-use Filament\Resources\Pages\ViewRecord;
+use App\Filament\Resources\Pages\BaseViewRecord;
 use Filament\Forms;
 use Filament\Notifications\Notification;
 
-class ViewGiftCard extends ViewRecord
+class ViewGiftCard extends BaseViewRecord
 {
     protected static string $resource = GiftCardResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getViewHeaderActions(): array
     {
         return [
             Actions\EditAction::make()

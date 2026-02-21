@@ -4,13 +4,13 @@ namespace Modules\Packages\Filament\Resources\PackageResource\Pages;
 
 use Modules\Packages\Filament\Resources\PackageResource;
 use Filament\Actions;
-use Filament\Resources\Pages\ViewRecord;
+use App\Filament\Resources\Pages\BaseViewRecord;
 
-class ViewPackage extends ViewRecord
+class ViewPackage extends BaseViewRecord
 {
     protected static string $resource = PackageResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getViewHeaderActions(): array
     {
         return [
             Actions\EditAction::make(),

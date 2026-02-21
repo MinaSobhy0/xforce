@@ -3,13 +3,13 @@
 namespace Modules\Loyalty\Filament\Resources\LoyaltyTransactionResource\Pages;
 
 use Modules\Loyalty\Filament\Resources\LoyaltyTransactionResource;
-use Filament\Resources\Pages\ViewRecord;
+use App\Filament\Resources\Pages\BaseViewRecord;
 
-class ViewLoyaltyTransaction extends ViewRecord
+class ViewLoyaltyTransaction extends BaseViewRecord
 {
     protected static string $resource = LoyaltyTransactionResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getViewHeaderActions(): array
     {
         return [];
     }

@@ -3,14 +3,14 @@
 namespace Modules\Inventory\Filament\Resources\ProductCategoryResource\Pages;
 
 use Filament\Actions;
-use Filament\Resources\Pages\EditRecord;
+use App\Filament\Resources\Pages\BaseEditRecord;
 use Modules\Inventory\Filament\Resources\ProductCategoryResource;
 
-class EditProductCategory extends EditRecord
+class EditProductCategory extends BaseEditRecord
 {
     protected static string $resource = ProductCategoryResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getEditHeaderActions(): array
     {
         return [
             Actions\DeleteAction::make()

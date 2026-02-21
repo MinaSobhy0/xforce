@@ -4,13 +4,13 @@ namespace App\Filament\SuperAdmin\Resources\TenantDomainResource\Pages;
 
 use App\Filament\SuperAdmin\Resources\TenantDomainResource;
 use Filament\Actions;
-use Filament\Resources\Pages\EditRecord;
+use App\Filament\Resources\Pages\BaseEditRecord;
 
-class EditTenantDomain extends EditRecord
+class EditTenantDomain extends BaseEditRecord
 {
     protected static string $resource = TenantDomainResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getEditHeaderActions(): array
     {
         return [
             Actions\Action::make('verify_dns')

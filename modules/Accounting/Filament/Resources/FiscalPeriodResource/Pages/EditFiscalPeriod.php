@@ -4,13 +4,13 @@ namespace Modules\Accounting\Filament\Resources\FiscalPeriodResource\Pages;
 
 use Modules\Accounting\Filament\Resources\FiscalPeriodResource;
 use Filament\Actions;
-use Filament\Resources\Pages\EditRecord;
+use App\Filament\Resources\Pages\BaseEditRecord;
 
-class EditFiscalPeriod extends EditRecord
+class EditFiscalPeriod extends BaseEditRecord
 {
     protected static string $resource = FiscalPeriodResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getEditHeaderActions(): array
     {
         return [
             Actions\DeleteAction::make()

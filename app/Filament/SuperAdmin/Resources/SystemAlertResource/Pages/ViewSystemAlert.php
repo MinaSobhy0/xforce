@@ -4,13 +4,13 @@ namespace App\Filament\SuperAdmin\Resources\SystemAlertResource\Pages;
 
 use App\Filament\SuperAdmin\Resources\SystemAlertResource;
 use Filament\Actions;
-use Filament\Resources\Pages\ViewRecord;
+use App\Filament\Resources\Pages\BaseViewRecord;
 
-class ViewSystemAlert extends ViewRecord
+class ViewSystemAlert extends BaseViewRecord
 {
     protected static string $resource = SystemAlertResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getViewHeaderActions(): array
     {
         return [
             Actions\Action::make('resolve')

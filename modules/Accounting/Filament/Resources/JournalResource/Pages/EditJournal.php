@@ -4,13 +4,13 @@ namespace Modules\Accounting\Filament\Resources\JournalResource\Pages;
 
 use Modules\Accounting\Filament\Resources\JournalResource;
 use Filament\Actions;
-use Filament\Resources\Pages\EditRecord;
+use App\Filament\Resources\Pages\BaseEditRecord;
 
-class EditJournal extends EditRecord
+class EditJournal extends BaseEditRecord
 {
     protected static string $resource = JournalResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getEditHeaderActions(): array
     {
         return [
             Actions\DeleteAction::make()

@@ -4,13 +4,13 @@ namespace App\Filament\SuperAdmin\Resources\PlatformAdminResource\Pages;
 
 use App\Filament\SuperAdmin\Resources\PlatformAdminResource;
 use Filament\Actions;
-use Filament\Resources\Pages\EditRecord;
+use App\Filament\Resources\Pages\BaseEditRecord;
 
-class EditPlatformAdmin extends EditRecord
+class EditPlatformAdmin extends BaseEditRecord
 {
     protected static string $resource = PlatformAdminResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getEditHeaderActions(): array
     {
         return [
             Actions\DeleteAction::make()

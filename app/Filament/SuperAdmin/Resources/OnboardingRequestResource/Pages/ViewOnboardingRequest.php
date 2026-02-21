@@ -4,13 +4,13 @@ namespace App\Filament\SuperAdmin\Resources\OnboardingRequestResource\Pages;
 
 use App\Filament\SuperAdmin\Resources\OnboardingRequestResource;
 use Filament\Actions;
-use Filament\Resources\Pages\ViewRecord;
+use App\Filament\Resources\Pages\BaseViewRecord;
 
-class ViewOnboardingRequest extends ViewRecord
+class ViewOnboardingRequest extends BaseViewRecord
 {
     protected static string $resource = OnboardingRequestResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getViewHeaderActions(): array
     {
         return [
             Actions\Action::make('approve')

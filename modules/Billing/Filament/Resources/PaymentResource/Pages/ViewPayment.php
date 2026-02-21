@@ -3,13 +3,13 @@
 namespace Modules\Billing\Filament\Resources\PaymentResource\Pages;
 
 use Modules\Billing\Filament\Resources\PaymentResource;
-use Filament\Resources\Pages\ViewRecord;
+use App\Filament\Resources\Pages\BaseViewRecord;
 
-class ViewPayment extends ViewRecord
+class ViewPayment extends BaseViewRecord
 {
     protected static string $resource = PaymentResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getViewHeaderActions(): array
     {
         return [];
     }

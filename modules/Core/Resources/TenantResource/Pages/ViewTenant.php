@@ -4,16 +4,16 @@ namespace Modules\Core\Resources\TenantResource\Pages;
 
 use Modules\Core\Resources\TenantResource;
 use Filament\Actions;
-use Filament\Resources\Pages\ViewRecord;
+use App\Filament\Resources\Pages\BaseViewRecord;
 use Filament\Notifications\Notification;
 use Modules\Core\Services\TenantService;
 use Modules\Core\Models\TenantStatus;
 
-class ViewTenant extends ViewRecord
+class ViewTenant extends BaseViewRecord
 {
     protected static string $resource = TenantResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getViewHeaderActions(): array
     {
         return [
             Actions\EditAction::make(),

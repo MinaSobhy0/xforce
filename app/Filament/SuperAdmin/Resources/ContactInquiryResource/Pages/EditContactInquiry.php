@@ -4,13 +4,13 @@ namespace App\Filament\SuperAdmin\Resources\ContactInquiryResource\Pages;
 
 use App\Filament\SuperAdmin\Resources\ContactInquiryResource;
 use Filament\Actions;
-use Filament\Resources\Pages\EditRecord;
+use App\Filament\Resources\Pages\BaseEditRecord;
 
-class EditContactInquiry extends EditRecord
+class EditContactInquiry extends BaseEditRecord
 {
     protected static string $resource = ContactInquiryResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getEditHeaderActions(): array
     {
         return [
             Actions\DeleteAction::make(),

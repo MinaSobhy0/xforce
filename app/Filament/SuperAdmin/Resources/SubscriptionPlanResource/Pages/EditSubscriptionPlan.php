@@ -4,15 +4,15 @@ namespace App\Filament\SuperAdmin\Resources\SubscriptionPlanResource\Pages;
 
 use App\Filament\SuperAdmin\Resources\SubscriptionPlanResource;
 use Filament\Actions;
-use Filament\Resources\Pages\EditRecord;
+use App\Filament\Resources\Pages\BaseEditRecord;
 
-class EditSubscriptionPlan extends EditRecord
+class EditSubscriptionPlan extends BaseEditRecord
 {
     use EditRecord\Concerns\Translatable;
 
     protected static string $resource = SubscriptionPlanResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getEditHeaderActions(): array
     {
         return [
             \Filament\Actions\LocaleSwitcher::make(),

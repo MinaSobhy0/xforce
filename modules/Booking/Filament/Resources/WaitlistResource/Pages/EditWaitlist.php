@@ -4,13 +4,13 @@ namespace Modules\Booking\Filament\Resources\WaitlistResource\Pages;
 
 use Modules\Booking\Filament\Resources\WaitlistResource;
 use Filament\Actions;
-use Filament\Resources\Pages\EditRecord;
+use App\Filament\Resources\Pages\BaseEditRecord;
 
-class EditWaitlist extends EditRecord
+class EditWaitlist extends BaseEditRecord
 {
     protected static string $resource = WaitlistResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getEditHeaderActions(): array
     {
         return [
             Actions\DeleteAction::make(),

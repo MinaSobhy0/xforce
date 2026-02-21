@@ -3,14 +3,14 @@
 namespace Modules\Payroll\Filament\Resources\PayrollRunResource\Pages;
 
 use Filament\Actions;
-use Filament\Resources\Pages\EditRecord;
+use App\Filament\Resources\Pages\BaseEditRecord;
 use Modules\Payroll\Filament\Resources\PayrollRunResource;
 
-class EditPayrollRun extends EditRecord
+class EditPayrollRun extends BaseEditRecord
 {
     protected static string $resource = PayrollRunResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getEditHeaderActions(): array
     {
         return [
             Actions\ViewAction::make(),

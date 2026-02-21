@@ -49,6 +49,10 @@ return [
     'filter' => 'Filter',
     'export' => 'Export',
     'import' => 'Import',
+    'previous' => 'Previous',
+    'next' => 'Next',
+    'go_to_previous_record' => 'Go to previous record',
+    'go_to_next_record' => 'Go to next record',
 
     // Common
     'name' => 'Name',

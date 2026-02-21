@@ -3,14 +3,14 @@
 namespace Modules\Treatments\Filament\Resources\TreatmentCategoryResource\Pages;
 
 use Filament\Actions;
-use Filament\Resources\Pages\EditRecord;
+use App\Filament\Resources\Pages\BaseEditRecord;
 use Modules\Treatments\Filament\Resources\TreatmentCategoryResource;
 
-class EditTreatmentCategory extends EditRecord
+class EditTreatmentCategory extends BaseEditRecord
 {
     protected static string $resource = TreatmentCategoryResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getEditHeaderActions(): array
     {
         return [
             Actions\DeleteAction::make()

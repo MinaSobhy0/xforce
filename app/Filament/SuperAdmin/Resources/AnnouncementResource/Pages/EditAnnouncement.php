@@ -4,15 +4,15 @@ namespace App\Filament\SuperAdmin\Resources\AnnouncementResource\Pages;
 
 use App\Filament\SuperAdmin\Resources\AnnouncementResource;
 use Filament\Actions;
-use Filament\Resources\Pages\EditRecord;
+use App\Filament\Resources\Pages\BaseEditRecord;
 
-class EditAnnouncement extends EditRecord
+class EditAnnouncement extends BaseEditRecord
 {
     use EditRecord\Concerns\Translatable;
 
     protected static string $resource = AnnouncementResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getEditHeaderActions(): array
     {
         return [
             \Filament\Actions\LocaleSwitcher::make(),

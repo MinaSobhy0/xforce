@@ -5,14 +5,14 @@ namespace Modules\Accounting\Filament\Resources\JournalEntryResource\Pages;
 use Modules\Accounting\Filament\Resources\JournalEntryResource;
 use Modules\Accounting\Models\JournalEntry;
 use Filament\Actions;
-use Filament\Resources\Pages\ViewRecord;
+use App\Filament\Resources\Pages\BaseViewRecord;
 use Filament\Notifications\Notification;
 
-class ViewJournalEntry extends ViewRecord
+class ViewJournalEntry extends BaseViewRecord
 {
     protected static string $resource = JournalEntryResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getViewHeaderActions(): array
     {
         return [
             Actions\EditAction::make()

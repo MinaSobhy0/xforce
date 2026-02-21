@@ -3,16 +3,16 @@
 namespace Modules\Treatments\Filament\Resources\ConsentTemplateResource\Pages;
 
 use Filament\Actions;
-use Filament\Resources\Pages\ViewRecord;
+use App\Filament\Resources\Pages\BaseViewRecord;
 use Filament\Infolists\Infolist;
 use Filament\Infolists\Components;
 use Modules\Treatments\Filament\Resources\ConsentTemplateResource;
 
-class ViewConsentTemplate extends ViewRecord
+class ViewConsentTemplate extends BaseViewRecord
 {
     protected static string $resource = ConsentTemplateResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getViewHeaderActions(): array
     {
         return [
             Actions\Action::make('duplicate')

@@ -3,14 +3,14 @@
 namespace Modules\Staff\Filament\Resources\StaffProfileResource\Pages;
 
 use Filament\Actions;
-use Filament\Resources\Pages\EditRecord;
+use App\Filament\Resources\Pages\BaseEditRecord;
 use Modules\Staff\Filament\Resources\StaffProfileResource;
 
-class EditStaffProfile extends EditRecord
+class EditStaffProfile extends BaseEditRecord
 {
     protected static string $resource = StaffProfileResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getEditHeaderActions(): array
     {
         return [
             Actions\ViewAction::make(),

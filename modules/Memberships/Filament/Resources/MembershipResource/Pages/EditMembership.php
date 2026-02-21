@@ -4,13 +4,13 @@ namespace Modules\Memberships\Filament\Resources\MembershipResource\Pages;
 
 use Modules\Memberships\Filament\Resources\MembershipResource;
 use Filament\Actions;
-use Filament\Resources\Pages\EditRecord;
+use App\Filament\Resources\Pages\BaseEditRecord;
 
-class EditMembership extends EditRecord
+class EditMembership extends BaseEditRecord
 {
     protected static string $resource = MembershipResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getEditHeaderActions(): array
     {
         return [
             Actions\ViewAction::make(),

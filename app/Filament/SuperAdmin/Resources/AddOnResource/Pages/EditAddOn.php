@@ -4,13 +4,13 @@ namespace App\Filament\SuperAdmin\Resources\AddOnResource\Pages;
 
 use App\Filament\SuperAdmin\Resources\AddOnResource;
 use Filament\Actions;
-use Filament\Resources\Pages\EditRecord;
+use App\Filament\Resources\Pages\BaseEditRecord;
 
-class EditAddOn extends EditRecord
+class EditAddOn extends BaseEditRecord
 {
     protected static string $resource = AddOnResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getEditHeaderActions(): array
     {
         return [
             Actions\DeleteAction::make(),

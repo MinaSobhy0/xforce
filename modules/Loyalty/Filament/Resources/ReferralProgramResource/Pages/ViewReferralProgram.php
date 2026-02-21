@@ -4,13 +4,13 @@ namespace Modules\Loyalty\Filament\Resources\ReferralProgramResource\Pages;
 
 use Modules\Loyalty\Filament\Resources\ReferralProgramResource;
 use Filament\Actions;
-use Filament\Resources\Pages\ViewRecord;
+use App\Filament\Resources\Pages\BaseViewRecord;
 
-class ViewReferralProgram extends ViewRecord
+class ViewReferralProgram extends BaseViewRecord
 {
     protected static string $resource = ReferralProgramResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getViewHeaderActions(): array
     {
         return [
             Actions\EditAction::make(),

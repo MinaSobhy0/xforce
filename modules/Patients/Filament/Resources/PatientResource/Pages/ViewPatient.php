@@ -4,15 +4,15 @@ namespace Modules\Patients\Filament\Resources\PatientResource\Pages;
 
 use Modules\Patients\Filament\Resources\PatientResource;
 use Filament\Actions;
-use Filament\Resources\Pages\ViewRecord;
+use App\Filament\Resources\Pages\BaseViewRecord;
 use Filament\Infolists\Infolist;
 use Filament\Infolists\Components;
 
-class ViewPatient extends ViewRecord
+class ViewPatient extends BaseViewRecord
 {
     protected static string $resource = PatientResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getViewHeaderActions(): array
     {
         return [
             Actions\EditAction::make(),

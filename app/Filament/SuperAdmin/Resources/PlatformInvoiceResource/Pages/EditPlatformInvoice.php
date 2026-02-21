@@ -4,13 +4,13 @@ namespace App\Filament\SuperAdmin\Resources\PlatformInvoiceResource\Pages;
 
 use App\Filament\SuperAdmin\Resources\PlatformInvoiceResource;
 use Filament\Actions;
-use Filament\Resources\Pages\EditRecord;
+use App\Filament\Resources\Pages\BaseEditRecord;
 
-class EditPlatformInvoice extends EditRecord
+class EditPlatformInvoice extends BaseEditRecord
 {
     protected static string $resource = PlatformInvoiceResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getEditHeaderActions(): array
     {
         return [
             Actions\ViewAction::make(),

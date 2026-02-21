@@ -5,13 +5,13 @@ namespace Modules\Booking\Filament\Resources\AppointmentResource\Pages;
 use Modules\Booking\Filament\Resources\AppointmentResource;
 use Modules\Booking\Models\Appointment;
 use Filament\Actions;
-use Filament\Resources\Pages\ViewRecord;
+use App\Filament\Resources\Pages\BaseViewRecord;
 
-class ViewAppointment extends ViewRecord
+class ViewAppointment extends BaseViewRecord
 {
     protected static string $resource = AppointmentResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getViewHeaderActions(): array
     {
         return [
             Actions\EditAction::make(),

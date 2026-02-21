@@ -12,17 +12,17 @@ use Filament\Forms;
 use Filament\Infolists\Infolist;
 use Filament\Infolists\Components;
 use Filament\Notifications\Notification;
-use Filament\Resources\Pages\ViewRecord;
+use App\Filament\Resources\Pages\BaseViewRecord;
 use Filament\Support\Enums\FontWeight;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
-class ViewTenant extends ViewRecord
+class ViewTenant extends BaseViewRecord
 {
     protected static string $resource = TenantResource::class;
 
     // Top Action Buttons
-    protected function getHeaderActions(): array
+    protected function getViewHeaderActions(): array
     {
         return [
             Actions\Action::make('provisionDatabase')

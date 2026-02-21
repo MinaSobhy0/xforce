@@ -4,13 +4,13 @@ namespace App\Filament\SuperAdmin\Resources\SupportTicketResource\Pages;
 
 use App\Filament\SuperAdmin\Resources\SupportTicketResource;
 use Filament\Actions;
-use Filament\Resources\Pages\ViewRecord;
+use App\Filament\Resources\Pages\BaseViewRecord;
 
-class ViewSupportTicket extends ViewRecord
+class ViewSupportTicket extends BaseViewRecord
 {
     protected static string $resource = SupportTicketResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getViewHeaderActions(): array
     {
         return [
             Actions\EditAction::make(),

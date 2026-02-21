@@ -3,14 +3,14 @@
 namespace Modules\Marketing\Filament\Resources\MessageTemplateResource\Pages;
 
 use Filament\Actions;
-use Filament\Resources\Pages\EditRecord;
+use App\Filament\Resources\Pages\BaseEditRecord;
 use Modules\Marketing\Filament\Resources\MessageTemplateResource;
 
-class EditMessageTemplate extends EditRecord
+class EditMessageTemplate extends BaseEditRecord
 {
     protected static string $resource = MessageTemplateResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getEditHeaderActions(): array
     {
         return [
             Actions\DeleteAction::make()

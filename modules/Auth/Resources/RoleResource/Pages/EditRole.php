@@ -4,13 +4,13 @@ namespace Modules\Auth\Resources\RoleResource\Pages;
 
 use Modules\Auth\Resources\RoleResource;
 use Filament\Actions;
-use Filament\Resources\Pages\EditRecord;
+use App\Filament\Resources\Pages\BaseEditRecord;
 
-class EditRole extends EditRecord
+class EditRole extends BaseEditRecord
 {
     protected static string $resource = RoleResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getEditHeaderActions(): array
     {
         return [
             Actions\ViewAction::make(),

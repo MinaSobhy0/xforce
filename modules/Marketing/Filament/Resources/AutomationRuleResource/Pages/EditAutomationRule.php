@@ -3,14 +3,14 @@
 namespace Modules\Marketing\Filament\Resources\AutomationRuleResource\Pages;
 
 use Filament\Actions;
-use Filament\Resources\Pages\EditRecord;
+use App\Filament\Resources\Pages\BaseEditRecord;
 use Modules\Marketing\Filament\Resources\AutomationRuleResource;
 
-class EditAutomationRule extends EditRecord
+class EditAutomationRule extends BaseEditRecord
 {
     protected static string $resource = AutomationRuleResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getEditHeaderActions(): array
     {
         return [
             Actions\DeleteAction::make(),

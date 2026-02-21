@@ -3,15 +3,15 @@
 namespace Modules\Equipment\Filament\Resources\EquipmentResource\Pages;
 
 use Filament\Actions;
-use Filament\Resources\Pages\ViewRecord;
+use App\Filament\Resources\Pages\BaseViewRecord;
 use Modules\Equipment\Filament\Resources\EquipmentResource;
 use Modules\Equipment\Models\Equipment;
 
-class ViewEquipment extends ViewRecord
+class ViewEquipment extends BaseViewRecord
 {
     protected static string $resource = EquipmentResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getViewHeaderActions(): array
     {
         return [
             Actions\EditAction::make(),

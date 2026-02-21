@@ -4,13 +4,13 @@ namespace App\Filament\SuperAdmin\Resources\TenantResource\Pages;
 
 use App\Filament\SuperAdmin\Resources\TenantResource;
 use Filament\Actions;
-use Filament\Resources\Pages\EditRecord;
+use App\Filament\Resources\Pages\BaseEditRecord;
 
-class EditTenant extends EditRecord
+class EditTenant extends BaseEditRecord
 {
     protected static string $resource = TenantResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getEditHeaderActions(): array
     {
         return [
             Actions\ViewAction::make(),

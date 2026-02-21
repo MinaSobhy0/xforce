@@ -4,7 +4,7 @@ namespace App\Filament\OwnerPortal\Resources\MySupportTicketResource\Pages;
 
 use App\Filament\OwnerPortal\Resources\MySupportTicketResource;
 use App\Models\SupportTicketReply;
-use Filament\Resources\Pages\ViewRecord;
+use App\Filament\Resources\Pages\BaseViewRecord;
 use Filament\Infolists\Infolist;
 use Filament\Infolists\Components;
 use Filament\Actions;
@@ -12,7 +12,7 @@ use Filament\Forms;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Auth;
 
-class ViewMySupportTicket extends ViewRecord
+class ViewMySupportTicket extends BaseViewRecord
 {
     protected static string $resource = MySupportTicketResource::class;
 
@@ -93,7 +93,7 @@ class ViewMySupportTicket extends ViewRecord
             ]);
     }
 
-    protected function getHeaderActions(): array
+    protected function getViewHeaderActions(): array
     {
         return [
             Actions\Action::make('reply')

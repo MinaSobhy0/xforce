@@ -3,16 +3,16 @@
 namespace Modules\Treatments\Filament\Resources\TreatmentResource\Pages;
 
 use Filament\Actions;
-use Filament\Resources\Pages\ViewRecord;
+use App\Filament\Resources\Pages\BaseViewRecord;
 use Filament\Infolists\Infolist;
 use Filament\Infolists\Components;
 use Modules\Treatments\Filament\Resources\TreatmentResource;
 
-class ViewTreatment extends ViewRecord
+class ViewTreatment extends BaseViewRecord
 {
     protected static string $resource = TreatmentResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getViewHeaderActions(): array
     {
         return [
             Actions\EditAction::make(),

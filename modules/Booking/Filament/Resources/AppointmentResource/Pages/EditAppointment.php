@@ -4,15 +4,15 @@ namespace Modules\Booking\Filament\Resources\AppointmentResource\Pages;
 
 use Modules\Booking\Filament\Resources\AppointmentResource;
 use Filament\Actions;
-use Filament\Resources\Pages\EditRecord;
+use App\Filament\Resources\Pages\BaseEditRecord;
 use Filament\Forms;
 use Filament\Forms\Form;
 
-class EditAppointment extends EditRecord
+class EditAppointment extends BaseEditRecord
 {
     protected static string $resource = AppointmentResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getEditHeaderActions(): array
     {
         return [
             Actions\ViewAction::make(),

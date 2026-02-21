@@ -4,13 +4,13 @@ namespace Modules\GiftCards\Filament\Resources\GiftCardResource\Pages;
 
 use Modules\GiftCards\Filament\Resources\GiftCardResource;
 use Filament\Actions;
-use Filament\Resources\Pages\EditRecord;
+use App\Filament\Resources\Pages\BaseEditRecord;
 
-class EditGiftCard extends EditRecord
+class EditGiftCard extends BaseEditRecord
 {
     protected static string $resource = GiftCardResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getEditHeaderActions(): array
     {
         return [
             Actions\ViewAction::make(),

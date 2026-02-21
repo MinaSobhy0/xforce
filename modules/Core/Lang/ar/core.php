@@ -49,6 +49,10 @@ return [
     'filter' => 'تصفية',
     'export' => 'تصدير',
     'import' => 'استيراد',
+    'previous' => 'السابق',
+    'next' => 'التالي',
+    'go_to_previous_record' => 'الانتقال للسجل السابق',
+    'go_to_next_record' => 'الانتقال للسجل التالي',
 
     // Common
     'name' => 'الاسم',

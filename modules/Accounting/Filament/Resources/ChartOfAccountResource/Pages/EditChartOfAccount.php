@@ -4,13 +4,13 @@ namespace Modules\Accounting\Filament\Resources\ChartOfAccountResource\Pages;
 
 use Modules\Accounting\Filament\Resources\ChartOfAccountResource;
 use Filament\Actions;
-use Filament\Resources\Pages\EditRecord;
+use App\Filament\Resources\Pages\BaseEditRecord;
 
-class EditChartOfAccount extends EditRecord
+class EditChartOfAccount extends BaseEditRecord
 {
     protected static string $resource = ChartOfAccountResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getEditHeaderActions(): array
     {
         return [
             Actions\DeleteAction::make()

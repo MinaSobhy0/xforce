@@ -5,14 +5,14 @@ namespace Modules\Billing\Filament\Resources\InvoiceResource\Pages;
 use Modules\Billing\Filament\Resources\InvoiceResource;
 use Modules\Billing\Models\Invoice;
 use Filament\Actions;
-use Filament\Resources\Pages\ViewRecord;
+use App\Filament\Resources\Pages\BaseViewRecord;
 use Filament\Notifications\Notification;
 
-class ViewInvoice extends ViewRecord
+class ViewInvoice extends BaseViewRecord
 {
     protected static string $resource = InvoiceResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getViewHeaderActions(): array
     {
         return [
             Actions\EditAction::make()

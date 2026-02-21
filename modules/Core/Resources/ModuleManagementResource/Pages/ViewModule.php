@@ -4,14 +4,14 @@ namespace Modules\Core\Resources\ModuleManagementResource\Pages;
 
 use Modules\Core\Resources\ModuleManagementResource;
 use Filament\Actions;
-use Filament\Resources\Pages\ViewRecord;
+use App\Filament\Resources\Pages\BaseViewRecord;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
 use Filament\Notifications\Notification;
 use XLinic\Framework\Core\Module\ModuleManager;
 use XLinic\Framework\Core\Module\ModuleRegistry;
 
-class ViewModule extends ViewRecord
+class ViewModule extends BaseViewRecord
 {
     protected static string $resource = ModuleManagementResource::class;
 
@@ -138,7 +138,7 @@ class ViewModule extends ViewRecord
             ]);
     }
 
-    protected function getHeaderActions(): array
+    protected function getViewHeaderActions(): array
     {
         return [
             Actions\Action::make('toggle')

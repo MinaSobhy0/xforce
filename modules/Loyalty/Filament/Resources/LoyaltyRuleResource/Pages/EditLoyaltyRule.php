@@ -4,13 +4,13 @@ namespace Modules\Loyalty\Filament\Resources\LoyaltyRuleResource\Pages;
 
 use Modules\Loyalty\Filament\Resources\LoyaltyRuleResource;
 use Filament\Actions;
-use Filament\Resources\Pages\EditRecord;
+use App\Filament\Resources\Pages\BaseEditRecord;
 
-class EditLoyaltyRule extends EditRecord
+class EditLoyaltyRule extends BaseEditRecord
 {
     protected static string $resource = LoyaltyRuleResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getEditHeaderActions(): array
     {
         return [
             Actions\ViewAction::make(),

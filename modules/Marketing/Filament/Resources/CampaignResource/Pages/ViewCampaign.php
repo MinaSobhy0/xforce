@@ -5,15 +5,15 @@ namespace Modules\Marketing\Filament\Resources\CampaignResource\Pages;
 use Filament\Actions;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
-use Filament\Resources\Pages\ViewRecord;
+use App\Filament\Resources\Pages\BaseViewRecord;
 use Modules\Marketing\Filament\Resources\CampaignResource;
 use Modules\Marketing\Models\Campaign;
 
-class ViewCampaign extends ViewRecord
+class ViewCampaign extends BaseViewRecord
 {
     protected static string $resource = CampaignResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getViewHeaderActions(): array
     {
         return [
             Actions\EditAction::make()

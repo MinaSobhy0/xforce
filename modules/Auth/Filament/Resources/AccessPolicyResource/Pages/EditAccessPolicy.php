@@ -3,14 +3,14 @@
 namespace Modules\Auth\Filament\Resources\AccessPolicyResource\Pages;
 
 use Filament\Actions;
-use Filament\Resources\Pages\EditRecord;
+use App\Filament\Resources\Pages\BaseEditRecord;
 use Modules\Auth\Filament\Resources\AccessPolicyResource;
 
-class EditAccessPolicy extends EditRecord
+class EditAccessPolicy extends BaseEditRecord
 {
     protected static string $resource = AccessPolicyResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getEditHeaderActions(): array
     {
         return [
             Actions\DeleteAction::make(),

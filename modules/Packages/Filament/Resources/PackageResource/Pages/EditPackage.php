@@ -4,13 +4,13 @@ namespace Modules\Packages\Filament\Resources\PackageResource\Pages;
 
 use Modules\Packages\Filament\Resources\PackageResource;
 use Filament\Actions;
-use Filament\Resources\Pages\EditRecord;
+use App\Filament\Resources\Pages\BaseEditRecord;
 
-class EditPackage extends EditRecord
+class EditPackage extends BaseEditRecord
 {
     protected static string $resource = PackageResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getEditHeaderActions(): array
     {
         return [
             Actions\ViewAction::make(),

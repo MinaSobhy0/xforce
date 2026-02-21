@@ -3,16 +3,16 @@
 namespace Modules\Inventory\Filament\Resources\PurchaseOrderResource\Pages;
 
 use Filament\Actions;
-use Filament\Resources\Pages\ViewRecord;
+use App\Filament\Resources\Pages\BaseViewRecord;
 use Filament\Notifications\Notification;
 use Modules\Inventory\Models\PurchaseOrder;
 use Modules\Inventory\Filament\Resources\PurchaseOrderResource;
 
-class ViewPurchaseOrder extends ViewRecord
+class ViewPurchaseOrder extends BaseViewRecord
 {
     protected static string $resource = PurchaseOrderResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getViewHeaderActions(): array
     {
         return [
             Actions\EditAction::make()

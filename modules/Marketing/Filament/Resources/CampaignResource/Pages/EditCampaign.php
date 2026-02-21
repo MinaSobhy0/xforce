@@ -3,14 +3,14 @@
 namespace Modules\Marketing\Filament\Resources\CampaignResource\Pages;
 
 use Filament\Actions;
-use Filament\Resources\Pages\EditRecord;
+use App\Filament\Resources\Pages\BaseEditRecord;
 use Modules\Marketing\Filament\Resources\CampaignResource;
 
-class EditCampaign extends EditRecord
+class EditCampaign extends BaseEditRecord
 {
     protected static string $resource = CampaignResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getEditHeaderActions(): array
     {
         return [
             Actions\ViewAction::make(),

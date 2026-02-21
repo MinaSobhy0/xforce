@@ -3,14 +3,14 @@
 namespace Modules\Inventory\Filament\Resources\ProductResource\Pages;
 
 use Filament\Actions;
-use Filament\Resources\Pages\ViewRecord;
+use App\Filament\Resources\Pages\BaseViewRecord;
 use Modules\Inventory\Filament\Resources\ProductResource;
 
-class ViewProduct extends ViewRecord
+class ViewProduct extends BaseViewRecord
 {
     protected static string $resource = ProductResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getViewHeaderActions(): array
     {
         return [
             Actions\EditAction::make(),

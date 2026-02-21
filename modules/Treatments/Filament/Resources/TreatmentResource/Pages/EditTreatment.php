@@ -3,14 +3,14 @@
 namespace Modules\Treatments\Filament\Resources\TreatmentResource\Pages;
 
 use Filament\Actions;
-use Filament\Resources\Pages\EditRecord;
+use App\Filament\Resources\Pages\BaseEditRecord;
 use Modules\Treatments\Filament\Resources\TreatmentResource;
 
-class EditTreatment extends EditRecord
+class EditTreatment extends BaseEditRecord
 {
     protected static string $resource = TreatmentResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getEditHeaderActions(): array
     {
         return [
             Actions\ViewAction::make(),

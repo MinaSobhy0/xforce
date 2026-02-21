@@ -4,15 +4,15 @@ namespace Modules\Auth\Resources\UserResource\Pages;
 
 use Modules\Auth\Resources\UserResource;
 use Filament\Actions;
-use Filament\Resources\Pages\ViewRecord;
+use App\Filament\Resources\Pages\BaseViewRecord;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Hash;
 
-class ViewUser extends ViewRecord
+class ViewUser extends BaseViewRecord
 {
     protected static string $resource = UserResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getViewHeaderActions(): array
     {
         return [
             Actions\EditAction::make(),

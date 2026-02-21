@@ -3,11 +3,11 @@
 namespace App\Filament\OwnerPortal\Resources\MyInvoiceResource\Pages;
 
 use App\Filament\OwnerPortal\Resources\MyInvoiceResource;
-use Filament\Resources\Pages\ViewRecord;
+use App\Filament\Resources\Pages\BaseViewRecord;
 use Filament\Infolists\Infolist;
 use Filament\Infolists\Components;
 
-class ViewMyInvoice extends ViewRecord
+class ViewMyInvoice extends BaseViewRecord
 {
     protected static string $resource = MyInvoiceResource::class;
 

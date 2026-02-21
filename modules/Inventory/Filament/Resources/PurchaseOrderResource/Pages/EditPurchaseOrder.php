@@ -3,14 +3,14 @@
 namespace Modules\Inventory\Filament\Resources\PurchaseOrderResource\Pages;
 
 use Filament\Actions;
-use Filament\Resources\Pages\EditRecord;
+use App\Filament\Resources\Pages\BaseEditRecord;
 use Modules\Inventory\Filament\Resources\PurchaseOrderResource;
 
-class EditPurchaseOrder extends EditRecord
+class EditPurchaseOrder extends BaseEditRecord
 {
     protected static string $resource = PurchaseOrderResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getEditHeaderActions(): array
     {
         return [
             Actions\ViewAction::make(),

@@ -3,14 +3,14 @@
 namespace Modules\Inventory\Filament\Resources\SupplierResource\Pages;
 
 use Filament\Actions;
-use Filament\Resources\Pages\EditRecord;
+use App\Filament\Resources\Pages\BaseEditRecord;
 use Modules\Inventory\Filament\Resources\SupplierResource;
 
-class EditSupplier extends EditRecord
+class EditSupplier extends BaseEditRecord
 {
     protected static string $resource = SupplierResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getEditHeaderActions(): array
     {
         return [
             Actions\ViewAction::make(),

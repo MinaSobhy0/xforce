@@ -4,13 +4,13 @@ namespace App\Filament\SuperAdmin\Resources\OnboardingRequestResource\Pages;
 
 use App\Filament\SuperAdmin\Resources\OnboardingRequestResource;
 use Filament\Actions;
-use Filament\Resources\Pages\EditRecord;
+use App\Filament\Resources\Pages\BaseEditRecord;
 
-class EditOnboardingRequest extends EditRecord
+class EditOnboardingRequest extends BaseEditRecord
 {
     protected static string $resource = OnboardingRequestResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getEditHeaderActions(): array
     {
         return [
             Actions\ViewAction::make(),

@@ -4,13 +4,13 @@ namespace Modules\Core\Filament\Resources\BranchResource\Pages;
 
 use Modules\Core\Filament\Resources\BranchResource;
 use Filament\Actions;
-use Filament\Resources\Pages\EditRecord;
+use App\Filament\Resources\Pages\BaseEditRecord;
 
-class EditBranch extends EditRecord
+class EditBranch extends BaseEditRecord
 {
     protected static string $resource = BranchResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getEditHeaderActions(): array
     {
         return [
             Actions\ViewAction::make(),

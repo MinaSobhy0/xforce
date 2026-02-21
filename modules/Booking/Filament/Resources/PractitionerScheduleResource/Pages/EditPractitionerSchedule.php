@@ -4,13 +4,13 @@ namespace Modules\Booking\Filament\Resources\PractitionerScheduleResource\Pages;
 
 use Modules\Booking\Filament\Resources\PractitionerScheduleResource;
 use Filament\Actions;
-use Filament\Resources\Pages\EditRecord;
+use App\Filament\Resources\Pages\BaseEditRecord;
 
-class EditPractitionerSchedule extends EditRecord
+class EditPractitionerSchedule extends BaseEditRecord
 {
     protected static string $resource = PractitionerScheduleResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getEditHeaderActions(): array
     {
         return [
             Actions\DeleteAction::make(),

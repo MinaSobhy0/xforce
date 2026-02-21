@@ -4,15 +4,15 @@ namespace Modules\Core\Resources\TenantResource\Pages;
 
 use Modules\Core\Resources\TenantResource;
 use Filament\Actions;
-use Filament\Resources\Pages\EditRecord;
+use App\Filament\Resources\Pages\BaseEditRecord;
 use Filament\Notifications\Notification;
 use Modules\Core\Services\TenantService;
 
-class EditTenant extends EditRecord
+class EditTenant extends BaseEditRecord
 {
     protected static string $resource = TenantResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getEditHeaderActions(): array
     {
         return [
             Actions\ViewAction::make(),

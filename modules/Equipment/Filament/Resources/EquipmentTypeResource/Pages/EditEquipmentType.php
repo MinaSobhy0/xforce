@@ -3,14 +3,14 @@
 namespace Modules\Equipment\Filament\Resources\EquipmentTypeResource\Pages;
 
 use Filament\Actions;
-use Filament\Resources\Pages\EditRecord;
+use App\Filament\Resources\Pages\BaseEditRecord;
 use Modules\Equipment\Filament\Resources\EquipmentTypeResource;
 
-class EditEquipmentType extends EditRecord
+class EditEquipmentType extends BaseEditRecord
 {
     protected static string $resource = EquipmentTypeResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getEditHeaderActions(): array
     {
         return [
             Actions\DeleteAction::make(),
