@@ -18,16 +18,15 @@ class EventServiceProvider extends ServiceProvider
      * - InvoicePaid → Send receipt via preferred channel
      */
     protected $listen = [
-        // These events will be wired when the corresponding modules dispatch them
-        // 'Modules\Booking\Events\AppointmentConfirmed' => [
-        //     SendAppointmentReminder::class,
-        // ],
-        // 'Modules\Booking\Events\AppointmentCompleted' => [
-        //     SendFollowUpMessage::class,
-        // ],
-        // 'Modules\Billing\Events\InvoicePaid' => [
-        //     SendInvoiceReceipt::class,
-        // ],
+        \Modules\Booking\Events\AppointmentConfirmed::class => [
+            SendAppointmentReminder::class,
+        ],
+        \Modules\Booking\Events\AppointmentCompleted::class => [
+            SendFollowUpMessage::class,
+        ],
+        \Modules\Billing\Events\InvoicePaid::class => [
+            SendInvoiceReceipt::class,
+        ],
     ];
 
     public function boot(): void
