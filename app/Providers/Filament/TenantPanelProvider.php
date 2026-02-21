@@ -9,7 +9,6 @@ use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Navigation\NavigationGroup;
-use Filament\Navigation\NavigationItem;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\SpatieLaravelTranslatablePlugin;
@@ -152,14 +151,6 @@ class TenantPanelProvider extends PanelProvider
                 \Modules\Staff\Filament\Widgets\CommissionPendingWidget::class,
                 \Modules\Inventory\Filament\Widgets\LowStockAlertWidget::class,
                 \Modules\Marketing\Filament\Widgets\NotificationStatsWidget::class,
-            ])
-
-            // Parent navigation item for Reports submenu
-            ->navigationItems([
-                NavigationItem::make('Reports')
-                    ->group('Finance')
-                    ->icon('heroicon-o-chart-bar')
-                    ->sort(20),
             ])
 
             // Plugins
