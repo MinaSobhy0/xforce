@@ -5,6 +5,7 @@ namespace Modules\Auth\Filament\Resources;
 use XLinic\Framework\Core\Filament\BaseResource;
 use Modules\Auth\Models\User;
 use Modules\Auth\Models\Role;
+use Modules\Auth\Models\UserStatus;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Tables;
@@ -137,12 +138,8 @@ class UserResource extends BaseResource
                                     ->schema([
                                         Forms\Components\Select::make('status')
                                             ->label(__('Status'))
-                                            ->options([
-                                                'active' => __('Active'),
-                                                'inactive' => __('Inactive'),
-                                                'suspended' => __('Suspended'),
-                                            ])
-                                            ->default('active')
+                                            ->options(UserStatus::class)
+                                            ->default(UserStatus::ACTIVE)
                                             ->required(),
 
                                         Forms\Components\Toggle::make('email_verified_at')
@@ -287,10 +284,11 @@ class UserResource extends BaseResource
                 Tables\Columns\TextColumn::make('status')
                     ->label(__('Status'))
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'active' => 'success',
-                        'inactive' => 'gray',
-                        'suspended' => 'danger',
+                    ->formatStateUsing(fn (UserStatus $state): string => $state->label())
+                    ->color(fn (UserStatus $state): string => match ($state) {
+                        UserStatus::ACTIVE => 'success',
+                        UserStatus::INACTIVE => 'gray',
+                        UserStatus::SUSPENDED => 'danger',
                         default => 'gray',
                     }),
 
@@ -324,11 +322,7 @@ class UserResource extends BaseResource
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
                     ->label(__('Status'))
-                    ->options([
-                        'active' => __('Active'),
-                        'inactive' => __('Inactive'),
-                        'suspended' => __('Suspended'),
-                    ]),
+                    ->options(UserStatus::class),
 
                 Tables\Filters\TernaryFilter::make('email_verified_at')
                     ->label(__('Email Verified'))
@@ -445,10 +439,11 @@ class UserResource extends BaseResource
                                 Infolists\Components\TextEntry::make('status')
                                     ->label(__('Status'))
                                     ->badge()
-                                    ->color(fn (string $state): string => match ($state) {
-                                        'active' => 'success',
-                                        'inactive' => 'gray',
-                                        'suspended' => 'danger',
+                                    ->formatStateUsing(fn (UserStatus $state): string => $state->label())
+                                    ->color(fn (UserStatus $state): string => match ($state) {
+                                        UserStatus::ACTIVE => 'success',
+                                        UserStatus::INACTIVE => 'gray',
+                                        UserStatus::SUSPENDED => 'danger',
                                         default => 'gray',
                                     }),
                                 Infolists\Components\IconEntry::make('email_verified_at')
