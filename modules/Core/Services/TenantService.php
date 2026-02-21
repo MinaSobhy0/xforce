@@ -313,6 +313,9 @@ class TenantService
                 Log::info('Owner user password reset', ['tenant_id' => $tenant->id, 'email' => $tenant->contact_email]);
                 DB::statement("SET search_path TO public");
 
+                // Also update password in public schema for owner portal
+                $this->updateOwnerUserPasswordInPublicSchema($tenant->contact_email, $password);
+
                 // Update tenant with owner_user_id and store password
                 $settings = $tenant->settings ?? [];
                 $settings['initial_owner_password'] = $password;
@@ -394,6 +397,10 @@ class TenantService
 
             // Update tenant with owner_user_id and store initial password
             DB::statement("SET search_path TO public");
+
+            // Also create owner user in public schema for owner portal access
+            $this->createOwnerUserInPublicSchema($tenant, $userId, $password, $firstName, $lastName, $nameParts[0]);
+
             $settings = $tenant->settings ?? [];
             $settings['initial_owner_password'] = $password;
             $settings['initial_owner_created_at'] = now()->toISOString();
@@ -417,6 +424,100 @@ class TenantService
                 'error' => $e->getMessage(),
             ]);
             return null;
+        }
+    }
+
+    /**
+     * Update owner user password in public schema.
+     */
+    protected function updateOwnerUserPasswordInPublicSchema(string $email, string $password): void
+    {
+        try {
+            DB::statement("SET search_path TO public");
+            $existing = DB::table('users')->where('email', $email)->first();
+            if ($existing) {
+                DB::table('users')->where('id', $existing->id)->update([
+                    'password' => Hash::make($password),
+                    'updated_at' => now(),
+                ]);
+                Log::info('Owner user password updated in public schema', ['email' => $email]);
+            }
+        } catch (\Exception $e) {
+            Log::warning('Could not update owner password in public schema', ['error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Create or update owner user in public schema for owner portal access.
+     */
+    protected function createOwnerUserInPublicSchema(
+        Tenant $tenant,
+        string $userId,
+        string $password,
+        string $firstName,
+        string $lastName,
+        string $username
+    ): void {
+        try {
+            // Ensure we're in public schema
+            DB::statement("SET search_path TO public");
+
+            // Check if user already exists in public schema
+            $existing = DB::table('users')->where('email', $tenant->contact_email)->first();
+
+            if ($existing) {
+                // Update existing user's password
+                DB::table('users')->where('id', $existing->id)->update([
+                    'password' => Hash::make($password),
+                    'updated_at' => now(),
+                ]);
+                Log::info('Owner user updated in public schema', [
+                    'tenant_id' => $tenant->id,
+                    'user_id' => $existing->id,
+                ]);
+            } else {
+                // Create new user in public schema
+                DB::table('users')->insert([
+                    'id' => $userId,
+                    'tenant_id' => $tenant->id,
+                    'first_name' => $firstName,
+                    'last_name' => $lastName,
+                    'email' => $tenant->contact_email,
+                    'username' => $username,
+                    'phone' => $tenant->contact_phone,
+                    'password' => Hash::make($password),
+                    'status' => 'active',
+                    'language' => $tenant->locale ?? 'ar',
+                    'timezone' => $tenant->timezone ?? 'Africa/Cairo',
+                    'email_verified_at' => now(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                // Assign clinic_owner role if it exists
+                try {
+                    $ownerRole = DB::table('roles')->where('name', 'clinic_owner')->first();
+                    if ($ownerRole) {
+                        DB::table('model_has_roles')->insert([
+                            'role_id' => $ownerRole->id,
+                            'model_type' => 'Modules\\Auth\\Models\\User',
+                            'model_id' => $userId,
+                        ]);
+                    }
+                } catch (\Exception $e) {
+                    Log::warning('Could not assign clinic_owner role in public schema', ['error' => $e->getMessage()]);
+                }
+
+                Log::info('Owner user created in public schema', [
+                    'tenant_id' => $tenant->id,
+                    'user_id' => $userId,
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to create owner user in public schema', [
+                'tenant_id' => $tenant->id,
+                'error' => $e->getMessage(),
+            ]);
         }
     }
 
