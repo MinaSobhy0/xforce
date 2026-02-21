@@ -3,7 +3,7 @@
 ## You have: Super Admin panel + Framework kernel done
 ## Building: All clinic-side modules
 
-**Last Updated:** 2026-02-21 (Added dashboard widgets, double-booking validation, invoice PDF)
+**Last Updated:** 2026-02-21 (Completed: relation managers, demo seeders, quota integration, access policy middleware, salary slip PDF)
 
 ---
 
@@ -1111,7 +1111,7 @@ modules/MarketingWhatsApp/
 [x] Delivery tracking: sent/delivered/read/failed status
 [x] SMS and Email channels working (services implemented)
 [x] Notification log shows all messages across channels
-[ ] Quota enforcement: messages count against plan limits (needs integration)
+[x] Quota enforcement: messages count against plan limits (MessageQuotaService integrated)
 ```
 
 ---
@@ -2283,7 +2283,7 @@ This is what makes the system truly modular.
 - [x] Automation rules with configurable triggers and timing
 - [ ] Automated appointment reminders (listener ready, needs event wiring)
 - [ ] Follow-up messages (listener ready, needs event wiring)
-- [ ] Quota enforcement (needs integration with QuotaService)
+- [x] Quota enforcement (MessageQuotaService integrated with NotificationService)
 
 ---
 
@@ -2293,7 +2293,7 @@ This is what makes the system truly modular.
 - [x] Delivery tracking: sent/delivered/read/failed status
 - [x] SMS and Email channels working (services implemented)
 - [x] Notification log shows all messages across channels
-- [ ] Quota enforcement: messages count against plan limits (needs integration)
+- [x] Quota enforcement: messages count against plan limits (MessageQuotaService integrated)
 
 ---
 
@@ -2450,7 +2450,7 @@ This is what makes the system truly modular.
 | 9 | PatientPortal | Done | ~85% |
 | 9 | Api | Done | ~90% |
 
-**Overall Progress: ~98% (19 of 19 modules implemented, dashboard widgets and PDF complete)**
+**Overall Progress: ~99% (19 of 19 modules implemented, all polish items complete except financial report PDFs and tenant-level module management)**
 
 Note: Marketing module is unified (WhatsApp + SMS + Email), reducing total from 21 to 19 modules.
 
@@ -2461,12 +2461,13 @@ Note: Marketing module is unified (WhatsApp + SMS + Email), reducing total from 
 - ~~**Dashboard widgets**: Low stock alerts, commission pending, notification stats~~ ✅ DONE (5 widgets: TenantOverview, AppointmentStats, CommissionPending, LowStockAlert, NotificationStats)
 - ~~**PDF generation**: Invoice PDF~~ ✅ DONE (InvoicePdfService with DomPDF, RTL support)
 - ~~**Double-booking prevention**: Validation logic for appointments~~ ✅ DONE (DoubleBookingValidator for practitioner, room, equipment conflicts)
-- **Extensions**: Form extensions to add tabs to Patient, User, Treatment forms
-- **Seeders**: Sample data seeders for demo/testing
-- **Quota integration**: Marketing messages count against plan limits
-- **Access policy enforcement**: Middleware to filter data by branch for scoped roles
+- ~~**Extensions**: Form extensions to add tabs to Patient, User, Treatment forms~~ ✅ DONE (8 RelationManagers: Patient→Appointments/Invoices/Packages/Loyalty, User→Appointments/Commissions, Treatment→Appointments/PackageItems)
+- ~~**Seeders**: Sample data seeders for demo/testing~~ ✅ DONE (DemoDataSeeder orchestrator + DemoBranchSeeder, DemoTreatmentSeeder, DemoPatientSeeder, DemoAppointmentSeeder, DemoInvoiceSeeder)
+- ~~**Quota integration**: Marketing messages count against plan limits~~ ✅ DONE (MessageQuotaService, QuotaExceededException, NotificationService integration, whatsapp_sent tracking)
+- ~~**Access policy enforcement**: Middleware to filter data by branch for scoped roles~~ ✅ DONE (EnforceBranchAccess middleware validates branch assignments, ApplyAccessPolicies middleware loads user policies)
 - **Module management (tenant-level)**: Currently only at SuperAdmin level
-- **PDF generation (remaining)**: Salary slips, financial reports
+- ~~**PDF generation (remaining)**: Salary slips~~ ✅ DONE (SalarySlipPdfService with RTL support)
+- **PDF generation (remaining)**: Financial reports (TrialBalance, ProfitLoss, BalanceSheet PDFs)
 
 ---
 
@@ -2482,4 +2483,4 @@ Note: Marketing module is unified (WhatsApp + SMS + Email), reducing total from 
 8. ~~**Batch 8: Loyalty Module** - Points system, referrals, rewards~~ ✅ DONE
 9. ~~**Continue Batch 8: Reporting Module** - 9 analytics report pages~~ ✅ DONE
 10. ~~**Start Batch 9: Patient Portal + API** - Self-service, REST endpoints~~ ✅ DONE
-11. ~~**Integration & Polish** - Event wiring, dashboard widgets, PDF generation~~ ✅ MOSTLY DONE (remaining: form extensions, seeders, quota integration)
+11. ~~**Integration & Polish** - Event wiring, dashboard widgets, PDF generation~~ ✅ DONE (relation managers, seeders, quota integration, access policy middleware, salary slip PDF all complete)
