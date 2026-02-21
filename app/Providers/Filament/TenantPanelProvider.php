@@ -35,7 +35,7 @@ class TenantPanelProvider extends PanelProvider
                 'primary' => Color::Indigo,
             ])
             ->darkMode()
-            ->spa(false)
+            ->spa()
             ->favicon(function () {
                 $favicon = \App\Models\PlatformSetting::get('favicon');
                 return $favicon ? asset('storage/' . $favicon) : null;
@@ -152,17 +152,16 @@ class TenantPanelProvider extends PanelProvider
                 fn (): View => view('filament.hooks.branch-switcher')
             )
 
-            // Middleware - IdentifyTenant MUST come first to switch database schema
-            // RequireTenant ensures we have a valid tenant before proceeding
+            // Middleware - Session must start before tenant identification for CSRF
             ->middleware([
-                IdentifyTenant::class,
-                RequireTenant::class,
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
                 StartSession::class,
-                AuthenticateSession::class,
                 ShareErrorsFromSession::class,
                 VerifyCsrfToken::class,
+                IdentifyTenant::class,
+                RequireTenant::class,
+                AuthenticateSession::class,
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
