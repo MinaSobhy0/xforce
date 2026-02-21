@@ -212,12 +212,90 @@ class TenantService
             'schema_name' => $schemaName,
         ]);
 
+        // Seed default roles and permissions
+        $this->seedDefaultRolesAndPermissions($tenant);
+
         // Create default branch for the tenant
         $this->createDefaultBranch($tenant);
 
         // Create owner user if contact_email is set
         if ($tenant->contact_email) {
             $this->createOwnerUser($tenant);
+        }
+    }
+
+    /**
+     * Seed default roles and permissions for a tenant.
+     */
+    protected function seedDefaultRolesAndPermissions(Tenant $tenant): void
+    {
+        $schemaName = $tenant->database_name;
+
+        try {
+            DB::statement("SET search_path TO \"{$schemaName}\"");
+
+            // Define permissions (using Spatie's default structure)
+            $permissionNames = [
+                'system.view', 'system.manage',
+                'users.view', 'users.create', 'users.edit', 'users.delete',
+                'roles.view', 'roles.create', 'roles.edit',
+                'patients.view', 'patients.create', 'patients.edit', 'patients.delete',
+                'appointments.view', 'appointments.create', 'appointments.edit', 'appointments.delete',
+                'treatments.view', 'treatments.create', 'treatments.edit',
+                'billing.view', 'billing.create', 'billing.edit',
+                'reports.view', 'reports.export',
+                'profile.view', 'profile.edit',
+            ];
+
+            foreach ($permissionNames as $permName) {
+                $existing = DB::table('permissions')->where('name', $permName)->where('guard_name', 'web')->first();
+                if (!$existing) {
+                    DB::table('permissions')->insert([
+                        'name' => $permName,
+                        'guard_name' => 'web',
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+            }
+
+            // Get all permission IDs for super_admin
+            $allPermissionIds = DB::table('permissions')->pluck('id')->toArray();
+
+            // Define roles (using Spatie's default structure)
+            $roles = ['super_admin', 'admin', 'manager', 'doctor', 'receptionist'];
+
+            foreach ($roles as $roleName) {
+                $existing = DB::table('roles')->where('name', $roleName)->where('guard_name', 'web')->first();
+                if (!$existing) {
+                    $roleId = DB::table('roles')->insertGetId([
+                        'name' => $roleName,
+                        'guard_name' => 'web',
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+
+                    // Assign all permissions to super_admin
+                    if ($roleName === 'super_admin') {
+                        foreach ($allPermissionIds as $permId) {
+                            DB::table('role_has_permissions')->insert([
+                                'permission_id' => $permId,
+                                'role_id' => $roleId,
+                            ]);
+                        }
+                    }
+                }
+            }
+
+            Log::info('Default roles and permissions seeded', ['tenant_id' => $tenant->id]);
+            DB::statement("SET search_path TO public");
+
+        } catch (\Exception $e) {
+            DB::statement("SET search_path TO public");
+            Log::error('Failed to seed roles and permissions', [
+                'tenant_id' => $tenant->id,
+                'error' => $e->getMessage(),
+            ]);
         }
     }
 
