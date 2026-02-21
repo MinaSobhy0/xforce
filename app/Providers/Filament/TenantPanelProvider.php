@@ -160,15 +160,15 @@ class TenantPanelProvider extends PanelProvider
                     ->group('Finance')
                     ->icon('heroicon-o-chart-bar')
                     ->sort(20)
-                    ->isActiveWhen(fn () => request()->routeIs('filament.tenant.pages.profit-loss*')
-                        || request()->routeIs('filament.tenant.pages.balance-sheet*')
-                        || request()->routeIs('filament.tenant.pages.cash-flow*')
-                        || request()->routeIs('filament.tenant.pages.trial-balance*')
-                        || request()->routeIs('filament.tenant.pages.general-ledger*')
-                        || request()->routeIs('filament.tenant.pages.revenue-report*')
-                        || request()->routeIs('filament.tenant.pages.financial-summary*')
+                    ->isActiveWhen(fn () => str_contains(request()->path(), '/profit-loss')
+                        || str_contains(request()->path(), '/balance-sheet')
+                        || str_contains(request()->path(), '/cash-flow')
+                        || str_contains(request()->path(), '/trial-balance')
+                        || str_contains(request()->path(), '/general-ledger')
+                        || str_contains(request()->path(), '/revenue-report')
+                        || str_contains(request()->path(), '/financial-summary')
                     )
-                    ->url(fn () => route('filament.tenant.pages.profit-loss')),
+                    ->url('/admin/profit-loss'),
             ])
 
             // Plugins
