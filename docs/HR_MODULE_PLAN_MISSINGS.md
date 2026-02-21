@@ -480,3 +480,477 @@ Key files in `/var/www/html/var/www/x_linic_staging_backup_20260220_184120/`:
 3. Formula evaluation requires Symfony Expression Language package
 4. Consider creating Filament custom form components for formula editor
 5. Reports should use Filament Tables with export functionality
+
+---
+
+## Implementation Checklist
+
+Following X-Linic implementation standards (Filament-based, BaseModel traits, minor units, i18n).
+
+### Phase 1: Salary Structure System
+
+#### 1.1 SalaryRuleCategory
+
+**Migration**
+- [ ] Create `YYYY_MM_DD_create_salary_rule_categories_table.php`
+  - [ ] `uuid('id')->primary()`
+  - [ ] `uuid('tenant_id')->index()`
+  - [ ] `string('name')`
+  - [ ] `string('code')->index()`
+  - [ ] `text('description')->nullable()`
+  - [ ] `string('type')` (earning, deduction, allowance, benefit, gross, net)
+  - [ ] `boolean('is_active')->default(true)`
+  - [ ] `timestamps()`
+  - [ ] Multi-column index: `(tenant_id, code)`
+
+**Model** (`modules/Payroll/Models/SalaryRuleCategory.php`)
+- [ ] Extend `BaseModel`
+- [ ] Use traits: `HasTenancy`
+- [ ] Define `$fillable` array
+- [ ] Define `$casts` (id as string)
+- [ ] Add constants: `TYPE_EARNING`, `TYPE_DEDUCTION`, `TYPES`, `TYPE_COLORS`
+- [ ] Add relationship: `hasMany(SalaryRule::class)`
+- [ ] Add scope: `scopeActive($query)`
+- [ ] Add scope: `scopeOfType($query, string $type)`
+
+**Filament Resource** (`modules/Payroll/Filament/Resources/SalaryRuleCategoryResource.php`)
+- [ ] Use `ChecksTenantModuleAccess` trait
+- [ ] Set `$moduleCode = 'payroll'`
+- [ ] Set navigation icon, group, sort
+- [ ] Create form with sections:
+  - [ ] Basic Info: name, code, type (select), description
+  - [ ] Settings: is_active toggle
+- [ ] Create table with columns:
+  - [ ] code (searchable, sortable)
+  - [ ] name (searchable)
+  - [ ] type (badge with colors)
+  - [ ] is_active (icon)
+- [ ] Add filters: type, is_active
+- [ ] Add actions: View, Edit, Delete
+- [ ] Create pages: List, Create, Edit
+
+**Language Files**
+- [ ] Add to `Lang/en/payroll.php`: labels, types, messages
+- [ ] Add to `Lang/ar/payroll.php`: Arabic translations
+
+---
+
+#### 1.2 SalaryRule
+
+**Migration**
+- [ ] Create `YYYY_MM_DD_create_salary_rules_table.php`
+  - [ ] `uuid('id')->primary()`
+  - [ ] `uuid('tenant_id')->index()`
+  - [ ] `string('name')`
+  - [ ] `string('code')->index()`
+  - [ ] `uuid('category_id')->index()`
+  - [ ] `string('amount_type')` (fixed, percentage, formula)
+  - [ ] `integer('amount_fixed_minor')->default(0)`
+  - [ ] `decimal('amount_percentage', 5, 2)->nullable()`
+  - [ ] `text('amount_formula')->nullable()`
+  - [ ] `string('condition_type')->nullable()`
+  - [ ] `text('condition_formula')->nullable()`
+  - [ ] `uuid('percentage_base_id')->nullable()` (self-reference)
+  - [ ] `string('field_mapping')->nullable()`
+  - [ ] `integer('sequence')->default(0)`
+  - [ ] `boolean('is_active')->default(true)`
+  - [ ] `timestamps()`
+  - [ ] `softDeletes()`
+  - [ ] Foreign keys with cascade/set null
+
+**Model** (`modules/Payroll/Models/SalaryRule.php`)
+- [ ] Extend `BaseModel`
+- [ ] Use traits: `HasTenancy`, `SoftDeletes`
+- [ ] Define `$fillable` array
+- [ ] Define `$casts`
+- [ ] Add constants: `AMOUNT_TYPE_*`, `AMOUNT_TYPES`
+- [ ] Add relationships:
+  - [ ] `belongsTo(SalaryRuleCategory::class, 'category_id')`
+  - [ ] `belongsTo(SalaryRule::class, 'percentage_base_id')`
+  - [ ] `hasMany(SalaryRule::class, 'percentage_base_id')` (dependents)
+- [ ] Add accessor: `getAmountFixedAttribute()` (major units)
+- [ ] Add scope: `scopeActive($query)`
+- [ ] Add scope: `scopeEarnings($query)`
+- [ ] Add scope: `scopeDeductions($query)`
+- [ ] Add method: `calculateAmount(array $context): int`
+
+**Filament Resource** (`modules/Payroll/Filament/Resources/SalaryRuleResource.php`)
+- [ ] Use `ChecksTenantModuleAccess` trait
+- [ ] Create form with sections:
+  - [ ] Basic Info: name, code, category_id (select with relationship)
+  - [ ] Calculation: amount_type (reactive select), conditional fields:
+    - [ ] amount_fixed_minor (if fixed)
+    - [ ] amount_percentage + percentage_base_id (if percentage)
+    - [ ] amount_formula with helper text (if formula)
+  - [ ] Conditions: condition_type, condition_formula
+  - [ ] Advanced: field_mapping, sequence
+  - [ ] Settings: is_active
+- [ ] Create table with columns:
+  - [ ] code (searchable, sortable, bold)
+  - [ ] name (searchable)
+  - [ ] category.name (badge)
+  - [ ] amount_type (badge)
+  - [ ] sequence (sortable)
+  - [ ] is_active (icon)
+- [ ] Add filters: category_id, amount_type, is_active
+- [ ] Add actions: View, Edit, Delete
+- [ ] Create pages: List, Create, Edit, View
+
+**Language Files**
+- [ ] Add salary rule translations to payroll.php
+
+---
+
+#### 1.3 SalaryStructure
+
+**Migration**
+- [ ] Create `YYYY_MM_DD_create_salary_structures_table.php`
+  - [ ] `uuid('id')->primary()`
+  - [ ] `uuid('tenant_id')->index()`
+  - [ ] `string('name')`
+  - [ ] `string('code')->index()`
+  - [ ] `text('description')->nullable()`
+  - [ ] `string('pay_frequency')->default('monthly')`
+  - [ ] `string('currency')->default('EGP')`
+  - [ ] `boolean('is_active')->default(true)`
+  - [ ] `uuid('created_by')->nullable()`
+  - [ ] `timestamps()`
+  - [ ] Unique: `(tenant_id, code)`
+
+**Model** (`modules/Payroll/Models/SalaryStructure.php`)
+- [ ] Extend `BaseModel`
+- [ ] Use traits: `HasTenancy`
+- [ ] Define `$fillable`, `$casts`
+- [ ] Add constants: `PAY_FREQUENCY_*`, `PAY_FREQUENCIES`
+- [ ] Add relationships:
+  - [ ] `belongsTo(User::class, 'created_by')`
+  - [ ] `belongsToMany(SalaryRule::class)` via pivot
+  - [ ] `hasMany(EmployeeSalaryStructure::class)`
+- [ ] Add scope: `scopeActive($query)`
+- [ ] Add method: `getActiveEmployeeCount(): int`
+
+**Pivot Migration**
+- [ ] Create `YYYY_MM_DD_create_salary_structure_rules_table.php`
+  - [ ] `uuid('salary_structure_id')`
+  - [ ] `uuid('salary_rule_id')`
+  - [ ] `integer('sequence')->default(0)`
+  - [ ] Primary key on both columns
+  - [ ] Foreign keys with cascade
+
+**Filament Resource** (`modules/Payroll/Filament/Resources/SalaryStructureResource.php`)
+- [ ] Create form with sections:
+  - [ ] Basic Info: name, code, description
+  - [ ] Settings: pay_frequency (select), currency, is_active
+- [ ] Create table with columns:
+  - [ ] code (searchable, sortable, bold)
+  - [ ] name (searchable)
+  - [ ] pay_frequency (badge)
+  - [ ] rules_count (computed)
+  - [ ] employees_count (computed)
+  - [ ] is_active (icon)
+- [ ] Add Relation Manager: `SalaryRulesRelationManager`
+  - [ ] Attach/detach salary rules
+  - [ ] Reorderable by sequence
+- [ ] Add Relation Manager: `EmployeesRelationManager`
+  - [ ] View assigned employees
+- [ ] Create pages: List, Create, Edit, View
+
+---
+
+#### 1.4 EmployeeSalaryStructure
+
+**Migration**
+- [ ] Create `YYYY_MM_DD_create_employee_salary_structures_table.php`
+  - [ ] `uuid('id')->primary()`
+  - [ ] `uuid('tenant_id')->index()`
+  - [ ] `uuid('staff_profile_id')->index()`
+  - [ ] `uuid('salary_structure_id')->index()`
+  - [ ] `integer('base_salary_minor')->default(0)`
+  - [ ] `date('effective_date')`
+  - [ ] `date('end_date')->nullable()`
+  - [ ] `boolean('is_current')->default(false)`
+  - [ ] `uuid('assigned_by')->nullable()`
+  - [ ] `text('notes')->nullable()`
+  - [ ] `timestamps()`
+  - [ ] Index: `(tenant_id, staff_profile_id, is_current)`
+
+**Model** (`modules/Payroll/Models/EmployeeSalaryStructure.php`)
+- [ ] Extend `BaseModel`
+- [ ] Use traits: `HasTenancy`
+- [ ] Define `$fillable`, `$casts`
+- [ ] Add relationships:
+  - [ ] `belongsTo(StaffProfile::class)`
+  - [ ] `belongsTo(SalaryStructure::class)`
+  - [ ] `belongsTo(User::class, 'assigned_by')`
+- [ ] Add accessor: `getBaseSalaryAttribute()` (major units)
+- [ ] Add scope: `scopeCurrent($query)`
+- [ ] Add boot logic: ensure only one `is_current` per employee
+
+**Relation Manager** (`StaffProfileResource/RelationManagers/SalaryStructuresRelationManager.php`)
+- [ ] Form: salary_structure_id, base_salary_minor, effective_date, end_date, is_current, notes
+- [ ] Table: structure name, base_salary, effective_date, end_date, is_current (badge)
+- [ ] Actions: Create, Edit, Delete (with confirmations)
+- [ ] Header action: "Assign Structure"
+
+---
+
+#### 1.5 EmployeeSalaryComponent
+
+**Migration**
+- [ ] Create `YYYY_MM_DD_create_employee_salary_components_table.php`
+  - [ ] `uuid('id')->primary()`
+  - [ ] `uuid('tenant_id')->index()`
+  - [ ] `uuid('staff_profile_id')->index()`
+  - [ ] `uuid('salary_rule_id')->index()`
+  - [ ] `string('component_type')` (earning, deduction)
+  - [ ] `string('calculation_type')` (fixed, percentage, formula)
+  - [ ] `integer('amount_minor')->default(0)`
+  - [ ] `decimal('percentage', 5, 2)->nullable()`
+  - [ ] `text('formula')->nullable()`
+  - [ ] `date('effective_date')`
+  - [ ] `date('end_date')->nullable()`
+  - [ ] `boolean('is_taxable')->default(true)`
+  - [ ] `boolean('is_active')->default(true)`
+  - [ ] `uuid('loan_id')->nullable()`
+  - [ ] `uuid('created_by')->nullable()`
+  - [ ] `timestamps()`
+
+**Model** (`modules/Payroll/Models/EmployeeSalaryComponent.php`)
+- [ ] Extend `BaseModel`
+- [ ] Use traits: `HasTenancy`
+- [ ] Define `$fillable`, `$casts`
+- [ ] Add constants: `COMPONENT_TYPE_*`, `CALCULATION_TYPE_*`
+- [ ] Add relationships
+- [ ] Add accessor: `getAmountAttribute()` (major units)
+- [ ] Add scope: `scopeActive($query)`
+- [ ] Add scope: `scopeEarnings($query)`
+- [ ] Add scope: `scopeDeductions($query)`
+- [ ] Add method: `calculateValue(array $context): int`
+
+**Relation Manager** (`StaffProfileResource/RelationManagers/SalaryComponentsRelationManager.php`)
+- [ ] Form with reactive fields based on calculation_type
+- [ ] Table: rule name, component_type (badge), calculation_type, amount/percentage, is_active
+- [ ] Actions: Create, Edit, Delete, Toggle Active
+
+---
+
+### Phase 2: Advanced Payroll Calculation
+
+#### 2.1 PayrollCalculationService
+
+**Service** (`modules/Payroll/Services/PayrollCalculationService.php`)
+- [ ] Create singleton service
+- [ ] Inject FormulaEvaluator dependency
+- [ ] Implement `calculatePayrollRun(PayrollRun $run): void`
+  - [ ] Get eligible employees
+  - [ ] Loop and calculate each payslip
+  - [ ] Update run totals
+- [ ] Implement `calculateEmployeePayslip(StaffProfile $staff, PayrollRun $run): PayrollLine`
+  - [ ] Get employee salary structure
+  - [ ] Build calculation context
+  - [ ] Apply salary rules in sequence
+  - [ ] Calculate tax and social insurance
+  - [ ] Return PayrollLine
+- [ ] Implement `buildCalculationContext(StaffProfile $staff, PayrollRun $run): array`
+  - [ ] Include base salary, worked days, leave days
+  - [ ] Include commission data from StaffCommissionRecord
+  - [ ] Include attendance data (if available)
+- [ ] Implement helper methods:
+  - [ ] `getWorkingDaysInPeriod(Carbon $start, Carbon $end): int`
+  - [ ] `getCommissionForPeriod(StaffProfile $staff, Carbon $start, Carbon $end): int`
+- [ ] Register in PayrollServiceProvider as singleton
+
+#### 2.2 FormulaEvaluator
+
+**Service** (`modules/Payroll/Services/FormulaEvaluator.php`)
+- [ ] Install Symfony Expression Language: `composer require symfony/expression-language`
+- [ ] Create service class
+- [ ] Implement `evaluate(string $formula, array $context): mixed`
+  - [ ] Handle exceptions gracefully
+  - [ ] Return 0 on error with logging
+- [ ] Implement `validateFormula(string $formula): bool`
+- [ ] Implement `getAvailableVariables(): array`
+- [ ] Implement `getFormulaExamples(): array`
+- [ ] Register in PayrollServiceProvider
+
+#### 2.3 Update PayrollRun Model
+
+**Model Updates**
+- [ ] Add new status constants: `STATUS_CALCULATING`, `STATUS_REVIEW`, `STATUS_PROCESSING`
+- [ ] Update `STATUSES` array
+- [ ] Update `STATUS_COLORS` array
+- [ ] Update `canTransitionTo()` method
+- [ ] Add method: `startCalculation(): bool`
+- [ ] Add method: `markAsReview(): bool`
+- [ ] Add method: `startProcessing(): bool`
+- [ ] Add method: `complete(): bool`
+
+**Migration**
+- [ ] Create migration to update status enum/check constraint if needed
+
+#### 2.4 Update PayrollRunResource
+
+**Resource Updates**
+- [ ] Add "Calculate" action (visible when draft)
+  - [ ] Show confirmation modal
+  - [ ] Call PayrollCalculationService
+  - [ ] Show success notification with count
+- [ ] Add "Recalculate" action (visible when review)
+- [ ] Update status badge colors
+- [ ] Add calculation progress indicator (optional)
+
+---
+
+### Phase 3: Compensation Management
+
+#### 3.1 CompensationHistory
+
+**Migration**
+- [ ] Create `YYYY_MM_DD_create_compensation_history_table.php`
+  - [ ] UUID primary key
+  - [ ] `uuid('staff_profile_id')->index()`
+  - [ ] `string('change_type')` (increment, promotion, adjustment, new_hire, transfer)
+  - [ ] `uuid('previous_structure_id')->nullable()`
+  - [ ] `uuid('new_structure_id')->nullable()`
+  - [ ] `integer('previous_base_salary_minor')->default(0)`
+  - [ ] `integer('new_base_salary_minor')->default(0)`
+  - [ ] `decimal('change_percentage', 5, 2)->nullable()`
+  - [ ] `date('effective_date')`
+  - [ ] `text('reason')->nullable()`
+  - [ ] `text('notes')->nullable()`
+  - [ ] `string('status')->default('pending')`
+  - [ ] `uuid('requested_by')->nullable()`
+  - [ ] `uuid('approved_by')->nullable()`
+  - [ ] `uuid('applied_by')->nullable()`
+  - [ ] `timestamp('approved_at')->nullable()`
+  - [ ] `timestamp('applied_at')->nullable()`
+  - [ ] `timestamp('rejected_at')->nullable()`
+  - [ ] `string('attachment_path')->nullable()`
+  - [ ] `timestamps()`
+  - [ ] Indexes for tenant, staff, status
+
+**Model** (`modules/Payroll/Models/CompensationHistory.php`)
+- [ ] Extend `BaseModel`
+- [ ] Use traits: `HasTenancy`
+- [ ] Add constants: `CHANGE_TYPE_*`, `STATUS_*`
+- [ ] Add relationships
+- [ ] Add state machine methods: `approve()`, `apply()`, `reject()`
+- [ ] Add accessors for salary amounts (major units)
+
+**Filament Resource** (`modules/Payroll/Filament/Resources/CompensationHistoryResource.php`)
+- [ ] Form with all fields
+- [ ] Table with status badges, change amounts
+- [ ] Actions: View, Approve, Apply, Reject (with modals)
+- [ ] Filters: change_type, status, date range
+- [ ] Pages: List, Create, View
+
+**Relation Manager** (`StaffProfileResource/RelationManagers/CompensationHistoryRelationManager.php`)
+- [ ] Show employee's compensation history timeline
+- [ ] Create new compensation change requests
+
+---
+
+### Phase 4: Bulk Operations
+
+#### 4.1 Bulk Salary Operations
+
+**Service** (`modules/Payroll/Services/BulkPayrollOperationsService.php`)
+- [ ] Implement `previewEmployees(array $filters): Collection`
+- [ ] Implement `bulkIncrement(array $employeeIds, float $percentage, ?int $fixedMinor): array`
+  - [ ] Create CompensationHistory records
+  - [ ] Update EmployeeSalaryStructure records
+  - [ ] Return summary (count, total increase)
+- [ ] Implement `bulkAdjustment()` method
+
+**Filament Page** (`modules/Payroll/Filament/Pages/BulkSalaryOperationsPage.php`)
+- [ ] Create custom Filament page
+- [ ] Form for filters (branch, structure, specific employees)
+- [ ] Preview table showing affected employees
+- [ ] Input for percentage/fixed amount
+- [ ] Confirmation modal
+- [ ] Success notification with summary
+
+---
+
+### Phase 5: Payroll Reports
+
+#### 5.1 Report Pages
+
+**Filament Pages**
+- [ ] Create `modules/Payroll/Filament/Pages/PayrollReportsPage.php`
+  - [ ] Report type selector
+  - [ ] Date range filters
+  - [ ] Department/Structure filters
+- [ ] Create `SalaryRegisterReport` - per-employee breakdown
+- [ ] Create `PayrollSummaryReport` - summary by run
+- [ ] Create `CompensationChangesReport` - salary changes
+
+**Export Feature**
+- [ ] Install: `composer require maatwebsite/excel` (if not installed)
+- [ ] Create export classes for each report
+- [ ] Add export buttons to report pages
+
+---
+
+### Phase 6-8: Integration Features
+
+#### 6.1 Attendance Integration (if module exists)
+- [ ] Update PayrollCalculationService to fetch attendance data
+- [ ] Add worked_days, late_minutes to calculation context
+- [ ] Create attendance deduction rules
+
+#### 7.1 Leave Integration (if module exists)
+- [ ] Update PayrollCalculationService to fetch leave data
+- [ ] Add leave days (paid/unpaid) to calculation context
+- [ ] Handle unpaid leave deductions
+
+#### 8.1 Loan Management
+- [ ] Create EmployeeLoan model and migration
+- [ ] Create LoanRepayment model and migration
+- [ ] Create EmployeeLoanResource
+- [ ] Add loan deductions to payroll calculation
+- [ ] Auto-update remaining balance on payroll payment
+
+---
+
+### Language Files Checklist
+
+**English** (`modules/Payroll/Lang/en/payroll.php`)
+- [ ] Add `salary_rule_categories` section
+- [ ] Add `salary_rules` section
+- [ ] Add `salary_structures` section
+- [ ] Add `employee_salary_structures` section
+- [ ] Add `employee_salary_components` section
+- [ ] Add `compensation_history` section
+- [ ] Add `bulk_operations` section
+- [ ] Add `reports` section
+- [ ] Add `calculation_types` array
+- [ ] Add `pay_frequencies` array
+- [ ] Add `change_types` array
+
+**Arabic** (`modules/Payroll/Lang/ar/payroll.php`)
+- [ ] Translate all new English strings
+
+---
+
+### Config Updates
+
+**Update** `modules/Payroll/Config/config.php`
+- [ ] Add `formula_engine` settings
+- [ ] Add `calculation` settings (rounding, precision)
+- [ ] Add `bulk_operations` settings (max batch size)
+- [ ] Add `reports` settings (export formats)
+
+---
+
+### Testing Checklist
+
+- [ ] Test salary rule CRUD
+- [ ] Test salary structure with rules assignment
+- [ ] Test employee structure assignment
+- [ ] Test payroll calculation with formula rules
+- [ ] Test compensation history workflow
+- [ ] Test bulk salary increment
+- [ ] Test report generation and export
+- [ ] Test multi-tenant isolation
+- [ ] Test Arabic translations display correctly
