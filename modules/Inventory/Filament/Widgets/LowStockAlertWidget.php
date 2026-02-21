@@ -24,10 +24,10 @@ class LowStockAlertWidget extends BaseWidget
             ->query(
                 StockLevel::query()
                     ->with(['product', 'branch'])
-                    ->join('products', 'stock_levels.product_id', '=', 'products.id')
-                    ->whereRaw('stock_levels.quantity_on_hand <= products.reorder_point')
-                    ->orderByRaw('stock_levels.quantity_on_hand - products.reorder_point ASC')
-                    ->select('stock_levels.*')
+                    ->whereHas('product', function ($q) {
+                        $q->whereColumn('stock_levels.quantity_on_hand', '<=', 'products.reorder_point');
+                    })
+                    ->orderByRaw('stock_levels.quantity_on_hand ASC')
                     ->limit(10)
             )
             ->columns([
