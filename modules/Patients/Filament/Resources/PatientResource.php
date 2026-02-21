@@ -116,7 +116,12 @@ class PatientResource extends Resource
                                             ->label(__('patients::patients.fields.phone'))
                                             ->tel()
                                             ->required()
-                                            ->maxLength(20),
+                                            ->maxLength(20)
+                                            ->unique(
+                                                table: Patient::class,
+                                                column: 'phone',
+                                                ignoreRecord: true,
+                                            ),
 
                                         Forms\Components\TextInput::make('secondary_phone')
                                             ->label(__('patients::patients.fields.secondary_phone'))
