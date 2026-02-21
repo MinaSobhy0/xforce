@@ -14,7 +14,9 @@ class AddOn extends Model
 {
     use HasFactory, HasUuids, SoftDeletes, HasPostgresBoolean;
 
-    protected $table = 'add_ons';
+    protected $connection = 'central';
+
+    protected $table = 'public.add_ons';
 
     protected $fillable = [
         'code',

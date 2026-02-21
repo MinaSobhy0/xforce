@@ -12,7 +12,9 @@ class PlatformInvoice extends Model
 {
     use HasUuids, SoftDeletes;
 
-    protected $table = 'platform_invoices';
+    protected $connection = 'central';
+
+    protected $table = 'public.platform_invoices';
 
     protected $fillable = [
         'tenant_id',

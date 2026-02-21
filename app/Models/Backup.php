@@ -11,6 +11,10 @@ class Backup extends Model
 {
     use HasUuids;
 
+    protected $connection = 'central';
+
+    protected $table = 'public.backups';
+
     protected $fillable = [
         'name',
         'type',

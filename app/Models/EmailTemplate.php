@@ -11,6 +11,10 @@ class EmailTemplate extends Model
 {
     use HasUuids, HasTranslations, HasPostgresBoolean;
 
+    protected $connection = 'central';
+
+    protected $table = 'public.email_templates';
+
     protected $fillable = [
         'code',
         'name',

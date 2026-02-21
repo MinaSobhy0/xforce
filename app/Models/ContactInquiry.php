@@ -9,6 +9,10 @@ class ContactInquiry extends Model
 {
     use HasUuids;
 
+    protected $connection = 'central';
+
+    protected $table = 'public.contact_inquiries';
+
     protected $fillable = [
         'clinic_name',
         'contact_name',

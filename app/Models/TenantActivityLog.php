@@ -11,7 +11,9 @@ class TenantActivityLog extends Model
 {
     use HasUuids;
 
-    protected $table = 'tenant_activity_logs';
+    protected $connection = 'central';
+
+    protected $table = 'public.tenant_activity_logs';
 
     public $timestamps = false;
 

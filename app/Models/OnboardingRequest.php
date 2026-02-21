@@ -11,6 +11,10 @@ class OnboardingRequest extends Model
 {
     use HasUuids;
 
+    protected $connection = 'central';
+
+    protected $table = 'public.onboarding_requests';
+
     protected $fillable = [
         'clinic_name',
         'slug',

@@ -13,7 +13,9 @@ class SupportTicket extends Model
 {
     use HasUuids, SoftDeletes;
 
-    protected $table = 'support_tickets';
+    protected $connection = 'central';
+
+    protected $table = 'public.support_tickets';
 
     protected $fillable = [
         'tenant_id',

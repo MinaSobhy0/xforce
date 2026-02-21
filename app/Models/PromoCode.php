@@ -11,7 +11,9 @@ class PromoCode extends Model
 {
     use HasUuids, SoftDeletes, HasPostgresBoolean;
 
-    protected $table = 'promo_codes';
+    protected $connection = 'central';
+
+    protected $table = 'public.promo_codes';
 
     protected $fillable = [
         'code',

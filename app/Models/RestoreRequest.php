@@ -11,6 +11,10 @@ class RestoreRequest extends Model
 {
     use HasUuids, HasPostgresBoolean;
 
+    protected $connection = 'central';
+
+    protected $table = 'public.restore_requests';
+
     protected $fillable = [
         'tenant_id',
         'backup_id',

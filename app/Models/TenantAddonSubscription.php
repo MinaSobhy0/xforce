@@ -12,7 +12,9 @@ class TenantAddonSubscription extends Model
 {
     use HasUuids, SoftDeletes;
 
-    protected $table = 'tenant_addon_subscriptions';
+    protected $connection = 'central';
+
+    protected $table = 'public.tenant_addon_subscriptions';
 
     protected $fillable = [
         'tenant_id',

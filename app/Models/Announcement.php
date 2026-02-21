@@ -11,7 +11,9 @@ class Announcement extends Model
 {
     use HasUuids, SoftDeletes, HasTranslations;
 
-    protected $table = 'announcements';
+    protected $connection = 'central';
+
+    protected $table = 'public.announcements';
 
     public array $translatable = ['title', 'body'];
 

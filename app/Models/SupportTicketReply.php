@@ -11,7 +11,9 @@ class SupportTicketReply extends Model
 {
     use HasUuids, HasPostgresBoolean;
 
-    protected $table = 'support_ticket_replies';
+    protected $connection = 'central';
+
+    protected $table = 'public.support_ticket_replies';
 
     protected $fillable = [
         'ticket_id',

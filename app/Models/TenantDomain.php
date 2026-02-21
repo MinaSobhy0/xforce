@@ -13,6 +13,14 @@ class TenantDomain extends Model
 {
     use HasUuids, HasPostgresBoolean;
 
+    /**
+     * The database connection that should be used by the model.
+     * TenantDomain lives in public schema, not tenant schema.
+     */
+    protected $connection = 'central';
+
+    protected $table = 'public.tenant_domains';
+
     protected $fillable = [
         'tenant_id',
         'domain',

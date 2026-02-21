@@ -11,6 +11,10 @@ class AuditLog extends Model
 {
     use HasUuids;
 
+    protected $connection = 'central';
+
+    protected $table = 'public.audit_logs';
+
     protected $fillable = [
         'tenant_id',
         'user_id',

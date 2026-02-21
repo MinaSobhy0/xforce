@@ -11,6 +11,10 @@ class SystemAlert extends Model
 {
     use HasUuids, HasPostgresBoolean;
 
+    protected $connection = 'central';
+
+    protected $table = 'public.system_alerts';
+
     protected $fillable = [
         'type',
         'severity',

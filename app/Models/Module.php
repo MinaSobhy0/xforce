@@ -12,7 +12,9 @@ class Module extends Model
 {
     use HasUuids, SoftDeletes, HasTranslations, HasPostgresBoolean;
 
-    protected $table = 'modules';
+    protected $connection = 'central';
+
+    protected $table = 'public.modules';
 
     public array $translatable = ['name', 'description'];
 
