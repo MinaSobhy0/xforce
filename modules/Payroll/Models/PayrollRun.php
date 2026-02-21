@@ -13,9 +13,9 @@ class PayrollRun extends BaseModel
 
     protected $table = 'payroll_runs';
 
-    protected static string $sequenceCode = 'PAY';
+    protected string $sequenceCode = 'PAY';
 
-    protected static string $sequenceField = 'run_number';
+    protected string $sequenceColumn = 'run_number';
 
     protected $fillable = [
         'tenant_id',
