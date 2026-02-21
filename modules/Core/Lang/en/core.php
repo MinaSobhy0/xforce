@@ -252,6 +252,19 @@ return [
     'requires' => 'Requires',
     'module_management_info' => 'Module activation is managed by your subscription plan. Core modules are always active.',
     'contact_support_for_modules' => 'To enable additional modules, please contact support or upgrade your subscription plan.',
+    'activate' => 'Activate',
+    'deactivate' => 'Deactivate',
+    'will_also_activate' => 'Will also activate',
+    'module_not_found' => 'Module not found',
+    'cannot_disable_core_module' => 'Cannot disable core module',
+    'cannot_deactivate_module' => 'Cannot deactivate module',
+    'cannot_activate_module' => 'Cannot activate module',
+    'module_has_dependents' => 'Other modules depend on this module',
+    'module_not_in_plan' => 'This module is not included in your subscription plan',
+    'module_activated_message' => ':module has been activated',
+    'module_deactivated_message' => ':module has been deactivated',
+    'module_activated_with_dependencies' => ':module has been activated along with dependencies: :dependencies',
+    'error' => 'Error',
 
     // Module Categories
     'module_categories' => [

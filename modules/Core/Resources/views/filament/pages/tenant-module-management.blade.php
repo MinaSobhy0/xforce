@@ -123,6 +123,39 @@
                                         @endforeach
                                     </div>
                                 @endif
+
+                                {{-- Toggle Button --}}
+                                @if(!$module['is_core'] && $module['is_included_in_plan'])
+                                    <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                                        @if($module['is_active'])
+                                            <x-filament::button
+                                                wire:click="toggleModule('{{ $module['code'] }}')"
+                                                color="warning"
+                                                size="xs"
+                                                icon="heroicon-o-pause"
+                                            >
+                                                {{ __('core::core.deactivate') }}
+                                            </x-filament::button>
+                                        @else
+                                            <x-filament::button
+                                                wire:click="toggleModule('{{ $module['code'] }}')"
+                                                color="success"
+                                                size="xs"
+                                                icon="heroicon-o-play"
+                                            >
+                                                {{ __('core::core.activate') }}
+                                            </x-filament::button>
+                                            @php
+                                                $depsToActivate = $this->getModuleDependenciesToActivate($module['code']);
+                                            @endphp
+                                            @if(!empty($depsToActivate))
+                                                <p class="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                                                    {{ __('core::core.will_also_activate') }}: {{ implode(', ', $depsToActivate) }}
+                                                </p>
+                                            @endif
+                                        @endif
+                                    </div>
+                                @endif
                             </div>
                         </div>
                     </div>

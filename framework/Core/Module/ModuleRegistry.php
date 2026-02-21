@@ -3,6 +3,7 @@
 namespace XLinic\Framework\Core\Module;
 
 use Illuminate\Support\Facades\Cache;
+use Modules\Core\Models\TenantModule;
 use XLinic\Framework\Core\Tenancy\TenantManager;
 
 class ModuleRegistry
@@ -39,13 +40,23 @@ class ModuleRegistry
      */
     public function isActive(string $code): bool
     {
-        // TODO: Implement proper tenant module activation from database
-        // For now, all registered modules are considered active
-        // This ensures translations and providers load correctly
-        // When tenant_modules system is implemented, this will check:
-        // 1. If module is core (always active)
-        // 2. If module is explicitly activated for this tenant in database
-        return isset($this->modules[$code]);
+        $code = strtolower($code);
+
+        // Module must be registered
+        if (!isset($this->modules[$code])) {
+            return false;
+        }
+
+        // Core modules are always active
+        $manifest = $this->modules[$code];
+        if ($manifest->isCore()) {
+            return true;
+        }
+
+        // Check if in active modules list
+        $activeModules = $this->getActive();
+
+        return in_array($code, $activeModules);
     }
 
     /**
@@ -123,13 +134,32 @@ class ModuleRegistry
             return array_keys($this->modules);
         }
 
+        // Get core modules (always active)
+        $coreModules = collect($this->modules)
+            ->filter(fn(ModuleManifest $m) => $m->isCore())
+            ->keys()
+            ->map(fn($code) => strtolower($code))
+            ->all();
+
         return Cache::tags(['tenant:' . $tenantId, 'modules'])
-            ->remember("active_modules:{$tenantId}", 3600, function () use ($tenantId) {
-                // TODO: Query the tenant_modules table for active modules
-                // For now, return all modules as active to ensure translations load
-                // This will be replaced with proper database lookup when
-                // tenant_modules activation system is implemented
-                return array_keys($this->modules);
+            ->remember("active_modules:{$tenantId}", 3600, function () use ($tenantId, $coreModules) {
+                // Query tenant_modules table for explicitly activated modules
+                $activeModules = TenantModule::withoutGlobalScopes()
+                    ->where('tenant_id', $tenantId)
+                    ->where('is_active', true)
+                    ->valid() // Not expired
+                    ->pluck('module_code')
+                    ->map(fn($code) => strtolower($code))
+                    ->all();
+
+                // If no modules are explicitly activated, return all modules
+                // This is for backward compatibility during migration
+                if (empty($activeModules) && empty($coreModules)) {
+                    return array_keys($this->modules);
+                }
+
+                // Merge core modules with activated modules
+                return array_unique(array_merge($coreModules, $activeModules));
             });
     }
 }

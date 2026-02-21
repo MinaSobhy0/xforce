@@ -3,12 +3,18 @@
 namespace XLinic\Framework\Core\Module;
 
 use Illuminate\Support\Facades\File;
+use Modules\Core\Models\TenantModule;
 use XLinic\Framework\Core\Tenancy\TenantManager;
 
 class ModuleManager
 {
     protected array $discoveredModules = [];
     protected bool $booted = false;
+
+    /**
+     * Track modules being activated in current chain to prevent infinite loops.
+     */
+    protected array $activatingModules = [];
 
     public function __construct(
         protected ModuleRegistry $registry,
@@ -146,7 +152,13 @@ class ModuleManager
             throw new \InvalidArgumentException("Module not found: {$code}");
         }
 
-        if (!$this->canActivate($code)) {
+        // Already active, nothing to do
+        if ($this->registry->isActive($code)) {
+            return true;
+        }
+
+        // Check plan allows module
+        if (!$this->registry->isAllowed($code)) {
             return false;
         }
 
@@ -157,11 +169,145 @@ class ModuleManager
         $this->registry->clearCache();
 
         // Boot the module if not already booted
-        if (!$this->registry->isActive($code)) {
-            $this->bootModule($manifest);
-        }
+        $this->bootModule($manifest);
 
         return true;
+    }
+
+    /**
+     * Activate a module along with all its dependencies.
+     * Dependencies are activated recursively before the main module.
+     *
+     * @param string $code Module code to activate
+     * @param string|null $userId User ID performing the activation
+     * @return array Array of module codes that were activated
+     * @throws \InvalidArgumentException If module not found
+     * @throws \RuntimeException If circular dependency detected
+     */
+    public function activateWithDependencies(string $code, ?string $userId = null): array
+    {
+        $code = strtolower($code);
+        $activatedModules = [];
+
+        // Prevent circular dependency loops
+        if (in_array($code, $this->activatingModules)) {
+            throw new \RuntimeException("Circular dependency detected while activating module: {$code}");
+        }
+
+        $manifest = $this->registry->get($code);
+
+        if (!$manifest) {
+            throw new \InvalidArgumentException("Module not found: {$code}");
+        }
+
+        // Already active, nothing to do
+        if ($this->registry->isActive($code)) {
+            return $activatedModules;
+        }
+
+        // Check plan allows module
+        if (!$this->registry->isAllowed($code)) {
+            return $activatedModules;
+        }
+
+        // Mark as being activated to prevent loops
+        $this->activatingModules[] = $code;
+
+        try {
+            // First, recursively activate all dependencies
+            foreach ($manifest->dependencies as $dependency) {
+                $dependency = strtolower($dependency);
+                $dependencyManifest = $this->registry->get($dependency);
+
+                if (!$dependencyManifest) {
+                    continue; // Skip missing dependencies
+                }
+
+                if (!$this->registry->isActive($dependency)) {
+                    // Recursively activate the dependency
+                    $dependencyActivated = $this->activateWithDependencies($dependency, $userId);
+                    $activatedModules = array_merge($activatedModules, $dependencyActivated);
+                }
+            }
+
+            // Now activate the main module
+            $this->storeModuleActivation($code, true, $userId);
+            $activatedModules[] = $code;
+
+            // Clear cache after all activations
+            $this->registry->clearCache();
+
+            // Boot the module
+            $this->bootModule($manifest);
+
+        } finally {
+            // Remove from activating list
+            $this->activatingModules = array_filter(
+                $this->activatingModules,
+                fn($m) => $m !== $code
+            );
+        }
+
+        return $activatedModules;
+    }
+
+    /**
+     * Get all dependencies for a module (recursively).
+     *
+     * @param string $code Module code
+     * @return array Array of dependency module codes
+     */
+    public function getAllDependencies(string $code): array
+    {
+        $code = strtolower($code);
+        $manifest = $this->registry->get($code);
+
+        if (!$manifest) {
+            return [];
+        }
+
+        $dependencies = [];
+        $visited = [];
+
+        $this->collectDependencies($manifest, $dependencies, $visited);
+
+        return array_unique($dependencies);
+    }
+
+    /**
+     * Recursively collect all dependencies for a module.
+     */
+    protected function collectDependencies(ModuleManifest $manifest, array &$dependencies, array &$visited): void
+    {
+        foreach ($manifest->dependencies as $depCode) {
+            $depCode = strtolower($depCode);
+
+            if (in_array($depCode, $visited)) {
+                continue;
+            }
+
+            $visited[] = $depCode;
+            $dependencies[] = $depCode;
+
+            $depManifest = $this->registry->get($depCode);
+            if ($depManifest) {
+                $this->collectDependencies($depManifest, $dependencies, $visited);
+            }
+        }
+    }
+
+    /**
+     * Get modules that will be automatically enabled when enabling a module.
+     * Returns only the dependencies that are currently inactive.
+     *
+     * @param string $code Module code
+     * @return array Array of inactive dependency module codes that will be enabled
+     */
+    public function getInactiveDependencies(string $code): array
+    {
+        $allDeps = $this->getAllDependencies($code);
+
+        return array_filter($allDeps, fn($dep) => !$this->registry->isActive($dep));
     }
 
     /**
@@ -243,10 +389,48 @@ class ModuleManager
 
     /**
      * Store module activation state in database.
+     *
+     * @param string $code Module code
+     * @param bool $active Activation state
+     * @param string|null $userId User ID performing the action
      */
-    protected function storeModuleActivation(string $code, bool $active): void
+    protected function storeModuleActivation(string $code, bool $active, ?string $userId = null): void
     {
-        // This would store in tenant_modules table in tenant context
-        // For now, this is a placeholder
+        $tenant = $this->tenantManager->current();
+
+        if (!$tenant) {
+            // No tenant context, can't store activation
+            return;
+        }
+
+        $tenantModule = TenantModule::withoutGlobalScopes()
+            ->where('tenant_id', $tenant->id)
+            ->where('module_code', strtolower($code))
+            ->first();
+
+        if ($tenantModule) {
+            if ($active) {
+                $tenantModule->activate($userId);
+            } else {
+                $tenantModule->deactivate();
+            }
+        } else {
+            // Create new tenant module record
+            TenantModule::create([
+                'tenant_id' => $tenant->id,
+                'module_code' => strtolower($code),
+                'is_active' => $active,
+                'activated_at' => $active ? now() : null,
+                'activated_by' => $active ? $userId : null,
+            ]);
+        }
+    }
+
+    /**
+     * Get all registered modules (discovered from disk).
+     */
+    public function getDiscoveredModules(): array
+    {
+        return $this->discoveredModules;
     }
 }

@@ -2,9 +2,11 @@
 
 namespace Modules\Core\Filament\Pages;
 
+use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Modules\Core\Models\TenantModule;
 use Illuminate\Support\Facades\Cache;
+use XLinic\Framework\Core\Module\ModuleManager;
 
 class TenantModuleManagementPage extends Page
 {
@@ -267,5 +269,136 @@ class TenantModuleManagementPage extends Page
     public function getTotalModulesCount(): int
     {
         return count($this->getAllModuleDefinitions());
+    }
+
+    /**
+     * Toggle a module's activation state.
+     * When activating, dependencies are automatically enabled.
+     */
+    public function toggleModule(string $code): void
+    {
+        $code = strtolower($code);
+        $definitions = $this->getAllModuleDefinitions();
+
+        // Check if module exists
+        if (!isset($definitions[$code])) {
+            Notification::make()
+                ->title(__('core::core.module_not_found'))
+                ->danger()
+                ->send();
+            return;
+        }
+
+        // Core modules cannot be toggled
+        if ($definitions[$code]['is_core'] ?? false) {
+            Notification::make()
+                ->title(__('core::core.cannot_disable_core_module'))
+                ->danger()
+                ->send();
+            return;
+        }
+
+        try {
+            $moduleManager = app(ModuleManager::class);
+            $isActive = TenantModule::query()
+                ->active()
+                ->valid()
+                ->where('module_code', $code)
+                ->exists();
+
+            if ($isActive) {
+                // Deactivate the module
+                if (!$moduleManager->canDeactivate($code)) {
+                    Notification::make()
+                        ->title(__('core::core.cannot_deactivate_module'))
+                        ->body(__('core::core.module_has_dependents'))
+                        ->danger()
+                        ->send();
+                    return;
+                }
+
+                $moduleManager->deactivateModule($code);
+
+                Notification::make()
+                    ->title(__('core::core.module_deactivated'))
+                    ->body(__('core::core.module_deactivated_message', ['module' => $definitions[$code]['name']]))
+                    ->success()
+                    ->send();
+            } else {
+                // Activate with dependencies
+                $userId = auth()->id();
+                $activatedModules = $moduleManager->activateWithDependencies($code, $userId);
+
+                if (empty($activatedModules)) {
+                    Notification::make()
+                        ->title(__('core::core.cannot_activate_module'))
+                        ->body(__('core::core.module_not_in_plan'))
+                        ->warning()
+                        ->send();
+                    return;
+                }
+
+                // Build notification message
+                if (count($activatedModules) > 1) {
+                    $dependencyNames = collect($activatedModules)
+                        ->filter(fn($m) => $m !== $code)
+                        ->map(fn($m) => $definitions[$m]['name'] ?? ucfirst($m))
+                        ->implode(', ');
+
+                    Notification::make()
+                        ->title(__('core::core.module_activated'))
+                        ->body(__('core::core.module_activated_with_dependencies', [
+                            'module' => $definitions[$code]['name'],
+                            'dependencies' => $dependencyNames,
+                        ]))
+                        ->success()
+                        ->send();
+                } else {
+                    Notification::make()
+                        ->title(__('core::core.module_activated'))
+                        ->body(__('core::core.module_activated_message', ['module' => $definitions[$code]['name']]))
+                        ->success()
+                        ->send();
+                }
+            }
+
+            // Clear cache and refresh page
+            Cache::tags(['tenant:' . tenant()?->id, 'modules'])->flush();
+
+        } catch (\Exception $e) {
+            Notification::make()
+                ->title(__('core::core.error'))
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
+        }
+    }
+
+    /**
+     * Get dependencies that will be activated when enabling a module.
+     */
+    public function getModuleDependenciesToActivate(string $code): array
+    {
+        $code = strtolower($code);
+
+        try {
+            $moduleManager = app(ModuleManager::class);
+            return $moduleManager->getInactiveDependencies($code);
+        } catch (\Exception $e) {
+            return [];
+        }
+    }
+
+    /**
+     * Check if a module can be deactivated.
+     */
+    public function canDeactivateModule(string $code): bool
+    {
+        try {
+            $moduleManager = app(ModuleManager::class);
+            return $moduleManager->canDeactivate($code);
+        } catch (\Exception $e) {
+            return false;
+        }
     }
 }

@@ -165,6 +165,19 @@ return [
     'requires' => 'يتطلب',
     'module_management_info' => 'يتم إدارة تفعيل الوحدات من خلال خطة اشتراكك. الوحدات الأساسية نشطة دائماً.',
     'contact_support_for_modules' => 'لتفعيل وحدات إضافية، يرجى التواصل مع الدعم أو ترقية خطة اشتراكك.',
+    'activate' => 'تفعيل',
+    'deactivate' => 'إلغاء التفعيل',
+    'will_also_activate' => 'سيتم تفعيل أيضاً',
+    'module_not_found' => 'الوحدة غير موجودة',
+    'cannot_disable_core_module' => 'لا يمكن إلغاء تفعيل الوحدة الأساسية',
+    'cannot_deactivate_module' => 'لا يمكن إلغاء تفعيل الوحدة',
+    'cannot_activate_module' => 'لا يمكن تفعيل الوحدة',
+    'module_has_dependents' => 'وحدات أخرى تعتمد على هذه الوحدة',
+    'module_not_in_plan' => 'هذه الوحدة غير متضمنة في خطة اشتراكك',
+    'module_activated_message' => 'تم تفعيل :module',
+    'module_deactivated_message' => 'تم إلغاء تفعيل :module',
+    'module_activated_with_dependencies' => 'تم تفعيل :module مع التبعيات: :dependencies',
+    'error' => 'خطأ',
 
     // Module Categories
     'module_categories' => [
