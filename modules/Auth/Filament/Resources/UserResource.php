@@ -161,14 +161,24 @@ class UserResource extends BaseResource
 
                                 Forms\Components\Select::make('branch_ids')
                                     ->label(__('Allowed Branches'))
-                                    ->options(fn () => \Modules\Core\Models\Branch::where('is_active', true)
-                                        ->orderBy('is_main', 'desc')
-                                        ->orderBy('name')
-                                        ->pluck('name', 'id'))
+                                    ->options(function () {
+                                        $allowedBranchIds = \App\Services\BranchContext::userAllowedIds();
+
+                                        $query = \Modules\Core\Models\Branch::where('is_active', true)
+                                            ->orderBy('is_main', 'desc')
+                                            ->orderBy('name');
+
+                                        // If user has restricted branches, only show those
+                                        if (!empty($allowedBranchIds)) {
+                                            $query->whereIn('id', $allowedBranchIds);
+                                        }
+
+                                        return $query->pluck('name', 'id');
+                                    })
                                     ->multiple()
                                     ->preload()
                                     ->searchable()
-                                    ->helperText(__('Select branches this user can access. Leave empty for no branch restriction (admin only).'))
+                                    ->helperText(__('Select branches this user can access.'))
                                     ->afterStateHydrated(function (Forms\Components\Select $component, ?User $record) {
                                         if ($record) {
                                             $branchIds = $record->branchRoles()
