@@ -88,12 +88,12 @@ class EnforceBranchAccess
      */
     protected function isSuperAdmin($user): bool
     {
-        // Check for super admin role (check both hyphen and underscore variants)
-        if ($user->hasRole(['super-admin', 'super_admin', 'tenant-owner', 'tenant_owner', 'owner', 'admin'])) {
+        // Only tenant owner and super admin have automatic all-branch access
+        if ($user->hasRole(['super-admin', 'super_admin', 'tenant-owner', 'tenant_owner', 'owner'])) {
             return true;
         }
 
-        // Check for all_branches permission
+        // Explicit permission for all-branch access
         if ($user->can('access-all-branches')) {
             return true;
         }

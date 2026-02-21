@@ -278,11 +278,12 @@ class User extends BaseModel implements
      */
     public function hasAccessToBranch(string $branchId): bool
     {
-        // Super admins have access to all branches
-        if ($this->hasRole(['super-admin', 'super_admin', 'tenant-owner', 'tenant_owner', 'owner', 'admin'])) {
+        // Only tenant owner and super admin have automatic all-branch access
+        if ($this->hasRole(['super-admin', 'super_admin', 'tenant-owner', 'tenant_owner', 'owner'])) {
             return true;
         }
 
+        // Explicit permission for all-branch access
         if ($this->can('access-all-branches')) {
             return true;
         }

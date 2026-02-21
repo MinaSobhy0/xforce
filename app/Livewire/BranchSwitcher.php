@@ -87,14 +87,16 @@ class BranchSwitcher extends Component
     }
 
     /**
-     * Check if user is a super admin.
+     * Check if user is a super admin with all-branch access.
      */
     protected function isSuperAdmin($user): bool
     {
-        if ($user->hasRole(['super-admin', 'super_admin', 'tenant-owner', 'tenant_owner', 'owner', 'admin'])) {
+        // Only tenant owner and super admin have automatic all-branch access
+        if ($user->hasRole(['super-admin', 'super_admin', 'tenant-owner', 'tenant_owner', 'owner'])) {
             return true;
         }
 
+        // Explicit permission for all-branch access
         if ($user->can('access-all-branches')) {
             return true;
         }
