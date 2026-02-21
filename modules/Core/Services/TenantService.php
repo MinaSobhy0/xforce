@@ -212,9 +212,70 @@ class TenantService
             'schema_name' => $schemaName,
         ]);
 
+        // Create default branch for the tenant
+        $this->createDefaultBranch($tenant);
+
         // Create owner user if contact_email is set
         if ($tenant->contact_email) {
             $this->createOwnerUser($tenant);
+        }
+    }
+
+    /**
+     * Create a default branch for a tenant.
+     */
+    public function createDefaultBranch(Tenant $tenant): ?string
+    {
+        $schemaName = $tenant->database_name;
+
+        try {
+            // Switch to tenant schema
+            DB::statement("SET search_path TO \"{$schemaName}\"");
+
+            // Check if any branch already exists
+            $existingBranch = DB::table('branches')->first();
+            if ($existingBranch) {
+                Log::info('Default branch already exists', ['tenant_id' => $tenant->id, 'branch_id' => $existingBranch->id]);
+                DB::statement("SET search_path TO public");
+                return $existingBranch->id;
+            }
+
+            $branchId = Str::uuid()->toString();
+
+            // Create the default main branch
+            DB::table('branches')->insert([
+                'id' => $branchId,
+                'tenant_id' => $tenant->id,
+                'name' => $tenant->name . ' - Main Branch',
+                'code' => 'MAIN',
+                'address' => $tenant->settings['address'] ?? null,
+                'city' => $tenant->settings['city'] ?? null,
+                'phone' => $tenant->contact_phone,
+                'email' => $tenant->contact_email,
+                'timezone' => $tenant->timezone ?? 'Africa/Cairo',
+                'currency_code' => $tenant->currency ?? 'EGP',
+                'is_active' => true,
+                'is_main' => true,
+                'sort_order' => 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            Log::info('Default branch created', [
+                'tenant_id' => $tenant->id,
+                'branch_id' => $branchId,
+            ]);
+
+            DB::statement("SET search_path TO public");
+            return $branchId;
+
+        } catch (\Exception $e) {
+            DB::statement("SET search_path TO public");
+            Log::error('Failed to create default branch', [
+                'tenant_id' => $tenant->id,
+                'error' => $e->getMessage(),
+            ]);
+            return null;
         }
     }
 
@@ -245,6 +306,9 @@ class TenantService
                     'password' => Hash::make($password),
                     'updated_at' => now(),
                 ]);
+
+                // Ensure user is assigned to main branch
+                $this->ensureUserAssignedToMainBranch($tenant, $existing->id);
 
                 Log::info('Owner user password reset', ['tenant_id' => $tenant->id, 'email' => $tenant->contact_email]);
                 DB::statement("SET search_path TO public");
@@ -288,6 +352,7 @@ class TenantService
             ]);
 
             // Assign super_admin role if roles table exists
+            $superAdminRole = null;
             try {
                 $superAdminRole = DB::table('roles')->where('name', 'super_admin')->first();
                 if ($superAdminRole) {
@@ -299,6 +364,32 @@ class TenantService
                 }
             } catch (\Exception $e) {
                 Log::warning('Could not assign role to owner user', ['error' => $e->getMessage()]);
+            }
+
+            // Assign owner user to the main branch
+            try {
+                $mainBranch = DB::table('branches')->where('is_main', true)->first();
+                if ($mainBranch && $superAdminRole) {
+                    DB::table('user_branch_roles')->insert([
+                        'id' => Str::uuid()->toString(),
+                        'tenant_id' => $tenant->id,
+                        'user_id' => $userId,
+                        'branch_id' => $mainBranch->id,
+                        'role_id' => $superAdminRole->id,
+                        'is_primary' => true,
+                        'is_active' => true,
+                        'assigned_at' => now(),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                    Log::info('Owner user assigned to main branch', [
+                        'tenant_id' => $tenant->id,
+                        'user_id' => $userId,
+                        'branch_id' => $mainBranch->id,
+                    ]);
+                }
+            } catch (\Exception $e) {
+                Log::warning('Could not assign owner user to branch', ['error' => $e->getMessage()]);
             }
 
             // Update tenant with owner_user_id and store initial password
@@ -326,6 +417,55 @@ class TenantService
                 'error' => $e->getMessage(),
             ]);
             return null;
+        }
+    }
+
+    /**
+     * Ensure a user is assigned to the main branch with super_admin role.
+     */
+    protected function ensureUserAssignedToMainBranch(Tenant $tenant, string $userId): void
+    {
+        try {
+            $mainBranch = DB::table('branches')->where('is_main', true)->first();
+            if (!$mainBranch) {
+                return;
+            }
+
+            // Check if assignment already exists
+            $existingAssignment = DB::table('user_branch_roles')
+                ->where('user_id', $userId)
+                ->where('branch_id', $mainBranch->id)
+                ->first();
+
+            if ($existingAssignment) {
+                return;
+            }
+
+            $superAdminRole = DB::table('roles')->where('name', 'super_admin')->first();
+            if (!$superAdminRole) {
+                return;
+            }
+
+            DB::table('user_branch_roles')->insert([
+                'id' => Str::uuid()->toString(),
+                'tenant_id' => $tenant->id,
+                'user_id' => $userId,
+                'branch_id' => $mainBranch->id,
+                'role_id' => $superAdminRole->id,
+                'is_primary' => true,
+                'is_active' => true,
+                'assigned_at' => now(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            Log::info('User assigned to main branch', [
+                'tenant_id' => $tenant->id,
+                'user_id' => $userId,
+                'branch_id' => $mainBranch->id,
+            ]);
+        } catch (\Exception $e) {
+            Log::warning('Could not ensure user is assigned to main branch', ['error' => $e->getMessage()]);
         }
     }
 
