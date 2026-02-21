@@ -152,6 +152,10 @@ class TenantService
         // Create schema in the main database
         DB::statement("CREATE SCHEMA IF NOT EXISTS \"{$schemaName}\"");
 
+        // Grant permissions to the database user
+        $dbUser = config('database.connections.pgsql.username');
+        DB::statement("GRANT ALL ON SCHEMA \"{$schemaName}\" TO \"{$dbUser}\"");
+
         Log::info('Schema created successfully', ['schema_name' => $schemaName]);
 
         // Configure tenant connection dynamically
@@ -245,10 +249,15 @@ class TenantService
                 Log::info('Owner user password reset', ['tenant_id' => $tenant->id, 'email' => $tenant->contact_email]);
                 DB::statement("SET search_path TO public");
 
-                // Update tenant with owner_user_id if not set
+                // Update tenant with owner_user_id and store password
+                $settings = $tenant->settings ?? [];
+                $settings['initial_owner_password'] = $password;
+                $settings['initial_owner_created_at'] = now()->toISOString();
+                $updateData = ['settings' => $settings];
                 if (!$tenant->owner_user_id) {
-                    $tenant->update(['owner_user_id' => $existing->id]);
+                    $updateData['owner_user_id'] = $existing->id;
                 }
+                $tenant->update($updateData);
 
                 return ['user_id' => $existing->id, 'password' => $password];
             }
@@ -292,9 +301,15 @@ class TenantService
                 Log::warning('Could not assign role to owner user', ['error' => $e->getMessage()]);
             }
 
-            // Update tenant with owner_user_id
+            // Update tenant with owner_user_id and store initial password
             DB::statement("SET search_path TO public");
-            $tenant->update(['owner_user_id' => $userId]);
+            $settings = $tenant->settings ?? [];
+            $settings['initial_owner_password'] = $password;
+            $settings['initial_owner_created_at'] = now()->toISOString();
+            $tenant->update([
+                'owner_user_id' => $userId,
+                'settings' => $settings,
+            ]);
 
             Log::info('Owner user created', [
                 'tenant_id' => $tenant->id,
@@ -328,6 +343,11 @@ class TenantService
             'create_tenant_subscriptions_table',
             'create_tenant_usage_table',
             'create_tenant_modules_table',
+            'add_max_branches_to_tenants_table',
+            'add_branches_to_tenant_usage_table',
+            'add_whatsapp_sent_to_tenant_usage',
+            '_to_tenants_table',
+            '_to_tenant_usage',
         ];
 
         if (is_dir($modulesPath)) {

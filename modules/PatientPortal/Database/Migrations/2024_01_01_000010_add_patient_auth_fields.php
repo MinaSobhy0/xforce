@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (!Schema::hasTable('patients')) {
+            return; // Skip if patients table doesn't exist yet
+        }
+
         Schema::table('patients', function (Blueprint $table) {
             if (!Schema::hasColumn('patients', 'remember_token')) {
                 $table->rememberToken();

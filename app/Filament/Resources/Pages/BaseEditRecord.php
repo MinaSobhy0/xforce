@@ -46,18 +46,18 @@ class BaseEditRecord extends EditRecord
     protected function getSaveDiscardActions(): array
     {
         return [
-            Actions\Action::make('save')
+            Actions\Action::make('headerSave')
                 ->tooltip(__('filament-panels::resources/pages/edit-record.form.actions.save.label'))
                 ->color('success')
                 ->icon('heroicon-s-check')
                 ->iconButton()
                 ->extraAttributes([
                     'class' => 'border border-success-500 bg-white hover:bg-success-50',
+                    'wire:click' => 'save',
                 ])
-                ->action(fn () => $this->save())
                 ->keyBindings(['mod+s']),
 
-            Actions\Action::make('discard')
+            Actions\Action::make('headerDiscard')
                 ->tooltip(__('core::core.discard'))
                 ->color('danger')
                 ->icon('heroicon-s-x-mark')

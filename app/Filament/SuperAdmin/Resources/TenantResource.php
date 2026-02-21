@@ -61,9 +61,16 @@ class TenantResource extends Resource
                         ->required()
                         ->maxLength(255)
                         ->live(onBlur: true)
-                        ->afterStateUpdated(function (string $state, Forms\Set $set) {
-                            $set('slug', Str::slug($state));
-                            $set('database_name', 'tenant_' . Str::slug($state, '_'));
+                        ->afterStateUpdated(function (string $state, Forms\Set $set, Forms\Get $get, ?Tenant $record) {
+                            // Only auto-fill on creation when fields are empty
+                            if (!$record) {
+                                if (empty($get('slug'))) {
+                                    $set('slug', Str::slug($state));
+                                }
+                                if (empty($get('database_name'))) {
+                                    $set('database_name', 'tenant_' . Str::slug($state, '_'));
+                                }
+                            }
                         }),
 
                     Forms\Components\TextInput::make('slug')
@@ -79,7 +86,27 @@ class TenantResource extends Resource
                         ->required()
                         ->unique(ignoreRecord: true)
                         ->maxLength(100)
-                        ->disabled()
+                        ->disabled(function (?Tenant $record): bool {
+                            if (!$record) {
+                                return false; // Editable when creating
+                            }
+                            // Check if schema exists
+                            $schemaExists = \DB::select(
+                                "SELECT schema_name FROM information_schema.schemata WHERE schema_name = ?",
+                                [$record->database_name]
+                            );
+                            return !empty($schemaExists); // Disabled if schema exists
+                        })
+                        ->helperText(function (?Tenant $record): ?string {
+                            if (!$record) {
+                                return null;
+                            }
+                            $schemaExists = \DB::select(
+                                "SELECT schema_name FROM information_schema.schemata WHERE schema_name = ?",
+                                [$record->database_name]
+                            );
+                            return !empty($schemaExists) ? 'Schema already created - cannot change' : 'Editable until schema is provisioned';
+                        })
                         ->dehydrated(),
 
                     Forms\Components\TextInput::make('domain')
@@ -414,10 +441,79 @@ class TenantResource extends Resource
                     ->label('Login As')
                     ->icon('heroicon-o-arrow-right-on-rectangle')
                     ->color('info')
-                    ->url(fn(Tenant $record): string =>
-                        "https://{$record->slug}.x-linic.com/admin"
-                    )
-                    ->openUrlInNewTab(),
+                    ->visible(fn(Tenant $record) => self::schemaExists($record))
+                    ->form([
+                        Forms\Components\Select::make('user_id')
+                            ->label('Select User')
+                            ->options(function (Tenant $record) {
+                                try {
+                                    $schemaName = $record->database_name;
+                                    \DB::statement("SET search_path TO \"{$schemaName}\"");
+
+                                    $users = \DB::table('users')
+                                        ->select('id', 'first_name', 'last_name', 'email', 'status')
+                                        ->orderBy('first_name')
+                                        ->get();
+
+                                    \DB::statement("SET search_path TO public");
+
+                                    return $users->mapWithKeys(function ($user) {
+                                        $name = trim("{$user->first_name} {$user->last_name}");
+                                        $status = $user->status !== 'active' ? " [{$user->status}]" : '';
+                                        return [$user->id => "{$name} ({$user->email}){$status}"];
+                                    });
+                                } catch (\Exception $e) {
+                                    \DB::statement("SET search_path TO public");
+                                    return [];
+                                }
+                            })
+                            ->searchable()
+                            ->required(),
+                    ])
+                    ->action(function (Tenant $record, array $data): void {
+                        try {
+                            $schemaName = $record->database_name;
+                            \DB::statement("SET search_path TO \"{$schemaName}\"");
+
+                            $token = \Illuminate\Support\Str::random(64);
+                            $expiresAt = now()->addMinutes(5);
+
+                            \DB::table('users')
+                                ->where('id', $data['user_id'])
+                                ->update([
+                                    'impersonation_token' => hash('sha256', $token),
+                                    'impersonation_token_expires_at' => $expiresAt,
+                                ]);
+
+                            $user = \DB::table('users')->where('id', $data['user_id'])->first();
+
+                            \DB::statement("SET search_path TO public");
+
+                            $url = "https://{$record->slug}.x-linic.com/admin/impersonate?token={$token}&user={$data['user_id']}";
+
+                            Notification::make()
+                                ->title("Login link for {$user->first_name} {$user->last_name}")
+                                ->body("Expires in 5 minutes")
+                                ->actions([
+                                    \Filament\Notifications\Actions\Action::make('login')
+                                        ->label('Open Login Link')
+                                        ->url($url)
+                                        ->openUrlInNewTab(),
+                                ])
+                                ->success()
+                                ->persistent()
+                                ->send();
+
+                        } catch (\Exception $e) {
+                            \DB::statement("SET search_path TO public");
+
+                            Notification::make()
+                                ->title('Failed to generate login link')
+                                ->body($e->getMessage())
+                                ->danger()
+                                ->send();
+                        }
+                    }),
 
                 Tables\Actions\Action::make('email')
                     ->label('Email')
@@ -553,5 +649,25 @@ class TenantResource extends Resource
     public static function getNavigationBadgeColor(): ?string
     {
         return 'success';
+    }
+
+    /**
+     * Check if a tenant's database schema exists.
+     */
+    protected static function schemaExists(Tenant $tenant): bool
+    {
+        if (!$tenant->database_name) {
+            return false;
+        }
+
+        try {
+            $result = \DB::select(
+                "SELECT schema_name FROM information_schema.schemata WHERE schema_name = ?",
+                [$tenant->database_name]
+            );
+            return count($result) > 0;
+        } catch (\Exception $e) {
+            return false;
+        }
     }
 }

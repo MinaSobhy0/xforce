@@ -81,6 +81,8 @@ class User extends BaseModel implements
         'settings',
         'preferences',
         'meta',
+        'impersonation_token',
+        'impersonation_token_expires_at',
     ];
 
     protected $hidden = [
@@ -88,6 +90,7 @@ class User extends BaseModel implements
         'remember_token',
         'two_factor_secret',
         'two_factor_recovery_codes',
+        'impersonation_token',
     ];
 
     protected $casts = [
@@ -113,6 +116,7 @@ class User extends BaseModel implements
         'emergency_contact' => 'array',
         'status' => UserStatus::class,
         'gender' => Gender::class,
+        'impersonation_token_expires_at' => 'datetime',
     ];
 
     protected $appends = [

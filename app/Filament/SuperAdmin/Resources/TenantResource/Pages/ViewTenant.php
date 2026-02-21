@@ -253,10 +253,12 @@ class ViewTenant extends BaseViewRecord
                         DB::purge('pgsql');
                         DB::reconnect('pgsql');
 
+                        $this->record->refresh();
+
                         if ($result && $result['password']) {
                             Notification::make()
                                 ->title('Owner user created/reset')
-                                ->body("Email: {$this->record->contact_email}\nPassword: {$result['password']}\n\nPlease save this password!")
+                                ->body("Email: {$this->record->contact_email}\nPassword: {$result['password']}\n\nPassword is also visible in the Info tab.")
                                 ->success()
                                 ->persistent()
                                 ->send();
@@ -283,15 +285,87 @@ class ViewTenant extends BaseViewRecord
                     }
                 }),
 
+
             Actions\Action::make('loginAs')
-                ->label('Login As Owner')
+                ->label('Login As')
                 ->icon('heroicon-o-arrow-right-on-rectangle')
                 ->color('info')
-                ->url(fn(): string =>
-                    "https://{$this->record->slug}.x-linic.com/admin"
-                )
-                ->openUrlInNewTab()
-                ->visible(fn() => $this->schemaExists()),
+                ->visible(fn() => $this->schemaExists())
+                ->form([
+                    Forms\Components\Select::make('user_id')
+                        ->label('Select User')
+                        ->options(function () {
+                            try {
+                                $schemaName = $this->record->database_name;
+                                DB::statement("SET search_path TO \"{$schemaName}\"");
+
+                                $users = DB::table('users')
+                                    ->select('id', 'first_name', 'last_name', 'email', 'status')
+                                    ->orderBy('first_name')
+                                    ->get();
+
+                                DB::statement("SET search_path TO public");
+
+                                return $users->mapWithKeys(function ($user) {
+                                    $name = trim("{$user->first_name} {$user->last_name}");
+                                    $status = $user->status !== 'active' ? " [{$user->status}]" : '';
+                                    return [$user->id => "{$name} ({$user->email}){$status}"];
+                                });
+                            } catch (\Exception $e) {
+                                DB::statement("SET search_path TO public");
+                                return [];
+                            }
+                        })
+                        ->searchable()
+                        ->required(),
+                ])
+                ->action(function (array $data): void {
+                    try {
+                        $schemaName = $this->record->database_name;
+                        DB::statement("SET search_path TO \"{$schemaName}\"");
+
+                        // Generate a one-time login token
+                        $token = \Illuminate\Support\Str::random(64);
+                        $expiresAt = now()->addMinutes(5);
+
+                        // Store token in user's record
+                        DB::table('users')
+                            ->where('id', $data['user_id'])
+                            ->update([
+                                'impersonation_token' => hash('sha256', $token),
+                                'impersonation_token_expires_at' => $expiresAt,
+                            ]);
+
+                        $user = DB::table('users')->where('id', $data['user_id'])->first();
+
+                        DB::statement("SET search_path TO public");
+
+                        // Build the impersonation URL
+                        $url = "https://{$this->record->slug}.x-linic.com/admin/impersonate?token={$token}&user={$data['user_id']}";
+
+                        Notification::make()
+                            ->title("Login link generated for {$user->first_name} {$user->last_name}")
+                            ->body("Click the link below to login (expires in 5 minutes)")
+                            ->actions([
+                                \Filament\Notifications\Actions\Action::make('login')
+                                    ->label('Open Login Link')
+                                    ->url($url)
+                                    ->openUrlInNewTab(),
+                            ])
+                            ->success()
+                            ->persistent()
+                            ->send();
+
+                    } catch (\Exception $e) {
+                        DB::statement("SET search_path TO public");
+
+                        Notification::make()
+                            ->title('Failed to generate login link')
+                            ->body($e->getMessage())
+                            ->danger()
+                            ->send();
+                    }
+                }),
 
             Actions\Action::make('emailOwner')
                 ->label('Send Email')
@@ -627,6 +701,13 @@ class ViewTenant extends BaseViewRecord
                                         Components\TextEntry::make('contact_email')
                                             ->label('Email')
                                             ->copyable(),
+                                        Components\TextEntry::make('settings.initial_owner_password')
+                                            ->label('Initial Password')
+                                            ->copyable()
+                                            ->copyMessage('Password copied!')
+                                            ->icon('heroicon-o-key')
+                                            ->color('warning')
+                                            ->default('Not set'),
                                         Components\TextEntry::make('contact_phone')
                                             ->label('Phone')
                                             ->copyable(),
