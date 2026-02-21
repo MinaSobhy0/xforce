@@ -102,7 +102,7 @@ class GeneralLedgerPage extends Page implements HasForms
         // Opening balance (before start date)
         $this->openingBalance = JournalEntryLine::where('account_id', $this->account_id)
             ->whereHas('journalEntry', function ($q) use ($startDate) {
-                $q->where('entry_date', '<', $startDate)
+                $q->where('date', '<', $startDate)
                     ->where('status', 'posted');
             })
             ->sum(DB::raw('debit_minor - credit_minor'));
@@ -110,11 +110,11 @@ class GeneralLedgerPage extends Page implements HasForms
         // Ledger entries in period
         $entries = JournalEntryLine::where('account_id', $this->account_id)
             ->whereHas('journalEntry', function ($q) use ($startDate, $endDate) {
-                $q->whereBetween('entry_date', [$startDate, $endDate])
+                $q->whereBetween('date', [$startDate, $endDate])
                     ->where('status', 'posted');
             })
             ->with(['journalEntry'])
-            ->orderBy(DB::raw('(SELECT entry_date FROM journal_entries WHERE journal_entries.id = journal_entry_lines.journal_entry_id)'))
+            ->orderBy(DB::raw('(SELECT date FROM journal_entries WHERE journal_entries.id = journal_entry_lines.journal_entry_id)'))
             ->get();
 
         $runningBalance = $this->openingBalance;
@@ -124,8 +124,8 @@ class GeneralLedgerPage extends Page implements HasForms
             $runningBalance += ($entry->debit_minor - $entry->credit_minor);
 
             $this->ledgerEntries[] = [
-                'date' => $entry->journalEntry->entry_date->format('Y-m-d'),
-                'entry_number' => $entry->journalEntry->entry_number,
+                'date' => $entry->journalEntry->date->format('Y-m-d'),
+                'entry_number' => $entry->journalEntry->code,
                 'description' => $entry->description ?? $entry->journalEntry->description,
                 'debit' => $entry->debit_minor,
                 'credit' => $entry->credit_minor,

@@ -107,7 +107,7 @@ class BalanceSheetPage extends Page implements HasForms
         foreach ($accounts as $account) {
             $balance = JournalEntryLine::where('account_id', $account->id)
                 ->whereHas('journalEntry', function ($q) use ($asOfDate) {
-                    $q->where('entry_date', '<=', $asOfDate)
+                    $q->where('date', '<=', $asOfDate)
                         ->where('status', 'posted');
                 })
                 ->sum(DB::raw('debit_minor - credit_minor'));
@@ -133,14 +133,14 @@ class BalanceSheetPage extends Page implements HasForms
     {
         $revenues = JournalEntryLine::whereHas('account', fn ($q) => $q->where('type', 'revenue'))
             ->whereHas('journalEntry', function ($q) use ($asOfDate) {
-                $q->where('entry_date', '<=', $asOfDate)
+                $q->where('date', '<=', $asOfDate)
                     ->where('status', 'posted');
             })
             ->sum(DB::raw('credit_minor - debit_minor'));
 
         $expenses = JournalEntryLine::whereHas('account', fn ($q) => $q->where('type', 'expense'))
             ->whereHas('journalEntry', function ($q) use ($asOfDate) {
-                $q->where('entry_date', '<=', $asOfDate)
+                $q->where('date', '<=', $asOfDate)
                     ->where('status', 'posted');
             })
             ->sum(DB::raw('debit_minor - credit_minor'));

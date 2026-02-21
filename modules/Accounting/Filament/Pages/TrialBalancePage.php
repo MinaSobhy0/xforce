@@ -79,7 +79,7 @@ class TrialBalancePage extends Page implements HasForms
         foreach ($accounts as $account) {
             $balance = JournalEntryLine::where('account_id', $account->id)
                 ->whereHas('journalEntry', function ($q) use ($asOfDate) {
-                    $q->where('entry_date', '<=', $asOfDate)
+                    $q->where('date', '<=', $asOfDate)
                         ->where('status', 'posted');
                 })
                 ->sum(DB::raw('debit_minor - credit_minor'));
