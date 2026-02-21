@@ -67,14 +67,15 @@ class InventoryReportPage extends BaseReportPage
 
         if ($branchId) {
             $movementsQuery->where(function ($q) use ($branchId) {
-                $q->where('from_branch_id', $branchId)
-                    ->orWhere('to_branch_id', $branchId);
+                $q->where('source_branch_id', $branchId)
+                    ->orWhere('destination_branch_id', $branchId)
+                    ->orWhere('branch_id', $branchId);
             });
         }
 
         $totalMovements = $movementsQuery->count();
-        $movementsIn = (clone $movementsQuery)->where('type', 'in')->sum('quantity');
-        $movementsOut = (clone $movementsQuery)->where('type', 'out')->sum('quantity');
+        $movementsIn = (clone $movementsQuery)->whereIn('movement_type', ['in', 'purchase_receive', 'transfer_in', 'return'])->sum('quantity');
+        $movementsOut = (clone $movementsQuery)->whereIn('movement_type', ['out', 'appointment_consume', 'transfer_out', 'waste'])->sum('quantity');
 
         // Purchase orders in period
         $poQuery = PurchaseOrder::query()
