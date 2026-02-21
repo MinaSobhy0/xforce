@@ -111,8 +111,8 @@ class SuperAdminPanelProvider extends PanelProvider
             ->databaseNotifications()
             ->databaseNotificationsPolling('30s')
 
-            // SPA Mode for smooth navigation
-            ->spa()
+            // SPA Mode disabled - was causing sidebar issues
+            // ->spa()
 
             // Plugins
             ->plugin(

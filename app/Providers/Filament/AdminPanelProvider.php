@@ -40,7 +40,6 @@ class AdminPanelProvider extends PanelProvider
                 'primary' => Color::Blue,
             ])
             ->darkMode()
-            ->spa()
             ->favicon(function () {
                 $favicon = \App\Models\PlatformSetting::get('favicon');
                 return $favicon ? asset('storage/' . $favicon) : null;
