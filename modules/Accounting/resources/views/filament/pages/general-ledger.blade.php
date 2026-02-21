@@ -126,7 +126,7 @@
                                 @foreach($accountBalances as $account)
                                     <tr class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900">
                                         <td class="px-4 py-3 font-mono font-semibold">{{ $account['code'] }}</td>
-                                        <td class="px-4 py-3">{{ $account['name'] }}</td>
+                                        <td class="px-4 py-3">{{ is_array($account['name']) ? ($account['name'][app()->getLocale()] ?? $account['name']['en'] ?? '') : $account['name'] }}</td>
                                         <td class="px-4 py-3 text-center">
                                             <x-filament::badge :color="match($account['type']) {
                                                 'asset' => 'info',
