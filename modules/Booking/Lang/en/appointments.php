@@ -17,7 +17,7 @@ return [
         'patient' => 'Patient',
         'treatment' => 'Treatment',
         'branch' => 'Branch',
-        'practitioner' => 'Practitioner',
+        'practitioner' => 'Doctor',
         'room' => 'Room',
         'equipment' => 'Equipment',
         'date' => 'Date',
@@ -86,13 +86,13 @@ return [
     ],
 
     'validation' => [
-        'practitioner_busy' => 'Practitioner has another appointment at :time with :patient',
+        'practitioner_busy' => 'Doctor has another appointment at :time with :patient',
         'room_busy' => 'Room is occupied at :time by :patient',
         'equipment_busy' => 'Equipment is in use at :time by :patient',
         'double_booking_detected' => 'Scheduling conflict detected',
         'patient_required' => 'Please select a patient',
         'treatment_required' => 'Please select a treatment',
-        'practitioner_required' => 'Please select a practitioner',
+        'practitioner_required' => 'Please select a doctor',
     ],
 
     // Quick Book
@@ -100,7 +100,7 @@ return [
     'any_available' => 'Any Available Doctor',
     'available_slots' => 'Available Time Slots',
     'no_slots_available' => 'No available slots',
-    'no_slots_available_hint' => 'Try selecting a different date or practitioner',
+    'no_slots_available_hint' => 'Try selecting a different date or doctor',
     'select_slot' => 'Please select a time slot',
     'booking_summary' => 'Booking Summary',
     'book_now' => 'Book Appointment',

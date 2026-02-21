@@ -17,7 +17,7 @@ return [
         'patient' => 'المريض',
         'treatment' => 'العلاج',
         'branch' => 'الفرع',
-        'practitioner' => 'المختص',
+        'practitioner' => 'الطبيب',
         'room' => 'الغرفة',
         'equipment' => 'الجهاز',
         'date' => 'التاريخ',
@@ -86,13 +86,13 @@ return [
     ],
 
     'validation' => [
-        'practitioner_busy' => 'المختص لديه موعد آخر في :time مع :patient',
+        'practitioner_busy' => 'الطبيب لديه موعد آخر في :time مع :patient',
         'room_busy' => 'الغرفة مشغولة في :time بواسطة :patient',
         'equipment_busy' => 'الجهاز قيد الاستخدام في :time بواسطة :patient',
         'double_booking_detected' => 'تم اكتشاف تعارض في الجدولة',
         'patient_required' => 'يرجى اختيار مريض',
         'treatment_required' => 'يرجى اختيار علاج',
-        'practitioner_required' => 'يرجى اختيار مختص',
+        'practitioner_required' => 'يرجى اختيار طبيب',
     ],
 
     // Quick Book
@@ -100,7 +100,7 @@ return [
     'any_available' => 'أي طبيب متاح',
     'available_slots' => 'المواعيد المتاحة',
     'no_slots_available' => 'لا توجد مواعيد متاحة',
-    'no_slots_available_hint' => 'جرب اختيار تاريخ أو مختص مختلف',
+    'no_slots_available_hint' => 'جرب اختيار تاريخ أو طبيب مختلف',
     'select_slot' => 'يرجى اختيار موعد',
     'booking_summary' => 'ملخص الحجز',
     'book_now' => 'احجز الموعد',
