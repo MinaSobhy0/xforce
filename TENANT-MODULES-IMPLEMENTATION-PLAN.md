@@ -3,7 +3,7 @@
 ## You have: Super Admin panel + Framework kernel done
 ## Building: All clinic-side modules
 
-**Last Updated:** 2026-02-20 (Verified implementation status against actual code)
+**Last Updated:** 2026-02-21 (Added missing components: events, migrations, Accounting reports)
 
 ---
 
@@ -2437,7 +2437,7 @@ This is what makes the system truly modular.
 | 3 | Equipment | Done | ~95% |
 | 3 | Booking | Done | ~95% |
 | 4 | Billing | Done | ~95% |
-| 4 | Accounting | Done | ~90% |
+| 4 | Accounting | Done | ~95% |
 | 5 | Packages | Done | ~90% |
 | 5 | GiftCards | Done | ~90% |
 | 5 | Memberships | Done | ~90% |
@@ -2450,12 +2450,14 @@ This is what makes the system truly modular.
 | 9 | PatientPortal | Done | ~85% |
 | 9 | Api | Done | ~90% |
 
-**Overall Progress: ~95% (19 of 19 modules implemented)**
+**Overall Progress: ~97% (19 of 19 modules implemented, events and reports complete)**
 
 Note: Marketing module is unified (WhatsApp + SMS + Email), reducing total from 21 to 19 modules.
 
 ### Remaining Work for Full Completion:
-- **Cross-module integration**: Event wiring for listeners (DeductStock, CalculateCommission, SendNotification)
+- ~~**Cross-module integration**: Event wiring for listeners~~ ✅ DONE (Events created: AppointmentCompleted, AppointmentConfirmed, AppointmentCancelled, InvoicePaid, PaymentReceived; Marketing EventServiceProvider enabled)
+- ~~**Core migrations**: activities and audit_logs tables~~ ✅ DONE (migrations created, pending execution)
+- ~~**Accounting report pages**: 5 financial report pages~~ ✅ DONE (TrialBalance, ProfitLoss, BalanceSheet, GeneralLedger, CashFlow + views + translations)
 - **Dashboard widgets**: Low stock alerts, commission pending count, notification stats
 - **PDF generation**: Salary slips, reports, invoices
 - **Extensions**: Form extensions to add tabs to Patient, User, Treatment forms
