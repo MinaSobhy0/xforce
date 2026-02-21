@@ -12,6 +12,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Modules\Core\Models\Branch;
 
 class WorkScheduleResource extends Resource
 {
@@ -71,7 +72,15 @@ class WorkScheduleResource extends Resource
                                     ->searchable()
                                     ->preload()
                                     ->required()
-                                    ->default(fn () => current_branch_id())
+                                    ->default(function () {
+                                        // Use current branch if set, otherwise get main/first active branch
+                                        if ($branchId = current_branch_id()) {
+                                            return $branchId;
+                                        }
+
+                                        return Branch::active()->main()->value('id')
+                                            ?? Branch::active()->ordered()->value('id');
+                                    })
                                     ->disabled(fn () => current_branch_id() !== null)
                                     ->dehydrated(),
 
@@ -84,6 +93,76 @@ class WorkScheduleResource extends Resource
                             ->rows(2)
                             ->maxLength(500),
                     ]),
+
+                Forms\Components\Section::make(__('booking::schedules.sections.quick_fill'))
+                    ->description(__('booking::schedules.quick_fill_help'))
+                    ->schema([
+                        Forms\Components\Grid::make(4)
+                            ->schema([
+                                Forms\Components\CheckboxList::make('quick_fill_days')
+                                    ->label(__('booking::schedules.fields.select_days'))
+                                    ->options(WorkSchedule::DAYS)
+                                    ->columns(7)
+                                    ->gridDirection('row')
+                                    ->columnSpanFull()
+                                    ->live()
+                                    ->afterStateHydrated(function (Forms\Components\CheckboxList $component) {
+                                        // Default to all days except Friday (index 5)
+                                        $component->state([0, 1, 2, 3, 4, 6]);
+                                    }),
+
+                                Forms\Components\TimePicker::make('quick_fill_start')
+                                    ->label(__('booking::schedules.fields.start_time'))
+                                    ->seconds(false)
+                                    ->default('09:00')
+                                    ->live(),
+
+                                Forms\Components\TimePicker::make('quick_fill_end')
+                                    ->label(__('booking::schedules.fields.end_time'))
+                                    ->seconds(false)
+                                    ->default('17:00')
+                                    ->live(),
+
+                                Forms\Components\TimePicker::make('quick_fill_break_start')
+                                    ->label(__('booking::schedules.fields.break_start'))
+                                    ->seconds(false),
+
+                                Forms\Components\TimePicker::make('quick_fill_break_end')
+                                    ->label(__('booking::schedules.fields.break_end'))
+                                    ->seconds(false),
+                            ]),
+
+                        Forms\Components\Actions::make([
+                            Forms\Components\Actions\Action::make('apply_to_days')
+                                ->label(__('booking::schedules.actions.apply_to_days'))
+                                ->icon('heroicon-o-check')
+                                ->color('primary')
+                                ->action(function (Forms\Get $get, Forms\Set $set) {
+                                    $selectedDays = $get('quick_fill_days') ?? [];
+                                    $startTime = $get('quick_fill_start');
+                                    $endTime = $get('quick_fill_end');
+                                    $breakStart = $get('quick_fill_break_start');
+                                    $breakEnd = $get('quick_fill_break_end');
+
+                                    foreach ($selectedDays as $dayIndex) {
+                                        $set("weekly_hours.{$dayIndex}.is_working", true);
+                                        $set("weekly_hours.{$dayIndex}.start_time", $startTime);
+                                        $set("weekly_hours.{$dayIndex}.end_time", $endTime);
+                                        $set("weekly_hours.{$dayIndex}.break_start", $breakStart);
+                                        $set("weekly_hours.{$dayIndex}.break_end", $breakEnd);
+                                    }
+
+                                    // Set non-selected days as not working
+                                    foreach (array_keys(WorkSchedule::DAYS) as $dayIndex) {
+                                        if (!in_array($dayIndex, $selectedDays)) {
+                                            $set("weekly_hours.{$dayIndex}.is_working", false);
+                                        }
+                                    }
+                                }),
+                        ])->columnSpanFull(),
+                    ])
+                    ->collapsible()
+                    ->collapsed(fn ($operation) => $operation === 'edit'),
 
                 Forms\Components\Section::make(__('booking::schedules.sections.weekly_schedule'))
                     ->description(__('booking::schedules.weekly_schedule_help'))
@@ -121,33 +200,6 @@ class WorkScheduleResource extends Resource
                                 ->columns(5)
                         )->toArray()
                     ),
-
-                Forms\Components\Section::make(__('booking::schedules.sections.slot_settings'))
-                    ->schema([
-                        Forms\Components\Grid::make(3)
-                            ->schema([
-                                Forms\Components\TextInput::make('slot_duration')
-                                    ->label(__('booking::schedules.fields.slot_duration'))
-                                    ->numeric()
-                                    ->default(30)
-                                    ->suffix(__('booking::schedules.minutes'))
-                                    ->required()
-                                    ->minValue(5)
-                                    ->maxValue(240),
-
-                                Forms\Components\TextInput::make('buffer_time')
-                                    ->label(__('booking::schedules.fields.buffer_time'))
-                                    ->numeric()
-                                    ->default(0)
-                                    ->suffix(__('booking::schedules.minutes'))
-                                    ->helperText(__('booking::schedules.buffer_time_help')),
-
-                                Forms\Components\TextInput::make('max_daily_appointments')
-                                    ->label(__('booking::schedules.fields.max_daily'))
-                                    ->numeric()
-                                    ->placeholder(__('booking::schedules.unlimited')),
-                            ]),
-                    ]),
 
                 Forms\Components\Section::make(__('booking::schedules.sections.status'))
                     ->schema([
@@ -193,11 +245,6 @@ class WorkScheduleResource extends Resource
                 Tables\Columns\TextColumn::make('total_weekly_hours')
                     ->label(__('booking::schedules.fields.hours_week'))
                     ->suffix('h')
-                    ->alignCenter(),
-
-                Tables\Columns\TextColumn::make('slot_duration')
-                    ->label(__('booking::schedules.fields.slot'))
-                    ->suffix(' min')
                     ->alignCenter(),
 
                 Tables\Columns\TextColumn::make('branch.name')

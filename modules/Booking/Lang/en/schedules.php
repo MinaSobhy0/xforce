@@ -12,6 +12,7 @@ return [
         'basic_info' => 'Basic Information',
         'practitioner' => 'Practitioner',
         'schedule' => 'Working Hours',
+        'quick_fill' => 'Quick Fill',
         'weekly_schedule' => 'Weekly Schedule',
         'slot_settings' => 'Appointment Slot Settings',
         'break' => 'Break Time',
@@ -53,10 +54,12 @@ return [
         'until' => 'Until',
         'primary' => 'Primary',
         'active' => 'Active',
+        'select_days' => 'Select Days',
     ],
 
     'all_branches' => 'All Branches',
     'branch_help' => 'Leave empty to apply to all branches',
+    'quick_fill_help' => 'Quickly set the same working hours for multiple days',
     'weekly_schedule_help' => 'Configure working hours for each day of the week',
     'buffer_time_help' => 'Minutes between appointments',
     'unlimited' => 'Unlimited',
@@ -69,6 +72,7 @@ return [
 
     'actions' => [
         'duplicate' => 'Duplicate',
+        'apply_to_days' => 'Apply to Selected Days',
     ],
 
     'filters' => [
