@@ -471,6 +471,7 @@ class UserResource extends BaseResource
     public static function getRelations(): array
     {
         return [
+            RelationManagers\BranchRolesRelationManager::class,
             RelationManagers\ActivityLogRelationManager::class,
             RelationManagers\SessionsRelationManager::class,
             RelationManagers\AppointmentsRelationManager::class,

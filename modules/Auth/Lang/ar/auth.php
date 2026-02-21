@@ -130,4 +130,60 @@ return [
     'branch_roles' => 'أدوار الفروع',
     'assign_branch_role' => 'تعيين دور للفرع',
     'primary_branch' => 'الفرع الرئيسي',
+    'branch_access' => 'صلاحيات الفروع',
+
+    // Branch Role Fields
+    'fields' => [
+        'name' => 'الاسم',
+        'model_type' => 'نوع النموذج',
+        'role' => 'الدور',
+        'apply_to_all_roles' => 'تطبيق على جميع الأدوار',
+        'priority' => 'الأولوية',
+        'description' => 'الوصف',
+        'is_active' => 'نشط',
+        'perm_read' => 'قراءة',
+        'perm_create' => 'إنشاء',
+        'perm_update' => 'تحديث',
+        'perm_delete' => 'حذف',
+        'conditions' => 'الشروط',
+        'field' => 'الحقل',
+        'operator' => 'المشغل',
+        'value' => 'القيمة',
+        'read' => 'قراءة',
+        'create' => 'إنشاء',
+        'update' => 'تحديث',
+        'delete' => 'حذف',
+        'active' => 'نشط',
+        'branch' => 'الفرع',
+        'is_primary' => 'رئيسي',
+        'expires_at' => 'تنتهي في',
+        'assigned_at' => 'تم التعيين في',
+    ],
+
+    // Branch Role Helpers
+    'helpers' => [
+        'apply_to_all_roles' => 'عند التفعيل، تُطبق هذه السياسة على جميع الأدوار',
+        'priority' => 'رقم أقل = أولوية أعلى',
+        'placeholders' => 'استخدم {user.id}, {user.branch_id}, {user.tenant_id}, {today}, {now}',
+        'primary_branch' => 'الفرع الرئيسي هو الفرع الافتراضي لهذا المستخدم',
+        'expires_at' => 'اتركه فارغاً للوصول الدائم',
+    ],
+
+    // Branch Role Actions
+    'actions' => [
+        'add_condition' => 'إضافة شرط',
+        'assign_branch' => 'تعيين فرع',
+        'make_primary' => 'جعله رئيسي',
+        'activate' => 'تفعيل',
+        'deactivate' => 'إلغاء التفعيل',
+    ],
+
+    // Branch Role Messages
+    'messages' => [
+        'primary_branch_set' => 'تم تعيين الفرع الرئيسي',
+        'branch_access_activated' => 'تم تفعيل صلاحية الفرع',
+        'branch_access_deactivated' => 'تم إلغاء تفعيل صلاحية الفرع',
+        'branch_assigned' => 'تم تعيين الفرع للمستخدم',
+        'branch_removed' => 'تم إزالة صلاحية الفرع',
+    ],
 ];

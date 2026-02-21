@@ -216,6 +216,82 @@ class User extends BaseModel implements
         return $this->hasOne(\Modules\Staff\Models\StaffProfile::class, 'user_id');
     }
 
+    /**
+     * Get the user's branch role assignments.
+     */
+    public function branchRoles(): HasMany
+    {
+        return $this->hasMany(UserBranchRole::class);
+    }
+
+    /**
+     * Get the user's active branch role assignments.
+     */
+    public function activeBranchRoles(): HasMany
+    {
+        return $this->hasMany(UserBranchRole::class)
+            ->where('is_active', true)
+            ->where(function ($q) {
+                $q->whereNull('expires_at')
+                  ->orWhere('expires_at', '>', now());
+            });
+    }
+
+    /**
+     * Get the branches the user has access to.
+     */
+    public function allowedBranches(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(
+            \Modules\Core\Models\Branch::class,
+            'user_branch_roles',
+            'user_id',
+            'branch_id'
+        )
+        ->wherePivot('is_active', true)
+        ->where(function ($q) {
+            $q->whereNull('user_branch_roles.expires_at')
+              ->orWhere('user_branch_roles.expires_at', '>', now());
+        })
+        ->distinct();
+    }
+
+    /**
+     * Get the user's primary branch.
+     */
+    public function getPrimaryBranchAttribute(): ?\Modules\Core\Models\Branch
+    {
+        $primaryRole = $this->branchRoles()
+            ->where('is_active', true)
+            ->where('is_primary', true)
+            ->where(function ($q) {
+                $q->whereNull('expires_at')
+                  ->orWhere('expires_at', '>', now());
+            })
+            ->first();
+
+        return $primaryRole?->branch;
+    }
+
+    /**
+     * Check if user has access to a specific branch.
+     */
+    public function hasAccessToBranch(string $branchId): bool
+    {
+        // Super admins have access to all branches
+        if ($this->hasRole(['super-admin', 'super_admin', 'tenant-owner', 'tenant_owner', 'owner', 'admin'])) {
+            return true;
+        }
+
+        if ($this->can('access-all-branches')) {
+            return true;
+        }
+
+        return $this->activeBranchRoles()
+            ->where('branch_id', $branchId)
+            ->exists();
+    }
+
     public function commissionRecords(): \Illuminate\Database\Eloquent\Relations\HasManyThrough
     {
         return $this->hasManyThrough(

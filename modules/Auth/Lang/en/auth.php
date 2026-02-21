@@ -194,4 +194,60 @@ return [
     'branch_roles' => 'Branch Roles',
     'assign_branch_role' => 'Assign Role to Branch',
     'primary_branch' => 'Primary Branch',
+    'branch_access' => 'Branch Access',
+
+    // Branch Role Fields
+    'fields' => [
+        'name' => 'Name',
+        'model_type' => 'Model Type',
+        'role' => 'Role',
+        'apply_to_all_roles' => 'Apply to All Roles',
+        'priority' => 'Priority',
+        'description' => 'Description',
+        'is_active' => 'Active',
+        'perm_read' => 'Read',
+        'perm_create' => 'Create',
+        'perm_update' => 'Update',
+        'perm_delete' => 'Delete',
+        'conditions' => 'Conditions',
+        'field' => 'Field',
+        'operator' => 'Operator',
+        'value' => 'Value',
+        'read' => 'Read',
+        'create' => 'Create',
+        'update' => 'Update',
+        'delete' => 'Delete',
+        'active' => 'Active',
+        'branch' => 'Branch',
+        'is_primary' => 'Primary',
+        'expires_at' => 'Expires At',
+        'assigned_at' => 'Assigned At',
+    ],
+
+    // Branch Role Helpers
+    'helpers' => [
+        'apply_to_all_roles' => 'When enabled, this policy applies to all roles regardless of role selection',
+        'priority' => 'Lower number = higher priority. Policies are evaluated in priority order.',
+        'placeholders' => 'Use {user.id}, {user.branch_id}, {user.tenant_id}, {today}, {now}',
+        'primary_branch' => 'The primary branch is the default branch for this user',
+        'expires_at' => 'Leave empty for permanent access',
+    ],
+
+    // Branch Role Actions
+    'actions' => [
+        'add_condition' => 'Add Condition',
+        'assign_branch' => 'Assign Branch',
+        'make_primary' => 'Make Primary',
+        'activate' => 'Activate',
+        'deactivate' => 'Deactivate',
+    ],
+
+    // Branch Role Messages
+    'messages' => [
+        'primary_branch_set' => 'Primary branch has been set',
+        'branch_access_activated' => 'Branch access has been activated',
+        'branch_access_deactivated' => 'Branch access has been deactivated',
+        'branch_assigned' => 'Branch has been assigned to user',
+        'branch_removed' => 'Branch access has been removed',
+    ],
 ];
