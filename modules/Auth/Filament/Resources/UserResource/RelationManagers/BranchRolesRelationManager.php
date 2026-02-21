@@ -40,8 +40,8 @@ class BranchRolesRelationManager extends RelationManager
                 Forms\Components\Select::make('role_id')
                     ->label(__('auth::auth.fields.role'))
                     ->options(function () {
-                        return Role::where('is_active', true)
-                            ->orderBy('level', 'desc')
+                        return Role::query()
+                            ->orderBy('name')
                             ->pluck('name', 'id');
                     })
                     ->searchable()
