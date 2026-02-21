@@ -134,7 +134,7 @@ class TenantStats extends Command
                 [
                     ['Appointments', $usage->appointments_this_month ?? 0],
                     ['New Patients', $usage->new_patients_this_month ?? 0],
-                    ['Treatments', $usage->treatments_this_month ?? 0],
+                    ['Services', $usage->services_this_month ?? 0],
                     ['Revenue', 'EGP ' . number_format(($usage->revenue_this_month_minor ?? 0) / 100, 2)],
                     ['WhatsApp Messages', $usage->whatsapp_messages_count ?? 0],
                     ['SMS Messages', $usage->sms_messages_count ?? 0],

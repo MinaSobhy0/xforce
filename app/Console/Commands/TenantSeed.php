@@ -153,8 +153,8 @@ class TenantSeed extends Command
             // Core module seeders
             \Modules\Core\Database\Seeders\CoreDatabaseSeeder::class,
 
-            // Treatments module seeders
-            \Modules\Treatments\Database\Seeders\TreatmentsDatabaseSeeder::class,
+            // Services module seeders
+            \Modules\Services\Database\Seeders\ServicesModuleSeeder::class,
 
             // Billing module seeders
             \Modules\Billing\Database\Seeders\BillingDatabaseSeeder::class,

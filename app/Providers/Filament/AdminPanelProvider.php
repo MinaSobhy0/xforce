@@ -21,7 +21,7 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
  * Clinic Owner Portal - sys.x-linic.com/admin
  *
  * This panel is for clinic OWNERS to manage their SUBSCRIPTION.
- * NOT for managing clinic operations (patients, treatments, etc.)
+ * NOT for managing clinic operations (patients, services, etc.)
  *
  * For clinic operations, use TenantPanelProvider at tenant.x-linic.com/admin
  */
@@ -63,7 +63,7 @@ class AdminPanelProvider extends PanelProvider
             ])
 
             // Discover ONLY clinic owner portal resources (subscription, invoices, support)
-            // NO tenant module resources here (no Patients, Treatments, etc.)
+            // NO tenant module resources here (no Patients, Services, etc.)
             ->discoverResources(in: app_path('Filament/OwnerPortal/Resources'), for: 'App\\Filament\\OwnerPortal\\Resources')
             ->discoverPages(in: app_path('Filament/OwnerPortal/Pages'), for: 'App\\Filament\\OwnerPortal\\Pages')
             ->discoverWidgets(in: app_path('Filament/OwnerPortal/Widgets'), for: 'App\\Filament\\OwnerPortal\\Widgets')

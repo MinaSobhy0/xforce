@@ -47,7 +47,7 @@ class UsageDashboardPage extends Page
 
         // Get plan limits from tenant's plan + any extra purchased
         // Only users, branches, and storage are limited
-        // Patients, treatments, products, equipment are unlimited
+        // Patients, services, products, equipment are unlimited
         $usersLimit = $tenant->getEffectiveLimit('users');
         $branchesLimit = $tenant->getEffectiveLimit('branches');
         $storageLimit = $tenant->getEffectiveLimit('storage_mb');
@@ -73,7 +73,7 @@ class UsageDashboardPage extends Page
                 'api_requests' => $tenantUsage->api_requests_count ?? 0,
                 // Unlimited resources (for stats display only)
                 'patients' => $tenantUsage->patients_count ?? 0,
-                'treatments' => $tenantUsage->treatments_count ?? 0,
+                'services' => $tenantUsage->services_count ?? 0,
                 'products' => $tenantUsage->products_count ?? 0,
                 'equipment' => $tenantUsage->equipment_count ?? 0,
             ];
@@ -82,19 +82,19 @@ class UsageDashboardPage extends Page
                 'appointments_this_month' => $tenantUsage->appointments_this_month ?? 0,
                 'revenue_this_month' => $tenantUsage->revenue_this_month_minor ?? 0,
                 'new_patients_this_month' => $tenantUsage->new_patients_this_month ?? 0,
-                'treatments_this_month' => $tenantUsage->treatments_this_month ?? 0,
+                'services_this_month' => $tenantUsage->services_this_month ?? 0,
             ];
         } else {
             $this->usage = array_fill_keys(array_keys($this->limits), 0);
             $this->usage['patients'] = 0;
-            $this->usage['treatments'] = 0;
+            $this->usage['services'] = 0;
             $this->usage['products'] = 0;
             $this->usage['equipment'] = 0;
             $this->monthlyStats = [
                 'appointments_this_month' => 0,
                 'revenue_this_month' => 0,
                 'new_patients_this_month' => 0,
-                'treatments_this_month' => 0,
+                'services_this_month' => 0,
             ];
         }
     }
@@ -102,7 +102,7 @@ class UsageDashboardPage extends Page
     public function getUsageItems(): array
     {
         // Only users, branches, and storage have limits
-        // Patients, treatments, products, equipment are unlimited
+        // Patients, services, products, equipment are unlimited
         return [
             [
                 'label' => __('core::core.users'),
@@ -140,9 +140,9 @@ class UsageDashboardPage extends Page
                 'color' => 'info',
             ],
             [
-                'label' => __('core::core.treatments'),
+                'label' => __('core::core.services'),
                 'icon' => 'heroicon-o-heart',
-                'current' => $this->usage['treatments'] ?? 0,
+                'current' => $this->usage['services'] ?? 0,
                 'color' => 'success',
             ],
             [
@@ -216,8 +216,8 @@ class UsageDashboardPage extends Page
                 'color' => 'info',
             ],
             [
-                'label' => __('core::core.treatments_this_month'),
-                'value' => $this->monthlyStats['treatments_this_month'] ?? 0,
+                'label' => __('core::core.services_this_month'),
+                'value' => $this->monthlyStats['services_this_month'] ?? 0,
                 'icon' => 'heroicon-o-heart',
                 'color' => 'warning',
             ],

@@ -17,7 +17,7 @@ class ModuleSeeder extends Seeder
             // Operations
             ['code' => 'patients', 'name' => ['en' => 'Patients', 'ar' => 'المرضى'], 'category' => 'operations', 'icon_emoji' => '👤', 'tier' => 'free', 'sort_order' => 10],
             ['code' => 'booking', 'name' => ['en' => 'Booking', 'ar' => 'الحجوزات'], 'category' => 'operations', 'icon_emoji' => '📅', 'tier' => 'free', 'sort_order' => 11],
-            ['code' => 'treatments', 'name' => ['en' => 'Treatments', 'ar' => 'العلاجات'], 'category' => 'operations', 'icon_emoji' => '💆', 'tier' => 'free', 'sort_order' => 12],
+            ['code' => 'services', 'name' => ['en' => 'Services', 'ar' => 'الخدمات'], 'category' => 'operations', 'icon_emoji' => '💆', 'tier' => 'free', 'sort_order' => 12],
             ['code' => 'equipment', 'name' => ['en' => 'Equipment', 'ar' => 'المعدات'], 'category' => 'operations', 'icon_emoji' => '🔧', 'tier' => 'starter', 'sort_order' => 13],
             ['code' => 'inventory', 'name' => ['en' => 'Inventory', 'ar' => 'المخزون'], 'category' => 'operations', 'icon_emoji' => '📦', 'tier' => 'professional', 'sort_order' => 14],
 

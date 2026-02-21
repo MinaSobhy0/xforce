@@ -901,8 +901,8 @@ class ViewTenant extends BaseViewRecord
                                         ->formatStateUsing(fn($state) => ((int) ($state ?? 0)) . ' (unlimited)')
                                         ->color('success'),
 
-                                    Components\TextEntry::make('usage.treatments')
-                                        ->label('Treatments')
+                                    Components\TextEntry::make('usage.services')
+                                        ->label('Services')
                                         ->formatStateUsing(fn($state) => ((int) ($state ?? 0)) . ' (unlimited)')
                                         ->color('success'),
 

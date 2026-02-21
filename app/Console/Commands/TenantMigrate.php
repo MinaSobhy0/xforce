@@ -168,7 +168,7 @@ class TenantMigrate extends Command
             'database/migrations/tenant',
             'modules/Core/Database/Migrations',
             'modules/Patients/Database/Migrations',
-            'modules/Treatments/Database/Migrations',
+            'modules/Services/Database/Migrations',
             'modules/Booking/Database/Migrations',
             'modules/Billing/Database/Migrations',
             'modules/Staff/Database/Migrations',
