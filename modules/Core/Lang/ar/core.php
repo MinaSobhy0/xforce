@@ -190,6 +190,33 @@ return [
     'module_activated_with_dependencies' => 'تم تفعيل :module مع التبعيات: :dependencies',
     'error' => 'خطأ',
 
+    // Usage Dashboard
+    'usage_dashboard' => 'الاستخدام والحدود',
+    'account_limits' => 'حدود الحساب',
+    'account_limits_description' => 'استخدامك الحالي مقارنة بحدود خطتك',
+    'unlimited_resources' => 'موارد غير محدودة',
+    'unlimited_resources_description' => 'هذه الموارد ليس لها حدود في خطتك',
+    'unlimited' => 'غير محدود',
+    'monthly_usage' => 'الاستخدام الشهري',
+    'monthly_usage_description' => 'عدادات الاستخدام التي تُصفَّر كل شهر',
+    'users' => 'المستخدمين',
+    'patients' => 'المرضى',
+    'treatments' => 'العلاجات',
+    'products' => 'المنتجات',
+    'equipment' => 'المعدات',
+    'storage' => 'التخزين',
+    'whatsapp_messages' => 'رسائل واتساب',
+    'sms_messages' => 'رسائل SMS',
+    'emails' => 'رسائل البريد الإلكتروني',
+    'api_requests' => 'طلبات API',
+    'appointments_this_month' => 'المواعيد هذا الشهر',
+    'revenue_this_month' => 'الإيرادات هذا الشهر',
+    'new_patients_this_month' => 'المرضى الجدد هذا الشهر',
+    'treatments_this_month' => 'العلاجات هذا الشهر',
+    'need_more_resources' => 'تحتاج المزيد من الموارد؟',
+    'upgrade_plan_description' => 'قم بترقية خطتك لفتح المزيد من الميزات وحدود أعلى',
+    'view_plans' => 'عرض الخطط',
+
     // Module Categories
     'module_categories' => [
         'core' => 'النظام الأساسي',

@@ -45,12 +45,17 @@ class UsageDashboardPage extends Page
         // Get current usage
         $tenantUsage = TenantUsage::where('tenant_id', $tenant->id)->first();
 
-        // Get plan limits from tenant settings (set by SuperAdmin)
+        // Get plan limits from tenant's plan + any extra purchased
+        // Only users, branches, and storage are limited
+        // Patients, treatments, products, equipment are unlimited
+        $usersLimit = $tenant->getEffectiveLimit('users');
+        $branchesLimit = $tenant->getEffectiveLimit('branches');
+        $storageLimit = $tenant->getEffectiveLimit('storage_mb');
+
         $this->limits = [
-            'users' => $tenant->max_users ?? 10,
-            'branches' => $tenant->max_branches ?? 3,
-            'patients' => $tenant->max_patients ?? 1000,
-            'storage_gb' => round(($tenant->max_storage_mb ?? 1024) / 1024, 1), // Convert MB to GB
+            'users' => $usersLimit ?? 10,
+            'branches' => $branchesLimit ?? 3,
+            'storage_gb' => round(($storageLimit ?? 1024) / 1024, 1), // Convert MB to GB
             'whatsapp_messages' => $tenant->getSetting('max_whatsapp_messages', 500),
             'sms_messages' => $tenant->getSetting('max_sms_messages', 200),
             'emails' => $tenant->getSetting('max_emails', 1000),
@@ -61,12 +66,16 @@ class UsageDashboardPage extends Page
             $this->usage = [
                 'users' => $tenantUsage->users_count ?? 0,
                 'branches' => $tenantUsage->branches_count ?? 0,
-                'patients' => $tenantUsage->patients_count ?? 0,
                 'storage_gb' => round(($tenantUsage->storage_used_bytes ?? 0) / (1024 * 1024 * 1024), 2),
                 'whatsapp_messages' => $tenantUsage->whatsapp_messages_count ?? 0,
                 'sms_messages' => $tenantUsage->sms_messages_count ?? 0,
                 'emails' => $tenantUsage->emails_sent_count ?? 0,
                 'api_requests' => $tenantUsage->api_requests_count ?? 0,
+                // Unlimited resources (for stats display only)
+                'patients' => $tenantUsage->patients_count ?? 0,
+                'treatments' => $tenantUsage->treatments_count ?? 0,
+                'products' => $tenantUsage->products_count ?? 0,
+                'equipment' => $tenantUsage->equipment_count ?? 0,
             ];
 
             $this->monthlyStats = [
@@ -77,6 +86,10 @@ class UsageDashboardPage extends Page
             ];
         } else {
             $this->usage = array_fill_keys(array_keys($this->limits), 0);
+            $this->usage['patients'] = 0;
+            $this->usage['treatments'] = 0;
+            $this->usage['products'] = 0;
+            $this->usage['equipment'] = 0;
             $this->monthlyStats = [
                 'appointments_this_month' => 0,
                 'revenue_this_month' => 0,
@@ -88,6 +101,8 @@ class UsageDashboardPage extends Page
 
     public function getUsageItems(): array
     {
+        // Only users, branches, and storage have limits
+        // Patients, treatments, products, equipment are unlimited
         return [
             [
                 'label' => __('core::core.users'),
@@ -104,18 +119,42 @@ class UsageDashboardPage extends Page
                 'color' => 'success',
             ],
             [
-                'label' => __('core::core.patients'),
-                'icon' => 'heroicon-o-user-group',
-                'current' => $this->usage['patients'] ?? 0,
-                'limit' => $this->limits['patients'] ?? 0,
-                'color' => 'info',
-            ],
-            [
                 'label' => __('core::core.storage'),
                 'icon' => 'heroicon-o-server',
                 'current' => $this->usage['storage_gb'] ?? 0,
                 'limit' => $this->limits['storage_gb'] ?? 0,
                 'suffix' => 'GB',
+                'color' => 'warning',
+            ],
+        ];
+    }
+
+    public function getUnlimitedItems(): array
+    {
+        // Resources that have no limits
+        return [
+            [
+                'label' => __('core::core.patients'),
+                'icon' => 'heroicon-o-user-group',
+                'current' => $this->usage['patients'] ?? 0,
+                'color' => 'info',
+            ],
+            [
+                'label' => __('core::core.treatments'),
+                'icon' => 'heroicon-o-heart',
+                'current' => $this->usage['treatments'] ?? 0,
+                'color' => 'success',
+            ],
+            [
+                'label' => __('core::core.products'),
+                'icon' => 'heroicon-o-cube',
+                'current' => $this->usage['products'] ?? 0,
+                'color' => 'primary',
+            ],
+            [
+                'label' => __('core::core.equipment'),
+                'icon' => 'heroicon-o-wrench-screwdriver',
+                'current' => $this->usage['equipment'] ?? 0,
                 'color' => 'warning',
             ],
         ];

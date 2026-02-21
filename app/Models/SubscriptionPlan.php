@@ -14,7 +14,13 @@ class SubscriptionPlan extends Model
 {
     use HasUuids, SoftDeletes, HasTranslations, HasPostgresBoolean;
 
-    protected $table = 'subscription_plans';
+    /**
+     * The database connection that should be used by the model.
+     * SubscriptionPlan lives in public schema, not tenant schema.
+     */
+    protected $connection = 'central';
+
+    protected $table = 'public.subscription_plans';
 
     public array $translatable = ['name', 'description'];
 

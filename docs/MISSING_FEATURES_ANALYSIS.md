@@ -543,23 +543,25 @@ ODOO_PASSWORD=
 - [x] AuditLogger - Log all actions for audit (app/Http/Middleware/AuditLogger.php)
 
 #### Tenant Middleware
-- [ ] TenantContext - Set tenant context
+- [x] TenantContext - Set tenant context (via IdentifyTenant middleware)
 - [ ] TenantModuleAccess - Check module access
 - [ ] TenantFeatureFlag - Feature flag checking
 - [ ] TenantSubscription - Check subscription status
-- [ ] TenantUsageLimit - Enforce usage limits
+- [x] TenantUsageLimit - Enforce usage limits (app/Http/Middleware/TenantUsageLimit.php)
 
 #### Core Console Commands
-- [ ] tenant:create - Create new tenant
-- [ ] tenant:delete - Delete tenant and data
-- [ ] tenant:migrate - Run tenant migrations
-- [ ] tenant:seed - Seed tenant data
-- [ ] tenant:backup - Backup specific tenant
-- [ ] tenant:restore - Restore specific tenant
-- [ ] tenant:stats - Show tenant statistics
-- [ ] health:check - System health check
-- [ ] logs:clean - Clean old log files
-- [ ] cache:warm - Pre-warm application cache
+- [x] tenant:create - Create new tenant (app/Console/Commands/TenantCreate.php)
+- [x] tenant:delete - Delete tenant and data (app/Console/Commands/TenantDelete.php)
+- [x] tenant:migrate - Run tenant migrations (app/Console/Commands/TenantMigrate.php)
+- [x] tenant:seed - Seed tenant data (app/Console/Commands/TenantSeed.php)
+- [x] tenant:backup - Backup specific tenant (via tenants:backup command)
+- [x] tenant:restore - Restore specific tenant (via backup:restore command)
+- [x] tenant:stats - Show tenant statistics (app/Console/Commands/TenantStats.php)
+- [x] health:check - System health check (app/Console/Commands/HealthCheck.php)
+- [x] logs:clean - Clean old log files (app/Console/Commands/LogsClean.php)
+- [x] cache:warm - Pre-warm application cache (app/Console/Commands/CacheWarm.php)
+- [x] appointments:remind - Send appointment reminders (app/Console/Commands/AppointmentsRemind.php)
+- [x] invoices:remind - Send payment reminders (app/Console/Commands/InvoicesRemind.php)
 
 ### Phase 2: Important (Medical & Financial)
 

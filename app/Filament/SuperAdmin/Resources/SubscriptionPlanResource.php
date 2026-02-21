@@ -80,15 +80,12 @@ class SubscriptionPlanResource extends Resource
                 ]),
 
             Forms\Components\Section::make('Hard Limits')
+                ->description('Patients, treatments, products, and equipment are unlimited for all plans')
                 ->columns(4)
                 ->schema([
                     Forms\Components\TextInput::make('max_users')->numeric()->placeholder('Unlimited'),
                     Forms\Components\TextInput::make('max_branches')->numeric()->placeholder('Unlimited'),
-                    Forms\Components\TextInput::make('max_patients')->numeric()->placeholder('Unlimited'),
                     Forms\Components\TextInput::make('max_storage_mb')->label('Storage (MB)')->numeric()->placeholder('Unlimited'),
-                    Forms\Components\TextInput::make('max_equipment')->numeric()->placeholder('Unlimited'),
-                    Forms\Components\TextInput::make('max_products')->numeric()->placeholder('Unlimited'),
-                    Forms\Components\TextInput::make('max_treatments')->numeric()->placeholder('Unlimited'),
                     Forms\Components\TextInput::make('max_api_calls_daily')->numeric()->placeholder('Unlimited'),
                 ]),
 
