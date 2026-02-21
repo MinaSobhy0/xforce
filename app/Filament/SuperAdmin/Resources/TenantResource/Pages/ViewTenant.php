@@ -338,10 +338,10 @@ class ViewTenant extends BaseViewRecord
 
                         DB::statement("SET search_path TO public");
 
-                        // Build the impersonation URL and redirect directly
+                        // Build the impersonation URL and open in new tab
                         $url = "https://{$this->record->slug}.x-linic.com/admin/impersonate?token={$token}&user={$data['user_id']}";
 
-                        return redirect()->away($url);
+                        $this->js("window.open('{$url}', '_blank')");
 
                     } catch (\Exception $e) {
                         DB::statement("SET search_path TO public");
