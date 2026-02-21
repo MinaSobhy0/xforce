@@ -89,7 +89,7 @@
         {{-- Actions --}}
         <div class="flex items-center gap-1">
             <a
-                href="{{ route('filament.admin.resources.treatment-categories.edit', $category['id']) }}"
+                href="{{ \Modules\Treatments\Filament\Resources\TreatmentCategoryResource::getUrl('edit', ['record' => $category['id']]) }}"
                 class="p-1.5 text-gray-400 hover:text-primary-500 transition-colors"
                 title="{{ __('filament-actions::edit.single.label') }}"
             >

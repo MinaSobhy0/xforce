@@ -6,6 +6,7 @@ use Filament\Pages\Page;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Modules\Treatments\Models\TreatmentCategory;
+use Modules\Treatments\Filament\Resources\TreatmentCategoryResource;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\Collection;
 
@@ -32,7 +33,7 @@ class CategoryTreePage extends Page
     public function getBreadcrumbs(): array
     {
         return [
-            route('filament.admin.pages.dashboard') => __('filament-panels::pages/dashboard.title'),
+            '/' => __('filament-panels::pages/dashboard.title'),
             '#' => static::getNavigationLabel(),
         ];
     }
@@ -107,12 +108,12 @@ class CategoryTreePage extends Page
             Action::make('create')
                 ->label(__('treatments::treatments.category_tree.create_category'))
                 ->icon('heroicon-o-plus')
-                ->url(route('filament.admin.resources.treatment-categories.create')),
+                ->url(TreatmentCategoryResource::getUrl('create')),
 
             Action::make('list_view')
                 ->label(__('treatments::treatments.category_tree.list_view'))
                 ->icon('heroicon-o-list-bullet')
-                ->url(route('filament.admin.resources.treatment-categories.index'))
+                ->url(TreatmentCategoryResource::getUrl('index'))
                 ->color('gray'),
         ];
     }
