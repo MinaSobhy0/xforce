@@ -14,12 +14,128 @@ use Filament\Infolists\Components;
 use Filament\Notifications\Notification;
 use App\Filament\Resources\Pages\BaseViewRecord;
 use Filament\Support\Enums\FontWeight;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class ViewTenant extends BaseViewRecord
 {
     protected static string $resource = TenantResource::class;
+
+    /**
+     * Get list of tenant backups from storage.
+     */
+    public function getTenantBackups(): array
+    {
+        $tenantId = $this->record->id;
+        $backupsPath = "backups/tenants/{$tenantId}";
+        $backups = [];
+
+        if (Storage::disk('local')->exists($backupsPath)) {
+            $directories = Storage::disk('local')->directories($backupsPath);
+
+            foreach ($directories as $dir) {
+                $manifestPath = "{$dir}/manifest.json";
+                if (Storage::disk('local')->exists($manifestPath)) {
+                    $manifest = json_decode(Storage::disk('local')->get($manifestPath), true);
+
+                    $totalSize = 0;
+                    $components = [];
+                    foreach ($manifest['components'] ?? [] as $name => $info) {
+                        $components[] = ucfirst($name);
+                        $totalSize += $info['size'] ?? 0;
+                    }
+
+                    $backups[] = [
+                        'path' => $dir,
+                        'timestamp' => basename($dir),
+                        'created_at' => $manifest['created_at'] ?? null,
+                        'components' => implode(', ', $components),
+                        'size' => $this->formatBytes($totalSize),
+                        'version' => $manifest['version'] ?? 'Unknown',
+                    ];
+                }
+            }
+
+            usort($backups, fn($a, $b) => strcmp($b['timestamp'], $a['timestamp']));
+        }
+
+        return $backups;
+    }
+
+    protected function formatBytes(int $bytes): string
+    {
+        $units = ['B', 'KB', 'MB', 'GB'];
+        $i = 0;
+        while ($bytes >= 1024 && $i < count($units) - 1) {
+            $bytes /= 1024;
+            $i++;
+        }
+        return round($bytes, 2) . ' ' . $units[$i];
+    }
+
+    /**
+     * Restore a backup for this tenant.
+     */
+    public function restoreBackup(string $path): void
+    {
+        try {
+            Artisan::call('backup:restore', [
+                'path' => $path,
+                '--tenant' => $this->record->id,
+                '--force' => true,
+            ]);
+
+            Notification::make()
+                ->title('Backup restored successfully')
+                ->body('The tenant has been restored from the selected backup.')
+                ->success()
+                ->send();
+
+        } catch (\Exception $e) {
+            Log::error('Backup restore failed', [
+                'tenant_id' => $this->record->id,
+                'path' => $path,
+                'error' => $e->getMessage(),
+            ]);
+
+            Notification::make()
+                ->title('Restore failed')
+                ->body($e->getMessage())
+                ->danger()
+                ->persistent()
+                ->send();
+        }
+    }
+
+    /**
+     * Delete a backup for this tenant.
+     */
+    public function deleteBackup(string $path): void
+    {
+        try {
+            // Verify path belongs to this tenant
+            if (!str_contains($path, "backups/tenants/{$this->record->id}/")) {
+                throw new \Exception('Invalid backup path');
+            }
+
+            Storage::disk('local')->deleteDirectory($path);
+
+            Notification::make()
+                ->title('Backup deleted')
+                ->body('The backup has been permanently deleted.')
+                ->success()
+                ->send();
+
+        } catch (\Exception $e) {
+            Notification::make()
+                ->title('Delete failed')
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
+        }
+    }
 
     // Top Action Buttons
     protected function getViewHeaderActions(): array
@@ -843,6 +959,85 @@ class ViewTenant extends BaseViewRecord
                                 ])
                                 ->columns(5)
                                 ->placeholder('No support tickets'),
+                        ]),
+
+                    // TAB 8: BACKUPS
+                    Components\Tabs\Tab::make('Backups')
+                        ->icon('heroicon-o-archive-box')
+                        ->schema([
+                            Components\Section::make('Backup Actions')
+                                ->schema([
+                                    Components\Actions::make([
+                                        Components\Actions\Action::make('createBackup')
+                                            ->label('Create Backup Now')
+                                            ->icon('heroicon-o-arrow-down-tray')
+                                            ->color('primary')
+                                            ->requiresConfirmation()
+                                            ->modalHeading('Create Tenant Backup')
+                                            ->modalDescription('This will create a full backup of the tenant database and files. This may take a few minutes.')
+                                            ->modalSubmitActionLabel('Start Backup')
+                                            ->action(function (Tenant $record) {
+                                                try {
+                                                    Artisan::call('tenants:backup', [
+                                                        'tenant' => $record->id,
+                                                        '--compress' => true,
+                                                    ]);
+
+                                                    Notification::make()
+                                                        ->title('Backup created successfully')
+                                                        ->body('The backup has been created and stored.')
+                                                        ->success()
+                                                        ->send();
+
+                                                } catch (\Exception $e) {
+                                                    Log::error('Manual tenant backup failed', [
+                                                        'tenant_id' => $record->id,
+                                                        'error' => $e->getMessage(),
+                                                    ]);
+
+                                                    Notification::make()
+                                                        ->title('Backup failed')
+                                                        ->body($e->getMessage())
+                                                        ->danger()
+                                                        ->send();
+                                                }
+                                            }),
+
+                                        Components\Actions\Action::make('createDbOnlyBackup')
+                                            ->label('Backup Database Only')
+                                            ->icon('heroicon-o-circle-stack')
+                                            ->color('gray')
+                                            ->requiresConfirmation()
+                                            ->action(function (Tenant $record) {
+                                                try {
+                                                    Artisan::call('tenants:backup', [
+                                                        'tenant' => $record->id,
+                                                        '--only-database' => true,
+                                                        '--compress' => true,
+                                                    ]);
+
+                                                    Notification::make()
+                                                        ->title('Database backup created')
+                                                        ->success()
+                                                        ->send();
+
+                                                } catch (\Exception $e) {
+                                                    Notification::make()
+                                                        ->title('Backup failed')
+                                                        ->body($e->getMessage())
+                                                        ->danger()
+                                                        ->send();
+                                                }
+                                            }),
+                                    ]),
+                                ]),
+
+                            Components\Section::make('Available Backups')
+                                ->schema([
+                                    Components\ViewEntry::make('backups_list')
+                                        ->label('')
+                                        ->view('filament.super-admin.components.tenant-backups-list'),
+                                ]),
                         ]),
                 ]),
         ]);

@@ -65,13 +65,14 @@ class CoreServiceProvider extends ServiceProvider
 
     protected function registerCommands(): void
     {
-        if ($this->app->runningInConsole()) {
-            $this->commands([
-                \Modules\Core\Commands\TenantCreateCommand::class,
-                \Modules\Core\Commands\TenantDeleteCommand::class,
-                \Modules\Core\Commands\TenantListCommand::class,
-                \Modules\Core\Commands\SystemMaintenanceCommand::class,
-            ]);
-        }
+        // Register commands always (not just in console) so they can be called via Artisan::call() from web
+        $this->commands([
+            \Modules\Core\Commands\TenantCreateCommand::class,
+            \Modules\Core\Commands\TenantDeleteCommand::class,
+            \Modules\Core\Commands\TenantListCommand::class,
+            \Modules\Core\Commands\SystemMaintenanceCommand::class,
+            \Modules\Core\Commands\TenantBackupCommand::class,
+            \Modules\Core\Commands\BackupRestoreCommand::class,
+        ]);
     }
 }
