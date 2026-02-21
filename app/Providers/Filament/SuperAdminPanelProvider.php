@@ -12,9 +12,7 @@ use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\Widgets;
 use Filament\SpatieLaravelTranslatablePlugin;
-use Filament\View\PanelsRenderHook;
 use App\Models\PlatformSetting;
-use Illuminate\Contracts\View\View;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -126,12 +124,6 @@ class SuperAdminPanelProvider extends PanelProvider
             ->plugin(
                 SpatieLaravelTranslatablePlugin::make()
                     ->defaultLocales(['en', 'ar'])
-            )
-
-            // DatePicker click anywhere to open
-            ->renderHook(
-                PanelsRenderHook::BODY_END,
-                fn (): View => view('filament.hooks.datepicker-click')
             )
 
             // Middleware

@@ -151,12 +151,6 @@ class TenantPanelProvider extends PanelProvider
                 fn (): View => view('filament.hooks.branch-switcher')
             )
 
-            // DatePicker click anywhere to open
-            ->renderHook(
-                PanelsRenderHook::BODY_END,
-                fn (): View => view('filament.hooks.datepicker-click')
-            )
-
             // Middleware - IdentifyTenant MUST come first to switch database schema
             // RequireTenant ensures we have a valid tenant before proceeding
             ->middleware([
