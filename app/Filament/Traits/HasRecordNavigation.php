@@ -4,6 +4,7 @@ namespace App\Filament\Traits;
 
 use Filament\Actions\Action;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 trait HasRecordNavigation
 {
@@ -29,12 +30,21 @@ trait HasRecordNavigation
         $sortColumn = $this->getNavigationSortColumn();
         $sortDirection = $this->getNavigationSortDirection();
 
-        // Build base query with same scopes as the resource
+        // Build base query - start fresh to apply proper scoping
         $query = $model::query();
 
-        // Apply resource's eloquent query modifications if available
-        if (method_exists($resource, 'getEloquentQuery')) {
-            $query = $resource::getEloquentQuery();
+        // Check if model uses SoftDeletes
+        $usesSoftDeletes = in_array(SoftDeletes::class, class_uses_recursive($model));
+
+        if ($usesSoftDeletes) {
+            // Check if current record is soft-deleted
+            $currentIsTrashed = $currentRecord->trashed();
+
+            if ($currentIsTrashed) {
+                // If viewing a trashed record, navigate only between trashed records
+                $query = $model::onlyTrashed();
+            }
+            // If not trashed, use default query which excludes soft-deleted records
         }
 
         // Get the current record's value for the sort column
