@@ -231,4 +231,15 @@ return [
         'campaign_resumed' => 'تم استئناف الحملة',
         'campaign_cancelled' => 'تم إلغاء الحملة',
     ],
+
+    'widgets' => [
+        'sent_today' => 'المرسل اليوم',
+        'no_messages_today' => 'لم يتم إرسال رسائل اليوم',
+        'delivered_today' => 'المستلم اليوم',
+        'delivery_rate' => 'معدل التسليم',
+        'failed_today' => 'الفاشل اليوم',
+        'require_attention' => 'تتطلب الانتباه',
+        'monthly_delivery_rate' => 'معدل التسليم الشهري',
+        'messages_this_month' => 'رسالة هذا الشهر',
+    ],
 ];

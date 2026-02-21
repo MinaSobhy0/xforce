@@ -79,4 +79,13 @@ return [
         'cancelled' => 'Commission cancelled',
         'approved_count' => ':count commissions approved',
     ],
+
+    'widgets' => [
+        'pending_commissions' => 'Pending Commissions',
+        'pending_value' => 'pending value',
+        'approved_commissions' => 'Approved Commissions',
+        'awaiting_payment' => 'awaiting payment',
+        'paid_this_month' => 'Paid This Month',
+        'commissions_paid' => 'commissions paid',
+    ],
 ];

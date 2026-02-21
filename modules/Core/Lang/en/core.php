@@ -219,4 +219,16 @@ return [
     'record_updated' => 'Record updated successfully',
     'record_deleted' => 'Record deleted successfully',
     'error_occurred' => 'An error occurred',
+
+    // Dashboard Widgets
+    'widgets' => [
+        'total_patients' => 'Total Patients',
+        'this_month' => 'this month',
+        'todays_appointments' => "Today's Appointments",
+        'upcoming' => 'upcoming',
+        'monthly_revenue' => 'Monthly Revenue',
+        'vs_last_month' => 'vs last month',
+        'outstanding_balance' => 'Outstanding Balance',
+        'pending_payments' => 'pending payments',
+    ],
 ];

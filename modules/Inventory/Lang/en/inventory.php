@@ -151,4 +151,13 @@ return [
         'return' => 'Return',
         'waste' => 'Waste',
     ],
+
+    'widgets' => [
+        'low_stock_alerts' => 'Low Stock Alerts',
+        'branch' => 'Branch',
+        'on_hand' => 'On Hand',
+        'shortage' => 'Shortage',
+        'no_low_stock' => 'No Low Stock Items',
+        'all_stock_levels_ok' => 'All inventory levels are above reorder points',
+    ],
 ];

@@ -79,4 +79,13 @@ return [
         'cancelled' => 'تم إلغاء العمولة',
         'approved_count' => 'تمت الموافقة على :count عمولة',
     ],
+
+    'widgets' => [
+        'pending_commissions' => 'العمولات المعلقة',
+        'pending_value' => 'القيمة المعلقة',
+        'approved_commissions' => 'العمولات الموافق عليها',
+        'awaiting_payment' => 'في انتظار الدفع',
+        'paid_this_month' => 'المدفوعة هذا الشهر',
+        'commissions_paid' => 'عمولات مدفوعة',
+    ],
 ];

@@ -117,12 +117,26 @@ class TenantPanelProvider extends PanelProvider
 
             // Discover Marketing module resources
             ->discoverResources(in: base_path('modules/Marketing/Filament/Resources'), for: 'Modules\\Marketing\\Filament\\Resources')
+            ->discoverPages(in: base_path('modules/Marketing/Filament/Pages'), for: 'Modules\\Marketing\\Filament\\Pages')
+
+            // Discover Loyalty module resources
+            ->discoverResources(in: base_path('modules/Loyalty/Filament/Resources'), for: 'Modules\\Loyalty\\Filament\\Resources')
+            ->discoverPages(in: base_path('modules/Loyalty/Filament/Pages'), for: 'Modules\\Loyalty\\Filament\\Pages')
+
+            // Discover Reporting module pages
+            ->discoverPages(in: base_path('modules/Reporting/Filament/Pages'), for: 'Modules\\Reporting\\Filament\\Pages')
 
             // Default pages and widgets
             ->pages([
                 \Filament\Pages\Dashboard::class,
             ])
-            ->widgets([])
+            ->widgets([
+                \Modules\Core\Filament\Widgets\TenantOverviewWidget::class,
+                \Modules\Booking\Filament\Widgets\AppointmentStatsWidget::class,
+                \Modules\Staff\Filament\Widgets\CommissionPendingWidget::class,
+                \Modules\Inventory\Filament\Widgets\LowStockAlertWidget::class,
+                \Modules\Marketing\Filament\Widgets\NotificationStatsWidget::class,
+            ])
 
             // Plugins
             ->plugin(

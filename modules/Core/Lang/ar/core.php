@@ -132,4 +132,16 @@ return [
     'record_updated' => 'تم تحديث السجل بنجاح',
     'record_deleted' => 'تم حذف السجل بنجاح',
     'error_occurred' => 'حدث خطأ',
+
+    // Dashboard Widgets
+    'widgets' => [
+        'total_patients' => 'إجمالي المرضى',
+        'this_month' => 'هذا الشهر',
+        'todays_appointments' => 'مواعيد اليوم',
+        'upcoming' => 'قادم',
+        'monthly_revenue' => 'إيرادات الشهر',
+        'vs_last_month' => 'مقارنة بالشهر الماضي',
+        'outstanding_balance' => 'الرصيد المستحق',
+        'pending_payments' => 'مدفوعات معلقة',
+    ],
 ];

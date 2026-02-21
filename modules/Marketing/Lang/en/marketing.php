@@ -231,4 +231,15 @@ return [
         'campaign_resumed' => 'Campaign resumed',
         'campaign_cancelled' => 'Campaign cancelled',
     ],
+
+    'widgets' => [
+        'sent_today' => 'Sent Today',
+        'no_messages_today' => 'No messages sent today',
+        'delivered_today' => 'Delivered Today',
+        'delivery_rate' => 'delivery rate',
+        'failed_today' => 'Failed Today',
+        'require_attention' => 'require attention',
+        'monthly_delivery_rate' => 'Monthly Delivery Rate',
+        'messages_this_month' => 'messages this month',
+    ],
 ];

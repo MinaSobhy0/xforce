@@ -1,0 +1,69 @@
+<?php
+
+namespace Modules\Staff\Filament\Widgets;
+
+use Filament\Widgets\StatsOverviewWidget as BaseWidget;
+use Filament\Widgets\StatsOverviewWidget\Stat;
+use Modules\Staff\Models\StaffCommissionRecord;
+use Illuminate\Support\Facades\DB;
+
+class CommissionPendingWidget extends BaseWidget
+{
+    protected static ?int $sort = 2;
+
+    protected function getStats(): array
+    {
+        $pendingCount = StaffCommissionRecord::pending()->count();
+        $pendingAmount = StaffCommissionRecord::pending()->sum('amount_minor');
+
+        $approvedCount = StaffCommissionRecord::where('status', StaffCommissionRecord::STATUS_APPROVED)->count();
+        $approvedAmount = StaffCommissionRecord::where('status', StaffCommissionRecord::STATUS_APPROVED)->sum('amount_minor');
+
+        $paidThisMonth = StaffCommissionRecord::where('status', StaffCommissionRecord::STATUS_PAID)
+            ->whereMonth('updated_at', now()->month)
+            ->whereYear('updated_at', now()->year)
+            ->sum('amount_minor');
+
+        return [
+            Stat::make(
+                __('staff::staff.widgets.pending_commissions'),
+                $pendingCount
+            )
+                ->description($this->formatCurrency($pendingAmount) . ' ' . __('staff::staff.widgets.pending_value'))
+                ->descriptionIcon('heroicon-m-clock')
+                ->color('warning')
+                ->chart($this->getWeeklyPendingData()),
+
+            Stat::make(
+                __('staff::staff.widgets.approved_commissions'),
+                $approvedCount
+            )
+                ->description($this->formatCurrency($approvedAmount) . ' ' . __('staff::staff.widgets.awaiting_payment'))
+                ->descriptionIcon('heroicon-m-check-circle')
+                ->color('info'),
+
+            Stat::make(
+                __('staff::staff.widgets.paid_this_month'),
+                $this->formatCurrency($paidThisMonth)
+            )
+                ->description(__('staff::staff.widgets.commissions_paid'))
+                ->descriptionIcon('heroicon-m-banknotes')
+                ->color('success'),
+        ];
+    }
+
+    protected function getWeeklyPendingData(): array
+    {
+        return StaffCommissionRecord::pending()
+            ->where('created_at', '>=', now()->subDays(7))
+            ->groupBy(DB::raw('DATE(created_at)'))
+            ->orderBy(DB::raw('DATE(created_at)'))
+            ->pluck(DB::raw('COUNT(*)'))
+            ->toArray();
+    }
+
+    protected function formatCurrency(int $amountMinor): string
+    {
+        return number_format($amountMinor / 100, 2) . ' EGP';
+    }
+}

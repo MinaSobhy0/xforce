@@ -70,4 +70,25 @@ return [
 
     'minutes' => 'دقيقة',
     'days' => 'أيام',
+
+    'widgets' => [
+        'todays_appointments' => 'مواعيد اليوم',
+        'completed' => 'مكتمل',
+        'remaining' => 'المتبقي',
+        'in_clinic' => 'في العيادة',
+        'checked_in' => 'وصل',
+        'in_progress' => 'جاري',
+        'cancellations_no_shows' => 'الإلغاءات والغياب',
+        'cancelled' => 'ملغي',
+        'no_show' => 'غياب',
+        'revenue_today' => 'إيرادات اليوم',
+        'vs_last_week' => 'مقارنة بالأسبوع الماضي',
+    ],
+
+    'validation' => [
+        'practitioner_busy' => 'المختص لديه موعد آخر في :time مع :patient',
+        'room_busy' => 'الغرفة مشغولة في :time بواسطة :patient',
+        'equipment_busy' => 'الجهاز قيد الاستخدام في :time بواسطة :patient',
+        'double_booking_detected' => 'تم اكتشاف تعارض في الجدولة',
+    ],
 ];

@@ -70,4 +70,25 @@ return [
 
     'minutes' => 'min',
     'days' => 'days',
+
+    'widgets' => [
+        'todays_appointments' => "Today's Appointments",
+        'completed' => 'Completed',
+        'remaining' => 'Remaining',
+        'in_clinic' => 'In Clinic',
+        'checked_in' => 'Checked In',
+        'in_progress' => 'In Progress',
+        'cancellations_no_shows' => 'Cancellations & No-Shows',
+        'cancelled' => 'Cancelled',
+        'no_show' => 'No-Show',
+        'revenue_today' => "Today's Revenue",
+        'vs_last_week' => 'vs last week',
+    ],
+
+    'validation' => [
+        'practitioner_busy' => 'Practitioner has another appointment at :time with :patient',
+        'room_busy' => 'Room is occupied at :time by :patient',
+        'equipment_busy' => 'Equipment is in use at :time by :patient',
+        'double_booking_detected' => 'Scheduling conflict detected',
+    ],
 ];
