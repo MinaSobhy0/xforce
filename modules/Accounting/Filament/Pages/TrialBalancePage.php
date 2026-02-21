@@ -23,7 +23,9 @@ class TrialBalancePage extends Page implements HasForms
 
     protected static string $view = 'accounting::filament.pages.trial-balance';
 
-    protected static ?string $navigationGroup = 'Financial Reports';
+    protected static ?string $navigationGroup = 'Finance';
+
+    protected static ?string $navigationParentItem = 'Reports';
 
     protected static ?int $navigationSort = 1;
 
