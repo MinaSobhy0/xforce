@@ -109,7 +109,7 @@ class CashFlowPage extends Page implements HasForms
         // Cash paid for payroll
         $payrollPaid = 0;
         if (class_exists(PayrollRun::class)) {
-            $payrollPaid = PayrollRun::whereBetween('pay_date', [$startDate, $endDate])
+            $payrollPaid = PayrollRun::whereBetween('paid_at', [$startDate, $endDate])
                 ->where('status', 'paid')
                 ->sum('total_net_salary_minor');
         }
