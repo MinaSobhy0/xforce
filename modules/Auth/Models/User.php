@@ -5,6 +5,7 @@ namespace Modules\Auth\Models;
 use XLinic\Framework\Core\Model\BaseModel;
 use XLinic\Framework\Core\Model\Traits\HasTenancy;
 use XLinic\Framework\Core\Model\Traits\HasPortalAccess;
+use XLinic\Framework\Core\Model\Traits\HasActivity;
 use Illuminate\Auth\Authenticatable;
 use Illuminate\Auth\MustVerifyEmail;
 use Illuminate\Auth\Passwords\CanResetPassword;
@@ -38,6 +39,7 @@ class User extends BaseModel implements
         HasRoles,
         HasTenancy,
         HasPortalAccess,
+        HasActivity,
         Notifiable,
         SoftDeletes,
         \App\Traits\TwoFactorAuthenticatable;
