@@ -4,17 +4,19 @@ namespace App\Filament\SuperAdmin\Resources\EmailTemplateResource\Pages;
 
 use App\Filament\SuperAdmin\Resources\EmailTemplateResource;
 use Filament\Actions;
-use Filament\Resources\Pages\ListRecords;
+use App\Filament\Resources\Pages\BaseListRecords;
+use Filament\Resources\Pages\ListRecords\Concerns\Translatable;
 
-class ListEmailTemplates extends ListRecords
+class ListEmailTemplates extends BaseListRecords
 {
-    use ListRecords\Concerns\Translatable;
+    use Translatable;
 
     protected static string $resource = EmailTemplateResource::class;
 
     protected function getHeaderActions(): array
     {
         return [
+            ...parent::getHeaderActions(),
             \Filament\Actions\LocaleSwitcher::make(),
             Actions\CreateAction::make()
                 ->label('Create Template'),

@@ -4,15 +4,16 @@ namespace Modules\Booking\Filament\Resources\AppointmentResource\Pages;
 
 use Modules\Booking\Filament\Resources\AppointmentResource;
 use Filament\Actions;
-use Filament\Resources\Pages\ListRecords;
+use App\Filament\Resources\Pages\BaseListRecords;
 
-class ListAppointments extends ListRecords
+class ListAppointments extends BaseListRecords
 {
     protected static string $resource = AppointmentResource::class;
 
     protected function getHeaderActions(): array
     {
         return [
+            ...parent::getHeaderActions(),
             Actions\CreateAction::make(),
         ];
     }

@@ -4,10 +4,10 @@ namespace Modules\Core\Filament\Resources\RoomResource\Pages;
 
 use Modules\Core\Filament\Resources\RoomResource;
 use Filament\Actions;
-use Filament\Resources\Pages\ListRecords;
+use App\Filament\Resources\Pages\BaseListRecords;
 use Filament\Resources\Pages\ListRecords\Concerns\Translatable;
 
-class ListRooms extends ListRecords
+class ListRooms extends BaseListRecords
 {
     use Translatable;
 
@@ -16,6 +16,7 @@ class ListRooms extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
+            ...parent::getHeaderActions(),
             Actions\LocaleSwitcher::make(),
             Actions\CreateAction::make(),
         ];

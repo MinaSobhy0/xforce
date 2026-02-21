@@ -5,17 +5,18 @@ namespace Modules\Billing\Filament\Resources\InvoiceResource\Pages;
 use Modules\Billing\Filament\Resources\InvoiceResource;
 use Modules\Billing\Models\Invoice;
 use Filament\Actions;
-use Filament\Resources\Pages\ListRecords;
+use App\Filament\Resources\Pages\BaseListRecords;
 use Filament\Resources\Components\Tab;
 use Illuminate\Database\Eloquent\Builder;
 
-class ListInvoices extends ListRecords
+class ListInvoices extends BaseListRecords
 {
     protected static string $resource = InvoiceResource::class;
 
     protected function getHeaderActions(): array
     {
         return [
+            ...parent::getHeaderActions(),
             Actions\CreateAction::make(),
         ];
     }

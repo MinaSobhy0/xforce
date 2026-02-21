@@ -3,16 +3,17 @@
 namespace Modules\Inventory\Filament\Resources\PurchaseOrderResource\Pages;
 
 use Filament\Actions;
-use Filament\Resources\Pages\ListRecords;
+use App\Filament\Resources\Pages\BaseListRecords;
 use Modules\Inventory\Filament\Resources\PurchaseOrderResource;
 
-class ListPurchaseOrders extends ListRecords
+class ListPurchaseOrders extends BaseListRecords
 {
     protected static string $resource = PurchaseOrderResource::class;
 
     protected function getHeaderActions(): array
     {
         return [
+            ...parent::getHeaderActions(),
             Actions\CreateAction::make(),
         ];
     }

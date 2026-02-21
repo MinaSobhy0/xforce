@@ -3,18 +3,19 @@
 namespace Modules\Treatments\Filament\Resources\ConsentTemplateResource\Pages;
 
 use Filament\Actions;
-use Filament\Resources\Pages\ListRecords;
+use App\Filament\Resources\Pages\BaseListRecords;
 use Filament\Resources\Components\Tab;
 use Modules\Treatments\Filament\Resources\ConsentTemplateResource;
 use Illuminate\Database\Eloquent\Builder;
 
-class ListConsentTemplates extends ListRecords
+class ListConsentTemplates extends BaseListRecords
 {
     protected static string $resource = ConsentTemplateResource::class;
 
     protected function getHeaderActions(): array
     {
         return [
+            ...parent::getHeaderActions(),
             Actions\CreateAction::make(),
         ];
     }

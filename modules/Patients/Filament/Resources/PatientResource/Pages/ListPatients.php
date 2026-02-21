@@ -4,17 +4,18 @@ namespace Modules\Patients\Filament\Resources\PatientResource\Pages;
 
 use Modules\Patients\Filament\Resources\PatientResource;
 use Filament\Actions;
-use Filament\Resources\Pages\ListRecords;
+use App\Filament\Resources\Pages\BaseListRecords;
 use Filament\Resources\Components\Tab;
 use Illuminate\Database\Eloquent\Builder;
 
-class ListPatients extends ListRecords
+class ListPatients extends BaseListRecords
 {
     protected static string $resource = PatientResource::class;
 
     protected function getHeaderActions(): array
     {
         return [
+            ...parent::getHeaderActions(),
             Actions\CreateAction::make(),
         ];
     }

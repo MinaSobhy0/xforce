@@ -3,18 +3,19 @@
 namespace Modules\Treatments\Filament\Resources\TreatmentResource\Pages;
 
 use Filament\Actions;
-use Filament\Resources\Pages\ListRecords;
+use App\Filament\Resources\Pages\BaseListRecords;
 use Filament\Resources\Components\Tab;
 use Modules\Treatments\Filament\Resources\TreatmentResource;
 use Illuminate\Database\Eloquent\Builder;
 
-class ListTreatments extends ListRecords
+class ListTreatments extends BaseListRecords
 {
     protected static string $resource = TreatmentResource::class;
 
     protected function getHeaderActions(): array
     {
         return [
+            ...parent::getHeaderActions(),
             Actions\CreateAction::make(),
         ];
     }

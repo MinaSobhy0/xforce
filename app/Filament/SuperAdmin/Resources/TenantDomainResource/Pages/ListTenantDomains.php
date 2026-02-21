@@ -4,15 +4,16 @@ namespace App\Filament\SuperAdmin\Resources\TenantDomainResource\Pages;
 
 use App\Filament\SuperAdmin\Resources\TenantDomainResource;
 use Filament\Actions;
-use Filament\Resources\Pages\ListRecords;
+use App\Filament\Resources\Pages\BaseListRecords;
 
-class ListTenantDomains extends ListRecords
+class ListTenantDomains extends BaseListRecords
 {
     protected static string $resource = TenantDomainResource::class;
 
     protected function getHeaderActions(): array
     {
         return [
+            ...parent::getHeaderActions(),
             Actions\Action::make('verify_all_dns')
                 ->label('Verify All DNS')
                 ->icon('heroicon-o-arrow-path')

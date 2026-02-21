@@ -6,17 +6,18 @@ use App\Filament\SuperAdmin\Resources\PlatformInvoiceResource;
 use App\Models\PlatformInvoice;
 use Filament\Actions;
 use Filament\Forms;
-use Filament\Resources\Pages\ListRecords;
+use App\Filament\Resources\Pages\BaseListRecords;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Maatwebsite\Excel\Facades\Excel;
 
-class ListPlatformInvoices extends ListRecords
+class ListPlatformInvoices extends BaseListRecords
 {
     protected static string $resource = PlatformInvoiceResource::class;
 
     protected function getHeaderActions(): array
     {
         return [
+            ...parent::getHeaderActions(),
             Actions\Action::make('generateMonthly')
                 ->label('Generate Monthly Invoices')
                 ->icon('heroicon-o-document-plus')

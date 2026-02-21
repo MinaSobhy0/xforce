@@ -4,17 +4,19 @@ namespace Modules\Billing\Filament\Resources\PaymentResource\Pages;
 
 use Modules\Billing\Filament\Resources\PaymentResource;
 use Modules\Billing\Models\Payment;
-use Filament\Resources\Pages\ListRecords;
+use App\Filament\Resources\Pages\BaseListRecords;
 use Filament\Resources\Components\Tab;
 use Illuminate\Database\Eloquent\Builder;
 
-class ListPayments extends ListRecords
+class ListPayments extends BaseListRecords
 {
     protected static string $resource = PaymentResource::class;
 
     protected function getHeaderActions(): array
     {
-        return [];
+        return [
+            ...parent::getHeaderActions(),
+        ];
     }
 
     protected function getHeaderWidgets(): array

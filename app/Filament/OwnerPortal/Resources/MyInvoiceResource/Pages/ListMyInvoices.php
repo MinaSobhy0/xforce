@@ -3,9 +3,9 @@
 namespace App\Filament\OwnerPortal\Resources\MyInvoiceResource\Pages;
 
 use App\Filament\OwnerPortal\Resources\MyInvoiceResource;
-use Filament\Resources\Pages\ListRecords;
+use App\Filament\Resources\Pages\BaseListRecords;
 
-class ListMyInvoices extends ListRecords
+class ListMyInvoices extends BaseListRecords
 {
     protected static string $resource = MyInvoiceResource::class;
 }

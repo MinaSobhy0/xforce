@@ -191,6 +191,38 @@ class Patient extends BaseModel implements Authenticatable
     }
 
     /**
+     * Get the patient's appointments.
+     */
+    public function appointments(): HasMany
+    {
+        return $this->hasMany(\Modules\Booking\Models\Appointment::class);
+    }
+
+    /**
+     * Get the patient's invoices.
+     */
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(\Modules\Billing\Models\Invoice::class);
+    }
+
+    /**
+     * Get the patient's package subscriptions.
+     */
+    public function packageSubscriptions(): HasMany
+    {
+        return $this->hasMany(\Modules\Packages\Models\PackageSubscription::class);
+    }
+
+    /**
+     * Get the patient's loyalty transactions.
+     */
+    public function loyaltyTransactions(): HasMany
+    {
+        return $this->hasMany(\Modules\Loyalty\Models\LoyaltyTransaction::class);
+    }
+
+    /**
      * Check if patient has signed a specific consent template.
      */
     public function hasSignedConsent(string $templateId): bool

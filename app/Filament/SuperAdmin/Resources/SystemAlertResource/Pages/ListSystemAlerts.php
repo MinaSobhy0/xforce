@@ -5,17 +5,18 @@ namespace App\Filament\SuperAdmin\Resources\SystemAlertResource\Pages;
 use App\Filament\SuperAdmin\Resources\SystemAlertResource;
 use App\Models\SystemAlert;
 use Filament\Actions;
-use Filament\Resources\Pages\ListRecords;
+use App\Filament\Resources\Pages\BaseListRecords;
 use Filament\Resources\Components\Tab;
 use Illuminate\Database\Eloquent\Builder;
 
-class ListSystemAlerts extends ListRecords
+class ListSystemAlerts extends BaseListRecords
 {
     protected static string $resource = SystemAlertResource::class;
 
     protected function getHeaderActions(): array
     {
         return [
+            ...parent::getHeaderActions(),
             Actions\Action::make('resolve_all_critical')
                 ->label('Resolve All Critical')
                 ->icon('heroicon-o-check')

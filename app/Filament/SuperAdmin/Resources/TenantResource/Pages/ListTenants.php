@@ -5,19 +5,20 @@ namespace App\Filament\SuperAdmin\Resources\TenantResource\Pages;
 use App\Filament\SuperAdmin\Resources\TenantResource;
 use App\Filament\SuperAdmin\Resources\TenantResource\Widgets\TenantsOverviewWidget;
 use Filament\Actions;
-use Filament\Resources\Pages\ListRecords;
+use App\Filament\Resources\Pages\BaseListRecords;
 use Filament\Resources\Components\Tab;
 use Illuminate\Database\Eloquent\Builder;
 use Modules\Core\Models\Tenant;
 use Modules\Core\Models\TenantStatus;
 
-class ListTenants extends ListRecords
+class ListTenants extends BaseListRecords
 {
     protected static string $resource = TenantResource::class;
 
     protected function getHeaderActions(): array
     {
         return [
+            ...parent::getHeaderActions(),
             Actions\CreateAction::make()
                 ->label('Add Clinic')
                 ->icon('heroicon-o-plus'),

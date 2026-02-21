@@ -4,11 +4,11 @@ namespace App\Filament\SuperAdmin\Resources\BackupResource\Pages;
 
 use App\Filament\SuperAdmin\Resources\BackupResource;
 use App\Models\Backup;
-use Filament\Resources\Pages\ListRecords;
+use App\Filament\Resources\Pages\BaseListRecords;
 use Filament\Resources\Components\Tab;
 use Illuminate\Database\Eloquent\Builder;
 
-class ListBackups extends ListRecords
+class ListBackups extends BaseListRecords
 {
     protected static string $resource = BackupResource::class;
 

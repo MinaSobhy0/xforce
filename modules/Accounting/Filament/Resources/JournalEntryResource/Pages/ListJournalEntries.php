@@ -5,17 +5,18 @@ namespace Modules\Accounting\Filament\Resources\JournalEntryResource\Pages;
 use Modules\Accounting\Filament\Resources\JournalEntryResource;
 use Modules\Accounting\Models\JournalEntry;
 use Filament\Actions;
-use Filament\Resources\Pages\ListRecords;
+use App\Filament\Resources\Pages\BaseListRecords;
 use Filament\Resources\Components\Tab;
 use Illuminate\Database\Eloquent\Builder;
 
-class ListJournalEntries extends ListRecords
+class ListJournalEntries extends BaseListRecords
 {
     protected static string $resource = JournalEntryResource::class;
 
     protected function getHeaderActions(): array
     {
         return [
+            ...parent::getHeaderActions(),
             Actions\CreateAction::make(),
         ];
     }
