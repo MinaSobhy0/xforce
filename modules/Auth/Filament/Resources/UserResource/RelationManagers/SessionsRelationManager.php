@@ -7,7 +7,7 @@ use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Support\Facades\DB;
+use Modules\Auth\Models\UserSession;
 
 class SessionsRelationManager extends RelationManager
 {
@@ -18,12 +18,7 @@ class SessionsRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
-            ->query(
-                // This would need to be adjusted based on your session storage implementation
-                DB::table('sessions')
-                    ->where('user_id', $this->getOwnerRecord()->id)
-                    ->orderBy('last_activity', 'desc')
-            )
+            ->recordTitleAttribute('id')
             ->columns([
                 Tables\Columns\TextColumn::make('id')
                     ->label(__('Session ID'))
@@ -39,43 +34,52 @@ class SessionsRelationManager extends RelationManager
                     ->limit(50)
                     ->tooltip(fn ($record) => $record->user_agent)
                     ->formatStateUsing(function ($state) {
-                        // Parse user agent to show device type
+                        if (!$state) return '-';
                         if (str_contains($state, 'Mobile') || str_contains($state, 'Android') || str_contains($state, 'iPhone')) {
-                            return '📱 Mobile';
+                            return 'Mobile';
                         } elseif (str_contains($state, 'Windows')) {
-                            return '🖥️ Windows';
+                            return 'Windows';
                         } elseif (str_contains($state, 'Macintosh')) {
-                            return '🍎 macOS';
+                            return 'macOS';
                         } elseif (str_contains($state, 'Linux')) {
-                            return '🐧 Linux';
+                            return 'Linux';
                         }
-                        return '💻 Desktop';
+                        return 'Desktop';
                     }),
 
                 Tables\Columns\TextColumn::make('last_activity')
                     ->label(__('Last Activity'))
-                    ->formatStateUsing(fn ($state) => \Carbon\Carbon::createFromTimestamp($state)->diffForHumans())
+                    ->dateTime()
                     ->sortable(),
 
-                Tables\Columns\IconColumn::make('is_current')
-                    ->label(__('Current'))
+                Tables\Columns\IconColumn::make('is_active')
+                    ->label(__('Active'))
                     ->boolean()
-                    ->getStateUsing(fn ($record) => $record->id === session()->getId())
                     ->trueIcon('heroicon-o-check-circle')
-                    ->falseIcon('heroicon-o-minus-circle')
+                    ->falseIcon('heroicon-o-x-circle')
                     ->trueColor('success')
-                    ->falseColor('gray'),
+                    ->falseColor('danger'),
+
+                Tables\Columns\TextColumn::make('expires_at')
+                    ->label(__('Expires'))
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                Tables\Columns\TextColumn::make('created_at')
+                    ->label(__('Created'))
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\Filter::make('active_sessions')
-                    ->label(__('Active Sessions'))
-                    ->query(fn ($query) => $query->where('last_activity', '>', now()->subHours(2)->timestamp)),
+                Tables\Filters\TernaryFilter::make('is_active')
+                    ->label(__('Active')),
 
-                Tables\Filters\Filter::make('mobile_sessions')
-                    ->label(__('Mobile Sessions'))
-                    ->query(fn ($query) => $query->where('user_agent', 'like', '%Mobile%')
-                        ->orWhere('user_agent', 'like', '%Android%')
-                        ->orWhere('user_agent', 'like', '%iPhone%')),
+                Tables\Filters\Filter::make('expired')
+                    ->label(__('Expired'))
+                    ->query(fn ($query) => $query->where('expires_at', '<=', now()))
+                    ->toggle(),
             ])
             ->actions([
                 Tables\Actions\Action::make('revoke')
@@ -84,18 +88,18 @@ class SessionsRelationManager extends RelationManager
                     ->color('danger')
                     ->requiresConfirmation()
                     ->modalDescription(__('This will immediately terminate this session.'))
-                    ->action(function ($record) {
-                        // Revoke the session
-                        DB::table('sessions')->where('id', $record->id)->delete();
-
-                        $this->notify('success', __('Session revoked successfully'));
-                    })
-                    ->visible(fn ($record) => $record->id !== session()->getId()),
+                    ->action(function (UserSession $record) {
+                        $record->terminate();
+                    }),
 
                 Tables\Actions\ViewAction::make()
                     ->form([
                         Forms\Components\TextInput::make('id')
                             ->label(__('Session ID'))
+                            ->disabled(),
+
+                        Forms\Components\TextInput::make('session_id')
+                            ->label(__('Laravel Session ID'))
                             ->disabled(),
 
                         Forms\Components\TextInput::make('ip_address')
@@ -107,46 +111,34 @@ class SessionsRelationManager extends RelationManager
                             ->disabled()
                             ->rows(3),
 
-                        Forms\Components\TextInput::make('last_activity')
+                        Forms\Components\DateTimePicker::make('last_activity')
                             ->label(__('Last Activity'))
-                            ->formatStateUsing(fn ($state) => \Carbon\Carbon::createFromTimestamp($state)->format('Y-m-d H:i:s'))
                             ->disabled(),
 
-                        Forms\Components\Textarea::make('payload')
-                            ->label(__('Session Data'))
-                            ->formatStateUsing(function ($state) {
-                                try {
-                                    $decoded = base64_decode($state);
-                                    $unserialized = unserialize($decoded);
-                                    return json_encode($unserialized, JSON_PRETTY_PRINT);
-                                } catch (\Exception $e) {
-                                    return 'Unable to decode session data';
-                                }
-                            })
-                            ->disabled()
-                            ->rows(10),
+                        Forms\Components\DateTimePicker::make('expires_at')
+                            ->label(__('Expires At'))
+                            ->disabled(),
                     ]),
             ])
             ->bulkActions([
-                Tables\Actions\BulkAction::make('revoke_selected')
-                    ->label(__('Revoke Selected'))
-                    ->icon('heroicon-o-x-mark')
-                    ->color('danger')
-                    ->requiresConfirmation()
-                    ->modalDescription(__('This will immediately terminate the selected sessions.'))
-                    ->action(function ($records) {
-                        $sessionIds = collect($records)
-                            ->pluck('id')
-                            ->filter(fn ($id) => $id !== session()->getId())
-                            ->values();
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\BulkAction::make('revoke_selected')
+                        ->label(__('Revoke Selected'))
+                        ->icon('heroicon-o-x-mark')
+                        ->color('danger')
+                        ->requiresConfirmation()
+                        ->modalDescription(__('This will immediately terminate the selected sessions.'))
+                        ->action(function ($records) {
+                            foreach ($records as $record) {
+                                $record->terminate();
+                            }
+                        }),
 
-                        DB::table('sessions')->whereIn('id', $sessionIds)->delete();
-
-                        $this->notify('success', __('Selected sessions revoked successfully'));
-                    }),
+                    Tables\Actions\DeleteBulkAction::make(),
+                ]),
             ])
             ->defaultSort('last_activity', 'desc')
-            ->emptyStateHeading(__('No active sessions'))
-            ->emptyStateDescription(__('This user has no active sessions.'));
+            ->emptyStateHeading(__('No sessions'))
+            ->emptyStateDescription(__('This user has no tracked sessions.'));
     }
 }
