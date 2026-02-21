@@ -39,6 +39,7 @@ class PortalPanelProvider extends PanelProvider
             ])
             ->brandName(fn () => config('patientportal.brand_name', 'Patient Portal'))
             ->darkMode(true)
+            ->spa()
             ->sidebarCollapsibleOnDesktop()
             ->discoverPages(in: module_path('PatientPortal', 'Filament/Pages'), for: 'Modules\\PatientPortal\\Filament\\Pages')
             ->pages([
