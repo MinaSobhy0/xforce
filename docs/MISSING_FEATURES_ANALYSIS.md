@@ -544,9 +544,9 @@ ODOO_PASSWORD=
 
 #### Tenant Middleware
 - [x] TenantContext - Set tenant context (via IdentifyTenant middleware)
-- [ ] TenantModuleAccess - Check module access
-- [ ] TenantFeatureFlag - Feature flag checking
-- [ ] TenantSubscription - Check subscription status
+- [x] TenantModuleAccess - Check module access (app/Http/Middleware/TenantModuleAccess.php)
+- [x] TenantFeatureFlag - Feature flag checking (app/Http/Middleware/TenantFeatureFlag.php)
+- [x] TenantSubscription - Check subscription status (app/Http/Middleware/TenantSubscription.php)
 - [x] TenantUsageLimit - Enforce usage limits (app/Http/Middleware/TenantUsageLimit.php)
 
 #### Core Console Commands

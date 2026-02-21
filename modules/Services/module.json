@@ -1,0 +1,97 @@
+{
+    "name": "Services",
+    "alias": "services",
+    "description": "Service catalog and consent template management",
+    "version": "1.0.0",
+    "category": "operations",
+    "icon": "heroicon-o-sparkles",
+    "keywords": ["services", "catalog", "consent", "pricing"],
+    "priority": 15,
+    "providers": [
+        "Modules\\Services\\Providers\\ServicesServiceProvider"
+    ],
+    "dependencies": ["Core"],
+    "optional_dependencies": ["Patients"],
+    "models": [
+        "Modules\\Services\\Models\\ServiceCategory",
+        "Modules\\Services\\Models\\Service",
+        "Modules\\Services\\Models\\ServiceBranchPricing",
+        "Modules\\Services\\Models\\ConsentTemplate"
+    ],
+    "permissions": {
+        "services.view_any": "View services list",
+        "services.view": "View service details",
+        "services.create": "Create new services",
+        "services.update": "Update services",
+        "services.delete": "Delete services",
+        "services.manage_pricing": "Manage branch pricing",
+        "service_categories.view_any": "View categories list",
+        "service_categories.create": "Create categories",
+        "service_categories.update": "Update categories",
+        "service_categories.delete": "Delete categories",
+        "consent_templates.view_any": "View consent templates",
+        "consent_templates.create": "Create consent templates",
+        "consent_templates.update": "Update consent templates",
+        "consent_templates.delete": "Delete consent templates"
+    },
+    "default_role_permissions": {
+        "admin": ["services.*", "service_categories.*", "consent_templates.*"],
+        "manager": ["services.*", "service_categories.*", "consent_templates.*"],
+        "doctor": ["services.view_any", "services.view", "service_categories.view_any", "consent_templates.view_any"],
+        "nurse": ["services.view_any", "services.view", "consent_templates.view_any"],
+        "receptionist": ["services.view_any", "services.view"],
+        "staff": ["services.view_any", "services.view"]
+    },
+    "navigation": [
+        {
+            "id": "services",
+            "label": {"en": "Services", "ar": "الخدمات"},
+            "icon": "heroicon-o-sparkles",
+            "route": "filament.admin.resources.services.index",
+            "group": "operations",
+            "order": 10,
+            "permission": "services.view_any"
+        },
+        {
+            "id": "service_categories",
+            "label": {"en": "Categories", "ar": "الفئات"},
+            "icon": "heroicon-o-folder",
+            "route": "filament.admin.resources.service-categories.index",
+            "group": "operations",
+            "order": 11,
+            "permission": "service_categories.view_any"
+        },
+        {
+            "id": "consent_templates",
+            "label": {"en": "Consent Templates", "ar": "نماذج الموافقة"},
+            "icon": "heroicon-o-document-check",
+            "route": "filament.admin.resources.consent-templates.index",
+            "group": "operations",
+            "order": 12,
+            "permission": "consent_templates.view_any"
+        }
+    ],
+    "settings": {
+        "services.default_duration_minutes": {
+            "type": "integer",
+            "default": 60,
+            "label": {"en": "Default service duration (minutes)", "ar": "مدة الخدمة الافتراضية (دقائق)"}
+        },
+        "services.default_buffer_minutes": {
+            "type": "integer",
+            "default": 15,
+            "label": {"en": "Default buffer time (minutes)", "ar": "وقت الفاصل الافتراضي (دقائق)"}
+        },
+        "services.require_consent": {
+            "type": "boolean",
+            "default": true,
+            "label": {"en": "Require consent before service", "ar": "يتطلب موافقة قبل الخدمة"}
+        },
+        "services.show_prices_to_patients": {
+            "type": "boolean",
+            "default": true,
+            "label": {"en": "Show prices in patient portal", "ar": "عرض الأسعار في بوابة المريض"}
+        }
+    },
+    "active": true
+}
