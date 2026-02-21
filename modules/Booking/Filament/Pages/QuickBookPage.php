@@ -168,8 +168,7 @@ class QuickBookPage extends Page implements HasForms
                                     ->afterStateUpdated(fn () => $this->loadSlots()),
                             ]),
                     ]),
-            ])
-            ->statePath('data');
+            ]);
     }
 
     public function loadSlots(): void
