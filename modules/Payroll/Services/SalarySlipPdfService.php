@@ -27,7 +27,7 @@ class SalarySlipPdfService
     /**
      * Generate and download the salary slip.
      */
-    public function download(PayrollLine $line): \Symfony\Component\HttpFoundation\StreamedResponse
+    public function download(PayrollLine $line): \Illuminate\Http\Response
     {
         $pdf = $this->generate($line);
         $filename = $this->getFilename($line);
@@ -38,7 +38,7 @@ class SalarySlipPdfService
     /**
      * Generate and stream the salary slip.
      */
-    public function stream(PayrollLine $line): \Symfony\Component\HttpFoundation\StreamedResponse
+    public function stream(PayrollLine $line): \Illuminate\Http\Response
     {
         $pdf = $this->generate($line);
         $filename = $this->getFilename($line);
