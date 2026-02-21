@@ -3,6 +3,7 @@
 namespace App\Filament\SuperAdmin\Resources\ModuleResource\Pages;
 
 use App\Filament\SuperAdmin\Resources\ModuleResource;
+use App\Models\Module;
 use Filament\Actions;
 use App\Filament\Resources\Pages\BaseEditRecord;
 use Filament\Resources\Pages\EditRecord\Concerns\Translatable;
@@ -15,13 +16,16 @@ class EditModule extends BaseEditRecord
 
     protected function mutateFormDataBeforeFill(array $data): array
     {
-        // Ensure dependencies is always an array
-        if (isset($data['dependencies'])) {
-            if (is_string($data['dependencies'])) {
-                $data['dependencies'] = json_decode($data['dependencies'], true) ?? [];
-            }
-        } else {
-            $data['dependencies'] = [];
+        // Load dependencies directly from the model since Translatable might filter it
+        $record = $this->getRecord();
+
+        if ($record instanceof Module) {
+            $data['dependencies'] = $record->dependencies ?? [];
+        }
+
+        // Also handle if it comes as string
+        if (isset($data['dependencies']) && is_string($data['dependencies'])) {
+            $data['dependencies'] = json_decode($data['dependencies'], true) ?? [];
         }
 
         return $data;
