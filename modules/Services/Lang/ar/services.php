@@ -38,6 +38,66 @@ return [
         'requires_consent' => 'يتطلب موافقة',
         'consent_template' => 'نموذج الموافقة',
         'equipment_required' => 'المعدات المطلوبة',
+        'qualified_staff' => 'الموظفون المؤهلون',
+        'service_rooms' => 'غرف الخدمة',
+        'required_equipment' => 'المعدات المطلوبة',
+        'allowed_days' => 'الأيام المسموح بها',
+        'allowed_time_start' => 'وقت البدء',
+        'allowed_time_end' => 'وقت الانتهاء',
+        'min_advance_hours' => 'الحد الأدنى للحجز المسبق',
+        'max_advance_days' => 'الحد الأقصى للحجز المسبق',
+        'blackout_dates' => 'تواريخ الحظر',
+        'blackout_dates_help' => 'أدخل التواريخ التي لا يمكن حجز هذه الخدمة فيها (التنسيق: YYYY-MM-DD)',
+        'hours' => 'ساعات',
+        'days' => 'أيام',
+    ],
+
+    'tabs' => [
+        'scheduling' => 'الجدولة والموارد',
+    ],
+
+    'sections' => [
+        'qualified_staff' => 'الموظفون المؤهلون',
+        'qualified_staff_description' => 'الموظفون المؤهلون لتقديم هذه الخدمة',
+        'rooms' => 'غرف الخدمة',
+        'rooms_description' => 'الغرف التي يمكن تقديم هذه الخدمة فيها',
+        'required_equipment' => 'المعدات المطلوبة',
+        'required_equipment_description' => 'عناصر المعدات المحددة المطلوبة لهذه الخدمة',
+        'time_restrictions' => 'قيود الفترات الزمنية',
+        'time_restrictions_description' => 'تكوين متى يمكن حجز هذه الخدمة',
+    ],
+
+    'staff' => [
+        'practitioner' => 'الممارس',
+        'name' => 'الاسم',
+        'job_title' => 'المسمى الوظيفي',
+        'email' => 'البريد الإلكتروني',
+        'phone' => 'الهاتف',
+    ],
+
+    'rooms' => [
+        'room' => 'الغرفة',
+        'branch' => 'الفرع',
+        'is_primary' => 'الغرفة الرئيسية',
+        'is_primary_help' => 'الغرفة المفضلة لهذه الخدمة',
+        'priority' => 'الأولوية',
+        'priority_help' => 'رقم أقل = أولوية أعلى للغرف الاحتياطية',
+        'type' => 'نوع الغرفة',
+        'set_as_primary' => 'تعيين كرئيسية',
+        'primary_updated' => 'تم تحديث الغرفة الرئيسية بنجاح',
+    ],
+
+    'equipment' => [
+        'equipment' => 'المعدات',
+        'code' => 'الكود',
+        'name' => 'الاسم',
+        'type' => 'النوع',
+        'branch' => 'الفرع',
+        'status' => 'الحالة',
+        'is_mandatory' => 'إلزامي',
+        'is_mandatory_help' => 'إذا تم التفعيل، يجب أن تكون هذه المعدات متاحة لحجز الخدمة',
+        'mark_optional' => 'تعيين كاختياري',
+        'mark_mandatory' => 'تعيين كإلزامي',
     ],
 
     'consent' => [

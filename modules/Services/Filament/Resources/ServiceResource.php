@@ -11,6 +11,9 @@ use Modules\Services\Models\Service;
 use Modules\Services\Models\ServiceCategory;
 use Modules\Services\Models\ConsentTemplate;
 use Modules\Equipment\Models\EquipmentType;
+use Modules\Equipment\Models\Equipment;
+use Modules\Core\Models\Room;
+use Modules\Auth\Models\User;
 use Modules\Services\Filament\Resources\ServiceResource\Pages;
 use Modules\Services\Filament\Resources\ServiceResource\RelationManagers;
 use Illuminate\Database\Eloquent\Builder;
@@ -294,6 +297,108 @@ class ServiceResource extends Resource
                                             ->helperText('Consumable items needed per session'),
                                     ]),
                             ]),
+
+                        Forms\Components\Tabs\Tab::make(__('services::services.tabs.scheduling'))
+                            ->schema([
+                                Forms\Components\Section::make(__('services::services.sections.qualified_staff'))
+                                    ->description(__('services::services.sections.qualified_staff_description'))
+                                    ->schema([
+                                        Forms\Components\Select::make('qualifiedStaff')
+                                            ->label(__('services::services.fields.qualified_staff'))
+                                            ->relationship(
+                                                'qualifiedStaff',
+                                                'first_name',
+                                                modifyQueryUsing: fn (Builder $query) => $query->select([
+                                                    'users.id',
+                                                    'users.first_name',
+                                                    'users.last_name',
+                                                    'users.email',
+                                                    'users.status',
+                                                ])->active()
+                                            )
+                                            ->getOptionLabelFromRecordUsing(fn (User $record) => $record->full_name)
+                                            ->multiple()
+                                            ->preload()
+                                            ->searchable(),
+                                    ]),
+
+                                Forms\Components\Section::make(__('services::services.sections.rooms'))
+                                    ->description(__('services::services.sections.rooms_description'))
+                                    ->schema([
+                                        Forms\Components\Select::make('rooms')
+                                            ->label(__('services::services.fields.service_rooms'))
+                                            ->relationship(
+                                                'rooms',
+                                                'name',
+                                                modifyQueryUsing: fn (Builder $query) => $query->select([
+                                                    'rooms.id',
+                                                    'rooms.branch_id',
+                                                    'rooms.name',
+                                                    'rooms.code',
+                                                    'rooms.is_active',
+                                                    'rooms.is_bookable',
+                                                ])->active()->bookable()
+                                            )
+                                            ->getOptionLabelFromRecordUsing(fn (Room $record) => $record->getDisplayName())
+                                            ->multiple()
+                                            ->preload()
+                                            ->searchable(),
+                                    ]),
+
+                                Forms\Components\Section::make(__('services::services.sections.required_equipment'))
+                                    ->description(__('services::services.sections.required_equipment_description'))
+                                    ->schema([
+                                        Forms\Components\Select::make('requiredEquipment')
+                                            ->label(__('services::services.fields.required_equipment'))
+                                            ->relationship('requiredEquipment', 'name')
+                                            ->getOptionLabelFromRecordUsing(fn (Equipment $record) => "{$record->name} ({$record->code})")
+                                            ->multiple()
+                                            ->preload()
+                                            ->searchable(),
+                                    ]),
+
+                                Forms\Components\Section::make(__('services::services.sections.time_restrictions'))
+                                    ->description(__('services::services.sections.time_restrictions_description'))
+                                    ->schema([
+                                        Forms\Components\CheckboxList::make('time_slot_restrictions.allowed_days')
+                                            ->label(__('services::services.fields.allowed_days'))
+                                            ->options([
+                                                0 => __('Sunday'),
+                                                1 => __('Monday'),
+                                                2 => __('Tuesday'),
+                                                3 => __('Wednesday'),
+                                                4 => __('Thursday'),
+                                                5 => __('Friday'),
+                                                6 => __('Saturday'),
+                                            ])
+                                            ->columns(4),
+
+                                        Forms\Components\Grid::make(2)->schema([
+                                            Forms\Components\TimePicker::make('time_slot_restrictions.allowed_time_start')
+                                                ->label(__('services::services.fields.allowed_time_start'))
+                                                ->seconds(false),
+                                            Forms\Components\TimePicker::make('time_slot_restrictions.allowed_time_end')
+                                                ->label(__('services::services.fields.allowed_time_end'))
+                                                ->seconds(false),
+                                        ]),
+
+                                        Forms\Components\Grid::make(2)->schema([
+                                            Forms\Components\TextInput::make('time_slot_restrictions.min_advance_hours')
+                                                ->label(__('services::services.fields.min_advance_hours'))
+                                                ->numeric()
+                                                ->suffix(__('services::services.fields.hours')),
+                                            Forms\Components\TextInput::make('time_slot_restrictions.max_advance_days')
+                                                ->label(__('services::services.fields.max_advance_days'))
+                                                ->numeric()
+                                                ->suffix(__('services::services.fields.days')),
+                                        ]),
+
+                                        Forms\Components\TagsInput::make('time_slot_restrictions.blackout_dates')
+                                            ->label(__('services::services.fields.blackout_dates'))
+                                            ->placeholder('YYYY-MM-DD')
+                                            ->helperText(__('services::services.fields.blackout_dates_help')),
+                                    ]),
+                            ]),
                     ])
                     ->columnSpanFull(),
             ]);
@@ -372,6 +477,9 @@ class ServiceResource extends Resource
     {
         return [
             RelationManagers\BranchPricingRelationManager::class,
+            RelationManagers\QualifiedStaffRelationManager::class,
+            RelationManagers\ServiceRoomsRelationManager::class,
+            RelationManagers\RequiredEquipmentRelationManager::class,
             RelationManagers\AppointmentsRelationManager::class,
             RelationManagers\PackageItemsRelationManager::class,
         ];

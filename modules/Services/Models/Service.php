@@ -11,6 +11,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Modules\Equipment\Models\EquipmentType;
+use Modules\Equipment\Models\Equipment;
+use Modules\Core\Models\Room;
+use Modules\Auth\Models\User;
+use Carbon\Carbon;
 
 class Service extends BaseModel
 {
@@ -44,6 +48,7 @@ class Service extends BaseModel
         'is_active',
         'requires_consent',
         'is_bookable_online',
+        'time_slot_restrictions',
         'sort_order',
         'image_url',
         'tags',
@@ -69,6 +74,7 @@ class Service extends BaseModel
         'is_active' => 'boolean',
         'requires_consent' => 'boolean',
         'is_bookable_online' => 'boolean',
+        'time_slot_restrictions' => 'array',
         'sort_order' => 'integer',
     ];
 
@@ -132,6 +138,86 @@ class Service extends BaseModel
     public function packageItems(): HasMany
     {
         return $this->hasMany(\Modules\Packages\Models\PackageItem::class);
+    }
+
+    public function qualifiedStaff(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'service_qualified_staff')
+            ->withTimestamps();
+    }
+
+    public function rooms(): BelongsToMany
+    {
+        return $this->belongsToMany(Room::class, 'service_rooms')
+            ->withPivot(['is_primary', 'priority'])
+            ->withTimestamps();
+    }
+
+    public function getPrimaryRoomAttribute(): ?Room
+    {
+        return $this->rooms()->wherePivot('is_primary', true)->first();
+    }
+
+    public function backupRooms(): BelongsToMany
+    {
+        return $this->belongsToMany(Room::class, 'service_rooms')
+            ->wherePivot('is_primary', false)
+            ->orderByPivot('priority')
+            ->withTimestamps();
+    }
+
+    public function requiredEquipment(): BelongsToMany
+    {
+        return $this->belongsToMany(Equipment::class, 'service_required_equipment')
+            ->withPivot(['is_mandatory'])
+            ->withTimestamps();
+    }
+
+    public function isTimeSlotAllowed(Carbon $dateTime): bool
+    {
+        $restrictions = $this->time_slot_restrictions;
+        if (empty($restrictions)) {
+            return true;
+        }
+
+        // Check day of week
+        if (isset($restrictions['allowed_days']) &&
+            !in_array($dateTime->dayOfWeek, $restrictions['allowed_days'])) {
+            return false;
+        }
+
+        // Check time range
+        $time = $dateTime->format('H:i');
+        if (isset($restrictions['allowed_time_start']) && $time < $restrictions['allowed_time_start']) {
+            return false;
+        }
+        if (isset($restrictions['allowed_time_end']) && $time > $restrictions['allowed_time_end']) {
+            return false;
+        }
+
+        // Check blackout dates
+        if (isset($restrictions['blackout_dates']) &&
+            in_array($dateTime->format('Y-m-d'), $restrictions['blackout_dates'])) {
+            return false;
+        }
+
+        // Check min advance hours
+        if (isset($restrictions['min_advance_hours'])) {
+            $hoursUntilSlot = now()->diffInHours($dateTime, false);
+            if ($hoursUntilSlot < $restrictions['min_advance_hours']) {
+                return false;
+            }
+        }
+
+        // Check max advance days
+        if (isset($restrictions['max_advance_days'])) {
+            $daysUntilSlot = now()->diffInDays($dateTime, false);
+            if ($daysUntilSlot > $restrictions['max_advance_days']) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public function getPriceForBranch(string $branchId): int
