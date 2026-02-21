@@ -535,12 +535,12 @@ ODOO_PASSWORD=
 - [x] Tenant-specific backup/restore functionality (tenants:backup)
 
 #### Security Middleware
-- [ ] ApiRateLimiter - Rate limiting for API
-- [ ] ApiKeyAuth - API key authentication
-- [ ] TwoFactorEnforce - Enforce 2FA for sensitive operations
-- [ ] IpWhitelist - IP-based access control
+- [x] ApiRateLimiter - Rate limiting for API (app/Http/Middleware/ApiRateLimiter.php)
+- [ ] ApiKeyAuth - API key authentication (handled by Laravel Sanctum)
+- [x] TwoFactorEnforce - Enforce 2FA for sensitive operations (app/Http/Middleware/TwoFactorEnforce.php)
+- [x] IpWhitelist - IP-based access control (app/Http/Middleware/IpWhitelist.php)
 - [ ] SuspiciousActivityDetector - Detect anomalous behavior
-- [ ] AuditLogger - Log all actions for audit
+- [x] AuditLogger - Log all actions for audit (app/Http/Middleware/AuditLogger.php)
 
 #### Tenant Middleware
 - [ ] TenantContext - Set tenant context
