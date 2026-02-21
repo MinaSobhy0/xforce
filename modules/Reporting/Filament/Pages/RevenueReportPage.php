@@ -72,7 +72,8 @@ class RevenueReportPage extends BaseReportPage
         $paidInvoices = (clone $invoicesQuery)->where('status', 'paid')->count();
         $outstandingAmount = (clone $invoicesQuery)
             ->whereIn('status', ['issued', 'partially_paid'])
-            ->sum('remaining_minor');
+            ->selectRaw('COALESCE(SUM(total_minor - paid_minor), 0) as outstanding')
+            ->value('outstanding') ?? 0;
 
         // Stats cards data
         $this->stats = [
