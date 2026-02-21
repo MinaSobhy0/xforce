@@ -93,6 +93,13 @@ return [
     'cannot_delete_main_branch' => 'لا يمكن حذف الفرع الرئيسي',
     'staff' => 'الموظفين',
 
+    // Branch Limits
+    'branch_limit_reached' => 'تم الوصول للحد الأقصى من الفروع',
+    'branch_limit_reached_message' => 'لقد وصلت للحد الأقصى وهو :max فرع/فروع مسموح بها في خطتك. لديك حالياً :current فرع/فروع.',
+    'branch_limit_near' => 'اقتراب من الحد الأقصى للفروع',
+    'branches_used' => ':current من :max فرع مستخدم',
+    'upgrade_to_add_branches' => 'تواصل مع الدعم أو قم بترقية خطتك لإضافة المزيد من الفروع.',
+
     // Days of week
     'days_of_week' => [
         'sunday' => 'الأحد',

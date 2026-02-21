@@ -23,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'api-limit' => \App\Http\Middleware\ApiRateLimiter::class,
             'ip-whitelist' => \App\Http\Middleware\IpWhitelist::class,
             '2fa-enforce' => \App\Http\Middleware\TwoFactorEnforce::class,
+            'tenant-limit' => \App\Http\Middleware\TenantUsageLimit::class,
         ]);
 
         // Add IdentifyTenant middleware globally for web routes

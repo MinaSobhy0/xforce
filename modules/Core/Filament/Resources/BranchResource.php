@@ -4,6 +4,7 @@ namespace Modules\Core\Filament\Resources;
 
 use Modules\Core\Filament\Resources\BranchResource\Pages;
 use Modules\Core\Filament\Resources\BranchResource\RelationManagers;
+use Modules\Core\Filament\Resources\BranchResource\Widgets;
 use Modules\Core\Models\Branch;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -35,6 +36,23 @@ class BranchResource extends Resource
     public static function getPluralModelLabel(): string
     {
         return __('core::core.branches');
+    }
+
+    /**
+     * Check if tenant can create more branches.
+     */
+    public static function canCreate(): bool
+    {
+        $tenant = app('currentTenant');
+
+        if (!$tenant) {
+            return true; // Allow if no tenant context (shouldn't happen)
+        }
+
+        $currentBranchCount = Branch::count();
+        $maxBranches = $tenant->max_branches ?? PHP_INT_MAX;
+
+        return $currentBranchCount < $maxBranches;
     }
 
     public static function form(Form $form): Form
@@ -291,6 +309,13 @@ class BranchResource extends Resource
     {
         return [
             RelationManagers\RoomsRelationManager::class,
+        ];
+    }
+
+    public static function getWidgets(): array
+    {
+        return [
+            Widgets\BranchLimitWidget::class,
         ];
     }
 

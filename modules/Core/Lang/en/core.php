@@ -93,6 +93,13 @@ return [
     'cannot_delete_main_branch' => 'Cannot delete the main branch',
     'staff' => 'Staff',
 
+    // Branch Limits
+    'branch_limit_reached' => 'Branch Limit Reached',
+    'branch_limit_reached_message' => 'You have reached the maximum of :max branches allowed for your plan. You currently have :current branches.',
+    'branch_limit_near' => 'Approaching Branch Limit',
+    'branches_used' => ':current of :max branches used',
+    'upgrade_to_add_branches' => 'Contact support or upgrade your plan to add more branches.',
+
     // Days of week
     'days_of_week' => [
         'sunday' => 'Sunday',
