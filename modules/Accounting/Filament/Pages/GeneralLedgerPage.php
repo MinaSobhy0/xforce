@@ -30,9 +30,14 @@ class GeneralLedgerPage extends Page implements HasForms
     public ?string $start_date = null;
     public ?string $end_date = null;
     public ?string $account_id = null;
+    public ?string $account_type = null;
+    public array $accountBalances = [];
     public array $ledgerEntries = [];
     public int $openingBalance = 0;
     public int $closingBalance = 0;
+    public int $totalDebit = 0;
+    public int $totalCredit = 0;
+    public ?string $selectedAccountName = null;
 
     public static function getNavigationLabel(): string
     {
@@ -48,6 +53,7 @@ class GeneralLedgerPage extends Page implements HasForms
     {
         $this->start_date = now()->startOfMonth()->format('Y-m-d');
         $this->end_date = now()->format('Y-m-d');
+        $this->loadAllAccountBalances();
     }
 
     public function form(Form $form): Form
@@ -56,6 +62,29 @@ class GeneralLedgerPage extends Page implements HasForms
             ->schema([
                 Section::make(__('accounting::accounting.filters'))
                     ->schema([
+                        DatePicker::make('start_date')
+                            ->label(__('accounting::accounting.start_date'))
+                            ->reactive()
+                            ->afterStateUpdated(fn () => $this->applyFilters()),
+
+                        DatePicker::make('end_date')
+                            ->label(__('accounting::accounting.end_date'))
+                            ->reactive()
+                            ->afterStateUpdated(fn () => $this->applyFilters()),
+
+                        Select::make('account_type')
+                            ->label(__('accounting::accounting.account_type'))
+                            ->options([
+                                '' => __('accounting::accounting.all_types'),
+                                'asset' => __('accounting::accounting.assets'),
+                                'liability' => __('accounting::accounting.liabilities'),
+                                'equity' => __('accounting::accounting.equity'),
+                                'revenue' => __('accounting::accounting.revenue'),
+                                'expense' => __('accounting::accounting.expenses'),
+                            ])
+                            ->reactive()
+                            ->afterStateUpdated(fn () => $this->applyFilters()),
+
                         Select::make('account_id')
                             ->label(__('accounting::accounting.account'))
                             ->options(
@@ -65,31 +94,92 @@ class GeneralLedgerPage extends Page implements HasForms
                                     ->mapWithKeys(fn ($a) => [$a->id => "{$a->code} - {$a->name}"])
                             )
                             ->searchable()
-                            ->required()
+                            ->placeholder(__('accounting::accounting.all_accounts'))
                             ->reactive()
-                            ->afterStateUpdated(fn () => $this->loadLedger()),
-
-                        DatePicker::make('start_date')
-                            ->label(__('accounting::accounting.start_date'))
-                            ->reactive()
-                            ->afterStateUpdated(fn () => $this->loadLedger()),
-
-                        DatePicker::make('end_date')
-                            ->label(__('accounting::accounting.end_date'))
-                            ->reactive()
-                            ->afterStateUpdated(fn () => $this->loadLedger()),
+                            ->afterStateUpdated(fn () => $this->applyFilters()),
                     ])
-                    ->columns(3),
+                    ->columns(4),
             ])
             ->statePath('data');
     }
 
-    public function loadLedger(): void
+    public function applyFilters(): void
     {
-        if (!$this->account_id) {
-            $this->ledgerEntries = [];
-            return;
+        if ($this->account_id) {
+            $this->loadSingleAccountLedger();
+        } else {
+            $this->loadAllAccountBalances();
         }
+    }
+
+    public function loadAllAccountBalances(): void
+    {
+        $this->ledgerEntries = [];
+        $this->selectedAccountName = null;
+
+        $startDate = Carbon::parse($this->start_date);
+        $endDate = Carbon::parse($this->end_date);
+
+        $query = ChartOfAccount::where('is_active', true)->orderBy('code');
+
+        if ($this->account_type) {
+            $query->where('type', $this->account_type);
+        }
+
+        $accounts = $query->get();
+
+        $this->accountBalances = [];
+        $this->totalDebit = 0;
+        $this->totalCredit = 0;
+
+        foreach ($accounts as $account) {
+            // Opening balance (before start date)
+            $openingBalance = JournalEntryLine::where('account_id', $account->id)
+                ->whereHas('journalEntry', function ($q) use ($startDate) {
+                    $q->where('date', '<', $startDate)
+                        ->where('status', 'posted');
+                })
+                ->sum(DB::raw('debit_minor - credit_minor'));
+
+            // Period activity
+            $periodDebit = JournalEntryLine::where('account_id', $account->id)
+                ->whereHas('journalEntry', function ($q) use ($startDate, $endDate) {
+                    $q->whereBetween('date', [$startDate, $endDate])
+                        ->where('status', 'posted');
+                })
+                ->sum('debit_minor');
+
+            $periodCredit = JournalEntryLine::where('account_id', $account->id)
+                ->whereHas('journalEntry', function ($q) use ($startDate, $endDate) {
+                    $q->whereBetween('date', [$startDate, $endDate])
+                        ->where('status', 'posted');
+                })
+                ->sum('credit_minor');
+
+            $closingBalance = $openingBalance + $periodDebit - $periodCredit;
+
+            // Only show accounts with activity or balance
+            if ($openingBalance != 0 || $periodDebit != 0 || $periodCredit != 0) {
+                $this->accountBalances[] = [
+                    'id' => $account->id,
+                    'code' => $account->code,
+                    'name' => $account->name,
+                    'type' => $account->type,
+                    'opening_balance' => $openingBalance,
+                    'debit' => $periodDebit,
+                    'credit' => $periodCredit,
+                    'closing_balance' => $closingBalance,
+                ];
+
+                $this->totalDebit += $periodDebit;
+                $this->totalCredit += $periodCredit;
+            }
+        }
+    }
+
+    public function loadSingleAccountLedger(): void
+    {
+        $this->accountBalances = [];
 
         $startDate = Carbon::parse($this->start_date);
         $endDate = Carbon::parse($this->end_date);
@@ -98,6 +188,8 @@ class GeneralLedgerPage extends Page implements HasForms
         if (!$account) {
             return;
         }
+
+        $this->selectedAccountName = "{$account->code} - {$account->name}";
 
         // Opening balance (before start date)
         $this->openingBalance = JournalEntryLine::where('account_id', $this->account_id)
@@ -119,9 +211,13 @@ class GeneralLedgerPage extends Page implements HasForms
 
         $runningBalance = $this->openingBalance;
         $this->ledgerEntries = [];
+        $this->totalDebit = 0;
+        $this->totalCredit = 0;
 
         foreach ($entries as $entry) {
             $runningBalance += ($entry->debit_minor - $entry->credit_minor);
+            $this->totalDebit += $entry->debit_minor;
+            $this->totalCredit += $entry->credit_minor;
 
             $this->ledgerEntries[] = [
                 'date' => $entry->journalEntry->date->format('Y-m-d'),
@@ -136,6 +232,18 @@ class GeneralLedgerPage extends Page implements HasForms
         $this->closingBalance = $runningBalance;
     }
 
+    public function viewAccount(string $accountId): void
+    {
+        $this->account_id = $accountId;
+        $this->loadSingleAccountLedger();
+    }
+
+    public function clearAccountFilter(): void
+    {
+        $this->account_id = null;
+        $this->loadAllAccountBalances();
+    }
+
     protected function getHeaderActions(): array
     {
         return [
@@ -148,7 +256,7 @@ class GeneralLedgerPage extends Page implements HasForms
             Action::make('refresh')
                 ->label(__('accounting::accounting.refresh'))
                 ->icon('heroicon-o-arrow-path')
-                ->action(fn () => $this->loadLedger()),
+                ->action(fn () => $this->applyFilters()),
         ];
     }
 

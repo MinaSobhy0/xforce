@@ -75,6 +75,17 @@ return [
     'closing_balance' => 'Closing Balance',
     'select_account_prompt' => 'Please select an account to view the ledger',
     'no_entries' => 'No entries found',
+    'account_balances' => 'Account Balances',
+    'account_type' => 'Account Type',
+    'all_types' => 'All Types',
+    'all_accounts' => 'All Accounts',
+    'code' => 'Code',
+    'total' => 'Total',
+    'view' => 'View',
+    'actions' => 'Actions',
+    'back_to_all' => 'Back to All Accounts',
+    'no_account_activity' => 'No account activity in the selected period',
+    'revenue' => 'Revenue',
 
     // Cash Flow
     'operating_activities' => 'Operating Activities',
