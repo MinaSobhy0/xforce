@@ -7,7 +7,6 @@ use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Modules\Booking\Models\WorkSchedule;
 
 class ScheduleAssignmentsRelationManager extends RelationManager
 {
@@ -31,51 +30,18 @@ class ScheduleAssignmentsRelationManager extends RelationManager
                     ->relationship('workSchedule', 'name')
                     ->searchable()
                     ->preload()
-                    ->required()
-                    ->live()
-                    ->afterStateUpdated(function (Forms\Set $set, ?string $state) {
-                        if ($state) {
-                            $schedule = WorkSchedule::find($state);
-                            if ($schedule && $schedule->branch_id) {
-                                $set('branch_id', null); // Use schedule's branch
-                            }
-                        }
-                    }),
-
-                Forms\Components\Select::make('branch_id')
-                    ->label(__('staff::staff.fields.branch'))
-                    ->relationship('branch', 'name')
-                    ->searchable()
-                    ->preload()
-                    ->placeholder(__('booking::schedules.use_schedule_branch'))
-                    ->helperText(__('booking::schedules.override_branch_help')),
-
-                Forms\Components\Grid::make(2)
-                    ->schema([
-                        Forms\Components\DatePicker::make('effective_from')
-                            ->label(__('staff::staff.fields.effective_from'))
-                            ->placeholder(__('booking::schedules.immediately')),
-
-                        Forms\Components\DatePicker::make('effective_until')
-                            ->label(__('staff::staff.fields.effective_until'))
-                            ->placeholder(__('booking::schedules.indefinitely')),
-                    ]),
+                    ->required(),
 
                 Forms\Components\Grid::make(2)
                     ->schema([
                         Forms\Components\Toggle::make('is_primary')
                             ->label(__('staff::staff.fields.is_primary'))
-                            ->helperText(__('staff::staff.fields.is_primary_help')),
+                            ->default(true),
 
                         Forms\Components\Toggle::make('is_active')
                             ->label(__('staff::staff.fields.is_active'))
                             ->default(true),
                     ]),
-
-                Forms\Components\Textarea::make('notes')
-                    ->label(__('staff::staff.fields.notes'))
-                    ->rows(2)
-                    ->maxLength(500),
             ]);
     }
 
@@ -99,20 +65,6 @@ class ScheduleAssignmentsRelationManager extends RelationManager
                     ->wrap()
                     ->size('sm'),
 
-                Tables\Columns\TextColumn::make('branch.name')
-                    ->label(__('staff::staff.fields.branch'))
-                    ->placeholder(__('booking::schedules.use_schedule_branch')),
-
-                Tables\Columns\TextColumn::make('effective_from')
-                    ->label(__('staff::staff.fields.effective_from'))
-                    ->date()
-                    ->placeholder(__('booking::schedules.immediately')),
-
-                Tables\Columns\TextColumn::make('effective_until')
-                    ->label(__('staff::staff.fields.effective_until'))
-                    ->date()
-                    ->placeholder(__('booking::schedules.indefinitely')),
-
                 Tables\Columns\IconColumn::make('is_primary')
                     ->label(__('staff::staff.fields.is_primary'))
                     ->boolean(),
@@ -124,12 +76,6 @@ class ScheduleAssignmentsRelationManager extends RelationManager
             ->filters([
                 Tables\Filters\TernaryFilter::make('is_active')
                     ->label(__('staff::staff.fields.is_active')),
-
-                Tables\Filters\Filter::make('currently_effective')
-                    ->label(__('booking::schedules.filters.currently_effective'))
-                    ->query(fn ($query) => $query->currentlyEffective())
-                    ->toggle()
-                    ->default(true),
             ])
             ->headerActions([
                 Tables\Actions\CreateAction::make()
@@ -147,6 +93,6 @@ class ScheduleAssignmentsRelationManager extends RelationManager
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ])
-            ->defaultSort('created_at', 'desc');
+            ->defaultSort('is_primary', 'desc');
     }
 }

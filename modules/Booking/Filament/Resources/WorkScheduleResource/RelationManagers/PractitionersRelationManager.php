@@ -8,13 +8,12 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Modules\Auth\Models\User;
-use Modules\Booking\Models\PractitionerScheduleAssignment;
 
 class PractitionersRelationManager extends RelationManager
 {
     protected static string $relationship = 'assignments';
 
-    protected static ?string $title = 'Assigned Practitioners';
+    protected static ?string $title = 'Assigned Staff';
 
     protected static ?string $recordTitleAttribute = 'user_id';
 
@@ -32,40 +31,16 @@ class PractitionersRelationManager extends RelationManager
                     ->preload()
                     ->required(),
 
-                Forms\Components\Select::make('branch_id')
-                    ->label(__('booking::schedules.fields.branch'))
-                    ->relationship('branch', 'name')
-                    ->searchable()
-                    ->preload()
-                    ->placeholder(__('booking::schedules.use_schedule_branch'))
-                    ->helperText(__('booking::schedules.override_branch_help')),
-
-                Forms\Components\Grid::make(2)
-                    ->schema([
-                        Forms\Components\DatePicker::make('effective_from')
-                            ->label(__('booking::schedules.fields.effective_from'))
-                            ->placeholder(__('booking::schedules.immediately')),
-
-                        Forms\Components\DatePicker::make('effective_until')
-                            ->label(__('booking::schedules.fields.effective_until'))
-                            ->placeholder(__('booking::schedules.indefinitely')),
-                    ]),
-
                 Forms\Components\Grid::make(2)
                     ->schema([
                         Forms\Components\Toggle::make('is_primary')
                             ->label(__('booking::schedules.fields.is_primary'))
-                            ->helperText(__('booking::schedules.primary_help')),
+                            ->default(true),
 
                         Forms\Components\Toggle::make('is_active')
                             ->label(__('booking::schedules.fields.is_active'))
                             ->default(true),
                     ]),
-
-                Forms\Components\Textarea::make('notes')
-                    ->label(__('booking::schedules.fields.notes'))
-                    ->rows(2)
-                    ->maxLength(500),
             ]);
     }
 
@@ -79,20 +54,6 @@ class PractitionersRelationManager extends RelationManager
                     ->searchable(['first_name', 'last_name'])
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('branch.name')
-                    ->label(__('booking::schedules.fields.branch'))
-                    ->placeholder(__('booking::schedules.use_schedule_branch')),
-
-                Tables\Columns\TextColumn::make('effective_from')
-                    ->label(__('booking::schedules.fields.from'))
-                    ->date()
-                    ->placeholder(__('booking::schedules.immediately')),
-
-                Tables\Columns\TextColumn::make('effective_until')
-                    ->label(__('booking::schedules.fields.until'))
-                    ->date()
-                    ->placeholder(__('booking::schedules.indefinitely')),
-
                 Tables\Columns\IconColumn::make('is_primary')
                     ->label(__('booking::schedules.fields.primary'))
                     ->boolean(),
@@ -104,12 +65,6 @@ class PractitionersRelationManager extends RelationManager
             ->filters([
                 Tables\Filters\TernaryFilter::make('is_active')
                     ->label(__('booking::schedules.fields.is_active')),
-
-                Tables\Filters\Filter::make('currently_effective')
-                    ->label(__('booking::schedules.filters.currently_effective'))
-                    ->query(fn ($query) => $query->currentlyEffective())
-                    ->toggle()
-                    ->default(true),
             ])
             ->headerActions([
                 Tables\Actions\CreateAction::make(),
@@ -123,6 +78,6 @@ class PractitionersRelationManager extends RelationManager
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ])
-            ->defaultSort('created_at', 'desc');
+            ->defaultSort('is_primary', 'desc');
     }
 }
