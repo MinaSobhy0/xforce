@@ -160,10 +160,15 @@ class GeneralLedgerPage extends Page implements HasForms
 
             // Only show accounts with activity or balance
             if ($openingBalance != 0 || $periodDebit != 0 || $periodCredit != 0) {
+                // Get translated name - handle both array and string formats
+                $name = $account->getTranslation('name', app()->getLocale(), false)
+                    ?? $account->getTranslation('name', 'en', false)
+                    ?? $account->name;
+
                 $this->accountBalances[] = [
                     'id' => $account->id,
                     'code' => $account->code,
-                    'name' => $account->name,
+                    'name' => is_array($name) ? ($name[app()->getLocale()] ?? $name['en'] ?? '') : (string) $name,
                     'type' => $account->type,
                     'opening_balance' => $openingBalance,
                     'debit' => $periodDebit,
@@ -189,7 +194,13 @@ class GeneralLedgerPage extends Page implements HasForms
             return;
         }
 
-        $this->selectedAccountName = "{$account->code} - {$account->name}";
+        // Get translated name - handle both array and string formats
+        $name = $account->getTranslation('name', app()->getLocale(), false)
+            ?? $account->getTranslation('name', 'en', false)
+            ?? $account->name;
+        $nameStr = is_array($name) ? ($name[app()->getLocale()] ?? $name['en'] ?? '') : (string) $name;
+
+        $this->selectedAccountName = "{$account->code} - {$nameStr}";
 
         // Opening balance (before start date)
         $this->openingBalance = JournalEntryLine::where('account_id', $this->account_id)
