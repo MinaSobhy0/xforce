@@ -85,7 +85,7 @@ class InventoryReportPage extends BaseReportPage
             $poQuery->where('branch_id', $branchId);
         }
 
-        $purchaseOrdersValue = $poQuery->sum('total_minor');
+        $purchaseOrdersValue = $poQuery->sum('subtotal_minor');
 
         // Stats cards
         $this->stats = [
