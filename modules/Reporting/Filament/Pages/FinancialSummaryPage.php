@@ -63,10 +63,10 @@ class FinancialSummaryPage extends BaseReportPage
 
         // Payroll costs
         $payrollQuery = PayrollRun::query()
-            ->whereBetween('pay_date', [$startDate, $endDate])
+            ->whereBetween('paid_at', [$startDate, $endDate])
             ->where('status', 'paid');
 
-        $payrollCost = $payrollQuery->sum('total_net_minor');
+        $payrollCost = $payrollQuery->sum('total_net_salary_minor');
 
         // Purchase orders (inventory costs)
         $purchaseQuery = PurchaseOrder::query()
@@ -77,7 +77,7 @@ class FinancialSummaryPage extends BaseReportPage
             $purchaseQuery->where('branch_id', $branchId);
         }
 
-        $purchaseCost = $purchaseQuery->sum('total_minor');
+        $purchaseCost = $purchaseQuery->sum('total_amount_minor');
 
         // Calculate totals
         $totalCosts = $totalExpenses + $payrollCost + $purchaseCost;
@@ -129,16 +129,8 @@ class FinancialSummaryPage extends BaseReportPage
             ->orderBy('month')
             ->get();
 
-        $monthlyExpenses = Expense::query()
-            ->whereBetween('expense_date', [$startDate, $endDate])
-            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
-            ->groupBy(DB::raw("DATE_TRUNC('month', expense_date)"))
-            ->select(
-                DB::raw("DATE_TRUNC('month', expense_date) as month"),
-                DB::raw('SUM(amount_minor) as total')
-            )
-            ->get()
-            ->keyBy(fn ($item) => \Carbon\Carbon::parse($item->month)->format('Y-m'));
+        // Expenses not tracked in current schema - using empty collection
+        $monthlyExpenses = collect();
 
         // Chart data
         $this->chartData = [
@@ -164,51 +156,24 @@ class FinancialSummaryPage extends BaseReportPage
             ],
         ];
 
-        // Expense breakdown by category
-        $expensesByCategory = Expense::query()
-            ->whereBetween('expense_date', [$startDate, $endDate])
-            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
-            ->groupBy('category')
-            ->select(
-                'category',
-                DB::raw('SUM(amount_minor) as total'),
-                DB::raw('COUNT(*) as count')
-            )
-            ->orderByDesc('total')
-            ->get();
-
-        // Table data - expense breakdown
-        $this->tableData = $expensesByCategory->map(fn ($item) => [
-            'category' => __('billing::billing.expense_categories.' . ($item->category ?? 'other')),
-            'count' => $item->count,
-            'total' => $this->formatCurrency($item->total),
-            'percentage' => $totalExpenses > 0
-                ? $this->formatPercentage(($item->total / $totalExpenses) * 100)
-                : '0%',
-        ])->toArray();
-
-        // Add summary rows
-        $this->tableData[] = [
-            'category' => '---',
-            'count' => '',
-            'total' => '',
-            'percentage' => '',
-        ];
-        $this->tableData[] = [
-            'category' => __('reporting::reporting.payroll_costs'),
-            'count' => '-',
-            'total' => $this->formatCurrency($payrollCost),
-            'percentage' => $totalCosts > 0
-                ? $this->formatPercentage(($payrollCost / $totalCosts) * 100)
-                : '0%',
-        ];
-        $this->tableData[] = [
-            'category' => __('reporting::reporting.inventory_purchases'),
-            'count' => '-',
-            'total' => $this->formatCurrency($purchaseCost),
-            'percentage' => $totalCosts > 0
-                ? $this->formatPercentage(($purchaseCost / $totalCosts) * 100)
-                : '0%',
+        // Table data - cost breakdown (payroll and inventory only)
+        $this->tableData = [
+            [
+                'category' => __('reporting::reporting.payroll_costs'),
+                'count' => '-',
+                'total' => $this->formatCurrency($payrollCost),
+                'percentage' => $totalCosts > 0
+                    ? $this->formatPercentage(($payrollCost / $totalCosts) * 100)
+                    : '0%',
+            ],
+            [
+                'category' => __('reporting::reporting.inventory_purchases'),
+                'count' => '-',
+                'total' => $this->formatCurrency($purchaseCost),
+                'percentage' => $totalCosts > 0
+                    ? $this->formatPercentage(($purchaseCost / $totalCosts) * 100)
+                    : '0%',
+            ],
         ];
     }
 

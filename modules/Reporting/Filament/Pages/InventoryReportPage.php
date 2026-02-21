@@ -151,7 +151,7 @@ class InventoryReportPage extends BaseReportPage
 
         // Chart data
         $this->chartData = [
-            'labels' => $movementsByType->pluck('type')->map(fn ($t) => ucfirst($t))->toArray(),
+            'labels' => $movementsByType->pluck('movement_type')->map(fn ($t) => ucfirst(str_replace('_', ' ', $t)))->toArray(),
             'datasets' => [
                 [
                     'data' => $movementsByType->pluck('total')->toArray(),
