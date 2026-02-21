@@ -97,7 +97,8 @@ class PlatformAuditLog extends Page implements HasTable
 
                 Tables\Filters\SelectFilter::make('causer_id')
                     ->label('Admin')
-                    ->relationship('causer', 'name')
+                    ->relationship('causer', 'email')
+                    ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->first_name} {$record->last_name}")
                     ->searchable()
                     ->preload(),
 

@@ -48,9 +48,10 @@ class StaffProfileResource extends Resource
                             ->schema([
                                 Forms\Components\Select::make('user_id')
                                     ->label(__('staff::staff.fields.user'))
-                                    ->relationship('user', 'name')
+                                    ->relationship('user', 'email')
+                                    ->getOptionLabelFromRecordUsing(fn (User $record) => "{$record->first_name} {$record->last_name} ({$record->email})")
                                     ->required()
-                                    ->searchable()
+                                    ->searchable(['first_name', 'last_name', 'email'])
                                     ->preload(),
 
                                 Forms\Components\Select::make('branch_id')
