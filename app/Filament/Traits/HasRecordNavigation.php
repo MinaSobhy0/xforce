@@ -165,26 +165,21 @@ trait HasRecordNavigation
 
         // Previous action (left arrow in LTR, right arrow in RTL)
         $actions[] = Action::make('previousRecord')
-            ->label(__('core::core.previous'))
             ->icon($isRtl ? 'heroicon-o-chevron-right' : 'heroicon-o-chevron-left')
             ->color('gray')
-            ->size('sm')
-            ->outlined()
+            ->iconButton()
             ->disabled($previous === null)
             ->url($previous ? $this->getRecordNavigationUrl($previous) : null)
-            ->extraAttributes(['title' => __('core::core.go_to_previous_record')]);
+            ->tooltip(__('core::core.previous'));
 
         // Next action (right arrow in LTR, left arrow in RTL)
         $actions[] = Action::make('nextRecord')
-            ->label(__('core::core.next'))
             ->icon($isRtl ? 'heroicon-o-chevron-left' : 'heroicon-o-chevron-right')
-            ->iconPosition('after')
             ->color('gray')
-            ->size('sm')
-            ->outlined()
+            ->iconButton()
             ->disabled($next === null)
             ->url($next ? $this->getRecordNavigationUrl($next) : null)
-            ->extraAttributes(['title' => __('core::core.go_to_next_record')]);
+            ->tooltip(__('core::core.next'));
 
         return $actions;
     }
