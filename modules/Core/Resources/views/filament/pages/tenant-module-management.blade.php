@@ -87,22 +87,14 @@
 
                         {{-- Module Info --}}
                         <div class="flex items-start gap-3 mt-6">
-                            <div class="flex-shrink-0 p-2 rounded-lg
-                                @if($module['is_active'])
-                                    bg-success-100 dark:bg-success-900/20
-                                @else
-                                    bg-gray-100 dark:bg-gray-800
-                                @endif
-                            ">
+                            <div class="flex-shrink-0 p-2 rounded-lg {{ $module['is_active'] ? 'bg-success-100 dark:bg-success-900/20' : 'bg-gray-100 dark:bg-gray-800' }}">
                                 <x-dynamic-component
                                     :component="$module['icon']"
-                                    class="w-6 h-6
-                                        @if($module['is_active'])
-                                            text-success-600 dark:text-success-400
-                                        @else
-                                            text-gray-500 dark:text-gray-400
-                                        @endif
-                                    "
+                                    @class([
+                                        'w-6 h-6',
+                                        'text-success-600 dark:text-success-400' => $module['is_active'],
+                                        'text-gray-500 dark:text-gray-400' => !$module['is_active'],
+                                    ])
                                 />
                             </div>
                             <div class="flex-1 min-w-0">
