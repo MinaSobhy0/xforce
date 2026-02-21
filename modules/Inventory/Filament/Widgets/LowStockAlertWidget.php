@@ -24,8 +24,10 @@ class LowStockAlertWidget extends BaseWidget
             ->query(
                 StockLevel::query()
                     ->with(['product', 'branch'])
-                    ->whereRaw('quantity_on_hand <= reorder_point')
-                    ->orderByRaw('quantity_on_hand - reorder_point ASC')
+                    ->join('products', 'stock_levels.product_id', '=', 'products.id')
+                    ->whereRaw('stock_levels.quantity_on_hand <= products.reorder_point')
+                    ->orderByRaw('stock_levels.quantity_on_hand - products.reorder_point ASC')
+                    ->select('stock_levels.*')
                     ->limit(10)
             )
             ->columns([
@@ -48,13 +50,13 @@ class LowStockAlertWidget extends BaseWidget
                     ->alignCenter()
                     ->color(fn ($record) => $record->quantity_on_hand <= 0 ? 'danger' : 'warning'),
 
-                Tables\Columns\TextColumn::make('reorder_point')
+                Tables\Columns\TextColumn::make('product.reorder_point')
                     ->label(__('inventory::inventory.fields.reorder_point'))
                     ->alignCenter(),
 
                 Tables\Columns\TextColumn::make('shortage')
                     ->label(__('inventory::inventory.widgets.shortage'))
-                    ->getStateUsing(fn ($record) => max(0, $record->reorder_point - $record->quantity_on_hand))
+                    ->getStateUsing(fn ($record) => max(0, ($record->product->reorder_point ?? 0) - $record->quantity_on_hand))
                     ->alignCenter()
                     ->color('danger')
                     ->weight('bold'),
