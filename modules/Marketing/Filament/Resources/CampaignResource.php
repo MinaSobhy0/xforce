@@ -2,6 +2,7 @@
 
 namespace Modules\Marketing\Filament\Resources;
 
+use App\Traits\ChecksTenantModuleAccess;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -14,7 +15,11 @@ use Modules\Marketing\Models\MessageTemplate;
 
 class CampaignResource extends Resource
 {
+    use ChecksTenantModuleAccess;
+
     protected static ?string $model = Campaign::class;
+
+    protected static ?string $moduleCode = 'marketing';
 
     protected static ?string $navigationIcon = 'heroicon-o-megaphone';
 

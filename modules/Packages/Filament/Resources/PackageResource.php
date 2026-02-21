@@ -2,6 +2,7 @@
 
 namespace Modules\Packages\Filament\Resources;
 
+use App\Traits\ChecksTenantModuleAccess;
 use Modules\Packages\Models\Package;
 use Modules\Services\Models\Service;
 use Filament\Forms;
@@ -12,7 +13,11 @@ use Filament\Tables\Table;
 
 class PackageResource extends Resource
 {
+    use ChecksTenantModuleAccess;
+
     protected static ?string $model = Package::class;
+
+    protected static ?string $moduleCode = 'packages';
 
     protected static ?string $navigationIcon = 'heroicon-o-cube';
 

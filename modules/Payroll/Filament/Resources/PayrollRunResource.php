@@ -2,6 +2,7 @@
 
 namespace Modules\Payroll\Filament\Resources;
 
+use App\Traits\ChecksTenantModuleAccess;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -14,7 +15,11 @@ use Modules\Payroll\Filament\Resources\PayrollRunResource\RelationManagers;
 
 class PayrollRunResource extends Resource
 {
+    use ChecksTenantModuleAccess;
+
     protected static ?string $model = PayrollRun::class;
+
+    protected static ?string $moduleCode = 'payroll';
 
     protected static ?string $navigationIcon = 'heroicon-o-banknotes';
 

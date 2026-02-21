@@ -983,8 +983,46 @@ class ViewTenant extends BaseViewRecord
                             Components\Section::make('Module Configuration')
                                 ->schema([
                                     Components\Actions::make([
+                                        Components\Actions\Action::make('manageModules')
+                                            ->label('Manage Modules')
+                                            ->icon('heroicon-o-cog-6-tooth')
+                                            ->color('primary')
+                                            ->modalHeading('Manage Tenant Modules')
+                                            ->modalDescription('Select which modules this tenant can access. Changes take effect immediately.')
+                                            ->form(function (Tenant $record) {
+                                                $allModules = \App\Models\Module::whereRaw('is_active = true')
+                                                    ->orderBy('category')
+                                                    ->orderBy('sort_order')
+                                                    ->get();
+
+                                                $options = $allModules->mapWithKeys(function ($module) {
+                                                    $emoji = $module->icon_emoji ?? '📦';
+                                                    $category = ucfirst($module->category ?? 'other');
+                                                    return [$module->code => "{$emoji} {$module->name} ({$category})"];
+                                                })->toArray();
+
+                                                return [
+                                                    Forms\Components\CheckboxList::make('modules')
+                                                        ->label('Available Modules')
+                                                        ->options($options)
+                                                        ->default($record->features ?? [])
+                                                        ->columns(2)
+                                                        ->searchable()
+                                                        ->bulkToggleable(),
+                                                ];
+                                            })
+                                            ->action(function (array $data, Tenant $record) {
+                                                $record->update(['features' => $data['modules'] ?? []]);
+
+                                                Notification::make()
+                                                    ->title('Modules updated')
+                                                    ->body(count($data['modules'] ?? []) . ' modules are now active for this tenant.')
+                                                    ->success()
+                                                    ->send();
+                                            }),
+
                                         Components\Actions\Action::make('forceActivateAll')
-                                            ->label('Force Activate All')
+                                            ->label('Activate All')
                                             ->icon('heroicon-o-check-circle')
                                             ->color('success')
                                             ->requiresConfirmation()
@@ -1001,7 +1039,7 @@ class ViewTenant extends BaseViewRecord
                                             }),
 
                                         Components\Actions\Action::make('resetToPlanDefaults')
-                                            ->label('Reset to Plan Defaults')
+                                            ->label('Reset to Plan')
                                             ->icon('heroicon-o-arrow-path')
                                             ->color('warning')
                                             ->requiresConfirmation()
@@ -1024,10 +1062,27 @@ class ViewTenant extends BaseViewRecord
                                                         ->send();
                                                 }
                                             }),
+
+                                        Components\Actions\Action::make('deactivateAll')
+                                            ->label('Deactivate All')
+                                            ->icon('heroicon-o-x-circle')
+                                            ->color('danger')
+                                            ->requiresConfirmation()
+                                            ->modalDescription('This will remove ALL modules from this tenant. Only core modules will remain accessible.')
+                                            ->action(function (Tenant $record) {
+                                                $record->update(['features' => ['core', 'auth']]);
+
+                                                Notification::make()
+                                                    ->title('All modules deactivated')
+                                                    ->body('Only core modules remain active.')
+                                                    ->warning()
+                                                    ->send();
+                                            }),
                                     ]),
                                 ]),
 
                             Components\Section::make('Active Modules')
+                                ->description(fn (Tenant $record) => count($record->features ?? []) . ' modules active')
                                 ->schema([
                                     Components\TextEntry::make('features')
                                         ->label('')

@@ -2,6 +2,7 @@
 
 namespace Modules\Billing\Filament\Resources;
 
+use App\Traits\ChecksTenantModuleAccess;
 use Modules\Billing\Filament\Resources\InvoiceResource\Pages;
 use Modules\Billing\Filament\Resources\InvoiceResource\RelationManagers;
 use Modules\Billing\Models\Invoice;
@@ -23,7 +24,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class InvoiceResource extends Resource
 {
+    use ChecksTenantModuleAccess;
+
     protected static ?string $model = Invoice::class;
+
+    protected static ?string $moduleCode = 'billing';
 
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
 

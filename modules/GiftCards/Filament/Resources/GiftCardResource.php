@@ -2,6 +2,7 @@
 
 namespace Modules\GiftCards\Filament\Resources;
 
+use App\Traits\ChecksTenantModuleAccess;
 use Modules\GiftCards\Models\GiftCard;
 use Modules\Patients\Models\Patient;
 use Filament\Forms;
@@ -13,7 +14,11 @@ use Filament\Notifications\Notification;
 
 class GiftCardResource extends Resource
 {
+    use ChecksTenantModuleAccess;
+
     protected static ?string $model = GiftCard::class;
+
+    protected static ?string $moduleCode = 'giftcards';
 
     protected static ?string $navigationIcon = 'heroicon-o-gift';
 

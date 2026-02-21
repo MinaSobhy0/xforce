@@ -2,6 +2,7 @@
 
 namespace Modules\Loyalty\Filament\Resources;
 
+use App\Traits\ChecksTenantModuleAccess;
 use Modules\Loyalty\Filament\Resources\LoyaltyRuleResource\Pages;
 use Modules\Loyalty\Models\LoyaltyRule;
 use Filament\Forms;
@@ -14,8 +15,11 @@ use Filament\Resources\Concerns\Translatable;
 class LoyaltyRuleResource extends Resource
 {
     use Translatable;
+    use ChecksTenantModuleAccess;
 
     protected static ?string $model = LoyaltyRule::class;
+
+    protected static ?string $moduleCode = 'loyalty';
 
     protected static ?string $navigationIcon = 'heroicon-o-gift';
 
