@@ -180,7 +180,7 @@ class LinesRelationManager extends RelationManager
                     ->label(__('payroll::payroll.actions.download_payslip'))
                     ->icon('heroicon-o-document-arrow-down')
                     ->color('success')
-                    ->url(fn (PayrollLine $record) => \Illuminate\Support\Facades\URL::signedRoute('payroll.payslip.download', $record))
+                    ->url(fn (PayrollLine $record) => "/payroll/payslip/{$record->id}/download")
                     ->openUrlInNewTab(),
 
                 Tables\Actions\DeleteAction::make()
