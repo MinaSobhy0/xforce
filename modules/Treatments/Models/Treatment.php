@@ -8,7 +8,9 @@ use XLinic\Framework\Core\Model\Traits\HasTranslation;
 use XLinic\Framework\Core\Model\Traits\HasActivity;
 use XLinic\Framework\Core\Model\Traits\HasSequence;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Modules\Equipment\Models\EquipmentType;
 
 class Treatment extends BaseModel
 {
@@ -108,6 +110,16 @@ class Treatment extends BaseModel
     public function branchPricing(): HasMany
     {
         return $this->hasMany(TreatmentBranchPricing::class);
+    }
+
+    public function requiredEquipmentTypes(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            EquipmentType::class,
+            'treatment_equipment_requirements',
+            'treatment_id',
+            'equipment_type_id'
+        )->withPivot('is_required')->withTimestamps();
     }
 
     public function getPriceForBranch(string $branchId): int

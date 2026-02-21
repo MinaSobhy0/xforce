@@ -5,6 +5,8 @@ namespace Modules\Booking\Services;
 use Modules\Booking\Models\Appointment;
 use Modules\Booking\Models\PractitionerSchedule;
 use Modules\Booking\Models\PractitionerTimeOff;
+use Modules\Treatments\Models\Treatment;
+use Modules\Equipment\Models\Equipment;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
@@ -322,5 +324,173 @@ class AvailabilityService
         }
 
         return null;
+    }
+
+    /**
+     * Get available slots for a treatment, considering equipment requirements.
+     * Uses treatment duration + buffer time and checks equipment availability.
+     */
+    public function getAvailableSlotsForTreatment(
+        string $practitionerId,
+        string $branchId,
+        Carbon $date,
+        string $treatmentId
+    ): array {
+        $treatment = Treatment::find($treatmentId);
+        if (!$treatment) {
+            return [];
+        }
+
+        $duration = $treatment->duration_minutes + ($treatment->buffer_minutes ?? 0);
+
+        // Get required equipment types from treatment
+        $requiredEquipmentTypeIds = [];
+        if (method_exists($treatment, 'requiredEquipmentTypes')) {
+            $requiredEquipmentTypeIds = $treatment->requiredEquipmentTypes()
+                ->wherePivot('is_required', true)
+                ->pluck('equipment_types.id')
+                ->toArray();
+        }
+
+        // Get base slots without equipment check first
+        $slots = $this->getAvailableSlots($practitionerId, $branchId, $date, $duration);
+
+        if (empty($requiredEquipmentTypeIds)) {
+            return $slots;
+        }
+
+        // Filter slots based on equipment availability
+        $filteredSlots = [];
+        foreach ($slots as $slot) {
+            $startTime = Carbon::parse($slot['start']);
+            $endTime = Carbon::parse($slot['end']);
+
+            // Find available equipment for this slot
+            $equipmentInfo = $this->findAvailableEquipmentForSlot(
+                $branchId,
+                $date,
+                $startTime,
+                $endTime,
+                $requiredEquipmentTypeIds
+            );
+
+            if ($equipmentInfo) {
+                $slot['equipment_id'] = $equipmentInfo['equipment_id'];
+                $slot['room_id'] = $equipmentInfo['room_id'];
+                $slot['equipment_name'] = $equipmentInfo['equipment_name'];
+                $filteredSlots[] = $slot;
+            }
+        }
+
+        return $filteredSlots;
+    }
+
+    /**
+     * Get available slots across ALL practitioners for a treatment.
+     * Returns slots with practitioner info attached, grouped by time.
+     */
+    public function getAvailableSlotsAnyPractitioner(
+        string $branchId,
+        Carbon $date,
+        string $treatmentId
+    ): array {
+        $treatment = Treatment::find($treatmentId);
+        if (!$treatment) {
+            return [];
+        }
+
+        $dayOfWeek = $date->dayOfWeek;
+        $duration = $treatment->duration_minutes + ($treatment->buffer_minutes ?? 0);
+
+        // Get all practitioners with schedules on this day at this branch
+        $schedules = PractitionerSchedule::query()
+            ->forBranch($branchId)
+            ->forDay($dayOfWeek)
+            ->available()
+            ->with('practitioner')
+            ->get();
+
+        $allSlots = [];
+
+        foreach ($schedules as $schedule) {
+            if (!$schedule->practitioner) {
+                continue;
+            }
+
+            $slots = $this->getAvailableSlotsForTreatment(
+                $schedule->user_id,
+                $branchId,
+                $date,
+                $treatmentId
+            );
+
+            foreach ($slots as $slot) {
+                $slot['practitioner_id'] = $schedule->user_id;
+                $slot['practitioner_name'] = $schedule->practitioner->full_name ?? $schedule->practitioner->name ?? 'Unknown';
+                $allSlots[] = $slot;
+            }
+        }
+
+        // Sort by start time, then by practitioner name
+        usort($allSlots, function ($a, $b) {
+            $timeCompare = strcmp($a['start'], $b['start']);
+            if ($timeCompare !== 0) {
+                return $timeCompare;
+            }
+            return strcmp($a['practitioner_name'], $b['practitioner_name']);
+        });
+
+        return $allSlots;
+    }
+
+    /**
+     * Find available equipment of required types for a specific time slot.
+     * Returns equipment_id, room_id, and equipment_name for auto-population.
+     */
+    public function findAvailableEquipmentForSlot(
+        string $branchId,
+        Carbon $date,
+        Carbon $startTime,
+        Carbon $endTime,
+        array $requiredEquipmentTypeIds
+    ): ?array {
+        if (empty($requiredEquipmentTypeIds)) {
+            return null;
+        }
+
+        // Find active equipment of required types at this branch
+        $availableEquipment = Equipment::query()
+            ->where('branch_id', $branchId)
+            ->where('status', Equipment::STATUS_ACTIVE)
+            ->whereIn('equipment_type_id', $requiredEquipmentTypeIds)
+            ->with(['type', 'room'])
+            ->get();
+
+        foreach ($availableEquipment as $equipment) {
+            // Check if this equipment is available during the slot
+            if ($this->isEquipmentAvailable($equipment->id, $date, $startTime, $endTime)) {
+                return [
+                    'equipment_id' => $equipment->id,
+                    'room_id' => $equipment->room_id,
+                    'equipment_name' => $equipment->name,
+                    'equipment_type' => $equipment->type?->translated_name ?? $equipment->type?->name ?? '',
+                ];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Get available slots for a practitioner with treatment context.
+     * Wrapper that includes equipment info in slot data.
+     */
+    public function getSlotsWithEquipment(
+        string $practitionerId,
+        string $branchId,
+        Carbon $date,
+        string $treatmentId
+    ): array {
+        return $this->getAvailableSlotsForTreatment($practitionerId, $branchId, $date, $treatmentId);
     }
 }

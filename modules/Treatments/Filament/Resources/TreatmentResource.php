@@ -10,6 +10,7 @@ use Filament\Tables\Table;
 use Modules\Treatments\Models\Treatment;
 use Modules\Treatments\Models\TreatmentCategory;
 use Modules\Treatments\Models\ConsentTemplate;
+use Modules\Equipment\Models\EquipmentType;
 use Modules\Treatments\Filament\Resources\TreatmentResource\Pages;
 use Modules\Treatments\Filament\Resources\TreatmentResource\RelationManagers;
 use Illuminate\Database\Eloquent\Builder;
@@ -276,10 +277,16 @@ class TreatmentResource extends Resource
                             ->schema([
                                 Forms\Components\Section::make('Equipment & Consumables')
                                     ->schema([
-                                        Forms\Components\TagsInput::make('equipment_required')
+                                        Forms\Components\CheckboxList::make('requiredEquipmentTypes')
                                             ->label(__('treatments::treatments.fields.equipment_required'))
-                                            ->separator(',')
-                                            ->helperText('Equipment needed for this treatment'),
+                                            ->relationship(
+                                                name: 'requiredEquipmentTypes',
+                                                titleAttribute: 'id',
+                                                modifyQueryUsing: fn ($query) => $query->where('is_active', true)
+                                            )
+                                            ->getOptionLabelFromRecordUsing(fn (EquipmentType $record) => $record->translated_name)
+                                            ->columns(2)
+                                            ->helperText('Equipment types needed for this treatment'),
 
                                         Forms\Components\TagsInput::make('consumables_required')
                                             ->label('Consumables Required')

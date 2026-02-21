@@ -90,5 +90,21 @@ return [
         'room_busy' => 'الغرفة مشغولة في :time بواسطة :patient',
         'equipment_busy' => 'الجهاز قيد الاستخدام في :time بواسطة :patient',
         'double_booking_detected' => 'تم اكتشاف تعارض في الجدولة',
+        'patient_required' => 'يرجى اختيار مريض',
+        'treatment_required' => 'يرجى اختيار علاج',
+        'practitioner_required' => 'يرجى اختيار مختص',
     ],
+
+    // Quick Book
+    'quick_book' => 'حجز سريع',
+    'any_available' => 'أي طبيب متاح',
+    'available_slots' => 'المواعيد المتاحة',
+    'no_slots_available' => 'لا توجد مواعيد متاحة',
+    'no_slots_available_hint' => 'جرب اختيار تاريخ أو مختص مختلف',
+    'select_slot' => 'يرجى اختيار موعد',
+    'booking_summary' => 'ملخص الحجز',
+    'book_now' => 'احجز الموعد',
+    'booking_success' => 'تم الحجز',
+    'booking_success_body' => 'تم إنشاء الموعد :code بنجاح',
+    'booking_error' => 'فشل الحجز',
 ];

@@ -90,5 +90,21 @@ return [
         'room_busy' => 'Room is occupied at :time by :patient',
         'equipment_busy' => 'Equipment is in use at :time by :patient',
         'double_booking_detected' => 'Scheduling conflict detected',
+        'patient_required' => 'Please select a patient',
+        'treatment_required' => 'Please select a treatment',
+        'practitioner_required' => 'Please select a practitioner',
     ],
+
+    // Quick Book
+    'quick_book' => 'Quick Book',
+    'any_available' => 'Any Available Doctor',
+    'available_slots' => 'Available Time Slots',
+    'no_slots_available' => 'No available slots',
+    'no_slots_available_hint' => 'Try selecting a different date or practitioner',
+    'select_slot' => 'Please select a time slot',
+    'booking_summary' => 'Booking Summary',
+    'book_now' => 'Book Appointment',
+    'booking_success' => 'Appointment Booked',
+    'booking_success_body' => 'Appointment :code has been created successfully',
+    'booking_error' => 'Booking Failed',
 ];
