@@ -20,6 +20,12 @@ class BaseEditRecord extends EditRecord
      */
     protected bool $hasHeaderSaveActions = true;
 
+    /**
+     * Disable URL persistence for relation manager tabs to allow smooth switching.
+     * When false, relation managers switch without changing the URL (no page reload).
+     */
+    public bool $persistActiveRelationManagerTabInQueryString = false;
+
     protected function getHeaderActions(): array
     {
         $actions = [];
