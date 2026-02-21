@@ -29,7 +29,7 @@ class InvoicesRelationManager extends RelationManager
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('invoice_date')
+                Tables\Columns\TextColumn::make('issued_at')
                     ->label(__('billing::billing.pdf.date'))
                     ->date()
                     ->sortable(),
@@ -75,7 +75,7 @@ class InvoicesRelationManager extends RelationManager
                     ->url(fn ($record) => route('filament.tenant.resources.invoices.view', $record)),
             ])
             ->bulkActions([])
-            ->defaultSort('invoice_date', 'desc');
+            ->defaultSort('issued_at', 'desc');
     }
 
     public static function getTitle(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): string
