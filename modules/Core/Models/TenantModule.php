@@ -63,14 +63,6 @@ class TenantModule extends BaseModel
     }
 
     /**
-     * Scope to modules for a specific tenant.
-     */
-    public function scopeForTenant(\Illuminate\Database\Eloquent\Builder $query, string $tenantId): \Illuminate\Database\Eloquent\Builder
-    {
-        return $query->where('tenant_id', $tenantId);
-    }
-
-    /**
      * Scope to a specific module code.
      */
     public function scopeForModule($query, string $moduleCode)

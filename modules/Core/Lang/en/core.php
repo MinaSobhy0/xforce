@@ -44,6 +44,7 @@ return [
     'view' => 'View',
     'save' => 'Save',
     'cancel' => 'Cancel',
+    'discard' => 'Discard',
     'confirm' => 'Confirm',
     'search' => 'Search',
     'filter' => 'Filter',

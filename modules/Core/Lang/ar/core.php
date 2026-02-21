@@ -44,6 +44,7 @@ return [
     'view' => 'عرض',
     'save' => 'حفظ',
     'cancel' => 'إلغاء',
+    'discard' => 'تجاهل',
     'confirm' => 'تأكيد',
     'search' => 'بحث',
     'filter' => 'تصفية',

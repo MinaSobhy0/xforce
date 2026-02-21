@@ -180,7 +180,7 @@ class ViewTenant extends BaseViewRecord
                 ->color('success')
                 ->requiresConfirmation()
                 ->modalHeading('Provision Tenant Database')
-                ->modalDescription(fn() => "This will create the PostgreSQL schema '{$this->record->database_name}' and run all migrations. Continue?")
+                ->modalDescription(fn() => "This will create the PostgreSQL schema '{$this->record->database_name}', run all migrations, and create an owner user with email '{$this->record->contact_email}'. Continue?")
                 ->modalSubmitActionLabel('Yes, provision database')
                 ->visible(fn() => !$this->schemaExists())
                 ->action(function (): void {
@@ -193,10 +193,20 @@ class ViewTenant extends BaseViewRecord
                         DB::purge('pgsql');
                         DB::reconnect('pgsql');
 
+                        // Check if owner was created and get password
+                        $this->record->refresh();
+                        $ownerCreated = $this->record->owner_user_id !== null;
+
+                        $body = "Schema '{$this->record->database_name}' has been created and migrations have been run.";
+                        if ($ownerCreated && $this->record->contact_email) {
+                            $body .= "\n\nOwner account created:\nEmail: {$this->record->contact_email}\nLogin URL: https://{$this->record->slug}.x-linic.com/admin";
+                        }
+
                         Notification::make()
                             ->title('Database provisioned successfully')
-                            ->body("Schema '{$this->record->database_name}' has been created and migrations have been run.")
+                            ->body($body)
                             ->success()
+                            ->persistent()
                             ->send();
 
                         $this->refreshFormData(['database_name']);
@@ -219,6 +229,56 @@ class ViewTenant extends BaseViewRecord
                             ->body($e->getMessage())
                             ->danger()
                             ->persistent()
+                            ->send();
+                    }
+                }),
+
+            Actions\Action::make('createOwnerUser')
+                ->label('Create/Reset Owner')
+                ->icon('heroicon-o-user-plus')
+                ->color('warning')
+                ->requiresConfirmation()
+                ->modalHeading('Create or Reset Owner User')
+                ->modalDescription(fn() => $this->record->owner_user_id
+                    ? "This will reset the password for the owner user ({$this->record->contact_email}). A new password will be generated."
+                    : "This will create an owner user with email '{$this->record->contact_email}'.")
+                ->modalSubmitActionLabel('Create/Reset Owner')
+                ->visible(fn() => $this->schemaExists() && $this->record->contact_email)
+                ->action(function (): void {
+                    try {
+                        $tenantService = app(TenantService::class);
+                        $result = $tenantService->createOwnerUser($this->record);
+
+                        DB::statement("SET search_path TO public");
+                        DB::purge('pgsql');
+                        DB::reconnect('pgsql');
+
+                        if ($result && $result['password']) {
+                            Notification::make()
+                                ->title('Owner user created/reset')
+                                ->body("Email: {$this->record->contact_email}\nPassword: {$result['password']}\n\nPlease save this password!")
+                                ->success()
+                                ->persistent()
+                                ->send();
+                        } elseif ($result) {
+                            Notification::make()
+                                ->title('Owner user already exists')
+                                ->body("User with email {$this->record->contact_email} already exists.")
+                                ->info()
+                                ->send();
+                        } else {
+                            Notification::make()
+                                ->title('Failed to create owner user')
+                                ->danger()
+                                ->send();
+                        }
+                    } catch (\Exception $e) {
+                        DB::statement("SET search_path TO public");
+
+                        Notification::make()
+                            ->title('Failed to create owner user')
+                            ->body($e->getMessage())
+                            ->danger()
                             ->send();
                     }
                 }),

@@ -8,6 +8,7 @@ use Modules\Core\Models\TenantUsage;
 use XLinic\Framework\Core\Tenancy\TenantManager;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -206,6 +207,111 @@ class TenantService
             'tenant_id' => $tenant->id,
             'schema_name' => $schemaName,
         ]);
+
+        // Create owner user if contact_email is set
+        if ($tenant->contact_email) {
+            $this->createOwnerUser($tenant);
+        }
+    }
+
+    /**
+     * Create the owner user for a tenant.
+     *
+     * @return array{user_id: string, password: string}|null
+     */
+    public function createOwnerUser(Tenant $tenant, ?string $password = null): ?array
+    {
+        if (!$tenant->contact_email) {
+            Log::warning('Cannot create owner user: no contact_email set', ['tenant_id' => $tenant->id]);
+            return null;
+        }
+
+        $schemaName = $tenant->database_name;
+        $password = $password ?? Str::random(12);
+
+        try {
+            // Switch to tenant schema
+            DB::statement("SET search_path TO \"{$schemaName}\"");
+
+            // Check if user with this email already exists
+            $existing = DB::table('users')->where('email', $tenant->contact_email)->first();
+            if ($existing) {
+                // Update password for existing user
+                DB::table('users')->where('id', $existing->id)->update([
+                    'password' => Hash::make($password),
+                    'updated_at' => now(),
+                ]);
+
+                Log::info('Owner user password reset', ['tenant_id' => $tenant->id, 'email' => $tenant->contact_email]);
+                DB::statement("SET search_path TO public");
+
+                // Update tenant with owner_user_id if not set
+                if (!$tenant->owner_user_id) {
+                    $tenant->update(['owner_user_id' => $existing->id]);
+                }
+
+                return ['user_id' => $existing->id, 'password' => $password];
+            }
+
+            $userId = Str::uuid()->toString();
+            $nameParts = explode('@', $tenant->contact_email);
+            $firstName = $tenant->contact_name ? explode(' ', $tenant->contact_name)[0] : ucfirst($nameParts[0]);
+            $lastName = $tenant->contact_name && str_contains($tenant->contact_name, ' ')
+                ? trim(substr($tenant->contact_name, strpos($tenant->contact_name, ' ')))
+                : 'Admin';
+
+            // Insert user
+            DB::table('users')->insert([
+                'id' => $userId,
+                'tenant_id' => $tenant->id,
+                'first_name' => $firstName,
+                'last_name' => $lastName,
+                'email' => $tenant->contact_email,
+                'username' => $nameParts[0],
+                'phone' => $tenant->contact_phone,
+                'password' => Hash::make($password),
+                'status' => 'active',
+                'language' => $tenant->locale ?? 'ar',
+                'timezone' => $tenant->timezone ?? 'Africa/Cairo',
+                'email_verified_at' => now(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            // Assign super_admin role if roles table exists
+            try {
+                $superAdminRole = DB::table('roles')->where('name', 'super_admin')->first();
+                if ($superAdminRole) {
+                    DB::table('model_has_roles')->insert([
+                        'role_id' => $superAdminRole->id,
+                        'model_type' => 'Modules\\Auth\\Models\\User',
+                        'model_id' => $userId,
+                    ]);
+                }
+            } catch (\Exception $e) {
+                Log::warning('Could not assign role to owner user', ['error' => $e->getMessage()]);
+            }
+
+            // Update tenant with owner_user_id
+            DB::statement("SET search_path TO public");
+            $tenant->update(['owner_user_id' => $userId]);
+
+            Log::info('Owner user created', [
+                'tenant_id' => $tenant->id,
+                'user_id' => $userId,
+                'email' => $tenant->contact_email,
+            ]);
+
+            return ['user_id' => $userId, 'password' => $password];
+
+        } catch (\Exception $e) {
+            DB::statement("SET search_path TO public");
+            Log::error('Failed to create owner user', [
+                'tenant_id' => $tenant->id,
+                'error' => $e->getMessage(),
+            ]);
+            return null;
+        }
     }
 
     /**

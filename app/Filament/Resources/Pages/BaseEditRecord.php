@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Pages;
 
 use App\Filament\Traits\HasRecordNavigation;
+use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
 
 class BaseEditRecord extends EditRecord
@@ -14,15 +15,59 @@ class BaseEditRecord extends EditRecord
      */
     protected bool $hasRecordNavigation = true;
 
+    /**
+     * Whether to show save/discard buttons in header.
+     */
+    protected bool $hasHeaderSaveActions = true;
+
     protected function getHeaderActions(): array
     {
-        $actions = $this->getEditHeaderActions();
+        $actions = [];
 
+        // Add Save and Discard buttons first
+        if ($this->hasHeaderSaveActions) {
+            $actions = array_merge($actions, $this->getSaveDiscardActions());
+        }
+
+        // Add custom header actions
+        $actions = array_merge($actions, $this->getEditHeaderActions());
+
+        // Add record navigation actions
         if ($this->hasRecordNavigation) {
             $actions = array_merge($actions, $this->getRecordNavigationActions());
         }
 
         return $actions;
+    }
+
+    /**
+     * Get the Save and Discard header actions.
+     */
+    protected function getSaveDiscardActions(): array
+    {
+        return [
+            Actions\Action::make('save')
+                ->tooltip(__('filament-panels::resources/pages/edit-record.form.actions.save.label'))
+                ->color('success')
+                ->icon('heroicon-s-check')
+                ->iconButton()
+                ->extraAttributes([
+                    'class' => 'border border-success-500 bg-white hover:bg-success-50',
+                ])
+                ->action(fn () => $this->save())
+                ->keyBindings(['mod+s']),
+
+            Actions\Action::make('discard')
+                ->tooltip(__('core::core.discard'))
+                ->color('danger')
+                ->icon('heroicon-s-x-mark')
+                ->iconButton()
+                ->extraAttributes([
+                    'class' => 'border border-danger-500 bg-white hover:bg-danger-50',
+                ])
+                ->url($this->getResource()::getUrl('index'))
+                ->keyBindings(['escape']),
+        ];
     }
 
     /**
