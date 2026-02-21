@@ -18,8 +18,9 @@ class Tenant extends Model
 
     /**
      * The table associated with the model.
+     * Explicitly prefixed with public schema to ensure correct table is used.
      */
-    protected $table = 'tenants';
+    protected $table = 'public.tenants';
 
     /**
      * The connection to use (always public schema).

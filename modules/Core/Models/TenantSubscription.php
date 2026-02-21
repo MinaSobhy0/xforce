@@ -16,7 +16,7 @@ class TenantSubscription extends Model
     use SoftDeletes;
 
     protected $connection = 'central';
-    protected $table = 'tenant_subscriptions';
+    protected $table = 'public.tenant_subscriptions';
     public $incrementing = false;
     protected $keyType = 'string';
 

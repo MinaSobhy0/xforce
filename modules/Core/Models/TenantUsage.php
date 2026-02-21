@@ -17,7 +17,7 @@ class TenantUsage extends Model
      */
     protected $connection = 'central';
 
-    protected $table = 'tenant_usage';
+    protected $table = 'public.tenant_usage';
 
     public $incrementing = false;
     protected $keyType = 'string';
