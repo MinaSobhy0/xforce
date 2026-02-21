@@ -34,7 +34,7 @@ class BranchSwitcher extends Component
         BranchContext::set($this->selectedBranchIds);
 
         $this->dispatch('branch-switched', branchIds: $this->selectedBranchIds);
-        $this->redirect(request()->header('Referer', '/admin'), navigate: true);
+        $this->refreshPage();
     }
 
     /**
@@ -46,7 +46,7 @@ class BranchSwitcher extends Component
         BranchContext::set($this->selectedBranchIds);
 
         $this->dispatch('branch-switched', branchIds: $this->selectedBranchIds);
-        $this->redirect(request()->header('Referer', '/admin'), navigate: true);
+        $this->refreshPage();
     }
 
     /**
@@ -58,7 +58,15 @@ class BranchSwitcher extends Component
         BranchContext::clear();
 
         $this->dispatch('branch-switched', branchIds: []);
-        $this->redirect(request()->header('Referer', '/admin'), navigate: true);
+        $this->refreshPage();
+    }
+
+    /**
+     * Refresh the page using JavaScript to avoid SPA navigation loops.
+     */
+    protected function refreshPage(): void
+    {
+        $this->js('window.location.reload()');
     }
 
     public function getBranches(): Collection
