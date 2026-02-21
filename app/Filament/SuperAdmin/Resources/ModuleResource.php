@@ -83,11 +83,59 @@ class ModuleResource extends Resource
                 ]),
 
             Forms\Components\Section::make('Dependencies')
+                ->description('Modules that must be enabled for this module to work')
                 ->schema([
+                    Forms\Components\Actions::make([
+                        Forms\Components\Actions\Action::make('syncDependencies')
+                            ->label('Sync from module.json')
+                            ->icon('heroicon-o-arrow-path')
+                            ->color('warning')
+                            ->action(function (Forms\Get $get, Forms\Set $set) {
+                                $code = $get('code');
+                                if (!$code) {
+                                    return;
+                                }
+
+                                $modulePath = base_path('modules/' . ucfirst($code) . '/module.json');
+                                if (!\Illuminate\Support\Facades\File::exists($modulePath)) {
+                                    \Filament\Notifications\Notification::make()
+                                        ->title('Module not found')
+                                        ->body("No module.json found at: modules/" . ucfirst($code))
+                                        ->danger()
+                                        ->send();
+                                    return;
+                                }
+
+                                $json = json_decode(\Illuminate\Support\Facades\File::get($modulePath), true);
+                                $deps = [];
+                                if (isset($json['dependencies']) && is_array($json['dependencies'])) {
+                                    $deps = array_map('strtolower', $json['dependencies']);
+                                }
+
+                                $set('dependencies', $deps);
+
+                                \Filament\Notifications\Notification::make()
+                                    ->title('Dependencies synced')
+                                    ->body('Found: ' . (empty($deps) ? 'none' : implode(', ', $deps)))
+                                    ->success()
+                                    ->send();
+                            }),
+                    ]),
+
                     Forms\Components\CheckboxList::make('dependencies')
                         ->label('Required Modules')
-                        ->options(fn() => Module::whereRaw('is_core = false')->pluck('code', 'code'))
-                        ->columns(4),
+                        ->options(function () {
+                            return Module::orderBy('category')
+                                ->orderBy('sort_order')
+                                ->get()
+                                ->mapWithKeys(function ($m) {
+                                    $emoji = $m->icon_emoji ?? '📦';
+                                    return [$m->code => "{$emoji} {$m->code} ({$m->category})"];
+                                })
+                                ->toArray();
+                        })
+                        ->columns(3)
+                        ->searchable(),
                 ]),
         ]);
     }
@@ -134,6 +182,14 @@ class ModuleResource extends Resource
                         'addon' => 'purple',
                         default => 'gray',
                     }),
+
+                Tables\Columns\TextColumn::make('dependencies')
+                    ->label('Dependencies')
+                    ->badge()
+                    ->separator(',')
+                    ->color('info')
+                    ->getStateUsing(fn(Module $record) => $record->dependencies ?? [])
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('adoption_count')
                     ->label('Adoptions')
