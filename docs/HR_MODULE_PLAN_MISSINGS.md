@@ -489,202 +489,211 @@ Following X-Linic implementation standards (Filament-based, BaseModel traits, mi
 
 ### Phase 1: Salary Structure System
 
-#### 1.1 SalaryRuleCategory
+#### 1.1 SalaryRuleCategory ✅ COMPLETED
 
 **Migration**
-- [ ] Create `YYYY_MM_DD_create_salary_rule_categories_table.php`
-  - [ ] `uuid('id')->primary()`
-  - [ ] `uuid('tenant_id')->index()`
-  - [ ] `string('name')`
-  - [ ] `string('code')->index()`
-  - [ ] `text('description')->nullable()`
-  - [ ] `string('type')` (earning, deduction, allowance, benefit, gross, net)
-  - [ ] `boolean('is_active')->default(true)`
-  - [ ] `timestamps()`
-  - [ ] Multi-column index: `(tenant_id, code)`
+- [x] Create `2024_01_01_000003_create_salary_rule_categories_table.php`
+  - [x] `uuid('id')->primary()`
+  - [x] `uuid('tenant_id')->index()`
+  - [x] `string('name')`
+  - [x] `string('code')->index()`
+  - [x] `text('description')->nullable()`
+  - [x] `string('type')` (earning, deduction, allowance, benefit, gross, net)
+  - [x] `boolean('is_active')->default(true)`
+  - [x] `timestamps()`
+  - [x] Multi-column index: `(tenant_id, code)`
 
 **Model** (`modules/Payroll/Models/SalaryRuleCategory.php`)
-- [ ] Extend `BaseModel`
-- [ ] Use traits: `HasTenancy`
-- [ ] Define `$fillable` array
-- [ ] Define `$casts` (id as string)
-- [ ] Add constants: `TYPE_EARNING`, `TYPE_DEDUCTION`, `TYPES`, `TYPE_COLORS`
-- [ ] Add relationship: `hasMany(SalaryRule::class)`
-- [ ] Add scope: `scopeActive($query)`
-- [ ] Add scope: `scopeOfType($query, string $type)`
+- [x] Extend `BaseModel`
+- [x] Use traits: `HasTenancy`
+- [x] Define `$fillable` array
+- [x] Define `$casts` (id as string)
+- [x] Add constants: `TYPE_EARNING`, `TYPE_DEDUCTION`, `TYPES`, `TYPE_COLORS`
+- [x] Add relationship: `hasMany(SalaryRule::class)`
+- [x] Add scope: `scopeActive($query)`
+- [x] Add scope: `scopeOfType($query, string $type)`
 
 **Filament Resource** (`modules/Payroll/Filament/Resources/SalaryRuleCategoryResource.php`)
-- [ ] Use `ChecksTenantModuleAccess` trait
-- [ ] Set `$moduleCode = 'payroll'`
-- [ ] Set navigation icon, group, sort
-- [ ] Create form with sections:
-  - [ ] Basic Info: name, code, type (select), description
-  - [ ] Settings: is_active toggle
-- [ ] Create table with columns:
-  - [ ] code (searchable, sortable)
-  - [ ] name (searchable)
-  - [ ] type (badge with colors)
-  - [ ] is_active (icon)
-- [ ] Add filters: type, is_active
-- [ ] Add actions: View, Edit, Delete
-- [ ] Create pages: List, Create, Edit
+- [x] Use `ChecksTenantModuleAccess` trait
+- [x] Set `$moduleCode = 'payroll'`
+- [x] Set navigation icon, group, sort
+- [x] Create form with sections:
+  - [x] Basic Info: name, code, type (select), description
+  - [x] Settings: is_active toggle
+- [x] Create table with columns:
+  - [x] code (searchable, sortable)
+  - [x] name (searchable)
+  - [x] type (badge with colors)
+  - [x] is_active (icon)
+- [x] Add filters: type, is_active
+- [x] Add actions: View, Edit, Delete
+- [x] Create pages: List, Create, Edit, View
 
 **Language Files**
-- [ ] Add to `Lang/en/payroll.php`: labels, types, messages
-- [ ] Add to `Lang/ar/payroll.php`: Arabic translations
+- [x] Add to `Lang/en/payroll.php`: labels, types, messages
+- [x] Add to `Lang/ar/payroll.php`: Arabic translations
 
 ---
 
-#### 1.2 SalaryRule
+#### 1.2 SalaryRule ✅ COMPLETED
 
 **Migration**
-- [ ] Create `YYYY_MM_DD_create_salary_rules_table.php`
-  - [ ] `uuid('id')->primary()`
-  - [ ] `uuid('tenant_id')->index()`
-  - [ ] `string('name')`
-  - [ ] `string('code')->index()`
-  - [ ] `uuid('category_id')->index()`
-  - [ ] `string('amount_type')` (fixed, percentage, formula)
-  - [ ] `integer('amount_fixed_minor')->default(0)`
-  - [ ] `decimal('amount_percentage', 5, 2)->nullable()`
-  - [ ] `text('amount_formula')->nullable()`
-  - [ ] `string('condition_type')->nullable()`
-  - [ ] `text('condition_formula')->nullable()`
-  - [ ] `uuid('percentage_base_id')->nullable()` (self-reference)
-  - [ ] `string('field_mapping')->nullable()`
-  - [ ] `integer('sequence')->default(0)`
-  - [ ] `boolean('is_active')->default(true)`
-  - [ ] `timestamps()`
-  - [ ] `softDeletes()`
-  - [ ] Foreign keys with cascade/set null
+- [x] Create `2024_01_01_000004_create_salary_rules_table.php`
+  - [x] `uuid('id')->primary()`
+  - [x] `uuid('tenant_id')->index()`
+  - [x] `string('name')`
+  - [x] `string('code')->index()`
+  - [x] `uuid('category_id')->index()`
+  - [x] `string('amount_type')` (fixed, percentage, formula)
+  - [x] `integer('amount_fixed_minor')->default(0)`
+  - [x] `decimal('amount_percentage', 8, 4)->nullable()`
+  - [x] `text('amount_formula')->nullable()`
+  - [x] `string('condition_type')->nullable()`
+  - [x] `text('condition_formula')->nullable()`
+  - [x] `uuid('percentage_base_id')->nullable()` (self-reference)
+  - [x] `string('field_mapping')->nullable()`
+  - [x] `integer('sequence')->default(0)`
+  - [x] `boolean('is_active')->default(true)`
+  - [x] `timestamps()`
+  - [x] `softDeletes()`
+  - [x] Foreign keys with cascade/set null
 
 **Model** (`modules/Payroll/Models/SalaryRule.php`)
-- [ ] Extend `BaseModel`
-- [ ] Use traits: `HasTenancy`, `SoftDeletes`
-- [ ] Define `$fillable` array
-- [ ] Define `$casts`
-- [ ] Add constants: `AMOUNT_TYPE_*`, `AMOUNT_TYPES`
-- [ ] Add relationships:
-  - [ ] `belongsTo(SalaryRuleCategory::class, 'category_id')`
-  - [ ] `belongsTo(SalaryRule::class, 'percentage_base_id')`
-  - [ ] `hasMany(SalaryRule::class, 'percentage_base_id')` (dependents)
-- [ ] Add accessor: `getAmountFixedAttribute()` (major units)
-- [ ] Add scope: `scopeActive($query)`
-- [ ] Add scope: `scopeEarnings($query)`
-- [ ] Add scope: `scopeDeductions($query)`
-- [ ] Add method: `calculateAmount(array $context): int`
+- [x] Extend `BaseModel`
+- [x] Use traits: `HasTenancy`, `SoftDeletes`
+- [x] Define `$fillable` array
+- [x] Define `$casts`
+- [x] Add constants: `AMOUNT_TYPE_*`, `AMOUNT_TYPES`, `CONDITION_TYPES`
+- [x] Add relationships:
+  - [x] `belongsTo(SalaryRuleCategory::class, 'category_id')`
+  - [x] `belongsTo(SalaryRule::class, 'percentage_base_id')`
+  - [x] `hasMany(SalaryRule::class, 'percentage_base_id')` (dependents)
+  - [x] `belongsToMany(SalaryStructure::class)` via pivot
+- [x] Add accessor: `getAmountFixedAttribute()` (major units)
+- [x] Add scope: `scopeActive($query)`
+- [x] Add scope: `scopeEarnings($query)`
+- [x] Add scope: `scopeDeductions($query)`
+- [x] Add method: `calculateAmount(array $context): int`
 
 **Filament Resource** (`modules/Payroll/Filament/Resources/SalaryRuleResource.php`)
-- [ ] Use `ChecksTenantModuleAccess` trait
-- [ ] Create form with sections:
-  - [ ] Basic Info: name, code, category_id (select with relationship)
-  - [ ] Calculation: amount_type (reactive select), conditional fields:
-    - [ ] amount_fixed_minor (if fixed)
-    - [ ] amount_percentage + percentage_base_id (if percentage)
-    - [ ] amount_formula with helper text (if formula)
-  - [ ] Conditions: condition_type, condition_formula
-  - [ ] Advanced: field_mapping, sequence
-  - [ ] Settings: is_active
-- [ ] Create table with columns:
-  - [ ] code (searchable, sortable, bold)
-  - [ ] name (searchable)
-  - [ ] category.name (badge)
-  - [ ] amount_type (badge)
-  - [ ] sequence (sortable)
-  - [ ] is_active (icon)
-- [ ] Add filters: category_id, amount_type, is_active
-- [ ] Add actions: View, Edit, Delete
-- [ ] Create pages: List, Create, Edit, View
+- [x] Use `ChecksTenantModuleAccess` trait
+- [x] Create form with sections:
+  - [x] Basic Info: name, code, category_id (select with relationship)
+  - [x] Calculation: amount_type (reactive select), conditional fields:
+    - [x] amount_fixed (if fixed) - converts to minor in page
+    - [x] amount_percentage + percentage_base_id (if percentage)
+    - [x] amount_formula with helper text (if formula)
+  - [x] Conditions: condition_type, condition_formula
+  - [x] Advanced: field_mapping, sequence
+  - [x] Settings: is_active
+- [x] Create table with columns:
+  - [x] code (searchable, sortable, bold)
+  - [x] name (searchable)
+  - [x] category.name (badge)
+  - [x] amount_type (badge)
+  - [x] sequence (sortable)
+  - [x] is_active (icon)
+- [x] Add filters: category_id, amount_type, is_active
+- [x] Add actions: View, Edit, Delete
+- [x] Create pages: List, Create, Edit, View
 
 **Language Files**
-- [ ] Add salary rule translations to payroll.php
+- [x] Add salary rule translations to payroll.php
 
 ---
 
-#### 1.3 SalaryStructure
+#### 1.3 SalaryStructure ✅ COMPLETED
 
 **Migration**
-- [ ] Create `YYYY_MM_DD_create_salary_structures_table.php`
-  - [ ] `uuid('id')->primary()`
-  - [ ] `uuid('tenant_id')->index()`
-  - [ ] `string('name')`
-  - [ ] `string('code')->index()`
-  - [ ] `text('description')->nullable()`
-  - [ ] `string('pay_frequency')->default('monthly')`
-  - [ ] `string('currency')->default('EGP')`
-  - [ ] `boolean('is_active')->default(true)`
-  - [ ] `uuid('created_by')->nullable()`
-  - [ ] `timestamps()`
-  - [ ] Unique: `(tenant_id, code)`
+- [x] Create `2024_01_01_000005_create_salary_structures_table.php`
+  - [x] `uuid('id')->primary()`
+  - [x] `uuid('tenant_id')->index()`
+  - [x] `string('name')`
+  - [x] `string('code')->index()`
+  - [x] `text('description')->nullable()`
+  - [x] `string('pay_frequency')->default('monthly')`
+  - [x] `string('currency')->default('EGP')`
+  - [x] `boolean('is_active')->default(true)`
+  - [x] `uuid('created_by')->nullable()`
+  - [x] `timestamps()`
+  - [x] Unique: `(tenant_id, code)`
 
 **Model** (`modules/Payroll/Models/SalaryStructure.php`)
-- [ ] Extend `BaseModel`
-- [ ] Use traits: `HasTenancy`
-- [ ] Define `$fillable`, `$casts`
-- [ ] Add constants: `PAY_FREQUENCY_*`, `PAY_FREQUENCIES`
-- [ ] Add relationships:
-  - [ ] `belongsTo(User::class, 'created_by')`
-  - [ ] `belongsToMany(SalaryRule::class)` via pivot
-  - [ ] `hasMany(EmployeeSalaryStructure::class)`
-- [ ] Add scope: `scopeActive($query)`
-- [ ] Add method: `getActiveEmployeeCount(): int`
+- [x] Extend `BaseModel`
+- [x] Use traits: `HasTenancy`
+- [x] Define `$fillable`, `$casts`
+- [x] Add constants: `PAY_FREQUENCY_*`, `PAY_FREQUENCIES`, `PAY_FREQUENCY_COLORS`
+- [x] Add relationships:
+  - [x] `belongsTo(User::class, 'created_by')`
+  - [x] `belongsToMany(SalaryRule::class)` via pivot with sequence
+  - [x] `hasMany(EmployeeSalaryStructure::class)`
+  - [x] `earningRules()` and `deductionRules()` filtered relationships
+- [x] Add scope: `scopeActive($query)`
+- [x] Add method: `getActiveEmployeeCountAttribute(): int`
+- [x] Add method: `calculatePayroll(array $context): array`
+- [x] Add method: `duplicate(string $name, string $code): self`
 
-**Pivot Migration**
-- [ ] Create `YYYY_MM_DD_create_salary_structure_rules_table.php`
-  - [ ] `uuid('salary_structure_id')`
-  - [ ] `uuid('salary_rule_id')`
-  - [ ] `integer('sequence')->default(0)`
-  - [ ] Primary key on both columns
-  - [ ] Foreign keys with cascade
+**Pivot Migration** (included in salary_structures migration)
+- [x] Create `salary_structure_rules` table
+  - [x] `uuid('salary_structure_id')`
+  - [x] `uuid('salary_rule_id')`
+  - [x] `integer('sequence')->default(0)`
+  - [x] `timestamps()`
+  - [x] Primary key on both columns
+  - [x] Foreign keys with cascade
 
 **Filament Resource** (`modules/Payroll/Filament/Resources/SalaryStructureResource.php`)
-- [ ] Create form with sections:
-  - [ ] Basic Info: name, code, description
-  - [ ] Settings: pay_frequency (select), currency, is_active
-- [ ] Create table with columns:
-  - [ ] code (searchable, sortable, bold)
-  - [ ] name (searchable)
-  - [ ] pay_frequency (badge)
-  - [ ] rules_count (computed)
-  - [ ] employees_count (computed)
-  - [ ] is_active (icon)
-- [ ] Add Relation Manager: `SalaryRulesRelationManager`
-  - [ ] Attach/detach salary rules
-  - [ ] Reorderable by sequence
-- [ ] Add Relation Manager: `EmployeesRelationManager`
-  - [ ] View assigned employees
-- [ ] Create pages: List, Create, Edit, View
+- [x] Create form with sections:
+  - [x] Basic Info: name, code, description
+  - [x] Settings: pay_frequency (select), currency, is_active
+- [x] Create table with columns:
+  - [x] code (searchable, sortable, bold)
+  - [x] name (searchable)
+  - [x] pay_frequency (badge)
+  - [x] rules_count (computed)
+  - [x] employees_count (computed)
+  - [x] is_active (icon)
+- [x] Add Relation Manager: `RulesRelationManager`
+  - [x] Attach/detach salary rules
+  - [x] Edit sequence action
+  - [x] Reorderable by sequence
+- [x] Add Duplicate action with form
+- [ ] Add Relation Manager: `EmployeesRelationManager` (pending - Phase 1.4)
+- [x] Create pages: List, Create, Edit, View
 
 ---
 
-#### 1.4 EmployeeSalaryStructure
+#### 1.4 EmployeeSalaryStructure ✅ PARTIALLY COMPLETED
 
 **Migration**
-- [ ] Create `YYYY_MM_DD_create_employee_salary_structures_table.php`
-  - [ ] `uuid('id')->primary()`
-  - [ ] `uuid('tenant_id')->index()`
-  - [ ] `uuid('staff_profile_id')->index()`
-  - [ ] `uuid('salary_structure_id')->index()`
-  - [ ] `integer('base_salary_minor')->default(0)`
-  - [ ] `date('effective_date')`
-  - [ ] `date('end_date')->nullable()`
-  - [ ] `boolean('is_current')->default(false)`
-  - [ ] `uuid('assigned_by')->nullable()`
-  - [ ] `text('notes')->nullable()`
-  - [ ] `timestamps()`
-  - [ ] Index: `(tenant_id, staff_profile_id, is_current)`
+- [x] Create `2024_01_01_000006_create_employee_salary_structures_table.php`
+  - [x] `uuid('id')->primary()`
+  - [x] `uuid('tenant_id')->index()`
+  - [x] `uuid('staff_profile_id')->index()`
+  - [x] `uuid('salary_structure_id')->index()`
+  - [x] `integer('base_salary_minor')->default(0)`
+  - [x] `date('effective_date')`
+  - [x] `date('end_date')->nullable()`
+  - [x] `boolean('is_current')->default(false)`
+  - [x] `uuid('assigned_by')->nullable()`
+  - [x] `text('notes')->nullable()`
+  - [x] `timestamps()`
+  - [x] Index: `(tenant_id, staff_profile_id, is_current)`
 
 **Model** (`modules/Payroll/Models/EmployeeSalaryStructure.php`)
-- [ ] Extend `BaseModel`
-- [ ] Use traits: `HasTenancy`
-- [ ] Define `$fillable`, `$casts`
-- [ ] Add relationships:
-  - [ ] `belongsTo(StaffProfile::class)`
-  - [ ] `belongsTo(SalaryStructure::class)`
-  - [ ] `belongsTo(User::class, 'assigned_by')`
-- [ ] Add accessor: `getBaseSalaryAttribute()` (major units)
-- [ ] Add scope: `scopeCurrent($query)`
-- [ ] Add boot logic: ensure only one `is_current` per employee
+- [x] Extend `BaseModel`
+- [x] Use traits: `HasTenancy`
+- [x] Define `$fillable`, `$casts`
+- [x] Add relationships:
+  - [x] `belongsTo(StaffProfile::class)`
+  - [x] `belongsTo(SalaryStructure::class)`
+  - [x] `belongsTo(User::class, 'assigned_by')`
+- [x] Add accessor: `getBaseSalaryAttribute()` (major units)
+- [x] Add scope: `scopeCurrent($query)`
+- [x] Add scope: `scopeActive($query)`
+- [x] Add boot logic: ensure only one `is_current` per employee
+- [x] Add method: `isEffective(): bool`
+- [x] Add method: `makeCurrent(): self`
 
 **Relation Manager** (`StaffProfileResource/RelationManagers/SalaryStructuresRelationManager.php`)
 - [ ] Form: salary_structure_id, base_salary_minor, effective_date, end_date, is_current, notes
@@ -916,20 +925,24 @@ Following X-Linic implementation standards (Filament-based, BaseModel traits, mi
 ### Language Files Checklist
 
 **English** (`modules/Payroll/Lang/en/payroll.php`)
-- [ ] Add `salary_rule_categories` section
-- [ ] Add `salary_rules` section
-- [ ] Add `salary_structures` section
+- [x] Add `salary_rule_categories` section (navigation, labels)
+- [x] Add `salary_rules` section (navigation, labels)
+- [x] Add `salary_structures` section (navigation, labels)
+- [x] Add shared fields (name, code, description, type, category, etc.)
+- [x] Add `amount_types` array
+- [x] Add `condition_types` array
+- [x] Add `pay_frequencies` array
+- [x] Add `help` section with helper texts
 - [ ] Add `employee_salary_structures` section
 - [ ] Add `employee_salary_components` section
 - [ ] Add `compensation_history` section
 - [ ] Add `bulk_operations` section
 - [ ] Add `reports` section
-- [ ] Add `calculation_types` array
-- [ ] Add `pay_frequencies` array
 - [ ] Add `change_types` array
 
 **Arabic** (`modules/Payroll/Lang/ar/payroll.php`)
-- [ ] Translate all new English strings
+- [x] Translate Phase 1.1-1.3 strings (categories, rules, structures)
+- [ ] Translate remaining Phase 1.4+ strings
 
 ---
 
