@@ -186,6 +186,16 @@ class GiftCard extends BaseModel
         return $this->status === self::STATUS_CANCELLED;
     }
 
+    public function isExpiringSoon(int $days = 30): bool
+    {
+        if (!$this->expires_at) {
+            return false;
+        }
+
+        return $this->expires_at->isBetween(now(), now()->addDays($days))
+            && in_array($this->status, [self::STATUS_ACTIVE, self::STATUS_PARTIALLY_USED]);
+    }
+
     public function canRedeem(): bool
     {
         return in_array($this->status, [self::STATUS_ACTIVE, self::STATUS_PARTIALLY_USED])
