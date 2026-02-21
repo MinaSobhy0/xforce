@@ -41,8 +41,8 @@ class EquipmentReportPage extends BaseReportPage
         }
 
         $totalEquipment = (clone $equipmentQuery)->count();
-        $activeEquipment = (clone $equipmentQuery)->where('current_status', 'active')->count();
-        $maintenanceEquipment = (clone $equipmentQuery)->where('current_status', 'maintenance')->count();
+        $activeEquipment = (clone $equipmentQuery)->where('status', 'active')->count();
+        $maintenanceEquipment = (clone $equipmentQuery)->where('status', 'maintenance')->count();
 
         // Total shots in period
         $shotsQuery = EquipmentShotLog::query()
