@@ -122,6 +122,11 @@ class Treatment extends BaseModel
         )->withPivot('is_required')->withTimestamps();
     }
 
+    public function appointments(): HasMany
+    {
+        return $this->hasMany(\Modules\Booking\Models\Appointment::class);
+    }
+
     public function getPriceForBranch(string $branchId): int
     {
         $branchPrice = $this->branchPricing()
