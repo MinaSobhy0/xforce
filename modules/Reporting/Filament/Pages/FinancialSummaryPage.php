@@ -54,10 +54,10 @@ class FinancialSummaryPage extends BaseReportPage
             $receivablesQuery->where('branch_id', $branchId);
         }
 
-        $totalReceivables = $receivablesQuery->sum(DB::raw('total_minor - paid_amount_minor'));
+        $totalReceivables = $receivablesQuery->sum(DB::raw('total_minor - paid_minor'));
         $overdueReceivables = (clone $receivablesQuery)
             ->where('due_date', '<', now())
-            ->sum(DB::raw('total_minor - paid_amount_minor'));
+            ->sum(DB::raw('total_minor - paid_minor'));
 
         // Expenses
         $expensesQuery = Expense::query()
