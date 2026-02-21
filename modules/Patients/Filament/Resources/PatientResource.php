@@ -121,6 +121,7 @@ class PatientResource extends Resource
                                                 table: Patient::class,
                                                 column: 'phone',
                                                 ignoreRecord: true,
+                                                modifyRuleUsing: fn ($rule) => $rule->whereNull('deleted_at'),
                                             ),
 
                                         Forms\Components\TextInput::make('secondary_phone')
