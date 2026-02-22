@@ -192,6 +192,9 @@ class LinesRelationManager extends RelationManager
                     }),
             ])
             ->actions([
+                Tables\Actions\ViewAction::make()
+                    ->url(fn (PayrollLine $record) => route('filament.tenant.resources.payslips.view', $record)),
+
                 Tables\Actions\EditAction::make()
                     ->visible(fn () => $this->ownerRecord->isEditable())
                     ->mutateRecordDataUsing(function (array $data): array {
