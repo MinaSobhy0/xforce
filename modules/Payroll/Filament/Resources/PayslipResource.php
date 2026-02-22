@@ -72,6 +72,12 @@ class PayslipResource extends Resource
                             ->required()
                             ->suffix('cents'),
 
+                        Forms\Components\TextInput::make('allowances_minor')
+                            ->label(__('payroll::payroll.fields.allowances'))
+                            ->numeric()
+                            ->default(0)
+                            ->suffix('cents'),
+
                         Forms\Components\TextInput::make('commissions_minor')
                             ->label(__('payroll::payroll.fields.commissions'))
                             ->numeric()
@@ -83,7 +89,7 @@ class PayslipResource extends Resource
                             ->numeric()
                             ->default(0)
                             ->suffix('cents'),
-                    ])->columns(3),
+                    ])->columns(4),
 
                 Forms\Components\Section::make(__('payroll::payroll.sections.deductions'))
                     ->schema([
@@ -143,6 +149,10 @@ class PayslipResource extends Resource
                             ->label(__('payroll::payroll.fields.base_salary'))
                             ->money(current_currency()),
 
+                        Infolists\Components\TextEntry::make('allowances')
+                            ->label(__('payroll::payroll.fields.allowances'))
+                            ->money(current_currency()),
+
                         Infolists\Components\TextEntry::make('commissions')
                             ->label(__('payroll::payroll.fields.commissions'))
                             ->money(current_currency()),
@@ -155,7 +165,7 @@ class PayslipResource extends Resource
                             ->label(__('payroll::payroll.fields.gross_salary'))
                             ->formatStateUsing(fn ($state) => format_money($state))
                             ->weight('bold'),
-                    ])->columns(4),
+                    ])->columns(5),
 
                 Infolists\Components\Section::make(__('payroll::payroll.sections.deductions'))
                     ->schema([
@@ -210,6 +220,10 @@ class PayslipResource extends Resource
                     ->label(__('payroll::payroll.fields.base_salary'))
                     ->money(current_currency())
                     ->toggleable(isToggledHiddenByDefault: true),
+
+                Tables\Columns\TextColumn::make('allowances')
+                    ->label(__('payroll::payroll.fields.allowances'))
+                    ->money(current_currency()),
 
                 Tables\Columns\TextColumn::make('commissions')
                     ->label(__('payroll::payroll.fields.commissions'))
