@@ -22,7 +22,7 @@ class CommissionPlanResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-calculator';
 
-    protected static ?string $navigationGroup = 'Settings';
+    protected static ?string $navigationGroup = 'HR';
 
     protected static ?int $navigationSort = 45;
 

@@ -24,7 +24,7 @@ class WorkScheduleResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-calendar-days';
 
-    protected static ?string $navigationGroup = 'Operations';
+    protected static ?string $navigationGroup = 'HR';
 
     protected static ?int $navigationSort = 11;
 

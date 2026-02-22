@@ -21,7 +21,7 @@ class SalaryRuleCategoryResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-tag';
 
-    protected static ?string $navigationGroup = 'Payroll Settings';
+    protected static ?string $navigationGroup = 'HR';
 
     protected static ?int $navigationSort = 51;
 

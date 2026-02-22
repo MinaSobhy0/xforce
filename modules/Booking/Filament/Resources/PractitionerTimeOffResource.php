@@ -23,7 +23,7 @@ class PractitionerTimeOffResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-calendar';
 
-    protected static ?string $navigationGroup = 'Operations';
+    protected static ?string $navigationGroup = 'HR';
 
     protected static ?int $navigationSort = 13;
 

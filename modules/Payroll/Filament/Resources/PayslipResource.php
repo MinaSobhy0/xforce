@@ -24,7 +24,7 @@ class PayslipResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
 
-    protected static ?string $navigationGroup = 'Operations';
+    protected static ?string $navigationGroup = 'HR';
 
     protected static ?int $navigationSort = 46;
 

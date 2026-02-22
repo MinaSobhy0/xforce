@@ -22,7 +22,7 @@ class SalaryStructureResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
 
-    protected static ?string $navigationGroup = 'Payroll Settings';
+    protected static ?string $navigationGroup = 'HR';
 
     protected static ?int $navigationSort = 53;
 

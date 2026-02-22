@@ -24,7 +24,7 @@ class PayrollRunResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-banknotes';
 
-    protected static ?string $navigationGroup = 'Operations';
+    protected static ?string $navigationGroup = 'HR';
 
     protected static ?int $navigationSort = 45;
 
