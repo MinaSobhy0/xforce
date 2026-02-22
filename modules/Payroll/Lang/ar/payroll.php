@@ -97,6 +97,7 @@ return [
         'percentage' => 'النسبة',
         'formula' => 'المعادلة',
         'is_taxable' => 'خاضع للضريبة',
+        'other_deductions' => 'خصومات أخرى',
     ],
 
     'types' => [

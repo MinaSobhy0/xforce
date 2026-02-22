@@ -97,6 +97,7 @@ return [
         'percentage' => 'Percentage',
         'formula' => 'Formula',
         'is_taxable' => 'Taxable',
+        'other_deductions' => 'Other Deductions',
     ],
 
     'types' => [
