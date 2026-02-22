@@ -263,6 +263,7 @@ class PayrollCalculationService
 
             if ($component->component_type === EmployeeSalaryComponent::COMPONENT_TYPE_EARNING) {
                 $totalEarningsMinor += $amountMinor;
+                $totalAllowancesMinor += $amountMinor; // Track as allowance
             } else {
                 $totalDeductionsMinor += $amountMinor;
             }
@@ -313,6 +314,7 @@ class PayrollCalculationService
             'payroll_run_id' => $run->id,
             'staff_profile_id' => $staff->id,
             'base_salary_minor' => $baseSalaryMinor,
+            'allowances_minor' => $totalAllowancesMinor,
             'commissions_minor' => (int) $commissionsMinor,
             'bonuses_minor' => $totalBonusesMinor,
             'deductions_minor' => $totalDeductionsMinor - $socialInsuranceMinor - $taxMinor, // Other deductions
@@ -344,6 +346,7 @@ class PayrollCalculationService
 
         // Update existing line with new values
         $line->base_salary_minor = $newLine->base_salary_minor;
+        $line->allowances_minor = $newLine->allowances_minor;
         $line->commissions_minor = $newLine->commissions_minor;
         $line->bonuses_minor = $newLine->bonuses_minor;
         $line->deductions_minor = $newLine->deductions_minor;

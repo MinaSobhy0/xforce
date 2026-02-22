@@ -116,6 +116,10 @@ class LinesRelationManager extends RelationManager
                     ->label(__('payroll::payroll.fields.base_salary'))
                     ->formatStateUsing(fn ($state) => format_money($state ?? 0)),
 
+                Tables\Columns\TextColumn::make('allowances_minor')
+                    ->label(__('payroll::payroll.fields.allowances'))
+                    ->formatStateUsing(fn ($state) => format_money($state ?? 0)),
+
                 Tables\Columns\TextColumn::make('commissions_minor')
                     ->label(__('payroll::payroll.fields.commissions'))
                     ->formatStateUsing(fn ($state) => format_money($state ?? 0)),
@@ -218,6 +222,9 @@ class LinesRelationManager extends RelationManager
                                 Infolists\Components\TextEntry::make('base_salary_minor')
                                     ->label(__('payroll::payroll.fields.base_salary'))
                                     ->formatStateUsing(fn ($state) => format_money($state)),
+                                Infolists\Components\TextEntry::make('allowances_minor')
+                                    ->label(__('payroll::payroll.fields.allowances'))
+                                    ->formatStateUsing(fn ($state) => format_money($state)),
                                 Infolists\Components\TextEntry::make('commissions_minor')
                                     ->label(__('payroll::payroll.fields.commissions'))
                                     ->formatStateUsing(fn ($state) => format_money($state)),
@@ -228,7 +235,7 @@ class LinesRelationManager extends RelationManager
                                     ->label(__('payroll::payroll.fields.gross_salary'))
                                     ->formatStateUsing(fn ($state) => format_money($state))
                                     ->weight('bold'),
-                            ])->columns(4),
+                            ])->columns(5),
 
                         Infolists\Components\Section::make(__('payroll::payroll.sections.deductions'))
                             ->schema([

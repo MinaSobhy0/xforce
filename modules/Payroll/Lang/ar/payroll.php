@@ -56,6 +56,7 @@ return [
         'employee' => 'الموظف',
         'job_title' => 'المسمى الوظيفي',
         'base_salary' => 'الراتب الأساسي',
+        'allowances' => 'البدلات',
         'commissions' => 'العمولات',
         'bonuses' => 'المكافآت',
         'deductions' => 'الخصومات',

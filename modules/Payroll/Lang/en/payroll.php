@@ -56,6 +56,7 @@ return [
         'employee' => 'Employee',
         'job_title' => 'Job Title',
         'base_salary' => 'Base Salary',
+        'allowances' => 'Allowances',
         'commissions' => 'Commissions',
         'bonuses' => 'Bonuses',
         'deductions' => 'Deductions',

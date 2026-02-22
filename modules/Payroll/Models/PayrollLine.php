@@ -16,6 +16,7 @@ class PayrollLine extends BaseModel
         'payroll_run_id',
         'staff_profile_id',
         'base_salary_minor',
+        'allowances_minor',
         'commissions_minor',
         'bonuses_minor',
         'deductions_minor',
@@ -31,6 +32,7 @@ class PayrollLine extends BaseModel
     protected $casts = [
         'id' => 'string',
         'base_salary_minor' => 'integer',
+        'allowances_minor' => 'integer',
         'commissions_minor' => 'integer',
         'bonuses_minor' => 'integer',
         'deductions_minor' => 'integer',
@@ -46,6 +48,7 @@ class PayrollLine extends BaseModel
 
     protected $attributes = [
         'base_salary_minor' => 0,
+        'allowances_minor' => 0,
         'commissions_minor' => 0,
         'bonuses_minor' => 0,
         'deductions_minor' => 0,
@@ -80,6 +83,7 @@ class PayrollLine extends BaseModel
         // Calculate net salary on save
         static::saving(function (self $line) {
             $line->net_salary_minor = $line->base_salary_minor
+                + $line->allowances_minor
                 + $line->commissions_minor
                 + $line->bonuses_minor
                 - $line->deductions_minor
@@ -117,8 +121,17 @@ class PayrollLine extends BaseModel
     public function getGrossSalaryMinorAttribute(): int
     {
         return $this->base_salary_minor
+            + $this->allowances_minor
             + $this->commissions_minor
             + $this->bonuses_minor;
+    }
+
+    /**
+     * Get allowances in major units.
+     */
+    public function getAllowancesAttribute(): float
+    {
+        return $this->allowances_minor / 100;
     }
 
     /**
