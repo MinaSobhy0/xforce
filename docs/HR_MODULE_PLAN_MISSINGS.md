@@ -980,3 +980,608 @@ Following X-Linic implementation standards (Filament-based, BaseModel traits, mi
 - [ ] Test report generation and export
 - [ ] Test multi-tenant isolation
 - [ ] Test Arabic translations display correctly
+
+---
+
+## Attendance Module (New Module)
+
+### Overview
+
+Complete attendance tracking system with GPS-enabled check-in/out, violation management, and payroll integration.
+
+| Component | Description |
+|-----------|-------------|
+| Attendance | Daily attendance records with check-in/out times |
+| AttendanceLog | GPS-enabled logs with location data |
+| AttendanceBreak | Break time tracking |
+| WorkingSchedule | Complex scheduling (fixed, flexible, shift, remote, hybrid) |
+| AttendanceRule | Configurable violation rules by category |
+| AttendanceRuleAction | Tiered penalties based on thresholds |
+| AttendanceViolation | Violation tracking with approval workflow |
+
+---
+
+### Phase A1: Core Attendance System (High Priority)
+
+#### A1.1 Enums
+
+**Create Enums** (`modules/Attendance/Enums/`)
+
+- [ ] `AttendanceLogType.php`
+  ```
+  Values: CHECK_IN, CHECK_OUT, BREAK_START, BREAK_END
+  ```
+
+- [ ] `AttendanceType.php`
+  ```
+  Values: NONE, GEOFENCE, STATIC_QR, DYNAMIC_QR, IP_ADDRESS,
+          FACE_RECOGNITION, FINGERPRINT, NFC, RFID, MANUAL, SITE
+  ```
+
+- [ ] `AttendanceRuleCategory.php`
+  ```
+  Values: LATE_CHECKIN, EARLY_CHECKOUT, MISSED_CHECKIN,
+          MISSED_CHECKOUT, OVERSTAY, UNAUTHORIZED_ABSENCE
+  Methods: label(), description()
+  ```
+
+- [ ] `AttendanceViolationStatus.php`
+  ```
+  Values: PENDING, APPROVED, WAIVED, DISPUTED, APPLIED, CANCELLED
+  Methods: label(), color()
+  ```
+
+- [ ] `AttendancePenaltyType.php`
+  ```
+  Values: FIXED, PERCENTAGE, HOURLY_RATE, FORMULA
+  Methods: label(), description()
+  ```
+
+- [ ] `AttendanceRuleActionType.php`
+  ```
+  Values: DEDUCTION, WARNING, APPROVAL_REQUIRED, NOTIFICATION, BLOCK_ATTENDANCE
+  Methods: label()
+  ```
+
+- [ ] `WorkingScheduleType.php`
+  ```
+  Values: FIXED, FLEXIBLE, SHIFT, COMPRESSED, REMOTE
+  Methods: label()
+  ```
+
+---
+
+#### A1.2 Attendance Model & Migration
+
+**Migration** (`modules/Attendance/Database/Migrations/`)
+
+- [ ] Create `YYYY_MM_DD_create_attendances_table.php`
+  - [ ] `uuid('id')->primary()`
+  - [ ] `uuid('tenant_id')->index()`
+  - [ ] `uuid('staff_profile_id')->index()`
+  - [ ] `uuid('branch_id')->nullable()->index()`
+  - [ ] `uuid('working_schedule_id')->nullable()->index()`
+  - [ ] `date('attendance_date')`
+  - [ ] `time('check_in_time')->nullable()`
+  - [ ] `time('check_out_time')->nullable()`
+  - [ ] `string('attendance_type')->default('manual')` (from AttendanceType enum)
+  - [ ] `string('status')->default('present')` (present, absent, half_day, leave)
+  - [ ] `decimal('working_hours', 5, 2)->default(0)`
+  - [ ] `decimal('late_hours', 5, 2)->default(0)`
+  - [ ] `decimal('early_hours', 5, 2)->default(0)`
+  - [ ] `decimal('overtime_hours', 5, 2)->default(0)`
+  - [ ] `text('late_reason')->nullable()`
+  - [ ] `text('early_checkout_reason')->nullable()`
+  - [ ] `text('notes')->nullable()`
+  - [ ] `uuid('approved_by')->nullable()`
+  - [ ] `timestamp('approved_at')->nullable()`
+  - [ ] `uuid('created_by')->nullable()`
+  - [ ] `uuid('updated_by')->nullable()`
+  - [ ] `timestamps()`
+  - [ ] `softDeletes()`
+  - [ ] Unique: `(tenant_id, staff_profile_id, attendance_date)`
+
+**Model** (`modules/Attendance/Models/Attendance.php`)
+- [ ] Extend `BaseModel`
+- [ ] Use traits: `HasTenancy`, `SoftDeletes`
+- [ ] Define `$fillable`, `$casts`
+- [ ] Add relationships:
+  - [ ] `belongsTo(StaffProfile::class, 'staff_profile_id')`
+  - [ ] `belongsTo(Branch::class)`
+  - [ ] `belongsTo(WorkingSchedule::class)`
+  - [ ] `hasMany(AttendanceLog::class)`
+  - [ ] `hasMany(AttendanceViolation::class)`
+  - [ ] `belongsTo(User::class, 'approved_by')`
+  - [ ] `belongsTo(User::class, 'created_by')`
+- [ ] Add scopes: `scopeForDate()`, `scopeForPeriod()`, `scopeForStaff()`
+- [ ] Add methods:
+  - [ ] `isCheckedOut(): bool`
+  - [ ] `latestLog(): ?AttendanceLog`
+  - [ ] `calculateWorkingHours(): float`
+
+---
+
+#### A1.3 AttendanceLog Model & Migration
+
+**Migration**
+- [ ] Create `YYYY_MM_DD_create_attendance_logs_table.php`
+  - [ ] `uuid('id')->primary()`
+  - [ ] `uuid('tenant_id')->index()`
+  - [ ] `uuid('attendance_id')->index()`
+  - [ ] `string('type')` (check_in, check_out, break_start, break_end)
+  - [ ] `decimal('latitude', 10, 8)->nullable()`
+  - [ ] `decimal('longitude', 11, 8)->nullable()`
+  - [ ] `decimal('altitude', 10, 2)->nullable()`
+  - [ ] `decimal('horizontal_accuracy', 8, 2)->nullable()`
+  - [ ] `decimal('vertical_accuracy', 8, 2)->nullable()`
+  - [ ] `decimal('speed', 8, 2)->nullable()`
+  - [ ] `text('address')->nullable()`
+  - [ ] `string('source')->default('manual')` (manual, mobile, biometric, web)
+  - [ ] `json('device_info')->nullable()`
+  - [ ] `text('notes')->nullable()`
+  - [ ] `uuid('created_by')->nullable()`
+  - [ ] `timestamps()`
+  - [ ] `softDeletes()`
+  - [ ] Foreign key: `attendance_id` → `attendances.id` cascade
+
+**Model** (`modules/Attendance/Models/AttendanceLog.php`)
+- [ ] Extend `BaseModel`
+- [ ] Use traits: `HasTenancy`, `SoftDeletes`
+- [ ] Define `$fillable`, `$casts`
+- [ ] Add relationships: `attendance`, `createdBy`
+- [ ] Add accessor: `getFormattedLocationAttribute()`
+
+---
+
+#### A1.4 AttendanceBreak Model & Migration
+
+**Migration**
+- [ ] Create `YYYY_MM_DD_create_attendance_breaks_table.php`
+  - [ ] `uuid('id')->primary()`
+  - [ ] `uuid('tenant_id')->index()`
+  - [ ] `uuid('attendance_id')->index()`
+  - [ ] `timestamp('start_time')`
+  - [ ] `timestamp('end_time')->nullable()`
+  - [ ] `integer('duration_minutes')->default(0)`
+  - [ ] `text('reason')->nullable()`
+  - [ ] `timestamps()`
+  - [ ] `softDeletes()`
+
+**Model** (`modules/Attendance/Models/AttendanceBreak.php`)
+- [ ] Extend `BaseModel`
+- [ ] Use traits: `HasTenancy`, `SoftDeletes`
+- [ ] Add relationships: `attendance`
+- [ ] Add method: `calculateDuration(): int`
+
+---
+
+### Phase A2: Working Schedules (High Priority)
+
+#### A2.1 WorkingSchedule Model & Migration
+
+**Migration**
+- [ ] Create `YYYY_MM_DD_create_working_schedules_table.php`
+  - [ ] `uuid('id')->primary()`
+  - [ ] `uuid('tenant_id')->index()`
+  - [ ] `uuid('branch_id')->nullable()->index()`
+  - [ ] `string('name')`
+  - [ ] `string('code')->unique()`
+  - [ ] `text('description')->nullable()`
+  - [ ] `string('type')->default('fixed')` (fixed, flexible, shift, compressed, remote)
+  - [ ] **Fixed Schedule:**
+    - [ ] `time('start_time')->nullable()`
+    - [ ] `time('end_time')->nullable()`
+    - [ ] `decimal('hours_per_day', 5, 2)->default(8.00)`
+    - [ ] `decimal('hours_per_week', 5, 2)->default(40.00)`
+  - [ ] **Grace Periods:**
+    - [ ] `integer('grace_period_late_minutes')->default(0)`
+    - [ ] `integer('grace_period_early_minutes')->default(0)`
+  - [ ] **Flexible Schedule:**
+    - [ ] `boolean('is_flexible')->default(false)`
+    - [ ] `time('flexible_start_from')->nullable()`
+    - [ ] `time('flexible_start_to')->nullable()`
+    - [ ] `time('flexible_end_from')->nullable()`
+    - [ ] `time('flexible_end_to')->nullable()`
+    - [ ] `decimal('flexible_min_hours_per_day', 5, 2)->nullable()`
+    - [ ] `decimal('flexible_max_hours_per_day', 5, 2)->nullable()`
+  - [ ] **Core Hours:**
+    - [ ] `boolean('core_hours_required')->default(false)`
+    - [ ] `time('core_hours_start')->nullable()`
+    - [ ] `time('core_hours_end')->nullable()`
+  - [ ] **Working Days:**
+    - [ ] `json('working_days')->nullable()` ([0,1,2,3,4,5,6] - Sunday=0)
+    - [ ] `decimal('days_per_week', 3, 1)->default(5.0)`
+  - [ ] **Break Settings:**
+    - [ ] `boolean('has_break')->default(true)`
+    - [ ] `integer('break_duration_minutes')->default(60)`
+    - [ ] `time('break_start')->nullable()`
+    - [ ] `time('break_end')->nullable()`
+    - [ ] `boolean('flexible_break')->default(false)`
+  - [ ] **Overtime:**
+    - [ ] `boolean('allow_overtime')->default(true)`
+    - [ ] `decimal('max_overtime_per_day', 5, 2)->nullable()`
+    - [ ] `decimal('max_overtime_per_week', 5, 2)->nullable()`
+  - [ ] **Shift Rotation:**
+    - [ ] `boolean('is_rotating_shift')->default(false)`
+    - [ ] `integer('rotation_cycle_days')->nullable()`
+    - [ ] `json('shift_pattern')->nullable()`
+  - [ ] **Remote/Hybrid:**
+    - [ ] `boolean('is_remote')->default(false)`
+    - [ ] `boolean('is_hybrid')->default(false)`
+    - [ ] `integer('remote_days_per_week')->nullable()`
+    - [ ] `json('remote_days')->nullable()`
+  - [ ] **Status:**
+    - [ ] `string('status')->default('active')` (active, inactive)
+    - [ ] `boolean('is_default')->default(false)`
+    - [ ] `text('notes')->nullable()`
+  - [ ] `uuid('created_by')->nullable()`
+  - [ ] `uuid('updated_by')->nullable()`
+  - [ ] `timestamps()`
+  - [ ] `softDeletes()`
+
+**Model** (`modules/Attendance/Models/WorkingSchedule.php`)
+- [ ] Extend `BaseModel`
+- [ ] Use traits: `HasTenancy`, `SoftDeletes`
+- [ ] Define `$fillable`, `$casts`
+- [ ] Add constants: `TYPE_FIXED`, `TYPE_FLEXIBLE`, etc.
+- [ ] Add relationships:
+  - [ ] `belongsTo(Branch::class)`
+  - [ ] `hasMany(AttendanceRule::class)`
+  - [ ] `hasMany(Attendance::class)`
+- [ ] Add scopes: `scopeActive()`, `scopeDefault()`, `scopeFixed()`, `scopeFlexible()`
+- [ ] Add methods:
+  - [ ] `isLateCheckIn($checkInTime): bool`
+  - [ ] `isEarlyCheckOut($checkOutTime): bool`
+  - [ ] `calculateLateMinutes($checkInTime): int`
+  - [ ] `calculateEarlyMinutes($checkOutTime): int`
+  - [ ] `isWorkingDay($dayOfWeek): bool`
+  - [ ] `isWithinWorkingHours($time): bool`
+  - [ ] `setAsDefault(): void`
+  - [ ] `createDefaultRules(): void`
+- [ ] Add accessors:
+  - [ ] `getFormattedWorkingHoursAttribute(): string`
+  - [ ] `getFormattedTimeRangeAttribute(): string`
+  - [ ] `getWorkingDaysListAttribute(): string`
+
+**Filament Resource** (`modules/Attendance/Filament/Resources/WorkingScheduleResource.php`)
+- [ ] Use `ChecksResourcePermissions` trait
+- [ ] Set `$moduleCode = 'attendance'`, `$permissionKey = 'working_schedules'`
+- [ ] Create form with sections:
+  - [ ] Basic Info: name, code, description, branch_id
+  - [ ] Schedule Type: type (reactive select)
+  - [ ] Fixed Schedule: start_time, end_time, hours_per_day (conditional)
+  - [ ] Grace Periods: grace_period_late_minutes, grace_period_early_minutes
+  - [ ] Flexible Schedule: flexible_start_from/to, min/max hours (conditional)
+  - [ ] Core Hours: core_hours_required, core_hours_start/end
+  - [ ] Working Days: CheckboxList (Sun-Sat)
+  - [ ] Break Settings: has_break, break_duration, break_start/end
+  - [ ] Overtime: allow_overtime, max_overtime_per_day/week
+  - [ ] Remote/Hybrid: is_remote, is_hybrid, remote_days_per_week
+  - [ ] Status: status, is_default
+- [ ] Create table with columns: name, code, type (badge), time_range, working_days, is_active
+- [ ] Add Relation Manager: `AttendanceRulesRelationManager`
+- [ ] Add actions: Set Default, Duplicate
+- [ ] Create pages: List, Create, Edit, View
+
+---
+
+### Phase A3: Attendance Rules & Violations (High Priority)
+
+#### A3.1 AttendanceRule Model & Migration
+
+**Migration**
+- [ ] Create `YYYY_MM_DD_create_attendance_rules_table.php`
+  - [ ] `uuid('id')->primary()`
+  - [ ] `uuid('tenant_id')->index()`
+  - [ ] `uuid('working_schedule_id')->nullable()->index()`
+  - [ ] `string('name')`
+  - [ ] `string('code')->index()`
+  - [ ] `text('description')->nullable()`
+  - [ ] `string('category')` (late_checkin, early_checkout, missed_checkin, missed_checkout, overstay, unauthorized_absence)
+  - [ ] `boolean('is_active')->default(true)`
+  - [ ] `integer('sequence')->default(0)`
+  - [ ] `boolean('auto_apply')->default(false)`
+  - [ ] `boolean('send_notification')->default(true)`
+  - [ ] `boolean('notify_manager')->default(false)`
+  - [ ] `boolean('notify_hr')->default(false)`
+  - [ ] `text('notes')->nullable()`
+  - [ ] `uuid('created_by')->nullable()`
+  - [ ] `uuid('updated_by')->nullable()`
+  - [ ] `timestamps()`
+  - [ ] `softDeletes()`
+
+**Model** (`modules/Attendance/Models/AttendanceRule.php`)
+- [ ] Extend `BaseModel`
+- [ ] Use traits: `HasTenancy`, `SoftDeletes`
+- [ ] Define `$fillable`, `$casts` (category as enum)
+- [ ] Add relationships: `workingSchedule`, `actions`, `violations`
+- [ ] Add scopes: `scopeActive()`, `scopeByCategory()`
+- [ ] Add methods:
+  - [ ] `appliesToStaff(StaffProfile $staff): bool`
+  - [ ] `getApplicableAction($violationMinutes, $occurrenceCount): ?AttendanceRuleAction`
+
+**Filament Resource** (`modules/Attendance/Filament/Resources/AttendanceRuleResource.php`)
+- [ ] Form: name, code, category (select), working_schedule_id, auto_apply, notifications, is_active
+- [ ] Table: code, name, category (badge), working_schedule, is_active
+- [ ] Relation Manager: `ActionsRelationManager` for tiered actions
+
+---
+
+#### A3.2 AttendanceRuleAction Model & Migration
+
+**Migration**
+- [ ] Create `YYYY_MM_DD_create_attendance_rule_actions_table.php`
+  - [ ] `uuid('id')->primary()`
+  - [ ] `uuid('attendance_rule_id')->index()`
+  - [ ] `integer('occurrence_number')->nullable()` (1st, 2nd, 3rd offense)
+  - [ ] `string('action_type')` (deduction, warning, approval_required, notification, block_attendance)
+  - [ ] `string('severity')->default('moderate')` (minor, moderate, severe)
+  - [ ] **Threshold:**
+    - [ ] `string('threshold_type')` (time_based, occurrence_based)
+    - [ ] `integer('threshold_value')` (minutes or count)
+    - [ ] `string('threshold_period')->nullable()` (day, week, month, year)
+  - [ ] **Penalty:**
+    - [ ] `string('penalty_type')->nullable()` (fixed, percentage, hourly_rate, formula)
+    - [ ] `integer('penalty_amount_minor')->default(0)` (in minor units)
+    - [ ] `decimal('penalty_percentage', 5, 2)->nullable()`
+    - [ ] `text('penalty_formula')->nullable()`
+  - [ ] **Workflow:**
+    - [ ] `boolean('requires_approval')->default(false)`
+    - [ ] `boolean('notification_enabled')->default(true)`
+    - [ ] `boolean('notify_manager')->default(true)`
+    - [ ] `boolean('notify_hr')->default(false)`
+  - [ ] `text('message_template')->nullable()`
+  - [ ] `text('notes')->nullable()`
+  - [ ] `boolean('is_active')->default(true)`
+  - [ ] `timestamps()`
+  - [ ] Foreign key: `attendance_rule_id` → `attendance_rules.id` cascade
+
+**Model** (`modules/Attendance/Models/AttendanceRuleAction.php`)
+- [ ] Extend `BaseModel`
+- [ ] Define `$fillable`, `$casts` (penalty_type, action_type as enums)
+- [ ] Add relationships: `rule`, `violations`
+- [ ] Add methods:
+  - [ ] `calculatePenalty(StaffProfile $staff, int $violationMinutes): int`
+  - [ ] `calculatePercentagePenalty(StaffProfile $staff): int`
+  - [ ] `calculateHourlyPenalty(StaffProfile $staff, int $violationMinutes): int`
+  - [ ] `evaluateFormula(StaffProfile $staff, int $violationMinutes): int`
+- [ ] Add accessor: `getThresholdDescriptionAttribute(): string`
+
+---
+
+#### A3.3 AttendanceViolation Model & Migration
+
+**Migration**
+- [ ] Create `YYYY_MM_DD_create_attendance_violations_table.php`
+  - [ ] `uuid('id')->primary()`
+  - [ ] `uuid('tenant_id')->index()`
+  - [ ] `uuid('attendance_id')->index()`
+  - [ ] `uuid('staff_profile_id')->index()`
+  - [ ] `uuid('attendance_rule_id')->nullable()->index()`
+  - [ ] `uuid('attendance_rule_action_id')->nullable()`
+  - [ ] `string('violation_type')` (from AttendanceRuleCategory enum)
+  - [ ] `date('violation_date')`
+  - [ ] `time('scheduled_time')->nullable()`
+  - [ ] `time('actual_time')->nullable()`
+  - [ ] `integer('grace_period_minutes')->default(0)`
+  - [ ] `integer('violation_minutes')->default(0)`
+  - [ ] `integer('penalty_amount_minor')->default(0)`
+  - [ ] `string('penalty_type')->nullable()`
+  - [ ] `json('penalty_calculation_details')->nullable()`
+  - [ ] `string('status')->default('pending')` (pending, approved, waived, disputed, applied, cancelled)
+  - [ ] `text('reason')->nullable()`
+  - [ ] `text('employee_notes')->nullable()`
+  - [ ] `text('manager_notes')->nullable()`
+  - [ ] `uuid('approved_by')->nullable()`
+  - [ ] `timestamp('approved_at')->nullable()`
+  - [ ] `uuid('waived_by')->nullable()`
+  - [ ] `text('waived_reason')->nullable()`
+  - [ ] `timestamp('waived_at')->nullable()`
+  - [ ] `text('dispute_reason')->nullable()`
+  - [ ] `timestamp('disputed_at')->nullable()`
+  - [ ] `uuid('payroll_line_id')->nullable()` (linked when applied to payroll)
+  - [ ] `timestamp('applied_at')->nullable()`
+  - [ ] `timestamps()`
+  - [ ] `softDeletes()`
+
+**Model** (`modules/Attendance/Models/AttendanceViolation.php`)
+- [ ] Extend `BaseModel`
+- [ ] Use traits: `HasTenancy`, `SoftDeletes`
+- [ ] Define `$fillable`, `$casts` (violation_type, status as enums)
+- [ ] Add relationships: `attendance`, `staffProfile`, `rule`, `ruleAction`, `approvedBy`, `waivedBy`, `payrollLine`
+- [ ] Add scopes: `scopePending()`, `scopeApproved()`, `scopeDateRange()`, `scopeByStaff()`
+- [ ] Add methods:
+  - [ ] `canBeWaived(): bool`
+  - [ ] `canBeApproved(): bool`
+  - [ ] `approve(User $approver, ?string $notes): bool`
+  - [ ] `waive(User $waiver, string $reason): bool`
+  - [ ] `dispute(string $reason): bool`
+- [ ] Add accessor: `getFormattedViolationTimeAttribute(): string`
+- [ ] Add accessor: `getPenaltyAmountAttribute(): float` (major units)
+
+**Filament Resource** (`modules/Attendance/Filament/Resources/AttendanceViolationResource.php`)
+- [ ] Form: readonly fields showing violation details
+- [ ] Table: violation_date, staff name, violation_type (badge), violation_minutes, penalty_amount, status (badge)
+- [ ] Filters: status, violation_type, date range, staff
+- [ ] Actions: Approve, Waive (with reason modal), Dispute
+- [ ] Bulk actions: Bulk Approve, Bulk Waive
+
+---
+
+### Phase A4: Services (High Priority)
+
+#### A4.1 AttendanceService
+
+**Service** (`modules/Attendance/Services/AttendanceService.php`)
+- [ ] Create service class
+- [ ] Register in `AttendanceServiceProvider` as singleton
+- [ ] Implement methods:
+  - [ ] `checkIn(StaffProfile $staff, array $locationData): Attendance`
+  - [ ] `checkOut(StaffProfile $staff, array $locationData): Attendance`
+  - [ ] `startBreak(Attendance $attendance): AttendanceBreak`
+  - [ ] `endBreak(AttendanceBreak $break): AttendanceBreak`
+  - [ ] `createManual(StaffProfile $staff, array $data): Attendance`
+  - [ ] `getTodayAttendance(StaffProfile $staff): ?Attendance`
+  - [ ] `getStatus(StaffProfile $staff): array`
+  - [ ] `calculateWorkingHours(Attendance $attendance): float`
+  - [ ] `isCheckedIn(StaffProfile $staff): bool`
+
+#### A4.2 AttendanceRuleService
+
+**Service** (`modules/Attendance/Services/AttendanceRuleService.php`)
+- [ ] Create service class
+- [ ] Inject `FormulaEvaluator` from Payroll module
+- [ ] Implement methods:
+  - [ ] `evaluateLateCheckIn(Attendance $attendance, $checkInTime, $scheduledTime): ?AttendanceViolation`
+  - [ ] `evaluateEarlyCheckOut(Attendance $attendance, $checkOutTime, $scheduledTime): ?AttendanceViolation`
+  - [ ] `evaluateMissedCheckIn(StaffProfile $staff, $date): ?AttendanceViolation`
+  - [ ] `evaluateMissedCheckOut(Attendance $attendance): ?AttendanceViolation`
+  - [ ] `findApplicableRule(StaffProfile $staff, $category): ?AttendanceRule`
+  - [ ] `getStaffViolationStats(StaffProfile $staff, $startDate, $endDate): array`
+  - [ ] `getPendingViolations(?int $managerId): Collection`
+  - [ ] `bulkApproveViolations(array $violationIds, User $approver, ?string $notes): int`
+  - [ ] `waiveViolation(int $violationId, User $waiver, string $reason): bool`
+
+#### A4.3 WorkingScheduleService
+
+**Service** (`modules/Attendance/Services/WorkingScheduleService.php`)
+- [ ] Implement methods:
+  - [ ] `createWithDefaultRules(array $data): WorkingSchedule`
+  - [ ] `updateSchedule(WorkingSchedule $schedule, array $data): WorkingSchedule`
+  - [ ] `updateScheduleRules(WorkingSchedule $schedule, array $rulesData): WorkingSchedule`
+  - [ ] `canDeleteSchedule(WorkingSchedule $schedule): bool`
+  - [ ] `deleteSchedule(WorkingSchedule $schedule): bool`
+  - [ ] `duplicateSchedule(WorkingSchedule $schedule, string $name, string $code): WorkingSchedule`
+
+---
+
+### Phase A5: Filament Resources & Pages (Medium Priority)
+
+#### A5.1 AttendanceResource
+
+**Filament Resource** (`modules/Attendance/Filament/Resources/AttendanceResource.php`)
+- [ ] Use `ChecksResourcePermissions` trait
+- [ ] Set `$moduleCode = 'attendance'`, `$permissionKey = 'attendances'`
+- [ ] Create form:
+  - [ ] staff_profile_id (select with search)
+  - [ ] attendance_date
+  - [ ] check_in_time, check_out_time
+  - [ ] attendance_type (select)
+  - [ ] status (select)
+  - [ ] notes
+- [ ] Create table:
+  - [ ] attendance_date (sortable)
+  - [ ] staff name (searchable)
+  - [ ] check_in_time, check_out_time
+  - [ ] working_hours
+  - [ ] status (badge)
+  - [ ] violations_count
+- [ ] Filters: date range, staff, status, branch
+- [ ] Actions: View, Edit, Delete, Create Manual
+- [ ] Relation Manager: `LogsRelationManager`, `ViolationsRelationManager`
+
+#### A5.2 Dashboard Widget
+
+**Widget** (`modules/Attendance/Filament/Widgets/TodayAttendanceWidget.php`)
+- [ ] Show today's attendance summary
+- [ ] Present, Absent, Late, On Leave counts
+- [ ] Quick check-in/out action for current user
+
+#### A5.3 Attendance Reports Page
+
+**Page** (`modules/Attendance/Filament/Pages/AttendanceReportsPage.php`)
+- [ ] Report types: Daily, Weekly, Monthly, Custom Range
+- [ ] Filters: Branch, Department, Staff
+- [ ] Export to Excel (using `maatwebsite/excel`)
+- [ ] Charts: Attendance trends, Violation statistics
+
+---
+
+### Phase A6: API & Mobile Support (Medium Priority)
+
+#### A6.1 API Controllers
+
+**Controllers** (`modules/Attendance/Http/Controllers/Api/`)
+- [ ] `AttendanceController.php`
+  - [ ] `checkIn(Request $request)` - Mobile check-in with GPS
+  - [ ] `checkOut(Request $request)` - Mobile check-out with GPS
+  - [ ] `getStatus()` - Current attendance status
+  - [ ] `getHistory(Request $request)` - Attendance history
+
+**Form Request** (`modules/Attendance/Http/Requests/Api/`)
+- [ ] `CheckInOutRequest.php`
+  - [ ] Validate: latitude, longitude, altitude (optional), device_info (optional)
+
+**API Routes** (`modules/Attendance/Routes/api.php`)
+- [ ] `POST /api/attendance/check-in`
+- [ ] `POST /api/attendance/check-out`
+- [ ] `GET /api/attendance/status`
+- [ ] `GET /api/attendance/history`
+
+---
+
+### Phase A7: Payroll Integration (High Priority)
+
+#### A7.1 Update PayrollCalculationService
+
+**Updates** (`modules/Payroll/Services/PayrollCalculationService.php`)
+- [ ] Add method: `getAttendanceData(StaffProfile $staff, $startDate, $endDate): array`
+  - [ ] Return: worked_days, absent_days, late_days, late_minutes, early_minutes, overtime_hours
+- [ ] Update `buildCalculationContext()` to include attendance data
+- [ ] Add method: `getViolationDeductions(StaffProfile $staff, $startDate, $endDate): int`
+  - [ ] Sum approved violation penalties not yet applied
+- [ ] Update payroll calculation to auto-apply violations
+
+#### A7.2 Link Violations to PayrollLine
+
+- [ ] Update `PayrollLine` to track applied violations
+- [ ] Create relation: `PayrollLine->hasMany(AttendanceViolation::class, 'payroll_line_id')`
+- [ ] Mark violations as `APPLIED` when payroll is paid
+
+---
+
+### Phase A8: Language Files (Required)
+
+**English** (`modules/Attendance/Lang/en/attendance.php`)
+- [ ] Module info: `module_name`, `module_description`
+- [ ] Navigation labels
+- [ ] Model labels: attendance, working_schedule, violation, rule
+- [ ] Field labels for all models
+- [ ] Status labels
+- [ ] Violation type labels
+- [ ] Penalty type labels
+- [ ] Action labels
+- [ ] Help texts
+
+**Arabic** (`modules/Attendance/Lang/ar/attendance.php`)
+- [ ] Translate all strings
+
+---
+
+### Phase A9: Module Structure
+
+**Module Files**
+- [ ] `modules/Attendance/module.json`
+- [ ] `modules/Attendance/Config/config.php`
+- [ ] `modules/Attendance/Providers/AttendanceServiceProvider.php`
+- [ ] `modules/Attendance/Providers/FilamentServiceProvider.php`
+- [ ] Register module in `modules_statuses.json`
+
+---
+
+### Attendance Module Testing Checklist
+
+- [ ] Test manual attendance CRUD
+- [ ] Test working schedule CRUD with all types (fixed, flexible, shift)
+- [ ] Test attendance rule creation with actions
+- [ ] Test late check-in violation auto-creation
+- [ ] Test early check-out violation auto-creation
+- [ ] Test violation approval workflow
+- [ ] Test violation waive workflow
+- [ ] Test violation dispute workflow
+- [ ] Test penalty calculation (fixed, percentage, hourly, formula)
+- [ ] Test payroll integration - violation deductions
+- [ ] Test API check-in/out with GPS
+- [ ] Test attendance reports and export
+- [ ] Test multi-tenant isolation
+- [ ] Test Arabic translations display correctly
