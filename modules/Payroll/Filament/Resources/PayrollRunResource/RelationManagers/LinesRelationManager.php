@@ -202,6 +202,25 @@ class LinesRelationManager extends RelationManager
             ->actions([
                 Tables\Actions\ViewAction::make()
                     ->slideOver()
+                    ->extraModalFooterActions(fn (PayrollLine $record) => [
+                        Tables\Actions\Action::make('recalculate_modal')
+                            ->label(__('payroll::payroll.actions.recalculate'))
+                            ->icon('heroicon-o-calculator')
+                            ->color('warning')
+                            ->visible(fn () => $this->ownerRecord->isEditable())
+                            ->requiresConfirmation()
+                            ->modalHeading(__('payroll::payroll.actions.recalculate'))
+                            ->modalDescription(__('payroll::payroll.messages.recalculate_single_confirm'))
+                            ->action(function () use ($record) {
+                                $service = app(PayrollCalculationService::class);
+                                $service->recalculatePayslip($record);
+
+                                Notification::make()
+                                    ->title(__('payroll::payroll.messages.payslip_recalculated'))
+                                    ->success()
+                                    ->send();
+                            }),
+                    ])
                     ->infolist([
                         Infolists\Components\Section::make(__('payroll::payroll.sections.employee'))
                             ->schema([
