@@ -32,5 +32,58 @@ class AppServiceProvider extends ServiceProvider
             IdentifyTenant::class,
         ]);
 
+        // Register Livewire components from modules
+        $this->registerModuleLivewireComponents();
+    }
+
+    /**
+     * Register Livewire components from all modules.
+     */
+    protected function registerModuleLivewireComponents(): void
+    {
+        $modulesPath = base_path('modules');
+
+        if (!is_dir($modulesPath)) {
+            return;
+        }
+
+        foreach (glob($modulesPath . '/*/Filament/Widgets/*.php') as $file) {
+            $className = $this->getClassFromFile($file);
+            if ($className && class_exists($className)) {
+                $alias = $this->getComponentAlias($className);
+                Livewire::component($alias, $className);
+            }
+        }
+    }
+
+    /**
+     * Get fully qualified class name from file path.
+     */
+    protected function getClassFromFile(string $file): ?string
+    {
+        // Extract module name and class name from path
+        // e.g., /var/www/html/x_linic/modules/Core/Filament/Widgets/TenantOverviewWidget.php
+        if (preg_match('#modules/([^/]+)/(.+)\.php$#', $file, $matches)) {
+            $module = $matches[1];
+            $relativePath = $matches[2];
+            $namespace = 'Modules\\' . $module . '\\' . str_replace('/', '\\', $relativePath);
+            return $namespace;
+        }
+        return null;
+    }
+
+    /**
+     * Get Livewire component alias from class name.
+     */
+    protected function getComponentAlias(string $className): string
+    {
+        // Convert Modules\Core\Filament\Widgets\TenantOverviewWidget
+        // to modules.core.filament.widgets.tenant-overview-widget
+        $alias = str_replace('\\', '.', $className);
+        // Add hyphens before uppercase letters (while case is preserved)
+        $alias = preg_replace('/([a-z])([A-Z])/', '$1-$2', $alias);
+        // Now lowercase everything
+        $alias = strtolower($alias);
+        return $alias;
     }
 }
