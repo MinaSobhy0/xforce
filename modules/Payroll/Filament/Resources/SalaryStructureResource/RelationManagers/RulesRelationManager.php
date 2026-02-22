@@ -77,9 +77,10 @@ class RulesRelationManager extends RelationManager
                     ->label(__('payroll::payroll.fields.value'))
                     ->getStateUsing(fn ($record) => $record->display_value),
 
-                Tables\Columns\TextColumn::make('pivot.sequence')
+                Tables\Columns\TextColumn::make('sequence')
                     ->label(__('payroll::payroll.fields.sequence'))
-                    ->sortable(),
+                    ->getStateUsing(fn ($record) => $record->pivot?->sequence ?? 0)
+                    ->sortable(query: fn ($query, $direction) => $query->orderBy('salary_structure_rules.sequence', $direction)),
             ])
             ->filters([
                 //
@@ -105,7 +106,7 @@ class RulesRelationManager extends RelationManager
                         Forms\Components\TextInput::make('sequence')
                             ->label(__('payroll::payroll.fields.sequence'))
                             ->numeric()
-                            ->default(fn ($record) => $record->pivot->sequence)
+                            ->default(fn ($record) => $record->pivot?->sequence ?? 0)
                             ->required(),
                     ])
                     ->action(function ($record, array $data): void {
@@ -120,7 +121,6 @@ class RulesRelationManager extends RelationManager
                     Tables\Actions\DetachBulkAction::make(),
                 ]),
             ])
-            ->defaultSort('pivot.sequence')
-            ->reorderable('pivot.sequence');
+            ->defaultSort('salary_structure_rules.sequence');
     }
 }
