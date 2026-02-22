@@ -58,16 +58,14 @@ class PayrollCalculationService
         $count = 0;
 
         try {
-            DB::beginTransaction();
-
-            // Get eligible employees
+            // Get eligible employees (outside transaction to avoid long locks)
             $employees = $this->getEligibleEmployees($run);
 
-            // Get existing payroll lines (to skip or update)
-            $existingLines = $run->lines()->pluck('staff_profile_id')->toArray();
-
             foreach ($employees as $staff) {
+                // Use individual transaction per employee to prevent PostgreSQL abort issues
                 try {
+                    DB::beginTransaction();
+
                     // Check if line already exists
                     $existingLine = $run->lines()
                         ->where('staff_profile_id', $staff->id)
@@ -82,9 +80,12 @@ class PayrollCalculationService
                         $line->save();
                     }
 
+                    DB::commit();
                     $count++;
 
                 } catch (\Throwable $e) {
+                    DB::rollBack();
+
                     $errors[] = [
                         'employee_id' => $staff->id,
                         'employee_name' => $staff->user?->name ?? $staff->employee_number,
@@ -94,30 +95,36 @@ class PayrollCalculationService
                         'staff_id' => $staff->id,
                         'run_id' => $run->id,
                         'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString(),
                     ]);
                 }
             }
 
-            // Update run totals
-            $this->updateRunTotals($run);
+            // Update run totals (separate transaction)
+            DB::beginTransaction();
+            try {
+                $this->updateRunTotals($run);
 
-            // Update run status if it was in draft
-            if ($run->status === PayrollRun::STATUS_DRAFT) {
-                $run->status = PayrollRun::STATUS_REVIEW;
-                $run->employee_count = $count;
-                $run->save();
+                // Update run status if it was in draft
+                if ($run->status === PayrollRun::STATUS_DRAFT) {
+                    $run->status = PayrollRun::STATUS_REVIEW;
+                    $run->employee_count = $count;
+                    $run->save();
+                }
+
+                DB::commit();
+            } catch (\Throwable $e) {
+                DB::rollBack();
+                throw $e;
             }
 
-            DB::commit();
-
             return [
-                'success' => true,
+                'success' => $count > 0,
                 'count' => $count,
                 'errors' => $errors,
             ];
 
         } catch (\Throwable $e) {
-            DB::rollBack();
             Log::error('PayrollCalculation: Error calculating payroll run', [
                 'run_id' => $run->id,
                 'error' => $e->getMessage(),
@@ -281,10 +288,11 @@ class PayrollCalculationService
 
         // Create PayrollLine
         $line = new PayrollLine([
+            'tenant_id' => $staff->tenant_id ?? $run->tenant_id,
             'payroll_run_id' => $run->id,
             'staff_profile_id' => $staff->id,
             'base_salary_minor' => $baseSalaryMinor,
-            'commissions_minor' => $commissionsMinor,
+            'commissions_minor' => (int) $commissionsMinor,
             'bonuses_minor' => $totalBonusesMinor,
             'deductions_minor' => $totalDeductionsMinor - $socialInsuranceMinor - $taxMinor, // Other deductions
             'tax_minor' => $taxMinor,
