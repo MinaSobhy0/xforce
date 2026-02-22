@@ -244,11 +244,7 @@ class PayrollCalculationService
         }
 
         // Apply employee-specific salary components
-        // Note: Skip components that are linked to salary rules (they're already handled via rules)
-        // Also skip components that are mapped to allowance context variables
-        $allowanceFields = ['housing_allowance', 'transport_allowance', 'meal_allowance', 'phone_allowance'];
-        $allowancePatterns = ['housing', 'transport', 'meal', 'phone', 'hra', 'ta'];
-
+        // Skip components that are linked to salary rules (they're already handled via rules)
         $components = EmployeeSalaryComponent::on($staff->getConnectionName())
             ->where('staff_profile_id', $staff->id)
             ->whereNull('salary_rule_id') // Only custom components not tied to rules
@@ -257,21 +253,6 @@ class PayrollCalculationService
             ->get();
 
         foreach ($components as $component) {
-            // Skip components that match allowance patterns (already handled via rules)
-            $componentName = strtolower($component->name ?? '');
-            $isAllowance = false;
-            foreach ($allowancePatterns as $pattern) {
-                if (str_contains($componentName, $pattern)) {
-                    $isAllowance = true;
-                    break;
-                }
-            }
-
-            // If this is an allowance and already in context with value > 0, skip it
-            if ($isAllowance) {
-                continue;
-            }
-
             $amountMinor = $this->calculateComponentAmount($component, $context);
 
             $calculationDetails['components_applied'][] = [
@@ -296,18 +277,24 @@ class PayrollCalculationService
         $context['TOTAL_EARNINGS'] = $totalEarningsMinor / 100;
         $context['TOTAL_ALLOWANCE'] = $totalAllowancesMinor / 100;
 
-        // Calculate social insurance
-        $socialInsuranceMinor = $this->calculateSocialInsurance($baseSalaryMinor / 100);
+        // Get currency for country-specific calculations
+        $currency = $this->getPayrollCurrency($staff);
+
+        // Calculate social insurance based on country
+        $socialInsuranceMinor = $this->calculateSocialInsurance($baseSalaryMinor / 100, $currency);
         $totalDeductionsMinor += $socialInsuranceMinor;
 
         // Update context with social insurance and taxable income
         $context['SI_EMP'] = $socialInsuranceMinor / 100;
         $context['taxable_income'] = $context['GROSS'] - $context['SI_EMP'];
         $context['taxable_amount'] = $context['taxable_income'];
+        $taxMinor = 0;
 
-        // Calculate tax
-        $annualGross = ($grossSalaryMinor / 100) * 12; // Estimate annual
-        $taxMinor = $this->calculateTax($annualGross / 12); // Monthly tax
+        if (!in_array($currency, ['SAR', 'AED', 'KWD', 'BHD', 'OMR', 'QAR'])) {
+            // Only calculate tax for countries that have income tax
+            $annualGross = ($grossSalaryMinor / 100) * 12;
+            $taxMinor = $this->calculateTax($annualGross / 12);
+        }
         $totalDeductionsMinor += $taxMinor;
 
         // Calculate net salary
@@ -588,6 +575,42 @@ class PayrollCalculationService
     }
 
     /**
+     * Get the payroll currency for the staff member.
+     *
+     * @param StaffProfile $staff
+     * @return string
+     */
+    protected function getPayrollCurrency(StaffProfile $staff): string
+    {
+        try {
+            // Try to get currency from branch
+            $branch = DB::connection($staff->getConnectionName())
+                ->table('branches')
+                ->where('is_main', true)
+                ->first();
+
+            if ($branch && !empty($branch->currency_code)) {
+                return $branch->currency_code;
+            }
+
+            // Fallback to first active branch
+            $branch = DB::connection($staff->getConnectionName())
+                ->table('branches')
+                ->where('is_active', true)
+                ->orderBy('sort_order')
+                ->first();
+
+            if ($branch && !empty($branch->currency_code)) {
+                return $branch->currency_code;
+            }
+        } catch (\Exception $e) {
+            // Ignore errors
+        }
+
+        return config('app.currency', 'USD');
+    }
+
+    /**
      * Get working days in a period (excluding weekends).
      *
      * @param Carbon $start
@@ -795,17 +818,39 @@ class PayrollCalculationService
     }
 
     /**
-     * Calculate social insurance contribution.
+     * Calculate social insurance contribution based on country/currency.
      *
      * @param float $baseSalary Base salary in major units
+     * @param string $currency Currency code
      * @return int Social insurance in minor units
      */
-    protected function calculateSocialInsurance(float $baseSalary): int
+    protected function calculateSocialInsurance(float $baseSalary, string $currency = 'EGP'): int
     {
-        // Cap at maximum base
-        $base = min($baseSalary, $this->socialInsuranceMaxBase);
+        // Country-specific social insurance rates
+        $countryRates = [
+            // Saudi Arabia (GOSI) - 9.75% employee contribution, max base 45,000 SAR
+            'SAR' => ['rate' => 0.0975, 'max_base' => 45000],
+            // UAE - No mandatory social insurance for expats, 5% for nationals
+            'AED' => ['rate' => 0.05, 'max_base' => null],
+            // Kuwait - 7.5% employee contribution
+            'KWD' => ['rate' => 0.075, 'max_base' => null],
+            // Bahrain - 7% employee contribution
+            'BHD' => ['rate' => 0.07, 'max_base' => null],
+            // Oman - 7% employee contribution
+            'OMR' => ['rate' => 0.07, 'max_base' => null],
+            // Qatar - No mandatory social insurance
+            'QAR' => ['rate' => 0, 'max_base' => null],
+            // Egypt - 11% employee contribution, max base 12,600 EGP
+            'EGP' => ['rate' => 0.11, 'max_base' => 12600],
+        ];
 
-        $amount = $base * $this->socialInsuranceRate;
+        // Get rates for currency, default to Egypt rates
+        $rates = $countryRates[$currency] ?? $countryRates['EGP'];
+
+        // Cap at maximum base if defined
+        $base = $rates['max_base'] ? min($baseSalary, $rates['max_base']) : $baseSalary;
+
+        $amount = $base * $rates['rate'];
 
         return (int) round($amount * 100);
     }
