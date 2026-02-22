@@ -29,7 +29,7 @@ class ServiceResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-beaker';
 
-    protected static ?string $navigationGroup = 'Services';
+    protected static ?string $navigationGroup = 'Inventory';
 
     protected static ?int $navigationSort = 2;
 
