@@ -1003,51 +1003,52 @@ Complete attendance tracking system with GPS-enabled check-in/out, violation man
 
 ### Phase A1: Core Attendance System (High Priority)
 
-#### A1.1 Enums
+#### A1.1 Module Structure
 
-**Create Enums** (`modules/Attendance/Enums/`)
+**Create Module Structure** (`modules/Attendance/`)
+```
+modules/Attendance/
+├── Config/
+│   └── config.php
+├── Database/
+│   ├── Migrations/
+│   └── Seeders/
+├── Filament/
+│   ├── Pages/
+│   ├── Resources/
+│   └── Widgets/
+├── Lang/
+│   ├── ar/
+│   │   └── attendance.php
+│   └── en/
+│       └── attendance.php
+├── Listeners/
+├── Models/
+├── Providers/
+│   ├── AttendanceServiceProvider.php
+│   └── RouteServiceProvider.php
+├── Routes/
+│   ├── api.php
+│   └── web.php
+├── Services/
+└── module.json
+```
 
-- [ ] `AttendanceLogType.php`
-  ```
-  Values: CHECK_IN, CHECK_OUT, BREAK_START, BREAK_END
-  ```
-
-- [ ] `AttendanceType.php`
-  ```
-  Values: NONE, GEOFENCE, STATIC_QR, DYNAMIC_QR, IP_ADDRESS,
-          FACE_RECOGNITION, FINGERPRINT, NFC, RFID, MANUAL, SITE
-  ```
-
-- [ ] `AttendanceRuleCategory.php`
-  ```
-  Values: LATE_CHECKIN, EARLY_CHECKOUT, MISSED_CHECKIN,
-          MISSED_CHECKOUT, OVERSTAY, UNAUTHORIZED_ABSENCE
-  Methods: label(), description()
-  ```
-
-- [ ] `AttendanceViolationStatus.php`
-  ```
-  Values: PENDING, APPROVED, WAIVED, DISPUTED, APPLIED, CANCELLED
-  Methods: label(), color()
-  ```
-
-- [ ] `AttendancePenaltyType.php`
-  ```
-  Values: FIXED, PERCENTAGE, HOURLY_RATE, FORMULA
-  Methods: label(), description()
-  ```
-
-- [ ] `AttendanceRuleActionType.php`
-  ```
-  Values: DEDUCTION, WARNING, APPROVAL_REQUIRED, NOTIFICATION, BLOCK_ATTENDANCE
-  Methods: label()
-  ```
-
-- [ ] `WorkingScheduleType.php`
-  ```
-  Values: FIXED, FLEXIBLE, SHIFT, COMPRESSED, REMOTE
-  Methods: label()
-  ```
+**module.json**
+```json
+{
+    "name": "Attendance",
+    "alias": "attendance",
+    "description": "Attendance tracking, working schedules, and violation management",
+    "keywords": ["attendance", "hr", "check-in", "violations", "schedules"],
+    "priority": 0,
+    "providers": [
+        "Modules\\Attendance\\Providers\\AttendanceServiceProvider",
+        "Modules\\Attendance\\Providers\\RouteServiceProvider"
+    ],
+    "files": []
+}
+```
 
 ---
 
@@ -1082,8 +1083,40 @@ Complete attendance tracking system with GPS-enabled check-in/out, violation man
   - [ ] Unique: `(tenant_id, staff_profile_id, attendance_date)`
 
 **Model** (`modules/Attendance/Models/Attendance.php`)
-- [ ] Extend `BaseModel`
-- [ ] Use traits: `HasTenancy`, `SoftDeletes`
+- [ ] Extend `BaseModel` from `XLinic\Framework\Core\Model\BaseModel`
+- [ ] Use traits: `SoftDeletes` (HasTenancy is in BaseModel)
+- [ ] Define constants (following PayrollRun pattern):
+  ```php
+  // Attendance Types
+  public const TYPE_MANUAL = 'manual';
+  public const TYPE_GEOFENCE = 'geofence';
+  public const TYPE_QR_STATIC = 'qr_static';
+  public const TYPE_QR_DYNAMIC = 'qr_dynamic';
+  public const TYPE_BIOMETRIC = 'biometric';
+  public const TYPE_MOBILE = 'mobile';
+
+  public const TYPES = [
+      self::TYPE_MANUAL => 'Manual',
+      self::TYPE_GEOFENCE => 'Geofence',
+      self::TYPE_QR_STATIC => 'Static QR',
+      self::TYPE_QR_DYNAMIC => 'Dynamic QR',
+      self::TYPE_BIOMETRIC => 'Biometric',
+      self::TYPE_MOBILE => 'Mobile App',
+  ];
+
+  // Status
+  public const STATUS_PRESENT = 'present';
+  public const STATUS_ABSENT = 'absent';
+  public const STATUS_HALF_DAY = 'half_day';
+  public const STATUS_LEAVE = 'leave';
+
+  public const STATUSES = [
+      self::STATUS_PRESENT => 'Present',
+      self::STATUS_ABSENT => 'Absent',
+      self::STATUS_HALF_DAY => 'Half Day',
+      self::STATUS_LEAVE => 'On Leave',
+  ];
+  ```
 - [ ] Define `$fillable`, `$casts`
 - [ ] Add relationships:
   - [ ] `belongsTo(StaffProfile::class, 'staff_profile_id')`
@@ -1126,7 +1159,35 @@ Complete attendance tracking system with GPS-enabled check-in/out, violation man
 
 **Model** (`modules/Attendance/Models/AttendanceLog.php`)
 - [ ] Extend `BaseModel`
-- [ ] Use traits: `HasTenancy`, `SoftDeletes`
+- [ ] Use traits: `SoftDeletes`
+- [ ] Define constants:
+  ```php
+  // Log Types
+  public const TYPE_CHECK_IN = 'check_in';
+  public const TYPE_CHECK_OUT = 'check_out';
+  public const TYPE_BREAK_START = 'break_start';
+  public const TYPE_BREAK_END = 'break_end';
+
+  public const TYPES = [
+      self::TYPE_CHECK_IN => 'Check In',
+      self::TYPE_CHECK_OUT => 'Check Out',
+      self::TYPE_BREAK_START => 'Break Start',
+      self::TYPE_BREAK_END => 'Break End',
+  ];
+
+  // Source
+  public const SOURCE_MANUAL = 'manual';
+  public const SOURCE_MOBILE = 'mobile';
+  public const SOURCE_BIOMETRIC = 'biometric';
+  public const SOURCE_WEB = 'web';
+
+  public const SOURCES = [
+      self::SOURCE_MANUAL => 'Manual Entry',
+      self::SOURCE_MOBILE => 'Mobile App',
+      self::SOURCE_BIOMETRIC => 'Biometric Device',
+      self::SOURCE_WEB => 'Web Portal',
+  ];
+  ```
 - [ ] Define `$fillable`, `$casts`
 - [ ] Add relationships: `attendance`, `createdBy`
 - [ ] Add accessor: `getFormattedLocationAttribute()`
@@ -1221,9 +1282,45 @@ Complete attendance tracking system with GPS-enabled check-in/out, violation man
 
 **Model** (`modules/Attendance/Models/WorkingSchedule.php`)
 - [ ] Extend `BaseModel`
-- [ ] Use traits: `HasTenancy`, `SoftDeletes`
+- [ ] Use traits: `SoftDeletes`
+- [ ] Define constants:
+  ```php
+  // Schedule Types
+  public const TYPE_FIXED = 'fixed';
+  public const TYPE_FLEXIBLE = 'flexible';
+  public const TYPE_SHIFT = 'shift';
+  public const TYPE_COMPRESSED = 'compressed';
+  public const TYPE_REMOTE = 'remote';
+
+  public const TYPES = [
+      self::TYPE_FIXED => 'Fixed Hours',
+      self::TYPE_FLEXIBLE => 'Flexible Hours',
+      self::TYPE_SHIFT => 'Shift Work',
+      self::TYPE_COMPRESSED => 'Compressed Week',
+      self::TYPE_REMOTE => 'Remote',
+  ];
+
+  // Status
+  public const STATUS_ACTIVE = 'active';
+  public const STATUS_INACTIVE = 'inactive';
+
+  public const STATUSES = [
+      self::STATUS_ACTIVE => 'Active',
+      self::STATUS_INACTIVE => 'Inactive',
+  ];
+
+  // Days of Week
+  public const DAYS = [
+      0 => 'Sunday',
+      1 => 'Monday',
+      2 => 'Tuesday',
+      3 => 'Wednesday',
+      4 => 'Thursday',
+      5 => 'Friday',
+      6 => 'Saturday',
+  ];
+  ```
 - [ ] Define `$fillable`, `$casts`
-- [ ] Add constants: `TYPE_FIXED`, `TYPE_FLEXIBLE`, etc.
 - [ ] Add relationships:
   - [ ] `belongsTo(Branch::class)`
   - [ ] `hasMany(AttendanceRule::class)`
@@ -1292,8 +1389,27 @@ Complete attendance tracking system with GPS-enabled check-in/out, violation man
 
 **Model** (`modules/Attendance/Models/AttendanceRule.php`)
 - [ ] Extend `BaseModel`
-- [ ] Use traits: `HasTenancy`, `SoftDeletes`
-- [ ] Define `$fillable`, `$casts` (category as enum)
+- [ ] Use traits: `SoftDeletes`
+- [ ] Define constants:
+  ```php
+  // Rule Categories
+  public const CATEGORY_LATE_CHECKIN = 'late_checkin';
+  public const CATEGORY_EARLY_CHECKOUT = 'early_checkout';
+  public const CATEGORY_MISSED_CHECKIN = 'missed_checkin';
+  public const CATEGORY_MISSED_CHECKOUT = 'missed_checkout';
+  public const CATEGORY_OVERSTAY = 'overstay';
+  public const CATEGORY_UNAUTHORIZED_ABSENCE = 'unauthorized_absence';
+
+  public const CATEGORIES = [
+      self::CATEGORY_LATE_CHECKIN => 'Late Check-In',
+      self::CATEGORY_EARLY_CHECKOUT => 'Early Check-Out',
+      self::CATEGORY_MISSED_CHECKIN => 'Missed Check-In',
+      self::CATEGORY_MISSED_CHECKOUT => 'Missed Check-Out',
+      self::CATEGORY_OVERSTAY => 'Overstay',
+      self::CATEGORY_UNAUTHORIZED_ABSENCE => 'Unauthorized Absence',
+  ];
+  ```
+- [ ] Define `$fillable`, `$casts`
 - [ ] Add relationships: `workingSchedule`, `actions`, `violations`
 - [ ] Add scopes: `scopeActive()`, `scopeByCategory()`
 - [ ] Add methods:
@@ -1338,7 +1454,57 @@ Complete attendance tracking system with GPS-enabled check-in/out, violation man
 
 **Model** (`modules/Attendance/Models/AttendanceRuleAction.php`)
 - [ ] Extend `BaseModel`
-- [ ] Define `$fillable`, `$casts` (penalty_type, action_type as enums)
+- [ ] Define constants:
+  ```php
+  // Action Types
+  public const ACTION_DEDUCTION = 'deduction';
+  public const ACTION_WARNING = 'warning';
+  public const ACTION_APPROVAL_REQUIRED = 'approval_required';
+  public const ACTION_NOTIFICATION = 'notification';
+  public const ACTION_BLOCK = 'block_attendance';
+
+  public const ACTION_TYPES = [
+      self::ACTION_DEDUCTION => 'Salary Deduction',
+      self::ACTION_WARNING => 'Warning Notice',
+      self::ACTION_APPROVAL_REQUIRED => 'Require Approval',
+      self::ACTION_NOTIFICATION => 'Send Notification',
+      self::ACTION_BLOCK => 'Block Attendance',
+  ];
+
+  // Penalty Types
+  public const PENALTY_FIXED = 'fixed';
+  public const PENALTY_PERCENTAGE = 'percentage';
+  public const PENALTY_HOURLY = 'hourly_rate';
+  public const PENALTY_FORMULA = 'formula';
+
+  public const PENALTY_TYPES = [
+      self::PENALTY_FIXED => 'Fixed Amount',
+      self::PENALTY_PERCENTAGE => 'Percentage of Daily Salary',
+      self::PENALTY_HOURLY => 'Hourly Rate Deduction',
+      self::PENALTY_FORMULA => 'Custom Formula',
+  ];
+
+  // Threshold Types
+  public const THRESHOLD_TIME = 'time_based';
+  public const THRESHOLD_OCCURRENCE = 'occurrence_based';
+
+  public const THRESHOLD_TYPES = [
+      self::THRESHOLD_TIME => 'Time Based (Minutes)',
+      self::THRESHOLD_OCCURRENCE => 'Occurrence Based (Count)',
+  ];
+
+  // Severity
+  public const SEVERITY_MINOR = 'minor';
+  public const SEVERITY_MODERATE = 'moderate';
+  public const SEVERITY_SEVERE = 'severe';
+
+  public const SEVERITIES = [
+      self::SEVERITY_MINOR => 'Minor',
+      self::SEVERITY_MODERATE => 'Moderate',
+      self::SEVERITY_SEVERE => 'Severe',
+  ];
+  ```
+- [ ] Define `$fillable`, `$casts`
 - [ ] Add relationships: `rule`, `violations`
 - [ ] Add methods:
   - [ ] `calculatePenalty(StaffProfile $staff, int $violationMinutes): int`
@@ -1386,8 +1552,36 @@ Complete attendance tracking system with GPS-enabled check-in/out, violation man
 
 **Model** (`modules/Attendance/Models/AttendanceViolation.php`)
 - [ ] Extend `BaseModel`
-- [ ] Use traits: `HasTenancy`, `SoftDeletes`
-- [ ] Define `$fillable`, `$casts` (violation_type, status as enums)
+- [ ] Use traits: `SoftDeletes`
+- [ ] Define constants:
+  ```php
+  // Status
+  public const STATUS_PENDING = 'pending';
+  public const STATUS_APPROVED = 'approved';
+  public const STATUS_WAIVED = 'waived';
+  public const STATUS_DISPUTED = 'disputed';
+  public const STATUS_APPLIED = 'applied';
+  public const STATUS_CANCELLED = 'cancelled';
+
+  public const STATUSES = [
+      self::STATUS_PENDING => 'Pending Review',
+      self::STATUS_APPROVED => 'Approved',
+      self::STATUS_WAIVED => 'Waived',
+      self::STATUS_DISPUTED => 'Disputed',
+      self::STATUS_APPLIED => 'Applied to Payslip',
+      self::STATUS_CANCELLED => 'Cancelled',
+  ];
+
+  public const STATUS_COLORS = [
+      self::STATUS_PENDING => 'warning',
+      self::STATUS_APPROVED => 'success',
+      self::STATUS_WAIVED => 'gray',
+      self::STATUS_DISPUTED => 'danger',
+      self::STATUS_APPLIED => 'info',
+      self::STATUS_CANCELLED => 'gray',
+  ];
+  ```
+- [ ] Define `$fillable`, `$casts`
 - [ ] Add relationships: `attendance`, `staffProfile`, `rule`, `ruleAction`, `approvedBy`, `waivedBy`, `payrollLine`
 - [ ] Add scopes: `scopePending()`, `scopeApproved()`, `scopeDateRange()`, `scopeByStaff()`
 - [ ] Add methods:
@@ -1499,24 +1693,31 @@ Complete attendance tracking system with GPS-enabled check-in/out, violation man
 
 ### Phase A6: API & Mobile Support (Medium Priority)
 
+> **Note:** API endpoints should be added to the central `modules/Api/` module following existing patterns (e.g., `BookingController`, `PatientController`).
+
 #### A6.1 API Controllers
 
-**Controllers** (`modules/Attendance/Http/Controllers/Api/`)
-- [ ] `AttendanceController.php`
+**Controller** (`modules/Api/Http/Controllers/AttendanceController.php`)
+- [ ] Create `AttendanceController extends BaseApiController`
   - [ ] `checkIn(Request $request)` - Mobile check-in with GPS
   - [ ] `checkOut(Request $request)` - Mobile check-out with GPS
+  - [ ] `startBreak(Request $request)` - Start break
+  - [ ] `endBreak(Request $request)` - End break
   - [ ] `getStatus()` - Current attendance status
   - [ ] `getHistory(Request $request)` - Attendance history
+  - [ ] `getSchedule()` - Get staff working schedule
 
-**Form Request** (`modules/Attendance/Http/Requests/Api/`)
-- [ ] `CheckInOutRequest.php`
-  - [ ] Validate: latitude, longitude, altitude (optional), device_info (optional)
+**API Resource** (`modules/Api/Http/Resources/AttendanceResource.php`)
+- [ ] Create resource with: id, staff, attendance_date, check_in_time, check_out_time, working_hours, status, violations_count
 
-**API Routes** (`modules/Attendance/Routes/api.php`)
-- [ ] `POST /api/attendance/check-in`
-- [ ] `POST /api/attendance/check-out`
-- [ ] `GET /api/attendance/status`
-- [ ] `GET /api/attendance/history`
+**API Routes** (add to `modules/Api/Routes/api.php`)
+- [ ] `POST /attendance/check-in`
+- [ ] `POST /attendance/check-out`
+- [ ] `POST /attendance/break/start`
+- [ ] `POST /attendance/break/end`
+- [ ] `GET /attendance/status`
+- [ ] `GET /attendance/history`
+- [ ] `GET /attendance/schedule`
 
 ---
 
