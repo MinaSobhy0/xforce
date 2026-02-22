@@ -15,6 +15,7 @@ use Modules\Equipment\Models\EquipmentType;
 use Modules\Equipment\Models\Equipment;
 use Modules\Core\Models\Room;
 use Modules\Auth\Models\User;
+use Modules\Staff\Models\StaffProfile;
 use Modules\Services\Filament\Resources\ServiceResource\Pages;
 use Modules\Services\Filament\Resources\ServiceResource\RelationManagers;
 use Illuminate\Database\Eloquent\Builder;
@@ -310,10 +311,13 @@ class ServiceResource extends Resource
                                     ->schema([
                                         Forms\Components\Select::make('qualified_staff_ids')
                                             ->label(__('services::services.fields.qualified_staff'))
-                                            ->options(fn () => User::query()
-                                                ->active()
+                                            ->options(fn () => StaffProfile::query()
+                                                ->with('user')
+                                                ->whereHas('user', fn ($q) => $q->where('is_active', true))
                                                 ->get()
-                                                ->pluck('full_name', 'id')
+                                                ->mapWithKeys(fn ($staff) => [
+                                                    $staff->id => $staff->user?->full_name ?? $staff->employee_code
+                                                ])
                                             )
                                             ->multiple()
                                             ->searchable()
