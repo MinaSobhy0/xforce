@@ -2,24 +2,22 @@
 
 namespace Modules\Payroll\Filament\Resources\PayrollRunResource\RelationManagers;
 
-use App\Filament\Resources\RelationManagers\BaseRelationManager;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Notifications\Notification;
-use Modules\Payroll\Filament\Resources\PayslipResource;
 use Modules\Payroll\Models\PayrollLine;
 use Modules\Staff\Models\StaffProfile;
 
-class LinesRelationManager extends BaseRelationManager
+class LinesRelationManager extends RelationManager
 {
     protected static string $relationship = 'lines';
 
     protected static ?string $title = 'Payslips';
 
-    // PayrollLine -> PayslipResource (non-standard naming, must set explicitly)
-    protected static ?string $viewResource = PayslipResource::class;
+    protected static bool $isLazy = false;
 
     public function form(Form $form): Form
     {

@@ -4,7 +4,7 @@ namespace Modules\Auth\Filament\Resources\UserResource\RelationManagers;
 
 use Filament\Forms;
 use Filament\Forms\Form;
-use App\Filament\Resources\RelationManagers\BaseRelationManager;
+use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Notifications\Notification;
@@ -12,7 +12,7 @@ use Modules\Auth\Models\Role;
 use Modules\Auth\Models\UserBranchRole;
 use Modules\Core\Models\Branch;
 
-class BranchRolesRelationManager extends BaseRelationManager
+class BranchRolesRelationManager extends RelationManager
 {
     protected static string $relationship = 'branchRoles';
 

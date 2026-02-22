@@ -4,12 +4,12 @@ namespace Modules\Services\Filament\Resources\ServiceResource\RelationManagers;
 
 use Filament\Forms;
 use Filament\Forms\Form;
-use App\Filament\Resources\RelationManagers\BaseRelationManager;
+use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Modules\Core\Models\Branch;
 
-class BranchPricingRelationManager extends BaseRelationManager
+class BranchPricingRelationManager extends RelationManager
 {
     protected static string $relationship = 'branchPricing';
 

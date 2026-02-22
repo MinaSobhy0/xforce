@@ -2,12 +2,12 @@
 
 namespace Modules\Staff\Filament\Resources\CommissionPlanResource\RelationManagers;
 
-use App\Filament\Resources\RelationManagers\BaseRelationManager;
+use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Modules\Staff\Models\StaffProfile;
 
-class StaffProfilesRelationManager extends BaseRelationManager
+class StaffProfilesRelationManager extends RelationManager
 {
     protected static string $relationship = 'staffProfiles';
 

@@ -4,12 +4,12 @@ namespace Modules\Equipment\Filament\Resources\EquipmentResource\RelationManager
 
 use Filament\Forms;
 use Filament\Forms\Form;
-use App\Filament\Resources\RelationManagers\BaseRelationManager;
+use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Modules\Equipment\Models\EquipmentMaintenanceLog;
 
-class MaintenanceLogsRelationManager extends BaseRelationManager
+class MaintenanceLogsRelationManager extends RelationManager
 {
     protected static string $relationship = 'maintenanceLogs';
 

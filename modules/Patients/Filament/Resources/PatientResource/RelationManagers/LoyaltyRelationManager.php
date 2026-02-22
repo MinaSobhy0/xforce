@@ -4,12 +4,12 @@ namespace Modules\Patients\Filament\Resources\PatientResource\RelationManagers;
 
 use Filament\Forms;
 use Filament\Forms\Form;
-use App\Filament\Resources\RelationManagers\BaseRelationManager;
+use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Modules\Loyalty\Models\LoyaltyTransaction;
 
-class LoyaltyRelationManager extends BaseRelationManager
+class LoyaltyRelationManager extends RelationManager
 {
     protected static string $relationship = 'loyaltyTransactions';
 

@@ -4,13 +4,13 @@ namespace Modules\Payroll\Filament\Resources\SalaryStructureResource\RelationMan
 
 use Filament\Forms;
 use Filament\Forms\Form;
-use App\Filament\Resources\RelationManagers\BaseRelationManager;
+use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Modules\Payroll\Models\SalaryRule;
 use Modules\Payroll\Models\SalaryRuleCategory;
 
-class RulesRelationManager extends BaseRelationManager
+class RulesRelationManager extends RelationManager
 {
     protected static string $relationship = 'rules';
 

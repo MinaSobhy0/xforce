@@ -5,12 +5,12 @@ namespace Modules\Booking\Filament\Resources\AppointmentResource\RelationManager
 use Modules\Booking\Models\AppointmentServiceNote;
 use Filament\Forms;
 use Filament\Forms\Form;
-use App\Filament\Resources\RelationManagers\BaseRelationManager;
+use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
-class ServiceNoteRelationManager extends BaseRelationManager
+class ServiceNoteRelationManager extends RelationManager
 {
     protected static string $relationship = 'serviceNote';
 

@@ -5,11 +5,11 @@ namespace Modules\GiftCards\Filament\Resources\GiftCardResource\RelationManagers
 use Modules\GiftCards\Models\GiftCardTransaction;
 use Filament\Forms;
 use Filament\Forms\Form;
-use App\Filament\Resources\RelationManagers\BaseRelationManager;
+use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 
-class TransactionsRelationManager extends BaseRelationManager
+class TransactionsRelationManager extends RelationManager
 {
     protected static string $relationship = 'transactions';
 

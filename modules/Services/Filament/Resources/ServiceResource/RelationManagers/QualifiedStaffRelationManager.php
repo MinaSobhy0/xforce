@@ -4,12 +4,12 @@ namespace Modules\Services\Filament\Resources\ServiceResource\RelationManagers;
 
 use Filament\Forms;
 use Filament\Forms\Form;
-use App\Filament\Resources\RelationManagers\BaseRelationManager;
+use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Modules\Auth\Models\User;
 
-class QualifiedStaffRelationManager extends BaseRelationManager
+class QualifiedStaffRelationManager extends RelationManager
 {
     protected static string $relationship = 'qualifiedStaff';
 

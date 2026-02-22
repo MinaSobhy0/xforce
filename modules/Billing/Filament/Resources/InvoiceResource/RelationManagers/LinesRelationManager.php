@@ -7,11 +7,11 @@ use Modules\Billing\Models\TaxRate;
 use Modules\Services\Models\Service;
 use Filament\Forms;
 use Filament\Forms\Form;
-use App\Filament\Resources\RelationManagers\BaseRelationManager;
+use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 
-class LinesRelationManager extends BaseRelationManager
+class LinesRelationManager extends RelationManager
 {
     protected static string $relationship = 'lines';
 

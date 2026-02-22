@@ -4,11 +4,11 @@ namespace Modules\Patients\Filament\Resources\PatientResource\RelationManagers;
 
 use Filament\Forms;
 use Filament\Forms\Form;
-use App\Filament\Resources\RelationManagers\BaseRelationManager;
+use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 
-class PackagesRelationManager extends BaseRelationManager
+class PackagesRelationManager extends RelationManager
 {
     protected static string $relationship = 'packageSubscriptions';
 
