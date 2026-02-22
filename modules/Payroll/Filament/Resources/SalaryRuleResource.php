@@ -98,7 +98,7 @@ class SalaryRuleResource extends Resource
                         Forms\Components\TextInput::make('amount_fixed')
                             ->label(__('payroll::payroll.fields.amount_fixed'))
                             ->numeric()
-                            ->prefix('EGP')
+                            ->prefix(fn () => current_currency())
                             ->visible(fn (Get $get) => $get('amount_type') === SalaryRule::AMOUNT_TYPE_FIXED)
                             ->required(fn (Get $get) => $get('amount_type') === SalaryRule::AMOUNT_TYPE_FIXED)
                             ->afterStateHydrated(function ($component, $state, $record) {

@@ -53,3 +53,36 @@ if (!function_exists('is_all_branches')) {
         return BranchContext::isAllBranches();
     }
 }
+
+if (!function_exists('current_currency')) {
+    /**
+     * Get the current branch's currency code.
+     * Falls back to app default currency if no branch selected.
+     */
+    function current_currency(): string
+    {
+        $branch = current_branch();
+
+        if ($branch && $branch->currency_code) {
+            return $branch->currency_code;
+        }
+
+        // Fall back to app default currency
+        return config('xlinic.tenant.currency', 'EGP');
+    }
+}
+
+if (!function_exists('format_money')) {
+    /**
+     * Format an amount as money using the current branch currency.
+     *
+     * @param int $amountMinor Amount in minor units (cents/piasters)
+     * @param string|null $currency Override currency code
+     * @return string
+     */
+    function format_money(int $amountMinor, ?string $currency = null): string
+    {
+        $currency = $currency ?? current_currency();
+        return \Illuminate\Support\Str::money($amountMinor, $currency);
+    }
+}

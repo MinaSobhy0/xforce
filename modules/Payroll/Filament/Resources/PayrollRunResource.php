@@ -92,23 +92,23 @@ class PayrollRunResource extends Resource
                             ->schema([
                                 Forms\Components\Placeholder::make('total_base_salary_display')
                                     ->label(__('payroll::payroll.fields.base_salary'))
-                                    ->content(fn (?PayrollRun $record) => $record ? number_format($record->total_base_salary, 2) . ' EGP' : '-'),
+                                    ->content(fn (?PayrollRun $record) => $record ? format_money($record->total_base_salary_minor) : '-'),
 
                                 Forms\Components\Placeholder::make('total_commissions_display')
                                     ->label(__('payroll::payroll.fields.commissions'))
-                                    ->content(fn (?PayrollRun $record) => $record ? number_format($record->total_commissions, 2) . ' EGP' : '-'),
+                                    ->content(fn (?PayrollRun $record) => $record ? format_money($record->total_commissions_minor) : '-'),
 
                                 Forms\Components\Placeholder::make('total_bonuses_display')
                                     ->label(__('payroll::payroll.fields.bonuses'))
-                                    ->content(fn (?PayrollRun $record) => $record ? number_format($record->total_bonuses_minor / 100, 2) . ' EGP' : '-'),
+                                    ->content(fn (?PayrollRun $record) => $record ? format_money($record->total_bonuses_minor) : '-'),
 
                                 Forms\Components\Placeholder::make('total_deductions_display')
                                     ->label(__('payroll::payroll.fields.deductions'))
-                                    ->content(fn (?PayrollRun $record) => $record ? number_format($record->total_deductions_minor / 100, 2) . ' EGP' : '-'),
+                                    ->content(fn (?PayrollRun $record) => $record ? format_money($record->total_deductions_minor) : '-'),
 
                                 Forms\Components\Placeholder::make('total_net_salary_display')
                                     ->label(__('payroll::payroll.fields.net_salary'))
-                                    ->content(fn (?PayrollRun $record) => $record ? number_format($record->total_net_salary, 2) . ' EGP' : '-'),
+                                    ->content(fn (?PayrollRun $record) => $record ? format_money($record->total_net_salary_minor) : '-'),
                             ]),
                     ])
                     ->visible(fn (?PayrollRun $record) => $record !== null),
@@ -146,17 +146,17 @@ class PayrollRunResource extends Resource
                     ->label(__('payroll::payroll.fields.employees'))
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('total_base_salary')
+                Tables\Columns\TextColumn::make('total_base_salary_minor')
                     ->label(__('payroll::payroll.fields.base_salary'))
-                    ->money('EGP'),
+                    ->formatStateUsing(fn ($state) => format_money($state ?? 0)),
 
-                Tables\Columns\TextColumn::make('total_commissions')
+                Tables\Columns\TextColumn::make('total_commissions_minor')
                     ->label(__('payroll::payroll.fields.commissions'))
-                    ->money('EGP'),
+                    ->formatStateUsing(fn ($state) => format_money($state ?? 0)),
 
-                Tables\Columns\TextColumn::make('total_net_salary')
+                Tables\Columns\TextColumn::make('total_net_salary_minor')
                     ->label(__('payroll::payroll.fields.net_salary'))
-                    ->money('EGP')
+                    ->formatStateUsing(fn ($state) => format_money($state ?? 0))
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('paid_at')

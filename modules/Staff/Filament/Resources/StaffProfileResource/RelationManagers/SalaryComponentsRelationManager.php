@@ -75,7 +75,7 @@ class SalaryComponentsRelationManager extends RelationManager
                     ->label(__('payroll::payroll.fields.amount'))
                     ->numeric()
                     ->required()
-                    ->prefix('EGP')
+                    ->prefix(fn () => current_currency())
                     ->visible(fn (Forms\Get $get) => $get('calculation_type') === EmployeeSalaryComponent::CALCULATION_TYPE_FIXED),
 
                 Forms\Components\TextInput::make('percentage')
@@ -142,13 +142,11 @@ class SalaryComponentsRelationManager extends RelationManager
                     ->color('gray')
                     ->formatStateUsing(fn ($state) => __("payroll::payroll.calculation_types.{$state}")),
 
-                Tables\Columns\TextColumn::make('amount')
+                Tables\Columns\TextColumn::make('value_display')
                     ->label(__('payroll::payroll.fields.value'))
-                    ->money('EGP')
-                    ->visible(fn () => true)
                     ->getStateUsing(function (EmployeeSalaryComponent $record) {
                         if ($record->calculation_type === EmployeeSalaryComponent::CALCULATION_TYPE_FIXED) {
-                            return $record->amount;
+                            return format_money($record->amount_minor);
                         }
                         if ($record->calculation_type === EmployeeSalaryComponent::CALCULATION_TYPE_PERCENTAGE) {
                             return $record->percentage . '%';

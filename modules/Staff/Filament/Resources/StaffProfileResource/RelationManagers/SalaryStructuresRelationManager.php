@@ -40,7 +40,7 @@ class SalaryStructuresRelationManager extends RelationManager
                     ->label(__('payroll::payroll.fields.base_salary'))
                     ->numeric()
                     ->required()
-                    ->prefix('EGP')
+                    ->prefix(fn () => current_currency())
                     ->helperText(__('payroll::payroll.help.base_salary_employee')),
 
                 Forms\Components\Grid::make(2)
@@ -82,9 +82,9 @@ class SalaryStructuresRelationManager extends RelationManager
                     ->badge()
                     ->formatStateUsing(fn ($state) => __("payroll::payroll.pay_frequencies.{$state}")),
 
-                Tables\Columns\TextColumn::make('base_salary')
+                Tables\Columns\TextColumn::make('base_salary_minor')
                     ->label(__('payroll::payroll.fields.base_salary'))
-                    ->money('EGP')
+                    ->formatStateUsing(fn ($state) => format_money($state ?? 0))
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('effective_date')

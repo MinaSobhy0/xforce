@@ -29,51 +29,65 @@ class LinesRelationManager extends RelationManager
                         return StaffProfile::with('user')
                             ->where('is_active', true)
                             ->get()
-                            ->pluck('user.name', 'id');
+                            ->mapWithKeys(fn ($staff) => [
+                                $staff->id => $staff->user?->name ?? $staff->employee_number ?? 'Unknown',
+                            ]);
                     })
                     ->searchable()
                     ->required()
-                    ->disabledOn('edit'),
+                    ->disabledOn('edit')
+                    ->reactive()
+                    ->afterStateUpdated(function (Forms\Set $set, $state) {
+                        if ($state) {
+                            $staff = StaffProfile::with('currentSalaryStructure')->find($state);
+                            if ($staff) {
+                                // Use EmployeeSalaryStructure base salary if available, otherwise StaffProfile
+                                $baseSalary = $staff->currentSalaryStructure?->base_salary
+                                    ?? ($staff->base_salary_minor / 100);
+                                $set('base_salary', $baseSalary);
+                            }
+                        }
+                    }),
 
                 Forms\Components\Grid::make(3)->schema([
-                    Forms\Components\TextInput::make('base_salary_minor')
+                    Forms\Components\TextInput::make('base_salary')
                         ->label(__('payroll::payroll.fields.base_salary'))
                         ->numeric()
                         ->required()
                         ->default(0)
-                        ->suffix('cents'),
+                        ->prefix(fn () => current_currency()),
 
-                    Forms\Components\TextInput::make('commissions_minor')
+                    Forms\Components\TextInput::make('commissions')
                         ->label(__('payroll::payroll.fields.commissions'))
                         ->numeric()
                         ->default(0)
-                        ->suffix('cents'),
+                        ->prefix(fn () => current_currency()),
 
-                    Forms\Components\TextInput::make('bonuses_minor')
+                    Forms\Components\TextInput::make('bonuses')
                         ->label(__('payroll::payroll.fields.bonuses'))
                         ->numeric()
                         ->default(0)
-                        ->suffix('cents'),
+                        ->prefix(fn () => current_currency()),
                 ]),
 
                 Forms\Components\Grid::make(3)->schema([
-                    Forms\Components\TextInput::make('deductions_minor')
+                    Forms\Components\TextInput::make('deductions')
                         ->label(__('payroll::payroll.fields.deductions'))
                         ->numeric()
                         ->default(0)
-                        ->suffix('cents'),
+                        ->prefix(fn () => current_currency()),
 
-                    Forms\Components\TextInput::make('tax_minor')
+                    Forms\Components\TextInput::make('tax')
                         ->label(__('payroll::payroll.fields.tax'))
                         ->numeric()
                         ->default(0)
-                        ->suffix('cents'),
+                        ->prefix(fn () => current_currency()),
 
-                    Forms\Components\TextInput::make('social_insurance_minor')
+                    Forms\Components\TextInput::make('social_insurance')
                         ->label(__('payroll::payroll.fields.social_insurance'))
                         ->numeric()
                         ->default(0)
-                        ->suffix('cents'),
+                        ->prefix(fn () => current_currency()),
                 ]),
 
                 Forms\Components\Textarea::make('notes')
@@ -95,35 +109,35 @@ class LinesRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('staffProfile.job_title')
                     ->label(__('payroll::payroll.fields.job_title')),
 
-                Tables\Columns\TextColumn::make('base_salary')
+                Tables\Columns\TextColumn::make('base_salary_minor')
                     ->label(__('payroll::payroll.fields.base_salary'))
-                    ->money('EGP'),
+                    ->formatStateUsing(fn ($state) => format_money($state ?? 0)),
 
-                Tables\Columns\TextColumn::make('commissions')
+                Tables\Columns\TextColumn::make('commissions_minor')
                     ->label(__('payroll::payroll.fields.commissions'))
-                    ->money('EGP'),
+                    ->formatStateUsing(fn ($state) => format_money($state ?? 0)),
 
-                Tables\Columns\TextColumn::make('bonuses')
+                Tables\Columns\TextColumn::make('bonuses_minor')
                     ->label(__('payroll::payroll.fields.bonuses'))
-                    ->money('EGP'),
+                    ->formatStateUsing(fn ($state) => format_money($state ?? 0)),
 
-                Tables\Columns\TextColumn::make('deductions')
+                Tables\Columns\TextColumn::make('deductions_minor')
                     ->label(__('payroll::payroll.fields.deductions'))
-                    ->money('EGP'),
+                    ->formatStateUsing(fn ($state) => format_money($state ?? 0)),
 
-                Tables\Columns\TextColumn::make('tax')
+                Tables\Columns\TextColumn::make('tax_minor')
                     ->label(__('payroll::payroll.fields.tax'))
-                    ->money('EGP')
+                    ->formatStateUsing(fn ($state) => format_money($state ?? 0))
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                Tables\Columns\TextColumn::make('social_insurance')
+                Tables\Columns\TextColumn::make('social_insurance_minor')
                     ->label(__('payroll::payroll.fields.social_insurance'))
-                    ->money('EGP')
+                    ->formatStateUsing(fn ($state) => format_money($state ?? 0))
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                Tables\Columns\TextColumn::make('net_salary')
+                Tables\Columns\TextColumn::make('net_salary_minor')
                     ->label(__('payroll::payroll.fields.net_salary'))
-                    ->money('EGP')
+                    ->formatStateUsing(fn ($state) => format_money($state ?? 0))
                     ->weight('bold'),
             ])
             ->filters([])
@@ -132,13 +146,18 @@ class LinesRelationManager extends RelationManager
                     ->label(__('payroll::payroll.actions.add_payslip'))
                     ->visible(fn () => $this->ownerRecord->isEditable())
                     ->mutateFormDataUsing(function (array $data): array {
-                        // Auto-fill from staff profile if base salary not set
-                        if (empty($data['base_salary_minor']) && !empty($data['staff_profile_id'])) {
-                            $staff = StaffProfile::find($data['staff_profile_id']);
-                            if ($staff) {
-                                $data['base_salary_minor'] = $staff->base_salary_minor;
-                            }
-                        }
+                        // Convert EGP to minor units
+                        $data['base_salary_minor'] = (int) round(($data['base_salary'] ?? 0) * 100);
+                        $data['commissions_minor'] = (int) round(($data['commissions'] ?? 0) * 100);
+                        $data['bonuses_minor'] = (int) round(($data['bonuses'] ?? 0) * 100);
+                        $data['deductions_minor'] = (int) round(($data['deductions'] ?? 0) * 100);
+                        $data['tax_minor'] = (int) round(($data['tax'] ?? 0) * 100);
+                        $data['social_insurance_minor'] = (int) round(($data['social_insurance'] ?? 0) * 100);
+
+                        // Remove temporary fields
+                        unset($data['base_salary'], $data['commissions'], $data['bonuses']);
+                        unset($data['deductions'], $data['tax'], $data['social_insurance']);
+
                         return $data;
                     }),
 
@@ -174,7 +193,31 @@ class LinesRelationManager extends RelationManager
             ])
             ->actions([
                 Tables\Actions\EditAction::make()
-                    ->visible(fn () => $this->ownerRecord->isEditable()),
+                    ->visible(fn () => $this->ownerRecord->isEditable())
+                    ->mutateRecordDataUsing(function (array $data): array {
+                        // Convert minor units to EGP for editing
+                        $data['base_salary'] = ($data['base_salary_minor'] ?? 0) / 100;
+                        $data['commissions'] = ($data['commissions_minor'] ?? 0) / 100;
+                        $data['bonuses'] = ($data['bonuses_minor'] ?? 0) / 100;
+                        $data['deductions'] = ($data['deductions_minor'] ?? 0) / 100;
+                        $data['tax'] = ($data['tax_minor'] ?? 0) / 100;
+                        $data['social_insurance'] = ($data['social_insurance_minor'] ?? 0) / 100;
+                        return $data;
+                    })
+                    ->mutateFormDataUsing(function (array $data): array {
+                        // Convert EGP to minor units
+                        $data['base_salary_minor'] = (int) round(($data['base_salary'] ?? 0) * 100);
+                        $data['commissions_minor'] = (int) round(($data['commissions'] ?? 0) * 100);
+                        $data['bonuses_minor'] = (int) round(($data['bonuses'] ?? 0) * 100);
+                        $data['deductions_minor'] = (int) round(($data['deductions'] ?? 0) * 100);
+                        $data['tax_minor'] = (int) round(($data['tax'] ?? 0) * 100);
+                        $data['social_insurance_minor'] = (int) round(($data['social_insurance'] ?? 0) * 100);
+
+                        unset($data['base_salary'], $data['commissions'], $data['bonuses']);
+                        unset($data['deductions'], $data['tax'], $data['social_insurance']);
+
+                        return $data;
+                    }),
 
                 Tables\Actions\Action::make('download_pdf')
                     ->label(__('payroll::payroll.actions.download_payslip'))
