@@ -33,6 +33,16 @@ return [
     // Gift Cards
     'gift_card_not_found' => 'بطاقة الهدية غير موجودة أو منتهية الصلاحية',
 
+    // Attendance
+    'staff_profile_not_found' => 'ملف الموظف غير موجود',
+    'no_schedule_assigned' => 'لا يوجد جدول عمل محدد',
+    'already_on_break' => 'أنت بالفعل في استراحة',
+    'not_on_break' => 'لست في استراحة حالياً',
+    'break_started' => 'تم بدء الاستراحة بنجاح',
+    'break_ended' => 'تم إنهاء الاستراحة بنجاح',
+    'violation_not_found' => 'المخالفة غير موجودة',
+    'cannot_dispute_violation' => 'لا يمكن الاعتراض على هذه المخالفة',
+
     // Modules
     'module_not_active' => 'ميزة :module غير متاحة',
 

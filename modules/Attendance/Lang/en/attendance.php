@@ -298,4 +298,22 @@ return [
     'absent_count' => 'Absent',
     'late_count' => 'Late',
     'on_leave_count' => 'On Leave',
+
+    /*
+    |--------------------------------------------------------------------------
+    | Widgets
+    |--------------------------------------------------------------------------
+    */
+    'widgets' => [
+        'present_today' => 'Present Today',
+        'checked_in' => 'Checked In',
+        'checked_out' => 'Checked Out',
+        'late_absent' => 'Late & Absent',
+        'late' => 'Late',
+        'absent' => 'Absent',
+        'on_leave' => 'On Leave',
+        'pending_violations' => 'Pending Violations',
+        'avg_hours' => 'Avg. Hours',
+        'vs_last_week' => 'vs last week',
+    ],
 ];

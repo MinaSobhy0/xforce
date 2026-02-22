@@ -33,6 +33,16 @@ return [
     // Gift Cards
     'gift_card_not_found' => 'Gift card not found or expired',
 
+    // Attendance
+    'staff_profile_not_found' => 'Staff profile not found',
+    'no_schedule_assigned' => 'No working schedule assigned',
+    'already_on_break' => 'Already on a break',
+    'not_on_break' => 'Not currently on a break',
+    'break_started' => 'Break started successfully',
+    'break_ended' => 'Break ended successfully',
+    'violation_not_found' => 'Violation not found',
+    'cannot_dispute_violation' => 'This violation cannot be disputed',
+
     // Modules
     'module_not_active' => 'The :module feature is not available',
 

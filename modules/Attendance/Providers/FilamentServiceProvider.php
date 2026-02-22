@@ -10,6 +10,7 @@ use Modules\Attendance\Filament\Resources\AttendanceResource;
 use Modules\Attendance\Filament\Resources\AttendanceRuleResource;
 use Modules\Attendance\Filament\Resources\AttendanceViolationResource;
 use Modules\Attendance\Filament\Resources\WorkingScheduleResource;
+use Modules\Attendance\Filament\Widgets\TodayAttendanceWidget;
 
 class FilamentServiceProvider extends ServiceProvider
 {
@@ -40,6 +41,8 @@ class FilamentServiceProvider extends ServiceProvider
 
     public static function getWidgets(): array
     {
-        return [];
+        return [
+            TodayAttendanceWidget::class,
+        ];
     }
 }

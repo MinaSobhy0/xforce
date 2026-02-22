@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Modules\Api\Http\Controllers\AuthController;
 use Modules\Api\Http\Controllers\PatientController;
 use Modules\Api\Http\Controllers\BookingController;
+use Modules\Api\Http\Controllers\AttendanceController;
 
 /*
 |--------------------------------------------------------------------------
@@ -101,3 +102,30 @@ Route::prefix('public')->group(function () {
     // Branches list
     Route::get('/branches', [BookingController::class, 'branches']);
 });
+
+/*
+|--------------------------------------------------------------------------
+| Staff Attendance Routes (requires staff token)
+|--------------------------------------------------------------------------
+*/
+Route::prefix('attendance')
+    ->middleware(['auth:sanctum', 'ability:staff:*'])
+    ->group(function () {
+        // Status & Info
+        Route::get('/status', [AttendanceController::class, 'status']);
+        Route::get('/schedule', [AttendanceController::class, 'schedule']);
+        Route::get('/history', [AttendanceController::class, 'history']);
+        Route::get('/summary', [AttendanceController::class, 'monthlySummary']);
+
+        // Check-in/out
+        Route::post('/check-in', [AttendanceController::class, 'checkIn']);
+        Route::post('/check-out', [AttendanceController::class, 'checkOut']);
+
+        // Breaks
+        Route::post('/break/start', [AttendanceController::class, 'startBreak']);
+        Route::post('/break/end', [AttendanceController::class, 'endBreak']);
+
+        // Violations
+        Route::get('/violations', [AttendanceController::class, 'violations']);
+        Route::post('/violations/{violation}/dispute', [AttendanceController::class, 'disputeViolation']);
+    });

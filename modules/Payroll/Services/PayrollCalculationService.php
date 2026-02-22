@@ -6,6 +6,8 @@ use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Modules\Attendance\Models\Attendance;
+use Modules\Attendance\Models\AttendanceViolation;
 use Modules\Payroll\Models\EmployeeSalaryComponent;
 use Modules\Payroll\Models\EmployeeSalaryStructure;
 use Modules\Payroll\Models\PayrollLine;
@@ -298,6 +300,10 @@ class PayrollCalculationService
         }
         $totalDeductionsMinor += $taxMinor;
 
+        // Add attendance violation deductions
+        $violationDeductionMinor = $context['violation_deduction_minor'] ?? 0;
+        $totalDeductionsMinor += $violationDeductionMinor;
+
         // Calculate net salary
         $netSalaryMinor = $grossSalaryMinor - $totalDeductionsMinor;
 
@@ -305,10 +311,21 @@ class PayrollCalculationService
         $calculationDetails['gross_salary'] = $grossSalaryMinor;
         $calculationDetails['social_insurance'] = $socialInsuranceMinor;
         $calculationDetails['tax'] = $taxMinor;
+        $calculationDetails['violation_deductions'] = $violationDeductionMinor;
+        $calculationDetails['violations_count'] = $context['violations_count'] ?? 0;
         $calculationDetails['total_deductions'] = $totalDeductionsMinor;
         $calculationDetails['net_salary'] = $netSalaryMinor;
+        $calculationDetails['attendance'] = [
+            'worked_days' => $context['worked_days'],
+            'overtime_hours' => $context['overtime_hours'],
+            'late_minutes' => $context['late_minutes'],
+            'absence_days' => $context['absence_days'],
+        ];
 
         // Create PayrollLine
+        // Other deductions = total - social insurance - tax (violation deductions are included in total)
+        $otherDeductionsMinor = $totalDeductionsMinor - $socialInsuranceMinor - $taxMinor;
+
         $line = new PayrollLine([
             'tenant_id' => $staff->tenant_id ?? $run->tenant_id,
             'payroll_run_id' => $run->id,
@@ -317,7 +334,7 @@ class PayrollCalculationService
             'allowances_minor' => $totalAllowancesMinor,
             'commissions_minor' => (int) $commissionsMinor,
             'bonuses_minor' => $totalBonusesMinor,
-            'deductions_minor' => $totalDeductionsMinor - $socialInsuranceMinor - $taxMinor, // Other deductions
+            'deductions_minor' => $otherDeductionsMinor,
             'tax_minor' => $taxMinor,
             'social_insurance_minor' => $socialInsuranceMinor,
             'net_salary_minor' => max(0, $netSalaryMinor), // Ensure non-negative
@@ -327,6 +344,9 @@ class PayrollCalculationService
         if (in_array('calculation_details', $line->getFillable())) {
             $line->calculation_details = $calculationDetails;
         }
+
+        // Store violations reference for later linking (after payroll is paid)
+        $line->_pendingViolations = $context['_violations'] ?? collect();
 
         return $line;
     }
@@ -384,8 +404,11 @@ class PayrollCalculationService
         // Get commission data
         $commissionData = $this->getCommissionData($staff, $periodStart, $periodEnd);
 
-        // TODO: Get attendance data when module is available
+        // Get attendance data from Attendance module
         $attendanceData = $this->getAttendanceData($staff, $periodStart, $periodEnd);
+
+        // Get violation deductions from Attendance module
+        $violationData = $this->getViolationDeductions($staff, $periodStart, $periodEnd);
 
         // TODO: Get leave data when module is available
         $leaveData = $this->getLeaveData($staff, $periodStart, $periodEnd);
@@ -413,7 +436,16 @@ class PayrollCalculationService
             // Attendance
             'overtime_hours' => $attendanceData['overtime_hours'] ?? 0,
             'late_minutes' => $attendanceData['late_minutes'] ?? 0,
+            'early_minutes' => $attendanceData['early_minutes'] ?? 0,
             'absence_days' => $attendanceData['absence_days'] ?? 0,
+            'late_days' => $attendanceData['late_days'] ?? 0,
+            'half_days' => $attendanceData['half_days'] ?? 0,
+
+            // Violation deductions
+            'violation_deduction' => ($violationData['total_minor'] ?? 0) / 100,
+            'violation_deduction_minor' => $violationData['total_minor'] ?? 0,
+            'violations_count' => $violationData['count'] ?? 0,
+            '_violations' => $violationData['violations'] ?? collect(),
 
             // Leave
             'paid_leave_days' => $leaveData['paid_leave_days'] ?? 0,
@@ -660,8 +692,7 @@ class PayrollCalculationService
     }
 
     /**
-     * Get attendance data for the period.
-     * TODO: Implement when Attendance module is available.
+     * Get attendance data for the period from the Attendance module.
      *
      * @param StaffProfile $staff
      * @param Carbon $start
@@ -670,13 +701,155 @@ class PayrollCalculationService
      */
     public function getAttendanceData(StaffProfile $staff, Carbon $start, Carbon $end): array
     {
-        // Placeholder - return full attendance
-        return [
-            'worked_days' => $this->getWorkingDaysInPeriod($start, $end),
-            'overtime_hours' => 0,
-            'late_minutes' => 0,
-            'absence_days' => 0,
-        ];
+        $workingDays = $this->getWorkingDaysInPeriod($start, $end);
+
+        // Check if Attendance module is available
+        if (!class_exists(Attendance::class)) {
+            return [
+                'worked_days' => $workingDays,
+                'overtime_hours' => 0,
+                'late_minutes' => 0,
+                'early_minutes' => 0,
+                'absence_days' => 0,
+                'late_days' => 0,
+                'half_days' => 0,
+            ];
+        }
+
+        try {
+            $attendances = Attendance::on($staff->getConnectionName())
+                ->where('staff_profile_id', $staff->id)
+                ->whereBetween('attendance_date', [$start, $end])
+                ->get();
+
+            $presentDays = $attendances->whereIn('status', [
+                Attendance::STATUS_PRESENT,
+                Attendance::STATUS_HALF_DAY,
+            ])->count();
+
+            $halfDays = $attendances->where('status', Attendance::STATUS_HALF_DAY)->count();
+            $lateDays = $attendances->where('attendance_type', Attendance::TYPE_LATE)->count();
+
+            // Calculate worked days (present - half day count * 0.5)
+            $workedDays = $presentDays - ($halfDays * 0.5);
+
+            // Sum overtime hours
+            $overtimeHours = $attendances->sum('overtime_hours') ?? 0;
+
+            // Sum late minutes from violations
+            $lateMinutes = AttendanceViolation::on($staff->getConnectionName())
+                ->where('staff_profile_id', $staff->id)
+                ->whereBetween('violation_date', [$start, $end])
+                ->where('violation_type', 'late_checkin')
+                ->whereNotIn('status', [AttendanceViolation::STATUS_WAIVED, AttendanceViolation::STATUS_CANCELLED])
+                ->sum('violation_minutes');
+
+            // Sum early checkout minutes
+            $earlyMinutes = AttendanceViolation::on($staff->getConnectionName())
+                ->where('staff_profile_id', $staff->id)
+                ->whereBetween('violation_date', [$start, $end])
+                ->where('violation_type', 'early_checkout')
+                ->whereNotIn('status', [AttendanceViolation::STATUS_WAIVED, AttendanceViolation::STATUS_CANCELLED])
+                ->sum('violation_minutes');
+
+            // Calculate absence days (working days - present days)
+            $absenceDays = max(0, $workingDays - $presentDays);
+
+            return [
+                'worked_days' => (float) $workedDays,
+                'overtime_hours' => (float) $overtimeHours,
+                'late_minutes' => (int) $lateMinutes,
+                'early_minutes' => (int) $earlyMinutes,
+                'absence_days' => (int) $absenceDays,
+                'late_days' => (int) $lateDays,
+                'half_days' => (int) $halfDays,
+            ];
+
+        } catch (\Exception $e) {
+            Log::warning('PayrollCalculation: Failed to fetch attendance data', [
+                'staff_id' => $staff->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'worked_days' => $workingDays,
+                'overtime_hours' => 0,
+                'late_minutes' => 0,
+                'early_minutes' => 0,
+                'absence_days' => 0,
+                'late_days' => 0,
+                'half_days' => 0,
+            ];
+        }
+    }
+
+    /**
+     * Get approved violation deductions for the period.
+     *
+     * @param StaffProfile $staff
+     * @param Carbon $start
+     * @param Carbon $end
+     * @return array{total_minor: int, count: int, violations: Collection}
+     */
+    public function getViolationDeductions(StaffProfile $staff, Carbon $start, Carbon $end): array
+    {
+        if (!class_exists(AttendanceViolation::class)) {
+            return [
+                'total_minor' => 0,
+                'count' => 0,
+                'violations' => collect(),
+            ];
+        }
+
+        try {
+            $violations = AttendanceViolation::on($staff->getConnectionName())
+                ->where('staff_profile_id', $staff->id)
+                ->whereBetween('violation_date', [$start, $end])
+                ->where('status', AttendanceViolation::STATUS_APPROVED)
+                ->whereNull('payroll_line_id') // Not yet applied to a payroll
+                ->where('penalty_amount_minor', '>', 0)
+                ->get();
+
+            return [
+                'total_minor' => $violations->sum('penalty_amount_minor'),
+                'count' => $violations->count(),
+                'violations' => $violations,
+            ];
+
+        } catch (\Exception $e) {
+            Log::warning('PayrollCalculation: Failed to fetch violation deductions', [
+                'staff_id' => $staff->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'total_minor' => 0,
+                'count' => 0,
+                'violations' => collect(),
+            ];
+        }
+    }
+
+    /**
+     * Link violations to a payroll line after payment.
+     *
+     * @param PayrollLine $line
+     * @param Collection $violations
+     * @return void
+     */
+    public function applyViolationsToPayrollLine(PayrollLine $line, Collection $violations): void
+    {
+        if (!class_exists(AttendanceViolation::class)) {
+            return;
+        }
+
+        foreach ($violations as $violation) {
+            $violation->update([
+                'payroll_line_id' => $line->id,
+                'status' => AttendanceViolation::STATUS_APPLIED,
+                'applied_at' => now(),
+            ]);
+        }
     }
 
     /**
