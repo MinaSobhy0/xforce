@@ -2,15 +2,15 @@
 
 namespace Modules\Staff\Filament\Resources\CommissionPlanResource\Pages;
 
+use App\Filament\Resources\Pages\BaseEditRecord;
 use Filament\Actions;
-use Filament\Resources\Pages\EditRecord;
 use Modules\Staff\Filament\Resources\CommissionPlanResource;
 
-class EditCommissionPlan extends EditRecord
+class EditCommissionPlan extends BaseEditRecord
 {
     protected static string $resource = CommissionPlanResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getEditHeaderActions(): array
     {
         return [
             Actions\ViewAction::make(),
