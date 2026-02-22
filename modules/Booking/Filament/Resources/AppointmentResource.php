@@ -2,7 +2,7 @@
 
 namespace Modules\Booking\Filament\Resources;
 
-use App\Traits\ChecksTenantModuleAccess;
+use App\Traits\ChecksResourcePermissions;
 use Modules\Booking\Filament\Resources\AppointmentResource\Pages;
 use Modules\Booking\Filament\Resources\AppointmentResource\RelationManagers;
 use Modules\Booking\Models\Appointment;
@@ -22,11 +22,13 @@ use Illuminate\Database\Eloquent\Builder;
 
 class AppointmentResource extends Resource
 {
-    use ChecksTenantModuleAccess;
+    use ChecksResourcePermissions;
 
     protected static ?string $model = Appointment::class;
 
     protected static ?string $moduleCode = 'booking';
+
+    protected static ?string $permissionKey = 'appointments';
 
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-list';
 

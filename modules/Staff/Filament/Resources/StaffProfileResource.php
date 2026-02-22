@@ -2,7 +2,7 @@
 
 namespace Modules\Staff\Filament\Resources;
 
-use App\Traits\ChecksTenantModuleAccess;
+use App\Traits\ChecksResourcePermissions;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -17,11 +17,13 @@ use Modules\Staff\Filament\Resources\StaffProfileResource\RelationManagers;
 
 class StaffProfileResource extends Resource
 {
-    use ChecksTenantModuleAccess;
+    use ChecksResourcePermissions;
 
     protected static ?string $model = StaffProfile::class;
 
     protected static ?string $moduleCode = 'staff';
+
+    protected static ?string $permissionKey = 'staff';
 
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
 

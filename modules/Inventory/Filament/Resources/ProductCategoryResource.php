@@ -2,7 +2,7 @@
 
 namespace Modules\Inventory\Filament\Resources;
 
-use App\Traits\ChecksTenantModuleAccess;
+use App\Traits\ChecksResourcePermissions;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -14,11 +14,13 @@ use Illuminate\Database\Eloquent\Builder;
 
 class ProductCategoryResource extends Resource
 {
-    use ChecksTenantModuleAccess;
+    use ChecksResourcePermissions;
 
     protected static ?string $model = ProductCategory::class;
 
     protected static ?string $moduleCode = 'inventory';
+
+    protected static ?string $permissionKey = 'products';
 
     protected static ?string $navigationIcon = 'heroicon-o-folder';
 

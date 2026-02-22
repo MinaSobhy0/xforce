@@ -2,7 +2,7 @@
 
 namespace Modules\Services\Filament\Resources;
 
-use App\Traits\ChecksTenantModuleAccess;
+use App\Traits\ChecksResourcePermissions;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -22,11 +22,13 @@ use Illuminate\Database\Eloquent\Builder;
 
 class ServiceResource extends Resource
 {
-    use ChecksTenantModuleAccess;
+    use ChecksResourcePermissions;
 
     protected static ?string $model = Service::class;
 
     protected static ?string $moduleCode = 'services';
+
+    protected static ?string $permissionKey = 'services';
 
     protected static ?string $navigationIcon = 'heroicon-o-beaker';
 

@@ -2,7 +2,7 @@
 
 namespace Modules\Booking\Filament\Resources;
 
-use App\Traits\ChecksTenantModuleAccess;
+use App\Traits\ChecksResourcePermissions;
 use Modules\Booking\Filament\Resources\WorkScheduleResource\Pages;
 use Modules\Booking\Filament\Resources\WorkScheduleResource\RelationManagers;
 use Modules\Booking\Models\WorkSchedule;
@@ -16,11 +16,13 @@ use Modules\Core\Models\Branch;
 
 class WorkScheduleResource extends Resource
 {
-    use ChecksTenantModuleAccess;
+    use ChecksResourcePermissions;
 
     protected static ?string $model = WorkSchedule::class;
 
     protected static ?string $moduleCode = 'booking';
+
+    protected static ?string $permissionKey = 'staff';
 
     protected static ?string $navigationIcon = 'heroicon-o-calendar-days';
 
@@ -252,9 +254,9 @@ class WorkScheduleResource extends Resource
                     ->placeholder(__('booking::schedules.all_branches'))
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                Tables\Columns\TextColumn::make('practitioners_count')
+                Tables\Columns\TextColumn::make('assignments_count')
                     ->label(__('booking::schedules.fields.practitioners'))
-                    ->counts('practitioners')
+                    ->counts('assignments')
                     ->alignCenter(),
 
                 Tables\Columns\IconColumn::make('is_active')

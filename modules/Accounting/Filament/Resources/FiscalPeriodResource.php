@@ -2,7 +2,7 @@
 
 namespace Modules\Accounting\Filament\Resources;
 
-use App\Traits\ChecksTenantModuleAccess;
+use App\Traits\ChecksResourcePermissions;
 use Modules\Accounting\Filament\Resources\FiscalPeriodResource\Pages;
 use Modules\Accounting\Models\FiscalPeriod;
 use Filament\Forms;
@@ -15,11 +15,13 @@ use Illuminate\Database\Eloquent\Builder;
 
 class FiscalPeriodResource extends Resource
 {
-    use ChecksTenantModuleAccess;
+    use ChecksResourcePermissions;
 
     protected static ?string $model = FiscalPeriod::class;
 
     protected static ?string $moduleCode = 'accounting';
+
+    protected static ?string $permissionKey = 'settings';
 
     protected static ?string $navigationIcon = 'heroicon-o-calendar-days';
 

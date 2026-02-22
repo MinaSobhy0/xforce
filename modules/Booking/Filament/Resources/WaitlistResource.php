@@ -2,7 +2,7 @@
 
 namespace Modules\Booking\Filament\Resources;
 
-use App\Traits\ChecksTenantModuleAccess;
+use App\Traits\ChecksResourcePermissions;
 use Modules\Booking\Filament\Resources\WaitlistResource\Pages;
 use Modules\Booking\Models\Waitlist;
 use Modules\Booking\Models\PractitionerSchedule;
@@ -18,11 +18,13 @@ use Illuminate\Database\Eloquent\Builder;
 
 class WaitlistResource extends Resource
 {
-    use ChecksTenantModuleAccess;
+    use ChecksResourcePermissions;
 
     protected static ?string $model = Waitlist::class;
 
     protected static ?string $moduleCode = 'booking';
+
+    protected static ?string $permissionKey = 'appointments';
 
     protected static ?string $navigationIcon = 'heroicon-o-queue-list';
 

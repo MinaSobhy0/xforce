@@ -2,7 +2,7 @@
 
 namespace Modules\Memberships\Filament\Resources;
 
-use App\Traits\ChecksTenantModuleAccess;
+use App\Traits\ChecksResourcePermissions;
 use Modules\Memberships\Models\Membership;
 use Modules\Services\Models\Service;
 use Filament\Forms;
@@ -13,11 +13,13 @@ use Filament\Tables\Table;
 
 class MembershipResource extends Resource
 {
-    use ChecksTenantModuleAccess;
+    use ChecksResourcePermissions;
 
     protected static ?string $model = Membership::class;
 
     protected static ?string $moduleCode = 'memberships';
+
+    protected static ?string $permissionKey = 'memberships';
 
     protected static ?string $navigationIcon = 'heroicon-o-star';
 

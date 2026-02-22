@@ -2,7 +2,7 @@
 
 namespace Modules\Loyalty\Filament\Resources;
 
-use App\Traits\ChecksTenantModuleAccess;
+use App\Traits\ChecksResourcePermissions;
 use Modules\Loyalty\Filament\Resources\LoyaltyTransactionResource\Pages;
 use Modules\Loyalty\Models\LoyaltyTransaction;
 use Filament\Forms;
@@ -13,11 +13,13 @@ use Filament\Tables\Table;
 
 class LoyaltyTransactionResource extends Resource
 {
-    use ChecksTenantModuleAccess;
+    use ChecksResourcePermissions;
 
     protected static ?string $model = LoyaltyTransaction::class;
 
     protected static ?string $moduleCode = 'loyalty';
+
+    protected static ?string $permissionKey = 'memberships';
 
     protected static ?string $navigationIcon = 'heroicon-o-arrow-path';
 

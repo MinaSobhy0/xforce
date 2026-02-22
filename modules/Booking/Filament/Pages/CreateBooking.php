@@ -2,7 +2,7 @@
 
 namespace Modules\Booking\Filament\Pages;
 
-use App\Traits\ChecksTenantModuleAccess;
+use App\Traits\ChecksResourcePermissions;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
@@ -30,9 +30,11 @@ use Carbon\Carbon;
 class CreateBooking extends Page implements HasForms
 {
     use InteractsWithForms;
-    use ChecksTenantModuleAccess;
+    use ChecksResourcePermissions;
 
     protected static ?string $moduleCode = 'booking';
+
+    protected static ?string $permissionKey = 'appointments';
 
     protected static ?string $navigationIcon = 'heroicon-o-plus-circle';
 

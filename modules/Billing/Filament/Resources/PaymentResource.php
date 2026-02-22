@@ -2,7 +2,7 @@
 
 namespace Modules\Billing\Filament\Resources;
 
-use App\Traits\ChecksTenantModuleAccess;
+use App\Traits\ChecksResourcePermissions;
 use Modules\Billing\Filament\Resources\PaymentResource\Pages;
 use Modules\Billing\Models\Payment;
 use Modules\Accounting\Models\Journal;
@@ -16,11 +16,13 @@ use Illuminate\Database\Eloquent\Builder;
 
 class PaymentResource extends Resource
 {
-    use ChecksTenantModuleAccess;
+    use ChecksResourcePermissions;
 
     protected static ?string $model = Payment::class;
 
     protected static ?string $moduleCode = 'billing';
+
+    protected static ?string $permissionKey = 'payments';
 
     protected static ?string $navigationIcon = 'heroicon-o-banknotes';
 

@@ -2,7 +2,7 @@
 
 namespace Modules\Marketing\Filament\Resources;
 
-use App\Traits\ChecksTenantModuleAccess;
+use App\Traits\ChecksResourcePermissions;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -13,11 +13,13 @@ use Modules\Marketing\Models\NotificationLog;
 
 class NotificationLogResource extends Resource
 {
-    use ChecksTenantModuleAccess;
+    use ChecksResourcePermissions;
 
     protected static ?string $model = NotificationLog::class;
 
     protected static ?string $moduleCode = 'marketing';
+
+    protected static ?string $permissionKey = 'campaigns';
 
     protected static ?string $navigationIcon = 'heroicon-o-envelope';
 

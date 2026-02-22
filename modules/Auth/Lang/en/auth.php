@@ -26,7 +26,9 @@ return [
     'sections' => [
         'user_details' => 'User Details',
         'policy_details' => 'Policy Details',
+        'role_details' => 'Role Details',
         'permissions' => 'Permissions',
+        'permissions_description' => 'Select the permissions this role should have for each resource',
         'domain_filter' => 'Domain Filter (Record Rules)',
     ],
 
@@ -196,6 +198,36 @@ return [
     'primary_branch' => 'Primary Branch',
     'branch_access' => 'Branch Access',
 
+    // Permissions actions
+    'permissions' => [
+        'view' => 'View',
+        'create' => 'Create',
+        'edit' => 'Edit',
+        'delete' => 'Delete',
+    ],
+
+    // Resources for permission management
+    'resources' => [
+        'patients' => 'Patients',
+        'appointments' => 'Appointments',
+        'invoices' => 'Invoices',
+        'payments' => 'Payments',
+        'services' => 'Services',
+        'products' => 'Products',
+        'equipment' => 'Equipment',
+        'staff' => 'Staff',
+        'payroll' => 'Payroll',
+        'reports' => 'Reports',
+        'campaigns' => 'Campaigns',
+        'packages' => 'Packages',
+        'memberships' => 'Memberships',
+        'gift_cards' => 'Gift Cards',
+        'users' => 'Users',
+        'roles' => 'Roles',
+        'branches' => 'Branches',
+        'settings' => 'Settings',
+    ],
+
     // Branch Role Fields
     'fields' => [
         'name' => 'Name',
@@ -222,6 +254,11 @@ return [
         'is_primary' => 'Primary',
         'expires_at' => 'Expires At',
         'assigned_at' => 'Assigned At',
+        'display_name' => 'Display Name',
+        'level' => 'Level',
+        'users_count' => 'Users',
+        'permissions_count' => 'Permissions',
+        'system' => 'System',
     ],
 
     // Branch Role Helpers
@@ -231,6 +268,7 @@ return [
         'placeholders' => 'Use {user.id}, {user.branch_id}, {user.tenant_id}, {today}, {now}',
         'primary_branch' => 'The primary branch is the default branch for this user',
         'expires_at' => 'Leave empty for permanent access',
+        'role_level' => 'Higher level = more permissions. Used for permission inheritance.',
     ],
 
     // Branch Role Actions
@@ -240,6 +278,8 @@ return [
         'make_primary' => 'Make Primary',
         'activate' => 'Activate',
         'deactivate' => 'Deactivate',
+        'grant_all' => 'Grant All Access',
+        'revoke_all' => 'Revoke All Access',
     ],
 
     // Branch Role Messages

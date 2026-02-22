@@ -2,7 +2,7 @@
 
 namespace Modules\Payroll\Filament\Resources;
 
-use App\Traits\ChecksTenantModuleAccess;
+use App\Traits\ChecksResourcePermissions;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -14,11 +14,13 @@ use Modules\Payroll\Filament\Resources\SalaryStructureResource\RelationManagers;
 
 class SalaryStructureResource extends Resource
 {
-    use ChecksTenantModuleAccess;
+    use ChecksResourcePermissions;
 
     protected static ?string $model = SalaryStructure::class;
 
     protected static ?string $moduleCode = 'payroll';
+
+    protected static ?string $permissionKey = 'payroll';
 
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
 

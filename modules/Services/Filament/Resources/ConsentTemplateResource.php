@@ -2,7 +2,7 @@
 
 namespace Modules\Services\Filament\Resources;
 
-use App\Traits\ChecksTenantModuleAccess;
+use App\Traits\ChecksResourcePermissions;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -13,11 +13,13 @@ use Modules\Services\Filament\Resources\ConsentTemplateResource\Pages;
 
 class ConsentTemplateResource extends Resource
 {
-    use ChecksTenantModuleAccess;
+    use ChecksResourcePermissions;
 
     protected static ?string $model = ConsentTemplate::class;
 
     protected static ?string $moduleCode = 'services';
+
+    protected static ?string $permissionKey = 'settings';
 
     protected static ?string $navigationIcon = 'heroicon-o-document-check';
 

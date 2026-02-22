@@ -2,7 +2,7 @@
 
 namespace Modules\Accounting\Filament\Resources;
 
-use App\Traits\ChecksTenantModuleAccess;
+use App\Traits\ChecksResourcePermissions;
 use Modules\Accounting\Filament\Resources\JournalEntryResource\Pages;
 use Modules\Accounting\Filament\Resources\JournalEntryResource\RelationManagers;
 use Modules\Accounting\Models\JournalEntry;
@@ -19,11 +19,13 @@ use Illuminate\Database\Eloquent\Builder;
 
 class JournalEntryResource extends Resource
 {
-    use ChecksTenantModuleAccess;
+    use ChecksResourcePermissions;
 
     protected static ?string $model = JournalEntry::class;
 
     protected static ?string $moduleCode = 'accounting';
+
+    protected static ?string $permissionKey = 'invoices';
 
     protected static ?string $navigationIcon = 'heroicon-o-document-duplicate';
 

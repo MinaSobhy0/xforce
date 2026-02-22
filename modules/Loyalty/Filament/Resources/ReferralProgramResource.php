@@ -2,7 +2,7 @@
 
 namespace Modules\Loyalty\Filament\Resources;
 
-use App\Traits\ChecksTenantModuleAccess;
+use App\Traits\ChecksResourcePermissions;
 use Modules\Loyalty\Filament\Resources\ReferralProgramResource\Pages;
 use Modules\Loyalty\Filament\Resources\ReferralProgramResource\RelationManagers;
 use Modules\Loyalty\Models\ReferralProgram;
@@ -16,11 +16,13 @@ use Filament\Resources\Concerns\Translatable;
 class ReferralProgramResource extends Resource
 {
     use Translatable;
-    use ChecksTenantModuleAccess;
+    use ChecksResourcePermissions;
 
     protected static ?string $model = ReferralProgram::class;
 
     protected static ?string $moduleCode = 'loyalty';
+
+    protected static ?string $permissionKey = 'memberships';
 
     protected static ?string $navigationIcon = 'heroicon-o-user-plus';
 

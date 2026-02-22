@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Modules\Auth\Models\User;
 use Modules\Core\Models\Branch;
+use Modules\Staff\Models\StaffProfile;
 
 class WorkSchedule extends BaseModel
 {
@@ -90,16 +91,16 @@ class WorkSchedule extends BaseModel
         return $this->hasMany(PractitionerScheduleAssignment::class);
     }
 
-    public function practitioners(): BelongsToMany
+    public function staffProfiles(): BelongsToMany
     {
-        return $this->belongsToMany(User::class, 'practitioner_schedule_assignments', 'work_schedule_id', 'user_id')
-            ->withPivot(['effective_from', 'effective_until', 'day_overrides', 'is_primary', 'is_active', 'branch_id', 'notes'])
+        return $this->belongsToMany(StaffProfile::class, 'practitioner_schedule_assignments', 'work_schedule_id', 'staff_profile_id')
+            ->withPivot(['effective_from', 'effective_until', 'day_overrides', 'is_primary', 'is_active', 'notes'])
             ->withTimestamps();
     }
 
-    public function activePractitioners(): BelongsToMany
+    public function activeStaffProfiles(): BelongsToMany
     {
-        return $this->practitioners()
+        return $this->staffProfiles()
             ->wherePivot('is_active', true)
             ->where(function ($query) {
                 $query->whereNull('practitioner_schedule_assignments.effective_from')

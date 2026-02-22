@@ -2,7 +2,7 @@
 
 namespace Modules\Accounting\Filament\Resources;
 
-use App\Traits\ChecksTenantModuleAccess;
+use App\Traits\ChecksResourcePermissions;
 use Modules\Accounting\Filament\Resources\JournalResource\Pages;
 use Modules\Accounting\Models\Journal;
 use Modules\Accounting\Models\ChartOfAccount;
@@ -15,11 +15,13 @@ use Filament\Support\Enums\FontWeight;
 
 class JournalResource extends Resource
 {
-    use ChecksTenantModuleAccess;
+    use ChecksResourcePermissions;
 
     protected static ?string $model = Journal::class;
 
     protected static ?string $moduleCode = 'accounting';
+
+    protected static ?string $permissionKey = 'invoices';
 
     protected static ?string $navigationIcon = 'heroicon-o-book-open';
 

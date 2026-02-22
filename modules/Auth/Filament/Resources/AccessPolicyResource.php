@@ -2,6 +2,7 @@
 
 namespace Modules\Auth\Filament\Resources;
 
+use App\Traits\ChecksResourcePermissions;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -13,7 +14,13 @@ use Modules\Auth\Filament\Resources\AccessPolicyResource\Pages;
 
 class AccessPolicyResource extends Resource
 {
+    use ChecksResourcePermissions;
+
     protected static ?string $model = AccessPolicy::class;
+
+    protected static ?string $moduleCode = 'auth';
+
+    protected static ?string $permissionKey = 'roles';
 
     protected static ?string $navigationIcon = 'heroicon-o-shield-check';
 

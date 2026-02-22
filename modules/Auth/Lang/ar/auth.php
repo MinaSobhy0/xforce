@@ -5,6 +5,108 @@ return [
     'module_name' => 'المصادقة',
     'module_description' => 'إدارة مصادقة المستخدمين والأدوار والصلاحيات',
 
+    // Navigation
+    'navigation' => [
+        'users' => 'المستخدمين',
+        'roles' => 'الأدوار',
+        'access_policies' => 'سياسات الوصول',
+    ],
+
+    // Labels
+    'labels' => [
+        'user' => 'مستخدم',
+        'users' => 'المستخدمين',
+        'role' => 'دور',
+        'roles' => 'الأدوار',
+        'access_policy' => 'سياسة الوصول',
+        'access_policies' => 'سياسات الوصول',
+    ],
+
+    // Sections
+    'sections' => [
+        'user_details' => 'تفاصيل المستخدم',
+        'policy_details' => 'تفاصيل السياسة',
+        'role_details' => 'تفاصيل الدور',
+        'permissions' => 'الصلاحيات',
+        'permissions_description' => 'حدد الصلاحيات التي يجب أن يمتلكها هذا الدور لكل مورد',
+        'domain_filter' => 'فلتر النطاق (قواعد السجلات)',
+    ],
+
+    // Permissions actions
+    'permissions' => [
+        'view' => 'عرض',
+        'create' => 'إنشاء',
+        'edit' => 'تعديل',
+        'delete' => 'حذف',
+    ],
+
+    // Resources for permission management
+    'resources' => [
+        'patients' => 'المرضى',
+        'appointments' => 'المواعيد',
+        'invoices' => 'الفواتير',
+        'payments' => 'المدفوعات',
+        'services' => 'الخدمات',
+        'products' => 'المنتجات',
+        'equipment' => 'المعدات',
+        'staff' => 'الموظفين',
+        'payroll' => 'الرواتب',
+        'reports' => 'التقارير',
+        'campaigns' => 'الحملات',
+        'packages' => 'الباقات',
+        'memberships' => 'العضويات',
+        'gift_cards' => 'بطاقات الهدايا',
+        'users' => 'المستخدمين',
+        'roles' => 'الأدوار',
+        'branches' => 'الفروع',
+        'settings' => 'الإعدادات',
+    ],
+
+    // Fields
+    'fields' => [
+        'name' => 'الاسم',
+        'display_name' => 'اسم العرض',
+        'description' => 'الوصف',
+        'level' => 'المستوى',
+        'is_active' => 'نشط',
+        'users_count' => 'المستخدمين',
+        'permissions_count' => 'الصلاحيات',
+        'system' => 'النظام',
+        'active' => 'نشط',
+        'role' => 'الدور',
+        'model_type' => 'نوع النموذج',
+        'apply_to_all_roles' => 'تطبيق على جميع الأدوار',
+        'priority' => 'الأولوية',
+        'perm_read' => 'قراءة',
+        'perm_create' => 'إنشاء',
+        'perm_update' => 'تعديل',
+        'perm_delete' => 'حذف',
+        'conditions' => 'الشروط',
+        'field' => 'الحقل',
+        'operator' => 'العامل',
+        'value' => 'القيمة',
+        'read' => 'قراءة',
+        'create' => 'إنشاء',
+        'update' => 'تعديل',
+        'delete' => 'حذف',
+    ],
+
+    // Helpers
+    'helpers' => [
+        'apply_to_all_roles' => 'عند التفعيل، تُطبق هذه السياسة على جميع الأدوار بغض النظر عن اختيار الدور',
+        'priority' => 'رقم أقل = أولوية أعلى. يتم تقييم السياسات حسب الأولوية.',
+        'placeholders' => 'استخدم {user.id}, {user.branch_id}, {user.tenant_id}, {today}, {now}',
+        'role_level' => 'مستوى أعلى = صلاحيات أكثر. يُستخدم لوراثة الصلاحيات.',
+    ],
+
+    // Actions
+    'actions' => [
+        'add_condition' => 'إضافة شرط',
+    ],
+
+    // Other
+    'all_roles' => 'جميع الأدوار',
+
     // Users
     'user' => 'مستخدم',
     'users' => 'المستخدمين',
@@ -176,6 +278,8 @@ return [
         'make_primary' => 'جعله رئيسي',
         'activate' => 'تفعيل',
         'deactivate' => 'إلغاء التفعيل',
+        'grant_all' => 'منح جميع الصلاحيات',
+        'revoke_all' => 'إلغاء جميع الصلاحيات',
     ],
 
     // Branch Role Messages
