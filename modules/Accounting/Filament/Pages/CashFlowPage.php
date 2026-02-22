@@ -25,7 +25,7 @@ class CashFlowPage extends Page implements HasForms
 
     protected static ?string $navigationGroup = 'Finance';
 
-    protected static ?int $navigationSort = 5;
+    protected static ?int $navigationSort = 14;
 
     public ?string $start_date = null;
     public ?string $end_date = null;

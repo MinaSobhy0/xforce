@@ -26,7 +26,7 @@ class PayrollRunResource extends Resource
 
     protected static ?string $navigationGroup = 'HR';
 
-    protected static ?int $navigationSort = 45;
+    protected static ?int $navigationSort = 10;
 
     public static function getNavigationLabel(): string
     {

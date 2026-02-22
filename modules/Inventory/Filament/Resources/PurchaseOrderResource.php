@@ -28,7 +28,7 @@ class PurchaseOrderResource extends Resource
 
     protected static ?string $navigationGroup = 'Inventory';
 
-    protected static ?int $navigationSort = 34;
+    protected static ?int $navigationSort = 31;
 
     public static function getNavigationLabel(): string
     {

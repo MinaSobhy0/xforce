@@ -26,7 +26,7 @@ class PayslipResource extends Resource
 
     protected static ?string $navigationGroup = 'HR';
 
-    protected static ?int $navigationSort = 46;
+    protected static ?int $navigationSort = 11;
 
     protected static ?string $slug = 'payslips';
 

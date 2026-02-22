@@ -25,7 +25,7 @@ class ProfitLossPage extends Page implements HasForms
 
     protected static ?string $navigationGroup = 'Finance';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 11;
 
     public ?string $start_date = null;
     public ?string $end_date = null;

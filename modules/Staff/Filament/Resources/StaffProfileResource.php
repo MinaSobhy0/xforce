@@ -27,7 +27,7 @@ class StaffProfileResource extends Resource
 
     protected static ?string $navigationGroup = 'HR';
 
-    protected static ?int $navigationSort = 40;
+    protected static ?int $navigationSort = 1;
 
     public static function getNavigationLabel(): string
     {

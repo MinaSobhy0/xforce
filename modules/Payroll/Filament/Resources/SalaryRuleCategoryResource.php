@@ -23,7 +23,7 @@ class SalaryRuleCategoryResource extends Resource
 
     protected static ?string $navigationGroup = 'HR';
 
-    protected static ?int $navigationSort = 51;
+    protected static ?int $navigationSort = 52;
 
     public static function getNavigationLabel(): string
     {

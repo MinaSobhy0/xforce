@@ -14,7 +14,7 @@ class UsageDashboardPage extends Page
 
     protected static ?string $navigationGroup = 'Settings';
 
-    protected static ?int $navigationSort = 60;
+    protected static ?int $navigationSort = 70;
 
     public ?array $usage = [];
     public ?array $limits = [];

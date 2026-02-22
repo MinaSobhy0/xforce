@@ -26,7 +26,7 @@ class ReferralProgramResource extends Resource
 
     protected static ?string $navigationGroup = 'Marketing';
 
-    protected static ?int $navigationSort = 57;
+    protected static ?int $navigationSort = 22;
 
     public static function getNavigationLabel(): string
     {

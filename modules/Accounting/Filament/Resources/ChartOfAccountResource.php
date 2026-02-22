@@ -25,7 +25,7 @@ class ChartOfAccountResource extends Resource
 
     protected static ?string $navigationGroup = 'Finance';
 
-    protected static ?int $navigationSort = 25;
+    protected static ?int $navigationSort = 52;
 
     protected static ?string $recordTitleAttribute = 'code';
 

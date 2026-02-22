@@ -26,7 +26,7 @@ class DailyAgendaPage extends Page implements HasForms, HasTable
 
     protected static ?string $navigationGroup = 'Operations';
 
-    protected static ?int $navigationSort = 11;
+    protected static ?int $navigationSort = 3;
 
     protected static string $view = 'booking::filament.pages.daily-agenda';
 

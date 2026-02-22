@@ -25,7 +25,7 @@ class PractitionerTimeOffResource extends Resource
 
     protected static ?string $navigationGroup = 'HR';
 
-    protected static ?int $navigationSort = 13;
+    protected static ?int $navigationSort = 3;
 
     public static function getNavigationLabel(): string
     {

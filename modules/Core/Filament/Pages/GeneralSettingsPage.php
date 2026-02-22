@@ -19,7 +19,7 @@ class GeneralSettingsPage extends Page implements Forms\Contracts\HasForms
 
     protected static ?string $navigationGroup = 'Settings';
 
-    protected static ?int $navigationSort = 50;
+    protected static ?int $navigationSort = 60;
 
     public ?array $data = [];
 

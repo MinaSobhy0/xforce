@@ -23,7 +23,7 @@ class MembershipResource extends Resource
 
     protected static ?string $navigationGroup = 'Marketing';
 
-    protected static ?int $navigationSort = 30;
+    protected static ?int $navigationSort = 11;
 
     public static function getNavigationLabel(): string
     {

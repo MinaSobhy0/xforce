@@ -30,7 +30,7 @@ class PatientResource extends Resource
 
     protected static ?string $navigationGroup = 'Operations';
 
-    protected static ?int $navigationSort = 10;
+    protected static ?int $navigationSort = 5;
 
     protected static ?string $recordTitleAttribute = 'full_name';
 

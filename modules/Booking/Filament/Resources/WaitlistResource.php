@@ -28,7 +28,7 @@ class WaitlistResource extends Resource
 
     protected static ?string $navigationGroup = 'Operations';
 
-    protected static ?int $navigationSort = 14;
+    protected static ?int $navigationSort = 20;
 
     public static function getNavigationLabel(): string
     {

@@ -32,7 +32,7 @@ class AppointmentResource extends Resource
 
     protected static ?string $navigationGroup = 'Operations';
 
-    protected static ?int $navigationSort = 11;
+    protected static ?int $navigationSort = 6;
 
     protected static ?string $recordTitleAttribute = 'code';
 

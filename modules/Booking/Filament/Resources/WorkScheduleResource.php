@@ -26,7 +26,7 @@ class WorkScheduleResource extends Resource
 
     protected static ?string $navigationGroup = 'HR';
 
-    protected static ?int $navigationSort = 11;
+    protected static ?int $navigationSort = 2;
 
     public static function getNavigationLabel(): string
     {

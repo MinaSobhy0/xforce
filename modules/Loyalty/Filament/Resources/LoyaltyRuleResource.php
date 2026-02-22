@@ -25,7 +25,7 @@ class LoyaltyRuleResource extends Resource
 
     protected static ?string $navigationGroup = 'Marketing';
 
-    protected static ?int $navigationSort = 55;
+    protected static ?int $navigationSort = 20;
 
     public static function getNavigationLabel(): string
     {

@@ -26,7 +26,7 @@ class PaymentResource extends Resource
 
     protected static ?string $navigationGroup = 'Finance';
 
-    protected static ?int $navigationSort = 22;
+    protected static ?int $navigationSort = 2;
 
     protected static ?string $recordTitleAttribute = 'code';
 

@@ -16,7 +16,7 @@ class CategoryTreePage extends Page
 
     protected static ?string $navigationGroup = 'Inventory';
 
-    protected static ?int $navigationSort = 0;
+    protected static ?int $navigationSort = 3;
 
     protected static string $view = 'services::filament.pages.category-tree';
 

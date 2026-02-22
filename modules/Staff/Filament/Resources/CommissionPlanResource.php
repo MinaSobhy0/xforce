@@ -24,7 +24,7 @@ class CommissionPlanResource extends Resource
 
     protected static ?string $navigationGroup = 'HR';
 
-    protected static ?int $navigationSort = 45;
+    protected static ?int $navigationSort = 12;
 
     public static function getNavigationLabel(): string
     {

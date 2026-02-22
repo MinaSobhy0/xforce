@@ -38,7 +38,7 @@ class CreateBooking extends Page implements HasForms
 
     protected static ?string $navigationGroup = 'Operations';
 
-    protected static ?int $navigationSort = 10;
+    protected static ?int $navigationSort = 2;
 
     protected static string $view = 'booking::filament.pages.create-booking';
 
