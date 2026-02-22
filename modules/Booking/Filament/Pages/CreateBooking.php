@@ -242,14 +242,18 @@ class CreateBooking extends Page implements HasForms
                                                         if (!$patientId) {
                                                             return [];
                                                         }
-                                                        return PackageSubscription::query()
-                                                            ->forPatient($patientId)
-                                                            ->active()
-                                                            ->with('package')
-                                                            ->get()
-                                                            ->mapWithKeys(fn (PackageSubscription $sub) => [
-                                                                $sub->id => "{$sub->package->translated_name} ({$sub->sessions_remaining} remaining)"
-                                                            ]);
+                                                        try {
+                                                            return PackageSubscription::query()
+                                                                ->forPatient($patientId)
+                                                                ->active()
+                                                                ->with('package')
+                                                                ->get()
+                                                                ->mapWithKeys(fn (PackageSubscription $sub) => [
+                                                                    $sub->id => "{$sub->package->translated_name} ({$sub->sessions_remaining} remaining)"
+                                                                ]);
+                                                        } catch (\Exception $e) {
+                                                            return [];
+                                                        }
                                                     })
                                                     ->searchable()
                                                     ->live()
@@ -265,15 +269,19 @@ class CreateBooking extends Page implements HasForms
                                                         if (!$subscriptionId) {
                                                             return [];
                                                         }
-                                                        $subscription = PackageSubscription::with('package.items.service')->find($subscriptionId);
-                                                        if (!$subscription) {
+                                                        try {
+                                                            $subscription = PackageSubscription::with('package.items.service')->find($subscriptionId);
+                                                            if (!$subscription) {
+                                                                return [];
+                                                            }
+                                                            return $subscription->package->items
+                                                                ->filter(fn ($item) => $subscription->hasRemainingSessionsForService($item->service_id))
+                                                                ->mapWithKeys(fn ($item) => [
+                                                                    $item->service_id => "{$item->service->translated_name} ({$subscription->getSessionsRemainingByService($item->service_id)} remaining)"
+                                                                ]);
+                                                        } catch (\Exception $e) {
                                                             return [];
                                                         }
-                                                        return $subscription->package->items
-                                                            ->filter(fn ($item) => $subscription->hasRemainingSessionsForService($item->service_id))
-                                                            ->mapWithKeys(fn ($item) => [
-                                                                $item->service_id => "{$item->service->translated_name} ({$subscription->getSessionsRemainingByService($item->service_id)} remaining)"
-                                                            ]);
                                                     })
                                                     ->required(fn (Get $get) => $get('booking_type') === 'package')
                                                     ->visible(fn (Get $get) => $get('package_subscription_id'))
@@ -298,14 +306,18 @@ class CreateBooking extends Page implements HasForms
                                                         if (!$patientId) {
                                                             return [];
                                                         }
-                                                        return TreatmentPlan::query()
-                                                            ->forPatient($patientId)
-                                                            ->active()
-                                                            ->with('items.service')
-                                                            ->get()
-                                                            ->mapWithKeys(fn (TreatmentPlan $plan) => [
-                                                                $plan->id => "{$plan->code}: {$plan->translated_name} ({$plan->progress_percentage}% complete)"
-                                                            ]);
+                                                        try {
+                                                            return TreatmentPlan::query()
+                                                                ->forPatient($patientId)
+                                                                ->active()
+                                                                ->with('items.service')
+                                                                ->get()
+                                                                ->mapWithKeys(fn (TreatmentPlan $plan) => [
+                                                                    $plan->id => "{$plan->code}: {$plan->translated_name} ({$plan->progress_percentage}% complete)"
+                                                                ]);
+                                                        } catch (\Exception $e) {
+                                                            return [];
+                                                        }
                                                     })
                                                     ->searchable()
                                                     ->live()
@@ -321,16 +333,20 @@ class CreateBooking extends Page implements HasForms
                                                         if (!$planId) {
                                                             return '-';
                                                         }
-                                                        $plan = TreatmentPlan::with('items')->find($planId);
-                                                        if (!$plan) {
+                                                        try {
+                                                            $plan = TreatmentPlan::with('items')->find($planId);
+                                                            if (!$plan) {
+                                                                return '-';
+                                                            }
+                                                            return new HtmlString(
+                                                                "<div class='text-sm'>" .
+                                                                "<strong>{$plan->total_completed_sessions}</strong> of <strong>{$plan->total_recommended_sessions}</strong> sessions completed " .
+                                                                "(<strong>{$plan->progress_percentage}%</strong>)" .
+                                                                "</div>"
+                                                            );
+                                                        } catch (\Exception $e) {
                                                             return '-';
                                                         }
-                                                        return new HtmlString(
-                                                            "<div class='text-sm'>" .
-                                                            "<strong>{$plan->total_completed_sessions}</strong> of <strong>{$plan->total_recommended_sessions}</strong> sessions completed " .
-                                                            "(<strong>{$plan->progress_percentage}%</strong>)" .
-                                                            "</div>"
-                                                        );
                                                     })
                                                     ->visible(fn (Get $get) => $get('treatment_plan_id')),
 
@@ -341,25 +357,33 @@ class CreateBooking extends Page implements HasForms
                                                         if (!$planId) {
                                                             return [];
                                                         }
-                                                        $plan = TreatmentPlan::with('items.service')->find($planId);
-                                                        if (!$plan) {
+                                                        try {
+                                                            $plan = TreatmentPlan::with('items.service')->find($planId);
+                                                            if (!$plan) {
+                                                                return [];
+                                                            }
+                                                            return $plan->items
+                                                                ->filter(fn ($item) => $item->canBook())
+                                                                ->mapWithKeys(fn ($item) => [
+                                                                    $item->id => "{$item->service->translated_name} ({$item->remaining_sessions} remaining, next: {$item->next_suggested_date->format('M d')})"
+                                                                ]);
+                                                        } catch (\Exception $e) {
                                                             return [];
                                                         }
-                                                        return $plan->items
-                                                            ->filter(fn ($item) => $item->canBook())
-                                                            ->mapWithKeys(fn ($item) => [
-                                                                $item->id => "{$item->service->translated_name} ({$item->remaining_sessions} remaining, next: {$item->next_suggested_date->format('M d')})"
-                                                            ]);
                                                     })
                                                     ->required(fn (Get $get) => $get('booking_type') === 'treatment_plan')
                                                     ->visible(fn (Get $get) => $get('treatment_plan_id'))
                                                     ->live()
                                                     ->afterStateUpdated(function ($state, Set $set, Get $get) {
                                                         if ($state) {
-                                                            $item = TreatmentPlanItem::find($state);
-                                                            if ($item && $item->next_suggested_date) {
-                                                                $set('date_from', $item->next_suggested_date->format('Y-m-d'));
-                                                                $set('date_to', $item->next_suggested_date->addWeeks(2)->format('Y-m-d'));
+                                                            try {
+                                                                $item = TreatmentPlanItem::find($state);
+                                                                if ($item && $item->next_suggested_date) {
+                                                                    $set('date_from', $item->next_suggested_date->format('Y-m-d'));
+                                                                    $set('date_to', $item->next_suggested_date->addWeeks(2)->format('Y-m-d'));
+                                                                }
+                                                            } catch (\Exception $e) {
+                                                                // Table may not exist
                                                             }
                                                         }
                                                     }),
@@ -371,21 +395,25 @@ class CreateBooking extends Page implements HasForms
                                                         if (!$itemId) {
                                                             return '-';
                                                         }
-                                                        $item = TreatmentPlanItem::with(['preferredPractitioner'])->find($itemId);
-                                                        if (!$item) {
+                                                        try {
+                                                            $item = TreatmentPlanItem::with(['preferredPractitioner'])->find($itemId);
+                                                            if (!$item) {
+                                                                return '-';
+                                                            }
+                                                            $info = [];
+                                                            if ($item->session_interval_days) {
+                                                                $info[] = "Interval: {$item->session_interval_days} days";
+                                                            }
+                                                            if ($item->preferredPractitioner) {
+                                                                $info[] = "Preferred: {$item->preferredPractitioner->name}";
+                                                            }
+                                                            if ($item->preferred_time_slot) {
+                                                                $info[] = "Time: {$item->time_slot_label}";
+                                                            }
+                                                            return empty($info) ? 'No preferences set' : implode(' | ', $info);
+                                                        } catch (\Exception $e) {
                                                             return '-';
                                                         }
-                                                        $info = [];
-                                                        if ($item->session_interval_days) {
-                                                            $info[] = "Interval: {$item->session_interval_days} days";
-                                                        }
-                                                        if ($item->preferredPractitioner) {
-                                                            $info[] = "Preferred: {$item->preferredPractitioner->name}";
-                                                        }
-                                                        if ($item->preferred_time_slot) {
-                                                            $info[] = "Time: {$item->time_slot_label}";
-                                                        }
-                                                        return empty($info) ? 'No preferences set' : implode(' | ', $info);
                                                     })
                                                     ->visible(fn (Get $get) => $get('treatment_plan_item_id')),
 
