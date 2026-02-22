@@ -61,6 +61,12 @@ trait ChecksResourcePermissions
             return true;
         }
 
+        // Super users bypass module checks
+        $user = auth()->user();
+        if ($user && static::isSuperUser($user)) {
+            return true;
+        }
+
         // Get current tenant
         $tenant = static::getCurrentTenant();
 
@@ -89,6 +95,11 @@ trait ChecksResourcePermissions
             return false;
         }
 
+        // Super admin and tenant owner have full access
+        if (static::isSuperUser($user)) {
+            return true;
+        }
+
         // Check the specific permission (e.g., 'patients.view')
         $permissionName = "{$permissionKey}.{$action}";
 
@@ -105,6 +116,25 @@ trait ChecksResourcePermissions
         }
 
         return false;
+    }
+
+    /**
+     * Check if user is a super admin or tenant owner (bypass permissions).
+     */
+    protected static function isSuperUser($user): bool
+    {
+        if (!$user || !method_exists($user, 'hasRole')) {
+            return false;
+        }
+
+        return $user->hasRole([
+            'super-admin',
+            'super_admin',
+            'tenant-owner',
+            'tenant_owner',
+            'owner',
+            'admin',
+        ]);
     }
 
     /**

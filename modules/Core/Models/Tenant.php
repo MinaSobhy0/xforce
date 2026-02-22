@@ -140,14 +140,26 @@ class Tenant extends Model
             $tenant->max_patients = $tenant->max_patients ?? 1000;
             $tenant->max_storage_mb = $tenant->max_storage_mb ?? 1024; // 1GB
 
-            // Default features
+            // Default features (all modules enabled by default)
             $tenant->features = $tenant->features ?? [
                 'users',
                 'patients',
                 'appointments',
                 'treatments',
+                'services',
                 'inventory',
                 'reports',
+                'billing',
+                'staff',
+                'payroll',
+                'attendance',
+                'marketing',
+                'accounting',
+                'loyalty',
+                'memberships',
+                'gift_cards',
+                'packages',
+                'equipment',
             ];
 
             // Default settings
