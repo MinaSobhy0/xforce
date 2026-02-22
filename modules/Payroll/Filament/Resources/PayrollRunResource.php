@@ -12,6 +12,7 @@ use Filament\Notifications\Notification;
 use Modules\Payroll\Models\PayrollRun;
 use Modules\Payroll\Filament\Resources\PayrollRunResource\Pages;
 use Modules\Payroll\Filament\Resources\PayrollRunResource\RelationManagers;
+use Modules\Payroll\Services\PayrollCalculationService;
 
 class PayrollRunResource extends Resource
 {
@@ -182,6 +183,62 @@ class PayrollRunResource extends Resource
                 Tables\Actions\EditAction::make()
                     ->visible(fn (PayrollRun $record) => $record->isEditable()),
 
+                Tables\Actions\Action::make('calculate')
+                    ->label(__('payroll::payroll.actions.calculate'))
+                    ->icon('heroicon-o-calculator')
+                    ->color('primary')
+                    ->visible(fn (PayrollRun $record) => $record->status === PayrollRun::STATUS_DRAFT)
+                    ->requiresConfirmation()
+                    ->modalHeading(__('payroll::payroll.actions.calculate'))
+                    ->modalDescription(__('payroll::payroll.messages.calculate_confirm'))
+                    ->action(function (PayrollRun $record) {
+                        $record->startCalculation();
+
+                        $service = app(PayrollCalculationService::class);
+                        $result = $service->calculatePayrollRun($record);
+
+                        if ($result['success']) {
+                            Notification::make()
+                                ->title(__('payroll::payroll.messages.calculated'))
+                                ->body(__('payroll::payroll.messages.calculated_count', ['count' => $result['count']]))
+                                ->success()
+                                ->send();
+                        } else {
+                            Notification::make()
+                                ->title(__('payroll::payroll.messages.calculation_failed'))
+                                ->body($result['errors'][0]['error'] ?? 'Unknown error')
+                                ->danger()
+                                ->send();
+                        }
+                    }),
+
+                Tables\Actions\Action::make('recalculate')
+                    ->label(__('payroll::payroll.actions.recalculate'))
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('warning')
+                    ->visible(fn (PayrollRun $record) => $record->canRecalculate())
+                    ->requiresConfirmation()
+                    ->modalHeading(__('payroll::payroll.actions.recalculate'))
+                    ->modalDescription(__('payroll::payroll.messages.recalculate_confirm'))
+                    ->action(function (PayrollRun $record) {
+                        $service = app(PayrollCalculationService::class);
+                        $result = $service->calculatePayrollRun($record);
+
+                        if ($result['success']) {
+                            Notification::make()
+                                ->title(__('payroll::payroll.messages.recalculated'))
+                                ->body(__('payroll::payroll.messages.calculated_count', ['count' => $result['count']]))
+                                ->success()
+                                ->send();
+                        } else {
+                            Notification::make()
+                                ->title(__('payroll::payroll.messages.calculation_failed'))
+                                ->body($result['errors'][0]['error'] ?? 'Unknown error')
+                                ->danger()
+                                ->send();
+                        }
+                    }),
+
                 Tables\Actions\Action::make('approve')
                     ->label(__('payroll::payroll.actions.approve'))
                     ->icon('heroicon-o-check')
@@ -201,7 +258,7 @@ class PayrollRunResource extends Resource
                     ->label(__('payroll::payroll.actions.pay'))
                     ->icon('heroicon-o-banknotes')
                     ->color('info')
-                    ->visible(fn (PayrollRun $record) => $record->canTransitionTo(PayrollRun::STATUS_PAID))
+                    ->visible(fn (PayrollRun $record) => in_array($record->status, [PayrollRun::STATUS_APPROVED, PayrollRun::STATUS_PROCESSING]))
                     ->requiresConfirmation()
                     ->action(function (PayrollRun $record) {
                         if ($record->markAsPaid(auth()->id())) {

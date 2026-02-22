@@ -750,70 +750,76 @@ Following X-Linic implementation standards (Filament-based, BaseModel traits, mi
 
 ---
 
-### Phase 2: Advanced Payroll Calculation
+### Phase 2: Advanced Payroll Calculation ✅ COMPLETED
 
-#### 2.1 PayrollCalculationService
+#### 2.1 PayrollCalculationService ✅ COMPLETED
 
 **Service** (`modules/Payroll/Services/PayrollCalculationService.php`)
-- [ ] Create singleton service
-- [ ] Inject FormulaEvaluator dependency
-- [ ] Implement `calculatePayrollRun(PayrollRun $run): void`
-  - [ ] Get eligible employees
-  - [ ] Loop and calculate each payslip
-  - [ ] Update run totals
-- [ ] Implement `calculateEmployeePayslip(StaffProfile $staff, PayrollRun $run): PayrollLine`
-  - [ ] Get employee salary structure
-  - [ ] Build calculation context
-  - [ ] Apply salary rules in sequence
-  - [ ] Calculate tax and social insurance
-  - [ ] Return PayrollLine
-- [ ] Implement `buildCalculationContext(StaffProfile $staff, PayrollRun $run): array`
-  - [ ] Include base salary, worked days, leave days
-  - [ ] Include commission data from StaffCommissionRecord
-  - [ ] Include attendance data (if available)
-- [ ] Implement helper methods:
-  - [ ] `getWorkingDaysInPeriod(Carbon $start, Carbon $end): int`
-  - [ ] `getCommissionForPeriod(StaffProfile $staff, Carbon $start, Carbon $end): int`
-- [ ] Register in PayrollServiceProvider as singleton
+- [x] Create singleton service
+- [x] Inject FormulaEvaluator dependency
+- [x] Implement `calculatePayrollRun(PayrollRun $run): void`
+  - [x] Get eligible employees
+  - [x] Loop and calculate each payslip
+  - [x] Update run totals
+- [x] Implement `calculateEmployeePayslip(StaffProfile $staff, PayrollRun $run): PayrollLine`
+  - [x] Get employee salary structure
+  - [x] Build calculation context
+  - [x] Apply salary rules in sequence
+  - [x] Calculate tax and social insurance
+  - [x] Return PayrollLine
+- [x] Implement `buildCalculationContext(StaffProfile $staff, PayrollRun $run): array`
+  - [x] Include base salary, worked days, leave days
+  - [x] Include commission data from StaffCommissionRecord
+  - [x] Include attendance data (placeholder for future)
+- [x] Implement helper methods:
+  - [x] `getWorkingDaysInPeriod(Carbon $start, Carbon $end): int`
+  - [x] `getCommissionData(StaffProfile $staff, Carbon $start, Carbon $end): array`
+- [x] Register in PayrollServiceProvider as singleton
 
-#### 2.2 FormulaEvaluator
+#### 2.2 FormulaEvaluator ✅ COMPLETED
 
 **Service** (`modules/Payroll/Services/FormulaEvaluator.php`)
-- [ ] Install Symfony Expression Language: `composer require symfony/expression-language`
-- [ ] Create service class
-- [ ] Implement `evaluate(string $formula, array $context): mixed`
-  - [ ] Handle exceptions gracefully
-  - [ ] Return 0 on error with logging
-- [ ] Implement `validateFormula(string $formula): bool`
-- [ ] Implement `getAvailableVariables(): array`
-- [ ] Implement `getFormulaExamples(): array`
-- [ ] Register in PayrollServiceProvider
+- [x] Install Symfony Expression Language: `composer require symfony/expression-language`
+- [x] Create service class
+- [x] Implement `evaluate(string $formula, array $context): mixed`
+  - [x] Handle exceptions gracefully
+  - [x] Return 0 on error with logging
+- [x] Implement `validateFormula(string $formula): array`
+- [x] Implement `evaluateCondition(string $condition, array $context): bool`
+- [x] Implement `getAvailableVariables(): array`
+- [x] Implement `getFormulaExamples(): array`
+- [x] Register custom functions (min, max, abs, round, floor, ceil, if_else, percentage)
+- [x] Register in PayrollServiceProvider
 
-#### 2.3 Update PayrollRun Model
+#### 2.3 Update PayrollRun Model ✅ COMPLETED
 
 **Model Updates**
-- [ ] Add new status constants: `STATUS_CALCULATING`, `STATUS_REVIEW`, `STATUS_PROCESSING`
-- [ ] Update `STATUSES` array
-- [ ] Update `STATUS_COLORS` array
-- [ ] Update `canTransitionTo()` method
-- [ ] Add method: `startCalculation(): bool`
-- [ ] Add method: `markAsReview(): bool`
-- [ ] Add method: `startProcessing(): bool`
-- [ ] Add method: `complete(): bool`
+- [x] Add new status constants: `STATUS_CALCULATING`, `STATUS_REVIEW`, `STATUS_PROCESSING`
+- [x] Update `STATUSES` array
+- [x] Update `STATUS_COLORS` array
+- [x] Update `canTransitionTo()` method with new workflow
+- [x] Add method: `startCalculation(): bool`
+- [x] Add method: `markAsReview(): bool`
+- [x] Add method: `startProcessing(): bool`
+- [x] Add method: `resetToDraft(): bool`
+- [x] Update `markAsPaid()` to handle processing state
+- [x] Add `canCalculate()` and `canRecalculate()` helper methods
 
 **Migration**
-- [ ] Create migration to update status enum/check constraint if needed
+- [x] Status stored as string, no migration needed
 
-#### 2.4 Update PayrollRunResource
+#### 2.4 Update PayrollRunResource ✅ COMPLETED
 
 **Resource Updates**
-- [ ] Add "Calculate" action (visible when draft)
-  - [ ] Show confirmation modal
-  - [ ] Call PayrollCalculationService
-  - [ ] Show success notification with count
-- [ ] Add "Recalculate" action (visible when review)
-- [ ] Update status badge colors
-- [ ] Add calculation progress indicator (optional)
+- [x] Add "Calculate" action (visible when draft)
+  - [x] Show confirmation modal with description
+  - [x] Call PayrollCalculationService
+  - [x] Show success notification with count
+- [x] Add "Recalculate" action (visible when review)
+  - [x] Show confirmation modal with warning about overwrites
+  - [x] Call PayrollCalculationService
+- [x] Update status badge colors (new colors for new statuses)
+- [x] Update language files (en/ar) with new translations
 
 ---
 

@@ -64,30 +64,42 @@ class PayrollRun extends BaseModel
 
     // Status constants
     public const STATUS_DRAFT = 'draft';
+    public const STATUS_CALCULATING = 'calculating';
+    public const STATUS_REVIEW = 'review';
     public const STATUS_APPROVED = 'approved';
+    public const STATUS_PROCESSING = 'processing';
     public const STATUS_PAID = 'paid';
     public const STATUS_CANCELLED = 'cancelled';
 
     public const STATUSES = [
         self::STATUS_DRAFT => 'Draft',
+        self::STATUS_CALCULATING => 'Calculating',
+        self::STATUS_REVIEW => 'Under Review',
         self::STATUS_APPROVED => 'Approved',
+        self::STATUS_PROCESSING => 'Processing',
         self::STATUS_PAID => 'Paid',
         self::STATUS_CANCELLED => 'Cancelled',
     ];
 
     public const STATUS_COLORS = [
         self::STATUS_DRAFT => 'gray',
-        self::STATUS_APPROVED => 'warning',
+        self::STATUS_CALCULATING => 'info',
+        self::STATUS_REVIEW => 'warning',
+        self::STATUS_APPROVED => 'success',
+        self::STATUS_PROCESSING => 'info',
         self::STATUS_PAID => 'success',
         self::STATUS_CANCELLED => 'danger',
     ];
 
     // State transitions
     public const TRANSITIONS = [
-        self::STATUS_DRAFT => [self::STATUS_APPROVED, self::STATUS_CANCELLED],
-        self::STATUS_APPROVED => [self::STATUS_PAID, self::STATUS_CANCELLED],
+        self::STATUS_DRAFT => [self::STATUS_CALCULATING, self::STATUS_CANCELLED],
+        self::STATUS_CALCULATING => [self::STATUS_REVIEW, self::STATUS_DRAFT],
+        self::STATUS_REVIEW => [self::STATUS_APPROVED, self::STATUS_CALCULATING, self::STATUS_CANCELLED],
+        self::STATUS_APPROVED => [self::STATUS_PROCESSING, self::STATUS_REVIEW, self::STATUS_CANCELLED],
+        self::STATUS_PROCESSING => [self::STATUS_PAID],
         self::STATUS_PAID => [],
-        self::STATUS_CANCELLED => [],
+        self::STATUS_CANCELLED => [self::STATUS_DRAFT],
     ];
 
     /**
@@ -147,11 +159,12 @@ class PayrollRun extends BaseModel
     }
 
     /**
-     * Mark as paid.
+     * Mark as paid (handles both direct payment and processing → paid).
      */
     public function markAsPaid(?string $userId = null): bool
     {
-        if (!$this->canTransitionTo(self::STATUS_PAID)) {
+        // Allow direct transition from approved or processing
+        if (!in_array($this->status, [self::STATUS_APPROVED, self::STATUS_PROCESSING])) {
             return false;
         }
 
@@ -185,6 +198,58 @@ class PayrollRun extends BaseModel
     }
 
     /**
+     * Start calculation process.
+     */
+    public function startCalculation(): bool
+    {
+        if (!$this->canTransitionTo(self::STATUS_CALCULATING)) {
+            return false;
+        }
+
+        $this->status = self::STATUS_CALCULATING;
+        return $this->save();
+    }
+
+    /**
+     * Mark as ready for review.
+     */
+    public function markAsReview(): bool
+    {
+        if (!$this->canTransitionTo(self::STATUS_REVIEW)) {
+            return false;
+        }
+
+        $this->status = self::STATUS_REVIEW;
+        return $this->save();
+    }
+
+    /**
+     * Start payment processing.
+     */
+    public function startProcessing(): bool
+    {
+        if (!$this->canTransitionTo(self::STATUS_PROCESSING)) {
+            return false;
+        }
+
+        $this->status = self::STATUS_PROCESSING;
+        return $this->save();
+    }
+
+    /**
+     * Reset to draft for recalculation.
+     */
+    public function resetToDraft(): bool
+    {
+        if (!$this->canTransitionTo(self::STATUS_DRAFT)) {
+            return false;
+        }
+
+        $this->status = self::STATUS_DRAFT;
+        return $this->save();
+    }
+
+    /**
      * Recalculate totals from lines.
      */
     public function recalculateTotals(): void
@@ -204,7 +269,23 @@ class PayrollRun extends BaseModel
      */
     public function isEditable(): bool
     {
-        return $this->status === self::STATUS_DRAFT;
+        return in_array($this->status, [self::STATUS_DRAFT, self::STATUS_REVIEW]);
+    }
+
+    /**
+     * Check if can be calculated.
+     */
+    public function canCalculate(): bool
+    {
+        return in_array($this->status, [self::STATUS_DRAFT, self::STATUS_REVIEW]);
+    }
+
+    /**
+     * Check if can be recalculated.
+     */
+    public function canRecalculate(): bool
+    {
+        return $this->status === self::STATUS_REVIEW;
     }
 
     /**
