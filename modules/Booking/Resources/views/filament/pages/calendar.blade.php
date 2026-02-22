@@ -134,7 +134,12 @@
                             select: function(info) {
                                 const startDate = info.startStr.split('T')[0];
                                 const startTime = info.startStr.split('T')[1] || '09:00:00';
-                                window.location.href = '{{ route('filament.tenant.pages.create-booking') }}?date=' + startDate + '&start_time=' + startTime;
+                                window.location.href = '/admin/create-booking?date=' + startDate + '&start_time=' + startTime;
+                            },
+                            dateClick: function(info) {
+                                const startDate = info.dateStr.split('T')[0];
+                                const startTime = info.dateStr.split('T')[1] || '09:00:00';
+                                window.location.href = '/admin/create-booking?date=' + startDate + '&start_time=' + startTime;
                             },
                             eventDidMount: function(info) {
                                 tippy(info.el, {

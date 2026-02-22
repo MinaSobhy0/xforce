@@ -71,12 +71,19 @@ class CreateBooking extends Page implements HasForms
 
     public function mount(): void
     {
+        // Get date from query parameter (from calendar click)
+        $dateFromQuery = request()->query('date');
+        $startTimeFromQuery = request()->query('start_time');
+
+        $dateFrom = $dateFromQuery ? Carbon::parse($dateFromQuery) : today();
+
         $this->form->fill([
             'branch_id' => current_branch_id(),
-            'date_from' => today()->format('Y-m-d'),
-            'date_to' => today()->addWeek()->format('Y-m-d'),
+            'date_from' => $dateFrom->format('Y-m-d'),
+            'date_to' => $dateFrom->copy()->addWeek()->format('Y-m-d'),
             'booking_type' => 'service',
             'source' => Appointment::SOURCE_PHONE,
+            'preferred_start_time' => $startTimeFromQuery,
         ]);
     }
 
