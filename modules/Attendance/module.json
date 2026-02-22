@@ -9,7 +9,8 @@
     "priority": 56,
     "providers": [
         "Modules\\Attendance\\Providers\\AttendanceServiceProvider",
-        "Modules\\Attendance\\Providers\\RouteServiceProvider"
+        "Modules\\Attendance\\Providers\\RouteServiceProvider",
+        "Modules\\Attendance\\Providers\\FilamentServiceProvider"
     ],
     "dependencies": ["Core", "Auth", "Staff"],
     "optional_dependencies": ["Payroll"],
