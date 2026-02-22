@@ -139,7 +139,7 @@ class SalaryRuleResource extends Resource
                             ->helperText(__('payroll::payroll.help.formula_examples')),
 
                         // Formula Reference Section
-                        Forms\Components\Fieldset::make(__('payroll::payroll.sections.formula_reference'))
+                        Forms\Components\Section::make(__('payroll::payroll.sections.formula_reference'))
                             ->schema([
                                 Forms\Components\Placeholder::make('formula_variables')
                                     ->label(__('payroll::payroll.labels.available_variables'))
