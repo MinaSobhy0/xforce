@@ -1,0 +1,137 @@
+{
+    "name": "Attendance",
+    "alias": "attendance",
+    "description": "Attendance tracking, working schedules, GPS check-in/out, and violation management",
+    "version": "1.0.0",
+    "category": "hr",
+    "icon": "heroicon-o-clock",
+    "keywords": ["attendance", "hr", "check-in", "violations", "schedules", "gps", "time-tracking"],
+    "priority": 56,
+    "providers": [
+        "Modules\\Attendance\\Providers\\AttendanceServiceProvider",
+        "Modules\\Attendance\\Providers\\RouteServiceProvider"
+    ],
+    "dependencies": ["Core", "Auth", "Staff"],
+    "optional_dependencies": ["Payroll"],
+    "models": [
+        "Modules\\Attendance\\Models\\Attendance",
+        "Modules\\Attendance\\Models\\AttendanceLog",
+        "Modules\\Attendance\\Models\\AttendanceBreak",
+        "Modules\\Attendance\\Models\\WorkingSchedule",
+        "Modules\\Attendance\\Models\\AttendanceRule",
+        "Modules\\Attendance\\Models\\AttendanceRuleAction",
+        "Modules\\Attendance\\Models\\AttendanceViolation"
+    ],
+    "permissions": {
+        "attendances.view_any": "View attendance records",
+        "attendances.view": "View attendance details",
+        "attendances.create": "Create manual attendance",
+        "attendances.update": "Update attendance records",
+        "attendances.delete": "Delete attendance records",
+        "attendances.approve": "Approve attendance records",
+        "attendances.check_in": "Check in staff",
+        "attendances.check_out": "Check out staff",
+        "working_schedules.view_any": "View working schedules",
+        "working_schedules.view": "View schedule details",
+        "working_schedules.create": "Create working schedules",
+        "working_schedules.update": "Update working schedules",
+        "working_schedules.delete": "Delete working schedules",
+        "attendance_rules.view_any": "View attendance rules",
+        "attendance_rules.view": "View rule details",
+        "attendance_rules.create": "Create attendance rules",
+        "attendance_rules.update": "Update attendance rules",
+        "attendance_rules.delete": "Delete attendance rules",
+        "violations.view_any": "View violations",
+        "violations.view": "View violation details",
+        "violations.approve": "Approve violations",
+        "violations.waive": "Waive violations",
+        "violations.dispute": "Dispute violations",
+        "attendance.reports": "View attendance reports",
+        "attendance.export": "Export attendance data"
+    },
+    "default_role_permissions": {
+        "admin": ["attendances.*", "working_schedules.*", "attendance_rules.*", "violations.*", "attendance.reports", "attendance.export"],
+        "manager": ["attendances.*", "working_schedules.view_any", "working_schedules.view", "violations.*", "attendance.reports", "attendance.export"],
+        "hr": ["attendances.*", "working_schedules.*", "attendance_rules.*", "violations.*", "attendance.reports", "attendance.export"],
+        "staff": ["attendances.view_any", "attendances.view", "attendances.check_in", "attendances.check_out", "violations.view_any", "violations.dispute"]
+    },
+    "navigation": [
+        {
+            "id": "attendances",
+            "label": {"en": "Attendance", "ar": "الحضور"},
+            "icon": "heroicon-o-clock",
+            "route": "filament.tenant.resources.attendances.index",
+            "group": "hr",
+            "order": 55,
+            "permission": "attendances.view_any"
+        },
+        {
+            "id": "working_schedules",
+            "label": {"en": "Working Schedules", "ar": "جداول العمل"},
+            "icon": "heroicon-o-calendar-days",
+            "route": "filament.tenant.resources.working-schedules.index",
+            "group": "hr",
+            "order": 56,
+            "permission": "working_schedules.view_any"
+        },
+        {
+            "id": "attendance_rules",
+            "label": {"en": "Attendance Rules", "ar": "قواعد الحضور"},
+            "icon": "heroicon-o-clipboard-document-check",
+            "route": "filament.tenant.resources.attendance-rules.index",
+            "group": "hr",
+            "order": 57,
+            "permission": "attendance_rules.view_any"
+        },
+        {
+            "id": "violations",
+            "label": {"en": "Violations", "ar": "المخالفات"},
+            "icon": "heroicon-o-exclamation-triangle",
+            "route": "filament.tenant.resources.attendance-violations.index",
+            "group": "hr",
+            "order": 58,
+            "permission": "violations.view_any"
+        }
+    ],
+    "settings": {
+        "attendance.auto_checkout_enabled": {
+            "type": "boolean",
+            "default": true,
+            "label": {"en": "Auto Checkout at End of Day", "ar": "الخروج التلقائي نهاية اليوم"}
+        },
+        "attendance.auto_checkout_time": {
+            "type": "string",
+            "default": "23:59",
+            "label": {"en": "Auto Checkout Time", "ar": "وقت الخروج التلقائي"}
+        },
+        "attendance.geofence_radius_meters": {
+            "type": "integer",
+            "default": 100,
+            "label": {"en": "Geofence Radius (meters)", "ar": "نطاق السياج الجغرافي (متر)"}
+        },
+        "attendance.require_gps_for_mobile": {
+            "type": "boolean",
+            "default": true,
+            "label": {"en": "Require GPS for Mobile Check-in", "ar": "يتطلب GPS للتسجيل من الهاتف"}
+        },
+        "attendance.allow_early_checkin_minutes": {
+            "type": "integer",
+            "default": 30,
+            "label": {"en": "Allow Early Check-in (minutes)", "ar": "السماح بالحضور المبكر (دقائق)"}
+        },
+        "attendance.overtime_threshold_minutes": {
+            "type": "integer",
+            "default": 30,
+            "label": {"en": "Overtime Threshold (minutes)", "ar": "حد الوقت الإضافي (دقائق)"}
+        }
+    },
+    "events": [
+        "AttendanceCheckedIn",
+        "AttendanceCheckedOut",
+        "AttendanceApproved",
+        "ViolationCreated",
+        "ViolationApproved",
+        "ViolationWaived"
+    ],
+    "active": true
+}

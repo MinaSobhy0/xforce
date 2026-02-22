@@ -17,5 +17,6 @@
     "Loyalty": true,
     "Reporting": true,
     "PatientPortal": true,
-    "Api": true
+    "Api": true,
+    "Attendance": true
 }
