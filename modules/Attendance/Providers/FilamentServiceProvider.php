@@ -6,6 +6,7 @@ use Filament\Panel;
 use Filament\Support\Assets\Css;
 use Filament\Support\Facades\FilamentAsset;
 use Illuminate\Support\ServiceProvider;
+use Modules\Attendance\Filament\Pages\AttendanceReportsPage;
 use Modules\Attendance\Filament\Resources\AttendanceResource;
 use Modules\Attendance\Filament\Resources\AttendanceRuleResource;
 use Modules\Attendance\Filament\Resources\AttendanceViolationResource;
@@ -36,7 +37,9 @@ class FilamentServiceProvider extends ServiceProvider
 
     public static function getPages(): array
     {
-        return [];
+        return [
+            AttendanceReportsPage::class,
+        ];
     }
 
     public static function getWidgets(): array

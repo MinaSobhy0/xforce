@@ -42,6 +42,7 @@ return [
     'check_out_time' => 'Check Out Time',
     'working_hours' => 'Working Hours',
     'late_hours' => 'Late Hours',
+    'late_minutes' => 'Late Minutes',
     'early_hours' => 'Early Checkout Hours',
     'overtime_hours' => 'Overtime Hours',
     'status' => 'Status',
@@ -298,6 +299,44 @@ return [
     'absent_count' => 'Absent',
     'late_count' => 'Late',
     'on_leave_count' => 'On Leave',
+
+    'reports' => [
+        'navigation' => 'Attendance Reports',
+        'title' => 'Attendance Reports',
+        'report_type' => 'Report Type',
+        'date_from' => 'Date From',
+        'date_to' => 'Date To',
+        'all_branches' => 'All Branches',
+        'all_staff' => 'All Staff',
+        'generate' => 'Generate Report',
+        'export' => 'Export CSV',
+        'types' => [
+            'daily' => 'Daily',
+            'weekly' => 'Weekly',
+            'monthly' => 'Monthly',
+            'custom' => 'Custom Range',
+        ],
+        'stats' => [
+            'total_records' => 'Total Records',
+            'present' => 'Present',
+            'absent' => 'Absent',
+            'late' => 'Late',
+            'leave' => 'Leave',
+            'half_day' => 'Half Day',
+            'attendance_rate' => 'Attendance Rate',
+            'violations' => 'Violations',
+            'total_working_hours' => 'Total Working Hours',
+            'avg_working_hours' => 'Avg Working Hours',
+            'total_overtime' => 'Total Overtime',
+            'total_late_minutes' => 'Total Late Minutes',
+        ],
+        'chart' => [
+            'title' => 'Attendance Trend',
+        ],
+        'table' => [
+            'title' => 'Attendance Records',
+        ],
+    ],
 
     /*
     |--------------------------------------------------------------------------

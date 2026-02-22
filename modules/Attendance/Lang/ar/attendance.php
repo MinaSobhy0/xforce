@@ -42,6 +42,7 @@ return [
     'check_out_time' => 'وقت الانصراف',
     'working_hours' => 'ساعات العمل',
     'late_hours' => 'ساعات التأخير',
+    'late_minutes' => 'دقائق التأخير',
     'early_hours' => 'ساعات الخروج المبكر',
     'overtime_hours' => 'ساعات العمل الإضافي',
     'status' => 'الحالة',
@@ -298,6 +299,44 @@ return [
     'absent_count' => 'غائب',
     'late_count' => 'متأخر',
     'on_leave_count' => 'في إجازة',
+
+    'reports' => [
+        'navigation' => 'تقارير الحضور',
+        'title' => 'تقارير الحضور',
+        'report_type' => 'نوع التقرير',
+        'date_from' => 'من تاريخ',
+        'date_to' => 'إلى تاريخ',
+        'all_branches' => 'جميع الفروع',
+        'all_staff' => 'جميع الموظفين',
+        'generate' => 'إنشاء التقرير',
+        'export' => 'تصدير CSV',
+        'types' => [
+            'daily' => 'يومي',
+            'weekly' => 'أسبوعي',
+            'monthly' => 'شهري',
+            'custom' => 'نطاق مخصص',
+        ],
+        'stats' => [
+            'total_records' => 'إجمالي السجلات',
+            'present' => 'حاضر',
+            'absent' => 'غائب',
+            'late' => 'متأخر',
+            'leave' => 'إجازة',
+            'half_day' => 'نصف يوم',
+            'attendance_rate' => 'نسبة الحضور',
+            'violations' => 'المخالفات',
+            'total_working_hours' => 'إجمالي ساعات العمل',
+            'avg_working_hours' => 'متوسط ساعات العمل',
+            'total_overtime' => 'إجمالي الوقت الإضافي',
+            'total_late_minutes' => 'إجمالي دقائق التأخير',
+        ],
+        'chart' => [
+            'title' => 'اتجاه الحضور',
+        ],
+        'table' => [
+            'title' => 'سجلات الحضور',
+        ],
+    ],
 
     /*
     |--------------------------------------------------------------------------
