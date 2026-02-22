@@ -47,27 +47,27 @@ class TenantPanelProvider extends PanelProvider
 
             // Navigation Groups for clinic operations
             ->navigationGroups([
-                NavigationGroup::make()
-                    ->label(__('Dashboard'))
-                    ->icon('heroicon-o-home'),
-                NavigationGroup::make('CRM')
-                    ->label(__('CRM'))
-                    ->icon('heroicon-o-user-group'),
                 NavigationGroup::make('Operations')
                     ->label(__('Operations'))
-                    ->icon('heroicon-o-cog-6-tooth'),
+                    ->icon('heroicon-o-calendar'),
+                NavigationGroup::make('HR')
+                    ->label(__('HR'))
+                    ->icon('heroicon-o-user-group'),
+                NavigationGroup::make('Inventory')
+                    ->label(__('Inventory'))
+                    ->icon('heroicon-o-cube'),
                 NavigationGroup::make('Finance')
                     ->label(__('Finance'))
                     ->icon('heroicon-o-banknotes'),
-                NavigationGroup::make('Sales')
-                    ->label(__('Sales'))
-                    ->icon('heroicon-o-shopping-bag'),
                 NavigationGroup::make('Marketing')
                     ->label(__('Marketing'))
                     ->icon('heroicon-o-megaphone'),
+                NavigationGroup::make('Reports')
+                    ->label(__('Reports'))
+                    ->icon('heroicon-o-chart-bar'),
                 NavigationGroup::make('Settings')
                     ->label(__('Settings'))
-                    ->icon('heroicon-o-cog'),
+                    ->icon('heroicon-o-cog-6-tooth'),
             ])
 
             // Discover Core module resources and pages
@@ -130,7 +130,7 @@ class TenantPanelProvider extends PanelProvider
 
             // Default pages and widgets
             ->pages([
-                \Filament\Pages\Dashboard::class,
+                \App\Filament\Pages\Dashboard::class,
             ])
             ->widgets([
                 \Modules\Core\Filament\Widgets\TenantOverviewWidget::class,
