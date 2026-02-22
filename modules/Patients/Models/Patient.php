@@ -214,6 +214,11 @@ class Patient extends BaseModel implements Authenticatable
         return $this->hasMany(\Modules\Packages\Models\PackageSubscription::class);
     }
 
+    public function treatmentPlans(): HasMany
+    {
+        return $this->hasMany(\Modules\TreatmentPlans\Models\TreatmentPlan::class);
+    }
+
     /**
      * Get the patient's loyalty transactions.
      */

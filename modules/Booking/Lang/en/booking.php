@@ -48,8 +48,10 @@ return [
     'booking_types' => [
         'service' => 'Book Service',
         'package' => 'Use Package',
+        'treatment_plan' => 'Treatment Plan',
         'service_description' => 'Book a single service or multiple services',
         'package_description' => 'Use sessions from an existing package',
+        'treatment_plan_description' => 'Book from an active treatment plan',
     ],
 
     // Fields
@@ -61,10 +63,15 @@ return [
         'duration' => 'Duration',
         'duration_override' => 'Duration',
         'package' => 'Package',
+        'treatment_plan' => 'Treatment Plan',
         'duration_override_help' => 'Leave empty to use default duration',
         'price' => 'Price',
         'select_package' => 'Select Package',
         'select_service_from_package' => 'Select Service',
+        'select_treatment_plan' => 'Select Treatment Plan',
+        'select_service_to_book' => 'Select Service to Book',
+        'plan_progress' => 'Plan Progress',
+        'scheduling_preferences' => 'Scheduling Preferences',
         'select_new_package' => 'Select Package to Purchase',
         'new_package_help' => 'Purchase a new package for this patient',
         'branch' => 'Branch',

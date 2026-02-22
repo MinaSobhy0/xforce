@@ -24,6 +24,9 @@ use Modules\Packages\Models\PackageSubscription;
 use Modules\Packages\Models\PackageSessionUsage;
 use Modules\Patients\Models\Patient;
 use Modules\Services\Models\Service;
+use Modules\TreatmentPlans\Models\TreatmentPlan;
+use Modules\TreatmentPlans\Models\TreatmentPlanItem;
+use Modules\TreatmentPlans\Models\TreatmentPlanAppointment;
 use Modules\Auth\Models\User;
 use Carbon\Carbon;
 
@@ -156,10 +159,12 @@ class CreateBooking extends Page implements HasForms
                                                     ->options([
                                                         'service' => __('booking::booking.booking_types.service'),
                                                         'package' => __('booking::booking.booking_types.package'),
+                                                        'treatment_plan' => __('booking::booking.booking_types.treatment_plan'),
                                                     ])
                                                     ->icons([
                                                         'service' => 'heroicon-o-sparkles',
                                                         'package' => 'heroicon-o-gift',
+                                                        'treatment_plan' => 'heroicon-o-clipboard-document-list',
                                                     ])
                                                     ->default('service')
                                                     ->inline()
@@ -275,6 +280,116 @@ class CreateBooking extends Page implements HasForms
                                                     ->visible(fn (Get $get) => $get('package_service_id')),
                                             ])
                                             ->visible(fn (Get $get) => $get('booking_type') === 'package'),
+
+                                        // Treatment Plan Selection (for treatment plan booking)
+                                        Forms\Components\Fieldset::make(__('booking::booking.fields.treatment_plan'))
+                                            ->schema([
+                                                Forms\Components\Select::make('treatment_plan_id')
+                                                    ->label(__('booking::booking.fields.select_treatment_plan'))
+                                                    ->options(function (Get $get) {
+                                                        $patientId = $get('patient_id');
+                                                        if (!$patientId) {
+                                                            return [];
+                                                        }
+                                                        return TreatmentPlan::query()
+                                                            ->forPatient($patientId)
+                                                            ->active()
+                                                            ->with('items.service')
+                                                            ->get()
+                                                            ->mapWithKeys(fn (TreatmentPlan $plan) => [
+                                                                $plan->id => "{$plan->code}: {$plan->translated_name} ({$plan->progress_percentage}% complete)"
+                                                            ]);
+                                                    })
+                                                    ->searchable()
+                                                    ->live()
+                                                    ->required(fn (Get $get) => $get('booking_type') === 'treatment_plan')
+                                                    ->helperText(fn (Get $get) => !$get('patient_id')
+                                                        ? __('booking::booking.messages.select_patient_first')
+                                                        : null),
+
+                                                Forms\Components\Placeholder::make('treatment_plan_progress')
+                                                    ->label(__('booking::booking.fields.plan_progress'))
+                                                    ->content(function (Get $get) {
+                                                        $planId = $get('treatment_plan_id');
+                                                        if (!$planId) {
+                                                            return '-';
+                                                        }
+                                                        $plan = TreatmentPlan::with('items')->find($planId);
+                                                        if (!$plan) {
+                                                            return '-';
+                                                        }
+                                                        return new HtmlString(
+                                                            "<div class='text-sm'>" .
+                                                            "<strong>{$plan->total_completed_sessions}</strong> of <strong>{$plan->total_recommended_sessions}</strong> sessions completed " .
+                                                            "(<strong>{$plan->progress_percentage}%</strong>)" .
+                                                            "</div>"
+                                                        );
+                                                    })
+                                                    ->visible(fn (Get $get) => $get('treatment_plan_id')),
+
+                                                Forms\Components\Select::make('treatment_plan_item_id')
+                                                    ->label(__('booking::booking.fields.select_service_to_book'))
+                                                    ->options(function (Get $get) {
+                                                        $planId = $get('treatment_plan_id');
+                                                        if (!$planId) {
+                                                            return [];
+                                                        }
+                                                        $plan = TreatmentPlan::with('items.service')->find($planId);
+                                                        if (!$plan) {
+                                                            return [];
+                                                        }
+                                                        return $plan->items
+                                                            ->filter(fn ($item) => $item->canBook())
+                                                            ->mapWithKeys(fn ($item) => [
+                                                                $item->id => "{$item->service->translated_name} ({$item->remaining_sessions} remaining, next: {$item->next_suggested_date->format('M d')})"
+                                                            ]);
+                                                    })
+                                                    ->required(fn (Get $get) => $get('booking_type') === 'treatment_plan')
+                                                    ->visible(fn (Get $get) => $get('treatment_plan_id'))
+                                                    ->live()
+                                                    ->afterStateUpdated(function ($state, Set $set, Get $get) {
+                                                        if ($state) {
+                                                            $item = TreatmentPlanItem::find($state);
+                                                            if ($item && $item->next_suggested_date) {
+                                                                $set('date_from', $item->next_suggested_date->format('Y-m-d'));
+                                                                $set('date_to', $item->next_suggested_date->addWeeks(2)->format('Y-m-d'));
+                                                            }
+                                                        }
+                                                    }),
+
+                                                Forms\Components\Placeholder::make('treatment_plan_item_info')
+                                                    ->label(__('booking::booking.fields.scheduling_preferences'))
+                                                    ->content(function (Get $get) {
+                                                        $itemId = $get('treatment_plan_item_id');
+                                                        if (!$itemId) {
+                                                            return '-';
+                                                        }
+                                                        $item = TreatmentPlanItem::with(['preferredPractitioner'])->find($itemId);
+                                                        if (!$item) {
+                                                            return '-';
+                                                        }
+                                                        $info = [];
+                                                        if ($item->session_interval_days) {
+                                                            $info[] = "Interval: {$item->session_interval_days} days";
+                                                        }
+                                                        if ($item->preferredPractitioner) {
+                                                            $info[] = "Preferred: {$item->preferredPractitioner->name}";
+                                                        }
+                                                        if ($item->preferred_time_slot) {
+                                                            $info[] = "Time: {$item->time_slot_label}";
+                                                        }
+                                                        return empty($info) ? 'No preferences set' : implode(' | ', $info);
+                                                    })
+                                                    ->visible(fn (Get $get) => $get('treatment_plan_item_id')),
+
+                                                Forms\Components\TextInput::make('treatment_plan_duration_override')
+                                                    ->label(__('booking::booking.fields.duration_override'))
+                                                    ->numeric()
+                                                    ->suffix(__('booking::booking.minutes'))
+                                                    ->helperText(__('booking::booking.fields.duration_override_help'))
+                                                    ->visible(fn (Get $get) => $get('treatment_plan_item_id')),
+                                            ])
+                                            ->visible(fn (Get $get) => $get('booking_type') === 'treatment_plan'),
                                     ]),
 
                                 // Schedule Section
@@ -378,6 +493,7 @@ class CreateBooking extends Page implements HasForms
         // Get service IDs based on booking type
         $serviceIds = [];
         $durations = [];
+        $treatmentPlanItemId = null;
 
         if ($bookingType === 'service') {
             $services = $data['services'] ?? [];
@@ -387,11 +503,20 @@ class CreateBooking extends Page implements HasForms
                     $durations[$service['service_id']] = $service['duration_override'] ?? null;
                 }
             }
-        } else {
+        } elseif ($bookingType === 'package') {
             $packageServiceId = $data['package_service_id'] ?? null;
             if ($packageServiceId) {
                 $serviceIds[] = $packageServiceId;
                 $durations[$packageServiceId] = $data['package_duration_override'] ?? null;
+            }
+        } elseif ($bookingType === 'treatment_plan') {
+            $treatmentPlanItemId = $data['treatment_plan_item_id'] ?? null;
+            if ($treatmentPlanItemId) {
+                $item = TreatmentPlanItem::find($treatmentPlanItemId);
+                if ($item) {
+                    $serviceIds[] = $item->service_id;
+                    $durations[$item->service_id] = $data['treatment_plan_duration_override'] ?? null;
+                }
             }
         }
 
@@ -424,6 +549,7 @@ class CreateBooking extends Page implements HasForms
                     $slot['service_id'] = $serviceId;
                     $slot['service_name'] = Service::find($serviceId)?->translated_name;
                     $slot['from_package'] = $bookingType === 'package' ? ($data['package_subscription_id'] ?? null) : null;
+                    $slot['treatment_plan_item_id'] = $bookingType === 'treatment_plan' ? $treatmentPlanItemId : null;
                     $allSlots[] = $slot;
                 }
             }
@@ -457,8 +583,14 @@ class CreateBooking extends Page implements HasForms
         if ($bookingType === 'service') {
             $services = $data['services'] ?? [];
             $serviceId = $services[0]['service_id'] ?? null;
-        } else {
+        } elseif ($bookingType === 'package') {
             $serviceId = $data['package_service_id'] ?? null;
+        } elseif ($bookingType === 'treatment_plan') {
+            $treatmentPlanItemId = $data['treatment_plan_item_id'] ?? null;
+            if ($treatmentPlanItemId) {
+                $item = TreatmentPlanItem::find($treatmentPlanItemId);
+                $serviceId = $item?->service_id;
+            }
         }
 
         if (!$serviceId || !$branchId) {
@@ -549,6 +681,7 @@ class CreateBooking extends Page implements HasForms
                 'equipment_id' => $slot['equipment_id'] ?? null,
                 'equipment_name' => $slot['equipment_name'] ?? null,
                 'from_package' => $slot['from_package'] ?? null,
+                'treatment_plan_item_id' => $slot['treatment_plan_item_id'] ?? null,
             ];
 
             if ($existingServiceIndex !== null) {
@@ -667,6 +800,20 @@ class CreateBooking extends Page implements HasForms
                     // Check if package is now complete
                     $subscription = PackageSubscription::find($item['from_package']);
                     $subscription?->checkAndMarkComplete();
+                }
+
+                // Link to treatment plan if from treatment plan
+                if (!empty($item['treatment_plan_item_id'])) {
+                    $planItem = TreatmentPlanItem::find($item['treatment_plan_item_id']);
+                    if ($planItem) {
+                        TreatmentPlanAppointment::create([
+                            'tenant_id' => $appointment->tenant_id,
+                            'treatment_plan_item_id' => $planItem->id,
+                            'appointment_id' => $appointment->id,
+                            'session_number' => $planItem->next_session_number,
+                            'status' => $appointment->status,
+                        ]);
+                    }
                 }
             }
 

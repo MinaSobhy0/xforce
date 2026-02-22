@@ -474,6 +474,7 @@ class PatientResource extends Resource
             RelationManagers\PhotosRelationManager::class,
             RelationManagers\ConsentFormsRelationManager::class,
             RelationManagers\AppointmentsRelationManager::class,
+            RelationManagers\TreatmentPlansRelationManager::class,
             RelationManagers\InvoicesRelationManager::class,
             RelationManagers\PackagesRelationManager::class,
             RelationManagers\LoyaltyRelationManager::class,

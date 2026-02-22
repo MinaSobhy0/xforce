@@ -48,8 +48,10 @@ return [
     'booking_types' => [
         'service' => 'حجز خدمة',
         'package' => 'استخدام باقة',
+        'treatment_plan' => 'خطة العلاج',
         'service_description' => 'احجز خدمة واحدة أو عدة خدمات',
         'package_description' => 'استخدم جلسات من باقة موجودة',
+        'treatment_plan_description' => 'حجز من خطة علاج نشطة',
     ],
 
     // Fields
@@ -61,10 +63,15 @@ return [
         'duration' => 'المدة',
         'duration_override' => 'المدة',
         'package' => 'الباقة',
+        'treatment_plan' => 'خطة العلاج',
         'duration_override_help' => 'اتركه فارغاً لاستخدام المدة الافتراضية',
         'price' => 'السعر',
         'select_package' => 'اختر الباقة',
         'select_service_from_package' => 'اختر الخدمة',
+        'select_treatment_plan' => 'اختر خطة العلاج',
+        'select_service_to_book' => 'اختر الخدمة للحجز',
+        'plan_progress' => 'تقدم الخطة',
+        'scheduling_preferences' => 'تفضيلات الجدولة',
         'select_new_package' => 'اختر باقة للشراء',
         'new_package_help' => 'اشترِ باقة جديدة لهذا المريض',
         'branch' => 'الفرع',
