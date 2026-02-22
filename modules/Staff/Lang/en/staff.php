@@ -26,6 +26,14 @@ return [
         'commission' => 'Commission',
         'commission_description' => 'Assign a commission plan to calculate commissions on service revenue. Commission plans are managed in Settings > Commission Plans.',
         'settings' => 'Settings',
+        'commission_details' => 'Commission Details',
+        'amounts' => 'Amounts',
+        'approval' => 'Approval',
+        'commission_rule' => 'Commission Rule',
+        'commission_type' => 'Commission Type',
+        'tier_range' => 'Tier Range',
+        'schedule_details' => 'Schedule Details',
+        'schedule_summary' => 'Schedule Summary',
     ],
 
     'fields' => [
@@ -60,6 +68,7 @@ return [
         'amount' => 'Amount',
         'status' => 'Status',
         'approved_at' => 'Approved At',
+        'approved_by' => 'Approved By',
         'paid_at' => 'Paid At',
         'notes' => 'Notes',
         'work_schedule' => 'Work Schedule',
@@ -93,6 +102,7 @@ return [
         'approved' => 'Commission approved successfully',
         'cancelled' => 'Commission cancelled',
         'approved_count' => ':count commissions approved',
+        'all_services' => 'All services',
     ],
 
     'widgets' => [

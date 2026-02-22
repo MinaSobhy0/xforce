@@ -26,6 +26,14 @@ return [
         'commission' => 'العمولة',
         'commission_description' => 'قم بتعيين خطة عمولة لحساب العمولات على إيرادات الخدمات. يتم إدارة خطط العمولة في الإعدادات > خطط العمولة.',
         'settings' => 'الإعدادات',
+        'commission_details' => 'تفاصيل العمولة',
+        'amounts' => 'المبالغ',
+        'approval' => 'الموافقة',
+        'commission_rule' => 'قاعدة العمولة',
+        'commission_type' => 'نوع العمولة',
+        'tier_range' => 'نطاق المستوى',
+        'schedule_details' => 'تفاصيل الجدول',
+        'schedule_summary' => 'ملخص الجدول',
     ],
 
     'fields' => [
@@ -60,6 +68,7 @@ return [
         'amount' => 'المبلغ',
         'status' => 'الحالة',
         'approved_at' => 'تاريخ الموافقة',
+        'approved_by' => 'تمت الموافقة بواسطة',
         'paid_at' => 'تاريخ الدفع',
         'notes' => 'ملاحظات',
         'work_schedule' => 'جدول العمل',
@@ -93,6 +102,7 @@ return [
         'approved' => 'تمت الموافقة على العمولة بنجاح',
         'cancelled' => 'تم إلغاء العمولة',
         'approved_count' => 'تمت الموافقة على :count عمولة',
+        'all_services' => 'جميع الخدمات',
     ],
 
     'widgets' => [

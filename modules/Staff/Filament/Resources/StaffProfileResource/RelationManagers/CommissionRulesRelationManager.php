@@ -4,12 +4,13 @@ namespace Modules\Staff\Filament\Resources\StaffProfileResource\RelationManagers
 
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Infolists;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Modules\Staff\Models\StaffCommission;
 use Modules\Services\Models\Service;
 use Modules\Services\Models\ServiceCategory;
+use Modules\Staff\Models\StaffCommission;
 
 class CommissionRulesRelationManager extends RelationManager
 {
@@ -130,6 +131,52 @@ class CommissionRulesRelationManager extends RelationManager
                     }),
             ])
             ->actions([
+                Tables\Actions\ViewAction::make()
+                    ->slideOver()
+                    ->infolist([
+                        Infolists\Components\Section::make(__('staff::staff.sections.commission_rule'))
+                            ->schema([
+                                Infolists\Components\TextEntry::make('service.name')
+                                    ->label(__('staff::staff.fields.service'))
+                                    ->getStateUsing(fn (StaffCommission $record) => $record->service?->getTranslation('name', app()->getLocale()))
+                                    ->placeholder(__('staff::staff.messages.all_services')),
+                                Infolists\Components\TextEntry::make('serviceCategory.name')
+                                    ->label(__('staff::staff.fields.category'))
+                                    ->getStateUsing(fn (StaffCommission $record) => $record->serviceCategory?->getTranslation('name', app()->getLocale()))
+                                    ->placeholder('-'),
+                                Infolists\Components\IconEntry::make('is_active')
+                                    ->label(__('staff::staff.fields.is_active'))
+                                    ->boolean(),
+                            ])->columns(3),
+
+                        Infolists\Components\Section::make(__('staff::staff.sections.commission_type'))
+                            ->schema([
+                                Infolists\Components\TextEntry::make('commission_type')
+                                    ->label(__('staff::staff.fields.type'))
+                                    ->badge()
+                                    ->formatStateUsing(fn ($state) => StaffCommission::TYPES[$state] ?? $state),
+                                Infolists\Components\TextEntry::make('flat_amount_minor')
+                                    ->label(__('staff::staff.fields.flat_amount'))
+                                    ->formatStateUsing(fn ($state) => format_money($state ?? 0))
+                                    ->visible(fn (StaffCommission $record) => $record->commission_type === StaffCommission::TYPE_FLAT),
+                                Infolists\Components\TextEntry::make('percentage')
+                                    ->label(__('staff::staff.fields.percentage'))
+                                    ->suffix('%')
+                                    ->visible(fn (StaffCommission $record) => in_array($record->commission_type, [StaffCommission::TYPE_PERCENTAGE, StaffCommission::TYPE_TIERED])),
+                            ])->columns(3),
+
+                        Infolists\Components\Section::make(__('staff::staff.sections.tier_range'))
+                            ->schema([
+                                Infolists\Components\TextEntry::make('tier_from_minor')
+                                    ->label(__('staff::staff.fields.tier_from'))
+                                    ->formatStateUsing(fn ($state) => format_money($state ?? 0)),
+                                Infolists\Components\TextEntry::make('tier_to_minor')
+                                    ->label(__('staff::staff.fields.tier_to'))
+                                    ->formatStateUsing(fn ($state) => format_money($state ?? 0)),
+                            ])->columns(2)
+                            ->visible(fn (StaffCommission $record) => $record->commission_type === StaffCommission::TYPE_TIERED),
+                    ]),
+
                 Tables\Actions\EditAction::make()
                     ->mutateRecordDataUsing(function (array $data): array {
                         $data['flat_amount'] = ($data['flat_amount_minor'] ?? 0) / 100;

@@ -4,6 +4,7 @@ namespace Modules\Staff\Filament\Resources\StaffProfileResource\RelationManagers
 
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Infolists;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -200,6 +201,69 @@ class SalaryComponentsRelationManager extends RelationManager
                     }),
             ])
             ->actions([
+                Tables\Actions\ViewAction::make()
+                    ->slideOver()
+                    ->infolist([
+                        Infolists\Components\Section::make(__('payroll::payroll.labels.salary_component'))
+                            ->schema([
+                                Infolists\Components\TextEntry::make('display_name')
+                                    ->label(__('payroll::payroll.fields.name')),
+                                Infolists\Components\TextEntry::make('component_type')
+                                    ->label(__('payroll::payroll.fields.component_type'))
+                                    ->badge()
+                                    ->colors([
+                                        'success' => EmployeeSalaryComponent::COMPONENT_TYPE_EARNING,
+                                        'danger' => EmployeeSalaryComponent::COMPONENT_TYPE_DEDUCTION,
+                                    ])
+                                    ->formatStateUsing(fn ($state) => __("payroll::payroll.component_types.{$state}")),
+                                Infolists\Components\TextEntry::make('calculation_type')
+                                    ->label(__('payroll::payroll.fields.calculation_type'))
+                                    ->badge()
+                                    ->color('gray')
+                                    ->formatStateUsing(fn ($state) => __("payroll::payroll.calculation_types.{$state}")),
+                            ])->columns(3),
+
+                        Infolists\Components\Section::make(__('payroll::payroll.sections.value'))
+                            ->schema([
+                                Infolists\Components\TextEntry::make('amount_minor')
+                                    ->label(__('payroll::payroll.fields.amount'))
+                                    ->formatStateUsing(fn ($state) => format_money($state ?? 0))
+                                    ->visible(fn (EmployeeSalaryComponent $record) => $record->calculation_type === EmployeeSalaryComponent::CALCULATION_TYPE_FIXED),
+                                Infolists\Components\TextEntry::make('percentage')
+                                    ->label(__('payroll::payroll.fields.percentage'))
+                                    ->suffix('%')
+                                    ->visible(fn (EmployeeSalaryComponent $record) => $record->calculation_type === EmployeeSalaryComponent::CALCULATION_TYPE_PERCENTAGE),
+                                Infolists\Components\TextEntry::make('formula')
+                                    ->label(__('payroll::payroll.fields.formula'))
+                                    ->visible(fn (EmployeeSalaryComponent $record) => $record->calculation_type === EmployeeSalaryComponent::CALCULATION_TYPE_FORMULA),
+                            ])->columns(1),
+
+                        Infolists\Components\Section::make(__('payroll::payroll.sections.dates'))
+                            ->schema([
+                                Infolists\Components\TextEntry::make('effective_date')
+                                    ->label(__('payroll::payroll.fields.effective_date'))
+                                    ->date(),
+                                Infolists\Components\TextEntry::make('end_date')
+                                    ->label(__('payroll::payroll.fields.end_date'))
+                                    ->date()
+                                    ->placeholder('-'),
+                                Infolists\Components\IconEntry::make('is_taxable')
+                                    ->label(__('payroll::payroll.fields.is_taxable'))
+                                    ->boolean(),
+                                Infolists\Components\IconEntry::make('is_active')
+                                    ->label(__('payroll::payroll.fields.is_active'))
+                                    ->boolean(),
+                            ])->columns(4),
+
+                        Infolists\Components\Section::make(__('payroll::payroll.sections.linked_rule'))
+                            ->schema([
+                                Infolists\Components\TextEntry::make('salaryRule.name')
+                                    ->label(__('payroll::payroll.fields.salary_rule'))
+                                    ->placeholder(__('payroll::payroll.messages.no_rule')),
+                            ])
+                            ->collapsible(),
+                    ]),
+
                 Tables\Actions\Action::make('toggleActive')
                     ->label(fn (EmployeeSalaryComponent $record) => $record->is_active
                         ? __('payroll::payroll.actions.deactivate')

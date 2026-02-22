@@ -4,6 +4,7 @@ namespace Modules\Staff\Filament\Resources\StaffProfileResource\RelationManagers
 
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Infolists;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -115,6 +116,46 @@ class SalaryStructuresRelationManager extends RelationManager
                     }),
             ])
             ->actions([
+                Tables\Actions\ViewAction::make()
+                    ->slideOver()
+                    ->infolist([
+                        Infolists\Components\Section::make(__('payroll::payroll.labels.salary_structure'))
+                            ->schema([
+                                Infolists\Components\TextEntry::make('salaryStructure.name')
+                                    ->label(__('payroll::payroll.labels.salary_structure')),
+                                Infolists\Components\TextEntry::make('salaryStructure.pay_frequency')
+                                    ->label(__('payroll::payroll.fields.pay_frequency'))
+                                    ->badge()
+                                    ->formatStateUsing(fn ($state) => __("payroll::payroll.pay_frequencies.{$state}")),
+                                Infolists\Components\TextEntry::make('base_salary_minor')
+                                    ->label(__('payroll::payroll.fields.base_salary'))
+                                    ->formatStateUsing(fn ($state) => format_money($state ?? 0)),
+                            ])->columns(3),
+
+                        Infolists\Components\Section::make(__('payroll::payroll.sections.dates'))
+                            ->schema([
+                                Infolists\Components\TextEntry::make('effective_date')
+                                    ->label(__('payroll::payroll.fields.effective_date'))
+                                    ->date(),
+                                Infolists\Components\TextEntry::make('end_date')
+                                    ->label(__('payroll::payroll.fields.end_date'))
+                                    ->date()
+                                    ->placeholder('-'),
+                                Infolists\Components\IconEntry::make('is_current')
+                                    ->label(__('payroll::payroll.fields.is_current'))
+                                    ->boolean(),
+                            ])->columns(3),
+
+                        Infolists\Components\Section::make(__('payroll::payroll.fields.notes'))
+                            ->schema([
+                                Infolists\Components\TextEntry::make('notes')
+                                    ->label(__('payroll::payroll.fields.notes'))
+                                    ->placeholder('-')
+                                    ->columnSpanFull(),
+                            ])
+                            ->collapsible(),
+                    ]),
+
                 Tables\Actions\Action::make('makeCurrent')
                     ->label(__('payroll::payroll.actions.make_current'))
                     ->icon('heroicon-o-check-circle')

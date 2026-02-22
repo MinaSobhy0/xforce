@@ -4,11 +4,14 @@ namespace Modules\Payroll\Filament\Resources\PayrollRunResource\RelationManagers
 
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Infolists;
+use Filament\Infolists\Infolist;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Notifications\Notification;
 use Modules\Payroll\Models\PayrollLine;
+use Modules\Payroll\Models\PayrollRun;
 use Modules\Staff\Models\StaffProfile;
 
 class LinesRelationManager extends RelationManager
@@ -192,6 +195,69 @@ class LinesRelationManager extends RelationManager
                     }),
             ])
             ->actions([
+                Tables\Actions\ViewAction::make()
+                    ->slideOver()
+                    ->infolist([
+                        Infolists\Components\Section::make(__('payroll::payroll.sections.employee'))
+                            ->schema([
+                                Infolists\Components\TextEntry::make('staffProfile.user.name')
+                                    ->label(__('payroll::payroll.fields.employee')),
+                                Infolists\Components\TextEntry::make('staffProfile.job_title')
+                                    ->label(__('payroll::payroll.fields.job_title')),
+                                Infolists\Components\TextEntry::make('payrollRun.period_label')
+                                    ->label(__('payroll::payroll.fields.period')),
+                                Infolists\Components\TextEntry::make('payrollRun.status')
+                                    ->label(__('payroll::payroll.fields.status'))
+                                    ->badge()
+                                    ->formatStateUsing(fn ($state) => PayrollRun::STATUSES[$state] ?? $state)
+                                    ->color(fn ($state) => PayrollRun::STATUS_COLORS[$state] ?? 'gray'),
+                            ])->columns(4),
+
+                        Infolists\Components\Section::make(__('payroll::payroll.sections.earnings'))
+                            ->schema([
+                                Infolists\Components\TextEntry::make('base_salary_minor')
+                                    ->label(__('payroll::payroll.fields.base_salary'))
+                                    ->formatStateUsing(fn ($state) => format_money($state)),
+                                Infolists\Components\TextEntry::make('commissions_minor')
+                                    ->label(__('payroll::payroll.fields.commissions'))
+                                    ->formatStateUsing(fn ($state) => format_money($state)),
+                                Infolists\Components\TextEntry::make('bonuses_minor')
+                                    ->label(__('payroll::payroll.fields.bonuses'))
+                                    ->formatStateUsing(fn ($state) => format_money($state)),
+                                Infolists\Components\TextEntry::make('gross_salary_minor')
+                                    ->label(__('payroll::payroll.fields.gross_salary'))
+                                    ->formatStateUsing(fn ($state) => format_money($state))
+                                    ->weight('bold'),
+                            ])->columns(4),
+
+                        Infolists\Components\Section::make(__('payroll::payroll.sections.deductions'))
+                            ->schema([
+                                Infolists\Components\TextEntry::make('tax_minor')
+                                    ->label(__('payroll::payroll.fields.tax'))
+                                    ->formatStateUsing(fn ($state) => format_money($state)),
+                                Infolists\Components\TextEntry::make('social_insurance_minor')
+                                    ->label(__('payroll::payroll.fields.social_insurance'))
+                                    ->formatStateUsing(fn ($state) => format_money($state)),
+                                Infolists\Components\TextEntry::make('deductions_minor')
+                                    ->label(__('payroll::payroll.fields.other_deductions'))
+                                    ->formatStateUsing(fn ($state) => format_money($state)),
+                                Infolists\Components\TextEntry::make('total_deductions_minor')
+                                    ->label(__('payroll::payroll.fields.total_deductions'))
+                                    ->formatStateUsing(fn ($state) => format_money($state))
+                                    ->weight('bold'),
+                            ])->columns(4),
+
+                        Infolists\Components\Section::make(__('payroll::payroll.sections.net'))
+                            ->schema([
+                                Infolists\Components\TextEntry::make('net_salary_minor')
+                                    ->label(__('payroll::payroll.fields.net_salary'))
+                                    ->formatStateUsing(fn ($state) => format_money($state))
+                                    ->size(Infolists\Components\TextEntry\TextEntrySize::Large)
+                                    ->weight('bold')
+                                    ->color('success'),
+                            ]),
+                    ]),
+
                 Tables\Actions\EditAction::make()
                     ->visible(fn () => $this->ownerRecord->isEditable())
                     ->mutateRecordDataUsing(function (array $data): array {

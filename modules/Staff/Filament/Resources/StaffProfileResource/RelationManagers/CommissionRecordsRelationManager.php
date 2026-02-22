@@ -4,10 +4,11 @@ namespace Modules\Staff\Filament\Resources\StaffProfileResource\RelationManagers
 
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Infolists;
+use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Filament\Notifications\Notification;
 use Modules\Staff\Models\StaffCommissionRecord;
 
 class CommissionRecordsRelationManager extends RelationManager
@@ -72,6 +73,68 @@ class CommissionRecordsRelationManager extends RelationManager
             ])
             ->headerActions([])
             ->actions([
+                Tables\Actions\ViewAction::make()
+                    ->slideOver()
+                    ->infolist([
+                        Infolists\Components\Section::make(__('staff::staff.sections.commission_details'))
+                            ->schema([
+                                Infolists\Components\TextEntry::make('appointment.code')
+                                    ->label(__('staff::staff.fields.appointment'))
+                                    ->placeholder('-'),
+                                Infolists\Components\TextEntry::make('created_at')
+                                    ->label(__('staff::staff.fields.date'))
+                                    ->dateTime(),
+                                Infolists\Components\TextEntry::make('status')
+                                    ->label(__('staff::staff.fields.status'))
+                                    ->badge()
+                                    ->formatStateUsing(fn ($state) => StaffCommissionRecord::STATUSES[$state] ?? $state)
+                                    ->color(fn ($state) => StaffCommissionRecord::STATUS_COLORS[$state] ?? 'gray'),
+                            ])->columns(3),
+
+                        Infolists\Components\Section::make(__('staff::staff.sections.amounts'))
+                            ->schema([
+                                Infolists\Components\TextEntry::make('revenue')
+                                    ->label(__('staff::staff.fields.revenue'))
+                                    ->money(current_currency()),
+                                Infolists\Components\TextEntry::make('commission_type')
+                                    ->label(__('staff::staff.fields.type'))
+                                    ->badge()
+                                    ->formatStateUsing(fn ($state) => ucfirst($state)),
+                                Infolists\Components\TextEntry::make('commission_rate')
+                                    ->label(__('staff::staff.fields.rate'))
+                                    ->suffix('%'),
+                                Infolists\Components\TextEntry::make('amount')
+                                    ->label(__('staff::staff.fields.amount'))
+                                    ->money(current_currency())
+                                    ->weight('bold')
+                                    ->color('success'),
+                            ])->columns(4),
+
+                        Infolists\Components\Section::make(__('staff::staff.sections.approval'))
+                            ->schema([
+                                Infolists\Components\TextEntry::make('approvedBy.name')
+                                    ->label(__('staff::staff.fields.approved_by'))
+                                    ->placeholder('-'),
+                                Infolists\Components\TextEntry::make('approved_at')
+                                    ->label(__('staff::staff.fields.approved_at'))
+                                    ->dateTime()
+                                    ->placeholder('-'),
+                                Infolists\Components\TextEntry::make('paid_at')
+                                    ->label(__('staff::staff.fields.paid_at'))
+                                    ->dateTime()
+                                    ->placeholder('-'),
+                            ])->columns(3),
+
+                        Infolists\Components\Section::make(__('staff::staff.fields.notes'))
+                            ->schema([
+                                Infolists\Components\TextEntry::make('notes')
+                                    ->label(__('staff::staff.fields.notes'))
+                                    ->placeholder('-')
+                                    ->columnSpanFull(),
+                            ])
+                            ->collapsible(),
+                    ]),
+
                 Tables\Actions\Action::make('approve')
                     ->label(__('staff::staff.actions.approve'))
                     ->icon('heroicon-o-check')

@@ -4,6 +4,7 @@ namespace Modules\Staff\Filament\Resources\StaffProfileResource\RelationManagers
 
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Infolists;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -85,6 +86,32 @@ class ScheduleAssignmentsRelationManager extends RelationManager
                     }),
             ])
             ->actions([
+                Tables\Actions\ViewAction::make()
+                    ->slideOver()
+                    ->infolist([
+                        Infolists\Components\Section::make(__('staff::staff.sections.schedule_details'))
+                            ->schema([
+                                Infolists\Components\ColorEntry::make('workSchedule.color')
+                                    ->label(__('booking::schedules.fields.color')),
+                                Infolists\Components\TextEntry::make('workSchedule.name')
+                                    ->label(__('staff::staff.fields.work_schedule'))
+                                    ->weight('bold'),
+                                Infolists\Components\IconEntry::make('is_primary')
+                                    ->label(__('staff::staff.fields.is_primary'))
+                                    ->boolean(),
+                                Infolists\Components\IconEntry::make('is_active')
+                                    ->label(__('staff::staff.fields.is_active'))
+                                    ->boolean(),
+                            ])->columns(4),
+
+                        Infolists\Components\Section::make(__('staff::staff.sections.schedule_summary'))
+                            ->schema([
+                                Infolists\Components\TextEntry::make('workSchedule.schedule_summary')
+                                    ->label(__('staff::staff.fields.schedule'))
+                                    ->columnSpanFull(),
+                            ]),
+                    ]),
+
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
             ])

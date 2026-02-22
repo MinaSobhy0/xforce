@@ -41,6 +41,9 @@ return [
         'conditions' => 'Conditions',
         'advanced' => 'Advanced',
         'formula_reference' => 'Formula Reference (Click to expand)',
+        'dates' => 'Dates',
+        'value' => 'Value',
+        'linked_rule' => 'Linked Salary Rule',
     ],
 
     'fields' => [
@@ -180,6 +183,7 @@ return [
         'structure_duplicated' => 'Salary structure duplicated successfully',
         'cannot_delete_current' => 'Cannot delete the current salary structure. Mark another as current first.',
         'made_current' => 'Salary structure marked as current',
+        'no_rule' => 'No salary rule linked',
     ],
 
     'help' => [
