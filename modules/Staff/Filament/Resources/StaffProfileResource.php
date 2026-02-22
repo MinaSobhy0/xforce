@@ -128,7 +128,9 @@ class StaffProfileResource extends Resource
                             ->numeric()
                             ->required()
                             ->default(0)
-                            ->suffix('cents'),
+                            ->prefix(current_currency())
+                            ->formatStateUsing(fn ($state) => $state ? $state / 100 : null)
+                            ->dehydrateStateUsing(fn ($state) => $state ? (int) ($state * 100) : 0),
 
                         Forms\Components\Grid::make(2)
                             ->schema([
