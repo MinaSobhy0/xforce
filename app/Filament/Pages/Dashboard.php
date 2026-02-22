@@ -3,11 +3,11 @@
 namespace App\Filament\Pages;
 
 use Filament\Pages\Dashboard as BaseDashboard;
-use Modules\Core\Filament\Widgets\TenantOverviewWidget;
-use Modules\Booking\Filament\Widgets\AppointmentStatsWidget;
-use Modules\Staff\Filament\Widgets\CommissionPendingWidget;
-use Modules\Inventory\Filament\Widgets\LowStockAlertWidget;
-use Modules\Marketing\Filament\Widgets\NotificationStatsWidget;
+use App\Filament\Widgets\TenantOverviewWidget;
+use App\Filament\Widgets\AppointmentStatsWidget;
+use App\Filament\Widgets\CommissionPendingWidget;
+use App\Filament\Widgets\LowStockAlertWidget;
+use App\Filament\Widgets\NotificationStatsWidget;
 
 class Dashboard extends BaseDashboard
 {
