@@ -22,6 +22,9 @@ return [
         'salary_structures' => 'هياكل الرواتب',
         'salary_component' => 'مكون راتب',
         'salary_components' => 'مكونات الراتب',
+        'available_variables' => 'المتغيرات المتاحة',
+        'available_functions' => 'الدوال المتاحة',
+        'formula_examples' => 'أمثلة المعادلات',
     ],
 
     'sections' => [
@@ -37,6 +40,7 @@ return [
         'calculation' => 'الحساب',
         'conditions' => 'الشروط',
         'advanced' => 'متقدم',
+        'formula_reference' => 'مرجع المعادلات (اضغط للتوسيع)',
     ],
 
     'fields' => [
@@ -221,4 +225,95 @@ return [
 
     'bonus' => 'مكافأة',
     'deduction' => 'خصم',
+
+    'formula_ref' => [
+        // Variable Groups
+        'salary_variables' => 'متغيرات الراتب',
+        'time_variables' => 'متغيرات الوقت والحضور',
+        'leave_variables' => 'متغيرات الإجازات',
+        'earnings_variables' => 'متغيرات الإيرادات',
+        'totals_variables' => 'الإجماليات المحسوبة',
+        'tax_variables' => 'متغيرات الضرائب',
+        'deduction_variables' => 'متغيرات الخصومات',
+        'rule_codes' => 'نتائج أكواد القواعد',
+
+        // Salary Variables
+        'base_salary' => 'الراتب الأساسي للموظف',
+        'basic_alias' => 'اسم بديل للراتب الأساسي',
+        'daily_rate' => 'المعدل اليومي (الراتب / أيام العمل)',
+        'hourly_rate' => 'المعدل بالساعة (اليومي / 8)',
+
+        // Time Variables
+        'total_days' => 'إجمالي أيام العمل في الفترة',
+        'worked_days' => 'الأيام الفعلية المعمولة',
+        'working_days' => 'اسم بديل لإجمالي الأيام',
+        'overtime_hours' => 'إجمالي ساعات العمل الإضافي',
+        'late_minutes' => 'إجمالي دقائق التأخير',
+        'absence_days' => 'أيام الغياب بدون إجازة',
+
+        // Leave Variables
+        'paid_leave_days' => 'أيام الإجازة المدفوعة',
+        'unpaid_leave_days' => 'أيام الإجازة غير المدفوعة',
+        'sick_leave_days' => 'أيام الإجازة المرضية',
+        'annual_leave_days' => 'أيام الإجازة السنوية',
+
+        // Earnings Variables
+        'commission_amount' => 'إجمالي العمولات المكتسبة',
+        'commission_count' => 'عدد سجلات العمولات',
+        'bonus_amount' => 'مبلغ المكافأة للفترة',
+
+        // Totals Variables
+        'gross' => 'إجمالي الراتب (جميع الإيرادات)',
+        'total_earnings' => 'مجموع جميع الإيرادات',
+        'total_allowance' => 'إجمالي البدلات',
+        'total_deduction' => 'إجمالي الخصومات',
+        'net' => 'صافي الراتب (بعد الخصومات)',
+
+        // Tax Variables
+        'taxable_income' => 'الدخل الخاضع للضريبة (إجمالي - تأمينات)',
+        'taxable_amount' => 'اسم بديل للدخل الخاضع للضريبة',
+        'si_emp' => 'خصم التأمينات الاجتماعية',
+
+        // Deduction Variables
+        'loan_deduction' => 'مبلغ قسط السلفة',
+        'other_deductions' => 'مبالغ الخصومات الأخرى',
+
+        // Rule Codes
+        'rule_codes_desc' => 'نتائج قواعد البدلات',
+        'benefit_codes_desc' => 'نتائج قواعد المزايا',
+        'deduction_codes_desc' => 'نتائج قواعد الخصومات',
+
+        // Functions
+        'functions' => 'الدوال',
+        'fn_min' => 'إرجاع القيمة الأصغر',
+        'fn_max' => 'إرجاع القيمة الأكبر',
+        'fn_abs' => 'إرجاع القيمة المطلقة',
+        'fn_round' => 'تقريب إلى عدد منازل عشرية',
+        'fn_floor' => 'تقريب للأسفل إلى عدد صحيح',
+        'fn_ceil' => 'تقريب للأعلى إلى عدد صحيح',
+        'fn_if_else' => 'شرط: إذا صح ثم X وإلا Y',
+        'fn_percentage' => 'حساب نسبة من الأساس',
+
+        // Operators
+        'operators' => 'العمليات',
+        'op_arithmetic' => 'العمليات الحسابية',
+        'op_comparison' => 'عمليات المقارنة',
+        'op_logical' => 'العمليات المنطقية (و، أو، ليس)',
+        'op_ternary' => 'الشرط الثلاثي (شرط ? صح : خطأ)',
+
+        // Examples
+        'common_examples' => 'أمثلة شائعة للمعادلات',
+        'ex_housing' => 'بدل السكن (25%)',
+        'ex_transport_cap' => 'بدل المواصلات (10% بحد أقصى 500)',
+        'ex_overtime' => 'أجر إضافي (1.5x المعدل بالساعة)',
+        'ex_absence' => 'خصم الغياب',
+        'ex_late' => 'خصم التأخير (بالدقيقة)',
+        'ex_attendance_bonus' => 'مكافأة الحضور (إذا لا غياب/تأخير)',
+        'ex_gross' => 'حساب إجمالي الراتب',
+        'ex_net' => 'حساب صافي الراتب',
+        'ex_commission_cap' => 'عمولة بحد أقصى 50%',
+        'ex_prorated' => 'راتب نسبي',
+        'ex_tiered_bonus' => 'مكافأة متدرجة حسب الراتب',
+        'ex_si_capped' => 'تأمينات (11% بحد أقصى 12,600)',
+    ],
 ];

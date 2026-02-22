@@ -22,6 +22,9 @@ return [
         'salary_structures' => 'Salary Structures',
         'salary_component' => 'Salary Component',
         'salary_components' => 'Salary Components',
+        'available_variables' => 'Available Variables',
+        'available_functions' => 'Available Functions',
+        'formula_examples' => 'Formula Examples',
     ],
 
     'sections' => [
@@ -37,6 +40,7 @@ return [
         'calculation' => 'Calculation',
         'conditions' => 'Conditions',
         'advanced' => 'Advanced',
+        'formula_reference' => 'Formula Reference (Click to expand)',
     ],
 
     'fields' => [
@@ -181,11 +185,11 @@ return [
     'help' => [
         'code_unique' => 'Unique code for identification. Use alphanumeric characters and dashes only.',
         'category_active' => 'Inactive categories will not be available for new rules.',
-        'amount_fixed' => 'Enter the fixed amount in EGP.',
+        'amount_fixed' => 'Enter the fixed amount.',
         'percentage_base' => 'Leave empty to use base salary as the percentage base.',
         'formula_examples' => 'Examples: base_salary * 0.10, worked_days * 100, base_salary > 5000 ? 500 : 300',
         'condition_formula' => 'Formula that returns true/false to determine if this rule applies.',
-        'field_mapping' => 'Map to a specific field like contract.salary or employee.allowance.',
+        'field_mapping' => 'Map to a context variable like commission_amount, bonus_amount, loan_deduction.',
         'sequence' => 'Order in which rules are calculated. Lower numbers are calculated first.',
         'base_salary_employee' => 'The base salary for this employee under this structure.',
         'is_current' => 'Only one structure can be current per employee. The current structure is used for payroll calculations.',
@@ -221,4 +225,95 @@ return [
 
     'bonus' => 'Bonus',
     'deduction' => 'Deduction',
+
+    'formula_ref' => [
+        // Variable Groups
+        'salary_variables' => 'Salary Variables',
+        'time_variables' => 'Time & Attendance Variables',
+        'leave_variables' => 'Leave Variables',
+        'earnings_variables' => 'Earnings Variables',
+        'totals_variables' => 'Calculated Totals',
+        'tax_variables' => 'Tax Variables',
+        'deduction_variables' => 'Deduction Variables',
+        'rule_codes' => 'Rule Code Results',
+
+        // Salary Variables
+        'base_salary' => 'Employee base salary',
+        'basic_alias' => 'Alias for base_salary',
+        'daily_rate' => 'Daily rate (base_salary / working_days)',
+        'hourly_rate' => 'Hourly rate (daily_rate / 8)',
+
+        // Time Variables
+        'total_days' => 'Total working days in period',
+        'worked_days' => 'Actual days worked',
+        'working_days' => 'Alias for total_days',
+        'overtime_hours' => 'Total overtime hours',
+        'late_minutes' => 'Total late arrival minutes',
+        'absence_days' => 'Days absent without leave',
+
+        // Leave Variables
+        'paid_leave_days' => 'Days on paid leave',
+        'unpaid_leave_days' => 'Days on unpaid leave',
+        'sick_leave_days' => 'Days on sick leave',
+        'annual_leave_days' => 'Days on annual leave',
+
+        // Earnings Variables
+        'commission_amount' => 'Total commission earned',
+        'commission_count' => 'Number of commission records',
+        'bonus_amount' => 'Bonus amount for period',
+
+        // Totals Variables
+        'gross' => 'Gross salary (all earnings)',
+        'total_earnings' => 'Total of all earnings',
+        'total_allowance' => 'Total allowances',
+        'total_deduction' => 'Total deductions',
+        'net' => 'Net salary (after deductions)',
+
+        // Tax Variables
+        'taxable_income' => 'Taxable income (GROSS - SI_EMP)',
+        'taxable_amount' => 'Alias for taxable_income',
+        'si_emp' => 'Social insurance deduction',
+
+        // Deduction Variables
+        'loan_deduction' => 'Loan repayment amount',
+        'other_deductions' => 'Other deduction amounts',
+
+        // Rule Codes
+        'rule_codes_desc' => 'Allowance rule results',
+        'benefit_codes_desc' => 'Benefit rule results',
+        'deduction_codes_desc' => 'Deduction rule results',
+
+        // Functions
+        'functions' => 'Functions',
+        'fn_min' => 'Returns the smaller value',
+        'fn_max' => 'Returns the larger value',
+        'fn_abs' => 'Returns absolute value',
+        'fn_round' => 'Round to precision digits',
+        'fn_floor' => 'Round down to integer',
+        'fn_ceil' => 'Round up to integer',
+        'fn_if_else' => 'Conditional: if true then X else Y',
+        'fn_percentage' => 'Calculate percentage of base',
+
+        // Operators
+        'operators' => 'Operators',
+        'op_arithmetic' => 'Arithmetic operations',
+        'op_comparison' => 'Comparison operators',
+        'op_logical' => 'Logical AND, OR, NOT',
+        'op_ternary' => 'Ternary condition (condition ? true : false)',
+
+        // Examples
+        'common_examples' => 'Common Formula Examples',
+        'ex_housing' => 'Housing Allowance (25%)',
+        'ex_transport_cap' => 'Transport Allowance (10% capped at 500)',
+        'ex_overtime' => 'Overtime Pay (1.5x hourly rate)',
+        'ex_absence' => 'Absence Deduction',
+        'ex_late' => 'Late Deduction (per minute)',
+        'ex_attendance_bonus' => 'Attendance Bonus (if no absence/late)',
+        'ex_gross' => 'Gross Salary Calculation',
+        'ex_net' => 'Net Salary Calculation',
+        'ex_commission_cap' => 'Commission with 50% Cap',
+        'ex_prorated' => 'Pro-rated Salary',
+        'ex_tiered_bonus' => 'Tiered Bonus based on Salary',
+        'ex_si_capped' => 'Social Insurance (11% capped at 12,600)',
+    ],
 ];
