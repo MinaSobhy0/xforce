@@ -16,7 +16,7 @@ class InvoiceResource extends JsonResource
             'total' => $this->total_minor / 100,
             'paid_amount' => $this->paid_amount_minor / 100,
             'balance' => ($this->total_minor - $this->paid_amount_minor) / 100,
-            'currency' => 'EGP',
+            'currency' => current_currency(),
             'due_date' => $this->due_date?->format('Y-m-d'),
             'treatment' => $this->appointment?->treatment ? [
                 'id' => $this->appointment->treatment->id,

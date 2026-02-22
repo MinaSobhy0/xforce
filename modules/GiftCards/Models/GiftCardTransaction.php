@@ -88,12 +88,12 @@ class GiftCardTransaction extends BaseModel
     public function getFormattedAmountAttribute(): string
     {
         $prefix = $this->amount_minor >= 0 ? '+' : '';
-        return $prefix . number_format($this->amount_minor / 100, 2) . ' ' . config('app.currency_symbol', 'EGP');
+        return $prefix . format_money(abs($this->amount_minor));
     }
 
     public function getFormattedBalanceAttribute(): string
     {
-        return number_format($this->running_balance_minor / 100, 2) . ' ' . config('app.currency_symbol', 'EGP');
+        return format_money($this->running_balance_minor);
     }
 
     public function isDebit(): bool

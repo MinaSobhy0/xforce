@@ -24,7 +24,7 @@ class PaymentsRelationManager extends RelationManager
                     ->label('Amount')
                     ->numeric()
                     ->required()
-                    ->prefix(config('app.currency_symbol', 'EGP'))
+                    ->prefix(current_currency())
                     ->formatStateUsing(fn ($state) => $state ? $state / 100 : null)
                     ->dehydrateStateUsing(fn ($state) => $state ? (int) ($state * 100) : 0),
 
@@ -65,7 +65,7 @@ class PaymentsRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('amount_minor')
                     ->label('Amount')
                     ->formatStateUsing(fn ($state) => number_format($state / 100, 2))
-                    ->suffix(' ' . config('app.currency_symbol', 'EGP'))
+                    ->suffix(' ' . current_currency())
                     ->weight('bold'),
 
                 Tables\Columns\TextColumn::make('journal.name')

@@ -52,7 +52,7 @@ class LinesRelationManager extends RelationManager
                     ->label('Unit Price')
                     ->numeric()
                     ->required()
-                    ->prefix(config('app.currency_symbol', 'EGP'))
+                    ->prefix(current_currency())
                     ->formatStateUsing(fn ($state) => $state ? $state / 100 : null)
                     ->dehydrateStateUsing(fn ($state) => $state ? (int) ($state * 100) : 0),
 
@@ -92,8 +92,7 @@ class LinesRelationManager extends RelationManager
 
                 Tables\Columns\TextColumn::make('unit_price_minor')
                     ->label('Unit Price')
-                    ->formatStateUsing(fn ($state) => number_format($state / 100, 2))
-                    ->suffix(' ' . config('app.currency_symbol', 'EGP')),
+                    ->formatStateUsing(fn ($state) => format_money($state)),
 
                 Tables\Columns\TextColumn::make('discount_minor')
                     ->label('Discount')
@@ -109,8 +108,7 @@ class LinesRelationManager extends RelationManager
 
                 Tables\Columns\TextColumn::make('total_minor')
                     ->label('Total')
-                    ->formatStateUsing(fn ($state) => number_format($state / 100, 2))
-                    ->suffix(' ' . config('app.currency_symbol', 'EGP'))
+                    ->formatStateUsing(fn ($state) => format_money($state))
                     ->weight('bold'),
             ])
             ->filters([

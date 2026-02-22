@@ -43,13 +43,13 @@ class TransactionsRelationManager extends RelationManager
                         $prefix = $state >= 0 ? '+' : '';
                         return $prefix . number_format($state / 100, 2);
                     })
-                    ->suffix(' ' . config('app.currency_symbol', 'EGP'))
+                    ->suffix(' ' . current_currency())
                     ->color(fn (GiftCardTransaction $record) => $record->isCredit() ? 'success' : 'danger'),
 
                 Tables\Columns\TextColumn::make('running_balance_minor')
                     ->label(__('giftcards::giftcards.fields.balance'))
                     ->formatStateUsing(fn ($state) => number_format($state / 100, 2))
-                    ->suffix(' ' . config('app.currency_symbol', 'EGP')),
+                    ->suffix(' ' . current_currency()),
 
                 Tables\Columns\TextColumn::make('notes')
                     ->label(__('giftcards::giftcards.fields.notes'))

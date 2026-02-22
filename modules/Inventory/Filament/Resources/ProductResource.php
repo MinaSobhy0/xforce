@@ -213,12 +213,12 @@ class ProductResource extends Resource
 
                 Tables\Columns\TextColumn::make('cost_price')
                     ->label(__('inventory::inventory.fields.cost_price'))
-                    ->money('EGP')
+                    ->money(current_currency())
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('sell_price')
                     ->label(__('inventory::inventory.fields.sell_price'))
-                    ->money('EGP')
+                    ->money(current_currency())
                     ->sortable(),
 
                 Tables\Columns\IconColumn::make('is_consumable')

@@ -21,22 +21,22 @@ class PaymentStatsWidget extends BaseWidget
         $todayCard = $today->clone()->byMethod(Payment::METHOD_CARD)->sum('amount_minor');
 
         return [
-            Stat::make("Today's Payments", number_format($todayTotal / 100, 2) . ' ' . config('app.currency_symbol', 'EGP'))
+            Stat::make("Today's Payments", number_format($todayTotal / 100, 2) . ' ' . current_currency())
                 ->description($today->count() . ' payments')
                 ->descriptionIcon('heroicon-m-banknotes')
                 ->color('success'),
 
-            Stat::make('Cash Today', number_format($todayCash / 100, 2) . ' ' . config('app.currency_symbol', 'EGP'))
+            Stat::make('Cash Today', number_format($todayCash / 100, 2) . ' ' . current_currency())
                 ->description('Cash payments')
                 ->descriptionIcon('heroicon-m-banknotes')
                 ->color('success'),
 
-            Stat::make('Card Today', number_format($todayCard / 100, 2) . ' ' . config('app.currency_symbol', 'EGP'))
+            Stat::make('Card Today', number_format($todayCard / 100, 2) . ' ' . current_currency())
                 ->description('Card payments')
                 ->descriptionIcon('heroicon-m-credit-card')
                 ->color('primary'),
 
-            Stat::make('Month Total', number_format($monthTotal / 100, 2) . ' ' . config('app.currency_symbol', 'EGP'))
+            Stat::make('Month Total', number_format($monthTotal / 100, 2) . ' ' . current_currency())
                 ->description($thisMonth->count() . ' payments this month')
                 ->descriptionIcon('heroicon-m-calendar')
                 ->color('info'),

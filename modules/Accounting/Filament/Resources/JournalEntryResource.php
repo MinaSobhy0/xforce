@@ -133,13 +133,13 @@ class JournalEntryResource extends Resource
                 Tables\Columns\TextColumn::make('total_debit_minor')
                     ->label('Debit')
                     ->formatStateUsing(fn ($state) => number_format($state / 100, 2))
-                    ->suffix(' ' . config('app.currency_symbol', 'EGP'))
+                    ->suffix(' ' . current_currency())
                     ->alignEnd(),
 
                 Tables\Columns\TextColumn::make('total_credit_minor')
                     ->label('Credit')
                     ->formatStateUsing(fn ($state) => number_format($state / 100, 2))
-                    ->suffix(' ' . config('app.currency_symbol', 'EGP'))
+                    ->suffix(' ' . current_currency())
                     ->alignEnd(),
 
                 Tables\Columns\BadgeColumn::make('status')

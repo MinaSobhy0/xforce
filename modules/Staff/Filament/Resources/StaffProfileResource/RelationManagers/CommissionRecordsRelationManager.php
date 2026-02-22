@@ -33,7 +33,7 @@ class CommissionRecordsRelationManager extends RelationManager
 
                 Tables\Columns\TextColumn::make('revenue')
                     ->label(__('staff::staff.fields.revenue'))
-                    ->money('EGP'),
+                    ->money(current_currency()),
 
                 Tables\Columns\TextColumn::make('commission_type')
                     ->label(__('staff::staff.fields.type'))
@@ -46,7 +46,7 @@ class CommissionRecordsRelationManager extends RelationManager
 
                 Tables\Columns\TextColumn::make('amount')
                     ->label(__('staff::staff.fields.amount'))
-                    ->money('EGP')
+                    ->money(current_currency())
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('status')

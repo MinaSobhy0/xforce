@@ -69,15 +69,15 @@ class RecordPayment extends Page
 
                         Forms\Components\Placeholder::make('total')
                             ->label('Total Amount')
-                            ->content(number_format($this->record->total_minor / 100, 2) . ' ' . config('app.currency_symbol', 'EGP')),
+                            ->content(format_money($this->record->total_minor)),
 
                         Forms\Components\Placeholder::make('paid')
                             ->label('Already Paid')
-                            ->content(number_format($this->record->paid_minor / 100, 2) . ' ' . config('app.currency_symbol', 'EGP')),
+                            ->content(format_money($this->record->paid_minor)),
 
                         Forms\Components\Placeholder::make('remaining')
                             ->label('Remaining')
-                            ->content(number_format($this->record->remaining_minor / 100, 2) . ' ' . config('app.currency_symbol', 'EGP')),
+                            ->content(format_money($this->record->remaining_minor)),
                     ])
                     ->columns(5),
 
@@ -89,8 +89,8 @@ class RecordPayment extends Page
                             ->required()
                             ->minValue(0.01)
                             ->maxValue($this->record->remaining_minor / 100)
-                            ->prefix(config('app.currency_symbol', 'EGP'))
-                            ->helperText('Maximum: ' . number_format($this->record->remaining_minor / 100, 2)),
+                            ->prefix(current_currency())
+                            ->helperText('Maximum: ' . format_money($this->record->remaining_minor)),
 
                         Forms\Components\Select::make('journal_id')
                             ->label('Payment Method')
@@ -142,7 +142,7 @@ class RecordPayment extends Page
 
         Notification::make()
             ->title('Payment recorded successfully')
-            ->body('Amount: ' . number_format($amountMinor / 100, 2) . ' ' . config('app.currency_symbol', 'EGP'))
+            ->body('Amount: ' . format_money($amountMinor))
             ->success()
             ->send();
 

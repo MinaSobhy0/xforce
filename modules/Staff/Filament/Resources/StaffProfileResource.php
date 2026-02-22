@@ -190,7 +190,7 @@ class StaffProfileResource extends Resource
 
                 Tables\Columns\TextColumn::make('pending_earnings')
                     ->label(__('staff::staff.fields.pending_earnings'))
-                    ->money('EGP')
+                    ->money(current_currency())
                     ->getStateUsing(fn (StaffProfile $record) => $record->pending_earnings / 100),
 
                 Tables\Columns\IconColumn::make('is_active')

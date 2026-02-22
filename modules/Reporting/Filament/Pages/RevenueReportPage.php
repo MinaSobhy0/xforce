@@ -99,7 +99,7 @@ class RevenueReportPage extends BaseReportPage
             ],
             [
                 'label' => __('reporting::reporting.average_invoice'),
-                'value' => $totalInvoices > 0 ? $this->formatCurrency($totalRevenue / $totalInvoices) : '0 EGP',
+                'value' => $totalInvoices > 0 ? $this->formatCurrency($totalRevenue / $totalInvoices) : '0 ' . current_currency(),
                 'icon' => 'heroicon-o-calculator',
                 'color' => 'info',
             ],
@@ -201,7 +201,7 @@ class RevenueReportPage extends BaseReportPage
                     'y' => [
                         'beginAtZero' => true,
                         'ticks' => [
-                            'callback' => 'function(value) { return value + " EGP"; }',
+                            'callback' => 'function(value) { return value + " ' . current_currency() . '"; }',
                         ],
                     ],
                 ],

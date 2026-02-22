@@ -64,7 +64,7 @@ class AppointmentsRelationManager extends RelationManager
 
                 Tables\Columns\TextColumn::make('price_minor')
                     ->label(__('booking::appointments.fields.price'))
-                    ->money('EGP', divideBy: 100)
+                    ->money(current_currency(), divideBy: 100)
                     ->alignEnd(),
             ])
             ->filters([

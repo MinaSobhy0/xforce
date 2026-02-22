@@ -256,7 +256,7 @@ class PurchaseOrderResource extends Resource
 
                 Tables\Columns\TextColumn::make('total_amount')
                     ->label(__('inventory::inventory.fields.total'))
-                    ->money('EGP')
+                    ->money(current_currency())
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('lines_count')

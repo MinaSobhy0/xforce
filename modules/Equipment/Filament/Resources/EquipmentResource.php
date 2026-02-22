@@ -128,7 +128,7 @@ class EquipmentResource extends Resource
                                         Forms\Components\TextInput::make('purchase_price_minor')
                                             ->label(__('equipment::equipment.purchase_price'))
                                             ->numeric()
-                                            ->prefix('EGP')
+                                            ->prefix(current_currency())
                                             ->helperText('Enter price in piasters'),
                                     ]),
 
@@ -304,7 +304,7 @@ class EquipmentResource extends Resource
                             Forms\Components\TextInput::make('cost_minor')
                                 ->label(__('equipment::equipment.cost'))
                                 ->numeric()
-                                ->prefix('EGP'),
+                                ->prefix(current_currency()),
                             Forms\Components\DatePicker::make('next_due_date')
                                 ->label(__('equipment::equipment.next_due_date')),
                         ])

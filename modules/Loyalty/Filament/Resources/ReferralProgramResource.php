@@ -117,7 +117,7 @@ class ReferralProgramResource extends Resource
                             ->label(__('loyalty::loyalty.fields.min_spend'))
                             ->numeric()
                             ->minValue(0)
-                            ->suffix('EGP')
+                            ->suffix(fn () => current_currency())
                             ->formatStateUsing(fn ($state) => $state ? $state / 100 : null)
                             ->dehydrateStateUsing(fn ($state) => $state ? $state * 100 : null)
                             ->helperText('Minimum purchase amount to qualify'),

@@ -99,13 +99,13 @@ class LoyaltyRuleResource extends Resource
                             ->minValue(0)
                             ->step(0.01)
                             ->visible(fn (Forms\Get $get) => $get('type') === LoyaltyRule::TYPE_PER_SPEND)
-                            ->helperText('Points earned per 1 EGP spent'),
+                            ->helperText(fn () => 'Points earned per 1 ' . current_currency() . ' spent'),
 
                         Forms\Components\TextInput::make('min_spend_minor')
                             ->label(__('loyalty::loyalty.fields.min_spend'))
                             ->numeric()
                             ->minValue(0)
-                            ->suffix('EGP')
+                            ->suffix(fn () => current_currency())
                             ->formatStateUsing(fn ($state) => $state ? $state / 100 : null)
                             ->dehydrateStateUsing(fn ($state) => $state ? $state * 100 : null)
                             ->visible(fn (Forms\Get $get) => $get('type') === LoyaltyRule::TYPE_PER_SPEND),

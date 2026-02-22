@@ -34,7 +34,7 @@ class PackageItemsRelationManager extends RelationManager
 
                 Tables\Columns\TextColumn::make('unit_price_minor')
                     ->label(__('packages::packages.fields.unit_price'))
-                    ->money('EGP', divideBy: 100)
+                    ->money(current_currency(), divideBy: 100)
                     ->alignEnd(),
 
                 Tables\Columns\IconColumn::make('package.is_active')

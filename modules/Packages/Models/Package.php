@@ -81,7 +81,7 @@ class Package extends BaseModel
 
     public function getFormattedPriceAttribute(): string
     {
-        return number_format($this->base_price_minor / 100, 2) . ' ' . config('app.currency_symbol', 'EGP');
+        return format_money($this->base_price_minor);
     }
 
     public function getTypeLabelAttribute(): string

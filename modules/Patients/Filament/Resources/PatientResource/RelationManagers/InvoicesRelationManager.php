@@ -46,17 +46,17 @@ class InvoicesRelationManager extends RelationManager
 
                 Tables\Columns\TextColumn::make('total_minor')
                     ->label(__('billing::billing.pdf.total'))
-                    ->money('EGP', divideBy: 100)
+                    ->money(current_currency(), divideBy: 100)
                     ->alignEnd(),
 
                 Tables\Columns\TextColumn::make('paid_minor')
                     ->label(__('billing::billing.pdf.paid'))
-                    ->money('EGP', divideBy: 100)
+                    ->money(current_currency(), divideBy: 100)
                     ->alignEnd(),
 
                 Tables\Columns\TextColumn::make('remaining_minor')
                     ->label(__('billing::billing.pdf.balance_due'))
-                    ->money('EGP', divideBy: 100)
+                    ->money(current_currency(), divideBy: 100)
                     ->alignEnd()
                     ->color(fn ($state) => $state > 0 ? 'danger' : 'success'),
             ])

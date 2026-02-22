@@ -44,7 +44,7 @@ class ViewGiftCard extends BaseViewRecord
                         ->label(__('giftcards::giftcards.fields.amount'))
                         ->required()
                         ->numeric()
-                        ->prefix(config('app.currency_symbol', 'EGP'))
+                        ->prefix(current_currency())
                         ->default(fn () => $this->record->remaining_value_minor / 100),
 
                     Forms\Components\Textarea::make('notes')
@@ -71,7 +71,7 @@ class ViewGiftCard extends BaseViewRecord
                         ->label(__('giftcards::giftcards.fields.amount'))
                         ->required()
                         ->numeric()
-                        ->prefix(config('app.currency_symbol', 'EGP')),
+                        ->prefix(current_currency()),
 
                     Forms\Components\Textarea::make('notes')
                         ->label(__('giftcards::giftcards.fields.reason'))

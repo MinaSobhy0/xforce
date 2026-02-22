@@ -111,12 +111,12 @@ class GiftCard extends BaseModel
     // Accessors
     public function getFormattedInitialValueAttribute(): string
     {
-        return number_format($this->initial_value_minor / 100, 2) . ' ' . config('app.currency_symbol', 'EGP');
+        return format_money($this->initial_value_minor);
     }
 
     public function getFormattedRemainingValueAttribute(): string
     {
-        return number_format($this->remaining_value_minor / 100, 2) . ' ' . config('app.currency_symbol', 'EGP');
+        return format_money($this->remaining_value_minor);
     }
 
     public function getUsedValueMinorAttribute(): int

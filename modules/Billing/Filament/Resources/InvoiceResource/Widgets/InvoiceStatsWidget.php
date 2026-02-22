@@ -17,17 +17,17 @@ class InvoiceStatsWidget extends BaseWidget
         $overdueCount = Invoice::overdue()->count();
 
         return [
-            Stat::make("Today's Revenue", number_format($todayRevenue / 100, 2) . ' ' . config('app.currency_symbol', 'EGP'))
+            Stat::make("Today's Revenue", number_format($todayRevenue / 100, 2) . ' ' . current_currency())
                 ->description('Total payments received today')
                 ->descriptionIcon('heroicon-m-banknotes')
                 ->color('success'),
 
-            Stat::make('Month Revenue', number_format($monthRevenue / 100, 2) . ' ' . config('app.currency_symbol', 'EGP'))
+            Stat::make('Month Revenue', number_format($monthRevenue / 100, 2) . ' ' . current_currency())
                 ->description('Total payments this month')
                 ->descriptionIcon('heroicon-m-calendar')
                 ->color('primary'),
 
-            Stat::make('Outstanding', number_format($outstanding / 100, 2) . ' ' . config('app.currency_symbol', 'EGP'))
+            Stat::make('Outstanding', number_format($outstanding / 100, 2) . ' ' . current_currency())
                 ->description('Unpaid invoice balance')
                 ->descriptionIcon('heroicon-m-clock')
                 ->color($outstanding > 0 ? 'warning' : 'success'),

@@ -32,7 +32,7 @@ class ViewEquipment extends BaseViewRecord
                     \Filament\Forms\Components\TextInput::make('cost_minor')
                         ->label(__('equipment::equipment.cost'))
                         ->numeric()
-                        ->prefix('EGP'),
+                        ->prefix(current_currency()),
                     \Filament\Forms\Components\DatePicker::make('next_due_date')
                         ->label(__('equipment::equipment.next_due_date')),
                 ])

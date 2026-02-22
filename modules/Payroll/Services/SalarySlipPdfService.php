@@ -112,7 +112,7 @@ class SalarySlipPdfService
 
             // Meta
             'generatedAt' => now(),
-            'currency' => 'EGP',
+            'currency' => current_currency(),
             'locale' => app()->getLocale(),
             'isRtl' => app()->getLocale() === 'ar',
         ];

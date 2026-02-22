@@ -27,7 +27,7 @@ class BookingController extends BaseApiController
                 'description' => $this->getTranslatedName($s->description),
                 'duration_minutes' => $s->duration_minutes,
                 'price' => $s->price_minor / 100,
-                'currency' => 'EGP',
+                'currency' => current_currency(),
             ]);
 
         return $this->success($services);

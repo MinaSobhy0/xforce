@@ -90,11 +90,11 @@ class LinesRelationManager extends RelationManager
 
                 Tables\Columns\TextColumn::make('unit_price')
                     ->label(__('inventory::inventory.fields.unit_price'))
-                    ->money('EGP'),
+                    ->money(current_currency()),
 
                 Tables\Columns\TextColumn::make('line_total')
                     ->label(__('inventory::inventory.fields.total'))
-                    ->money('EGP'),
+                    ->money(current_currency()),
             ])
             ->filters([])
             ->headerActions([

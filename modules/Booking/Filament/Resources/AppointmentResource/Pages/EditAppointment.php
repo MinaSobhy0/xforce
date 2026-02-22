@@ -91,13 +91,13 @@ class EditAppointment extends BaseEditRecord
                                 Forms\Components\TextInput::make('price_minor')
                                     ->label(__('booking::appointments.fields.price'))
                                     ->numeric()
-                                    ->prefix('EGP')
+                                    ->prefix(current_currency())
                                     ->required(),
 
                                 Forms\Components\TextInput::make('discount_minor')
                                     ->label(__('booking::appointments.fields.discount'))
                                     ->numeric()
-                                    ->prefix('EGP')
+                                    ->prefix(current_currency())
                                     ->default(0),
 
                                 Forms\Components\Select::make('source')

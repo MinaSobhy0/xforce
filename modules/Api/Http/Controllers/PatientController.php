@@ -180,7 +180,7 @@ class PatientController extends BaseApiController
             'status' => $card->status,
             'initial_balance' => $card->initial_balance_minor / 100,
             'current_balance' => $card->current_balance_minor / 100,
-            'currency' => 'EGP',
+            'currency' => current_currency(),
             'expires_at' => $card->expires_at?->toIso8601String(),
         ]);
     }

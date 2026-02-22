@@ -123,12 +123,12 @@ class Membership extends BaseModel
 
     public function getFormattedMonthlyPriceAttribute(): string
     {
-        return number_format($this->price_monthly_minor / 100, 2) . ' ' . config('app.currency_symbol', 'EGP');
+        return format_money($this->price_monthly_minor);
     }
 
     public function getFormattedYearlyPriceAttribute(): string
     {
-        return number_format($this->price_yearly_minor / 100, 2) . ' ' . config('app.currency_symbol', 'EGP');
+        return format_money($this->price_yearly_minor);
     }
 
     public function getYearlySavingsMinorAttribute(): int

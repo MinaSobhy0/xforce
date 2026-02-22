@@ -37,7 +37,7 @@ class MaintenanceLogsRelationManager extends RelationManager
                         Forms\Components\TextInput::make('cost_minor')
                             ->label(__('equipment::equipment.cost'))
                             ->numeric()
-                            ->prefix('EGP'),
+                            ->prefix(current_currency()),
                     ]),
 
                 Forms\Components\Grid::make(2)
@@ -78,7 +78,7 @@ class MaintenanceLogsRelationManager extends RelationManager
 
                 Tables\Columns\TextColumn::make('cost')
                     ->label(__('equipment::equipment.cost'))
-                    ->money('EGP'),
+                    ->money(current_currency()),
 
                 Tables\Columns\TextColumn::make('performed_at')
                     ->label(__('equipment::equipment.performed_at'))

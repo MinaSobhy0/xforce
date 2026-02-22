@@ -83,7 +83,7 @@ class SalaryStructureResource extends Resource
                                 Forms\Components\TextInput::make('currency')
                                     ->label(__('payroll::payroll.fields.currency'))
                                     ->maxLength(10)
-                                    ->default('EGP'),
+                                    ->default(fn () => current_currency()),
 
                                 Forms\Components\Toggle::make('is_active')
                                     ->label(__('payroll::payroll.fields.is_active'))

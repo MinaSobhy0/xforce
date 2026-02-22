@@ -141,19 +141,19 @@ class PayslipResource extends Resource
                     ->schema([
                         Infolists\Components\TextEntry::make('base_salary')
                             ->label(__('payroll::payroll.fields.base_salary'))
-                            ->money('EGP'),
+                            ->money(current_currency()),
 
                         Infolists\Components\TextEntry::make('commissions')
                             ->label(__('payroll::payroll.fields.commissions'))
-                            ->money('EGP'),
+                            ->money(current_currency()),
 
                         Infolists\Components\TextEntry::make('bonuses')
                             ->label(__('payroll::payroll.fields.bonuses'))
-                            ->money('EGP'),
+                            ->money(current_currency()),
 
                         Infolists\Components\TextEntry::make('gross_salary_minor')
                             ->label(__('payroll::payroll.fields.gross_salary'))
-                            ->formatStateUsing(fn ($state) => number_format($state / 100, 2) . ' EGP')
+                            ->formatStateUsing(fn ($state) => format_money($state))
                             ->weight('bold'),
                     ])->columns(4),
 
@@ -161,19 +161,19 @@ class PayslipResource extends Resource
                     ->schema([
                         Infolists\Components\TextEntry::make('deductions')
                             ->label(__('payroll::payroll.fields.deductions'))
-                            ->money('EGP'),
+                            ->money(current_currency()),
 
                         Infolists\Components\TextEntry::make('tax')
                             ->label(__('payroll::payroll.fields.tax'))
-                            ->money('EGP'),
+                            ->money(current_currency()),
 
                         Infolists\Components\TextEntry::make('social_insurance')
                             ->label(__('payroll::payroll.fields.social_insurance'))
-                            ->money('EGP'),
+                            ->money(current_currency()),
 
                         Infolists\Components\TextEntry::make('total_deductions_minor')
                             ->label(__('payroll::payroll.fields.total_deductions'))
-                            ->formatStateUsing(fn ($state) => number_format($state / 100, 2) . ' EGP')
+                            ->formatStateUsing(fn ($state) => format_money($state))
                             ->weight('bold'),
                     ])->columns(4),
 
@@ -181,7 +181,7 @@ class PayslipResource extends Resource
                     ->schema([
                         Infolists\Components\TextEntry::make('net_salary')
                             ->label(__('payroll::payroll.fields.net_salary'))
-                            ->money('EGP')
+                            ->money(current_currency())
                             ->size('lg')
                             ->weight('bold')
                             ->color('success'),
@@ -208,26 +208,26 @@ class PayslipResource extends Resource
 
                 Tables\Columns\TextColumn::make('base_salary')
                     ->label(__('payroll::payroll.fields.base_salary'))
-                    ->money('EGP')
+                    ->money(current_currency())
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('commissions')
                     ->label(__('payroll::payroll.fields.commissions'))
-                    ->money('EGP'),
+                    ->money(current_currency()),
 
                 Tables\Columns\TextColumn::make('bonuses')
                     ->label(__('payroll::payroll.fields.bonuses'))
-                    ->money('EGP')
+                    ->money(current_currency())
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('deductions')
                     ->label(__('payroll::payroll.fields.deductions'))
-                    ->money('EGP')
+                    ->money(current_currency())
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('net_salary')
                     ->label(__('payroll::payroll.fields.net_salary'))
-                    ->money('EGP')
+                    ->money(current_currency())
                     ->weight('bold')
                     ->sortable(),
 

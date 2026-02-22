@@ -84,7 +84,7 @@ class MembershipResource extends Resource
                                     ->label(__('memberships::memberships.fields.price_monthly'))
                                     ->required()
                                     ->numeric()
-                                    ->prefix(config('app.currency_symbol', 'EGP'))
+                                    ->prefix(current_currency())
                                     ->formatStateUsing(fn ($state) => $state ? $state / 100 : null)
                                     ->dehydrateStateUsing(fn ($state) => $state ? (int) ($state * 100) : 0),
 
@@ -92,7 +92,7 @@ class MembershipResource extends Resource
                                     ->label(__('memberships::memberships.fields.price_yearly'))
                                     ->required()
                                     ->numeric()
-                                    ->prefix(config('app.currency_symbol', 'EGP'))
+                                    ->prefix(current_currency())
                                     ->formatStateUsing(fn ($state) => $state ? $state / 100 : null)
                                     ->dehydrateStateUsing(fn ($state) => $state ? (int) ($state * 100) : 0),
                             ]),
@@ -167,13 +167,13 @@ class MembershipResource extends Resource
                 Tables\Columns\TextColumn::make('price_monthly_minor')
                     ->label(__('memberships::memberships.fields.monthly'))
                     ->formatStateUsing(fn ($state) => number_format($state / 100, 2))
-                    ->suffix(' ' . config('app.currency_symbol', 'EGP'))
+                    ->suffix(' ' . current_currency())
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('price_yearly_minor')
                     ->label(__('memberships::memberships.fields.yearly'))
                     ->formatStateUsing(fn ($state) => number_format($state / 100, 2))
-                    ->suffix(' ' . config('app.currency_symbol', 'EGP'))
+                    ->suffix(' ' . current_currency())
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('discount_percentage')

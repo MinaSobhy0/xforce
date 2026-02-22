@@ -84,7 +84,7 @@ class PackageResource extends Resource
                                     ->label(__('packages::packages.fields.price'))
                                     ->required()
                                     ->numeric()
-                                    ->prefix(config('app.currency_symbol', 'EGP'))
+                                    ->prefix(current_currency())
                                     ->formatStateUsing(fn ($state) => $state ? $state / 100 : null)
                                     ->dehydrateStateUsing(fn ($state) => $state ? (int) ($state * 100) : 0),
 
@@ -173,7 +173,7 @@ class PackageResource extends Resource
                 Tables\Columns\TextColumn::make('base_price_minor')
                     ->label(__('packages::packages.fields.price'))
                     ->formatStateUsing(fn ($state) => number_format($state / 100, 2))
-                    ->suffix(' ' . config('app.currency_symbol', 'EGP'))
+                    ->suffix(' ' . current_currency())
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('items_count')

@@ -59,7 +59,7 @@ class GiftCardResource extends Resource
                                     ->label(__('giftcards::giftcards.fields.value'))
                                     ->required()
                                     ->numeric()
-                                    ->prefix(config('app.currency_symbol', 'EGP'))
+                                    ->prefix(current_currency())
                                     ->formatStateUsing(fn ($state) => $state ? $state / 100 : null)
                                     ->dehydrateStateUsing(fn ($state) => $state ? (int) ($state * 100) : 0)
                                     ->disabled(fn ($record) => $record && !$record->isDraft()),
@@ -122,13 +122,13 @@ class GiftCardResource extends Resource
                 Tables\Columns\TextColumn::make('initial_value_minor')
                     ->label(__('giftcards::giftcards.fields.initial_value'))
                     ->formatStateUsing(fn ($state) => number_format($state / 100, 2))
-                    ->suffix(' ' . config('app.currency_symbol', 'EGP'))
+                    ->suffix(' ' . current_currency())
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('remaining_value_minor')
                     ->label(__('giftcards::giftcards.fields.remaining_value'))
                     ->formatStateUsing(fn ($state) => number_format($state / 100, 2))
-                    ->suffix(' ' . config('app.currency_symbol', 'EGP'))
+                    ->suffix(' ' . current_currency())
                     ->color(fn (GiftCard $record) => $record->remaining_value_minor > 0 ? 'success' : 'gray'),
 
                 Tables\Columns\TextColumn::make('status')
@@ -202,7 +202,7 @@ class GiftCardResource extends Resource
                             ->label(__('giftcards::giftcards.fields.amount'))
                             ->required()
                             ->numeric()
-                            ->prefix(config('app.currency_symbol', 'EGP'))
+                            ->prefix(current_currency())
                             ->default(fn (GiftCard $record) => $record->remaining_value_minor / 100),
 
                         Forms\Components\Textarea::make('notes')

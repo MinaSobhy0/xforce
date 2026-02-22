@@ -108,7 +108,7 @@ class ChartOfAccountResource extends Resource
                 Tables\Columns\TextColumn::make('balance_minor')
                     ->label('Balance')
                     ->formatStateUsing(fn ($state) => number_format($state / 100, 2))
-                    ->suffix(' ' . config('app.currency_symbol', 'EGP'))
+                    ->suffix(' ' . current_currency())
                     ->alignEnd(),
 
                 Tables\Columns\IconColumn::make('is_active')

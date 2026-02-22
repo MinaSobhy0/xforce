@@ -42,12 +42,12 @@ class CommissionsRelationManager extends RelationManager
 
                 Tables\Columns\TextColumn::make('source_amount_minor')
                     ->label(__('staff::staff.fields.revenue'))
-                    ->money('EGP', divideBy: 100)
+                    ->money(current_currency(), divideBy: 100)
                     ->alignEnd(),
 
                 Tables\Columns\TextColumn::make('amount_minor')
                     ->label(__('staff::staff.fields.commission'))
-                    ->money('EGP', divideBy: 100)
+                    ->money(current_currency(), divideBy: 100)
                     ->alignEnd()
                     ->weight('bold'),
 

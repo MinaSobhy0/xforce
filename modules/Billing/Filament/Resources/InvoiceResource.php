@@ -139,7 +139,7 @@ class InvoiceResource extends Resource
                                             ->label('Unit Price')
                                             ->numeric()
                                             ->required()
-                                            ->prefix(config('app.currency_symbol', 'EGP'))
+                                            ->prefix(current_currency())
                                             ->formatStateUsing(fn ($state) => $state ? $state / 100 : null)
                                             ->dehydrateStateUsing(fn ($state) => $state ? (int) ($state * 100) : 0),
 
@@ -181,7 +181,7 @@ class InvoiceResource extends Resource
                                 Forms\Components\Placeholder::make('subtotal_display')
                                     ->label('Subtotal')
                                     ->content(fn (?Invoice $record) => $record
-                                        ? number_format($record->subtotal_minor / 100, 2) . ' ' . config('app.currency_symbol', 'EGP')
+                                        ? format_money($record->subtotal_minor)
                                         : '-'),
 
                                 Forms\Components\TextInput::make('discount_minor')
@@ -190,7 +190,7 @@ class InvoiceResource extends Resource
                                     ->default(0)
                                     ->formatStateUsing(fn ($state) => $state ? $state / 100 : 0)
                                     ->dehydrateStateUsing(fn ($state) => $state ? (int) ($state * 100) : 0)
-                                    ->prefix(config('app.currency_symbol', 'EGP')),
+                                    ->prefix(current_currency()),
 
                                 Forms\Components\Select::make('discount_type')
                                     ->options([
@@ -202,13 +202,13 @@ class InvoiceResource extends Resource
                                 Forms\Components\Placeholder::make('tax_display')
                                     ->label('Tax')
                                     ->content(fn (?Invoice $record) => $record
-                                        ? number_format($record->tax_minor / 100, 2) . ' ' . config('app.currency_symbol', 'EGP')
+                                        ? format_money($record->tax_minor)
                                         : '-'),
 
                                 Forms\Components\Placeholder::make('total_display')
                                     ->label('Total')
                                     ->content(fn (?Invoice $record) => $record
-                                        ? number_format($record->total_minor / 100, 2) . ' ' . config('app.currency_symbol', 'EGP')
+                                        ? format_money($record->total_minor)
                                         : '-'),
                             ]),
 
@@ -252,20 +252,20 @@ class InvoiceResource extends Resource
                 Tables\Columns\TextColumn::make('total_minor')
                     ->label('Total')
                     ->formatStateUsing(fn ($state) => number_format($state / 100, 2))
-                    ->suffix(' ' . config('app.currency_symbol', 'EGP'))
+                    ->suffix(' ' . current_currency())
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('paid_minor')
                     ->label('Paid')
                     ->formatStateUsing(fn ($state) => number_format($state / 100, 2))
-                    ->suffix(' ' . config('app.currency_symbol', 'EGP'))
+                    ->suffix(' ' . current_currency())
                     ->sortable()
                     ->color(fn (Invoice $record) => $record->isPaid() ? 'success' : 'warning'),
 
                 Tables\Columns\TextColumn::make('remaining_minor')
                     ->label('Remaining')
                     ->formatStateUsing(fn ($state) => number_format($state / 100, 2))
-                    ->suffix(' ' . config('app.currency_symbol', 'EGP'))
+                    ->suffix(' ' . current_currency())
                     ->color(fn ($state) => $state > 0 ? 'danger' : 'success'),
 
                 Tables\Columns\BadgeColumn::make('status')
@@ -397,29 +397,29 @@ class InvoiceResource extends Resource
                     ->schema([
                         Infolists\Components\TextEntry::make('subtotal_minor')
                             ->label('Subtotal')
-                            ->formatStateUsing(fn ($state) => number_format($state / 100, 2) . ' ' . config('app.currency_symbol', 'EGP')),
+                            ->formatStateUsing(fn ($state) => format_money($state)),
 
                         Infolists\Components\TextEntry::make('discount_minor')
                             ->label('Discount')
-                            ->formatStateUsing(fn ($state) => number_format($state / 100, 2) . ' ' . config('app.currency_symbol', 'EGP')),
+                            ->formatStateUsing(fn ($state) => format_money($state)),
 
                         Infolists\Components\TextEntry::make('tax_minor')
                             ->label('Tax')
-                            ->formatStateUsing(fn ($state) => number_format($state / 100, 2) . ' ' . config('app.currency_symbol', 'EGP')),
+                            ->formatStateUsing(fn ($state) => format_money($state)),
 
                         Infolists\Components\TextEntry::make('total_minor')
                             ->label('Total')
-                            ->formatStateUsing(fn ($state) => number_format($state / 100, 2) . ' ' . config('app.currency_symbol', 'EGP'))
+                            ->formatStateUsing(fn ($state) => format_money($state))
                             ->weight(FontWeight::Bold),
 
                         Infolists\Components\TextEntry::make('paid_minor')
                             ->label('Paid')
-                            ->formatStateUsing(fn ($state) => number_format($state / 100, 2) . ' ' . config('app.currency_symbol', 'EGP'))
+                            ->formatStateUsing(fn ($state) => format_money($state))
                             ->color('success'),
 
                         Infolists\Components\TextEntry::make('remaining_minor')
                             ->label('Remaining')
-                            ->formatStateUsing(fn ($state) => number_format($state / 100, 2) . ' ' . config('app.currency_symbol', 'EGP'))
+                            ->formatStateUsing(fn ($state) => format_money($state))
                             ->color(fn ($state) => $state > 0 ? 'danger' : 'success'),
                     ])
                     ->columns(3),
@@ -491,7 +491,7 @@ class InvoiceResource extends Resource
     {
         return [
             'Patient' => $record->patient?->full_name,
-            'Total' => number_format($record->total_minor / 100, 2) . ' ' . config('app.currency_symbol', 'EGP'),
+            'Total' => format_money($record->total_minor),
         ];
     }
 }

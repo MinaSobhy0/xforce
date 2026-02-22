@@ -124,7 +124,7 @@ class AppointmentResource extends Resource
                                     Forms\Components\TextInput::make('price_minor')
                                         ->label(__('booking::appointments.fields.price'))
                                         ->numeric()
-                                        ->prefix('EGP')
+                                        ->prefix(current_currency())
                                         ->required()
                                         ->default(0),
                                 ]),
@@ -132,7 +132,7 @@ class AppointmentResource extends Resource
                             Forms\Components\TextInput::make('discount_minor')
                                 ->label(__('booking::appointments.fields.discount'))
                                 ->numeric()
-                                ->prefix('EGP')
+                                ->prefix(current_currency())
                                 ->default(0),
                         ]),
 
@@ -489,15 +489,15 @@ class AppointmentResource extends Resource
                             ->schema([
                                 Infolists\Components\TextEntry::make('price_minor')
                                     ->label(__('booking::appointments.fields.price'))
-                                    ->money('EGP', divideBy: 100),
+                                    ->money(current_currency(), divideBy: 100),
 
                                 Infolists\Components\TextEntry::make('discount_minor')
                                     ->label(__('booking::appointments.fields.discount'))
-                                    ->money('EGP', divideBy: 100),
+                                    ->money(current_currency(), divideBy: 100),
 
                                 Infolists\Components\TextEntry::make('net_price')
                                     ->label(__('booking::appointments.fields.net_price'))
-                                    ->money('EGP', divideBy: 100),
+                                    ->money(current_currency(), divideBy: 100),
                             ]),
                     ]),
 

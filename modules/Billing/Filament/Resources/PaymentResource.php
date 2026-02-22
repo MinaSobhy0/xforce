@@ -50,7 +50,7 @@ class PaymentResource extends Resource
                 Forms\Components\TextInput::make('amount_minor')
                     ->label('Amount')
                     ->formatStateUsing(fn ($state) => $state ? number_format($state / 100, 2) : 0)
-                    ->suffix(config('app.currency_symbol', 'EGP'))
+                    ->suffix(current_currency())
                     ->disabled(),
 
                 Forms\Components\Select::make('journal_id')
@@ -93,8 +93,7 @@ class PaymentResource extends Resource
 
                 Tables\Columns\TextColumn::make('amount_minor')
                     ->label('Amount')
-                    ->formatStateUsing(fn ($state) => number_format($state / 100, 2))
-                    ->suffix(' ' . config('app.currency_symbol', 'EGP'))
+                    ->formatStateUsing(fn ($state) => format_money($state))
                     ->sortable()
                     ->weight(FontWeight::Bold),
 
