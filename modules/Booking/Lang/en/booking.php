@@ -23,7 +23,7 @@ return [
         'schedule' => 'Schedule',
         'schedule_desc' => 'Select date and find available time slots',
         'notes' => 'Additional Notes',
-        'booking_cart' => 'Booking Cart',
+        'booking_cart' => 'Selected Appointments',
         'active_packages' => 'Active Packages',
         'purchase_package' => 'Purchase New Package',
     ],
@@ -74,13 +74,6 @@ return [
         'summary' => 'Booking Summary',
         'notes' => 'Notes',
         'source' => 'Booking Source',
-    ],
-
-    // Sections
-    'sections' => [
-        'active_packages' => 'Active Packages',
-        'purchase_package' => 'Purchase New Package',
-        'booking_cart' => 'Selected Appointments',
     ],
 
     // Labels

@@ -23,7 +23,7 @@ return [
         'schedule' => 'الجدول',
         'schedule_desc' => 'اختر التاريخ وابحث عن الأوقات المتاحة',
         'notes' => 'ملاحظات إضافية',
-        'booking_cart' => 'سلة الحجز',
+        'booking_cart' => 'المواعيد المحددة',
         'active_packages' => 'الباقات النشطة',
         'purchase_package' => 'شراء باقة جديدة',
     ],
@@ -74,13 +74,6 @@ return [
         'summary' => 'ملخص الحجز',
         'notes' => 'ملاحظات',
         'source' => 'مصدر الحجز',
-    ],
-
-    // Sections
-    'sections' => [
-        'active_packages' => 'الباقات النشطة',
-        'purchase_package' => 'شراء باقة جديدة',
-        'booking_cart' => 'المواعيد المحددة',
     ],
 
     // Labels
