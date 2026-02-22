@@ -116,7 +116,7 @@ class StaffProfile extends BaseModel
      */
     public function scheduleAssignments(): HasMany
     {
-        return $this->hasMany(PractitionerScheduleAssignment::class, 'user_id', 'user_id');
+        return $this->hasMany(PractitionerScheduleAssignment::class, 'staff_profile_id');
     }
 
     /**

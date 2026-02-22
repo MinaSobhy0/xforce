@@ -2,16 +2,16 @@
 
 namespace Modules\Auth\Filament\Resources\RoleResource\Pages;
 
+use App\Filament\Resources\Pages\BaseEditRecord;
 use Filament\Actions;
-use Filament\Resources\Pages\EditRecord;
 use Modules\Auth\Filament\Resources\RoleResource;
 use Spatie\Permission\Models\Permission;
 
-class EditRole extends EditRecord
+class EditRole extends BaseEditRecord
 {
     protected static string $resource = RoleResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getEditHeaderActions(): array
     {
         return [
             Actions\DeleteAction::make()
