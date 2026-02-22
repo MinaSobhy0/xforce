@@ -14,7 +14,7 @@ class CategoryTreePage extends Page
 {
     protected static ?string $navigationIcon = 'heroicon-o-folder-open';
 
-    protected static ?string $navigationGroup = 'Services';
+    protected static ?string $navigationGroup = 'Inventory';
 
     protected static ?int $navigationSort = 0;
 

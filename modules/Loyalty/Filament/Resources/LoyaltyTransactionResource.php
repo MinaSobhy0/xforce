@@ -21,7 +21,7 @@ class LoyaltyTransactionResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-arrow-path';
 
-    protected static ?string $navigationGroup = 'Sales';
+    protected static ?string $navigationGroup = 'Marketing';
 
     protected static ?int $navigationSort = 56;
 

@@ -23,7 +23,7 @@ class LoyaltyRuleResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-gift';
 
-    protected static ?string $navigationGroup = 'Sales';
+    protected static ?string $navigationGroup = 'Marketing';
 
     protected static ?int $navigationSort = 55;
 
