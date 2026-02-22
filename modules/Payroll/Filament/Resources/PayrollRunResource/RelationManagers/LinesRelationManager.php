@@ -12,6 +12,7 @@ use Filament\Tables\Table;
 use Filament\Notifications\Notification;
 use Modules\Payroll\Models\PayrollLine;
 use Modules\Payroll\Models\PayrollRun;
+use Modules\Payroll\Services\PayrollCalculationService;
 use Modules\Staff\Models\StaffProfile;
 
 class LinesRelationManager extends RelationManager
@@ -290,6 +291,24 @@ class LinesRelationManager extends RelationManager
                         unset($data['deductions'], $data['tax'], $data['social_insurance']);
 
                         return $data;
+                    }),
+
+                Tables\Actions\Action::make('recalculate')
+                    ->label(__('payroll::payroll.actions.recalculate'))
+                    ->icon('heroicon-o-calculator')
+                    ->color('warning')
+                    ->visible(fn () => $this->ownerRecord->isEditable())
+                    ->requiresConfirmation()
+                    ->modalHeading(__('payroll::payroll.actions.recalculate'))
+                    ->modalDescription(__('payroll::payroll.messages.recalculate_single_confirm'))
+                    ->action(function (PayrollLine $record) {
+                        $service = app(PayrollCalculationService::class);
+                        $service->recalculatePayslip($record);
+
+                        Notification::make()
+                            ->title(__('payroll::payroll.messages.payslip_recalculated'))
+                            ->success()
+                            ->send();
                     }),
 
                 Tables\Actions\Action::make('download_pdf')

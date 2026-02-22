@@ -186,6 +186,8 @@ return [
         'cannot_delete_current' => 'Cannot delete the current salary structure. Mark another as current first.',
         'made_current' => 'Salary structure marked as current',
         'no_rule' => 'No salary rule linked',
+        'recalculate_single_confirm' => 'This will recalculate this payslip based on the employee\'s current salary structure and components. Any manual adjustments will be overwritten. Continue?',
+        'payslip_recalculated' => 'Payslip recalculated successfully',
     ],
 
     'help' => [
