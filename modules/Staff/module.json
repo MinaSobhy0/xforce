@@ -2,11 +2,85 @@
     "name": "Staff",
     "alias": "staff",
     "description": "Staff management - profiles, commissions, and performance tracking",
-    "keywords": ["staff", "commissions", "hr", "employees"],
-    "priority": 0,
+    "version": "1.0.0",
+    "category": "hr",
+    "icon": "heroicon-o-user-group",
+    "keywords": ["staff", "commissions", "hr", "employees", "performance"],
+    "priority": 50,
     "providers": [
         "Modules\\Staff\\Providers\\StaffServiceProvider",
         "Modules\\Staff\\Providers\\RouteServiceProvider"
     ],
-    "files": []
+    "dependencies": ["Core", "Auth"],
+    "optional_dependencies": ["Services", "Billing"],
+    "models": [
+        "Modules\\Staff\\Models\\StaffProfile",
+        "Modules\\Staff\\Models\\CommissionPlan",
+        "Modules\\Staff\\Models\\CommissionPlanRule",
+        "Modules\\Staff\\Models\\StaffCommission",
+        "Modules\\Staff\\Models\\StaffCommissionRecord"
+    ],
+    "permissions": {
+        "staff_profiles.view_any": "View staff profiles list",
+        "staff_profiles.view": "View staff profile details",
+        "staff_profiles.create": "Create staff profiles",
+        "staff_profiles.update": "Update staff profiles",
+        "staff_profiles.delete": "Delete staff profiles",
+        "commission_plans.view_any": "View commission plans",
+        "commission_plans.view": "View commission plan details",
+        "commission_plans.create": "Create commission plans",
+        "commission_plans.update": "Update commission plans",
+        "commission_plans.delete": "Delete commission plans",
+        "commissions.view_any": "View commission records",
+        "commissions.view": "View commission details",
+        "commissions.manage": "Manage commissions",
+        "staff.reports": "View staff reports"
+    },
+    "default_role_permissions": {
+        "admin": ["staff_profiles.*", "commission_plans.*", "commissions.*", "staff.reports"],
+        "manager": ["staff_profiles.view_any", "staff_profiles.view", "commission_plans.view_any", "commissions.view_any", "staff.reports"],
+        "hr": ["staff_profiles.*", "commission_plans.*", "commissions.*", "staff.reports"],
+        "accountant": ["staff_profiles.view_any", "commissions.view_any", "staff.reports"]
+    },
+    "navigation": [
+        {
+            "id": "staff_profiles",
+            "label": {"en": "Staff Profiles", "ar": "ملفات الموظفين"},
+            "icon": "heroicon-o-user-group",
+            "route": "filament.tenant.resources.staff-profiles.index",
+            "group": "hr",
+            "order": 40,
+            "permission": "staff_profiles.view_any"
+        },
+        {
+            "id": "commission_plans",
+            "label": {"en": "Commission Plans", "ar": "خطط العمولات"},
+            "icon": "heroicon-o-currency-dollar",
+            "route": "filament.tenant.resources.commission-plans.index",
+            "group": "hr",
+            "order": 41,
+            "permission": "commission_plans.view_any"
+        }
+    ],
+    "settings": {
+        "staff.default_commission_type": {
+            "type": "select",
+            "options": ["percentage", "flat", "tiered"],
+            "default": "percentage",
+            "label": {"en": "Default Commission Type", "ar": "نوع العمولة الافتراضي"}
+        },
+        "staff.commission_pay_period": {
+            "type": "select",
+            "options": ["weekly", "bi-weekly", "monthly"],
+            "default": "monthly",
+            "label": {"en": "Commission Pay Period", "ar": "فترة دفع العمولة"}
+        }
+    },
+    "events": [
+        "StaffProfileCreated",
+        "StaffProfileUpdated",
+        "CommissionEarned",
+        "CommissionPaid"
+    ],
+    "active": true
 }

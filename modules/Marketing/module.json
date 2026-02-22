@@ -2,14 +2,112 @@
     "name": "Marketing",
     "alias": "marketing",
     "description": "Marketing automation with WhatsApp, SMS, and Email campaigns",
-    "keywords": ["marketing", "whatsapp", "sms", "email", "campaigns", "notifications"],
-    "priority": 7,
+    "version": "1.0.0",
+    "category": "marketing",
+    "icon": "heroicon-o-megaphone",
+    "keywords": ["marketing", "whatsapp", "sms", "email", "campaigns", "notifications", "automation"],
+    "priority": 45,
     "providers": [
         "Modules\\Marketing\\Providers\\MarketingServiceProvider",
         "Modules\\Marketing\\Providers\\EventServiceProvider",
         "Modules\\Marketing\\Providers\\RouteServiceProvider"
     ],
-    "files": [],
-    "dependencies": ["Core", "Patients", "Booking"],
-    "tenant_module": true
+    "dependencies": ["Core", "Auth", "Patients"],
+    "optional_dependencies": ["Booking", "Billing"],
+    "tenant_module": true,
+    "models": [
+        "Modules\\Marketing\\Models\\Campaign",
+        "Modules\\Marketing\\Models\\CampaignRecipient",
+        "Modules\\Marketing\\Models\\MessageTemplate",
+        "Modules\\Marketing\\Models\\AutomationRule",
+        "Modules\\Marketing\\Models\\NotificationLog"
+    ],
+    "permissions": {
+        "campaigns.view_any": "View campaigns list",
+        "campaigns.view": "View campaign details",
+        "campaigns.create": "Create campaigns",
+        "campaigns.update": "Update campaigns",
+        "campaigns.delete": "Delete campaigns",
+        "campaigns.send": "Send campaigns",
+        "templates.view_any": "View message templates",
+        "templates.manage": "Manage message templates",
+        "automation.view_any": "View automation rules",
+        "automation.manage": "Manage automation rules",
+        "notifications.view_logs": "View notification logs",
+        "marketing.reports": "View marketing reports"
+    },
+    "default_role_permissions": {
+        "admin": ["campaigns.*", "templates.*", "automation.*", "notifications.*", "marketing.reports"],
+        "manager": ["campaigns.*", "templates.*", "automation.*", "notifications.*", "marketing.reports"],
+        "receptionist": ["campaigns.view_any", "templates.view_any"]
+    },
+    "navigation": [
+        {
+            "id": "campaigns",
+            "label": {"en": "Campaigns", "ar": "الحملات"},
+            "icon": "heroicon-o-megaphone",
+            "route": "filament.tenant.resources.campaigns.index",
+            "group": "marketing",
+            "order": 70,
+            "permission": "campaigns.view_any"
+        },
+        {
+            "id": "message_templates",
+            "label": {"en": "Templates", "ar": "القوالب"},
+            "icon": "heroicon-o-document-text",
+            "route": "filament.tenant.resources.message-templates.index",
+            "group": "marketing",
+            "order": 71,
+            "permission": "templates.view_any"
+        },
+        {
+            "id": "automation_rules",
+            "label": {"en": "Automation", "ar": "الأتمتة"},
+            "icon": "heroicon-o-cog-6-tooth",
+            "route": "filament.tenant.resources.automation-rules.index",
+            "group": "marketing",
+            "order": 72,
+            "permission": "automation.view_any"
+        },
+        {
+            "id": "notification_logs",
+            "label": {"en": "Notification Logs", "ar": "سجل الإشعارات"},
+            "icon": "heroicon-o-bell",
+            "route": "filament.tenant.resources.notification-logs.index",
+            "group": "marketing",
+            "order": 73,
+            "permission": "notifications.view_logs"
+        }
+    ],
+    "settings": {
+        "marketing.whatsapp_enabled": {
+            "type": "boolean",
+            "default": true,
+            "label": {"en": "Enable WhatsApp", "ar": "تفعيل واتساب"}
+        },
+        "marketing.sms_enabled": {
+            "type": "boolean",
+            "default": true,
+            "label": {"en": "Enable SMS", "ar": "تفعيل الرسائل النصية"}
+        },
+        "marketing.email_enabled": {
+            "type": "boolean",
+            "default": true,
+            "label": {"en": "Enable Email", "ar": "تفعيل البريد الإلكتروني"}
+        },
+        "marketing.daily_message_limit": {
+            "type": "integer",
+            "default": 1000,
+            "label": {"en": "Daily Message Limit", "ar": "حد الرسائل اليومي"}
+        }
+    },
+    "events": [
+        "CampaignCreated",
+        "CampaignSent",
+        "CampaignCompleted",
+        "MessageSent",
+        "MessageDelivered",
+        "MessageFailed"
+    ],
+    "active": true
 }

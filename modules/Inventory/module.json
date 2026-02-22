@@ -2,11 +2,130 @@
     "name": "Inventory",
     "alias": "inventory",
     "description": "Inventory management - products, stock, suppliers, and purchase orders",
+    "version": "1.0.0",
+    "category": "operations",
+    "icon": "heroicon-o-cube",
     "keywords": ["inventory", "stock", "products", "suppliers", "purchase-orders"],
-    "priority": 0,
+    "priority": 25,
     "providers": [
         "Modules\\Inventory\\Providers\\InventoryServiceProvider",
         "Modules\\Inventory\\Providers\\RouteServiceProvider"
     ],
-    "files": []
+    "dependencies": ["Core", "Auth"],
+    "optional_dependencies": ["Billing"],
+    "models": [
+        "Modules\\Inventory\\Models\\Product",
+        "Modules\\Inventory\\Models\\ProductCategory",
+        "Modules\\Inventory\\Models\\Supplier",
+        "Modules\\Inventory\\Models\\PurchaseOrder",
+        "Modules\\Inventory\\Models\\PurchaseOrderLine",
+        "Modules\\Inventory\\Models\\StockLevel",
+        "Modules\\Inventory\\Models\\StockMovement"
+    ],
+    "permissions": {
+        "products.view_any": "View products list",
+        "products.view": "View product details",
+        "products.create": "Create products",
+        "products.update": "Update products",
+        "products.delete": "Delete products",
+        "product_categories.view_any": "View product categories",
+        "product_categories.manage": "Manage product categories",
+        "suppliers.view_any": "View suppliers",
+        "suppliers.view": "View supplier details",
+        "suppliers.create": "Create suppliers",
+        "suppliers.update": "Update suppliers",
+        "suppliers.delete": "Delete suppliers",
+        "purchase_orders.view_any": "View purchase orders",
+        "purchase_orders.view": "View purchase order details",
+        "purchase_orders.create": "Create purchase orders",
+        "purchase_orders.update": "Update purchase orders",
+        "purchase_orders.approve": "Approve purchase orders",
+        "purchase_orders.receive": "Receive purchase orders",
+        "stock.view": "View stock levels",
+        "stock.adjust": "Adjust stock",
+        "stock.transfer": "Transfer stock",
+        "inventory.reports": "View inventory reports"
+    },
+    "default_role_permissions": {
+        "admin": ["products.*", "product_categories.*", "suppliers.*", "purchase_orders.*", "stock.*", "inventory.reports"],
+        "manager": ["products.*", "product_categories.*", "suppliers.*", "purchase_orders.*", "stock.*", "inventory.reports"],
+        "accountant": ["products.view_any", "suppliers.view_any", "purchase_orders.view_any", "inventory.reports"],
+        "staff": ["products.view_any", "stock.view"]
+    },
+    "navigation": [
+        {
+            "id": "products",
+            "label": {"en": "Products", "ar": "المنتجات"},
+            "icon": "heroicon-o-cube",
+            "route": "filament.tenant.resources.products.index",
+            "group": "inventory",
+            "order": 30,
+            "permission": "products.view_any"
+        },
+        {
+            "id": "suppliers",
+            "label": {"en": "Suppliers", "ar": "الموردون"},
+            "icon": "heroicon-o-truck",
+            "route": "filament.tenant.resources.suppliers.index",
+            "group": "inventory",
+            "order": 31,
+            "permission": "suppliers.view_any"
+        },
+        {
+            "id": "purchase_orders",
+            "label": {"en": "Purchase Orders", "ar": "أوامر الشراء"},
+            "icon": "heroicon-o-clipboard-document-list",
+            "route": "filament.tenant.resources.purchase-orders.index",
+            "group": "inventory",
+            "order": 32,
+            "permission": "purchase_orders.view_any"
+        },
+        {
+            "id": "stock_levels",
+            "label": {"en": "Stock Levels", "ar": "مستويات المخزون"},
+            "icon": "heroicon-o-chart-bar",
+            "route": "filament.tenant.resources.stock-levels.index",
+            "group": "inventory",
+            "order": 33,
+            "permission": "stock.view"
+        }
+    ],
+    "settings": {
+        "inventory.low_stock_threshold": {
+            "type": "integer",
+            "default": 10,
+            "label": {"en": "Low Stock Alert Threshold", "ar": "حد تنبيه انخفاض المخزون"}
+        },
+        "inventory.auto_reorder": {
+            "type": "boolean",
+            "default": false,
+            "label": {"en": "Enable Auto-reorder", "ar": "تفعيل إعادة الطلب التلقائي"}
+        },
+        "inventory.track_expiry": {
+            "type": "boolean",
+            "default": true,
+            "label": {"en": "Track Product Expiry", "ar": "تتبع انتهاء صلاحية المنتج"}
+        }
+    },
+    "sequences": [
+        {
+            "code": "purchase_order",
+            "prefix": "PO-",
+            "padding": 6
+        },
+        {
+            "code": "product",
+            "prefix": "PRD-",
+            "padding": 6
+        }
+    ],
+    "events": [
+        "ProductCreated",
+        "PurchaseOrderCreated",
+        "PurchaseOrderApproved",
+        "PurchaseOrderReceived",
+        "StockLow",
+        "StockAdjusted"
+    ],
+    "active": true
 }

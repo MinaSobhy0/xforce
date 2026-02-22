@@ -2,10 +2,63 @@
     "name": "Memberships",
     "alias": "memberships",
     "description": "Membership tiers with discounts and priority booking",
-    "keywords": ["memberships", "subscriptions", "tiers"],
+    "version": "1.0.0",
+    "category": "marketing",
+    "icon": "heroicon-o-identification",
+    "keywords": ["memberships", "subscriptions", "tiers", "vip"],
     "priority": 52,
     "providers": [
-        "Modules\\Memberships\\Providers\\MembershipsServiceProvider"
+        "Modules\\Memberships\\Providers\\MembershipsServiceProvider",
+        "Modules\\Memberships\\Providers\\RouteServiceProvider"
     ],
-    "files": []
+    "dependencies": ["Core", "Auth", "Patients"],
+    "optional_dependencies": ["Billing", "Booking"],
+    "models": [
+        "Modules\\Memberships\\Models\\Membership",
+        "Modules\\Memberships\\Models\\MembershipSubscription"
+    ],
+    "permissions": {
+        "memberships.view_any": "View memberships list",
+        "memberships.view": "View membership details",
+        "memberships.create": "Create memberships",
+        "memberships.update": "Update memberships",
+        "memberships.delete": "Delete memberships",
+        "subscriptions.view_any": "View subscriptions",
+        "subscriptions.manage": "Manage subscriptions"
+    },
+    "default_role_permissions": {
+        "admin": ["memberships.*", "subscriptions.*"],
+        "manager": ["memberships.*", "subscriptions.*"],
+        "receptionist": ["memberships.view_any", "memberships.view", "subscriptions.view_any", "subscriptions.manage"]
+    },
+    "navigation": [
+        {
+            "id": "memberships",
+            "label": {"en": "Memberships", "ar": "العضويات"},
+            "icon": "heroicon-o-identification",
+            "route": "filament.tenant.resources.memberships.index",
+            "group": "marketing",
+            "order": 62,
+            "permission": "memberships.view_any"
+        }
+    ],
+    "settings": {
+        "memberships.allow_multiple": {
+            "type": "boolean",
+            "default": false,
+            "label": {"en": "Allow Multiple Active Memberships", "ar": "السماح بعضويات متعددة نشطة"}
+        },
+        "memberships.auto_renew_default": {
+            "type": "boolean",
+            "default": true,
+            "label": {"en": "Auto-renew by Default", "ar": "التجديد التلقائي افتراضياً"}
+        }
+    },
+    "events": [
+        "MembershipCreated",
+        "SubscriptionCreated",
+        "SubscriptionExpired",
+        "SubscriptionRenewed"
+    ],
+    "active": true
 }

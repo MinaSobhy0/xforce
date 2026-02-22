@@ -2,6 +2,7 @@
 
 namespace Modules\Core\Filament\Resources;
 
+use App\Traits\ChecksResourcePermissions;
 use Modules\Core\Filament\Resources\RoomResource\Pages;
 use Modules\Core\Models\Room;
 use Modules\Core\Models\Branch;
@@ -16,9 +17,14 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class RoomResource extends Resource
 {
+    use ChecksResourcePermissions;
     use Translatable;
 
     protected static ?string $model = Room::class;
+
+    protected static ?string $moduleCode = 'core';
+
+    protected static ?string $permissionKey = 'rooms';
 
     protected static ?string $navigationIcon = 'heroicon-o-cube';
 

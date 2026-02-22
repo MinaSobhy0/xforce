@@ -2,6 +2,7 @@
 
 namespace Modules\Core\Filament\Resources;
 
+use App\Traits\ChecksResourcePermissions;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -12,6 +13,12 @@ use XLinic\Framework\Core\Module\ModuleRegistry;
 
 class ModuleManagementResource extends Resource
 {
+    use ChecksResourcePermissions;
+
+    protected static ?string $moduleCode = 'core';
+
+    protected static ?string $permissionKey = 'modules';
+
     protected static ?string $navigationIcon = 'heroicon-o-puzzle-piece';
     protected static ?string $navigationGroup = 'Settings';
     protected static ?int $navigationSort = 80;

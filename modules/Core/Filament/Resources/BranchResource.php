@@ -2,6 +2,7 @@
 
 namespace Modules\Core\Filament\Resources;
 
+use App\Traits\ChecksResourcePermissions;
 use Modules\Core\Filament\Resources\BranchResource\Pages;
 use Modules\Core\Filament\Resources\BranchResource\RelationManagers;
 use Modules\Core\Filament\Resources\BranchResource\Widgets;
@@ -15,7 +16,13 @@ use Illuminate\Database\Eloquent\Builder;
 
 class BranchResource extends Resource
 {
+    use ChecksResourcePermissions;
+
     protected static ?string $model = Branch::class;
+
+    protected static ?string $moduleCode = 'core';
+
+    protected static ?string $permissionKey = 'branches';
 
     protected static ?string $navigationIcon = 'heroicon-o-building-office-2';
 

@@ -2,11 +2,50 @@
     "name": "PatientPortal",
     "alias": "patientportal",
     "description": "Self-service patient portal with appointment booking, invoices, and loyalty",
-    "keywords": ["portal", "patient", "self-service", "booking"],
+    "version": "1.0.0",
+    "category": "patient",
+    "icon": "heroicon-o-device-phone-mobile",
+    "keywords": ["portal", "patient", "self-service", "booking", "mobile"],
     "priority": 54,
     "providers": [
         "Modules\\PatientPortal\\Providers\\PatientPortalServiceProvider",
         "Modules\\PatientPortal\\Providers\\PortalPanelProvider"
     ],
-    "files": []
+    "dependencies": ["Core", "Auth", "Patients"],
+    "optional_dependencies": ["Booking", "Billing", "Loyalty", "GiftCards"],
+    "models": [
+        "Modules\\PatientPortal\\Models\\PortalSession"
+    ],
+    "permissions": {
+        "portal.access": "Access patient portal",
+        "portal.manage_settings": "Manage portal settings",
+        "portal.view_analytics": "View portal analytics"
+    },
+    "default_role_permissions": {
+        "admin": ["portal.*"],
+        "manager": ["portal.view_analytics"]
+    },
+    "settings": {
+        "portal.enable_booking": {
+            "type": "boolean",
+            "default": true,
+            "label": {"en": "Enable Online Booking", "ar": "تفعيل الحجز عبر الإنترنت"}
+        },
+        "portal.enable_invoices": {
+            "type": "boolean",
+            "default": true,
+            "label": {"en": "Show Invoices", "ar": "عرض الفواتير"}
+        },
+        "portal.enable_loyalty": {
+            "type": "boolean",
+            "default": true,
+            "label": {"en": "Show Loyalty Points", "ar": "عرض نقاط الولاء"}
+        },
+        "portal.otp_length": {
+            "type": "integer",
+            "default": 6,
+            "label": {"en": "OTP Length", "ar": "طول رمز التحقق"}
+        }
+    },
+    "active": true
 }

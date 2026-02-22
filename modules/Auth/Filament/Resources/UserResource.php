@@ -26,6 +26,7 @@ class UserResource extends BaseResource
     protected static ?string $navigationGroup = 'Settings';
     protected static ?int $navigationSort = 1;
     protected static ?string $moduleCode = 'auth';
+    protected static ?string $permissionKey = 'users';
 
     public static function getNavigationLabel(): string
     {

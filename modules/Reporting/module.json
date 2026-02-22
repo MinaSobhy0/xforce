@@ -5,7 +5,8 @@
     "keywords": ["reports", "analytics", "charts", "exports", "statistics"],
     "priority": 54,
     "providers": [
-        "Modules\\Reporting\\Providers\\ReportingServiceProvider"
+        "Modules\\Reporting\\Providers\\ReportingServiceProvider",
+        "Modules\\Reporting\\Providers\\RouteServiceProvider"
     ],
     "files": []
 }
