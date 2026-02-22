@@ -133,12 +133,16 @@ class SlotGenerationService
                 continue;
             }
 
-            // Map StaffProfile to practitioner data (convert to array for JSON serialization)
-            $practitionerData = $availablePractitioners->map(fn($staffProfile) => [
-                'id' => $staffProfile->user_id, // User ID for appointments
-                'staff_profile_id' => $staffProfile->id,
-                'name' => $staffProfile->user?->name ?? $staffProfile->user?->full_name ?? 'Unknown',
-            ])->toArray();
+            // Map StaffProfile to practitioner data with enhanced info
+            $practitionerData = $this->enrichPractitionerData(
+                $availablePractitioners,
+                $branchId,
+                $startTime,
+                $totalDuration
+            );
+
+            // Check if room is primary for this service
+            $isRoomPrimary = $room ? $this->isRoomPrimaryForService($service, $room->id) : false;
 
             $availableSlots->push([
                 'start_time' => $slot['start'],
@@ -148,8 +152,17 @@ class SlotGenerationService
                 'datetime_end' => $endTime->format('Y-m-d H:i:s'),
                 'duration' => $duration,
                 'available_practitioners' => $practitionerData,
+                'room' => $room ? [
+                    'id' => $room->id,
+                    'name' => $room->name,
+                    'is_primary' => $isRoomPrimary,
+                ] : null,
                 'room_id' => $room?->id,
                 'room_name' => $room?->name,
+                'equipment' => $equipment ? [
+                    'id' => $equipment->id,
+                    'name' => $equipment->name,
+                ] : null,
                 'equipment_id' => $equipment?->id,
                 'equipment_name' => $equipment?->name,
             ]);
@@ -687,5 +700,83 @@ class SlotGenerationService
     protected function timeSlotsOverlap(string $start1, string $end1, string $start2, string $end2): bool
     {
         return $start1 < $end2 && $end1 > $start2;
+    }
+
+    /**
+     * Enrich practitioner data with status, recommendations, and next appointment info.
+     */
+    protected function enrichPractitionerData(
+        Collection $practitioners,
+        string $branchId,
+        Carbon $slotStart,
+        int $duration
+    ): array {
+        $slotEnd = $slotStart->copy()->addMinutes($duration);
+        $date = $slotStart->copy()->startOfDay();
+        $enrichedData = [];
+
+        // Get recommended practitioner (first one - could be enhanced with more logic)
+        $recommendedIndex = 0;
+
+        foreach ($practitioners as $index => $staffProfile) {
+            // Skip staff profiles without valid user or user_id
+            if (!$staffProfile->user_id || !$staffProfile->user) {
+                continue;
+            }
+            $practitionerId = $staffProfile->user_id;
+
+            // Get next appointment for this practitioner after slot end
+            $nextAppointment = Appointment::query()
+                ->forPractitioner($practitionerId)
+                ->forDate($date)
+                ->active()
+                ->whereRaw("start_time >= ?", [$slotEnd->format('H:i:s')])
+                ->orderBy('start_time')
+                ->first(['id', 'start_time', 'service_id']);
+
+            // Determine status
+            $status = 'available';
+            $minutesUntilNext = null;
+
+            if ($nextAppointment) {
+                $nextStartTime = Carbon::parse($date->format('Y-m-d') . ' ' . $nextAppointment->start_time);
+                $minutesUntilNext = $slotEnd->diffInMinutes($nextStartTime, false);
+
+                // If next appointment is within 30 minutes of slot end, mark as busy_soon
+                if ($minutesUntilNext <= 30 && $minutesUntilNext > 0) {
+                    $status = 'busy_soon';
+                }
+            }
+
+            // Check if practitioner is preferred for this service (future enhancement)
+            // For now, first available is recommended
+            $isRecommended = ($index === $recommendedIndex);
+
+            $enrichedData[] = [
+                'id' => $practitionerId,
+                'staff_profile_id' => $staffProfile->id,
+                'name' => $staffProfile->user?->name ?? $staffProfile->user?->full_name ?? 'Unknown',
+                'avatar' => $staffProfile->user?->avatar_url ?? null,
+                'is_recommended' => $isRecommended,
+                'status' => $status,
+                'next_appointment' => $nextAppointment ? [
+                    'time' => $nextAppointment->start_time,
+                    'minutes_until' => $minutesUntilNext,
+                ] : null,
+            ];
+        }
+
+        return $enrichedData;
+    }
+
+    /**
+     * Check if a room is the primary room for a service.
+     */
+    protected function isRoomPrimaryForService(Service $service, string $roomId): bool
+    {
+        return $service->rooms()
+            ->wherePivot('is_primary', true)
+            ->where('rooms.id', $roomId)
+            ->exists();
     }
 }

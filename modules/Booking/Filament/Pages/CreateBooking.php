@@ -340,27 +340,7 @@ class CreateBooking extends Page implements HasForms
                                                 ->color('gray'),
                                         ])->fullWidth(),
 
-                                        // Slot Grid - rendered via Blade in the page view
-                                        Forms\Components\Placeholder::make('slot_grid')
-                                            ->label('')
-                                            ->content(fn () => new HtmlString(
-                                                view('booking::components.inline-slot-grid', [
-                                                    'slots' => $this->availableSlots,
-                                                ])->render()
-                                            ))
-                                            ->visible(fn () => !empty($this->availableSlots)),
-
-                                        Forms\Components\Placeholder::make('no_slots')
-                                            ->label('')
-                                            ->content(fn () => new HtmlString(
-                                                '<div class="text-center py-8 text-gray-500">
-                                                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                                    </svg>
-                                                    <p class="mt-2">' . __('booking::booking.messages.click_generate_slots') . '</p>
-                                                </div>'
-                                            ))
-                                            ->visible(fn () => empty($this->availableSlots)),
+                                        // Slot Grid is now rendered directly in the page view for proper reactivity
                                     ]),
 
                                 // Notes Section
@@ -370,31 +350,8 @@ class CreateBooking extends Page implements HasForms
                                     ->placeholder(__('booking::booking.fields.notes'))
                                     ->columnSpanFull(),
                             ])
-                            ->columnSpan(['lg' => 2]),
-
-                        // Right Column - Booking Cart (1/3 width)
-                        Forms\Components\Group::make()
-                            ->schema([
-                                Forms\Components\Section::make(__('booking::booking.sections.booking_cart'))
-                                    ->schema([
-                                        Forms\Components\View::make('booking::components.inline-booking-cart')
-                                            ->viewData([
-                                                'items' => $this->bookingItems,
-                                            ]),
-
-                                        Forms\Components\Actions::make([
-                                            Forms\Components\Actions\Action::make('create_booking')
-                                                ->label(__('booking::booking.actions.confirm_booking'))
-                                                ->icon('heroicon-o-check')
-                                                ->action(fn () => $this->createBookings())
-                                                ->color('success')
-                                                ->size('lg')
-                                                ->disabled(fn () => empty($this->bookingItems)),
-                                        ])->fullWidth(),
-                                    ])
-                                    ->extraAttributes(['class' => 'sticky top-4']),
-                            ])
-                            ->columnSpan(['lg' => 1]),
+                            ->columnSpanFull(),
+                        // Booking Cart is now rendered directly in the page view
                     ]),
             ])
             ->statePath('data');
@@ -539,33 +496,103 @@ class CreateBooking extends Page implements HasForms
         }
     }
 
-    #[On('slot-selected')]
-    public function onSlotSelected(array $slot): void
+    public function selectSlot(array $slot): void
     {
-        // Add to booking items
-        $item = [
-            'service_id' => $slot['service_id'],
-            'service_name' => $slot['service_name'] ?? Service::find($slot['service_id'])?->translated_name,
-            'date' => $slot['date'],
-            'start_time' => $slot['start_time'],
-            'end_time' => $slot['end_time'],
-            'duration' => $slot['duration'],
-            'practitioner_id' => $slot['practitioner_id'] ?? $slot['available_practitioners'][0]['id'] ?? null,
-            'practitioner_name' => $slot['practitioner_name'] ?? $slot['available_practitioners'][0]['name'] ?? null,
-            'room_id' => $slot['room_id'],
-            'room_name' => $slot['room_name'],
-            'equipment_id' => $slot['equipment_id'],
-            'equipment_name' => $slot['equipment_name'],
-            'from_package' => $slot['from_package'] ?? null,
-        ];
+        $serviceId = $slot['service_id'] ?? null;
+        $slotKey = $slot['date'] . '_' . $slot['start_time'] . '_' . $serviceId;
+        $practitionerId = $slot['practitioner_id'] ?? $slot['available_practitioners'][0]['id'] ?? null;
+        $notificationTitle = null;
+        $notificationType = 'success';
 
-        $this->bookingItems[] = $item;
+        // Find if this service already has a booking
+        $existingServiceIndex = null;
+        $existingSlotKey = null;
+        foreach ($this->bookingItems as $index => $item) {
+            if ($item['service_id'] === $serviceId) {
+                $existingServiceIndex = $index;
+                $existingSlotKey = $item['date'] . '_' . $item['start_time'] . '_' . $item['service_id'];
+                break;
+            }
+        }
 
-        Notification::make()
-            ->title(__('booking::booking.messages.slot_added'))
-            ->success()
-            ->duration(2000)
-            ->send();
+        // Case 1: Same slot + same practitioner = toggle off (deselect)
+        if ($existingServiceIndex !== null && $existingSlotKey === $slotKey) {
+            $existingPractitionerId = $this->bookingItems[$existingServiceIndex]['practitioner_id'];
+
+            if ($existingPractitionerId === $practitionerId) {
+                // Toggle off - remove the booking
+                unset($this->bookingItems[$existingServiceIndex]);
+                $this->bookingItems = array_values($this->bookingItems);
+                $notificationTitle = __('booking::booking.messages.slot_removed');
+                $notificationType = 'info';
+            } else {
+                // Case 2: Same slot + different practitioner = change practitioner
+                $this->bookingItems[$existingServiceIndex]['practitioner_id'] = $practitionerId;
+                $this->bookingItems[$existingServiceIndex]['practitioner_name'] = $slot['practitioner_name'] ?? null;
+                $notificationTitle = __('booking::booking.messages.practitioner_changed');
+                $notificationType = 'info';
+            }
+        } else {
+            // Case 3: Different slot for same service = replace the slot
+            // Case 4: No existing booking for this service = add new
+            $newItem = [
+                'service_id' => $serviceId,
+                'service_name' => $slot['service_name'] ?? Service::find($serviceId)?->translated_name,
+                'date' => $slot['date'],
+                'start_time' => $slot['start_time'],
+                'end_time' => $slot['end_time'],
+                'duration' => $slot['duration'],
+                'practitioner_id' => $practitionerId,
+                'practitioner_name' => $slot['practitioner_name'] ?? null,
+                'room_id' => $slot['room_id'] ?? null,
+                'room_name' => $slot['room_name'] ?? null,
+                'equipment_id' => $slot['equipment_id'] ?? null,
+                'equipment_name' => $slot['equipment_name'] ?? null,
+                'from_package' => $slot['from_package'] ?? null,
+            ];
+
+            if ($existingServiceIndex !== null) {
+                // Replace existing slot for this service
+                $this->bookingItems[$existingServiceIndex] = $newItem;
+                $notificationTitle = __('booking::booking.messages.slot_changed');
+            } else {
+                // Add new booking
+                $this->bookingItems[] = $newItem;
+                $notificationTitle = __('booking::booking.messages.slot_added');
+            }
+        }
+
+        // Send notification
+        if ($notificationTitle) {
+            $notification = Notification::make()
+                ->title($notificationTitle)
+                ->duration(1500);
+
+            if ($notificationType === 'info') {
+                $notification->info();
+            } else {
+                $notification->success();
+            }
+
+            $notification->send();
+        }
+    }
+
+    /**
+     * Get selected slot keys for tracking in the UI.
+     */
+    public function getSelectedSlotKeys(): array
+    {
+        $keys = [];
+        foreach ($this->bookingItems as $item) {
+            $key = $item['date'] . '_' . $item['start_time'] . '_' . ($item['service_id'] ?? '');
+            $keys[$key] = [
+                // Cast to string for consistent comparison in views
+                'practitioner_id' => (string) ($item['practitioner_id'] ?? ''),
+                'practitioner_name' => $item['practitioner_name'] ?? '',
+            ];
+        }
+        return $keys;
     }
 
     public function removeBookingItem(int $index): void
