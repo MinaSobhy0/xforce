@@ -54,6 +54,27 @@ class FormulaEvaluator
         // Tax variables
         'tax_rate' => 'Applicable tax rate percentage',
         'taxable_amount' => 'Taxable portion of salary',
+        'taxable_income' => 'Taxable income (GROSS - Social Insurance)',
+
+        // Additional variables from rules/components
+        'bonus_amount' => 'Bonus amount for the period',
+        'loan_deduction' => 'Loan repayment amount',
+        'other_deductions' => 'Other deduction amounts',
+
+        // Rule code results (dynamically added during calculation)
+        'HRA' => 'Housing Allowance result',
+        'TA' => 'Transport Allowance result',
+        'MEAL' => 'Meal Allowance result',
+        'PHONE' => 'Phone Allowance result',
+        'COMM' => 'Commission result',
+        'BONUS' => 'Bonus result',
+        'OT' => 'Overtime Pay result',
+        'SI_EMP' => 'Social Insurance (Employee) result',
+        'TAX' => 'Tax deduction result',
+        'ABSENCE' => 'Absence deduction result',
+        'LATE' => 'Late deduction result',
+        'LOAN' => 'Loan repayment result',
+        'OTHER_DED' => 'Other deductions result',
 
         // Hourly rate (calculated)
         'hourly_rate' => 'Hourly rate based on base salary',
@@ -337,9 +358,30 @@ class FormulaEvaluator
             'net_salary' => 0,
             'tax_rate' => 0,
             'taxable_amount' => 0,
+            'taxable_income' => 0,
             'hourly_rate' => 0,
             'daily_rate' => 0,
             'EMPLOYEE_ID' => null,
+
+            // Additional context variables
+            'bonus_amount' => 0,
+            'loan_deduction' => 0,
+            'other_deductions' => 0,
+
+            // Rule code results (defaults, will be overwritten during calculation)
+            'HRA' => 0,
+            'TA' => 0,
+            'MEAL' => 0,
+            'PHONE' => 0,
+            'COMM' => 0,
+            'BONUS' => 0,
+            'OT' => 0,
+            'SI_EMP' => 0,
+            'TAX' => 0,
+            'ABSENCE' => 0,
+            'LATE' => 0,
+            'LOAN' => 0,
+            'OTHER_DED' => 0,
         ];
 
         // Merge defaults with provided context

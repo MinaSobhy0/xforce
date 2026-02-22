@@ -211,6 +211,10 @@ class PayrollCalculationService
                     'amount_minor' => $amountMinor,
                 ];
 
+                // Add rule result to context for subsequent calculations
+                // This allows formulas like "BASIC + HRA + TA" to work
+                $context[$rule->code] = $amountMinor / 100; // Major units
+
                 // Add to appropriate category
                 $categoryType = $rule->category?->type ?? 'earning';
 
@@ -270,6 +274,11 @@ class PayrollCalculationService
         // Calculate social insurance
         $socialInsuranceMinor = $this->calculateSocialInsurance($baseSalaryMinor / 100);
         $totalDeductionsMinor += $socialInsuranceMinor;
+
+        // Update context with social insurance and taxable income
+        $context['SI_EMP'] = $socialInsuranceMinor / 100;
+        $context['taxable_income'] = $context['GROSS'] - $context['SI_EMP'];
+        $context['taxable_amount'] = $context['taxable_income'];
 
         // Calculate tax
         $annualGross = ($grossSalaryMinor / 100) * 12; // Estimate annual
@@ -410,10 +419,16 @@ class PayrollCalculationService
             // Tax (will be calculated)
             'tax_rate' => 0,
             'taxable_amount' => 0,
+            'taxable_income' => 0, // Will be calculated as GROSS - SI_EMP
 
             // Rates (will be calculated based on base salary)
             'hourly_rate' => 0,
             'daily_rate' => 0,
+
+            // Additional context variables for rule formulas
+            'bonus_amount' => 0, // Set from employee bonuses if available
+            'loan_deduction' => 0, // Set from active loans if available
+            'other_deductions' => 0, // Set from other deduction sources
         ];
     }
 
@@ -586,6 +601,12 @@ class PayrollCalculationService
     {
         switch ($rule->amount_type) {
             case SalaryRule::AMOUNT_TYPE_FIXED:
+                // Check if rule uses field_mapping to get value from context
+                if (!empty($rule->field_mapping)) {
+                    $fieldValue = $context[$rule->field_mapping] ?? 0;
+                    // If field value is in major units, convert to minor
+                    return (int) round($fieldValue * 100);
+                }
                 return $rule->amount_fixed_minor;
 
             case SalaryRule::AMOUNT_TYPE_PERCENTAGE:
