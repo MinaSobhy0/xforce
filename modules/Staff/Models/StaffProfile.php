@@ -26,12 +26,13 @@ class StaffProfile extends BaseModel
         'tenant_id',
         'user_id',
         'branch_id',
+        'commission_plan_id',
         'employee_number',
         'job_title',
         'bio',
         'specializations',
-        'commission_type',
-        'commission_percentage',
+        'commission_type', // Deprecated - use commission_plan_id
+        'commission_percentage', // Deprecated - use commission_plan_id
         'base_salary_minor',
         'hire_date',
         'contract_end_date',
@@ -86,7 +87,16 @@ class StaffProfile extends BaseModel
     }
 
     /**
-     * Get commission rules.
+     * Get the assigned commission plan.
+     */
+    public function commissionPlan(): BelongsTo
+    {
+        return $this->belongsTo(CommissionPlan::class, 'commission_plan_id');
+    }
+
+    /**
+     * Get commission rules (deprecated - use commissionPlan instead).
+     * @deprecated Use commissionPlan()->serviceRules() instead
      */
     public function commissionRules(): HasMany
     {
@@ -191,8 +201,28 @@ class StaffProfile extends BaseModel
 
     /**
      * Calculate commission for an amount.
+     *
+     * @param int $amountMinor Revenue amount in minor units
+     * @param string|null $serviceId Optional service ID for specific rules
+     * @param string|null $categoryId Optional category ID for fallback rules
+     * @return int Commission amount in minor units
      */
-    public function calculateCommission(int $amountMinor, ?string $serviceId = null): int
+    public function calculateCommission(int $amountMinor, ?string $serviceId = null, ?string $categoryId = null): int
+    {
+        // Use commission plan if assigned
+        if ($this->commission_plan_id && $this->commissionPlan) {
+            return $this->commissionPlan->calculateCommission($amountMinor, $serviceId, $categoryId);
+        }
+
+        // Fallback to legacy commission settings (deprecated)
+        return $this->calculateLegacyCommission($amountMinor, $serviceId);
+    }
+
+    /**
+     * Calculate commission using legacy per-staff settings.
+     * @deprecated This method is for backward compatibility only.
+     */
+    protected function calculateLegacyCommission(int $amountMinor, ?string $serviceId = null): int
     {
         // Check if there's a specific commission rule for this service
         if ($serviceId) {
@@ -209,13 +239,12 @@ class StaffProfile extends BaseModel
         // Use default commission settings
         switch ($this->commission_type) {
             case self::COMMISSION_FLAT:
-                return (int) ($this->commission_percentage * 100); // stored as amount in cents
+                return (int) ($this->commission_percentage * 100);
 
             case self::COMMISSION_PERCENTAGE:
                 return (int) ($amountMinor * $this->commission_percentage / 100);
 
             case self::COMMISSION_TIERED:
-                // For tiered, look for matching tier rule
                 $tierRule = $this->commissionRules()
                     ->where('commission_type', 'tiered')
                     ->where('tier_from_minor', '<=', $amountMinor)
@@ -230,11 +259,18 @@ class StaffProfile extends BaseModel
                     return $tierRule->calculateAmount($amountMinor);
                 }
 
-                // Fall back to default percentage
                 return (int) ($amountMinor * $this->commission_percentage / 100);
 
             default:
                 return 0;
         }
+    }
+
+    /**
+     * Check if staff has a commission plan assigned.
+     */
+    public function hasCommissionPlan(): bool
+    {
+        return $this->commission_plan_id !== null;
     }
 }

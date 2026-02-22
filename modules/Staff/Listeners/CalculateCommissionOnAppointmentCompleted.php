@@ -37,15 +37,24 @@ class CalculateCommissionOnAppointmentCompleted
             return;
         }
 
+        // Get service category ID if available
+        $categoryId = $appointment->service?->category_id ?? null;
+
         // Calculate commission
         $commissionAmount = $staffProfile->calculateCommission(
             $revenueMinor,
-            $appointment->service_id
+            $appointment->service_id,
+            $categoryId
         );
 
         if ($commissionAmount <= 0) {
             return;
         }
+
+        // Get commission info for record
+        $commissionPlan = $staffProfile->commissionPlan;
+        $commissionType = $commissionPlan?->commission_type ?? $staffProfile->commission_type;
+        $commissionRate = $commissionPlan?->default_percentage ?? $staffProfile->commission_percentage;
 
         // Create commission record
         StaffCommissionRecord::create([
@@ -54,8 +63,8 @@ class CalculateCommissionOnAppointmentCompleted
             'appointment_id' => $appointment->id,
             'amount_minor' => $commissionAmount,
             'revenue_minor' => $revenueMinor,
-            'commission_type' => $staffProfile->commission_type,
-            'commission_rate' => $staffProfile->commission_percentage,
+            'commission_type' => $commissionType,
+            'commission_rate' => $commissionRate,
             'status' => StaffCommissionRecord::STATUS_PENDING,
         ]);
     }

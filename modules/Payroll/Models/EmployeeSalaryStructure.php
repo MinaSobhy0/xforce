@@ -44,10 +44,15 @@ class EmployeeSalaryStructure extends BaseModel
         // Ensure only one current structure per employee
         static::saving(function ($model) {
             if ($model->is_current) {
-                static::query()
-                    ->where('staff_profile_id', $model->staff_profile_id)
-                    ->where('id', '!=', $model->id ?? '')
-                    ->update(['is_current' => false]);
+                $query = static::query()
+                    ->where('staff_profile_id', $model->staff_profile_id);
+
+                // Only exclude current record if it exists (has an ID)
+                if ($model->exists && $model->id) {
+                    $query->where('id', '!=', $model->id);
+                }
+
+                $query->update(['is_current' => false]);
             }
         });
     }

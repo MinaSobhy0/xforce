@@ -1,80 +1,91 @@
 <?php
 
-namespace Modules\Staff\Filament\Resources\StaffProfileResource\RelationManagers;
+namespace Modules\Staff\Filament\Resources\CommissionPlanResource\RelationManagers;
 
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Modules\Staff\Models\StaffCommission;
+use Modules\Staff\Models\CommissionPlan;
+use Modules\Staff\Models\CommissionPlanRule;
 use Modules\Services\Models\Service;
 use Modules\Services\Models\ServiceCategory;
 
-class CommissionRulesRelationManager extends RelationManager
+class ServiceRulesRelationManager extends RelationManager
 {
-    protected static string $relationship = 'commissionRules';
+    protected static string $relationship = 'serviceRules';
 
-    protected static ?string $title = 'Commission Rules';
+    protected static ?string $title = null;
+
+    public static function getTitle($ownerRecord, string $pageClass): string
+    {
+        return __('staff::commission.labels.service_rules');
+    }
 
     public function form(Form $form): Form
     {
         return $form
             ->schema([
                 Forms\Components\Select::make('service_id')
-                    ->label(__('staff::staff.fields.service'))
+                    ->label(__('staff::commission.fields.service'))
                     ->relationship('service', 'id')
                     ->getOptionLabelFromRecordUsing(fn (Service $record) => $record->getTranslation('name', app()->getLocale()))
                     ->searchable()
                     ->preload()
-                    ->nullable(),
+                    ->nullable()
+                    ->helperText(__('staff::commission.help.service_specific')),
 
                 Forms\Components\Select::make('service_category_id')
-                    ->label(__('staff::staff.fields.category'))
+                    ->label(__('staff::commission.fields.category'))
                     ->relationship('serviceCategory', 'id')
                     ->getOptionLabelFromRecordUsing(fn (ServiceCategory $record) => $record->getTranslation('name', app()->getLocale()))
                     ->searchable()
                     ->preload()
                     ->nullable()
-                    ->helperText('Applies to all services in this category if no specific service is selected'),
+                    ->helperText(__('staff::commission.help.category_fallback')),
 
                 Forms\Components\Select::make('commission_type')
-                    ->label(__('staff::staff.fields.commission_type'))
-                    ->options(StaffCommission::TYPES)
+                    ->label(__('staff::commission.fields.commission_type'))
+                    ->options(CommissionPlan::TYPES)
+                    ->default(CommissionPlan::TYPE_PERCENTAGE)
                     ->required()
                     ->reactive(),
 
+                Forms\Components\TextInput::make('percentage')
+                    ->label(__('staff::commission.fields.percentage'))
+                    ->numeric()
+                    ->suffix('%')
+                    ->minValue(0)
+                    ->maxValue(100)
+                    ->step(0.01)
+                    ->visible(fn (Forms\Get $get) => in_array($get('commission_type'), [CommissionPlan::TYPE_PERCENTAGE, CommissionPlan::TYPE_TIERED])),
+
                 Forms\Components\TextInput::make('flat_amount')
-                    ->label(__('staff::staff.fields.flat_amount'))
+                    ->label(__('staff::commission.fields.flat_amount'))
                     ->numeric()
                     ->prefix(current_currency())
                     ->step(0.01)
-                    ->visible(fn (Forms\Get $get) => $get('commission_type') === StaffCommission::TYPE_FLAT),
-
-                Forms\Components\TextInput::make('percentage')
-                    ->label(__('staff::staff.fields.percentage'))
-                    ->numeric()
-                    ->suffix('%')
-                    ->visible(fn (Forms\Get $get) => in_array($get('commission_type'), [StaffCommission::TYPE_PERCENTAGE, StaffCommission::TYPE_TIERED])),
+                    ->visible(fn (Forms\Get $get) => $get('commission_type') === CommissionPlan::TYPE_FLAT),
 
                 Forms\Components\Grid::make(2)
                     ->schema([
                         Forms\Components\TextInput::make('tier_from')
-                            ->label(__('staff::staff.fields.tier_from'))
+                            ->label(__('staff::commission.fields.tier_from'))
                             ->numeric()
                             ->prefix(current_currency())
                             ->step(0.01),
 
                         Forms\Components\TextInput::make('tier_to')
-                            ->label(__('staff::staff.fields.tier_to'))
+                            ->label(__('staff::commission.fields.tier_to'))
                             ->numeric()
                             ->prefix(current_currency())
                             ->step(0.01),
                     ])
-                    ->visible(fn (Forms\Get $get) => $get('commission_type') === StaffCommission::TYPE_TIERED),
+                    ->visible(fn (Forms\Get $get) => $get('commission_type') === CommissionPlan::TYPE_TIERED),
 
                 Forms\Components\Toggle::make('is_active')
-                    ->label(__('staff::staff.fields.is_active'))
+                    ->label(__('staff::commission.fields.is_active'))
                     ->default(true),
             ]);
     }
@@ -84,38 +95,21 @@ class CommissionRulesRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('id')
             ->columns([
-                Tables\Columns\TextColumn::make('service.name')
-                    ->label(__('staff::staff.fields.service'))
-                    ->getStateUsing(fn (StaffCommission $record) => $record->service?->getTranslation('name', app()->getLocale()))
-                    ->placeholder('All services'),
-
-                Tables\Columns\TextColumn::make('serviceCategory.name')
-                    ->label(__('staff::staff.fields.category'))
-                    ->getStateUsing(fn (StaffCommission $record) => $record->serviceCategory?->getTranslation('name', app()->getLocale()))
-                    ->placeholder('-'),
+                Tables\Columns\TextColumn::make('display_name')
+                    ->label(__('staff::commission.fields.applies_to'))
+                    ->getStateUsing(fn (CommissionPlanRule $record) => $record->display_name),
 
                 Tables\Columns\TextColumn::make('commission_type')
-                    ->label(__('staff::staff.fields.type'))
-                    ->formatStateUsing(fn ($state) => StaffCommission::TYPES[$state] ?? $state)
+                    ->label(__('staff::commission.fields.commission_type'))
+                    ->formatStateUsing(fn ($state) => CommissionPlan::TYPES[$state] ?? $state)
                     ->badge(),
 
-                Tables\Columns\TextColumn::make('value')
-                    ->label(__('staff::staff.fields.amount'))
-                    ->getStateUsing(function (StaffCommission $record) {
-                        if ($record->commission_type === StaffCommission::TYPE_FLAT) {
-                            return format_money($record->flat_amount_minor ?? 0);
-                        }
-                        if ($record->commission_type === StaffCommission::TYPE_PERCENTAGE) {
-                            return ($record->percentage ?? 0) . '%';
-                        }
-                        if ($record->commission_type === StaffCommission::TYPE_TIERED) {
-                            return ($record->percentage ?? 0) . '% (' . format_money($record->tier_from_minor ?? 0) . ' - ' . format_money($record->tier_to_minor ?? 0) . ')';
-                        }
-                        return '-';
-                    }),
+                Tables\Columns\TextColumn::make('formatted_value')
+                    ->label(__('staff::commission.fields.value'))
+                    ->getStateUsing(fn (CommissionPlanRule $record) => $record->formatted_value),
 
                 Tables\Columns\IconColumn::make('is_active')
-                    ->label(__('staff::staff.fields.is_active'))
+                    ->label(__('staff::commission.fields.is_active'))
                     ->boolean(),
             ])
             ->filters([])
@@ -146,6 +140,10 @@ class CommissionRulesRelationManager extends RelationManager
                     }),
                 Tables\Actions\DeleteAction::make(),
             ])
-            ->bulkActions([]);
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make(),
+                ]),
+            ]);
     }
 }

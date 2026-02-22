@@ -61,6 +61,12 @@ class FormulaEvaluator
         'loan_deduction' => 'Loan repayment amount',
         'other_deductions' => 'Other deduction amounts',
 
+        // Allowance variables from employee salary components
+        'housing_allowance' => 'Housing allowance from employee components',
+        'transport_allowance' => 'Transport allowance from employee components',
+        'meal_allowance' => 'Meal allowance from employee components',
+        'phone_allowance' => 'Phone allowance from employee components',
+
         // Rule code results (dynamically added during calculation)
         'HRA' => 'Housing Allowance result',
         'TA' => 'Transport Allowance result',
@@ -367,6 +373,12 @@ class FormulaEvaluator
             'bonus_amount' => 0,
             'loan_deduction' => 0,
             'other_deductions' => 0,
+
+            // Allowance variables from employee salary components
+            'housing_allowance' => 0,
+            'transport_allowance' => 0,
+            'meal_allowance' => 0,
+            'phone_allowance' => 0,
 
             // Rule code results (defaults, will be overwritten during calculation)
             'HRA' => 0,

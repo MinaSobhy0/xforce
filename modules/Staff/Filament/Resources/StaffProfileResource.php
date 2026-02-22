@@ -10,6 +10,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Modules\Auth\Models\User;
 use Modules\Core\Models\Branch;
+use Modules\Staff\Models\CommissionPlan;
 use Modules\Staff\Models\StaffProfile;
 use Modules\Staff\Filament\Resources\StaffProfileResource\Pages;
 use Modules\Staff\Filament\Resources\StaffProfileResource\RelationManagers;
@@ -121,37 +122,52 @@ class StaffProfileResource extends Resource
                     ])
                     ->collapsed(),
 
-                Forms\Components\Section::make(__('staff::staff.sections.compensation'))
+                Forms\Components\Section::make(__('staff::staff.sections.commission'))
+                    ->description(__('staff::staff.sections.commission_description'))
                     ->schema([
-                        Forms\Components\TextInput::make('base_salary_minor')
-                            ->label(__('staff::staff.fields.base_salary'))
-                            ->numeric()
-                            ->required()
-                            ->default(0)
-                            ->prefix(current_currency())
-                            ->step(0.01)
-                            ->afterStateHydrated(function ($component, $state) {
-                                $component->state($state !== null ? $state / 100 : 0);
-                            })
-                            ->dehydrateStateUsing(fn ($state) => (int) round(($state ?? 0) * 100)),
+                        Forms\Components\Select::make('commission_plan_id')
+                            ->label(__('staff::commission.labels.plan'))
+                            ->relationship('commissionPlan', 'name')
+                            ->getOptionLabelFromRecordUsing(fn (CommissionPlan $record) => "{$record->name} ({$record->formatted_default})")
+                            ->searchable()
+                            ->preload()
+                            ->nullable()
+                            ->createOptionForm([
+                                Forms\Components\TextInput::make('name')
+                                    ->label(__('staff::commission.fields.name'))
+                                    ->required()
+                                    ->maxLength(100),
 
-                        Forms\Components\Grid::make(2)
-                            ->schema([
                                 Forms\Components\Select::make('commission_type')
-                                    ->label(__('staff::staff.fields.commission_type'))
-                                    ->options(StaffProfile::COMMISSION_TYPES)
-                                    ->default(StaffProfile::COMMISSION_PERCENTAGE)
+                                    ->label(__('staff::commission.fields.commission_type'))
+                                    ->options(CommissionPlan::TYPES)
+                                    ->default(CommissionPlan::TYPE_PERCENTAGE)
                                     ->required()
                                     ->reactive(),
 
-                                Forms\Components\TextInput::make('commission_percentage')
-                                    ->label(__('staff::staff.fields.commission_percentage'))
+                                Forms\Components\TextInput::make('default_percentage')
+                                    ->label(__('staff::commission.fields.percentage'))
                                     ->numeric()
-                                    ->required()
-                                    ->default(10)
                                     ->suffix('%')
-                                    ->visible(fn (Forms\Get $get) => $get('commission_type') === StaffProfile::COMMISSION_PERCENTAGE),
-                            ]),
+                                    ->default(10)
+                                    ->visible(fn (Forms\Get $get) => $get('commission_type') === CommissionPlan::TYPE_PERCENTAGE),
+
+                                Forms\Components\TextInput::make('default_flat_amount_minor')
+                                    ->label(__('staff::commission.fields.flat_amount'))
+                                    ->numeric()
+                                    ->prefix(current_currency())
+                                    ->default(0)
+                                    ->visible(fn (Forms\Get $get) => $get('commission_type') === CommissionPlan::TYPE_FLAT)
+                                    ->dehydrateStateUsing(fn ($state) => (int) round(($state ?? 0) * 100)),
+
+                                Forms\Components\Toggle::make('is_active')
+                                    ->label(__('staff::commission.fields.is_active'))
+                                    ->default(true),
+                            ])
+                            ->createOptionUsing(function (array $data): string {
+                                $data['created_by'] = auth()->id();
+                                return CommissionPlan::create($data)->id;
+                            }),
                     ]),
 
                 Forms\Components\Section::make(__('staff::staff.sections.settings'))
@@ -184,14 +200,15 @@ class StaffProfileResource extends Resource
                     ->label(__('staff::staff.fields.branch'))
                     ->getStateUsing(fn (StaffProfile $record) => $record->branch?->name),
 
-                Tables\Columns\TextColumn::make('commission_type')
-                    ->label(__('staff::staff.fields.commission_type'))
-                    ->formatStateUsing(fn ($state) => StaffProfile::COMMISSION_TYPES[$state] ?? $state)
-                    ->badge(),
+                Tables\Columns\TextColumn::make('commissionPlan.name')
+                    ->label(__('staff::commission.labels.plan'))
+                    ->placeholder(__('staff::commission.messages.no_plan_assigned'))
+                    ->badge()
+                    ->color('info'),
 
-                Tables\Columns\TextColumn::make('commission_percentage')
+                Tables\Columns\TextColumn::make('commission_value')
                     ->label(__('staff::staff.fields.commission'))
-                    ->suffix('%'),
+                    ->getStateUsing(fn (StaffProfile $record) => $record->commissionPlan?->formatted_default ?? '-'),
 
                 Tables\Columns\TextColumn::make('pending_earnings')
                     ->label(__('staff::staff.fields.pending_earnings'))
@@ -214,6 +231,10 @@ class StaffProfileResource extends Resource
                     ->relationship('branch', 'id')
                     ->getOptionLabelFromRecordUsing(fn (Branch $record) => $record->name),
 
+                Tables\Filters\SelectFilter::make('commission_plan_id')
+                    ->label(__('staff::commission.labels.plan'))
+                    ->relationship('commissionPlan', 'name'),
+
                 Tables\Filters\TernaryFilter::make('is_active')
                     ->label(__('staff::staff.fields.is_active')),
             ])
@@ -233,7 +254,6 @@ class StaffProfileResource extends Resource
     {
         return [
             RelationManagers\ScheduleAssignmentsRelationManager::class,
-            RelationManagers\CommissionRulesRelationManager::class,
             RelationManagers\CommissionRecordsRelationManager::class,
             RelationManagers\SalaryStructuresRelationManager::class,
             RelationManagers\SalaryComponentsRelationManager::class,

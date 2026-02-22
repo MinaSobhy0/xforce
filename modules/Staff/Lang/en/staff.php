@@ -23,6 +23,8 @@ return [
         'basic_info' => 'Basic Information',
         'bio' => 'Biography & Specializations',
         'compensation' => 'Compensation',
+        'commission' => 'Commission',
+        'commission_description' => 'Assign a commission plan to calculate commissions on service revenue. Commission plans are managed in Settings > Commission Plans.',
         'settings' => 'Settings',
     ],
 
@@ -43,6 +45,7 @@ return [
         'is_active' => 'Active',
         'pending_earnings' => 'Pending',
         'treatment' => 'Treatment',
+        'service' => 'Service',
         'category' => 'Category',
         'type' => 'Type',
         'flat_amount' => 'Flat Amount',

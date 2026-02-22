@@ -160,7 +160,10 @@ class PayrollCalculationService
 
         // Initialize amounts
         $baseSalaryMinor = $this->getEmployeeBaseSalary($staff, $employeeSalaryStructure);
-        $totalEarningsMinor = $baseSalaryMinor;
+
+        // If we have a salary structure with rules, start from 0 - the BASIC rule will add base salary
+        // Otherwise use base salary as fallback
+        $totalEarningsMinor = $salaryStructure ? 0 : $baseSalaryMinor;
         $totalAllowancesMinor = 0;
         $totalBonusesMinor = 0;
         $totalDeductionsMinor = 0;
@@ -241,12 +244,34 @@ class PayrollCalculationService
         }
 
         // Apply employee-specific salary components
-        $components = $staff->salaryComponents()
+        // Note: Skip components that are linked to salary rules (they're already handled via rules)
+        // Also skip components that are mapped to allowance context variables
+        $allowanceFields = ['housing_allowance', 'transport_allowance', 'meal_allowance', 'phone_allowance'];
+        $allowancePatterns = ['housing', 'transport', 'meal', 'phone', 'hra', 'ta'];
+
+        $components = EmployeeSalaryComponent::on($staff->getConnectionName())
+            ->where('staff_profile_id', $staff->id)
+            ->whereNull('salary_rule_id') // Only custom components not tied to rules
             ->active()
             ->effective(now())
             ->get();
 
         foreach ($components as $component) {
+            // Skip components that match allowance patterns (already handled via rules)
+            $componentName = strtolower($component->name ?? '');
+            $isAllowance = false;
+            foreach ($allowancePatterns as $pattern) {
+                if (str_contains($componentName, $pattern)) {
+                    $isAllowance = true;
+                    break;
+                }
+            }
+
+            // If this is an allowance and already in context with value > 0, skip it
+            if ($isAllowance) {
+                continue;
+            }
+
             $amountMinor = $this->calculateComponentAmount($component, $context);
 
             $calculationDetails['components_applied'][] = [
@@ -375,6 +400,9 @@ class PayrollCalculationService
         // TODO: Get leave data when module is available
         $leaveData = $this->getLeaveData($staff, $periodStart, $periodEnd);
 
+        // Get allowance values from employee salary components
+        $allowanceData = $this->getEmployeeAllowances($staff);
+
         return [
             // Employee info
             'EMPLOYEE_ID' => $staff->id,
@@ -429,7 +457,75 @@ class PayrollCalculationService
             'bonus_amount' => 0, // Set from employee bonuses if available
             'loan_deduction' => 0, // Set from active loans if available
             'other_deductions' => 0, // Set from other deduction sources
+
+            // Allowances from employee salary components
+            'housing_allowance' => $allowanceData['housing_allowance'] ?? 0,
+            'transport_allowance' => $allowanceData['transport_allowance'] ?? 0,
+            'meal_allowance' => $allowanceData['meal_allowance'] ?? 0,
+            'phone_allowance' => $allowanceData['phone_allowance'] ?? 0,
         ];
+    }
+
+    /**
+     * Get allowance values from employee salary components.
+     *
+     * @param StaffProfile $staff
+     * @return array
+     */
+    public function getEmployeeAllowances(StaffProfile $staff): array
+    {
+        $allowances = [
+            'housing_allowance' => 0,
+            'transport_allowance' => 0,
+            'meal_allowance' => 0,
+            'phone_allowance' => 0,
+        ];
+
+        // Map component names/codes to context variable names
+        $componentMapping = [
+            'HRA' => 'housing_allowance',
+            'housing' => 'housing_allowance',
+            'housing_allowance' => 'housing_allowance',
+            'TA' => 'transport_allowance',
+            'transport' => 'transport_allowance',
+            'transport_allowance' => 'transport_allowance',
+            'MEAL' => 'meal_allowance',
+            'meal' => 'meal_allowance',
+            'meal_allowance' => 'meal_allowance',
+            'PHONE' => 'phone_allowance',
+            'phone' => 'phone_allowance',
+            'phone_allowance' => 'phone_allowance',
+        ];
+
+        $components = EmployeeSalaryComponent::on($staff->getConnectionName())
+            ->where('staff_profile_id', $staff->id)
+            ->active()
+            ->effective(now())
+            ->where('component_type', EmployeeSalaryComponent::COMPONENT_TYPE_EARNING)
+            ->get();
+
+        foreach ($components as $component) {
+            // Check by salary rule code first
+            if ($component->salaryRule) {
+                $ruleCode = $component->salaryRule->code;
+                if (isset($componentMapping[$ruleCode])) {
+                    $key = $componentMapping[$ruleCode];
+                    $allowances[$key] += $component->amount_minor / 100; // Convert to major units
+                    continue;
+                }
+            }
+
+            // Check by component name
+            $name = strtolower($component->name ?? '');
+            foreach ($componentMapping as $pattern => $key) {
+                if (str_contains($name, strtolower($pattern))) {
+                    $allowances[$key] += $component->amount_minor / 100;
+                    break;
+                }
+            }
+        }
+
+        return $allowances;
     }
 
     /**
@@ -440,7 +536,8 @@ class PayrollCalculationService
      */
     public function getEligibleEmployees(PayrollRun $run): Collection
     {
-        return StaffProfile::query()
+        // Use the same connection as the payroll run
+        return StaffProfile::on($run->getConnectionName())
             ->with(['user', 'salaryStructures.salaryStructure', 'salaryComponents'])
             ->where('is_active', true)
             ->get();
@@ -454,11 +551,17 @@ class PayrollCalculationService
      */
     public function getEmployeeSalaryStructure(StaffProfile $staff): ?EmployeeSalaryStructure
     {
-        return $staff->currentSalaryStructure ??
-               $staff->salaryStructures()
-                   ->where('is_current', true)
-                   ->with('salaryStructure.rules.category')
-                   ->first();
+        // Try eager-loaded relationship first
+        if ($staff->relationLoaded('currentSalaryStructure') && $staff->currentSalaryStructure) {
+            return $staff->currentSalaryStructure;
+        }
+
+        // Query directly using the same connection as the staff model
+        return EmployeeSalaryStructure::on($staff->getConnectionName())
+            ->where('staff_profile_id', $staff->id)
+            ->where('is_current', true)
+            ->with('salaryStructure.rules.category')
+            ->first();
     }
 
     /**
@@ -518,14 +621,14 @@ class PayrollCalculationService
      */
     public function getCommissionData(StaffProfile $staff, Carbon $start, Carbon $end): array
     {
-        $commissions = StaffCommissionRecord::query()
+        $commissions = StaffCommissionRecord::on($staff->getConnectionName())
             ->where('staff_profile_id', $staff->id)
-            ->whereBetween('earned_at', [$start, $end])
-            ->where('is_paid', false)
+            ->whereBetween('created_at', [$start, $end])
+            ->where('status', StaffCommissionRecord::STATUS_APPROVED)
             ->get();
 
         return [
-            'total_amount' => $commissions->sum('commission_amount_minor') / 100,
+            'total_amount' => $commissions->sum('amount_minor') / 100,
             'count' => $commissions->count(),
         ];
     }
