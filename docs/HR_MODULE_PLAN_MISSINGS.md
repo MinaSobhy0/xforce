@@ -663,7 +663,7 @@ Following X-Linic implementation standards (Filament-based, BaseModel traits, mi
 
 ---
 
-#### 1.4 EmployeeSalaryStructure ✅ PARTIALLY COMPLETED
+#### 1.4 EmployeeSalaryStructure ✅ COMPLETED
 
 **Migration**
 - [x] Create `2024_01_01_000006_create_employee_salary_structures_table.php`
@@ -696,50 +696,57 @@ Following X-Linic implementation standards (Filament-based, BaseModel traits, mi
 - [x] Add method: `makeCurrent(): self`
 
 **Relation Manager** (`StaffProfileResource/RelationManagers/SalaryStructuresRelationManager.php`)
-- [ ] Form: salary_structure_id, base_salary_minor, effective_date, end_date, is_current, notes
-- [ ] Table: structure name, base_salary, effective_date, end_date, is_current (badge)
-- [ ] Actions: Create, Edit, Delete (with confirmations)
-- [ ] Header action: "Assign Structure"
+- [x] Form: salary_structure_id, base_salary_minor, effective_date, end_date, is_current, notes
+- [x] Table: structure name, base_salary, effective_date, end_date, is_current (badge)
+- [x] Actions: Create, Edit, Delete (with confirmations)
+- [x] Header action: "Make Current"
 
 ---
 
-#### 1.5 EmployeeSalaryComponent
+#### 1.5 EmployeeSalaryComponent ✅ COMPLETED
 
 **Migration**
-- [ ] Create `YYYY_MM_DD_create_employee_salary_components_table.php`
-  - [ ] `uuid('id')->primary()`
-  - [ ] `uuid('tenant_id')->index()`
-  - [ ] `uuid('staff_profile_id')->index()`
-  - [ ] `uuid('salary_rule_id')->index()`
-  - [ ] `string('component_type')` (earning, deduction)
-  - [ ] `string('calculation_type')` (fixed, percentage, formula)
-  - [ ] `integer('amount_minor')->default(0)`
-  - [ ] `decimal('percentage', 5, 2)->nullable()`
-  - [ ] `text('formula')->nullable()`
-  - [ ] `date('effective_date')`
-  - [ ] `date('end_date')->nullable()`
-  - [ ] `boolean('is_taxable')->default(true)`
-  - [ ] `boolean('is_active')->default(true)`
-  - [ ] `uuid('loan_id')->nullable()`
-  - [ ] `uuid('created_by')->nullable()`
-  - [ ] `timestamps()`
+- [x] Create `2024_01_01_000007_create_employee_salary_components_table.php`
+  - [x] `uuid('id')->primary()`
+  - [x] `uuid('tenant_id')->index()`
+  - [x] `uuid('staff_profile_id')->index()`
+  - [x] `uuid('salary_rule_id')->nullable()->index()`
+  - [x] `string('name')` - custom name if no salary rule
+  - [x] `string('component_type')` (earning, deduction)
+  - [x] `string('calculation_type')` (fixed, percentage, formula)
+  - [x] `integer('amount_minor')->default(0)`
+  - [x] `decimal('percentage', 8, 4)->nullable()`
+  - [x] `text('formula')->nullable()`
+  - [x] `date('effective_date')`
+  - [x] `date('end_date')->nullable()`
+  - [x] `boolean('is_taxable')->default(true)`
+  - [x] `boolean('is_active')->default(true)`
+  - [x] `uuid('loan_id')->nullable()`
+  - [x] `uuid('created_by')->nullable()`
+  - [x] `timestamps()`
 
 **Model** (`modules/Payroll/Models/EmployeeSalaryComponent.php`)
-- [ ] Extend `BaseModel`
-- [ ] Use traits: `HasTenancy`
-- [ ] Define `$fillable`, `$casts`
-- [ ] Add constants: `COMPONENT_TYPE_*`, `CALCULATION_TYPE_*`
-- [ ] Add relationships
-- [ ] Add accessor: `getAmountAttribute()` (major units)
-- [ ] Add scope: `scopeActive($query)`
-- [ ] Add scope: `scopeEarnings($query)`
-- [ ] Add scope: `scopeDeductions($query)`
-- [ ] Add method: `calculateValue(array $context): int`
+- [x] Extend `BaseModel`
+- [x] Use traits: `HasTenancy`
+- [x] Define `$fillable`, `$casts`
+- [x] Add constants: `COMPONENT_TYPE_*`, `CALCULATION_TYPE_*`
+- [x] Add relationships: staffProfile, salaryRule, createdBy
+- [x] Add accessor: `getAmountAttribute()` (major units)
+- [x] Add scope: `scopeActive($query)`
+- [x] Add scope: `scopeEffective($query)`
+- [x] Add scope: `scopeEarnings($query)`
+- [x] Add scope: `scopeDeductions($query)`
+- [x] Add scope: `scopeTaxable($query)`
+- [x] Add method: `calculateValue(array $context): int`
+- [x] Add method: `isEffective(): bool`
+- [x] Add accessor: `getDisplayNameAttribute(): string`
+- [x] Add accessor: `getSignAttribute(): int`
+- [x] Add accessor: `getSignedAmountMinorAttribute(): int`
 
 **Relation Manager** (`StaffProfileResource/RelationManagers/SalaryComponentsRelationManager.php`)
-- [ ] Form with reactive fields based on calculation_type
-- [ ] Table: rule name, component_type (badge), calculation_type, amount/percentage, is_active
-- [ ] Actions: Create, Edit, Delete, Toggle Active
+- [x] Form with reactive fields based on calculation_type
+- [x] Table: display_name, component_type (badge), calculation_type, value, is_active
+- [x] Actions: Create, Edit, Delete, Toggle Active
 
 ---
 
@@ -933,8 +940,8 @@ Following X-Linic implementation standards (Filament-based, BaseModel traits, mi
 - [x] Add `condition_types` array
 - [x] Add `pay_frequencies` array
 - [x] Add `help` section with helper texts
-- [ ] Add `employee_salary_structures` section
-- [ ] Add `employee_salary_components` section
+- [x] Add `employee_salary_structures` fields (effective_date, end_date, is_current)
+- [x] Add `employee_salary_components` section (component_types, calculation_types)
 - [ ] Add `compensation_history` section
 - [ ] Add `bulk_operations` section
 - [ ] Add `reports` section
@@ -942,7 +949,7 @@ Following X-Linic implementation standards (Filament-based, BaseModel traits, mi
 
 **Arabic** (`modules/Payroll/Lang/ar/payroll.php`)
 - [x] Translate Phase 1.1-1.3 strings (categories, rules, structures)
-- [ ] Translate remaining Phase 1.4+ strings
+- [x] Translate Phase 1.4-1.5 strings (employee structures, components)
 
 ---
 

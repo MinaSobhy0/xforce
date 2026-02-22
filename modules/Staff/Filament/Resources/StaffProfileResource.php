@@ -230,6 +230,8 @@ class StaffProfileResource extends Resource
             RelationManagers\ScheduleAssignmentsRelationManager::class,
             RelationManagers\CommissionRulesRelationManager::class,
             RelationManagers\CommissionRecordsRelationManager::class,
+            RelationManagers\SalaryStructuresRelationManager::class,
+            RelationManagers\SalaryComponentsRelationManager::class,
         ];
     }
 

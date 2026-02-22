@@ -20,6 +20,8 @@ return [
         'salary_rules' => 'Salary Rules',
         'salary_structure' => 'Salary Structure',
         'salary_structures' => 'Salary Structures',
+        'salary_component' => 'Salary Component',
+        'salary_components' => 'Salary Components',
     ],
 
     'sections' => [
@@ -79,6 +81,15 @@ return [
         'currency' => 'Currency',
         'salary_rule' => 'Salary Rule',
         'created_at' => 'Created At',
+        'effective_date' => 'Effective Date',
+        'end_date' => 'End Date',
+        'is_current' => 'Current',
+        'component_type' => 'Component Type',
+        'calculation_type' => 'Calculation Type',
+        'amount' => 'Amount',
+        'percentage' => 'Percentage',
+        'formula' => 'Formula',
+        'is_taxable' => 'Taxable',
     ],
 
     'types' => [
@@ -100,6 +111,17 @@ return [
         'always' => 'Always Apply',
         'range' => 'Range Condition',
         'formula' => 'Formula Condition',
+    ],
+
+    'component_types' => [
+        'earning' => 'Earning',
+        'deduction' => 'Deduction',
+    ],
+
+    'calculation_types' => [
+        'fixed' => 'Fixed Amount',
+        'percentage' => 'Percentage',
+        'formula' => 'Formula',
     ],
 
     'pay_frequencies' => [
@@ -126,6 +148,10 @@ return [
         'generate_all' => 'Generate All Staff',
         'duplicate' => 'Duplicate',
         'edit_sequence' => 'Edit Sequence',
+        'make_current' => 'Make Current',
+        'toggle_active' => 'Toggle Active',
+        'activate' => 'Activate',
+        'deactivate' => 'Deactivate',
     ],
 
     'messages' => [
@@ -137,6 +163,8 @@ return [
         'cannot_delete_category' => 'Cannot delete category with assigned rules',
         'cannot_delete_structure' => 'Cannot delete structure with assigned employees',
         'structure_duplicated' => 'Salary structure duplicated successfully',
+        'cannot_delete_current' => 'Cannot delete the current salary structure. Mark another as current first.',
+        'made_current' => 'Salary structure marked as current',
     ],
 
     'help' => [
@@ -148,6 +176,8 @@ return [
         'condition_formula' => 'Formula that returns true/false to determine if this rule applies.',
         'field_mapping' => 'Map to a specific field like contract.salary or employee.allowance.',
         'sequence' => 'Order in which rules are calculated. Lower numbers are calculated first.',
+        'base_salary_employee' => 'The base salary for this employee under this structure.',
+        'is_current' => 'Only one structure can be current per employee. The current structure is used for payroll calculations.',
     ],
 
     'pdf' => [

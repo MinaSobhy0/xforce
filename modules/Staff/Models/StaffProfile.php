@@ -5,9 +5,12 @@ namespace Modules\Staff\Models;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Modules\Auth\Models\User;
 use Modules\Booking\Models\PractitionerScheduleAssignment;
 use Modules\Core\Models\Branch;
+use Modules\Payroll\Models\EmployeeSalaryComponent;
+use Modules\Payroll\Models\EmployeeSalaryStructure;
 use Spatie\Translatable\HasTranslations;
 use XLinic\Framework\Core\Model\BaseModel;
 
@@ -104,6 +107,39 @@ class StaffProfile extends BaseModel
     public function scheduleAssignments(): HasMany
     {
         return $this->hasMany(PractitionerScheduleAssignment::class, 'user_id', 'user_id');
+    }
+
+    /**
+     * Get all salary structure assignments.
+     */
+    public function salaryStructures(): HasMany
+    {
+        return $this->hasMany(EmployeeSalaryStructure::class, 'staff_profile_id');
+    }
+
+    /**
+     * Get the current salary structure assignment.
+     */
+    public function currentSalaryStructure(): HasOne
+    {
+        return $this->hasOne(EmployeeSalaryStructure::class, 'staff_profile_id')
+            ->where('is_current', true);
+    }
+
+    /**
+     * Get all salary components for this employee.
+     */
+    public function salaryComponents(): HasMany
+    {
+        return $this->hasMany(EmployeeSalaryComponent::class, 'staff_profile_id');
+    }
+
+    /**
+     * Get active and effective salary components.
+     */
+    public function activeSalaryComponents(): HasMany
+    {
+        return $this->salaryComponents()->active()->effective();
     }
 
     /**

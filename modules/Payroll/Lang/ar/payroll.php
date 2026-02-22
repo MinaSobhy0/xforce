@@ -20,6 +20,8 @@ return [
         'salary_rules' => 'قواعد الراتب',
         'salary_structure' => 'هيكل راتب',
         'salary_structures' => 'هياكل الرواتب',
+        'salary_component' => 'مكون راتب',
+        'salary_components' => 'مكونات الراتب',
     ],
 
     'sections' => [
@@ -79,6 +81,15 @@ return [
         'currency' => 'العملة',
         'salary_rule' => 'قاعدة الراتب',
         'created_at' => 'تاريخ الإنشاء',
+        'effective_date' => 'تاريخ السريان',
+        'end_date' => 'تاريخ الانتهاء',
+        'is_current' => 'الحالي',
+        'component_type' => 'نوع المكون',
+        'calculation_type' => 'نوع الحساب',
+        'amount' => 'المبلغ',
+        'percentage' => 'النسبة',
+        'formula' => 'المعادلة',
+        'is_taxable' => 'خاضع للضريبة',
     ],
 
     'types' => [
@@ -100,6 +111,17 @@ return [
         'always' => 'تطبيق دائم',
         'range' => 'شرط نطاق',
         'formula' => 'شرط معادلة',
+    ],
+
+    'component_types' => [
+        'earning' => 'إيراد',
+        'deduction' => 'خصم',
+    ],
+
+    'calculation_types' => [
+        'fixed' => 'مبلغ ثابت',
+        'percentage' => 'نسبة مئوية',
+        'formula' => 'معادلة',
     ],
 
     'pay_frequencies' => [
@@ -126,6 +148,10 @@ return [
         'generate_all' => 'إنشاء لجميع الموظفين',
         'duplicate' => 'نسخ',
         'edit_sequence' => 'تعديل الترتيب',
+        'make_current' => 'تعيين كحالي',
+        'toggle_active' => 'تبديل النشاط',
+        'activate' => 'تفعيل',
+        'deactivate' => 'إلغاء التفعيل',
     ],
 
     'messages' => [
@@ -137,6 +163,8 @@ return [
         'cannot_delete_category' => 'لا يمكن حذف فئة لها قواعد مرتبطة',
         'cannot_delete_structure' => 'لا يمكن حذف هيكل له موظفون مرتبطون',
         'structure_duplicated' => 'تم نسخ هيكل الراتب بنجاح',
+        'cannot_delete_current' => 'لا يمكن حذف هيكل الراتب الحالي. قم بتعيين هيكل آخر كحالي أولاً.',
+        'made_current' => 'تم تعيين هيكل الراتب كحالي',
     ],
 
     'help' => [
@@ -148,6 +176,8 @@ return [
         'condition_formula' => 'معادلة تعيد صح/خطأ لتحديد إذا كانت هذه القاعدة تنطبق.',
         'field_mapping' => 'ربط بحقل معين مثل contract.salary أو employee.allowance.',
         'sequence' => 'الترتيب الذي يتم فيه حساب القواعد. الأرقام الأصغر تحسب أولاً.',
+        'base_salary_employee' => 'الراتب الأساسي للموظف تحت هذا الهيكل.',
+        'is_current' => 'يمكن تعيين هيكل واحد فقط كحالي لكل موظف. الهيكل الحالي يستخدم في حسابات الرواتب.',
     ],
 
     'pdf' => [
