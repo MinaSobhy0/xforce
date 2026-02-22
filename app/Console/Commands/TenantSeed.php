@@ -162,6 +162,9 @@ class TenantSeed extends Command
             // Staff module seeders
             \Modules\Staff\Database\Seeders\StaffDatabaseSeeder::class,
 
+            // Payroll module seeders
+            \Modules\Payroll\Database\Seeders\PayrollDatabaseSeeder::class,
+
             // Add more module seeders as needed
         ];
     }
