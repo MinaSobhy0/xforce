@@ -129,8 +129,11 @@ class StaffProfileResource extends Resource
                             ->required()
                             ->default(0)
                             ->prefix(current_currency())
-                            ->formatStateUsing(fn ($state) => $state ? $state / 100 : null)
-                            ->dehydrateStateUsing(fn ($state) => $state ? (int) ($state * 100) : 0),
+                            ->step(0.01)
+                            ->afterStateHydrated(function ($component, $state) {
+                                $component->state($state !== null ? $state / 100 : 0);
+                            })
+                            ->dehydrateStateUsing(fn ($state) => (int) round(($state ?? 0) * 100)),
 
                         Forms\Components\Grid::make(2)
                             ->schema([
