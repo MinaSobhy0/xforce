@@ -223,7 +223,8 @@ class PayslipResource extends Resource
 
                 Tables\Columns\TextColumn::make('allowances')
                     ->label(__('payroll::payroll.fields.allowances'))
-                    ->money(current_currency()),
+                    ->money(current_currency())
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('commissions')
                     ->label(__('payroll::payroll.fields.commissions'))
