@@ -2,22 +2,23 @@
 
 namespace Modules\Payroll\Filament\Resources\PayrollRunResource\RelationManagers;
 
+use App\Filament\Resources\RelationManagers\BaseRelationManager;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Notifications\Notification;
+use Modules\Payroll\Filament\Resources\PayslipResource;
 use Modules\Payroll\Models\PayrollLine;
 use Modules\Staff\Models\StaffProfile;
 
-class LinesRelationManager extends RelationManager
+class LinesRelationManager extends BaseRelationManager
 {
     protected static string $relationship = 'lines';
 
     protected static ?string $title = 'Payslips';
 
-    protected static bool $isLazy = false;
+    protected static ?string $viewResource = PayslipResource::class;
 
     public function form(Form $form): Form
     {
@@ -192,8 +193,7 @@ class LinesRelationManager extends RelationManager
                     }),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make()
-                    ->url(fn (PayrollLine $record) => route('filament.tenant.resources.payslips.view', $record)),
+                ...$this->getDefaultTableActions(),
 
                 Tables\Actions\EditAction::make()
                     ->visible(fn () => $this->ownerRecord->isEditable())
