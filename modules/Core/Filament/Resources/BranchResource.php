@@ -205,13 +205,8 @@ class BranchResource extends Resource
 
                         Forms\Components\Select::make('currency_code')
                             ->label(__('core::core.currency'))
-                            ->options([
-                                'EGP' => 'Egyptian Pound (EGP)',
-                                'USD' => 'US Dollar (USD)',
-                                'EUR' => 'Euro (EUR)',
-                                'SAR' => 'Saudi Riyal (SAR)',
-                                'AED' => 'UAE Dirham (AED)',
-                            ])
+                            ->options(static::getCurrencyOptions())
+                            ->searchable()
                             ->default('EGP')
                             ->columnSpan(1),
 
@@ -345,6 +340,46 @@ class BranchResource extends Resource
             $timezones[$timezone] = $timezone;
         }
         return $timezones;
+    }
+
+    /**
+     * Get all MENA region currencies plus major international currencies.
+     */
+    protected static function getCurrencyOptions(): array
+    {
+        return [
+            // Gulf Countries
+            'AED' => 'UAE Dirham (AED) - د.إ',
+            'SAR' => 'Saudi Riyal (SAR) - ر.س',
+            'KWD' => 'Kuwaiti Dinar (KWD) - د.ك',
+            'BHD' => 'Bahraini Dinar (BHD) - د.ب',
+            'OMR' => 'Omani Rial (OMR) - ر.ع',
+            'QAR' => 'Qatari Riyal (QAR) - ر.ق',
+
+            // Levant
+            'EGP' => 'Egyptian Pound (EGP) - ج.م',
+            'JOD' => 'Jordanian Dinar (JOD) - د.أ',
+            'LBP' => 'Lebanese Pound (LBP) - ل.ل',
+            'SYP' => 'Syrian Pound (SYP) - ل.س',
+            'IQD' => 'Iraqi Dinar (IQD) - د.ع',
+            'YER' => 'Yemeni Rial (YER) - ر.ي',
+            'ILS' => 'Israeli Shekel (ILS) - ₪',
+            'PSE' => 'Palestinian Pound (PSE)',
+
+            // North Africa
+            'MAD' => 'Moroccan Dirham (MAD) - د.م',
+            'DZD' => 'Algerian Dinar (DZD) - د.ج',
+            'TND' => 'Tunisian Dinar (TND) - د.ت',
+            'LYD' => 'Libyan Dinar (LYD) - د.ل',
+            'SDG' => 'Sudanese Pound (SDG) - ج.س',
+            'MRU' => 'Mauritanian Ouguiya (MRU)',
+
+            // International
+            'USD' => 'US Dollar (USD) - $',
+            'EUR' => 'Euro (EUR) - €',
+            'GBP' => 'British Pound (GBP) - £',
+            'TRY' => 'Turkish Lira (TRY) - ₺',
+        ];
     }
 
     /**
