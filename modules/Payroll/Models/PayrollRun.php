@@ -311,4 +311,13 @@ class PayrollRun extends BaseModel
     {
         return $this->total_commissions_minor / 100;
     }
+
+    /**
+     * Check if can be deleted (only if draft/review and empty).
+     */
+    public function isDeletable(): bool
+    {
+        return in_array($this->status, [self::STATUS_DRAFT, self::STATUS_REVIEW, self::STATUS_CANCELLED])
+            && $this->lines()->count() === 0;
+    }
 }

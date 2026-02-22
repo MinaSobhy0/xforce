@@ -268,6 +268,9 @@ class PayrollRunResource extends Resource
                                 ->send();
                         }
                     }),
+
+                Tables\Actions\DeleteAction::make()
+                    ->visible(fn (PayrollRun $record) => $record->isDeletable()),
             ])
             ->bulkActions([])
             ->defaultSort('created_at', 'desc');

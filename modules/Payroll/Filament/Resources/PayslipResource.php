@@ -283,6 +283,9 @@ class PayslipResource extends Resource
                     ->color('success')
                     ->url(fn (PayrollLine $record) => "/payroll/payslip/{$record->id}/download")
                     ->openUrlInNewTab(),
+
+                Tables\Actions\DeleteAction::make()
+                    ->visible(fn (PayrollLine $record) => $record->payrollRun?->isEditable() ?? false),
             ])
             ->bulkActions([])
             ->defaultSort('created_at', 'desc');
@@ -318,6 +321,6 @@ class PayslipResource extends Resource
 
     public static function canDelete($record): bool
     {
-        return false;
+        return $record->payrollRun?->isEditable() ?? false;
     }
 }
