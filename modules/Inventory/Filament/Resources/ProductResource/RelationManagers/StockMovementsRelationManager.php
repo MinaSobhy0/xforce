@@ -4,13 +4,13 @@ namespace Modules\Inventory\Filament\Resources\ProductResource\RelationManagers;
 
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Resources\RelationManagers\RelationManager;
+use App\Filament\Resources\RelationManagers\BaseRelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Modules\Core\Models\Branch;
 use Modules\Inventory\Models\StockMovement;
 
-class StockMovementsRelationManager extends RelationManager
+class StockMovementsRelationManager extends BaseRelationManager
 {
     protected static string $relationship = 'stockMovements';
 

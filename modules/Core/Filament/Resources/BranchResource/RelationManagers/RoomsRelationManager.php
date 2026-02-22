@@ -4,11 +4,11 @@ namespace Modules\Core\Filament\Resources\BranchResource\RelationManagers;
 
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Resources\RelationManagers\RelationManager;
+use App\Filament\Resources\RelationManagers\BaseRelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 
-class RoomsRelationManager extends RelationManager
+class RoomsRelationManager extends BaseRelationManager
 {
     protected static string $relationship = 'rooms';
 

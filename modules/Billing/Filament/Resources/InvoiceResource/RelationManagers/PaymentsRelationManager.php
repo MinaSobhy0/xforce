@@ -6,11 +6,11 @@ use Modules\Billing\Models\Payment;
 use Modules\Accounting\Models\Journal;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Resources\RelationManagers\RelationManager;
+use App\Filament\Resources\RelationManagers\BaseRelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 
-class PaymentsRelationManager extends RelationManager
+class PaymentsRelationManager extends BaseRelationManager
 {
     protected static string $relationship = 'payments';
 

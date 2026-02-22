@@ -5,11 +5,11 @@ namespace Modules\Loyalty\Filament\Resources\ReferralProgramResource\RelationMan
 use Modules\Loyalty\Models\Referral;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Resources\RelationManagers\RelationManager;
+use App\Filament\Resources\RelationManagers\BaseRelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 
-class ReferralsRelationManager extends RelationManager
+class ReferralsRelationManager extends BaseRelationManager
 {
     protected static string $relationship = 'referrals';
 

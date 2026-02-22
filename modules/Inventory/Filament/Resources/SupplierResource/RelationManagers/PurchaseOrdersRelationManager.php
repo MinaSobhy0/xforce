@@ -4,12 +4,12 @@ namespace Modules\Inventory\Filament\Resources\SupplierResource\RelationManagers
 
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Resources\RelationManagers\RelationManager;
+use App\Filament\Resources\RelationManagers\BaseRelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Modules\Inventory\Models\PurchaseOrder;
 
-class PurchaseOrdersRelationManager extends RelationManager
+class PurchaseOrdersRelationManager extends BaseRelationManager
 {
     protected static string $relationship = 'purchaseOrders';
 

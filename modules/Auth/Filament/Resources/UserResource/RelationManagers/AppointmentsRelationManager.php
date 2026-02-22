@@ -4,12 +4,12 @@ namespace Modules\Auth\Filament\Resources\UserResource\RelationManagers;
 
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Resources\RelationManagers\RelationManager;
+use App\Filament\Resources\RelationManagers\BaseRelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Modules\Booking\Models\Appointment;
 
-class AppointmentsRelationManager extends RelationManager
+class AppointmentsRelationManager extends BaseRelationManager
 {
     protected static string $relationship = 'practitionerAppointments';
 

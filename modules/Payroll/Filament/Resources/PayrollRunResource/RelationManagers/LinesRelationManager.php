@@ -18,6 +18,7 @@ class LinesRelationManager extends BaseRelationManager
 
     protected static ?string $title = 'Payslips';
 
+    // PayrollLine -> PayslipResource (non-standard naming, must set explicitly)
     protected static ?string $viewResource = PayslipResource::class;
 
     public function form(Form $form): Form
@@ -193,8 +194,6 @@ class LinesRelationManager extends BaseRelationManager
                     }),
             ])
             ->actions([
-                ...$this->getDefaultTableActions(),
-
                 Tables\Actions\EditAction::make()
                     ->visible(fn () => $this->ownerRecord->isEditable())
                     ->mutateRecordDataUsing(function (array $data): array {

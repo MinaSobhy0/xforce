@@ -5,11 +5,11 @@ namespace Modules\Patients\Filament\Resources\PatientResource\RelationManagers;
 use Modules\Patients\Models\PatientNote;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Resources\RelationManagers\RelationManager;
+use App\Filament\Resources\RelationManagers\BaseRelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 
-class NotesRelationManager extends RelationManager
+class NotesRelationManager extends BaseRelationManager
 {
     protected static string $relationship = 'notes';
 

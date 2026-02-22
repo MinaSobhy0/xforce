@@ -2,12 +2,12 @@
 
 namespace Modules\Marketing\Filament\Resources\CampaignResource\RelationManagers;
 
-use Filament\Resources\RelationManagers\RelationManager;
+use App\Filament\Resources\RelationManagers\BaseRelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Modules\Marketing\Models\CampaignRecipient;
 
-class RecipientsRelationManager extends RelationManager
+class RecipientsRelationManager extends BaseRelationManager
 {
     protected static string $relationship = 'recipients';
 

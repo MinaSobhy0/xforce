@@ -4,7 +4,7 @@ namespace Modules\Staff\Filament\Resources\CommissionPlanResource\RelationManage
 
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Resources\RelationManagers\RelationManager;
+use App\Filament\Resources\RelationManagers\BaseRelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Modules\Staff\Models\CommissionPlan;
@@ -12,7 +12,7 @@ use Modules\Staff\Models\CommissionPlanRule;
 use Modules\Services\Models\Service;
 use Modules\Services\Models\ServiceCategory;
 
-class ServiceRulesRelationManager extends RelationManager
+class ServiceRulesRelationManager extends BaseRelationManager
 {
     protected static string $relationship = 'serviceRules';
 

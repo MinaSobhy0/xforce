@@ -6,11 +6,11 @@ use Modules\Patients\Models\PatientConsentForm;
 use Modules\Patients\Filament\Forms\Components\SignaturePad;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Resources\RelationManagers\RelationManager;
+use App\Filament\Resources\RelationManagers\BaseRelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 
-class ConsentFormsRelationManager extends RelationManager
+class ConsentFormsRelationManager extends BaseRelationManager
 {
     protected static string $relationship = 'consentForms';
 

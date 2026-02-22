@@ -5,11 +5,11 @@ namespace Modules\Accounting\Filament\Resources\JournalEntryResource\RelationMan
 use Modules\Accounting\Models\ChartOfAccount;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Resources\RelationManagers\RelationManager;
+use App\Filament\Resources\RelationManagers\BaseRelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 
-class LinesRelationManager extends RelationManager
+class LinesRelationManager extends BaseRelationManager
 {
     protected static string $relationship = 'lines';
 

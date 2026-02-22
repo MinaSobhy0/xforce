@@ -4,11 +4,11 @@ namespace Modules\Staff\Filament\Resources\StaffProfileResource\RelationManagers
 
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Resources\RelationManagers\RelationManager;
+use App\Filament\Resources\RelationManagers\BaseRelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 
-class ScheduleAssignmentsRelationManager extends RelationManager
+class ScheduleAssignmentsRelationManager extends BaseRelationManager
 {
     protected static string $relationship = 'scheduleAssignments';
 

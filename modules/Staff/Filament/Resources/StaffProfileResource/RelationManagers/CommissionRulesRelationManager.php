@@ -4,14 +4,14 @@ namespace Modules\Staff\Filament\Resources\StaffProfileResource\RelationManagers
 
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Resources\RelationManagers\RelationManager;
+use App\Filament\Resources\RelationManagers\BaseRelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Modules\Staff\Models\StaffCommission;
 use Modules\Services\Models\Service;
 use Modules\Services\Models\ServiceCategory;
 
-class CommissionRulesRelationManager extends RelationManager
+class CommissionRulesRelationManager extends BaseRelationManager
 {
     protected static string $relationship = 'commissionRules';
 

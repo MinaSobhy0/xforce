@@ -6,12 +6,12 @@ use Modules\Packages\Models\PackageSubscription;
 use Modules\Patients\Models\Patient;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Resources\RelationManagers\RelationManager;
+use App\Filament\Resources\RelationManagers\BaseRelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Notifications\Notification;
 
-class SubscriptionsRelationManager extends RelationManager
+class SubscriptionsRelationManager extends BaseRelationManager
 {
     protected static string $relationship = 'subscriptions';
 

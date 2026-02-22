@@ -4,13 +4,13 @@ namespace Modules\Core\Resources\TenantResource\RelationManagers;
 
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Resources\RelationManagers\RelationManager;
+use App\Filament\Resources\RelationManagers\BaseRelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
-class SubscriptionRelationManager extends RelationManager
+class SubscriptionRelationManager extends BaseRelationManager
 {
     protected static string $relationship = 'subscriptions';
 

@@ -4,11 +4,11 @@ namespace Modules\Auth\Resources\RoleResource\RelationManagers;
 
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Resources\RelationManagers\RelationManager;
+use App\Filament\Resources\RelationManagers\BaseRelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 
-class PermissionsRelationManager extends RelationManager
+class PermissionsRelationManager extends BaseRelationManager
 {
     protected static string $relationship = 'permissions';
 
