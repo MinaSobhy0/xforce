@@ -3,6 +3,9 @@
 namespace Modules\Core\Filament\Pages;
 
 use Filament\Pages\Page;
+use Filament\Actions\Action;
+use Filament\Notifications\Notification;
+use Illuminate\Support\Facades\DB;
 use Modules\Core\Models\TenantUsage;
 use XLinic\Framework\Core\Tenancy\TenantManager;
 
@@ -64,25 +67,29 @@ class UsageDashboardPage extends Page
 
         if ($tenantUsage) {
             $this->usage = [
-                'users' => $tenantUsage->users_count ?? 0,
-                'branches' => $tenantUsage->branches_count ?? 0,
-                'storage_gb' => round(($tenantUsage->storage_used_bytes ?? 0) / (1024 * 1024 * 1024), 2),
-                'whatsapp_messages' => $tenantUsage->whatsapp_messages_count ?? 0,
-                'sms_messages' => $tenantUsage->sms_messages_count ?? 0,
-                'emails' => $tenantUsage->emails_sent_count ?? 0,
-                'api_requests' => $tenantUsage->api_requests_count ?? 0,
+                'users' => $tenantUsage->users ?? 0,
+                'branches' => $tenantUsage->branches ?? 0,
+                'storage_gb' => round(($tenantUsage->storage_mb ?? 0) / 1024, 2),
+                'whatsapp_messages' => $tenantUsage->whatsapp_sent ?? 0,
+                'sms_messages' => $tenantUsage->sms_sent ?? 0,
+                'emails' => $tenantUsage->email_sent ?? 0,
+                'api_requests' => $tenantUsage->api_requests ?? 0,
                 // Unlimited resources (for stats display only)
-                'patients' => $tenantUsage->patients_count ?? 0,
-                'services' => $tenantUsage->services_count ?? 0,
-                'products' => $tenantUsage->products_count ?? 0,
-                'equipment' => $tenantUsage->equipment_count ?? 0,
+                'patients' => $tenantUsage->patients ?? 0,
+                'services' => $tenantUsage->services ?? 0,
+                'products' => $tenantUsage->products ?? 0,
+                'equipment' => $tenantUsage->equipment ?? 0,
             ];
 
+            // Get monthly stats from monthly_stats JSON or calculate
+            $currentMonth = now()->format('Y-m');
+            $monthlyData = $tenantUsage->monthly_stats[$currentMonth] ?? [];
+
             $this->monthlyStats = [
-                'appointments_this_month' => $tenantUsage->appointments_this_month ?? 0,
-                'revenue_this_month' => $tenantUsage->revenue_this_month_minor ?? 0,
-                'new_patients_this_month' => $tenantUsage->new_patients_this_month ?? 0,
-                'services_this_month' => $tenantUsage->services_this_month ?? 0,
+                'appointments_this_month' => $tenantUsage->appointments_this_month ?? ($monthlyData['appointments'] ?? 0),
+                'revenue_this_month' => $monthlyData['revenue'] ?? 0,
+                'new_patients_this_month' => $monthlyData['new_patients'] ?? 0,
+                'services_this_month' => $monthlyData['services'] ?? 0,
             ];
         } else {
             $this->usage = array_fill_keys(array_keys($this->limits), 0);
@@ -244,5 +251,77 @@ class UsageDashboardPage extends Page
         }
 
         return 'success';
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Action::make('refresh')
+                ->label(__('core::core.refresh_usage'))
+                ->icon('heroicon-o-arrow-path')
+                ->action(fn () => $this->refreshUsage()),
+        ];
+    }
+
+    public function refreshUsage(): void
+    {
+        $tenantManager = app(TenantManager::class);
+        $tenant = $tenantManager->current();
+
+        if (!$tenant) {
+            return;
+        }
+
+        // Calculate real counts from database
+        $usersCount = DB::table('users')->where('is_active', true)->count();
+        $branchesCount = DB::table('branches')->count();
+        $patientsCount = DB::table('patients')->count();
+        $servicesCount = DB::table('services')->count();
+        $productsCount = DB::table('products')->count();
+        $equipmentCount = DB::table('equipment')->count();
+        $appointmentsCount = DB::table('appointments')->count();
+
+        // Calculate this month's stats
+        $startOfMonth = now()->startOfMonth();
+        $appointmentsThisMonth = DB::table('appointments')
+            ->where('scheduled_at', '>=', $startOfMonth)
+            ->count();
+
+        $newPatientsThisMonth = DB::table('patients')
+            ->where('created_at', '>=', $startOfMonth)
+            ->count();
+
+        // Update or create TenantUsage record
+        $tenantUsage = TenantUsage::updateOrCreate(
+            ['tenant_id' => $tenant->id],
+            [
+                'users' => $usersCount,
+                'branches' => $branchesCount,
+                'patients' => $patientsCount,
+                'services' => $servicesCount,
+                'products' => $productsCount,
+                'equipment' => $equipmentCount,
+                'appointments' => $appointmentsCount,
+                'appointments_this_month' => $appointmentsThisMonth,
+                'last_activity_at' => now(),
+            ]
+        );
+
+        // Update monthly stats
+        $currentMonth = now()->format('Y-m');
+        $monthlyStats = $tenantUsage->monthly_stats ?? [];
+        $monthlyStats[$currentMonth] = [
+            'appointments' => $appointmentsThisMonth,
+            'new_patients' => $newPatientsThisMonth,
+        ];
+        $tenantUsage->update(['monthly_stats' => $monthlyStats]);
+
+        // Reload the page data
+        $this->mount();
+
+        Notification::make()
+            ->title(__('core::core.usage_refreshed'))
+            ->success()
+            ->send();
     }
 }

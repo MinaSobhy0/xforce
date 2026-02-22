@@ -230,6 +230,8 @@ return [
     'need_more_resources' => 'Need More Resources?',
     'upgrade_plan_description' => 'Upgrade your plan to unlock more features and higher limits',
     'view_plans' => 'View Plans',
+    'refresh_usage' => 'Refresh Usage',
+    'usage_refreshed' => 'Usage data refreshed successfully',
 
     // Messages
     'confirm_delete' => 'Are you sure you want to delete this?',

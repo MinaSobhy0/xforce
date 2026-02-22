@@ -29,25 +29,20 @@ class ListPayments extends BaseListRecords
     public function getTabs(): array
     {
         return [
-            'all' => Tab::make('All'),
+            'all' => Tab::make(__('billing::billing.tabs.all')),
 
-            'today' => Tab::make('Today')
+            'today' => Tab::make(__('billing::billing.tabs.today'))
                 ->modifyQueryUsing(fn (Builder $query) => $query->today())
                 ->badge(Payment::today()->count()),
 
-            'cash' => Tab::make('Cash')
-                ->modifyQueryUsing(fn (Builder $query) => $query->byMethod(Payment::METHOD_CASH))
-                ->badge(Payment::byMethod(Payment::METHOD_CASH)->count())
+            'cash' => Tab::make(__('billing::billing.tabs.cash'))
+                ->modifyQueryUsing(fn (Builder $query) => $query->byJournalType('cash'))
+                ->badge(Payment::byJournalType('cash')->count())
                 ->badgeColor('success'),
 
-            'card' => Tab::make('Card')
-                ->modifyQueryUsing(fn (Builder $query) => $query->byMethod(Payment::METHOD_CARD))
-                ->badge(Payment::byMethod(Payment::METHOD_CARD)->count())
-                ->badgeColor('primary'),
-
-            'bank' => Tab::make('Bank Transfer')
-                ->modifyQueryUsing(fn (Builder $query) => $query->byMethod(Payment::METHOD_BANK_TRANSFER))
-                ->badge(Payment::byMethod(Payment::METHOD_BANK_TRANSFER)->count())
+            'bank' => Tab::make(__('billing::billing.tabs.bank'))
+                ->modifyQueryUsing(fn (Builder $query) => $query->byJournalType('bank'))
+                ->badge(Payment::byJournalType('bank')->count())
                 ->badgeColor('info'),
         ];
     }

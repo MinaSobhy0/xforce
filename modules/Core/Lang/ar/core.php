@@ -217,6 +217,8 @@ return [
     'need_more_resources' => 'تحتاج المزيد من الموارد؟',
     'upgrade_plan_description' => 'قم بترقية خطتك لفتح المزيد من الميزات وحدود أعلى',
     'view_plans' => 'عرض الخطط',
+    'refresh_usage' => 'تحديث الاستخدام',
+    'usage_refreshed' => 'تم تحديث بيانات الاستخدام بنجاح',
 
     // Module Categories
     'module_categories' => [

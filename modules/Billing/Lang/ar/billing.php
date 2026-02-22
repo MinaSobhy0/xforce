@@ -43,6 +43,13 @@ return [
         'download_pdf' => 'تحميل PDF',
     ],
 
+    'tabs' => [
+        'all' => 'الكل',
+        'today' => 'اليوم',
+        'cash' => 'نقدي',
+        'bank' => 'تحويل بنكي',
+    ],
+
     'messages' => [
         'invoice_issued' => 'تم إصدار الفاتورة بنجاح',
         'payment_recorded' => 'تم تسجيل الدفعة بنجاح',

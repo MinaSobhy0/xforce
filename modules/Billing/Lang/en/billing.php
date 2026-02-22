@@ -43,6 +43,13 @@ return [
         'download_pdf' => 'Download PDF',
     ],
 
+    'tabs' => [
+        'all' => 'All',
+        'today' => 'Today',
+        'cash' => 'Cash',
+        'bank' => 'Bank Transfer',
+    ],
+
     'messages' => [
         'invoice_issued' => 'Invoice issued successfully',
         'payment_recorded' => 'Payment recorded successfully',
