@@ -47,7 +47,17 @@ class AppServiceProvider extends ServiceProvider
             return;
         }
 
+        // Register widgets
         foreach (glob($modulesPath . '/*/Filament/Widgets/*.php') as $file) {
+            $className = $this->getClassFromFile($file);
+            if ($className && class_exists($className)) {
+                $alias = $this->getComponentAlias($className);
+                Livewire::component($alias, $className);
+            }
+        }
+
+        // Register pages
+        foreach (glob($modulesPath . '/*/Filament/Pages/*.php') as $file) {
             $className = $this->getClassFromFile($file);
             if ($className && class_exists($className)) {
                 $alias = $this->getComponentAlias($className);

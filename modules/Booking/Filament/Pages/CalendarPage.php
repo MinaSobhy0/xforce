@@ -137,6 +137,7 @@ class CalendarPage extends Page implements HasForms
     public function setViewMode(string $mode): void
     {
         $this->viewMode = $mode;
+        $this->dispatch('calendarViewChanged', mode: $mode, events: $this->getAppointments());
     }
 
     public function navigateToDate(string $date): void
@@ -147,6 +148,7 @@ class CalendarPage extends Page implements HasForms
     public function today(): void
     {
         $this->selectedDate = today()->format('Y-m-d');
+        $this->dispatch('calendarDateChanged', date: $this->selectedDate, events: $this->getAppointments());
     }
 
     public function previous(): void
@@ -158,6 +160,7 @@ class CalendarPage extends Page implements HasForms
             'month' => $date->subMonth()->format('Y-m-d'),
             default => $date->subWeek()->format('Y-m-d'),
         };
+        $this->dispatch('calendarDateChanged', date: $this->selectedDate, events: $this->getAppointments());
     }
 
     public function next(): void
@@ -169,6 +172,7 @@ class CalendarPage extends Page implements HasForms
             'month' => $date->addMonth()->format('Y-m-d'),
             default => $date->addWeek()->format('Y-m-d'),
         };
+        $this->dispatch('calendarDateChanged', date: $this->selectedDate, events: $this->getAppointments());
     }
 
     public function getDateRangeLabel(): string

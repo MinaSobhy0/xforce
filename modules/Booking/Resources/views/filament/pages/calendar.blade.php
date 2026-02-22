@@ -80,6 +80,33 @@
                         Livewire.on('refreshCalendar', () => {
                             this.calendar.refetchEvents();
                         });
+
+                        Livewire.on('calendarViewChanged', (data) => {
+                            const mode = data.mode || data;
+                            const events = data.events || [];
+                            const view = this.modeToView(mode);
+                            this.calendar.changeView(view);
+                            this.updateEvents(events);
+                        });
+
+                        Livewire.on('calendarDateChanged', (data) => {
+                            const date = data.date || data;
+                            const events = data.events || [];
+                            this.calendar.gotoDate(date);
+                            this.updateEvents(events);
+                        });
+                    },
+                    updateEvents(events) {
+                        this.calendar.removeAllEvents();
+                        events.forEach(event => this.calendar.addEvent(event));
+                    },
+                    modeToView(mode) {
+                        switch(mode) {
+                            case 'day': return 'timeGridDay';
+                            case 'week': return 'timeGridWeek';
+                            case 'month': return 'dayGridMonth';
+                            default: return 'timeGridWeek';
+                        }
                     },
                     initCalendar() {
                         const calendarEl = document.getElementById('calendar');
@@ -107,7 +134,7 @@
                             select: function(info) {
                                 const startDate = info.startStr.split('T')[0];
                                 const startTime = info.startStr.split('T')[1] || '09:00:00';
-                                window.location.href = '{{ route('filament.tenant.resources.appointments.create') }}?date=' + startDate + '&start_time=' + startTime;
+                                window.location.href = '{{ route('filament.tenant.pages.create-booking') }}?date=' + startDate + '&start_time=' + startTime;
                             },
                             eventDidMount: function(info) {
                                 tippy(info.el, {
