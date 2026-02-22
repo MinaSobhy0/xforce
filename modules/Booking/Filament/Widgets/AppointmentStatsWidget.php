@@ -11,6 +11,8 @@ class AppointmentStatsWidget extends BaseWidget
 {
     protected static ?int $sort = 1;
 
+    protected static bool $isLazy = false;
+
     protected function getStats(): array
     {
         $today = Appointment::whereDate('date', today());
