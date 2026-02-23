@@ -70,7 +70,7 @@ class Product extends BaseModel
         'lead_time_days' => 7,
         'is_consumable' => true,
         'is_active' => true,
-        'valuation_method' => 'standard',
+        'valuation_method' => 'average',
     ];
 
     // Valuation Methods

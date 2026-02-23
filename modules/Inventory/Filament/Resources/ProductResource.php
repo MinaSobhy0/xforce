@@ -186,7 +186,7 @@ class ProductResource extends Resource
                                 Forms\Components\Select::make('valuation_method')
                                     ->label(__('inventory::inventory.fields.valuation_method'))
                                     ->options(Product::VALUATION_METHODS)
-                                    ->default(Product::VALUATION_STANDARD)
+                                    ->default(Product::VALUATION_AVERAGE)
                                     ->helperText('Method used to value inventory'),
 
                                 Forms\Components\Section::make(__('inventory::inventory.sections.stock_accounts'))
