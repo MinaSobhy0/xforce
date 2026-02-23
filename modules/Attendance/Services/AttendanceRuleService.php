@@ -9,8 +9,8 @@ use Modules\Attendance\Models\Attendance;
 use Modules\Attendance\Models\AttendanceRule;
 use Modules\Attendance\Models\AttendanceRuleAction;
 use Modules\Attendance\Models\AttendanceViolation;
-use Modules\Attendance\Models\WorkingSchedule;
 use Modules\Auth\Models\User;
+use Modules\Booking\Models\WorkSchedule;
 use Modules\Staff\Models\StaffProfile;
 
 class AttendanceRuleService
@@ -28,7 +28,15 @@ class AttendanceRuleService
             return null;
         }
 
-        $lateMinutes = $schedule->calculateLateMinutes($checkInTime);
+        // Calculate late minutes based on schedule
+        $daySchedule = $schedule->getDaySchedule(Carbon::parse($attendance->attendance_date)->dayOfWeek);
+        if (!$daySchedule || empty($daySchedule['start_time'])) {
+            return null;
+        }
+
+        $scheduledStart = Carbon::parse($daySchedule['start_time']);
+        $actualCheckIn = Carbon::parse($checkInTime);
+        $lateMinutes = $actualCheckIn->diffInMinutes($scheduledStart, false);
         if ($lateMinutes <= 0) {
             return null;
         }
@@ -64,7 +72,7 @@ class AttendanceRuleService
             $lateMinutes,
             $scheduledTime,
             $checkInTime,
-            $schedule->grace_period_late_minutes
+            0 // Grace period - can be configured later
         );
     }
 
@@ -81,7 +89,15 @@ class AttendanceRuleService
             return null;
         }
 
-        $earlyMinutes = $schedule->calculateEarlyMinutes($checkOutTime);
+        // Calculate early minutes based on schedule
+        $daySchedule = $schedule->getDaySchedule(Carbon::parse($attendance->attendance_date)->dayOfWeek);
+        if (!$daySchedule || empty($daySchedule['end_time'])) {
+            return null;
+        }
+
+        $scheduledEnd = Carbon::parse($daySchedule['end_time']);
+        $actualCheckOut = Carbon::parse($checkOutTime);
+        $earlyMinutes = $scheduledEnd->diffInMinutes($actualCheckOut, false);
         if ($earlyMinutes <= 0) {
             return null;
         }
@@ -117,7 +133,7 @@ class AttendanceRuleService
             $earlyMinutes,
             $scheduledTime,
             $checkOutTime,
-            $schedule->grace_period_early_minutes
+            0 // Grace period - can be configured later
         );
     }
 
@@ -186,13 +202,16 @@ class AttendanceRuleService
             ]);
         }
 
+        $daySchedule = $schedule->getDaySchedule($checkDate->dayOfWeek);
+        $startTime = $daySchedule['start_time'] ?? null;
+
         return $this->createViolation(
             $attendance,
             $rule,
             $action,
             AttendanceViolation::TYPE_MISSED_CHECKIN,
             0,
-            $schedule->start_time,
+            $startTime,
             null,
             0
         );
@@ -236,13 +255,16 @@ class AttendanceRuleService
             return null;
         }
 
+        $daySchedule = $schedule->getDaySchedule(Carbon::parse($attendance->attendance_date)->dayOfWeek);
+        $endTime = $daySchedule['end_time'] ?? null;
+
         return $this->createViolation(
             $attendance,
             $rule,
             $action,
             AttendanceViolation::TYPE_MISSED_CHECKOUT,
             0,
-            $schedule->end_time,
+            $endTime,
             $attendance->check_in_time,
             0
         );
@@ -254,7 +276,7 @@ class AttendanceRuleService
     public function findApplicableRule(
         StaffProfile $staff,
         string $category,
-        ?WorkingSchedule $schedule = null
+        ?WorkSchedule $schedule = null
     ): ?AttendanceRule {
         $query = AttendanceRule::where('tenant_id', $staff->tenant_id)
             ->where('category', $category)
@@ -521,15 +543,33 @@ class AttendanceRuleService
     /**
      * Get staff's working schedule.
      */
-    protected function getStaffSchedule(StaffProfile $staff): ?WorkingSchedule
+    protected function getStaffSchedule(StaffProfile $staff): ?WorkSchedule
     {
-        return WorkingSchedule::where('tenant_id', $staff->tenant_id)
+        // First check if staff has an assigned schedule via PractitionerScheduleAssignment
+        $assignedSchedule = $staff->workSchedules()
+            ->wherePivot('is_active', true)
+            ->where(function ($query) {
+                $query->whereNull('practitioner_schedule_assignments.effective_from')
+                    ->orWhere('practitioner_schedule_assignments.effective_from', '<=', now());
+            })
+            ->where(function ($query) {
+                $query->whereNull('practitioner_schedule_assignments.effective_until')
+                    ->orWhere('practitioner_schedule_assignments.effective_until', '>=', now());
+            })
+            ->wherePivot('is_primary', true)
+            ->first();
+
+        if ($assignedSchedule) {
+            return $assignedSchedule;
+        }
+
+        // Fallback to default schedule for the branch or tenant
+        return WorkSchedule::where('tenant_id', $staff->tenant_id)
             ->where(function ($query) use ($staff) {
                 $query->where('branch_id', $staff->branch_id)
                     ->orWhereNull('branch_id');
             })
-            ->where('status', WorkingSchedule::STATUS_ACTIVE)
-            ->orderByDesc('is_default')
+            ->where('is_active', true)
             ->orderByRaw('branch_id IS NOT NULL DESC')
             ->first();
     }

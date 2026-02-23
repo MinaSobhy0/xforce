@@ -11,7 +11,7 @@ use Filament\Tables\Table;
 use Modules\Attendance\Models\Attendance;
 use Modules\Attendance\Filament\Resources\AttendanceResource\Pages;
 use Modules\Attendance\Filament\Resources\AttendanceResource\RelationManagers;
-use Modules\Attendance\Models\WorkingSchedule;
+use Modules\Booking\Models\WorkSchedule;
 use Modules\Core\Models\Branch;
 use Modules\Staff\Models\StaffProfile;
 

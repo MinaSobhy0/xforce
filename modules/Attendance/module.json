@@ -12,13 +12,12 @@
         "Modules\\Attendance\\Providers\\RouteServiceProvider",
         "Modules\\Attendance\\Providers\\FilamentServiceProvider"
     ],
-    "dependencies": ["Core", "Auth", "Staff"],
+    "dependencies": ["Core", "Auth", "Staff", "Booking"],
     "optional_dependencies": ["Payroll"],
     "models": [
         "Modules\\Attendance\\Models\\Attendance",
         "Modules\\Attendance\\Models\\AttendanceLog",
         "Modules\\Attendance\\Models\\AttendanceBreak",
-        "Modules\\Attendance\\Models\\WorkingSchedule",
         "Modules\\Attendance\\Models\\AttendanceRule",
         "Modules\\Attendance\\Models\\AttendanceRuleAction",
         "Modules\\Attendance\\Models\\AttendanceViolation"
@@ -65,15 +64,6 @@
             "group": "hr",
             "order": 55,
             "permission": "attendances.view_any"
-        },
-        {
-            "id": "working_schedules",
-            "label": {"en": "Working Schedules", "ar": "جداول العمل"},
-            "icon": "heroicon-o-calendar-days",
-            "route": "filament.tenant.resources.working-schedules.index",
-            "group": "hr",
-            "order": 56,
-            "permission": "working_schedules.view_any"
         },
         {
             "id": "attendance_rules",

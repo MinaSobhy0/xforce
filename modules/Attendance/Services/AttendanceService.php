@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Modules\Attendance\Models\Attendance;
 use Modules\Attendance\Models\AttendanceBreak;
 use Modules\Attendance\Models\AttendanceLog;
-use Modules\Attendance\Models\WorkingSchedule;
+use Modules\Booking\Models\WorkSchedule;
 use Modules\Staff\Models\StaffProfile;
 
 class AttendanceService
@@ -61,12 +61,15 @@ class AttendanceService
             $this->createLog($attendance, AttendanceLog::TYPE_CHECK_IN, $locationData, $source);
 
             // Evaluate late check-in violation
-            if ($schedule && $schedule->isLateCheckIn($checkInTime)) {
-                $this->ruleService->evaluateLateCheckIn(
-                    $attendance,
-                    $checkInTime,
-                    $schedule->start_time
-                );
+            if ($schedule) {
+                $daySchedule = $schedule->getDaySchedule($now->dayOfWeek);
+                if ($daySchedule && !empty($daySchedule['start_time']) && $checkInTime > $daySchedule['start_time']) {
+                    $this->ruleService->evaluateLateCheckIn(
+                        $attendance,
+                        $checkInTime,
+                        $daySchedule['start_time']
+                    );
+                }
             }
 
             return $attendance->fresh();
@@ -109,12 +112,15 @@ class AttendanceService
 
             // Get working schedule and evaluate early checkout
             $schedule = $attendance->workingSchedule;
-            if ($schedule && $schedule->isEarlyCheckOut($checkOutTime)) {
-                $this->ruleService->evaluateEarlyCheckOut(
-                    $attendance,
-                    $checkOutTime,
-                    $schedule->end_time
-                );
+            if ($schedule) {
+                $daySchedule = $schedule->getDaySchedule(now()->dayOfWeek);
+                if ($daySchedule && !empty($daySchedule['end_time']) && $checkOutTime < $daySchedule['end_time']) {
+                    $this->ruleService->evaluateEarlyCheckOut(
+                        $attendance,
+                        $checkOutTime,
+                        $daySchedule['end_time']
+                    );
+                }
             }
 
             return $attendance->fresh();
@@ -229,20 +235,26 @@ class AttendanceService
 
             // Evaluate violations if applicable
             if ($schedule) {
-                if ($attendance->check_in_time && $schedule->isLateCheckIn($attendance->check_in_time)) {
-                    $this->ruleService->evaluateLateCheckIn(
-                        $attendance,
-                        $attendance->check_in_time,
-                        $schedule->start_time
-                    );
-                }
+                $daySchedule = $schedule->getDaySchedule($date->dayOfWeek);
+                if ($daySchedule) {
+                    $startTime = $daySchedule['start_time'] ?? null;
+                    $endTime = $daySchedule['end_time'] ?? null;
 
-                if ($attendance->check_out_time && $schedule->isEarlyCheckOut($attendance->check_out_time)) {
-                    $this->ruleService->evaluateEarlyCheckOut(
-                        $attendance,
-                        $attendance->check_out_time,
-                        $schedule->end_time
-                    );
+                    if ($attendance->check_in_time && $startTime && $attendance->check_in_time > $startTime) {
+                        $this->ruleService->evaluateLateCheckIn(
+                            $attendance,
+                            $attendance->check_in_time,
+                            $startTime
+                        );
+                    }
+
+                    if ($attendance->check_out_time && $endTime && $attendance->check_out_time < $endTime) {
+                        $this->ruleService->evaluateEarlyCheckOut(
+                            $attendance,
+                            $attendance->check_out_time,
+                            $endTime
+                        );
+                    }
                 }
             }
 
@@ -268,13 +280,14 @@ class AttendanceService
     {
         $attendance = $this->getTodayAttendance($staff);
         $schedule = $this->getStaffSchedule($staff);
+        $daySchedule = $schedule?->getDaySchedule(today()->dayOfWeek);
 
         $status = [
-            'is_working_day' => $schedule ? $schedule->isWorkingDate(today()) : true,
+            'is_working_day' => $schedule ? $schedule->isWorkingDay(today()->dayOfWeek) : true,
             'schedule' => $schedule ? [
                 'name' => $schedule->name,
-                'start_time' => $schedule->start_time?->format('H:i'),
-                'end_time' => $schedule->end_time?->format('H:i'),
+                'start_time' => $daySchedule['start_time'] ?? null,
+                'end_time' => $daySchedule['end_time'] ?? null,
             ] : null,
             'is_checked_in' => false,
             'is_checked_out' => false,
@@ -320,23 +333,35 @@ class AttendanceService
     /**
      * Get staff's working schedule.
      */
-    public function getStaffSchedule(StaffProfile $staff): ?WorkingSchedule
+    public function getStaffSchedule(StaffProfile $staff): ?WorkSchedule
     {
-        // First check if staff has an assigned schedule
-        // This would depend on how schedules are assigned to staff
-        // For now, get the default schedule for the branch or tenant
+        // First check if staff has an assigned schedule via PractitionerScheduleAssignment
+        $assignedSchedule = $staff->workSchedules()
+            ->wherePivot('is_active', true)
+            ->where(function ($query) {
+                $query->whereNull('practitioner_schedule_assignments.effective_from')
+                    ->orWhere('practitioner_schedule_assignments.effective_from', '<=', now());
+            })
+            ->where(function ($query) {
+                $query->whereNull('practitioner_schedule_assignments.effective_until')
+                    ->orWhere('practitioner_schedule_assignments.effective_until', '>=', now());
+            })
+            ->wherePivot('is_primary', true)
+            ->first();
 
-        $schedule = WorkingSchedule::where('tenant_id', $staff->tenant_id)
+        if ($assignedSchedule) {
+            return $assignedSchedule;
+        }
+
+        // Fallback to default schedule for the branch or tenant
+        return WorkSchedule::where('tenant_id', $staff->tenant_id)
             ->where(function ($query) use ($staff) {
                 $query->where('branch_id', $staff->branch_id)
                     ->orWhereNull('branch_id');
             })
-            ->where('status', WorkingSchedule::STATUS_ACTIVE)
-            ->orderByDesc('is_default')
+            ->where('is_active', true)
             ->orderByRaw('branch_id IS NOT NULL DESC')
             ->first();
-
-        return $schedule;
     }
 
     /**

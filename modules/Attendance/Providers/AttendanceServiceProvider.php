@@ -5,7 +5,6 @@ namespace Modules\Attendance\Providers;
 use Illuminate\Support\ServiceProvider;
 use Modules\Attendance\Services\AttendanceRuleService;
 use Modules\Attendance\Services\AttendanceService;
-use Modules\Attendance\Services\WorkingScheduleService;
 
 class AttendanceServiceProvider extends ServiceProvider
 {
@@ -31,10 +30,6 @@ class AttendanceServiceProvider extends ServiceProvider
 
         $this->app->singleton(AttendanceService::class, function ($app) {
             return new AttendanceService($app->make(AttendanceRuleService::class));
-        });
-
-        $this->app->singleton(WorkingScheduleService::class, function ($app) {
-            return new WorkingScheduleService();
         });
     }
 

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Modules\Auth\Models\User;
+use Modules\Booking\Models\WorkSchedule;
 use Modules\Staff\Models\StaffProfile;
 use XLinic\Framework\Core\Model\BaseModel;
 
@@ -88,11 +89,11 @@ class AttendanceRule extends BaseModel
     */
 
     /**
-     * Get the working schedule.
+     * Get the working schedule (uses Booking module's WorkSchedule).
      */
     public function workingSchedule(): BelongsTo
     {
-        return $this->belongsTo(WorkingSchedule::class, 'working_schedule_id');
+        return $this->belongsTo(WorkSchedule::class, 'working_schedule_id');
     }
 
     /**

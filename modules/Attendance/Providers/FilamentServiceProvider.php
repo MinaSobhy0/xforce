@@ -10,7 +10,6 @@ use Modules\Attendance\Filament\Pages\AttendanceReportsPage;
 use Modules\Attendance\Filament\Resources\AttendanceResource;
 use Modules\Attendance\Filament\Resources\AttendanceRuleResource;
 use Modules\Attendance\Filament\Resources\AttendanceViolationResource;
-use Modules\Attendance\Filament\Resources\WorkingScheduleResource;
 use Modules\Attendance\Filament\Widgets\TodayAttendanceWidget;
 
 class FilamentServiceProvider extends ServiceProvider
@@ -29,7 +28,6 @@ class FilamentServiceProvider extends ServiceProvider
     {
         return [
             AttendanceResource::class,
-            WorkingScheduleResource::class,
             AttendanceRuleResource::class,
             AttendanceViolationResource::class,
         ];

@@ -6,8 +6,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Modules\Auth\Models\User;
 use Modules\Booking\Models\PractitionerScheduleAssignment;
+use Modules\Booking\Models\WorkSchedule;
 use Modules\Core\Models\Branch;
 use Modules\Payroll\Models\EmployeeSalaryComponent;
 use Modules\Payroll\Models\EmployeeSalaryStructure;
@@ -117,6 +119,43 @@ class StaffProfile extends BaseModel
     public function scheduleAssignments(): HasMany
     {
         return $this->hasMany(PractitionerScheduleAssignment::class, 'staff_profile_id');
+    }
+
+    /**
+     * Get work schedules for this staff member.
+     */
+    public function workSchedules(): BelongsToMany
+    {
+        return $this->belongsToMany(WorkSchedule::class, 'practitioner_schedule_assignments', 'staff_profile_id', 'work_schedule_id')
+            ->withPivot(['effective_from', 'effective_until', 'day_overrides', 'is_primary', 'is_active', 'notes'])
+            ->withTimestamps();
+    }
+
+    /**
+     * Get active work schedules for this staff member.
+     */
+    public function activeWorkSchedules(): BelongsToMany
+    {
+        return $this->workSchedules()
+            ->wherePivot('is_active', true)
+            ->where(function ($query) {
+                $query->whereNull('practitioner_schedule_assignments.effective_from')
+                    ->orWhere('practitioner_schedule_assignments.effective_from', '<=', now());
+            })
+            ->where(function ($query) {
+                $query->whereNull('practitioner_schedule_assignments.effective_until')
+                    ->orWhere('practitioner_schedule_assignments.effective_until', '>=', now());
+            });
+    }
+
+    /**
+     * Get the primary work schedule for this staff member.
+     */
+    public function primaryWorkSchedule(): ?WorkSchedule
+    {
+        return $this->activeWorkSchedules()
+            ->wherePivot('is_primary', true)
+            ->first();
     }
 
     /**
