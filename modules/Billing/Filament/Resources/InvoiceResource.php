@@ -111,18 +111,18 @@ class InvoiceResource extends Resource
                                                     ->options(Service::query()->where('is_active', true)->pluck('name', 'id'))
                                                     ->searchable()
                                                     ->preload()
-                                                    ->reactive()
+                                                    ->live()
                                                     ->columnSpan(4)
-                                                    ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
+                                                    ->afterStateUpdated(function ($state, Forms\Set $set, \Livewire\Component $livewire) {
                                                         if ($state) {
                                                             $service = Service::find($state);
                                                             if ($service) {
-                                                                $branchId = $get('../../branch_id');
+                                                                $branchId = data_get($livewire, 'data.branch_id') ?? current_branch_id();
                                                                 $price = $branchId
-                                                                    ? $service->getEffectivePrice($branchId)
+                                                                    ? $service->getPriceForBranch($branchId)
                                                                     : $service->base_price_minor;
                                                                 $set('description', $service->name);
-                                                                $set('unit_price_minor', $price);
+                                                                $set('unit_price_minor', $price / 100);
                                                                 $set('tax_rate', TaxRate::getDefault()?->rate ?? 14);
                                                             }
                                                         }
