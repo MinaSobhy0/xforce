@@ -136,6 +136,8 @@ class PaymentsRelationManager extends RelationManager
                                 ->title('Payment linked successfully')
                                 ->success()
                                 ->send();
+
+                            $this->redirect(request()->header('Referer'));
                         }
                     }),
             ])
@@ -172,6 +174,8 @@ class PaymentsRelationManager extends RelationManager
                             ->title('Payment unlinked successfully')
                             ->success()
                             ->send();
+
+                        $this->redirect(request()->header('Referer'));
                     }),
             ])
             ->bulkActions([])
