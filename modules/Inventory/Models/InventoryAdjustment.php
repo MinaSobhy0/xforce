@@ -222,13 +222,30 @@ class InventoryAdjustment extends BaseModel
      */
     protected function createJournalEntry(): void
     {
-        $accountingService = app(\Modules\Inventory\Services\InventoryAccountingService::class);
+        try {
+            $accountingService = app(\Modules\Inventory\Services\InventoryAccountingService::class);
 
-        $journalEntry = $accountingService->createAdjustmentJournalEntry($this);
+            $journalEntry = $accountingService->createAdjustmentJournalEntry($this);
 
-        if ($journalEntry) {
-            $this->journal_entry_id = $journalEntry->id;
-            $this->save();
+            if ($journalEntry) {
+                $this->journal_entry_id = $journalEntry->id;
+                $this->saveQuietly(); // Use saveQuietly to avoid triggering events
+
+                \Log::info('InventoryAdjustment: Journal entry linked', [
+                    'adjustment_id' => $this->id,
+                    'journal_entry_id' => $journalEntry->id,
+                ]);
+            } else {
+                \Log::warning('InventoryAdjustment: No journal entry created', [
+                    'adjustment_id' => $this->id,
+                ]);
+            }
+        } catch (\Exception $e) {
+            \Log::error('InventoryAdjustment: Failed to create journal entry', [
+                'adjustment_id' => $this->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
         }
     }
 

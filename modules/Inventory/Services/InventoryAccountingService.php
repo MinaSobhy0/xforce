@@ -118,8 +118,17 @@ class InventoryAccountingService
      */
     public function createAdjustmentJournalEntry(InventoryAdjustment $adjustment): ?JournalEntry
     {
-        if ($adjustment->total_value_adjustment_minor === 0) {
-            return null; // No value change
+        // Reload lines to ensure we have fresh data
+        $adjustment->load('lines.product');
+
+        // Check if there are any actual changes
+        $hasChanges = $adjustment->lines->contains(fn ($line) => !$line->isNoChange());
+
+        if (!$hasChanges) {
+            \Log::info('InventoryAccountingService: No changes to create journal entry', [
+                'adjustment_id' => $adjustment->id,
+            ]);
+            return null;
         }
 
         $lines = [];
@@ -132,13 +141,21 @@ class InventoryAccountingService
             }
 
             $product = $line->product;
+            if (!$product) {
+                continue;
+            }
+
             $stockValuationAccount = $this->getStockValuationAccount($product);
 
             if (!$stockValuationAccount) {
+                \Log::warning('InventoryAccountingService: Stock valuation account not found', [
+                    'product_id' => $product->id,
+                ]);
                 continue;
             }
 
             $absValue = abs($line->value_adjustment_minor);
+            $productName = $product->getTranslation('name', 'en') ?? $product->sku;
 
             if ($line->isPositiveAdjustment()) {
                 // Stock increase - Debit Inventory, Credit Adjustment Income
@@ -146,7 +163,7 @@ class InventoryAccountingService
                     'account_code' => $stockValuationAccount->code,
                     'debit' => $absValue,
                     'credit' => 0,
-                    'description' => "Stock increase: {$product->name}",
+                    'description' => "Stock increase: {$productName}",
                 ];
                 $totalPositive += $absValue;
             } else {
@@ -155,7 +172,7 @@ class InventoryAccountingService
                     'account_code' => $stockValuationAccount->code,
                     'debit' => 0,
                     'credit' => $absValue,
-                    'description' => "Stock decrease: {$product->name}",
+                    'description' => "Stock decrease: {$productName}",
                 ];
                 $totalNegative += $absValue;
             }
@@ -171,6 +188,8 @@ class InventoryAccountingService
                     'credit' => $totalPositive,
                     'description' => 'Inventory adjustment gain',
                 ];
+            } else {
+                \Log::warning('InventoryAccountingService: Adjustment income account not found');
             }
         }
 
@@ -183,10 +202,15 @@ class InventoryAccountingService
                     'credit' => 0,
                     'description' => 'Inventory adjustment loss',
                 ];
+            } else {
+                \Log::warning('InventoryAccountingService: Adjustment expense account not found');
             }
         }
 
         if (empty($lines)) {
+            \Log::warning('InventoryAccountingService: No journal lines created', [
+                'adjustment_id' => $adjustment->id,
+            ]);
             return null;
         }
 
@@ -195,14 +219,29 @@ class InventoryAccountingService
             $description .= " - {$adjustment->reason}";
         }
 
-        return $this->accountingService->createJournalEntry(
-            $adjustment->adjustment_date,
-            $description,
-            $lines,
-            'inventory_adjustment',
-            $adjustment->id,
-            true
-        );
+        try {
+            $journalEntry = $this->accountingService->createJournalEntry(
+                $adjustment->adjustment_date,
+                $description,
+                $lines,
+                'inventory_adjustment',
+                $adjustment->id,
+                true
+            );
+
+            \Log::info('InventoryAccountingService: Journal entry created', [
+                'adjustment_id' => $adjustment->id,
+                'journal_entry_id' => $journalEntry?->id,
+            ]);
+
+            return $journalEntry;
+        } catch (\Exception $e) {
+            \Log::error('InventoryAccountingService: Failed to create journal entry', [
+                'adjustment_id' => $adjustment->id,
+                'error' => $e->getMessage(),
+            ]);
+            return null;
+        }
     }
 
     /**
