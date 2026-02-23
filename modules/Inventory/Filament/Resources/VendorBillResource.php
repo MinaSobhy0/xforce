@@ -158,8 +158,10 @@ class VendorBillResource extends Resource
                                                     ->get()
                                                     ->mapWithKeys(fn ($a) => [$a->id => "[{$a->code}] " . $a->getTranslation('name', app()->getLocale())])
                                             )
+                                            ->default(fn () => ChartOfAccount::where('type', ChartOfAccount::TYPE_EXPENSE)->where('is_active', true)->orderBy('code')->first()?->id)
                                             ->searchable()
                                             ->preload()
+                                            ->required()
                                             ->columnSpan(['default' => 12, 'md' => 4]),
 
                                         Forms\Components\TextInput::make('quantity')
