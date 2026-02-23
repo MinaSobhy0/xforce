@@ -5,6 +5,7 @@ namespace Modules\Payroll\Database\Seeders;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Modules\Accounting\Models\ChartOfAccount;
 use Modules\Payroll\Models\SalaryRule;
 use Modules\Payroll\Models\SalaryRuleCategory;
 
@@ -27,6 +28,9 @@ class PayrollDefaultsSeeder extends Seeder
 
         // Create default structure with rules
         $this->seedStructures($rules);
+
+        // Set default accounts on salary rules for journal entries
+        $this->setDefaultAccounts($rules);
     }
 
     /**
@@ -317,6 +321,84 @@ class PayrollDefaultsSeeder extends Seeder
                 }
                 $sequence++;
             }
+        }
+    }
+
+    /**
+     * Set default accounts on salary rules for journal entries.
+     */
+    protected function setDefaultAccounts(array $ruleIds): void
+    {
+        // Map of rule codes to their default account codes
+        // Format: 'RULE_CODE' => ['debit' => 'XXXX', 'credit' => 'XXXX', 'creates_journal' => true]
+        $accountMappings = [
+            // Earnings - Debit Expense, Credit Salaries Payable
+            'BASIC' => ['debit' => '5110', 'credit' => '2110', 'creates_journal' => true],
+            'HRA' => ['debit' => '5110', 'credit' => '2110', 'creates_journal' => true],
+            'TA' => ['debit' => '5110', 'credit' => '2110', 'creates_journal' => true],
+            'MEAL' => ['debit' => '5110', 'credit' => '2110', 'creates_journal' => true],
+            'PHONE' => ['debit' => '5110', 'credit' => '2110', 'creates_journal' => true],
+            'COMM' => ['debit' => '5120', 'credit' => '2110', 'creates_journal' => true],
+            'BONUS' => ['debit' => '5130', 'credit' => '2110', 'creates_journal' => true],
+            'OT' => ['debit' => '5110', 'credit' => '2110', 'creates_journal' => true],
+
+            // Deductions - Debit Salaries Payable, Credit specific liability
+            'SI_EMP' => ['debit' => '2110', 'credit' => '2100', 'creates_journal' => true],
+            'TAX' => ['debit' => '2110', 'credit' => '2320', 'creates_journal' => true],
+            'ABSENCE' => ['debit' => '2110', 'credit' => '4300', 'creates_journal' => true], // Reduces liability, other income
+            'LATE' => ['debit' => '2110', 'credit' => '4300', 'creates_journal' => true],
+            'LOAN' => ['debit' => '2110', 'credit' => '1100', 'creates_journal' => true], // Reduces receivable
+            'OTHER_DED' => ['debit' => '2110', 'credit' => '2100', 'creates_journal' => true],
+
+            // GROSS and NET are calculated totals, don't create journal entries
+            'GROSS' => ['creates_journal' => false],
+            'NET' => ['creates_journal' => false],
+        ];
+
+        // Get account IDs from chart of accounts
+        $accountIds = [];
+        try {
+            $accounts = $this->connection->table('chart_of_accounts')
+                ->whereIn('code', ['5110', '5120', '5130', '2110', '2100', '2320', '4300', '1100'])
+                ->get();
+
+            foreach ($accounts as $account) {
+                $accountIds[$account->code] = $account->id;
+            }
+        } catch (\Exception $e) {
+            // Chart of accounts might not exist yet, skip account linking
+            return;
+        }
+
+        if (empty($accountIds)) {
+            return;
+        }
+
+        // Update each rule with its default accounts
+        foreach ($accountMappings as $ruleCode => $mapping) {
+            if (!isset($ruleIds[$ruleCode])) {
+                continue;
+            }
+
+            $ruleId = $ruleIds[$ruleCode];
+            $updateData = [
+                'creates_journal_entry' => $mapping['creates_journal'] ?? false,
+                'updated_at' => now(),
+            ];
+
+            if (!empty($mapping['debit']) && isset($accountIds[$mapping['debit']])) {
+                $updateData['debit_account_id'] = $accountIds[$mapping['debit']];
+                $updateData['default_debit_account_code'] = $mapping['debit'];
+            }
+
+            if (!empty($mapping['credit']) && isset($accountIds[$mapping['credit']])) {
+                $updateData['credit_account_id'] = $accountIds[$mapping['credit']];
+                $updateData['default_credit_account_code'] = $mapping['credit'];
+            }
+
+            $this->connection->table('salary_rules')
+                ->where('id', $ruleId)
+                ->update($updateData);
         }
     }
 }

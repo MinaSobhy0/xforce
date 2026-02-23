@@ -177,6 +177,9 @@ class TenantSeed extends Command
             // Core module seeders
             \Modules\Core\Database\Seeders\CoreDatabaseSeeder::class,
 
+            // Accounting module - Chart of Accounts (run before Payroll)
+            \Modules\Accounting\Database\Seeders\ChartOfAccountsSeeder::class,
+
             // Services module seeders
             \Modules\Services\Database\Seeders\ServicesModuleSeeder::class,
 
@@ -186,7 +189,7 @@ class TenantSeed extends Command
             // Staff module seeders
             \Modules\Staff\Database\Seeders\StaffDatabaseSeeder::class,
 
-            // Payroll module seeders
+            // Payroll module seeders (runs after COA so it can link accounts)
             \Modules\Payroll\Database\Seeders\PayrollDatabaseSeeder::class,
 
             // Add more module seeders as needed
