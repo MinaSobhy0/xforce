@@ -9,6 +9,14 @@ This plan implements a comprehensive financial system centered around Treatment 
 - Deposit application to invoices
 - Payment tracking and collection
 
+**IMPORTANT**: This implementation integrates with the **existing Billing module** (`modules/Billing/`), which already has:
+- `Invoice` model with statuses, payments, and accounting integration
+- `InvoiceLine` model with service support
+- `Payment` model with journal entries
+- `TaxRate`, `InstallmentPlan`, `InstallmentSchedule` models
+
+We will **extend** the existing module rather than create a new Finance module.
+
 ---
 
 ## Architecture Diagram
@@ -55,44 +63,55 @@ This plan implements a comprehensive financial system centered around Treatment 
 
 ## Phase 1: Database Schema & Migrations
 
-### 1.1 Create Finance Module Structure
+### 1.1 Extend Existing Billing Module
+
+We will add to the existing `modules/Billing/` structure:
 
 ```
-modules/Finance/
-├── Config/
-│   └── config.php
+modules/Billing/
 ├── Database/
 │   └── Migrations/
-│       ├── 2024_01_01_000001_create_invoices_table.php
-│       ├── 2024_01_01_000002_create_invoice_items_table.php
-│       ├── 2024_01_01_000003_create_deposits_table.php
-│       ├── 2024_01_01_000004_create_payments_table.php
-│       └── 2024_01_01_000005_add_finance_fields_to_treatment_plans.php
-├── Filament/
-│   └── Resources/
-│       ├── InvoiceResource.php
-│       ├── DepositResource.php
-│       └── PaymentResource.php
+│       ├── (existing) 2024_01_01_000001_create_tax_rates_table.php
+│       ├── (existing) 2024_01_01_000002_create_invoices_table.php
+│       ├── (existing) 2024_01_01_000003_create_invoice_lines_table.php
+│       ├── (existing) 2024_01_01_000004_create_payments_table.php
+│       ├── (NEW) 2024_02_01_000001_create_deposits_table.php
+│       ├── (NEW) 2024_02_01_000002_create_deposit_applications_table.php
+│       ├── (NEW) 2024_02_01_000003_add_treatment_plan_to_invoices.php
+│       └── (NEW) 2024_02_01_000004_add_itemable_to_invoice_lines.php
 ├── Models/
-│   ├── Invoice.php
-│   ├── InvoiceItem.php
-│   ├── Deposit.php
-│   └── Payment.php
+│   ├── (existing) Invoice.php - Add treatment_plan relationship
+│   ├── (existing) InvoiceLine.php - Add polymorphic itemable
+│   ├── (existing) Payment.php
+│   ├── (NEW) Deposit.php
+│   └── (NEW) DepositApplication.php
 ├── Services/
-│   ├── InvoiceService.php
-│   ├── DepositService.php
-│   └── PaymentService.php
-├── Lang/
-│   ├── en/
-│   │   └── finance.php
-│   └── ar/
-│       └── finance.php
-├── Providers/
-│   └── FinanceServiceProvider.php
-└── module.json
+│   ├── (existing) InvoiceCalculationService.php
+│   ├── (existing) AccountingIntegrationService.php
+│   └── (NEW) DepositService.php
+└── Filament/
+    └── Resources/
+        ├── (existing) InvoiceResource.php - Add deposit application
+        └── (NEW) DepositResource.php
 ```
 
-### 1.2 Migration: invoices
+### 1.2 SIMPLIFIED APPROACH: Deposits = Unassigned Payments
+
+**Key Insight**: Deposits are simply payments that haven't been assigned to an invoice yet.
+
+Instead of creating separate deposits tables, we:
+1. Make `invoice_id` nullable on payments table
+2. Add `patient_id`, `branch_id`, `treatment_plan_id`, `appointment_id` to payments
+3. Payments without `invoice_id` = Unassigned Payments (Deposits)
+4. When creating invoice, assign existing unassigned payments to it
+
+**Benefits**:
+- Simpler data model
+- Single payment tracking system
+- Consistent accounting entries
+- Easy to query available deposits per patient/plan
+
+### 1.3 Migration: invoices (EXISTING - updated)
 
 ```php
 Schema::create('invoices', function (Blueprint $table) {

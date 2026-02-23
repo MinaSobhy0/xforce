@@ -15,6 +15,7 @@ use Modules\Core\Models\Branch;
 use Modules\Patients\Models\Patient;
 use Modules\Booking\Models\Appointment;
 use Modules\Accounting\Models\JournalEntry;
+use Modules\TreatmentPlans\Models\TreatmentPlan;
 
 class Invoice extends BaseModel
 {
@@ -29,6 +30,7 @@ class Invoice extends BaseModel
         'patient_id',
         'branch_id',
         'appointment_id',
+        'treatment_plan_id',
         'type',
         'status',
         'subtotal_minor',
@@ -37,6 +39,7 @@ class Invoice extends BaseModel
         'tax_minor',
         'total_minor',
         'paid_minor',
+        'deposits_applied_minor',
         'notes',
         'internal_notes',
         'due_date',
@@ -53,6 +56,7 @@ class Invoice extends BaseModel
         'tax_minor' => 'integer',
         'total_minor' => 'integer',
         'paid_minor' => 'integer',
+        'deposits_applied_minor' => 'integer',
         'due_date' => 'date',
         'issued_at' => 'datetime',
         'paid_at' => 'datetime',
@@ -136,6 +140,11 @@ class Invoice extends BaseModel
         return $this->belongsTo(Appointment::class);
     }
 
+    public function treatmentPlan(): BelongsTo
+    {
+        return $this->belongsTo(TreatmentPlan::class);
+    }
+
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by_user_id');
@@ -164,7 +173,12 @@ class Invoice extends BaseModel
     // Computed attributes
     public function getRemainingMinorAttribute(): int
     {
-        return max(0, $this->total_minor - $this->paid_minor);
+        return max(0, $this->total_minor - $this->paid_minor - ($this->deposits_applied_minor ?? 0));
+    }
+
+    public function getTotalPaidAttribute(): int
+    {
+        return ($this->paid_minor ?? 0) + ($this->deposits_applied_minor ?? 0);
     }
 
     public function getPaymentProgressAttribute(): float
@@ -385,5 +399,61 @@ class Invoice extends BaseModel
                         ->orWhere('phone', 'like', "%{$term}%");
                 });
         });
+    }
+
+    public function scopeForTreatmentPlan($query, string $planId)
+    {
+        return $query->where('treatment_plan_id', $planId);
+    }
+
+    /**
+     * Apply an unassigned payment (deposit) to this invoice
+     */
+    public function applyUnassignedPayment(Payment $payment): bool
+    {
+        if (!$payment->isUnassigned()) {
+            return false;
+        }
+
+        if ($payment->patient_id !== $this->patient_id) {
+            return false;
+        }
+
+        // Calculate how much to apply
+        $remaining = $this->remaining_minor;
+        $amountToApply = min($payment->amount_minor, $remaining);
+
+        if ($amountToApply <= 0) {
+            return false;
+        }
+
+        // Assign the payment to this invoice
+        $payment->invoice_id = $this->id;
+        $payment->save();
+
+        // Update deposits applied
+        $this->increment('deposits_applied_minor', $amountToApply);
+
+        // Check if invoice is now fully paid
+        $this->refresh();
+        if ($this->remaining_minor <= 0 && $this->status !== self::STATUS_PAID) {
+            $this->transitionTo(self::STATUS_PAID);
+        } elseif ($this->total_paid > 0 && $this->status === self::STATUS_ISSUED) {
+            $this->transitionTo(self::STATUS_PARTIALLY_PAID);
+        }
+
+        return true;
+    }
+
+    /**
+     * Get available unassigned payments for this patient that can be applied
+     */
+    public function getAvailableDeposits()
+    {
+        return Payment::unassigned()
+            ->forPatient($this->patient_id)
+            ->where('tenant_id', $this->tenant_id)
+            ->orderBy('paid_at')
+            ->get();
     }
 }

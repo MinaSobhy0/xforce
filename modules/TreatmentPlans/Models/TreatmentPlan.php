@@ -17,6 +17,8 @@ use Modules\Patients\Models\Patient;
 use Modules\Packages\Models\Package;
 use Modules\Packages\Models\PackageSubscription;
 use Modules\Booking\Models\Appointment;
+use Modules\Billing\Models\Invoice;
+use Modules\Billing\Models\Payment;
 use Carbon\Carbon;
 
 class TreatmentPlan extends BaseModel
@@ -48,6 +50,11 @@ class TreatmentPlan extends BaseModel
         'completed_at',
         'cancelled_at',
         'cancellation_reason',
+        'total_value_minor',
+        'total_deposits_minor',
+        'total_invoiced_minor',
+        'total_paid_minor',
+        'balance_minor',
     ];
 
     protected $casts = [
@@ -60,6 +67,11 @@ class TreatmentPlan extends BaseModel
         'paused_at' => 'datetime',
         'completed_at' => 'datetime',
         'cancelled_at' => 'datetime',
+        'total_value_minor' => 'integer',
+        'total_deposits_minor' => 'integer',
+        'total_invoiced_minor' => 'integer',
+        'total_paid_minor' => 'integer',
+        'balance_minor' => 'integer',
     ];
 
     public array $translatable = ['name', 'description'];
@@ -142,6 +154,23 @@ class TreatmentPlan extends BaseModel
     public function items(): HasMany
     {
         return $this->hasMany(TreatmentPlanItem::class)->orderBy('sort_order');
+    }
+
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(Invoice::class);
+    }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
+    }
+
+    public function unassignedPayments(): HasMany
+    {
+        return $this->hasMany(Payment::class)
+            ->whereNull('invoice_id')
+            ->where('status', Payment::STATUS_COMPLETED);
     }
 
     public function appointments(): HasManyThrough
@@ -455,5 +484,100 @@ class TreatmentPlan extends BaseModel
                         ->orWhere('phone', 'like', "%{$term}%");
                 });
         });
+    }
+
+    // Financial methods
+    /**
+     * Recalculate all financial totals for this treatment plan
+     */
+    public function recalculateFinancials(): void
+    {
+        // Total value from items
+        $this->total_value_minor = $this->items()->sum('total_minor');
+
+        // Total deposits (unassigned payments linked to this plan)
+        $this->total_deposits_minor = $this->payments()
+            ->whereNull('invoice_id')
+            ->where('status', Payment::STATUS_COMPLETED)
+            ->sum('amount_minor');
+
+        // Total invoiced (non-cancelled/draft invoices)
+        $this->total_invoiced_minor = $this->invoices()
+            ->whereNotIn('status', [Invoice::STATUS_CANCELLED, Invoice::STATUS_DRAFT])
+            ->sum('total_minor');
+
+        // Total paid (payments on invoices + deposits applied)
+        $this->total_paid_minor = $this->invoices()
+            ->whereNotIn('status', [Invoice::STATUS_CANCELLED, Invoice::STATUS_DRAFT])
+            ->sum(\DB::raw('paid_minor + deposits_applied_minor'));
+
+        // Balance
+        $this->balance_minor = $this->total_value_minor - $this->total_paid_minor;
+
+        $this->save();
+    }
+
+    /**
+     * Get available deposits (unassigned payments) that can be applied to invoices
+     */
+    public function getAvailableDepositsAttribute()
+    {
+        return $this->unassignedPayments()->get();
+    }
+
+    /**
+     * Get total available deposits amount
+     */
+    public function getAvailableDepositsAmountAttribute(): int
+    {
+        return $this->unassignedPayments()->sum('amount_minor');
+    }
+
+    /**
+     * Get financial summary
+     */
+    public function getFinancialSummaryAttribute(): array
+    {
+        return [
+            'total_value' => $this->total_value_minor / 100,
+            'total_deposits' => $this->total_deposits_minor / 100,
+            'total_invoiced' => $this->total_invoiced_minor / 100,
+            'total_paid' => $this->total_paid_minor / 100,
+            'balance' => $this->balance_minor / 100,
+            'available_deposits' => $this->available_deposits_amount / 100,
+        ];
+    }
+
+    /**
+     * Format minor amount for display
+     */
+    public function formatAmount(int $amountMinor): string
+    {
+        return number_format($amountMinor / 100, 2);
+    }
+
+    public function getFormattedTotalValueAttribute(): string
+    {
+        return $this->formatAmount($this->total_value_minor ?? 0);
+    }
+
+    public function getFormattedDepositsAttribute(): string
+    {
+        return $this->formatAmount($this->total_deposits_minor ?? 0);
+    }
+
+    public function getFormattedInvoicedAttribute(): string
+    {
+        return $this->formatAmount($this->total_invoiced_minor ?? 0);
+    }
+
+    public function getFormattedPaidAttribute(): string
+    {
+        return $this->formatAmount($this->total_paid_minor ?? 0);
+    }
+
+    public function getFormattedBalanceAttribute(): string
+    {
+        return $this->formatAmount($this->balance_minor ?? 0);
     }
 }

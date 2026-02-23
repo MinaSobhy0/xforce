@@ -6,6 +6,8 @@ use XLinic\Framework\Core\Model\BaseModel;
 use XLinic\Framework\Core\Model\Traits\HasTenancy;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Modules\Services\Models\Service;
+use Modules\TreatmentPlans\Models\TreatmentPlanItem;
+use Modules\Booking\Models\Appointment;
 
 class InvoiceLine extends BaseModel
 {
@@ -15,6 +17,8 @@ class InvoiceLine extends BaseModel
         'tenant_id',
         'invoice_id',
         'service_id',
+        'treatment_plan_item_id',
+        'appointment_id',
         'description',
         'quantity',
         'unit_price_minor',
@@ -55,10 +59,20 @@ class InvoiceLine extends BaseModel
 
         static::saved(function (InvoiceLine $line) {
             $line->invoice?->recalculateTotals();
+
+            // Update treatment plan item invoiced quantity
+            if ($line->treatment_plan_item_id && $line->wasRecentlyCreated) {
+                $line->treatmentPlanItem?->increment('invoiced_quantity', (int) $line->quantity);
+            }
         });
 
         static::deleted(function (InvoiceLine $line) {
             $line->invoice?->recalculateTotals();
+
+            // Reverse treatment plan item invoiced quantity
+            if ($line->treatment_plan_item_id) {
+                $line->treatmentPlanItem?->decrement('invoiced_quantity', (int) $line->quantity);
+            }
         });
     }
 
@@ -71,6 +85,16 @@ class InvoiceLine extends BaseModel
     public function service(): BelongsTo
     {
         return $this->belongsTo(Service::class);
+    }
+
+    public function treatmentPlanItem(): BelongsTo
+    {
+        return $this->belongsTo(TreatmentPlanItem::class);
+    }
+
+    public function appointment(): BelongsTo
+    {
+        return $this->belongsTo(Appointment::class);
     }
 
     // Calculate line totals
