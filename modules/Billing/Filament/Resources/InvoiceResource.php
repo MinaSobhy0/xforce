@@ -485,6 +485,7 @@ class InvoiceResource extends Resource
 
                         Infolists\Components\TextEntry::make('status')
                             ->badge()
+                            ->formatStateUsing(fn (string $state): string => Invoice::STATUSES[$state] ?? $state)
                             ->color(fn (string $state): string => Invoice::STATUS_COLORS[$state] ?? 'gray'),
 
                         Infolists\Components\TextEntry::make('type')
