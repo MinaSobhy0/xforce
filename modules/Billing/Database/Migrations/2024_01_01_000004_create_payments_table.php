@@ -12,7 +12,15 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->uuid('tenant_id')->index();
             $table->string('code')->index();
-            $table->uuid('invoice_id')->index();
+            $table->string('type', 20)->default('receive')->index(); // receive = money in, send = money out
+            $table->uuid('invoice_id')->nullable()->index(); // For customer payments (receive)
+            $table->uuid('vendor_bill_id')->nullable()->index(); // For vendor payments (send)
+            $table->uuid('patient_id')->nullable()->index();
+            $table->uuid('supplier_id')->nullable()->index();
+            $table->uuid('branch_id')->nullable()->index();
+            $table->uuid('treatment_plan_id')->nullable()->index();
+            $table->uuid('appointment_id')->nullable()->index();
+            $table->string('status')->default('completed')->index();
             $table->uuid('journal_id')->nullable()->index(); // Payment method journal
             $table->integer('amount_minor');
             $table->string('reference_number')->nullable();
@@ -23,9 +31,9 @@ return new class extends Migration
             $table->timestamp('paid_at')->index();
             $table->timestamps();
 
-            $table->foreign('invoice_id')->references('id')->on('invoices')->cascadeOnDelete();
             $table->index(['tenant_id', 'journal_id']);
             $table->index(['tenant_id', 'paid_at']);
+            $table->index(['tenant_id', 'type']);
         });
     }
 
