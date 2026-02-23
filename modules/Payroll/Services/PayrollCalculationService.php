@@ -779,7 +779,7 @@ class PayrollCalculationService
             ])->count();
 
             $halfDays = $attendances->where('status', Attendance::STATUS_HALF_DAY)->count();
-            $lateDays = $attendances->where('attendance_type', Attendance::TYPE_LATE)->count();
+            $lateDays = $attendances->where('late_hours', '>', 0)->count();
 
             // Calculate worked days (present - half day count * 0.5)
             $workedDays = $presentDays - ($halfDays * 0.5);
