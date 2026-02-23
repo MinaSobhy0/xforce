@@ -31,6 +31,18 @@ class ListPayments extends BaseListRecords
         return [
             'all' => Tab::make(__('billing::billing.tabs.all')),
 
+            'receive' => Tab::make(__('billing::billing.tabs.receive'))
+                ->modifyQueryUsing(fn (Builder $query) => $query->received())
+                ->badge(Payment::received()->count())
+                ->badgeColor('success')
+                ->icon('heroicon-o-arrow-down-tray'),
+
+            'send' => Tab::make(__('billing::billing.tabs.send'))
+                ->modifyQueryUsing(fn (Builder $query) => $query->sent())
+                ->badge(Payment::sent()->count())
+                ->badgeColor('danger')
+                ->icon('heroicon-o-arrow-up-tray'),
+
             'today' => Tab::make(__('billing::billing.tabs.today'))
                 ->modifyQueryUsing(fn (Builder $query) => $query->today())
                 ->badge(Payment::today()->count()),

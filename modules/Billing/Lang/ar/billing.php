@@ -45,9 +45,32 @@ return [
 
     'tabs' => [
         'all' => 'الكل',
+        'receive' => 'استلام',
+        'send' => 'إرسال',
         'today' => 'اليوم',
         'cash' => 'نقدي',
         'bank' => 'تحويل بنكي',
+    ],
+
+    'sections' => [
+        'payment_details' => 'تفاصيل الدفع',
+    ],
+
+    'fields' => [
+        'code' => 'رقم الدفعة',
+        'type' => 'النوع',
+        'status' => 'الحالة',
+        'invoice' => 'الفاتورة',
+        'vendor_bill' => 'فاتورة المورد',
+        'amount' => 'المبلغ',
+        'payment_method' => 'طريقة الدفع',
+        'paid_at' => 'تاريخ الدفع',
+        'reference' => 'المرجع',
+        'notes' => 'ملاحظات',
+    ],
+
+    'placeholders' => [
+        'auto_generated' => 'يتم إنشاؤه تلقائياً',
     ],
 
     'messages' => [

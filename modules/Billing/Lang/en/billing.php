@@ -45,9 +45,32 @@ return [
 
     'tabs' => [
         'all' => 'All',
+        'receive' => 'Receive',
+        'send' => 'Send',
         'today' => 'Today',
         'cash' => 'Cash',
         'bank' => 'Bank Transfer',
+    ],
+
+    'sections' => [
+        'payment_details' => 'Payment Details',
+    ],
+
+    'fields' => [
+        'code' => 'Payment #',
+        'type' => 'Type',
+        'status' => 'Status',
+        'invoice' => 'Invoice',
+        'vendor_bill' => 'Vendor Bill',
+        'amount' => 'Amount',
+        'payment_method' => 'Payment Method',
+        'paid_at' => 'Payment Date',
+        'reference' => 'Reference',
+        'notes' => 'Notes',
+    ],
+
+    'placeholders' => [
+        'auto_generated' => 'Auto-generated',
     ],
 
     'messages' => [

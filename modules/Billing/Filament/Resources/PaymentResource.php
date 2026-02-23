@@ -5,9 +5,15 @@ namespace Modules\Billing\Filament\Resources;
 use App\Traits\ChecksResourcePermissions;
 use Modules\Billing\Filament\Resources\PaymentResource\Pages;
 use Modules\Billing\Models\Payment;
+use Modules\Billing\Models\Invoice;
 use Modules\Accounting\Models\Journal;
+use Modules\Patients\Models\Patient;
+use Modules\Inventory\Models\VendorBill;
+use Modules\Inventory\Models\Supplier;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -32,44 +38,151 @@ class PaymentResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'code';
 
-    // Payments are read-only list - creation happens through invoices
-    public static function canCreate(): bool
-    {
-        return false;
-    }
-
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('code')
-                    ->disabled(),
+                Forms\Components\Section::make(__('billing::billing.sections.payment_details'))
+                    ->schema([
+                        Forms\Components\Grid::make(3)
+                            ->schema([
+                                Forms\Components\TextInput::make('code')
+                                    ->label(__('billing::billing.fields.code'))
+                                    ->disabled()
+                                    ->dehydrated(false)
+                                    ->placeholder(__('billing::billing.placeholders.auto_generated')),
 
-                Forms\Components\Select::make('invoice_id')
-                    ->relationship('invoice', 'code')
-                    ->disabled(),
+                                Forms\Components\Select::make('type')
+                                    ->label(__('billing::billing.fields.type'))
+                                    ->options(Payment::TYPES)
+                                    ->default(Payment::TYPE_RECEIVE)
+                                    ->required()
+                                    ->live()
+                                    ->afterStateUpdated(function (Set $set) {
+                                        $set('invoice_id', null);
+                                        $set('vendor_bill_id', null);
+                                        $set('patient_id', null);
+                                        $set('supplier_id', null);
+                                        $set('amount_minor', null);
+                                    })
+                                    ->disabled(fn ($record) => $record !== null),
 
-                Forms\Components\TextInput::make('amount_minor')
-                    ->label('Amount')
-                    ->formatStateUsing(fn ($state) => $state ? number_format($state / 100, 2) : 0)
-                    ->suffix(current_currency())
-                    ->disabled(),
+                                Forms\Components\Select::make('status')
+                                    ->label(__('billing::billing.fields.status'))
+                                    ->options(Payment::STATUSES)
+                                    ->default(Payment::STATUS_COMPLETED)
+                                    ->required()
+                                    ->disabled(fn ($record) => $record !== null),
+                            ]),
 
-                Forms\Components\Select::make('journal_id')
-                    ->label('Payment Method')
-                    ->relationship('journal', 'code')
-                    ->getOptionLabelFromRecordUsing(fn (Journal $record) => $record->display_name)
-                    ->disabled(),
+                        // Invoice selection (for receive type)
+                        Forms\Components\Select::make('invoice_id')
+                            ->label(__('billing::billing.fields.invoice'))
+                            ->options(function () {
+                                return Invoice::whereIn('status', [Invoice::STATUS_CONFIRMED, Invoice::STATUS_PARTIALLY_PAID])
+                                    ->where('remaining_minor', '>', 0)
+                                    ->orderBy('created_at', 'desc')
+                                    ->limit(100)
+                                    ->get()
+                                    ->mapWithKeys(fn ($inv) => [
+                                        $inv->id => "{$inv->code} - {$inv->patient?->full_name} (" . format_money($inv->remaining_minor) . " remaining)"
+                                    ]);
+                            })
+                            ->searchable()
+                            ->preload()
+                            ->visible(fn (Get $get) => $get('type') === Payment::TYPE_RECEIVE)
+                            ->live()
+                            ->afterStateUpdated(function (Set $set, $state) {
+                                if ($state) {
+                                    $invoice = Invoice::find($state);
+                                    if ($invoice) {
+                                        $set('patient_id', $invoice->patient_id);
+                                        $set('branch_id', $invoice->branch_id);
+                                        $set('amount_minor', $invoice->remaining_minor / 100);
+                                    }
+                                }
+                            })
+                            ->disabled(fn ($record) => $record !== null)
+                            ->columnSpan(2),
 
-                Forms\Components\TextInput::make('reference_number')
-                    ->disabled(),
+                        // Vendor Bill selection (for send type)
+                        Forms\Components\Select::make('vendor_bill_id')
+                            ->label(__('billing::billing.fields.vendor_bill'))
+                            ->options(function () {
+                                return VendorBill::whereIn('status', [VendorBill::STATUS_VALIDATED, VendorBill::STATUS_PARTIALLY_PAID])
+                                    ->orderBy('created_at', 'desc')
+                                    ->limit(100)
+                                    ->get()
+                                    ->filter(fn ($bill) => $bill->remaining_minor > 0)
+                                    ->mapWithKeys(fn ($bill) => [
+                                        $bill->id => "{$bill->code} - {$bill->supplier?->getTranslation('name', app()->getLocale())} (" . format_money($bill->remaining_minor) . " remaining)"
+                                    ]);
+                            })
+                            ->searchable()
+                            ->preload()
+                            ->visible(fn (Get $get) => $get('type') === Payment::TYPE_SEND)
+                            ->live()
+                            ->afterStateUpdated(function (Set $set, $state) {
+                                if ($state) {
+                                    $bill = VendorBill::find($state);
+                                    if ($bill) {
+                                        $set('supplier_id', $bill->supplier_id);
+                                        $set('branch_id', $bill->branch_id);
+                                        $set('amount_minor', $bill->remaining_minor / 100);
+                                    }
+                                }
+                            })
+                            ->disabled(fn ($record) => $record !== null)
+                            ->columnSpan(2),
 
-                Forms\Components\DateTimePicker::make('paid_at')
-                    ->disabled(),
+                        // Patient (auto-filled for receive, hidden)
+                        Forms\Components\Hidden::make('patient_id'),
+                        Forms\Components\Hidden::make('supplier_id'),
+                        Forms\Components\Hidden::make('branch_id'),
 
-                Forms\Components\Textarea::make('notes')
-                    ->disabled()
-                    ->columnSpanFull(),
+                        Forms\Components\Grid::make(2)
+                            ->schema([
+                                Forms\Components\TextInput::make('amount_minor')
+                                    ->label(__('billing::billing.fields.amount'))
+                                    ->numeric()
+                                    ->required()
+                                    ->prefix(current_currency())
+                                    ->disabled(fn ($record) => $record !== null),
+
+                                Forms\Components\Select::make('journal_id')
+                                    ->label(__('billing::billing.fields.payment_method'))
+                                    ->options(fn () => Journal::active()
+                                        ->whereIn('type', ['cash', 'bank'])
+                                        ->get()
+                                        ->pluck('display_name', 'id'))
+                                    ->required()
+                                    ->searchable()
+                                    ->preload()
+                                    ->default(fn () => Journal::getCashJournal()?->id)
+                                    ->disabled(fn ($record) => $record !== null),
+                            ]),
+
+                        Forms\Components\Grid::make(2)
+                            ->schema([
+                                Forms\Components\DateTimePicker::make('paid_at')
+                                    ->label(__('billing::billing.fields.paid_at'))
+                                    ->required()
+                                    ->default(now())
+                                    ->disabled(fn ($record) => $record !== null),
+
+                                Forms\Components\TextInput::make('reference_number')
+                                    ->label(__('billing::billing.fields.reference'))
+                                    ->maxLength(255)
+                                    ->disabled(fn ($record) => $record !== null),
+                            ]),
+
+                        Forms\Components\Textarea::make('notes')
+                            ->label(__('billing::billing.fields.notes'))
+                            ->rows(2)
+                            ->columnSpanFull()
+                            ->disabled(fn ($record) => $record !== null),
+                    ])
+                    ->columns(3),
             ]);
     }
 
@@ -176,6 +289,7 @@ class PaymentResource extends Resource
     {
         return [
             'index' => Pages\ListPayments::route('/'),
+            'create' => Pages\CreatePayment::route('/create'),
             'view' => Pages\ViewPayment::route('/{record}'),
         ];
     }
