@@ -151,21 +151,32 @@ class InvoiceResource extends Resource
                                             ->dehydrateStateUsing(fn ($state) => $state ? (int) ((float) $state * 100) : 0)
                                             ->columnSpan(['default' => 8, 'md' => 3]),
 
+                                        Forms\Components\Select::make('discount_type')
+                                            ->label('Type')
+                                            ->options([
+                                                'fixed' => current_currency(),
+                                                'percent' => '%',
+                                            ])
+                                            ->default('fixed')
+                                            ->live()
+                                            ->columnSpan(['default' => 4, 'md' => 2]),
+
                                         Forms\Components\TextInput::make('discount_minor')
                                             ->label('Discount')
                                             ->numeric()
                                             ->default(0)
-                                            ->formatStateUsing(fn ($state) => $state ? $state / 100 : 0)
-                                            ->dehydrateStateUsing(fn ($state) => $state ? (int) ($state * 100) : 0)
-                                            ->columnSpan(['default' => 4, 'md' => 2]),
-
-                                        Forms\Components\Select::make('discount_type')
-                                            ->label('Type')
-                                            ->options([
-                                                'fixed' => 'Fixed',
-                                                'percent' => '%',
-                                            ])
-                                            ->default('fixed')
+                                            ->formatStateUsing(function ($state, Forms\Get $get) {
+                                                if ($get('discount_type') === 'percent') {
+                                                    return $state ?: 0;
+                                                }
+                                                return $state ? $state / 100 : 0;
+                                            })
+                                            ->dehydrateStateUsing(function ($state, Forms\Get $get) {
+                                                if ($get('discount_type') === 'percent') {
+                                                    return $state ? (int) $state : 0;
+                                                }
+                                                return $state ? (int) ($state * 100) : 0;
+                                            })
                                             ->columnSpan(['default' => 4, 'md' => 2]),
 
                                         Forms\Components\TextInput::make('tax_rate')
@@ -196,20 +207,32 @@ class InvoiceResource extends Resource
                                         ? format_money($record->subtotal_minor)
                                         : '-'),
 
-                                Forms\Components\TextInput::make('discount_minor')
-                                    ->label('Invoice Discount')
-                                    ->numeric()
-                                    ->default(0)
-                                    ->formatStateUsing(fn ($state) => $state ? $state / 100 : 0)
-                                    ->dehydrateStateUsing(fn ($state) => $state ? (int) ($state * 100) : 0)
-                                    ->prefix(current_currency()),
-
                                 Forms\Components\Select::make('discount_type')
                                     ->options([
-                                        'fixed' => 'Fixed',
-                                        'percent' => 'Percent',
+                                        'fixed' => 'Fixed Amount',
+                                        'percent' => 'Percentage',
                                     ])
-                                    ->default('fixed'),
+                                    ->default('fixed')
+                                    ->live(),
+
+                                Forms\Components\TextInput::make('discount_minor')
+                                    ->label('Discount Value')
+                                    ->numeric()
+                                    ->default(0)
+                                    ->formatStateUsing(function ($state, Forms\Get $get) {
+                                        if ($get('discount_type') === 'percent') {
+                                            return $state ?: 0; // Percent stored as-is
+                                        }
+                                        return $state ? $state / 100 : 0; // Fixed stored in minor
+                                    })
+                                    ->dehydrateStateUsing(function ($state, Forms\Get $get) {
+                                        if ($get('discount_type') === 'percent') {
+                                            return $state ? (int) $state : 0; // Percent stored as-is
+                                        }
+                                        return $state ? (int) ($state * 100) : 0; // Fixed stored in minor
+                                    })
+                                    ->prefix(fn (Forms\Get $get) => $get('discount_type') === 'percent' ? null : current_currency())
+                                    ->suffix(fn (Forms\Get $get) => $get('discount_type') === 'percent' ? '%' : null),
 
                                 Forms\Components\Placeholder::make('tax_display')
                                     ->label('Tax')
