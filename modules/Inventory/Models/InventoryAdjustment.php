@@ -151,7 +151,14 @@ class InventoryAdjustment extends BaseModel
 
     public function canValidate(): bool
     {
-        return $this->isDraft() && $this->lines()->count() > 0;
+        if (!$this->isDraft()) {
+            return false;
+        }
+
+        // Must have at least one line with a difference
+        return $this->lines()
+            ->whereColumn('counted_qty', '!=', 'theoretical_qty')
+            ->exists();
     }
 
     public function canCancel(): bool
