@@ -15,7 +15,7 @@
         }"
         class="fitzpatrick-selector"
     >
-        <div class="flex justify-between gap-2">
+        <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">
             @foreach ($getTypes() as $typeKey => $type)
                 <button
                     type="button"
@@ -24,7 +24,7 @@
                         'ring-2 ring-primary-500 ring-offset-2 dark:ring-offset-gray-900': isSelected('{{ $typeKey }}'),
                         'hover:ring-1 hover:ring-gray-300 dark:hover:ring-gray-600': !isSelected('{{ $typeKey }}')
                     }"
-                    class="relative flex flex-col items-center p-2 rounded-lg border border-gray-200 dark:border-gray-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 flex-1"
+                    class="relative flex flex-col items-center p-2 rounded-lg border border-gray-200 dark:border-gray-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
                     title="{{ $type['description'] }}"
                 >
                     {{-- Skin tone circle --}}
