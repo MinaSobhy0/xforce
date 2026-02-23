@@ -152,7 +152,9 @@ class PurchaseOrderResource extends Resource
                                     ->label(__('inventory::inventory.fields.unit_price'))
                                     ->numeric()
                                     ->required()
-                                    ->suffix('cents')
+                                    ->prefix(current_currency())
+                                    ->formatStateUsing(fn ($state) => $state ? $state / 100 : null)
+                                    ->dehydrateStateUsing(fn ($state) => $state ? (int) ($state * 100) : 0)
                                     ->columnSpan(2),
 
                                 Forms\Components\TextInput::make('quantity_received')
@@ -178,28 +180,49 @@ class PurchaseOrderResource extends Resource
                     ->schema([
                         Forms\Components\Grid::make(4)
                             ->schema([
-                                Forms\Components\TextInput::make('tax_amount_minor')
+                                Forms\Components\Select::make('tax_rate_id')
                                     ->label(__('inventory::inventory.fields.tax'))
-                                    ->numeric()
-                                    ->default(0)
-                                    ->suffix('cents'),
+                                    ->options(fn () => \Modules\Billing\Models\TaxRate::active()
+                                        ->get()
+                                        ->mapWithKeys(fn ($rate) => [
+                                            $rate->id => $rate->getTranslation('name', app()->getLocale()) . ' (' . $rate->rate . '%)'
+                                        ]))
+                                    ->default(fn () => \Modules\Billing\Models\TaxRate::getDefault()?->id)
+                                    ->reactive()
+                                    ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
+                                        if ($state) {
+                                            $taxRate = \Modules\Billing\Models\TaxRate::find($state);
+                                            $subtotal = $get('subtotal_minor') ?? 0;
+                                            $taxAmount = (int) ($subtotal * ($taxRate->rate / 100));
+                                            $set('tax_amount_minor', $taxAmount);
+                                        }
+                                    })
+                                    ->dehydrated(false),
 
                                 Forms\Components\TextInput::make('discount_amount_minor')
                                     ->label(__('inventory::inventory.fields.discount'))
                                     ->numeric()
                                     ->default(0)
-                                    ->suffix('cents'),
+                                    ->prefix(current_currency())
+                                    ->formatStateUsing(fn ($state) => $state ? $state / 100 : null)
+                                    ->dehydrateStateUsing(fn ($state) => $state ? (int) ($state * 100) : 0),
 
                                 Forms\Components\TextInput::make('shipping_amount_minor')
                                     ->label(__('inventory::inventory.fields.shipping'))
                                     ->numeric()
                                     ->default(0)
-                                    ->suffix('cents'),
+                                    ->prefix(current_currency())
+                                    ->formatStateUsing(fn ($state) => $state ? $state / 100 : null)
+                                    ->dehydrateStateUsing(fn ($state) => $state ? (int) ($state * 100) : 0),
 
                                 Forms\Components\Placeholder::make('total_display')
                                     ->label(__('inventory::inventory.fields.total'))
-                                    ->content(fn (?PurchaseOrder $record) => $record ? number_format($record->total_amount, 2) . ' EGP' : '-'),
+                                    ->content(fn (?PurchaseOrder $record) => $record
+                                        ? number_format($record->total_amount, 2) . ' ' . current_currency()
+                                        : '-'),
                             ]),
+
+                        Forms\Components\Hidden::make('tax_amount_minor')->default(0),
                     ]),
 
                 Forms\Components\Section::make(__('inventory::inventory.sections.notes'))
