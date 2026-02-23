@@ -8,6 +8,7 @@ use Modules\Accounting\Services\AccountingIntegrationService;
 use Modules\Inventory\Models\InventoryAdjustment;
 use Modules\Inventory\Models\Product;
 use Modules\Inventory\Models\StockMovement;
+use Modules\Inventory\Models\VendorBill;
 
 class InventoryAccountingService
 {
@@ -321,5 +322,154 @@ class InventoryAccountingService
         }
 
         return $totalValue;
+    }
+
+    /**
+     * Create journal entry for vendor bill.
+     * Debit: Inventory/Expense (per line)
+     * Credit: Accounts Payable
+     */
+    public function createVendorBillJournalEntry(VendorBill $bill): ?JournalEntry
+    {
+        $bill->load('lines.product.stockValuationAccount', 'supplier');
+
+        // Get Accounts Payable account
+        $apAccount = ChartOfAccount::where('code', '2000')->first()
+            ?? ChartOfAccount::where('type', 'liability')->where('name->en', 'like', '%Payable%')->first();
+
+        if (!$apAccount) {
+            \Log::error('VendorBill: Accounts Payable account not found');
+            return null;
+        }
+
+        $lines = [];
+        $totalAmount = 0;
+
+        foreach ($bill->lines as $line) {
+            $product = $line->product;
+            $lineTotal = $line->total_minor;
+            $totalAmount += $lineTotal;
+
+            // Get the appropriate account for this line
+            $debitAccount = null;
+            if ($product) {
+                $debitAccount = $this->getStockValuationAccount($product);
+            }
+
+            // Fallback to general inventory account if no product account
+            if (!$debitAccount) {
+                $debitAccount = ChartOfAccount::where('code', '1200')->first()
+                    ?? ChartOfAccount::where('type', 'asset')->where('name->en', 'like', '%Inventory%')->first();
+            }
+
+            if (!$debitAccount) {
+                \Log::warning('VendorBill: No debit account found for line', [
+                    'line_id' => $line->id,
+                    'product_id' => $product?->id,
+                ]);
+                continue;
+            }
+
+            $lines[] = [
+                'account_code' => $debitAccount->code,
+                'debit' => $lineTotal,
+                'credit' => 0,
+                'description' => $line->description,
+            ];
+        }
+
+        if (empty($lines)) {
+            \Log::warning('VendorBill: No journal lines created');
+            return null;
+        }
+
+        // Credit Accounts Payable for total
+        $lines[] = [
+            'account_code' => $apAccount->code,
+            'debit' => 0,
+            'credit' => $totalAmount,
+            'description' => "Vendor Bill: {$bill->code}",
+        ];
+
+        $supplierName = $bill->supplier?->getTranslation('name', 'en') ?? 'Vendor';
+        $description = "Vendor Bill {$bill->code} - {$supplierName}";
+
+        try {
+            return $this->accountingService->createJournalEntry(
+                $bill->bill_date,
+                $description,
+                $lines,
+                'vendor_bill',
+                $bill->id,
+                true
+            );
+        } catch (\Exception $e) {
+            \Log::error('VendorBill: Failed to create journal entry', [
+                'bill_id' => $bill->id,
+                'error' => $e->getMessage(),
+            ]);
+            return null;
+        }
+    }
+
+    /**
+     * Create journal entry for vendor bill payment.
+     * Debit: Accounts Payable
+     * Credit: Cash/Bank
+     */
+    public function createVendorPaymentJournalEntry(
+        VendorBill $bill,
+        int $amountMinor,
+        string $journalType = 'cash'
+    ): ?JournalEntry {
+        // Get Accounts Payable account
+        $apAccount = ChartOfAccount::where('code', '2000')->first();
+        if (!$apAccount) {
+            return null;
+        }
+
+        // Get Cash or Bank account based on journal type
+        $paymentAccount = $journalType === 'bank'
+            ? ChartOfAccount::where('code', '1020')->first()
+            : ChartOfAccount::where('code', '1000')->first();
+
+        if (!$paymentAccount) {
+            return null;
+        }
+
+        $lines = [
+            [
+                'account_code' => $apAccount->code,
+                'debit' => $amountMinor,
+                'credit' => 0,
+                'description' => "Payment for Bill: {$bill->code}",
+            ],
+            [
+                'account_code' => $paymentAccount->code,
+                'debit' => 0,
+                'credit' => $amountMinor,
+                'description' => "Payment for Bill: {$bill->code}",
+            ],
+        ];
+
+        $supplierName = $bill->supplier?->getTranslation('name', 'en') ?? 'Vendor';
+        $description = "Payment for Bill {$bill->code} - {$supplierName}";
+
+        try {
+            return $this->accountingService->createJournalEntry(
+                now(),
+                $description,
+                $lines,
+                'vendor_payment',
+                $bill->id,
+                true
+            );
+        } catch (\Exception $e) {
+            \Log::error('VendorPayment: Failed to create journal entry', [
+                'bill_id' => $bill->id,
+                'error' => $e->getMessage(),
+            ]);
+            return null;
+        }
     }
 }

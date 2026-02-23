@@ -6,7 +6,9 @@ use Filament\Actions;
 use App\Filament\Resources\Pages\BaseViewRecord;
 use Filament\Notifications\Notification;
 use Modules\Inventory\Models\PurchaseOrder;
+use Modules\Inventory\Models\VendorBill;
 use Modules\Inventory\Filament\Resources\PurchaseOrderResource;
+use Modules\Inventory\Filament\Resources\VendorBillResource;
 
 class ViewPurchaseOrder extends BaseViewRecord
 {
@@ -72,6 +74,31 @@ class ViewPurchaseOrder extends BaseViewRecord
                         $this->refreshFormData(['status']);
                     }
                 }),
+
+            Actions\Action::make('create_bill')
+                ->label('Create Vendor Bill')
+                ->icon('heroicon-o-document-minus')
+                ->color('primary')
+                ->visible(fn () => $this->record->isReceived() && !$this->record->vendor_bill_id)
+                ->requiresConfirmation()
+                ->modalDescription('This will create a vendor bill from this purchase order.')
+                ->action(function () {
+                    $bill = VendorBill::createFromPurchaseOrder($this->record);
+
+                    Notification::make()
+                        ->title('Vendor bill created successfully')
+                        ->success()
+                        ->send();
+
+                    return redirect(VendorBillResource::getUrl('view', ['record' => $bill]));
+                }),
+
+            Actions\Action::make('view_bill')
+                ->label('View Vendor Bill')
+                ->icon('heroicon-o-document-minus')
+                ->color('info')
+                ->visible(fn () => $this->record->vendor_bill_id !== null)
+                ->url(fn () => VendorBillResource::getUrl('view', ['record' => $this->record->vendor_bill_id])),
 
             Actions\Action::make('reverse_receiving')
                 ->label(__('inventory::inventory.actions.reverse_receiving'))

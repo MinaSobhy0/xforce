@@ -24,6 +24,7 @@ class PurchaseOrder extends BaseModel
         'supplier_id',
         'order_number',
         'status',
+        'vendor_bill_id',
         'order_date',
         'expected_date',
         'received_date',
@@ -142,6 +143,22 @@ class PurchaseOrder extends BaseModel
     public function receivedBy(): BelongsTo
     {
         return $this->belongsTo(\Modules\Auth\Models\User::class, 'received_by');
+    }
+
+    /**
+     * Get the vendor bill.
+     */
+    public function vendorBill(): BelongsTo
+    {
+        return $this->belongsTo(VendorBill::class);
+    }
+
+    /**
+     * Check if the order is fully received.
+     */
+    public function isReceived(): bool
+    {
+        return $this->status === self::STATUS_RECEIVED;
     }
 
     /**
