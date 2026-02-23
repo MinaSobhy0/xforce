@@ -153,7 +153,7 @@ class InventoryAccountingService
             }
 
             if ($line->isPositiveAdjustment()) {
-                // Stock increase: Debit Inventory (valuation), Credit Stock Input
+                // Stock increase (gain): Debit Inventory (valuation), Credit Stock Input
                 $stockInputAccount = $this->getStockInputAccount($product);
 
                 if (!$stockInputAccount) {
@@ -167,16 +167,16 @@ class InventoryAccountingService
                     'account_code' => $stockValuationAccount->code,
                     'debit' => $absValue,
                     'credit' => 0,
-                    'description' => "Stock increase: {$productName}",
+                    'description' => "Inventory gain: {$productName} (+{$line->difference_qty})",
                 ];
                 $lines[] = [
                     'account_code' => $stockInputAccount->code,
                     'debit' => 0,
                     'credit' => $absValue,
-                    'description' => "Stock increase: {$productName}",
+                    'description' => "Inventory gain: {$productName} (+{$line->difference_qty})",
                 ];
             } else {
-                // Stock decrease: Debit Stock Output (expense), Credit Inventory (valuation)
+                // Stock decrease (loss): Debit Stock Output (expense), Credit Inventory (valuation)
                 $stockOutputAccount = $this->getStockOutputAccount($product);
 
                 if (!$stockOutputAccount) {
@@ -190,13 +190,13 @@ class InventoryAccountingService
                     'account_code' => $stockOutputAccount->code,
                     'debit' => $absValue,
                     'credit' => 0,
-                    'description' => "Stock decrease: {$productName}",
+                    'description' => "Inventory loss: {$productName} ({$line->difference_qty})",
                 ];
                 $lines[] = [
                     'account_code' => $stockValuationAccount->code,
                     'debit' => 0,
                     'credit' => $absValue,
-                    'description' => "Stock decrease: {$productName}",
+                    'description' => "Inventory loss: {$productName} ({$line->difference_qty})",
                 ];
             }
         }
