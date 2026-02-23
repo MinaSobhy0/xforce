@@ -89,6 +89,18 @@ class TenantSeed extends Command
             DB::statement("SET search_path TO \"{$schemaName}\", public");
             Config::set('database.connections.tenant.search_path', $schemaName);
 
+            // Also set the search path on the tenant connection
+            DB::connection('tenant')->statement("SET search_path TO \"{$schemaName}\", public");
+
+            // Set the current tenant in the TenantManager
+            try {
+                $tenantManager = app(\XLinic\Framework\Core\Tenancy\TenantManager::class);
+                $tenantManager->setCurrentTenant($tenant);
+            } catch (\Exception $e) {
+                // Fallback: bind current tenant to container
+                app()->instance('currentTenant', $tenant);
+            }
+
             // Run seeders
             $seederClass = $this->option('class');
 
@@ -132,6 +144,18 @@ class TenantSeed extends Command
 
         DB::statement("SET search_path TO \"{$schemaName}\", public");
         Config::set('database.connections.tenant.search_path', $schemaName);
+
+        // Also set the search path on the tenant connection
+        DB::connection('tenant')->statement("SET search_path TO \"{$schemaName}\", public");
+
+        // Set the current tenant in the TenantManager
+        try {
+            $tenantManager = app(\XLinic\Framework\Core\Tenancy\TenantManager::class);
+            $tenantManager->setCurrentTenant($tenant);
+        } catch (\Exception $e) {
+            // Fallback: bind current tenant to container
+            app()->instance('currentTenant', $tenant);
+        }
 
         $seeders = $this->getTenantSeeders();
         foreach ($seeders as $seeder) {
