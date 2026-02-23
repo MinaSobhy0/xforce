@@ -204,10 +204,10 @@ class PurchaseOrderResource extends Resource
                                         Forms\Components\Select::make('discount_type')
                                             ->label(__('inventory::inventory.fields.discount_type'))
                                             ->options([
-                                                'amount' => __('inventory::inventory.discount_types.amount'),
                                                 'percentage' => __('inventory::inventory.discount_types.percentage'),
+                                                'amount' => __('inventory::inventory.discount_types.amount'),
                                             ])
-                                            ->default('amount')
+                                            ->default('percentage')
                                             ->reactive()
                                             ->dehydrated(false),
 
