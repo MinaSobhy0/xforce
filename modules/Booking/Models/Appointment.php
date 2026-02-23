@@ -115,6 +115,8 @@ class Appointment extends BaseModel
 
     protected static function booted(): void
     {
+        parent::booted();
+
         static::creating(function (Appointment $appointment) {
             if (empty($appointment->status)) {
                 $appointment->status = self::STATUS_SCHEDULED;

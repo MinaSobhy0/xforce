@@ -63,10 +63,12 @@ return [
         'duration' => 'المدة',
         'duration_override' => 'المدة',
         'package' => 'الباقة',
+        'package_mode' => 'خيار الباقة',
         'treatment_plan' => 'خطة العلاج',
         'duration_override_help' => 'اتركه فارغاً لاستخدام المدة الافتراضية',
         'price' => 'السعر',
         'select_package' => 'اختر الباقة',
+        'select_package_to_buy' => 'اختر باقة للشراء',
         'select_service_from_package' => 'اختر الخدمة',
         'select_treatment_plan' => 'اختر خطة العلاج',
         'select_service_to_book' => 'اختر الخدمة للحجز',
@@ -83,9 +85,20 @@ return [
         'source' => 'مصدر الحجز',
     ],
 
+    // Package modes
+    'package_modes' => [
+        'use_existing' => 'استخدام باقة موجودة',
+        'buy_new' => 'شراء باقة جديدة',
+    ],
+
     // Labels
     'labels' => [
-        'active_packages' => 'باقة نشطة',
+        'active_packages' => 'الباقات النشطة',
+        'active_treatment_plans' => 'خطط العلاج النشطة',
+        'no_active_packages' => 'لا توجد باقات نشطة',
+        'no_active_plans' => 'لا توجد خطط علاج نشطة',
+        'remaining' => 'متبقي',
+        'complete' => 'مكتمل',
         'sessions_remaining' => ':count جلسات متبقية',
         'expires_in' => 'تنتهي خلال :days يوم',
         'expires' => 'تنتهي :date',
@@ -127,6 +140,9 @@ return [
         'total_label' => 'إجمالي',
         'more' => 'المزيد',
         'click_to_change' => 'انقر لتغيير الممارس',
+        'days_validity' => 'يوم صلاحية',
+        'expires' => 'تنتهي',
+        'select_services_to_book' => 'اختر الخدمة للحجز',
     ],
 
     // Placeholders
@@ -176,6 +192,11 @@ return [
         'no_slots' => 'لا توجد أوقات متاحة',
         'generate_slots_hint' => 'انقر على "البحث عن الأوقات المتاحة" لرؤية الأوقات المتاحة',
         'click_generate_slots' => 'انقر على "البحث عن الأوقات المتاحة" لرؤية أوقات المواعيد المتاحة',
+        'select_package_first' => 'اختر باقة أولاً',
+        'no_services_in_package' => 'لا توجد خدمات متاحة في هذه الباقة',
+        'select_service_first' => 'اختر خدمة',
+        'no_slot_selected' => 'لم يتم اختيار وقت',
+        'select_slot_below' => 'اختر وقتاً من الأسفل',
     ],
 
     // Validation

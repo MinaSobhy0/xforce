@@ -25,7 +25,7 @@ class ServiceBranchPricing extends BaseModel
 
     public function getFormattedPriceAttribute(): string
     {
-        return number_format($this->price_minor / 100, 2) . ' EGP';
+        return number_format($this->price_minor / 100, 2) . ' ' . current_currency();
     }
 
     public function service(): BelongsTo

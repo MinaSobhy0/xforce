@@ -142,8 +142,9 @@ class ServiceResource extends Resource
                                                     ->numeric()
                                                     ->required()
                                                     ->default(0)
-                                                    ->suffix('piasters')
-                                                    ->helperText('Enter price in piasters (100 piasters = 1 EGP)'),
+                                                    ->prefix(current_currency())
+                                                    ->formatStateUsing(fn ($state) => $state ? $state / 100 : null)
+                                                    ->dehydrateStateUsing(fn ($state) => $state ? (int) ($state * 100) : 0),
 
                                                 Forms\Components\TextInput::make('sort_order')
                                                     ->label('Sort Order')

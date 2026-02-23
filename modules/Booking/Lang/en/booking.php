@@ -63,10 +63,12 @@ return [
         'duration' => 'Duration',
         'duration_override' => 'Duration',
         'package' => 'Package',
+        'package_mode' => 'Package Option',
         'treatment_plan' => 'Treatment Plan',
         'duration_override_help' => 'Leave empty to use default duration',
         'price' => 'Price',
         'select_package' => 'Select Package',
+        'select_package_to_buy' => 'Select Package to Purchase',
         'select_service_from_package' => 'Select Service',
         'select_treatment_plan' => 'Select Treatment Plan',
         'select_service_to_book' => 'Select Service to Book',
@@ -83,9 +85,20 @@ return [
         'source' => 'Booking Source',
     ],
 
+    // Package modes
+    'package_modes' => [
+        'use_existing' => 'Use Existing Package',
+        'buy_new' => 'Buy New Package',
+    ],
+
     // Labels
     'labels' => [
-        'active_packages' => 'active package(s)',
+        'active_packages' => 'Active Packages',
+        'active_treatment_plans' => 'Active Treatment Plans',
+        'no_active_packages' => 'No active packages',
+        'no_active_plans' => 'No active treatment plans',
+        'remaining' => 'remaining',
+        'complete' => 'complete',
         'sessions_remaining' => ':count sessions remaining',
         'expires_in' => 'Expires in :days days',
         'expires' => 'Expires :date',
@@ -127,6 +140,9 @@ return [
         'total_label' => 'total',
         'more' => 'more',
         'click_to_change' => 'Click to change practitioner',
+        'days_validity' => 'days validity',
+        'expires' => 'Expires',
+        'select_services_to_book' => 'Select Service to Book',
     ],
 
     // Placeholders
@@ -176,6 +192,11 @@ return [
         'no_slots' => 'No Available Slots',
         'generate_slots_hint' => 'Click "Find Available Slots" to see available times',
         'click_generate_slots' => 'Click "Find Available Slots" to see available appointment times',
+        'select_package_first' => 'Select a package first',
+        'no_services_in_package' => 'No services available in this package',
+        'select_service_first' => 'Select a service',
+        'no_slot_selected' => 'No slot selected',
+        'select_slot_below' => 'Select a time slot below',
     ],
 
     // Validation

@@ -157,10 +157,10 @@ class PackageResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('name.en')
+                Tables\Columns\TextColumn::make('translated_name')
                     ->label(__('packages::packages.fields.name'))
-                    ->searchable()
-                    ->sortable(),
+                    ->searchable(['name'])
+                    ->sortable(['name']),
 
                 Tables\Columns\TextColumn::make('type')
                     ->label(__('packages::packages.fields.type'))

@@ -98,7 +98,7 @@ class Service extends BaseModel
 
     public function getFormattedPriceAttribute(): string
     {
-        return number_format($this->base_price_minor / 100, 2) . ' EGP';
+        return number_format($this->base_price_minor / 100, 2) . ' ' . current_currency();
     }
 
     public function getTotalDurationAttribute(): int

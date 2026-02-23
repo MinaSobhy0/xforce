@@ -32,8 +32,9 @@ class BranchPricingRelationManager extends RelationManager
                     ->label(__('services::services.pricing.price'))
                     ->numeric()
                     ->required()
-                    ->suffix('piasters')
-                    ->helperText('Enter price in piasters (100 piasters = 1 EGP)'),
+                    ->prefix(current_currency())
+                    ->formatStateUsing(fn ($state) => $state ? $state / 100 : null)
+                    ->dehydrateStateUsing(fn ($state) => $state ? (int) ($state * 100) : 0),
 
                 Forms\Components\Toggle::make('is_active')
                     ->label(__('services::services.pricing.is_active'))
