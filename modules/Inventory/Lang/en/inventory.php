@@ -130,7 +130,12 @@ return [
         'lines' => 'Lines',
         'lines_count' => 'Items Count',
         'reason' => 'Reason',
+        'discount_type' => 'Discount Type',
     ],
+
+    'discount_types' => [
+        'amount' => 'Fixed Amount',
+        'percentage' => 'Percentage',
 
     'filters' => [
         'low_stock' => 'Low Stock',

@@ -130,7 +130,12 @@ return [
         'lines' => 'البنود',
         'lines_count' => 'عدد البنود',
         'reason' => 'السبب',
+        'discount_type' => 'نوع الخصم',
     ],
+
+    'discount_types' => [
+        'amount' => 'مبلغ ثابت',
+        'percentage' => 'نسبة مئوية',
 
     'filters' => [
         'low_stock' => 'مخزون منخفض',

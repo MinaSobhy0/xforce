@@ -199,13 +199,40 @@ class PurchaseOrderResource extends Resource
                                     })
                                     ->dehydrated(false),
 
-                                Forms\Components\TextInput::make('discount_amount_minor')
-                                    ->label(__('inventory::inventory.fields.discount'))
-                                    ->numeric()
-                                    ->default(0)
-                                    ->prefix(current_currency())
-                                    ->formatStateUsing(fn ($state) => $state ? $state / 100 : null)
-                                    ->dehydrateStateUsing(fn ($state) => $state ? (int) ($state * 100) : 0),
+                                Forms\Components\Grid::make(2)
+                                    ->schema([
+                                        Forms\Components\Select::make('discount_type')
+                                            ->label(__('inventory::inventory.fields.discount_type'))
+                                            ->options([
+                                                'amount' => __('inventory::inventory.discount_types.amount'),
+                                                'percentage' => __('inventory::inventory.discount_types.percentage'),
+                                            ])
+                                            ->default('amount')
+                                            ->reactive()
+                                            ->dehydrated(false),
+
+                                        Forms\Components\TextInput::make('discount_value')
+                                            ->label(__('inventory::inventory.fields.discount'))
+                                            ->numeric()
+                                            ->default(0)
+                                            ->reactive()
+                                            ->prefix(fn (Forms\Get $get) => $get('discount_type') === 'percentage' ? null : current_currency())
+                                            ->suffix(fn (Forms\Get $get) => $get('discount_type') === 'percentage' ? '%' : null)
+                                            ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
+                                                $subtotal = $get('subtotal_minor') ?? 0;
+                                                $discountType = $get('discount_type') ?? 'amount';
+
+                                                if ($discountType === 'percentage') {
+                                                    $discountAmount = (int) ($subtotal * (($state ?? 0) / 100));
+                                                } else {
+                                                    $discountAmount = (int) (($state ?? 0) * 100);
+                                                }
+
+                                                $set('discount_amount_minor', $discountAmount);
+                                            })
+                                            ->dehydrated(false),
+                                    ])
+                                    ->columnSpan(1),
 
                                 Forms\Components\TextInput::make('shipping_amount_minor')
                                     ->label(__('inventory::inventory.fields.shipping'))
@@ -223,6 +250,7 @@ class PurchaseOrderResource extends Resource
                             ]),
 
                         Forms\Components\Hidden::make('tax_amount_minor')->default(0),
+                        Forms\Components\Hidden::make('discount_amount_minor')->default(0),
                     ]),
 
                 Forms\Components\Section::make(__('inventory::inventory.sections.notes'))
