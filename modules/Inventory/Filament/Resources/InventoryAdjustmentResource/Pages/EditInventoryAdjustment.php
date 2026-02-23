@@ -11,6 +11,17 @@ class EditInventoryAdjustment extends EditRecord
 {
     protected static string $resource = InventoryAdjustmentResource::class;
 
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        // Auto-load products if this is a count type and no lines exist
+        if ($this->record->isDraft() && $this->record->lines()->count() === 0) {
+            $this->record->loadProductsFromStock();
+            $this->record->refresh();
+        }
+
+        return $data;
+    }
+
     protected function getHeaderActions(): array
     {
         return [
@@ -21,6 +32,8 @@ class EditInventoryAdjustment extends EditRecord
                 ->icon('heroicon-o-arrow-path')
                 ->color('gray')
                 ->visible(fn () => $this->record->isDraft())
+                ->requiresConfirmation()
+                ->modalDescription(__('inventory::inventory.messages.load_products_confirmation'))
                 ->action(function () {
                     $this->record->loadProductsFromStock();
                     Notification::make()

@@ -146,6 +146,7 @@ return [
         'validate' => 'Validate',
         'validate_adjustment' => 'Validate Adjustment',
         'load_products' => 'Load Products from Stock',
+        'add_product' => 'Add Product',
     ],
 
     'messages' => [
@@ -161,6 +162,7 @@ return [
         'products_loaded' => 'Products loaded from current stock',
         'validate_confirmation' => 'This will apply the stock changes and create journal entries. This action cannot be undone.',
         'no_lines_to_validate' => 'No adjustment lines to validate',
+        'load_products_confirmation' => 'This will load all products with stock in this branch. Existing lines will not be affected.',
     ],
 
     'pages' => [

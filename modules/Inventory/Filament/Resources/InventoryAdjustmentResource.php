@@ -94,12 +94,97 @@ class InventoryAdjustmentResource extends Resource
                             ->label(__('inventory::inventory.fields.reason'))
                             ->rows(2)
                             ->columnSpanFull(),
-
-                        Forms\Components\Textarea::make('notes')
-                            ->label(__('inventory::inventory.fields.notes'))
-                            ->rows(2)
-                            ->columnSpanFull(),
                     ]),
+
+                Forms\Components\Section::make(__('inventory::inventory.sections.adjustment_lines'))
+                    ->schema([
+                        Forms\Components\Repeater::make('lines')
+                            ->relationship()
+                            ->schema([
+                                Forms\Components\Select::make('product_id')
+                                    ->label(__('inventory::inventory.fields.product'))
+                                    ->relationship('product', 'name')
+                                    ->getOptionLabelFromRecordUsing(fn ($record) => $record->sku . ' - ' . ($record->getTranslation('name', app()->getLocale()) ?? $record->name))
+                                    ->searchable()
+                                    ->preload()
+                                    ->required()
+                                    ->disableOptionsWhenSelectedInSiblingRepeaterItems()
+                                    ->reactive()
+                                    ->afterStateUpdated(function ($state, callable $set, $livewire) {
+                                        if ($state) {
+                                            $product = \Modules\Inventory\Models\Product::find($state);
+                                            $branchId = $livewire->data['branch_id'] ?? null;
+
+                                            if ($branchId) {
+                                                $stockLevel = \Modules\Inventory\Models\StockLevel::where('product_id', $state)
+                                                    ->where('branch_id', $branchId)
+                                                    ->first();
+
+                                                $theoreticalQty = $stockLevel?->quantity_on_hand ?? 0;
+                                            } else {
+                                                $theoreticalQty = 0;
+                                            }
+
+                                            $unitCost = $product?->cost_price_minor ?? 0;
+
+                                            $set('theoretical_qty', $theoreticalQty);
+                                            $set('counted_qty', $theoreticalQty);
+                                            $set('unit_cost_minor', $unitCost);
+                                            $set('difference_qty', 0);
+                                            $set('value_adjustment_minor', 0);
+                                        }
+                                    })
+                                    ->columnSpan(3),
+
+                                Forms\Components\TextInput::make('theoretical_qty')
+                                    ->label(__('inventory::inventory.fields.theoretical_qty'))
+                                    ->numeric()
+                                    ->disabled()
+                                    ->dehydrated(true)
+                                    ->columnSpan(1),
+
+                                Forms\Components\TextInput::make('counted_qty')
+                                    ->label(__('inventory::inventory.fields.counted_qty'))
+                                    ->numeric()
+                                    ->required()
+                                    ->reactive()
+                                    ->afterStateUpdated(function ($state, callable $get, callable $set) {
+                                        $theoretical = $get('theoretical_qty') ?? 0;
+                                        $counted = $state ?? 0;
+                                        $unitCost = $get('unit_cost_minor') ?? 0;
+
+                                        $difference = $counted - $theoretical;
+                                        $valueAdjustment = $difference * $unitCost;
+
+                                        $set('difference_qty', $difference);
+                                        $set('value_adjustment_minor', $valueAdjustment);
+                                    })
+                                    ->columnSpan(1),
+
+                                Forms\Components\TextInput::make('difference_qty')
+                                    ->label(__('inventory::inventory.fields.difference'))
+                                    ->numeric()
+                                    ->disabled()
+                                    ->dehydrated(true)
+                                    ->columnSpan(1),
+
+                                Forms\Components\Hidden::make('unit_cost_minor'),
+                                Forms\Components\Hidden::make('value_adjustment_minor'),
+                            ])
+                            ->columns(6)
+                            ->defaultItems(0)
+                            ->addActionLabel(__('inventory::inventory.actions.add_product'))
+                            ->reorderable(false)
+                            ->collapsible()
+                            ->itemLabel(fn (array $state): ?string =>
+                                isset($state['product_id'])
+                                    ? \Modules\Inventory\Models\Product::find($state['product_id'])?->sku
+                                    : null
+                            )
+                            ->visible(fn (?InventoryAdjustment $record) => $record !== null)
+                            ->disabled(fn (?InventoryAdjustment $record) => $record && !$record->isDraft()),
+                    ])
+                    ->visible(fn (?InventoryAdjustment $record) => $record !== null),
             ]);
     }
 
@@ -263,6 +348,47 @@ class InventoryAdjustmentResource extends Resource
                             ->columnSpanFull(),
                     ]),
 
+                Infolists\Components\Section::make(__('inventory::inventory.sections.adjustment_lines'))
+                    ->schema([
+                        Infolists\Components\RepeatableEntry::make('lines')
+                            ->schema([
+                                Infolists\Components\TextEntry::make('product.sku')
+                                    ->label(__('inventory::inventory.fields.sku')),
+
+                                Infolists\Components\TextEntry::make('product.name')
+                                    ->label(__('inventory::inventory.fields.product'))
+                                    ->getStateUsing(fn ($record) => $record->product?->getTranslation('name', app()->getLocale())),
+
+                                Infolists\Components\TextEntry::make('theoretical_qty')
+                                    ->label(__('inventory::inventory.fields.theoretical_qty'))
+                                    ->alignCenter(),
+
+                                Infolists\Components\TextEntry::make('counted_qty')
+                                    ->label(__('inventory::inventory.fields.counted_qty'))
+                                    ->alignCenter(),
+
+                                Infolists\Components\TextEntry::make('difference_qty')
+                                    ->label(__('inventory::inventory.fields.difference'))
+                                    ->alignCenter()
+                                    ->color(fn ($state) => match(true) {
+                                        $state > 0 => 'success',
+                                        $state < 0 => 'danger',
+                                        default => 'gray',
+                                    })
+                                    ->formatStateUsing(fn ($state) => $state > 0 ? "+{$state}" : $state),
+
+                                Infolists\Components\TextEntry::make('value_adjustment')
+                                    ->label(__('inventory::inventory.fields.value_adjustment'))
+                                    ->money(current_currency())
+                                    ->color(fn ($record) => match(true) {
+                                        $record->value_adjustment_minor > 0 => 'success',
+                                        $record->value_adjustment_minor < 0 => 'danger',
+                                        default => 'gray',
+                                    }),
+                            ])
+                            ->columns(6),
+                    ]),
+
                 Infolists\Components\Section::make(__('inventory::inventory.sections.validation_info'))
                     ->schema([
                         Infolists\Components\Grid::make(3)
@@ -284,9 +410,7 @@ class InventoryAdjustmentResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            RelationManagers\LinesRelationManager::class,
-        ];
+        return [];
     }
 
     public static function getPages(): array
