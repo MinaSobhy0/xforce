@@ -178,6 +178,10 @@ class InventoryAdjustment extends BaseModel
         }
 
         return \DB::transaction(function () {
+            // Recalculate totals first to ensure value_adjustment is correct
+            $this->recalculateTotals();
+            $this->refresh();
+
             // Apply stock changes
             foreach ($this->lines as $line) {
                 $line->applyStockChange();

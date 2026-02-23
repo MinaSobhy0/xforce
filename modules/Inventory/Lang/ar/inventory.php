@@ -132,6 +132,7 @@ return [
         'lines_count' => 'عدد البنود',
         'reason' => 'السبب',
         'discount_type' => 'نوع الخصم',
+        'reverse_qty' => 'الكمية للعكس',
     ],
 
     'discount_types' => [

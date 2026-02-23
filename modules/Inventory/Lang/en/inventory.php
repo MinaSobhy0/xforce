@@ -132,6 +132,7 @@ return [
         'lines_count' => 'Items Count',
         'reason' => 'Reason',
         'discount_type' => 'Discount Type',
+        'reverse_qty' => 'Qty to Reverse',
     ],
 
     'discount_types' => [

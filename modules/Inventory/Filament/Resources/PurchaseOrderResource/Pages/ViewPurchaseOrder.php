@@ -95,11 +95,66 @@ class ViewPurchaseOrder extends BaseViewRecord
                 ->icon('heroicon-o-arrow-uturn-left')
                 ->color('danger')
                 ->visible(fn () => $this->record->canReverseReceiving())
-                ->requiresConfirmation()
                 ->modalHeading(__('inventory::inventory.actions.reverse_receiving'))
                 ->modalDescription(__('inventory::inventory.messages.reverse_confirmation'))
-                ->action(function () {
-                    if ($this->record->reverseReceiving()) {
+                ->form(function () {
+                    $lines = $this->record->lines()
+                        ->where('quantity_received', '>', 0)
+                        ->with('product')
+                        ->get();
+
+                    $schema = [];
+                    foreach ($lines as $line) {
+                        $schema[] = \Filament\Forms\Components\Grid::make(3)
+                            ->schema([
+                                \Filament\Forms\Components\Placeholder::make("product_{$line->id}")
+                                    ->label(__('inventory::inventory.fields.product'))
+                                    ->content("[{$line->product->sku}] " . $line->product->getTranslation('name', app()->getLocale())),
+
+                                \Filament\Forms\Components\Placeholder::make("received_{$line->id}")
+                                    ->label(__('inventory::inventory.fields.received'))
+                                    ->content($line->quantity_received),
+
+                                \Filament\Forms\Components\TextInput::make("reverse_qty_{$line->id}")
+                                    ->label(__('inventory::inventory.fields.reverse_qty'))
+                                    ->numeric()
+                                    ->default($line->quantity_received)
+                                    ->minValue(0)
+                                    ->maxValue($line->quantity_received)
+                                    ->required(),
+                            ]);
+                    }
+
+                    return $schema;
+                })
+                ->action(function (array $data) {
+                    $reversed = false;
+
+                    \DB::transaction(function () use ($data, &$reversed) {
+                        foreach ($this->record->lines()->where('quantity_received', '>', 0)->get() as $line) {
+                            $reverseQty = (int) ($data["reverse_qty_{$line->id}"] ?? 0);
+
+                            if ($reverseQty > 0) {
+                                $line->reverseReceiving($reverseQty);
+                                $reversed = true;
+                            }
+                        }
+
+                        // Update order status based on remaining received quantities
+                        $this->record->refresh();
+                        $totalReceived = $this->record->lines()->sum('quantity_received');
+
+                        if ($totalReceived === 0) {
+                            $this->record->status = \Modules\Inventory\Models\PurchaseOrder::STATUS_SENT;
+                            $this->record->received_date = null;
+                            $this->record->received_by = null;
+                        } elseif ($totalReceived < $this->record->lines()->sum('quantity')) {
+                            $this->record->status = \Modules\Inventory\Models\PurchaseOrder::STATUS_PARTIALLY_RECEIVED;
+                        }
+                        $this->record->save();
+                    });
+
+                    if ($reversed) {
                         Notification::make()
                             ->title(__('inventory::inventory.messages.receiving_reversed'))
                             ->success()

@@ -187,14 +187,23 @@ class PurchaseOrderLine extends BaseModel
 
     /**
      * Reverse receiving - decrease stock and create reverse journal entry.
+     *
+     * @param int|null $quantity Quantity to reverse. If null, reverses all received.
      */
-    public function reverseReceiving(): bool
+    public function reverseReceiving(?int $quantity = null): bool
     {
         if ($this->quantity_received <= 0) {
             return true; // Nothing to reverse
         }
 
-        $quantityToReverse = $this->quantity_received;
+        // Default to reversing all, but cap at quantity_received
+        $quantityToReverse = $quantity !== null
+            ? min($quantity, $this->quantity_received)
+            : $this->quantity_received;
+
+        if ($quantityToReverse <= 0) {
+            return true;
+        }
 
         // Get stock level
         $stockLevel = StockLevel::where('product_id', $this->product_id)
@@ -215,8 +224,8 @@ class PurchaseOrderLine extends BaseModel
             $this->createReversalJournalEntry($movement, $quantityToReverse);
         }
 
-        // Reset quantity received
-        $this->quantity_received = 0;
+        // Reduce quantity received
+        $this->quantity_received -= $quantityToReverse;
         $this->save();
 
         return true;
