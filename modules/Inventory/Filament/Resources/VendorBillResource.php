@@ -143,23 +143,53 @@ class VendorBillResource extends Resource
                                         Forms\Components\TextInput::make('description')
                                             ->required()
                                             ->maxLength(255)
-                                            ->columnSpan(['default' => 12, 'md' => 4]),
+                                            ->columnSpan(['default' => 12, 'md' => 8]),
 
                                         Forms\Components\TextInput::make('quantity')
                                             ->label('Qty')
                                             ->numeric()
                                             ->default(1)
                                             ->minValue(0.01)
+                                            ->step(0.01)
                                             ->required()
-                                            ->columnSpan(['default' => 4, 'md' => 1]),
+                                            ->columnSpan(['default' => 4, 'md' => 2]),
 
                                         Forms\Components\TextInput::make('unit_price_minor')
                                             ->label('Unit Price')
                                             ->numeric()
                                             ->required()
+                                            ->live(onBlur: true)
                                             ->prefix(current_currency())
                                             ->formatStateUsing(fn ($state) => $state ? $state / 100 : null)
-                                            ->dehydrateStateUsing(fn ($state) => $state ? (int) ($state * 100) : 0)
+                                            ->dehydrateStateUsing(fn ($state) => $state ? (int) ((float) $state * 100) : 0)
+                                            ->columnSpan(['default' => 8, 'md' => 3]),
+
+                                        Forms\Components\Select::make('discount_type')
+                                            ->label('Type')
+                                            ->options([
+                                                'fixed' => current_currency(),
+                                                'percent' => '%',
+                                            ])
+                                            ->default('fixed')
+                                            ->live()
+                                            ->columnSpan(['default' => 4, 'md' => 2]),
+
+                                        Forms\Components\TextInput::make('discount_minor')
+                                            ->label('Discount')
+                                            ->numeric()
+                                            ->default(0)
+                                            ->formatStateUsing(function ($state, Forms\Get $get) {
+                                                if ($get('discount_type') === 'percent') {
+                                                    return $state ?: 0;
+                                                }
+                                                return $state ? $state / 100 : 0;
+                                            })
+                                            ->dehydrateStateUsing(function ($state, Forms\Get $get) {
+                                                if ($get('discount_type') === 'percent') {
+                                                    return $state ? (int) $state : 0;
+                                                }
+                                                return $state ? (int) ($state * 100) : 0;
+                                            })
                                             ->columnSpan(['default' => 4, 'md' => 2]),
 
                                         Forms\Components\TextInput::make('tax_rate')
@@ -167,12 +197,14 @@ class VendorBillResource extends Resource
                                             ->numeric()
                                             ->default(0)
                                             ->suffix('%')
-                                            ->columnSpan(['default' => 4, 'md' => 1]),
+                                            ->columnSpan(['default' => 4, 'md' => 3]),
                                     ])
                                     ->columns(12)
                                     ->defaultItems(1)
-                                    ->addActionLabel('Add Line')
+                                    ->addActionLabel('Add Line Item')
                                     ->reorderable()
+                                    ->reorderableWithButtons()
+                                    ->cloneable()
                                     ->live(onBlur: true)
                                     ->itemLabel(fn (array $state): ?string => $state['description'] ?? null),
                             ]),
@@ -196,6 +228,36 @@ class VendorBillResource extends Resource
                                         return format_money((int) $subtotal);
                                     }),
 
+                                Forms\Components\Placeholder::make('discount_display')
+                                    ->label('Discount')
+                                    ->content(function (Forms\Get $get) {
+                                        $lines = $get('lines') ?? [];
+                                        $totalDiscount = 0;
+                                        foreach ($lines as $line) {
+                                            $qty = (float) ($line['quantity'] ?? 0);
+                                            $price = (float) ($line['unit_price_minor'] ?? 0) * 100;
+                                            $lineSubtotal = $qty * $price;
+
+                                            $discountType = $line['discount_type'] ?? 'fixed';
+                                            $discountValue = (float) ($line['discount_minor'] ?? 0);
+                                            if ($discountType === 'percent') {
+                                                $totalDiscount += $lineSubtotal * $discountValue / 100;
+                                            } else {
+                                                $totalDiscount += $discountValue * 100;
+                                            }
+                                        }
+                                        return $totalDiscount > 0 ? '-' . format_money((int) $totalDiscount) : '-';
+                                    })
+                                    ->visible(function (Forms\Get $get) {
+                                        $lines = $get('lines') ?? [];
+                                        foreach ($lines as $line) {
+                                            if (($line['discount_minor'] ?? 0) > 0) {
+                                                return true;
+                                            }
+                                        }
+                                        return false;
+                                    }),
+
                                 Forms\Components\Placeholder::make('tax_display')
                                     ->label('Tax')
                                     ->content(function (Forms\Get $get) {
@@ -205,6 +267,16 @@ class VendorBillResource extends Resource
                                             $qty = (float) ($line['quantity'] ?? 0);
                                             $price = (float) ($line['unit_price_minor'] ?? 0) * 100;
                                             $lineSubtotal = $qty * $price;
+
+                                            // Apply line discount before tax
+                                            $discountType = $line['discount_type'] ?? 'fixed';
+                                            $discountValue = (float) ($line['discount_minor'] ?? 0);
+                                            if ($discountType === 'percent') {
+                                                $lineSubtotal -= $lineSubtotal * $discountValue / 100;
+                                            } else {
+                                                $lineSubtotal -= $discountValue * 100;
+                                            }
+
                                             $taxRate = (float) ($line['tax_rate'] ?? 0);
                                             $tax += $lineSubtotal * $taxRate / 100;
                                         }
@@ -215,17 +287,28 @@ class VendorBillResource extends Resource
                                     ->label('Total')
                                     ->content(function (Forms\Get $get) {
                                         $lines = $get('lines') ?? [];
-                                        $subtotal = 0;
-                                        $tax = 0;
+                                        $total = 0;
                                         foreach ($lines as $line) {
                                             $qty = (float) ($line['quantity'] ?? 0);
                                             $price = (float) ($line['unit_price_minor'] ?? 0) * 100;
                                             $lineSubtotal = $qty * $price;
-                                            $subtotal += $lineSubtotal;
+
+                                            // Apply line discount
+                                            $discountType = $line['discount_type'] ?? 'fixed';
+                                            $discountValue = (float) ($line['discount_minor'] ?? 0);
+                                            if ($discountType === 'percent') {
+                                                $lineSubtotal -= $lineSubtotal * $discountValue / 100;
+                                            } else {
+                                                $lineSubtotal -= $discountValue * 100;
+                                            }
+
+                                            // Add tax
                                             $taxRate = (float) ($line['tax_rate'] ?? 0);
-                                            $tax += $lineSubtotal * $taxRate / 100;
+                                            $lineSubtotal += $lineSubtotal * $taxRate / 100;
+
+                                            $total += $lineSubtotal;
                                         }
-                                        return format_money((int) ($subtotal + $tax));
+                                        return format_money((int) $total);
                                     })
                                     ->extraAttributes(['class' => 'text-lg font-bold']),
                             ]),
