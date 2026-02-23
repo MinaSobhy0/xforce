@@ -5,9 +5,7 @@ namespace Modules\Inventory\Filament\Resources\PurchaseOrderResource\Pages;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Pages\Page;
-use Filament\Actions;
 use Filament\Notifications\Notification;
-use Illuminate\Database\Eloquent\Model;
 use Modules\Inventory\Models\PurchaseOrder;
 use Modules\Inventory\Models\PurchaseOrderLine;
 use Modules\Inventory\Filament\Resources\PurchaseOrderResource;
@@ -143,18 +141,7 @@ class ReceivePurchaseOrder extends Page
 
     protected function getHeaderActions(): array
     {
-        return [
-            Actions\Action::make('receive')
-                ->label(__('inventory::inventory.actions.confirm_receive'))
-                ->icon('heroicon-o-check')
-                ->color('success')
-                ->action('receive'),
-
-            Actions\Action::make('cancel')
-                ->label(__('inventory::inventory.actions.cancel'))
-                ->color('gray')
-                ->url($this->getResource()::getUrl('view', ['record' => $this->record])),
-        ];
+        return [];
     }
 
     public function getTitle(): string
