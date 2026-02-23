@@ -17,9 +17,9 @@ class Product extends BaseModel
 
     public array $translatable = ['name', 'description'];
 
-    protected static string $sequenceCode = 'PRD';
+    protected string $sequenceCode = 'PRD';
 
-    protected static string $sequenceField = 'sku';
+    protected string $sequenceColumn = 'sku';
 
     protected $fillable = [
         'tenant_id',
