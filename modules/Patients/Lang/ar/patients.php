@@ -69,6 +69,12 @@ return [
         'breastfeeding' => 'الرضاعة',
         'sun_response' => 'استجابة الشمس',
         'skin_characteristics' => 'خصائص البشرة',
+        'sun_exposure' => 'مستوى التعرض للشمس',
+        'sun_levels' => [
+            'minimal' => 'قليل',
+            'moderate' => 'متوسط',
+            'high' => 'عالي',
+        ],
     ],
 
     // Sections

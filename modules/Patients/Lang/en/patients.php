@@ -69,6 +69,12 @@ return [
         'breastfeeding' => 'Breastfeeding',
         'sun_response' => 'Sun Response',
         'skin_characteristics' => 'Skin Characteristics',
+        'sun_exposure' => 'Sun Exposure Level',
+        'sun_levels' => [
+            'minimal' => 'Minimal',
+            'moderate' => 'Moderate',
+            'high' => 'High',
+        ],
     ],
 
     // Sections
