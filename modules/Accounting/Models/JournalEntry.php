@@ -246,6 +246,37 @@ class JournalEntry extends BaseModel
         return $this->reversal_of_id !== null;
     }
 
+    /**
+     * Reset a posted entry back to draft.
+     * This reverses the account balance updates.
+     */
+    public function resetToDraft(): bool
+    {
+        if (!$this->isPosted()) {
+            return false;
+        }
+
+        // Cannot reset if already reversed
+        if ($this->isReversed()) {
+            return false;
+        }
+
+        // Reverse account balance updates
+        foreach ($this->lines as $line) {
+            if ($line->account) {
+                // Reverse the balance update (subtract what was added)
+                $line->account->decrement('balance_minor', $line->debit_minor);
+                $line->account->increment('balance_minor', $line->credit_minor);
+            }
+        }
+
+        $this->status = self::STATUS_DRAFT;
+        $this->posted_at = null;
+        $this->save();
+
+        return true;
+    }
+
     // Accessors
     public function getStatusLabelAttribute(): string
     {

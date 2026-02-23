@@ -15,6 +15,12 @@ class ViewJournalEntry extends BaseViewRecord
     protected function getViewHeaderActions(): array
     {
         return [
+            Actions\Action::make('print')
+                ->label(__('accounting::accounting.actions.print'))
+                ->icon('heroicon-o-printer')
+                ->color('gray')
+                ->url(fn () => route('accounting.journal-entry.print', $this->record), shouldOpenInNewTab: true),
+
             Actions\EditAction::make()
                 ->visible(fn () => $this->record->isDraft()),
 
@@ -36,6 +42,29 @@ class ViewJournalEntry extends BaseViewRecord
                         Notification::make()
                             ->title('Failed to post journal entry')
                             ->body('Entry may be unbalanced or fiscal period may be closed.')
+                            ->danger()
+                            ->send();
+                    }
+                }),
+
+            Actions\Action::make('reset_to_draft')
+                ->label(__('accounting::accounting.actions.reset_to_draft'))
+                ->icon('heroicon-o-arrow-path')
+                ->color('warning')
+                ->requiresConfirmation()
+                ->modalHeading(__('accounting::accounting.actions.reset_to_draft'))
+                ->modalDescription(__('accounting::accounting.messages.reset_to_draft_warning'))
+                ->visible(fn () => $this->record->isPosted() && !$this->record->isReversed())
+                ->action(function () {
+                    if ($this->record->resetToDraft()) {
+                        Notification::make()
+                            ->title(__('accounting::accounting.messages.reset_to_draft_success'))
+                            ->success()
+                            ->send();
+                        $this->refreshFormData(['status', 'posted_at']);
+                    } else {
+                        Notification::make()
+                            ->title(__('accounting::accounting.messages.reset_to_draft_failed'))
                             ->danger()
                             ->send();
                     }

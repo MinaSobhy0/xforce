@@ -148,10 +148,40 @@ return [
         'reopen_period' => 'Reopen Period',
     ],
 
+    'actions' => [
+        'print' => 'Print',
+        'reset_to_draft' => 'Reset to Draft',
+    ],
+
+    'fields' => [
+        'code' => 'Code',
+        'date' => 'Date',
+        'journal' => 'Journal',
+        'fiscal_period' => 'Fiscal Period',
+        'reference' => 'Reference',
+        'description' => 'Description',
+        'created_by' => 'Created By',
+        'posted_at' => 'Posted At',
+        'account' => 'Account',
+        'partner' => 'Partner',
+        'debit' => 'Debit',
+        'credit' => 'Credit',
+        'total_debit' => 'Total Debit',
+        'total_credit' => 'Total Credit',
+    ],
+
+    'journal_entry' => 'Journal Entry',
+
     'messages' => [
         'entry_posted' => 'Journal entry posted successfully',
         'entry_reversed' => 'Journal entry reversed successfully',
         'period_closed' => 'Fiscal period closed',
         'unbalanced_entry' => 'Journal entry must be balanced (debit = credit)',
+        'entry_balanced' => 'Entry is balanced (Debit = Credit)',
+        'entry_unbalanced' => 'Entry is NOT balanced!',
+        'printed_on' => 'Printed on',
+        'reset_to_draft_warning' => 'This will reverse the account balance updates and set the entry back to draft status. Are you sure?',
+        'reset_to_draft_success' => 'Journal entry reset to draft successfully',
+        'reset_to_draft_failed' => 'Failed to reset journal entry to draft',
     ],
 ];

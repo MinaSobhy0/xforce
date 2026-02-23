@@ -148,10 +148,40 @@ return [
         'reopen_period' => 'إعادة فتح الفترة',
     ],
 
+    'actions' => [
+        'print' => 'طباعة',
+        'reset_to_draft' => 'إعادة إلى مسودة',
+    ],
+
+    'fields' => [
+        'code' => 'الكود',
+        'date' => 'التاريخ',
+        'journal' => 'دفتر اليومية',
+        'fiscal_period' => 'الفترة المالية',
+        'reference' => 'المرجع',
+        'description' => 'الوصف',
+        'created_by' => 'أنشأ بواسطة',
+        'posted_at' => 'تاريخ الترحيل',
+        'account' => 'الحساب',
+        'partner' => 'الطرف',
+        'debit' => 'مدين',
+        'credit' => 'دائن',
+        'total_debit' => 'إجمالي المدين',
+        'total_credit' => 'إجمالي الدائن',
+    ],
+
+    'journal_entry' => 'قيد يومية',
+
     'messages' => [
         'entry_posted' => 'تم ترحيل القيد بنجاح',
         'entry_reversed' => 'تم عكس القيد بنجاح',
         'period_closed' => 'تم إغلاق الفترة المالية',
         'unbalanced_entry' => 'يجب أن يكون القيد متوازناً (المدين = الدائن)',
+        'entry_balanced' => 'القيد متوازن (المدين = الدائن)',
+        'entry_unbalanced' => 'القيد غير متوازن!',
+        'printed_on' => 'تمت الطباعة في',
+        'reset_to_draft_warning' => 'سيؤدي هذا إلى عكس تحديثات أرصدة الحسابات وإعادة القيد إلى حالة المسودة. هل أنت متأكد؟',
+        'reset_to_draft_success' => 'تم إعادة القيد إلى مسودة بنجاح',
+        'reset_to_draft_failed' => 'فشل إعادة القيد إلى مسودة',
     ],
 ];
