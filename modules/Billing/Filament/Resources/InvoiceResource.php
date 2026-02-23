@@ -104,81 +104,78 @@ class InvoiceResource extends Resource
                                 Forms\Components\Repeater::make('lines')
                                     ->relationship()
                                     ->schema([
-                                        Forms\Components\Grid::make(12)
-                                            ->schema([
-                                                Forms\Components\Select::make('service_id')
-                                                    ->label('Service')
-                                                    ->options(Service::query()->where('is_active', true)->pluck('name', 'id'))
-                                                    ->searchable()
-                                                    ->preload()
-                                                    ->live()
-                                                    ->columnSpan(4)
-                                                    ->afterStateUpdated(function ($state, Forms\Set $set, \Livewire\Component $livewire) {
-                                                        if ($state) {
-                                                            $service = Service::find($state);
-                                                            if ($service) {
-                                                                $branchId = data_get($livewire, 'data.branch_id') ?? current_branch_id();
-                                                                $price = $branchId
-                                                                    ? $service->getPriceForBranch($branchId)
-                                                                    : $service->base_price_minor;
-                                                                $set('description', $service->name);
-                                                                $set('unit_price_minor', $price / 100);
-                                                                $set('tax_rate', TaxRate::getDefault()?->rate ?? 14);
-                                                            }
-                                                        }
-                                                    }),
+                                        Forms\Components\Select::make('service_id')
+                                            ->label('Service')
+                                            ->options(Service::query()->where('is_active', true)->pluck('name', 'id'))
+                                            ->searchable()
+                                            ->preload()
+                                            ->live()
+                                            ->afterStateUpdated(function ($state, Forms\Set $set, \Livewire\Component $livewire) {
+                                                if ($state) {
+                                                    $service = Service::find($state);
+                                                    if ($service) {
+                                                        $branchId = data_get($livewire, 'data.branch_id') ?? current_branch_id();
+                                                        $price = $branchId
+                                                            ? $service->getPriceForBranch($branchId)
+                                                            : $service->base_price_minor;
+                                                        $set('description', $service->name);
+                                                        // $price is in minor, convert to display value
+                                                        $set('unit_price_minor', $price / 100);
+                                                        $set('tax_rate', TaxRate::getDefault()?->rate ?? 14);
+                                                    }
+                                                }
+                                            })
+                                            ->columnSpan(['default' => 12, 'md' => 4]),
 
-                                                Forms\Components\TextInput::make('description')
-                                                    ->required()
-                                                    ->maxLength(255)
-                                                    ->columnSpan(8),
-                                            ]),
+                                        Forms\Components\TextInput::make('description')
+                                            ->required()
+                                            ->maxLength(255)
+                                            ->columnSpan(['default' => 12, 'md' => 8]),
 
-                                        Forms\Components\Grid::make(12)
-                                            ->schema([
-                                                Forms\Components\TextInput::make('quantity')
-                                                    ->label('Qty')
-                                                    ->numeric()
-                                                    ->default(1)
-                                                    ->minValue(0.01)
-                                                    ->step(0.01)
-                                                    ->required()
-                                                    ->columnSpan(2),
+                                        Forms\Components\TextInput::make('quantity')
+                                            ->label('Qty')
+                                            ->numeric()
+                                            ->default(1)
+                                            ->minValue(0.01)
+                                            ->step(0.01)
+                                            ->required()
+                                            ->columnSpan(['default' => 4, 'md' => 2]),
 
-                                                Forms\Components\TextInput::make('unit_price_minor')
-                                                    ->label('Unit Price')
-                                                    ->numeric()
-                                                    ->required()
-                                                    ->prefix(current_currency())
-                                                    ->formatStateUsing(fn ($state) => $state ? $state / 100 : null)
-                                                    ->dehydrateStateUsing(fn ($state) => $state ? (int) ($state * 100) : 0)
-                                                    ->columnSpan(3),
+                                        Forms\Components\TextInput::make('unit_price_minor')
+                                            ->label('Unit Price')
+                                            ->numeric()
+                                            ->required()
+                                            ->live(onBlur: true)
+                                            ->prefix(current_currency())
+                                            ->formatStateUsing(fn ($state) => $state ? $state / 100 : null)
+                                            ->dehydrateStateUsing(fn ($state) => $state ? (int) ((float) $state * 100) : 0)
+                                            ->columnSpan(['default' => 8, 'md' => 3]),
 
-                                                Forms\Components\TextInput::make('discount_minor')
-                                                    ->label('Discount')
-                                                    ->numeric()
-                                                    ->default(0)
-                                                    ->formatStateUsing(fn ($state) => $state ? $state / 100 : 0)
-                                                    ->dehydrateStateUsing(fn ($state) => $state ? (int) ($state * 100) : 0)
-                                                    ->columnSpan(2),
+                                        Forms\Components\TextInput::make('discount_minor')
+                                            ->label('Discount')
+                                            ->numeric()
+                                            ->default(0)
+                                            ->formatStateUsing(fn ($state) => $state ? $state / 100 : 0)
+                                            ->dehydrateStateUsing(fn ($state) => $state ? (int) ($state * 100) : 0)
+                                            ->columnSpan(['default' => 4, 'md' => 2]),
 
-                                                Forms\Components\Select::make('discount_type')
-                                                    ->label('Type')
-                                                    ->options([
-                                                        'fixed' => 'Fixed',
-                                                        'percent' => '%',
-                                                    ])
-                                                    ->default('fixed')
-                                                    ->columnSpan(2),
+                                        Forms\Components\Select::make('discount_type')
+                                            ->label('Type')
+                                            ->options([
+                                                'fixed' => 'Fixed',
+                                                'percent' => '%',
+                                            ])
+                                            ->default('fixed')
+                                            ->columnSpan(['default' => 4, 'md' => 2]),
 
-                                                Forms\Components\TextInput::make('tax_rate')
-                                                    ->label('Tax %')
-                                                    ->numeric()
-                                                    ->default(fn () => TaxRate::getDefault()?->rate ?? 14)
-                                                    ->suffix('%')
-                                                    ->columnSpan(3),
-                                            ]),
+                                        Forms\Components\TextInput::make('tax_rate')
+                                            ->label('Tax %')
+                                            ->numeric()
+                                            ->default(fn () => TaxRate::getDefault()?->rate ?? 14)
+                                            ->suffix('%')
+                                            ->columnSpan(['default' => 4, 'md' => 3]),
                                     ])
+                                    ->columns(12)
                                     ->defaultItems(1)
                                     ->addActionLabel('Add Line Item')
                                     ->reorderable()

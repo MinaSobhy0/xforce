@@ -8,6 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Add missing columns to payments table
         Schema::table('payments', function (Blueprint $table) {
             if (!Schema::hasColumn('payments', 'patient_id')) {
                 $table->foreignUuid('patient_id')->nullable()->after('invoice_id');
@@ -25,12 +26,23 @@ return new class extends Migration
                 $table->string('status')->default('completed')->after('appointment_id');
             }
         });
+
+        // Add service_id to invoice_lines table
+        Schema::table('invoice_lines', function (Blueprint $table) {
+            if (!Schema::hasColumn('invoice_lines', 'service_id')) {
+                $table->foreignUuid('service_id')->nullable()->after('invoice_id');
+            }
+        });
     }
 
     public function down(): void
     {
         Schema::table('payments', function (Blueprint $table) {
             $table->dropColumn(['patient_id', 'branch_id', 'treatment_plan_id', 'appointment_id', 'status']);
+        });
+
+        Schema::table('invoice_lines', function (Blueprint $table) {
+            $table->dropColumn('service_id');
         });
     }
 };
