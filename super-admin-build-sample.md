@@ -751,6 +751,7 @@ This is the most important file. It creates the tabbed detail view.
 
 namespace App\Filament\SuperAdmin\Resources\TenantResource\Pages;
 
+use App\Filament\Resources\Pages\BaseViewRecord;
 use App\Filament\SuperAdmin\Resources\TenantResource;
 use App\Models\Tenant;
 use App\Models\Module;
@@ -760,17 +761,18 @@ use Filament\Infolists;
 use Filament\Infolists\Infolist;
 use Filament\Infolists\Components;
 use Filament\Notifications\Notification;
-use Filament\Resources\Pages\ViewRecord;
 use Filament\Support\Enums\FontWeight;
 use Filament\Support\Enums\IconPosition;
 
-class ViewTenant extends ViewRecord
+class ViewTenant extends BaseViewRecord
 {
     protected static string $resource = TenantResource::class;
 
     // ─── Top Action Buttons ───────────────────────────────
+    // Note: Use getViewHeaderActions() instead of getHeaderActions()
+    // to properly integrate with BaseViewRecord's navigation features
 
-    protected function getHeaderActions(): array
+    protected function getViewHeaderActions(): array
     {
         return [
             Actions\Action::make('loginAs')
