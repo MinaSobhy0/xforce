@@ -400,9 +400,6 @@ class PayrollCalculationService
             $line->calculation_details = $calculationDetails;
         }
 
-        // Store violations reference for later linking (after payroll is paid)
-        $line->_pendingViolations = $context['_violations'] ?? collect();
-
         return $line;
     }
 
