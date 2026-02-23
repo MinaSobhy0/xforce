@@ -3,14 +3,14 @@
 namespace Modules\Inventory\Filament\Resources\VendorBillResource\Pages;
 
 use Filament\Actions;
-use Filament\Resources\Pages\EditRecord;
+use App\Filament\Resources\Pages\BaseEditRecord;
 use Modules\Inventory\Filament\Resources\VendorBillResource;
 
-class EditVendorBill extends EditRecord
+class EditVendorBill extends BaseEditRecord
 {
     protected static string $resource = VendorBillResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getEditHeaderActions(): array
     {
         return [
             Actions\ViewAction::make(),

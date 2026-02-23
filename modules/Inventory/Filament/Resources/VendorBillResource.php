@@ -494,7 +494,9 @@ class VendorBillResource extends Resource
 
     public static function getRelations(): array
     {
-        return [];
+        return [
+            VendorBillResource\RelationManagers\LinesRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

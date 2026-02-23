@@ -3,16 +3,24 @@
 namespace Modules\Inventory\Filament\Resources\VendorBillResource\Pages;
 
 use Filament\Actions;
-use Filament\Resources\Pages\ViewRecord;
+use App\Filament\Resources\Pages\BaseViewRecord;
 use Filament\Notifications\Notification;
 use Modules\Inventory\Filament\Resources\VendorBillResource;
+use Modules\Inventory\Filament\Resources\VendorBillResource\RelationManagers;
 use Modules\Inventory\Models\VendorBill;
 
-class ViewVendorBill extends ViewRecord
+class ViewVendorBill extends BaseViewRecord
 {
     protected static string $resource = VendorBillResource::class;
 
-    protected function getHeaderActions(): array
+    public function getRelationManagers(): array
+    {
+        return [
+            RelationManagers\LinesRelationManager::class,
+        ];
+    }
+
+    protected function getViewHeaderActions(): array
     {
         return [
             Actions\EditAction::make()
@@ -32,7 +40,7 @@ class ViewVendorBill extends ViewRecord
                             ->success()
                             ->send();
 
-                        $this->redirect(request()->header('Referer'));
+                        $this->refreshFormData(['status', 'validated_at']);
                     } else {
                         Notification::make()
                             ->title('Failed to validate bill')
@@ -76,7 +84,27 @@ class ViewVendorBill extends ViewRecord
                         ->success()
                         ->send();
 
-                    $this->redirect(request()->header('Referer'));
+                    $this->refreshFormData(['status', 'paid_minor', 'paid_at']);
+                }),
+
+            Actions\Action::make('cancel')
+                ->label('Cancel')
+                ->icon('heroicon-o-x-circle')
+                ->color('danger')
+                ->requiresConfirmation()
+                ->visible(fn () => $this->record->canCancel())
+                ->form([
+                    \Filament\Forms\Components\Textarea::make('reason')
+                        ->label('Cancellation Reason')
+                        ->required(),
+                ])
+                ->action(function (array $data) {
+                    $this->record->cancel($data['reason']);
+                    Notification::make()
+                        ->title('Bill cancelled')
+                        ->success()
+                        ->send();
+                    $this->refreshFormData(['status', 'cancelled_at', 'cancellation_reason']);
                 }),
         ];
     }
