@@ -38,8 +38,7 @@ class TaxRateResource extends Resource
                         Forms\Components\TextInput::make('name')
                             ->label('Tax Name')
                             ->required()
-                            ->maxLength(255)
-                            ->translatable(),
+                            ->maxLength(255),
 
                         Forms\Components\TextInput::make('rate')
                             ->label('Rate')
