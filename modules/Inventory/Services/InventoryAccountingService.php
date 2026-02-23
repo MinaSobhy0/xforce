@@ -13,12 +13,12 @@ class InventoryAccountingService
 {
     protected AccountingIntegrationService $accountingService;
 
-    // Default account codes (can be configured in settings)
-    protected string $defaultStockValuationCode = '1400'; // Inventory Asset
-    protected string $defaultStockInputCode = '2100'; // Stock Received Not Invoiced / AP
-    protected string $defaultStockOutputCode = '5100'; // Cost of Goods Sold
-    protected string $defaultAdjustmentExpenseCode = '6200'; // Inventory Adjustment Expense
-    protected string $defaultAdjustmentIncomeCode = '4900'; // Inventory Adjustment Income
+    // Default account codes (matching clinic chart of accounts)
+    protected string $defaultStockValuationCode = '1200'; // Inventory Asset
+    protected string $defaultStockInputCode = '2010'; // Supplier Payables / AP
+    protected string $defaultStockOutputCode = '5010'; // Medical Supplies Used / COGS
+    protected string $defaultAdjustmentExpenseCode = '5020'; // Consumables Used (for losses)
+    protected string $defaultAdjustmentIncomeCode = '4300'; // Other Income (for gains)
 
     public function __construct(AccountingIntegrationService $accountingService)
     {
@@ -214,14 +214,24 @@ class InventoryAccountingService
             return ChartOfAccount::find($product->stock_valuation_account_id);
         }
 
-        // Try to find default inventory account
+        // Try to find default inventory account by various methods
         return ChartOfAccount::where('code', $this->defaultStockValuationCode)
             ->orWhere('sub_type', 'inventory')
-            ->first();
+            ->orWhere('name', 'like', '%Inventory%')
+            ->orWhere('name', 'like', '%Stock%')
+            ->orWhere('name', 'like', '%المخزون%')
+            ->where('type', 'asset')
+            ->first()
+            ?? ChartOfAccount::where('type', 'asset')
+                ->where(function ($q) {
+                    $q->where('code', 'like', '14%')
+                        ->orWhere('code', 'like', '15%');
+                })
+                ->first();
     }
 
     /**
-     * Get stock input account for a product.
+     * Get stock input account for a product (Accounts Payable / Goods Received).
      */
     protected function getStockInputAccount(Product $product): ?ChartOfAccount
     {
@@ -231,11 +241,17 @@ class InventoryAccountingService
 
         return ChartOfAccount::where('code', $this->defaultStockInputCode)
             ->orWhere('sub_type', 'accounts_payable')
-            ->first();
+            ->orWhere('name', 'like', '%Payable%')
+            ->orWhere('name', 'like', '%دائنون%')
+            ->orWhere('name', 'like', '%موردين%')
+            ->first()
+            ?? ChartOfAccount::where('type', 'liability')
+                ->where('code', 'like', '21%')
+                ->first();
     }
 
     /**
-     * Get stock output account for a product.
+     * Get stock output account for a product (Cost of Goods Sold).
      */
     protected function getStockOutputAccount(Product $product): ?ChartOfAccount
     {
@@ -245,7 +261,13 @@ class InventoryAccountingService
 
         return ChartOfAccount::where('code', $this->defaultStockOutputCode)
             ->orWhere('sub_type', 'cost_of_goods')
-            ->first();
+            ->orWhere('name', 'like', '%Cost of Goods%')
+            ->orWhere('name', 'like', '%COGS%')
+            ->orWhere('name', 'like', '%تكلفة البضاعة%')
+            ->first()
+            ?? ChartOfAccount::where('type', 'expense')
+                ->where('code', 'like', '51%')
+                ->first();
     }
 
     /**
@@ -255,7 +277,15 @@ class InventoryAccountingService
     {
         return ChartOfAccount::where('code', $this->defaultAdjustmentExpenseCode)
             ->orWhere('sub_type', 'operating_expense')
-            ->first();
+            ->orWhere('name', 'like', '%Adjustment%')
+            ->orWhere('name', 'like', '%Loss%')
+            ->orWhere('name', 'like', '%خسائر%')
+            ->orWhere('name', 'like', '%تسوية%')
+            ->first()
+            ?? ChartOfAccount::where('type', 'expense')
+                ->where('code', 'like', '62%')
+                ->first()
+            ?? ChartOfAccount::where('type', 'expense')->first();
     }
 
     /**
@@ -265,7 +295,14 @@ class InventoryAccountingService
     {
         return ChartOfAccount::where('code', $this->defaultAdjustmentIncomeCode)
             ->orWhere('sub_type', 'other_income')
-            ->first();
+            ->orWhere('name', 'like', '%Other Income%')
+            ->orWhere('name', 'like', '%Gain%')
+            ->orWhere('name', 'like', '%إيرادات أخرى%')
+            ->first()
+            ?? ChartOfAccount::where('type', 'income')
+                ->where('code', 'like', '49%')
+                ->first()
+            ?? ChartOfAccount::where('type', 'income')->first();
     }
 
     /**

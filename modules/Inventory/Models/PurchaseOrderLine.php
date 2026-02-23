@@ -136,10 +136,37 @@ class PurchaseOrderLine extends BaseModel
             $notes ?? "Received from PO #{$this->purchaseOrder->order_number}"
         );
 
+        // Create journal entry for stock receipt
+        $this->createReceiptJournalEntry($movement, $quantity);
+
         // Update the order status
         $this->purchaseOrder->receive();
 
         return $movement;
+    }
+
+    /**
+     * Create journal entry for stock receipt.
+     */
+    protected function createReceiptJournalEntry(StockMovement $movement, int $quantity): void
+    {
+        try {
+            $accountingService = app(\Modules\Inventory\Services\InventoryAccountingService::class);
+
+            // Calculate value in major units (value = qty * unit_price in major)
+            $valueMajor = ($quantity * $this->unit_price_minor) / 100;
+
+            $accountingService->createStockReceiptEntry(
+                $movement,
+                (int) $valueMajor,
+                "Stock receipt: PO #{$this->purchaseOrder->order_number} - {$this->product->name} x {$quantity}"
+            );
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning('Failed to create stock receipt journal entry', [
+                'error' => $e->getMessage(),
+                'purchase_order_line_id' => $this->id,
+            ]);
+        }
     }
 
     /**
