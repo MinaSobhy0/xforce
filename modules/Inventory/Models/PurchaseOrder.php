@@ -14,9 +14,9 @@ class PurchaseOrder extends BaseModel
 
     protected $table = 'purchase_orders';
 
-    protected static string $sequenceCode = 'PO';
+    protected string $sequenceCode = 'PO';
 
-    protected static string $sequenceField = 'order_number';
+    protected string $sequenceColumn = 'order_number';
 
     protected $fillable = [
         'tenant_id',

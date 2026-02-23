@@ -15,9 +15,9 @@ class Supplier extends BaseModel
 
     public array $translatable = ['name'];
 
-    protected static string $sequenceCode = 'SUP';
+    protected string $sequenceCode = 'SUP';
 
-    protected static string $sequenceField = 'code';
+    protected string $sequenceColumn = 'code';
 
     protected $fillable = [
         'tenant_id',
