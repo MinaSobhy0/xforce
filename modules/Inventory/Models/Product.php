@@ -79,7 +79,7 @@ class Product extends BaseModel
     public const VALUATION_METHODS = [
         self::VALUATION_STANDARD => 'Standard Price',
         self::VALUATION_FIFO => 'First In First Out (FIFO)',
-        self::VALUATION_AVERAGE => 'Weighted Average',
+        self::VALUATION_AVERAGE => 'AVCO (Average Cost)',
     ];
 
     // Common units

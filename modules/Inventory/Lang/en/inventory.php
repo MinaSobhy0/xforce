@@ -185,9 +185,9 @@ return [
     ],
 
     'valuation_methods' => [
-        'standard' => 'Standard Cost',
-        'fifo' => 'FIFO',
-        'average' => 'Average Cost',
+        'standard' => 'Standard Price',
+        'fifo' => 'FIFO (First In First Out)',
+        'average' => 'AVCO (Average Cost)',
     ],
 
     'movement_types' => [

@@ -185,9 +185,9 @@ return [
     ],
 
     'valuation_methods' => [
-        'standard' => 'التكلفة المعيارية',
-        'fifo' => 'الوارد أولاً صادر أولاً',
-        'average' => 'متوسط التكلفة',
+        'standard' => 'السعر المعياري',
+        'fifo' => 'FIFO (الوارد أولاً صادر أولاً)',
+        'average' => 'AVCO (متوسط التكلفة)',
     ],
 
     'movement_types' => [
