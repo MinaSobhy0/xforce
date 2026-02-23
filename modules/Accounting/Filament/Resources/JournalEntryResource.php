@@ -97,8 +97,24 @@ class JournalEntryResource extends Resource
 
                                 Forms\Components\TextInput::make('description')
                                     ->maxLength(255),
+
+                                Forms\Components\Placeholder::make('partner_display')
+                                    ->label('Partner')
+                                    ->content(function ($record) {
+                                        if (!$record || !$record->partner_id) {
+                                            return '-';
+                                        }
+                                        $partner = $record->partner;
+                                        if (!$partner) {
+                                            return '-';
+                                        }
+                                        $type = class_basename($record->partner_type);
+                                        $name = $partner->full_name ?? $partner->name ?? $partner->getTranslation('name', app()->getLocale()) ?? '-';
+                                        return "{$name} ({$type})";
+                                    })
+                                    ->visibleOn('view'),
                             ])
-                            ->columns(4)
+                            ->columns(5)
                             ->defaultItems(2)
                             ->addActionLabel('Add Line')
                             ->reorderable(false),
