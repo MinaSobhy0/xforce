@@ -8,6 +8,7 @@ use Modules\Billing\Filament\Resources\InvoiceResource\RelationManagers;
 use Modules\Billing\Models\Invoice;
 use Modules\Billing\Models\InvoiceLine;
 use Modules\Billing\Models\TaxRate;
+use Modules\Accounting\Models\ChartOfAccount;
 use Modules\Patients\Models\Patient;
 use Modules\Core\Models\Branch;
 use Modules\Services\Models\Service;
@@ -184,7 +185,21 @@ class InvoiceResource extends Resource
                                             ->numeric()
                                             ->default(fn () => TaxRate::getDefault()?->rate ?? 14)
                                             ->suffix('%')
-                                            ->columnSpan(['default' => 4, 'md' => 3]),
+                                            ->columnSpan(['default' => 4, 'md' => 2]),
+
+                                        Forms\Components\Select::make('account_id')
+                                            ->label('Account')
+                                            ->options(
+                                                ChartOfAccount::where('type', ChartOfAccount::TYPE_REVENUE)
+                                                    ->where('is_active', true)
+                                                    ->orderBy('code')
+                                                    ->get()
+                                                    ->mapWithKeys(fn ($a) => [$a->id => "[{$a->code}] " . $a->getTranslation('name', app()->getLocale())])
+                                            )
+                                            ->searchable()
+                                            ->preload()
+                                            ->placeholder('Select account')
+                                            ->columnSpan(['default' => 12, 'md' => 4]),
                                     ])
                                     ->columns(12)
                                     ->defaultItems(1)

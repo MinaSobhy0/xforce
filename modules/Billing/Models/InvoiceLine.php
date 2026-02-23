@@ -5,6 +5,7 @@ namespace Modules\Billing\Models;
 use XLinic\Framework\Core\Model\BaseModel;
 use XLinic\Framework\Core\Model\Traits\HasTenancy;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Modules\Accounting\Models\ChartOfAccount;
 use Modules\Services\Models\Service;
 use Modules\TreatmentPlans\Models\TreatmentPlanItem;
 use Modules\Booking\Models\Appointment;
@@ -17,6 +18,7 @@ class InvoiceLine extends BaseModel
         'tenant_id',
         'invoice_id',
         'service_id',
+        'account_id',
         'treatment_plan_item_id',
         'appointment_id',
         'description',
@@ -85,6 +87,11 @@ class InvoiceLine extends BaseModel
     public function service(): BelongsTo
     {
         return $this->belongsTo(Service::class);
+    }
+
+    public function account(): BelongsTo
+    {
+        return $this->belongsTo(ChartOfAccount::class, 'account_id');
     }
 
     public function treatmentPlanItem(): BelongsTo

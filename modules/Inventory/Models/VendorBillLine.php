@@ -3,6 +3,7 @@
 namespace Modules\Inventory\Models;
 
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Modules\Accounting\Models\ChartOfAccount;
 use XLinic\Framework\Core\Model\BaseModel;
 
 class VendorBillLine extends BaseModel
@@ -13,6 +14,7 @@ class VendorBillLine extends BaseModel
         'tenant_id',
         'vendor_bill_id',
         'product_id',
+        'account_id',
         'purchase_order_line_id',
         'description',
         'quantity',
@@ -54,6 +56,11 @@ class VendorBillLine extends BaseModel
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function account(): BelongsTo
+    {
+        return $this->belongsTo(ChartOfAccount::class, 'account_id');
     }
 
     public function purchaseOrderLine(): BelongsTo

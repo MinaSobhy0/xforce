@@ -12,6 +12,7 @@ use Filament\Infolists;
 use Filament\Infolists\Infolist;
 use Filament\Support\Enums\FontWeight;
 use Filament\Notifications\Notification;
+use Modules\Accounting\Models\ChartOfAccount;
 use Modules\Core\Models\Branch;
 use Modules\Inventory\Models\VendorBill;
 use Modules\Inventory\Models\VendorBillLine;
@@ -197,7 +198,21 @@ class VendorBillResource extends Resource
                                             ->numeric()
                                             ->default(0)
                                             ->suffix('%')
-                                            ->columnSpan(['default' => 4, 'md' => 3]),
+                                            ->columnSpan(['default' => 4, 'md' => 2]),
+
+                                        Forms\Components\Select::make('account_id')
+                                            ->label('Account')
+                                            ->options(
+                                                ChartOfAccount::where('type', ChartOfAccount::TYPE_EXPENSE)
+                                                    ->where('is_active', true)
+                                                    ->orderBy('code')
+                                                    ->get()
+                                                    ->mapWithKeys(fn ($a) => [$a->id => "[{$a->code}] " . $a->getTranslation('name', app()->getLocale())])
+                                            )
+                                            ->searchable()
+                                            ->preload()
+                                            ->placeholder('Select account')
+                                            ->columnSpan(['default' => 12, 'md' => 4]),
                                     ])
                                     ->columns(12)
                                     ->defaultItems(1)
