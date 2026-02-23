@@ -102,6 +102,7 @@ return [
         'product' => 'المنتج',
         'unit_price' => 'سعر الوحدة',
         'total' => 'الإجمالي',
+        'subtotal' => 'المجموع الفرعي',
         'received' => 'مستلم',
         'remaining' => 'متبقي',
         'tax' => 'الضريبة',

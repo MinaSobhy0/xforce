@@ -102,6 +102,7 @@ return [
         'product' => 'Product',
         'unit_price' => 'Unit Price',
         'total' => 'Total',
+        'subtotal' => 'Subtotal',
         'received' => 'Received',
         'remaining' => 'Remaining',
         'tax' => 'Tax',

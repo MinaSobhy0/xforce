@@ -129,12 +129,12 @@ class PurchaseOrderResource extends Resource
                                     ->required()
                                     ->searchable()
                                     ->preload()
-                                    ->reactive()
+                                    ->live()
                                     ->afterStateUpdated(function ($state, Forms\Set $set) {
                                         if ($state) {
                                             $product = Product::find($state);
                                             if ($product) {
-                                                $set('unit_price_minor', $product->cost_price_minor);
+                                                $set('unit_price_minor', $product->cost_price_minor / 100);
                                             }
                                         }
                                     })
@@ -146,6 +146,7 @@ class PurchaseOrderResource extends Resource
                                     ->required()
                                     ->default(1)
                                     ->minValue(1)
+                                    ->live(onBlur: true)
                                     ->columnSpan(1),
 
                                 Forms\Components\TextInput::make('unit_price_minor')
@@ -153,6 +154,7 @@ class PurchaseOrderResource extends Resource
                                     ->numeric()
                                     ->required()
                                     ->prefix(current_currency())
+                                    ->live(onBlur: true)
                                     ->formatStateUsing(fn ($state) => $state ? $state / 100 : null)
                                     ->dehydrateStateUsing(fn ($state) => $state ? (int) ($state * 100) : 0)
                                     ->columnSpan(2),
@@ -173,84 +175,232 @@ class PurchaseOrderResource extends Resource
                             ->columns(7)
                             ->defaultItems(1)
                             ->addActionLabel(__('inventory::inventory.actions.add_item'))
-                            ->reorderable(false),
+                            ->reorderable(false)
+                            ->live(),
                     ]),
 
                 Forms\Components\Section::make(__('inventory::inventory.sections.totals'))
                     ->schema([
-                        Forms\Components\Grid::make(4)
+                        Forms\Components\Grid::make(2)
                             ->schema([
-                                Forms\Components\Select::make('tax_rate_id')
-                                    ->label(__('inventory::inventory.fields.tax'))
-                                    ->options(fn () => \Modules\Billing\Models\TaxRate::active()
-                                        ->get()
-                                        ->mapWithKeys(fn ($rate) => [
-                                            $rate->id => $rate->getTranslation('name', app()->getLocale()) . ' (' . $rate->rate . '%)'
-                                        ]))
-                                    ->default(fn () => \Modules\Billing\Models\TaxRate::getDefault()?->id)
-                                    ->reactive()
-                                    ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
-                                        if ($state) {
-                                            $taxRate = \Modules\Billing\Models\TaxRate::find($state);
-                                            $subtotal = $get('subtotal_minor') ?? 0;
-                                            $taxAmount = (int) ($subtotal * ($taxRate->rate / 100));
-                                            $set('tax_amount_minor', $taxAmount);
-                                        }
-                                    })
-                                    ->dehydrated(false),
-
-                                Forms\Components\Grid::make(2)
+                                // Left column: Tax, Discount, Shipping inputs
+                                Forms\Components\Section::make()
                                     ->schema([
-                                        Forms\Components\Select::make('discount_type')
-                                            ->label(__('inventory::inventory.fields.discount_type'))
-                                            ->options([
-                                                'percentage' => __('inventory::inventory.discount_types.percentage'),
-                                                'amount' => __('inventory::inventory.discount_types.amount'),
-                                            ])
-                                            ->default('percentage')
-                                            ->reactive()
+                                        Forms\Components\Select::make('tax_rate_id')
+                                            ->label(__('inventory::inventory.fields.tax'))
+                                            ->options(fn () => \Modules\Billing\Models\TaxRate::active()
+                                                ->get()
+                                                ->mapWithKeys(fn ($rate) => [
+                                                    $rate->id => $rate->getTranslation('name', app()->getLocale()) . ' (' . $rate->rate . '%)'
+                                                ]))
+                                            ->default(fn () => \Modules\Billing\Models\TaxRate::getDefault()?->id)
+                                            ->live()
                                             ->dehydrated(false),
 
-                                        Forms\Components\TextInput::make('discount_value')
-                                            ->label(__('inventory::inventory.fields.discount'))
+                                        Forms\Components\Grid::make(2)
+                                            ->schema([
+                                                Forms\Components\Select::make('discount_type')
+                                                    ->label(__('inventory::inventory.fields.discount_type'))
+                                                    ->options([
+                                                        'percentage' => __('inventory::inventory.discount_types.percentage'),
+                                                        'amount' => __('inventory::inventory.discount_types.amount'),
+                                                    ])
+                                                    ->default('percentage')
+                                                    ->live()
+                                                    ->dehydrated(false),
+
+                                                Forms\Components\TextInput::make('discount_value')
+                                                    ->label(__('inventory::inventory.fields.discount'))
+                                                    ->numeric()
+                                                    ->default(0)
+                                                    ->live(onBlur: true)
+                                                    ->prefix(fn (Forms\Get $get) => $get('discount_type') === 'percentage' ? null : current_currency())
+                                                    ->suffix(fn (Forms\Get $get) => $get('discount_type') === 'percentage' ? '%' : null)
+                                                    ->dehydrated(false),
+                                            ]),
+
+                                        Forms\Components\TextInput::make('shipping_amount_minor')
+                                            ->label(__('inventory::inventory.fields.shipping'))
                                             ->numeric()
                                             ->default(0)
-                                            ->reactive()
-                                            ->prefix(fn (Forms\Get $get) => $get('discount_type') === 'percentage' ? null : current_currency())
-                                            ->suffix(fn (Forms\Get $get) => $get('discount_type') === 'percentage' ? '%' : null)
-                                            ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
-                                                $subtotal = $get('subtotal_minor') ?? 0;
-                                                $discountType = $get('discount_type') ?? 'amount';
-
-                                                if ($discountType === 'percentage') {
-                                                    $discountAmount = (int) ($subtotal * (($state ?? 0) / 100));
-                                                } else {
-                                                    $discountAmount = (int) (($state ?? 0) * 100);
-                                                }
-
-                                                $set('discount_amount_minor', $discountAmount);
-                                            })
-                                            ->dehydrated(false),
+                                            ->live(onBlur: true)
+                                            ->prefix(current_currency())
+                                            ->formatStateUsing(fn ($state) => $state ? $state / 100 : null)
+                                            ->dehydrateStateUsing(fn ($state) => $state ? (int) ($state * 100) : 0),
                                     ])
                                     ->columnSpan(1),
 
-                                Forms\Components\TextInput::make('shipping_amount_minor')
-                                    ->label(__('inventory::inventory.fields.shipping'))
-                                    ->numeric()
-                                    ->default(0)
-                                    ->prefix(current_currency())
-                                    ->formatStateUsing(fn ($state) => $state ? $state / 100 : null)
-                                    ->dehydrateStateUsing(fn ($state) => $state ? (int) ($state * 100) : 0),
+                                // Right column: Totals breakdown
+                                Forms\Components\Section::make()
+                                    ->schema([
+                                        Forms\Components\Placeholder::make('subtotal_display')
+                                            ->label(__('inventory::inventory.fields.subtotal'))
+                                            ->content(function (Forms\Get $get) {
+                                                $lines = $get('lines') ?? [];
+                                                $subtotal = 0;
+                                                foreach ($lines as $line) {
+                                                    $qty = (float) ($line['quantity'] ?? 0);
+                                                    $price = (float) ($line['unit_price_minor'] ?? 0);
+                                                    $subtotal += $qty * $price;
+                                                }
+                                                return number_format($subtotal, 2) . ' ' . current_currency();
+                                            }),
 
-                                Forms\Components\Placeholder::make('total_display')
-                                    ->label(__('inventory::inventory.fields.total'))
-                                    ->content(fn (?PurchaseOrder $record) => $record
-                                        ? number_format($record->total_amount, 2) . ' ' . current_currency()
-                                        : '-'),
+                                        Forms\Components\Placeholder::make('tax_display')
+                                            ->label(__('inventory::inventory.fields.tax'))
+                                            ->content(function (Forms\Get $get) {
+                                                $lines = $get('lines') ?? [];
+                                                $subtotal = 0;
+                                                foreach ($lines as $line) {
+                                                    $qty = (float) ($line['quantity'] ?? 0);
+                                                    $price = (float) ($line['unit_price_minor'] ?? 0);
+                                                    $subtotal += $qty * $price;
+                                                }
+                                                $taxRateId = $get('tax_rate_id');
+                                                $taxPercent = 0;
+                                                if ($taxRateId) {
+                                                    $taxRate = \Modules\Billing\Models\TaxRate::find($taxRateId);
+                                                    $taxPercent = $taxRate?->rate ?? 0;
+                                                }
+                                                $taxAmount = $subtotal * ($taxPercent / 100);
+                                                return '+ ' . number_format($taxAmount, 2) . ' ' . current_currency();
+                                            }),
+
+                                        Forms\Components\Placeholder::make('discount_display')
+                                            ->label(__('inventory::inventory.fields.discount'))
+                                            ->content(function (Forms\Get $get) {
+                                                $lines = $get('lines') ?? [];
+                                                $subtotal = 0;
+                                                foreach ($lines as $line) {
+                                                    $qty = (float) ($line['quantity'] ?? 0);
+                                                    $price = (float) ($line['unit_price_minor'] ?? 0);
+                                                    $subtotal += $qty * $price;
+                                                }
+                                                $discountType = $get('discount_type') ?? 'percentage';
+                                                $discountValue = (float) ($get('discount_value') ?? 0);
+                                                if ($discountType === 'percentage') {
+                                                    $discountAmount = $subtotal * ($discountValue / 100);
+                                                } else {
+                                                    $discountAmount = $discountValue;
+                                                }
+                                                return '- ' . number_format($discountAmount, 2) . ' ' . current_currency();
+                                            }),
+
+                                        Forms\Components\Placeholder::make('shipping_display')
+                                            ->label(__('inventory::inventory.fields.shipping'))
+                                            ->content(function (Forms\Get $get) {
+                                                $shipping = (float) ($get('shipping_amount_minor') ?? 0);
+                                                return '+ ' . number_format($shipping, 2) . ' ' . current_currency();
+                                            }),
+
+                                        Forms\Components\Placeholder::make('total_display')
+                                            ->label(__('inventory::inventory.fields.total'))
+                                            ->content(function (Forms\Get $get) {
+                                                $lines = $get('lines') ?? [];
+                                                $subtotal = 0;
+                                                foreach ($lines as $line) {
+                                                    $qty = (float) ($line['quantity'] ?? 0);
+                                                    $price = (float) ($line['unit_price_minor'] ?? 0);
+                                                    $subtotal += $qty * $price;
+                                                }
+                                                $taxRateId = $get('tax_rate_id');
+                                                $taxPercent = 0;
+                                                if ($taxRateId) {
+                                                    $taxRate = \Modules\Billing\Models\TaxRate::find($taxRateId);
+                                                    $taxPercent = $taxRate?->rate ?? 0;
+                                                }
+                                                $taxAmount = $subtotal * ($taxPercent / 100);
+                                                $discountType = $get('discount_type') ?? 'percentage';
+                                                $discountValue = (float) ($get('discount_value') ?? 0);
+                                                if ($discountType === 'percentage') {
+                                                    $discountAmount = $subtotal * ($discountValue / 100);
+                                                } else {
+                                                    $discountAmount = $discountValue;
+                                                }
+                                                $shipping = (float) ($get('shipping_amount_minor') ?? 0);
+                                                $total = $subtotal + $taxAmount - $discountAmount + $shipping;
+                                                return new \Illuminate\Support\HtmlString(
+                                                    '<span class="text-xl font-bold text-primary-600 dark:text-primary-400">' .
+                                                    number_format($total, 2) . ' ' . current_currency() .
+                                                    '</span>'
+                                                );
+                                            }),
+                                    ])
+                                    ->columnSpan(1),
                             ]),
 
-                        Forms\Components\Hidden::make('tax_amount_minor')->default(0),
-                        Forms\Components\Hidden::make('discount_amount_minor')->default(0),
+                        Forms\Components\Hidden::make('subtotal_minor')
+                            ->dehydrateStateUsing(function (Forms\Get $get) {
+                                $lines = $get('lines') ?? [];
+                                $subtotal = 0;
+                                foreach ($lines as $line) {
+                                    $qty = (float) ($line['quantity'] ?? 0);
+                                    $price = (float) ($line['unit_price_minor'] ?? 0) * 100;
+                                    $subtotal += $qty * $price;
+                                }
+                                return (int) $subtotal;
+                            }),
+                        Forms\Components\Hidden::make('tax_amount_minor')
+                            ->dehydrateStateUsing(function (Forms\Get $get) {
+                                $lines = $get('lines') ?? [];
+                                $subtotal = 0;
+                                foreach ($lines as $line) {
+                                    $qty = (float) ($line['quantity'] ?? 0);
+                                    $price = (float) ($line['unit_price_minor'] ?? 0) * 100;
+                                    $subtotal += $qty * $price;
+                                }
+                                $taxRateId = $get('tax_rate_id');
+                                if ($taxRateId) {
+                                    $taxRate = \Modules\Billing\Models\TaxRate::find($taxRateId);
+                                    return (int) ($subtotal * (($taxRate?->rate ?? 0) / 100));
+                                }
+                                return 0;
+                            }),
+                        Forms\Components\Hidden::make('discount_amount_minor')
+                            ->dehydrateStateUsing(function (Forms\Get $get) {
+                                $lines = $get('lines') ?? [];
+                                $subtotal = 0;
+                                foreach ($lines as $line) {
+                                    $qty = (float) ($line['quantity'] ?? 0);
+                                    $price = (float) ($line['unit_price_minor'] ?? 0) * 100;
+                                    $subtotal += $qty * $price;
+                                }
+                                $discountType = $get('discount_type') ?? 'percentage';
+                                $discountValue = (float) ($get('discount_value') ?? 0);
+                                if ($discountType === 'percentage') {
+                                    return (int) ($subtotal * ($discountValue / 100));
+                                }
+                                return (int) ($discountValue * 100);
+                            }),
+                        Forms\Components\Hidden::make('total_amount_minor')
+                            ->dehydrateStateUsing(function (Forms\Get $get) {
+                                $lines = $get('lines') ?? [];
+                                $subtotal = 0;
+                                foreach ($lines as $line) {
+                                    $qty = (float) ($line['quantity'] ?? 0);
+                                    $price = (float) ($line['unit_price_minor'] ?? 0) * 100;
+                                    $subtotal += $qty * $price;
+                                }
+                                // Tax
+                                $taxRateId = $get('tax_rate_id');
+                                $taxAmount = 0;
+                                if ($taxRateId) {
+                                    $taxRate = \Modules\Billing\Models\TaxRate::find($taxRateId);
+                                    $taxAmount = (int) ($subtotal * (($taxRate?->rate ?? 0) / 100));
+                                }
+                                // Discount
+                                $discountType = $get('discount_type') ?? 'percentage';
+                                $discountValue = (float) ($get('discount_value') ?? 0);
+                                if ($discountType === 'percentage') {
+                                    $discountAmount = (int) ($subtotal * ($discountValue / 100));
+                                } else {
+                                    $discountAmount = (int) ($discountValue * 100);
+                                }
+                                // Shipping
+                                $shipping = (int) (((float) ($get('shipping_amount_minor') ?? 0)) * 100);
+                                // Total
+                                return (int) ($subtotal + $taxAmount - $discountAmount + $shipping);
+                            }),
                     ]),
 
                 Forms\Components\Section::make(__('inventory::inventory.sections.notes'))
