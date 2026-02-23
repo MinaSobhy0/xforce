@@ -16,6 +16,7 @@ return [
         'progress' => 'التقدم',
         'notes' => 'الملاحظات',
         'appointments' => 'المواعيد',
+        'financials' => 'الملخص المالي',
     ],
 
     // Fields
@@ -121,6 +122,9 @@ return [
         'book_appointment' => 'حجز موعد',
         'buy_package' => 'شراء الباقة',
         'link_package' => 'ربط الباقة',
+        'collect_deposit' => 'تحصيل عربون',
+        'generate_invoice' => 'إنشاء فاتورة',
+        'view_invoice' => 'عرض الفاتورة',
     ],
 
     // Messages
@@ -138,6 +142,10 @@ return [
         'package_linked' => 'تم ربط اشتراك الباقة بخطة العلاج.',
         'cannot_edit' => 'لا يمكن تعديل خطة العلاج هذه.',
         'cannot_transition' => 'لا يمكن تغيير الحالة إلى :status.',
+        'deposit_collected' => 'تم تحصيل العربون بنجاح.',
+        'deposit_amount' => 'المبلغ: :amount',
+        'invoice_generated' => 'تم إنشاء الفاتورة بنجاح.',
+        'invoice_code' => 'رقم الفاتورة: :code',
     ],
 
     // Progress
@@ -213,5 +221,22 @@ return [
         'cancel' => 'هل أنت متأكد أنك تريد إلغاء خطة العلاج هذه؟ لا يمكن التراجع عن هذا الإجراء.',
         'complete' => 'هل أنت متأكد أنك تريد تعليم خطة العلاج هذه كمكتملة؟',
         'delete' => 'هل أنت متأكد أنك تريد حذف خطة العلاج هذه؟',
+    ],
+
+    // Financials
+    'financials' => [
+        'total_value' => 'القيمة الإجمالية',
+        'deposits' => 'العرابين',
+        'invoiced' => 'المفوتر',
+        'paid' => 'المدفوع',
+        'balance' => 'الرصيد',
+        'amount' => 'المبلغ',
+        'payment_method' => 'طريقة الدفع',
+        'reference' => 'رقم المرجع',
+        'due_date' => 'تاريخ الاستحقاق',
+        'items_to_invoice' => 'البنود للفوترة',
+        'apply_deposits' => 'تطبيق العرابين المتاحة',
+        'available_deposits' => 'العرابين المتاحة: :amount',
+        'to_invoice' => 'للفوترة',
     ],
 ];

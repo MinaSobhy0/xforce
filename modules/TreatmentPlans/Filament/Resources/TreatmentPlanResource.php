@@ -17,6 +17,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
+use Filament\Support\Enums\FontWeight;
 use Illuminate\Database\Eloquent\Builder;
 
 class TreatmentPlanResource extends Resource
@@ -434,6 +435,38 @@ class TreatmentPlanResource extends Resource
                             ]),
                     ]),
 
+                Infolists\Components\Section::make(__('treatment_plans::treatment_plans.sections.financials'))
+                    ->schema([
+                        Infolists\Components\Grid::make(5)
+                            ->schema([
+                                Infolists\Components\TextEntry::make('formatted_total_value')
+                                    ->label(__('treatment_plans::treatment_plans.financials.total_value'))
+                                    ->weight(FontWeight::Bold)
+                                    ->color('gray'),
+
+                                Infolists\Components\TextEntry::make('formatted_deposits')
+                                    ->label(__('treatment_plans::treatment_plans.financials.deposits'))
+                                    ->weight(FontWeight::Bold)
+                                    ->color('info'),
+
+                                Infolists\Components\TextEntry::make('formatted_invoiced')
+                                    ->label(__('treatment_plans::treatment_plans.financials.invoiced'))
+                                    ->weight(FontWeight::Bold)
+                                    ->color('warning'),
+
+                                Infolists\Components\TextEntry::make('formatted_paid')
+                                    ->label(__('treatment_plans::treatment_plans.financials.paid'))
+                                    ->weight(FontWeight::Bold)
+                                    ->color('success'),
+
+                                Infolists\Components\TextEntry::make('formatted_balance')
+                                    ->label(__('treatment_plans::treatment_plans.financials.balance'))
+                                    ->weight(FontWeight::Bold)
+                                    ->color(fn (TreatmentPlan $record) => $record->balance_minor > 0 ? 'danger' : 'success'),
+                            ]),
+                    ])
+                    ->visible(fn (TreatmentPlan $record) => $record->isActive() || $record->isCompleted()),
+
                 Infolists\Components\Section::make(__('treatment_plans::treatment_plans.sections.dates'))
                     ->schema([
                         Infolists\Components\Grid::make(4)
@@ -508,6 +541,8 @@ class TreatmentPlanResource extends Resource
         return [
             \Modules\TreatmentPlans\Filament\Resources\TreatmentPlanResource\RelationManagers\ItemsRelationManager::class,
             \Modules\TreatmentPlans\Filament\Resources\TreatmentPlanResource\RelationManagers\AppointmentsRelationManager::class,
+            \Modules\TreatmentPlans\Filament\Resources\TreatmentPlanResource\RelationManagers\PaymentsRelationManager::class,
+            \Modules\TreatmentPlans\Filament\Resources\TreatmentPlanResource\RelationManagers\InvoicesRelationManager::class,
         ];
     }
 

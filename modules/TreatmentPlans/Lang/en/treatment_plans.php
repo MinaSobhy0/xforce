@@ -16,6 +16,7 @@ return [
         'progress' => 'Progress',
         'notes' => 'Notes',
         'appointments' => 'Appointments',
+        'financials' => 'Financial Summary',
     ],
 
     // Fields
@@ -121,6 +122,9 @@ return [
         'book_appointment' => 'Book Appointment',
         'buy_package' => 'Buy Package',
         'link_package' => 'Link Package',
+        'collect_deposit' => 'Collect Deposit',
+        'generate_invoice' => 'Generate Invoice',
+        'view_invoice' => 'View Invoice',
     ],
 
     // Messages
@@ -138,6 +142,10 @@ return [
         'package_linked' => 'Package subscription linked to treatment plan.',
         'cannot_edit' => 'This treatment plan cannot be edited.',
         'cannot_transition' => 'Cannot change status to :status.',
+        'deposit_collected' => 'Deposit collected successfully.',
+        'deposit_amount' => 'Amount: :amount',
+        'invoice_generated' => 'Invoice generated successfully.',
+        'invoice_code' => 'Invoice Code: :code',
     ],
 
     // Progress
@@ -213,5 +221,22 @@ return [
         'cancel' => 'Are you sure you want to cancel this treatment plan? This action cannot be undone.',
         'complete' => 'Are you sure you want to mark this treatment plan as completed?',
         'delete' => 'Are you sure you want to delete this treatment plan?',
+    ],
+
+    // Financials
+    'financials' => [
+        'total_value' => 'Total Value',
+        'deposits' => 'Deposits',
+        'invoiced' => 'Invoiced',
+        'paid' => 'Paid',
+        'balance' => 'Balance',
+        'amount' => 'Amount',
+        'payment_method' => 'Payment Method',
+        'reference' => 'Reference Number',
+        'due_date' => 'Due Date',
+        'items_to_invoice' => 'Items to Invoice',
+        'apply_deposits' => 'Apply Available Deposits',
+        'available_deposits' => 'Available deposits: :amount',
+        'to_invoice' => 'to invoice',
     ],
 ];
