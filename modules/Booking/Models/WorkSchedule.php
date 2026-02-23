@@ -26,6 +26,8 @@ class WorkSchedule extends BaseModel
         'required_hours_per_day',
         'required_hours_per_week',
         'working_days',
+        'flexible_start_time',
+        'flexible_end_time',
         'weekly_hours',
         'slot_duration',
         'buffer_time',
@@ -140,11 +142,22 @@ class WorkSchedule extends BaseModel
             $workingDays = $this->working_days ?? [];
             $dayNames = collect($workingDays)->map(fn($day) => self::DAYS_SHORT[$day] ?? $day)->implode(', ');
 
+            $hoursInfo = '';
             if ($this->required_hours_per_day) {
-                return $dayNames . " ({$this->required_hours_per_day}h/day flexible)";
+                $hoursInfo = "{$this->required_hours_per_day}h/day";
+            } elseif ($this->required_hours_per_week) {
+                $hoursInfo = "{$this->required_hours_per_week}h/week";
             }
-            if ($this->required_hours_per_week) {
-                return $dayNames . " ({$this->required_hours_per_week}h/week flexible)";
+
+            $timeWindow = '';
+            if ($this->flexible_start_time && $this->flexible_end_time) {
+                $start = date('g:i A', strtotime($this->flexible_start_time));
+                $end = date('g:i A', strtotime($this->flexible_end_time));
+                $timeWindow = " between {$start}-{$end}";
+            }
+
+            if ($hoursInfo) {
+                return $dayNames . " ({$hoursInfo}{$timeWindow})";
             }
             return $dayNames . ' (Flexible)';
         }
@@ -246,6 +259,42 @@ class WorkSchedule extends BaseModel
     public function isFlexible(): bool
     {
         return $this->schedule_type === self::TYPE_FLEXIBLE;
+    }
+
+    /**
+     * Check if a time is within the flexible time window.
+     */
+    public function isWithinFlexibleWindow(string $time): bool
+    {
+        if (!$this->isFlexible()) {
+            return false;
+        }
+
+        // If no time window set, any time is valid
+        if (!$this->flexible_start_time || !$this->flexible_end_time) {
+            return true;
+        }
+
+        $checkTime = strtotime($time);
+        $startTime = strtotime($this->flexible_start_time);
+        $endTime = strtotime($this->flexible_end_time);
+
+        return $checkTime >= $startTime && $checkTime <= $endTime;
+    }
+
+    /**
+     * Get flexible time window as array.
+     */
+    public function getFlexibleTimeWindow(): ?array
+    {
+        if (!$this->isFlexible() || !$this->flexible_start_time || !$this->flexible_end_time) {
+            return null;
+        }
+
+        return [
+            'start' => $this->flexible_start_time,
+            'end' => $this->flexible_end_time,
+        ];
     }
 
     /**

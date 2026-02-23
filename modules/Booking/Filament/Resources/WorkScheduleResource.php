@@ -108,7 +108,7 @@ class WorkScheduleResource extends Resource
                 Forms\Components\Section::make(__('booking::schedules.sections.flexible_hours'))
                     ->description(__('booking::schedules.flexible_hours_help'))
                     ->schema([
-                        Forms\Components\Grid::make(2)
+                        Forms\Components\Grid::make(4)
                             ->schema([
                                 Forms\Components\TextInput::make('required_hours_per_day')
                                     ->label(__('booking::schedules.fields.required_hours_per_day'))
@@ -127,6 +127,18 @@ class WorkScheduleResource extends Resource
                                     ->step(0.5)
                                     ->suffix('hours')
                                     ->helperText(__('booking::schedules.required_hours_per_week_help')),
+
+                                Forms\Components\TimePicker::make('flexible_start_time')
+                                    ->label(__('booking::schedules.fields.flexible_start_time'))
+                                    ->seconds(false)
+                                    ->default('08:00')
+                                    ->helperText(__('booking::schedules.flexible_start_time_help')),
+
+                                Forms\Components\TimePicker::make('flexible_end_time')
+                                    ->label(__('booking::schedules.fields.flexible_end_time'))
+                                    ->seconds(false)
+                                    ->default('20:00')
+                                    ->helperText(__('booking::schedules.flexible_end_time_help')),
                             ]),
 
                         Forms\Components\CheckboxList::make('working_days')
