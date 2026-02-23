@@ -66,7 +66,7 @@ class WorkScheduleResource extends Resource
                                     ->unique(ignoreRecord: true),
                             ]),
 
-                        Forms\Components\Grid::make(2)
+                        Forms\Components\Grid::make(3)
                             ->schema([
                                 Forms\Components\Select::make('branch_id')
                                     ->label(__('booking::schedules.fields.branch'))
@@ -86,6 +86,14 @@ class WorkScheduleResource extends Resource
                                     ->disabled(fn () => current_branch_id() !== null)
                                     ->dehydrated(),
 
+                                Forms\Components\Select::make('schedule_type')
+                                    ->label(__('booking::schedules.fields.schedule_type'))
+                                    ->options(WorkSchedule::SCHEDULE_TYPES)
+                                    ->default(WorkSchedule::TYPE_FIXED)
+                                    ->required()
+                                    ->live()
+                                    ->afterStateUpdated(fn (Forms\Set $set) => $set('weekly_hours', null)),
+
                                 Forms\Components\ColorPicker::make('color')
                                     ->label(__('booking::schedules.fields.color')),
                             ]),
@@ -95,6 +103,41 @@ class WorkScheduleResource extends Resource
                             ->rows(2)
                             ->maxLength(500),
                     ]),
+
+                // Flexible Schedule Section
+                Forms\Components\Section::make(__('booking::schedules.sections.flexible_hours'))
+                    ->description(__('booking::schedules.flexible_hours_help'))
+                    ->schema([
+                        Forms\Components\Grid::make(2)
+                            ->schema([
+                                Forms\Components\TextInput::make('required_hours_per_day')
+                                    ->label(__('booking::schedules.fields.required_hours_per_day'))
+                                    ->numeric()
+                                    ->minValue(0.5)
+                                    ->maxValue(24)
+                                    ->step(0.5)
+                                    ->suffix('hours')
+                                    ->helperText(__('booking::schedules.required_hours_per_day_help')),
+
+                                Forms\Components\TextInput::make('required_hours_per_week')
+                                    ->label(__('booking::schedules.fields.required_hours_per_week'))
+                                    ->numeric()
+                                    ->minValue(1)
+                                    ->maxValue(168)
+                                    ->step(0.5)
+                                    ->suffix('hours')
+                                    ->helperText(__('booking::schedules.required_hours_per_week_help')),
+                            ]),
+
+                        Forms\Components\CheckboxList::make('working_days')
+                            ->label(__('booking::schedules.fields.working_days'))
+                            ->options(WorkSchedule::DAYS)
+                            ->columns(7)
+                            ->gridDirection('row')
+                            ->default([0, 1, 2, 3, 4, 6]) // All days except Friday
+                            ->helperText(__('booking::schedules.working_days_help')),
+                    ])
+                    ->visible(fn (Forms\Get $get) => $get('schedule_type') === WorkSchedule::TYPE_FLEXIBLE),
 
                 Forms\Components\Section::make(__('booking::schedules.sections.quick_fill'))
                     ->description(__('booking::schedules.quick_fill_help'))
@@ -164,7 +207,8 @@ class WorkScheduleResource extends Resource
                         ])->columnSpanFull(),
                     ])
                     ->collapsible()
-                    ->collapsed(fn ($operation) => $operation === 'edit'),
+                    ->collapsed(fn ($operation) => $operation === 'edit')
+                    ->visible(fn (Forms\Get $get) => $get('schedule_type') !== WorkSchedule::TYPE_FLEXIBLE),
 
                 Forms\Components\Section::make(__('booking::schedules.sections.weekly_schedule'))
                     ->description(__('booking::schedules.weekly_schedule_help'))
@@ -201,7 +245,8 @@ class WorkScheduleResource extends Resource
                                 ])
                                 ->columns(5)
                         )->toArray()
-                    ),
+                    )
+                    ->visible(fn (Forms\Get $get) => $get('schedule_type') !== WorkSchedule::TYPE_FLEXIBLE),
 
                 Forms\Components\Section::make(__('booking::schedules.sections.status'))
                     ->schema([
@@ -239,6 +284,12 @@ class WorkScheduleResource extends Resource
                     ->label(__('booking::schedules.fields.code'))
                     ->badge()
                     ->color('gray'),
+
+                Tables\Columns\TextColumn::make('schedule_type')
+                    ->label(__('booking::schedules.fields.schedule_type'))
+                    ->badge()
+                    ->formatStateUsing(fn ($state) => WorkSchedule::SCHEDULE_TYPES[$state] ?? $state)
+                    ->color(fn ($state) => $state === WorkSchedule::TYPE_FLEXIBLE ? 'success' : 'primary'),
 
                 Tables\Columns\TextColumn::make('schedule_summary')
                     ->label(__('booking::schedules.fields.schedule'))

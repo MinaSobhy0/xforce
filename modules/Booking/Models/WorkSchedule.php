@@ -22,6 +22,10 @@ class WorkSchedule extends BaseModel
         'name',
         'code',
         'description',
+        'schedule_type',
+        'required_hours_per_day',
+        'required_hours_per_week',
+        'working_days',
         'weekly_hours',
         'slot_duration',
         'buffer_time',
@@ -33,11 +37,23 @@ class WorkSchedule extends BaseModel
 
     protected $casts = [
         'weekly_hours' => 'array',
+        'working_days' => 'array',
+        'required_hours_per_day' => 'decimal:2',
+        'required_hours_per_week' => 'decimal:2',
         'slot_duration' => 'integer',
         'buffer_time' => 'integer',
         'max_daily_appointments' => 'integer',
         'is_active' => 'boolean',
         'sort_order' => 'integer',
+    ];
+
+    // Schedule Types
+    public const TYPE_FIXED = 'fixed';
+    public const TYPE_FLEXIBLE = 'flexible';
+
+    public const SCHEDULE_TYPES = [
+        self::TYPE_FIXED => 'Fixed Hours',
+        self::TYPE_FLEXIBLE => 'Flexible Hours',
     ];
 
     // Days of week (0 = Sunday, 6 = Saturday)
@@ -119,6 +135,21 @@ class WorkSchedule extends BaseModel
      */
     public function getScheduleSummaryAttribute(): string
     {
+        // For flexible schedules
+        if ($this->schedule_type === self::TYPE_FLEXIBLE) {
+            $workingDays = $this->working_days ?? [];
+            $dayNames = collect($workingDays)->map(fn($day) => self::DAYS_SHORT[$day] ?? $day)->implode(', ');
+
+            if ($this->required_hours_per_day) {
+                return $dayNames . " ({$this->required_hours_per_day}h/day flexible)";
+            }
+            if ($this->required_hours_per_week) {
+                return $dayNames . " ({$this->required_hours_per_week}h/week flexible)";
+            }
+            return $dayNames . ' (Flexible)';
+        }
+
+        // For fixed schedules
         $hours = $this->weekly_hours ?? [];
         $workingDays = [];
 
@@ -146,6 +177,19 @@ class WorkSchedule extends BaseModel
      */
     public function getTotalWeeklyHoursAttribute(): float
     {
+        // For flexible schedules
+        if ($this->schedule_type === self::TYPE_FLEXIBLE) {
+            if ($this->required_hours_per_week) {
+                return round($this->required_hours_per_week, 1);
+            }
+            if ($this->required_hours_per_day) {
+                $workingDaysCount = count($this->working_days ?? []);
+                return round($this->required_hours_per_day * $workingDaysCount, 1);
+            }
+            return 0;
+        }
+
+        // For fixed schedules
         $hours = $this->weekly_hours ?? [];
         $total = 0;
 
@@ -185,8 +229,56 @@ class WorkSchedule extends BaseModel
      */
     public function isWorkingDay(int $dayOfWeek): bool
     {
+        // For flexible schedules
+        if ($this->schedule_type === self::TYPE_FLEXIBLE) {
+            $workingDays = $this->working_days ?? [];
+            return in_array($dayOfWeek, $workingDays);
+        }
+
+        // For fixed schedules
         $hours = $this->weekly_hours ?? [];
         return !empty($hours[$dayOfWeek]['is_working']);
+    }
+
+    /**
+     * Check if this is a flexible schedule.
+     */
+    public function isFlexible(): bool
+    {
+        return $this->schedule_type === self::TYPE_FLEXIBLE;
+    }
+
+    /**
+     * Get required hours for a specific day (for flexible schedules).
+     */
+    public function getRequiredHoursForDay(int $dayOfWeek): ?float
+    {
+        if (!$this->isWorkingDay($dayOfWeek)) {
+            return null;
+        }
+
+        if ($this->schedule_type === self::TYPE_FLEXIBLE) {
+            return $this->required_hours_per_day;
+        }
+
+        // For fixed schedules, calculate from the day config
+        $daySchedule = $this->getDaySchedule($dayOfWeek);
+        if (!$daySchedule || empty($daySchedule['start_time']) || empty($daySchedule['end_time'])) {
+            return null;
+        }
+
+        $start = strtotime($daySchedule['start_time']);
+        $end = strtotime($daySchedule['end_time']);
+        $hours = ($end - $start) / 3600;
+
+        // Subtract break
+        if (!empty($daySchedule['break_start']) && !empty($daySchedule['break_end'])) {
+            $breakStart = strtotime($daySchedule['break_start']);
+            $breakEnd = strtotime($daySchedule['break_end']);
+            $hours -= ($breakEnd - $breakStart) / 3600;
+        }
+
+        return max(0, round($hours, 2));
     }
 
     /**
