@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Modules\Accounting\Models\ChartOfAccount;
 use XLinic\Framework\Core\Model\BaseModel;
 use XLinic\Framework\Core\Model\Traits\HasTenancy;
 
@@ -30,6 +31,12 @@ class SalaryRule extends BaseModel
         'field_mapping',
         'sequence',
         'is_active',
+        // Journal entry accounts
+        'debit_account_id',
+        'credit_account_id',
+        'creates_journal_entry',
+        'default_debit_account_code',
+        'default_credit_account_code',
     ];
 
     protected $casts = [
@@ -38,6 +45,7 @@ class SalaryRule extends BaseModel
         'amount_percentage' => 'decimal:4',
         'sequence' => 'integer',
         'is_active' => 'boolean',
+        'creates_journal_entry' => 'boolean',
     ];
 
     protected $attributes = [
@@ -102,6 +110,64 @@ class SalaryRule extends BaseModel
             ->withPivot('sequence')
             ->withTimestamps()
             ->orderByPivot('sequence');
+    }
+
+    /**
+     * Get the debit account for journal entries.
+     */
+    public function debitAccount(): BelongsTo
+    {
+        return $this->belongsTo(ChartOfAccount::class, 'debit_account_id');
+    }
+
+    /**
+     * Get the credit account for journal entries.
+     */
+    public function creditAccount(): BelongsTo
+    {
+        return $this->belongsTo(ChartOfAccount::class, 'credit_account_id');
+    }
+
+    /**
+     * Check if this rule should create journal entry lines.
+     */
+    public function shouldCreateJournalEntry(): bool
+    {
+        return $this->creates_journal_entry
+            && ($this->debit_account_id || $this->credit_account_id);
+    }
+
+    /**
+     * Get default account codes based on rule category type.
+     */
+    public static function getDefaultAccountCodes(string $categoryType): array
+    {
+        return match ($categoryType) {
+            SalaryRuleCategory::TYPE_EARNING => [
+                'debit' => '6100',  // Salary Expense
+                'credit' => '2100', // Salaries Payable
+            ],
+            SalaryRuleCategory::TYPE_ALLOWANCE => [
+                'debit' => '6110',  // Allowances Expense
+                'credit' => '2100', // Salaries Payable
+            ],
+            SalaryRuleCategory::TYPE_BENEFIT => [
+                'debit' => '6120',  // Benefits Expense
+                'credit' => '2100', // Salaries Payable
+            ],
+            SalaryRuleCategory::TYPE_DEDUCTION => [
+                'debit' => '2100',  // Salaries Payable
+                'credit' => '2150', // Deductions Payable
+            ],
+            SalaryRuleCategory::TYPE_EMPLOYER_CONTRIBUTION => [
+                'debit' => '6200',  // Employer Contributions Expense
+                'credit' => '2160', // Employer Contributions Payable
+            ],
+            default => [
+                'debit' => null,
+                'credit' => null,
+            ],
+        };
     }
 
     /**

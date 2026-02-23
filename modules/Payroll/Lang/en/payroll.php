@@ -39,6 +39,7 @@ return [
         'settings' => 'Settings',
         'calculation' => 'Calculation',
         'conditions' => 'Conditions',
+        'accounting' => 'Accounting',
         'advanced' => 'Advanced',
         'formula_reference' => 'Formula Reference (Click to expand)',
         'dates' => 'Dates',
@@ -99,6 +100,10 @@ return [
         'formula' => 'Formula',
         'is_taxable' => 'Taxable',
         'other_deductions' => 'Other Deductions',
+        'creates_journal_entry' => 'Create Journal Entry Lines',
+        'debit_account' => 'Debit Account',
+        'credit_account' => 'Credit Account',
+        'journal_entries' => 'Journal Entries',
     ],
 
     'types' => [
@@ -201,6 +206,13 @@ return [
         'sequence' => 'Order in which rules are calculated. Lower numbers are calculated first.',
         'base_salary_employee' => 'The base salary for this employee under this structure.',
         'is_current' => 'Only one structure can be current per employee. The current structure is used for payroll calculations.',
+        'accounting_section' => 'Configure accounting entries for this salary rule. When payroll is paid, journal entries will be created based on these settings.',
+        'creates_journal_entry' => 'Enable this to create journal entry lines when payslips with this rule are paid.',
+        'debit_account' => 'Account to debit (expenses for earnings, payables for deductions).',
+        'credit_account' => 'Account to credit (payables for earnings, deductions payable for deductions).',
+        'journal_entry_example' => 'Journal Entry Logic:',
+        'debit_explanation' => 'Earnings: Debit Expense → Credit Salaries Payable',
+        'credit_explanation' => 'Deductions: Debit Salaries Payable → Credit Deductions Payable',
     ],
 
     'pdf' => [

@@ -171,6 +171,9 @@ class PayrollCalculationService
         $totalDeductionsMinor = 0;
         $commissionsMinor = $context['commission_amount'] * 100; // Convert to minor
 
+        // Track rule amounts for journal entries
+        $ruleAmounts = [];
+
         // Calculation details for debugging/auditing
         $calculationDetails = [
             'base_salary' => $baseSalaryMinor,
@@ -215,6 +218,17 @@ class PayrollCalculationService
                     'category' => $rule->category?->type,
                     'amount_minor' => $amountMinor,
                 ];
+
+                // Track for journal entries (only non-zero amounts)
+                if ($amountMinor != 0) {
+                    $ruleAmounts[] = [
+                        'rule_id' => $rule->id,
+                        'rule_code' => $rule->code,
+                        'rule_name' => $rule->name,
+                        'category_type' => $categoryType,
+                        'amount_minor' => $amountMinor,
+                    ];
+                }
 
                 // Add rule result to context for subsequent calculations
                 // This allows formulas like "BASIC + HRA + TA" to work
@@ -300,9 +314,45 @@ class PayrollCalculationService
         }
         $totalDeductionsMinor += $taxMinor;
 
+        // Track social insurance for journal entries
+        if ($socialInsuranceMinor > 0) {
+            $ruleAmounts[] = [
+                'rule_id' => null,
+                'rule_code' => 'SI_EMP',
+                'rule_name' => 'Social Insurance (Employee)',
+                'category_type' => 'deduction',
+                'amount_minor' => $socialInsuranceMinor,
+                'is_system' => true,
+            ];
+        }
+
+        // Track tax for journal entries
+        if ($taxMinor > 0) {
+            $ruleAmounts[] = [
+                'rule_id' => null,
+                'rule_code' => 'TAX',
+                'rule_name' => 'Income Tax',
+                'category_type' => 'deduction',
+                'amount_minor' => $taxMinor,
+                'is_system' => true,
+            ];
+        }
+
         // Add attendance violation deductions
         $violationDeductionMinor = $context['violation_deduction_minor'] ?? 0;
         $totalDeductionsMinor += $violationDeductionMinor;
+
+        // Track violation deductions for journal entries
+        if ($violationDeductionMinor > 0) {
+            $ruleAmounts[] = [
+                'rule_id' => null,
+                'rule_code' => 'VIOLATION',
+                'rule_name' => 'Attendance Violations',
+                'category_type' => 'deduction',
+                'amount_minor' => $violationDeductionMinor,
+                'is_system' => true,
+            ];
+        }
 
         // Calculate net salary
         $netSalaryMinor = $grossSalaryMinor - $totalDeductionsMinor;
@@ -338,6 +388,7 @@ class PayrollCalculationService
             'tax_minor' => $taxMinor,
             'social_insurance_minor' => $socialInsuranceMinor,
             'net_salary_minor' => max(0, $netSalaryMinor), // Ensure non-negative
+            'rule_amounts_json' => $ruleAmounts,
         ]);
 
         // Store calculation details as JSON (if column exists)

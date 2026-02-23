@@ -9,6 +9,7 @@ use Filament\Forms\Get;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Modules\Accounting\Models\ChartOfAccount;
 use Modules\Payroll\Models\SalaryRule;
 use Modules\Payroll\Models\SalaryRuleCategory;
 use Modules\Payroll\Filament\Resources\SalaryRuleResource\Pages;
@@ -180,6 +181,70 @@ class SalaryRuleResource extends Resource
                     ])
                     ->collapsed(),
 
+                Forms\Components\Section::make(__('payroll::payroll.sections.accounting'))
+                    ->description(__('payroll::payroll.help.accounting_section'))
+                    ->schema([
+                        Forms\Components\Toggle::make('creates_journal_entry')
+                            ->label(__('payroll::payroll.fields.creates_journal_entry'))
+                            ->helperText(__('payroll::payroll.help.creates_journal_entry'))
+                            ->live()
+                            ->afterStateUpdated(function (Get $get, Forms\Set $set, $state) {
+                                if ($state && !$get('debit_account_id') && !$get('credit_account_id')) {
+                                    // Try to set default accounts based on category
+                                    if ($categoryId = $get('category_id')) {
+                                        $category = SalaryRuleCategory::find($categoryId);
+                                        if ($category) {
+                                            $defaults = SalaryRule::getDefaultAccountCodes($category->type);
+                                            if ($defaults['debit']) {
+                                                $debitAccount = ChartOfAccount::where('code', $defaults['debit'])->first();
+                                                if ($debitAccount) $set('debit_account_id', $debitAccount->id);
+                                            }
+                                            if ($defaults['credit']) {
+                                                $creditAccount = ChartOfAccount::where('code', $defaults['credit'])->first();
+                                                if ($creditAccount) $set('credit_account_id', $creditAccount->id);
+                                            }
+                                        }
+                                    }
+                                }
+                            }),
+
+                        Forms\Components\Grid::make(2)
+                            ->schema([
+                                Forms\Components\Select::make('debit_account_id')
+                                    ->label(__('payroll::payroll.fields.debit_account'))
+                                    ->options(fn () => ChartOfAccount::active()
+                                        ->orderBy('code')
+                                        ->get()
+                                        ->mapWithKeys(fn ($acc) => [$acc->id => "{$acc->code} - {$acc->name}"]))
+                                    ->searchable()
+                                    ->preload()
+                                    ->helperText(__('payroll::payroll.help.debit_account')),
+
+                                Forms\Components\Select::make('credit_account_id')
+                                    ->label(__('payroll::payroll.fields.credit_account'))
+                                    ->options(fn () => ChartOfAccount::active()
+                                        ->orderBy('code')
+                                        ->get()
+                                        ->mapWithKeys(fn ($acc) => [$acc->id => "{$acc->code} - {$acc->name}"]))
+                                    ->searchable()
+                                    ->preload()
+                                    ->helperText(__('payroll::payroll.help.credit_account')),
+                            ])
+                            ->visible(fn (Get $get) => $get('creates_journal_entry')),
+
+                        Forms\Components\Placeholder::make('accounting_info')
+                            ->content(new \Illuminate\Support\HtmlString(
+                                '<div class="text-sm text-gray-500 dark:text-gray-400 space-y-1">' .
+                                '<p><strong>' . __('payroll::payroll.help.journal_entry_example') . '</strong></p>' .
+                                '<p>' . __('payroll::payroll.help.debit_explanation') . '</p>' .
+                                '<p>' . __('payroll::payroll.help.credit_explanation') . '</p>' .
+                                '</div>'
+                            ))
+                            ->visible(fn (Get $get) => $get('creates_journal_entry'))
+                            ->columnSpanFull(),
+                    ])
+                    ->collapsed(),
+
                 Forms\Components\Section::make(__('payroll::payroll.sections.advanced'))
                     ->schema([
                         Forms\Components\Grid::make(2)
@@ -247,6 +312,15 @@ class SalaryRuleResource extends Resource
                 Tables\Columns\TextColumn::make('sequence')
                     ->label(__('payroll::payroll.fields.sequence'))
                     ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                Tables\Columns\IconColumn::make('creates_journal_entry')
+                    ->label(__('payroll::payroll.fields.journal_entries'))
+                    ->boolean()
+                    ->trueIcon('heroicon-o-document-text')
+                    ->falseIcon('heroicon-o-minus')
+                    ->trueColor('success')
+                    ->falseColor('gray')
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\IconColumn::make('is_active')

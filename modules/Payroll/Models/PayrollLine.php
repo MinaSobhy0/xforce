@@ -26,6 +26,7 @@ class PayrollLine extends BaseModel
         'commission_records_json',
         'bonus_details_json',
         'deduction_details_json',
+        'rule_amounts_json',
         'notes',
     ];
 
@@ -42,6 +43,7 @@ class PayrollLine extends BaseModel
         'commission_records_json' => 'array',
         'bonus_details_json' => 'array',
         'deduction_details_json' => 'array',
+        'rule_amounts_json' => 'array',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
