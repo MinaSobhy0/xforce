@@ -79,24 +79,28 @@ class JournalEntryResource extends Resource
                                     ->getOptionLabelFromRecordUsing(fn (ChartOfAccount $record) => $record->display_name)
                                     ->searchable(['code', 'name'])
                                     ->preload()
-                                    ->required(),
+                                    ->required()
+                                    ->columnSpan(1),
 
                                 Forms\Components\TextInput::make('debit_minor')
                                     ->label('Debit')
                                     ->numeric()
                                     ->default(0)
                                     ->formatStateUsing(fn ($state) => $state ? $state / 100 : 0)
-                                    ->dehydrateStateUsing(fn ($state) => $state ? (int) ($state * 100) : 0),
+                                    ->dehydrateStateUsing(fn ($state) => $state ? (int) ($state * 100) : 0)
+                                    ->columnSpan(1),
 
                                 Forms\Components\TextInput::make('credit_minor')
                                     ->label('Credit')
                                     ->numeric()
                                     ->default(0)
                                     ->formatStateUsing(fn ($state) => $state ? $state / 100 : 0)
-                                    ->dehydrateStateUsing(fn ($state) => $state ? (int) ($state * 100) : 0),
+                                    ->dehydrateStateUsing(fn ($state) => $state ? (int) ($state * 100) : 0)
+                                    ->columnSpan(1),
 
                                 Forms\Components\TextInput::make('description')
-                                    ->maxLength(255),
+                                    ->maxLength(255)
+                                    ->columnSpan(1),
 
                                 Forms\Components\Select::make('partner_key')
                                     ->label(__('accounting::accounting.fields.partner'))
@@ -146,7 +150,8 @@ class JournalEntryResource extends Resource
                                     ->dehydrateStateUsing(function ($state) {
                                         return $state; // Keep for mutation
                                     })
-                                    ->hiddenOn('view'),
+                                    ->hiddenOn('view')
+                                    ->columnSpan(1),
 
                                 Forms\Components\Placeholder::make('partner_display')
                                     ->label(__('accounting::accounting.fields.partner'))
@@ -167,9 +172,10 @@ class JournalEntryResource extends Resource
                                         }
                                         return "{$name} ({$type})";
                                     })
-                                    ->visibleOn('view'),
+                                    ->visibleOn('view')
+                                    ->columnSpan(1),
                             ])
-                            ->columns(6)
+                            ->columns(5)
                             ->defaultItems(2)
                             ->addActionLabel('Add Line')
                             ->reorderable(false)
