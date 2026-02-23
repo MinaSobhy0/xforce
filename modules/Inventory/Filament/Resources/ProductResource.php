@@ -215,6 +215,28 @@ class ProductResource extends Resource
                                             ->searchable()
                                             ->preload()
                                             ->helperText('Account for stock consumption (e.g., Cost of Goods Sold)'),
+
+                                        Forms\Components\Select::make('income_account_id')
+                                            ->label('Income Account')
+                                            ->options(fn () => ChartOfAccount::where('type', ChartOfAccount::TYPE_REVENUE)
+                                                ->where('is_active', true)
+                                                ->orderBy('code')
+                                                ->get()
+                                                ->mapWithKeys(fn ($a) => [$a->id => "[{$a->code}] " . $a->getTranslation('name', app()->getLocale())]))
+                                            ->searchable()
+                                            ->preload()
+                                            ->helperText('Default account for sales invoices'),
+
+                                        Forms\Components\Select::make('expense_account_id')
+                                            ->label('Expense Account')
+                                            ->options(fn () => ChartOfAccount::where('type', ChartOfAccount::TYPE_EXPENSE)
+                                                ->where('is_active', true)
+                                                ->orderBy('code')
+                                                ->get()
+                                                ->mapWithKeys(fn ($a) => [$a->id => "[{$a->code}] " . $a->getTranslation('name', app()->getLocale())]))
+                                            ->searchable()
+                                            ->preload()
+                                            ->helperText('Default account for vendor bills'),
                                     ])
                                     ->columns(3),
                             ]),

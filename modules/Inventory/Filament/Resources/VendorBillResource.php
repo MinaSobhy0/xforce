@@ -139,6 +139,10 @@ class VendorBillResource extends Resource
                                                         $set('unit_price_minor', $product->cost_price_minor / 100);
                                                         $defaultTax = TaxRate::getDefault();
                                                         $set('tax_rate', $defaultTax ? (string) $defaultTax->rate : '14');
+                                                        // Set expense account from product or fallback to first expense account
+                                                        if ($product->expense_account_id) {
+                                                            $set('account_id', $product->expense_account_id);
+                                                        }
                                                     }
                                                 }
                                             })

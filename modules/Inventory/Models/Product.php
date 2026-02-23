@@ -41,6 +41,8 @@ class Product extends BaseModel
         'stock_input_account_id',
         'stock_output_account_id',
         'stock_valuation_account_id',
+        'income_account_id',
+        'expense_account_id',
         'valuation_method',
     ];
 
@@ -153,6 +155,22 @@ class Product extends BaseModel
     public function stockValuationAccount(): BelongsTo
     {
         return $this->belongsTo(ChartOfAccount::class, 'stock_valuation_account_id');
+    }
+
+    /**
+     * Get income account (for sales/invoices).
+     */
+    public function incomeAccount(): BelongsTo
+    {
+        return $this->belongsTo(ChartOfAccount::class, 'income_account_id');
+    }
+
+    /**
+     * Get expense account (for purchases/vendor bills).
+     */
+    public function expenseAccount(): BelongsTo
+    {
+        return $this->belongsTo(ChartOfAccount::class, 'expense_account_id');
     }
 
     /**
