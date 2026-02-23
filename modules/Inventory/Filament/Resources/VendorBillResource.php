@@ -13,6 +13,7 @@ use Filament\Infolists\Infolist;
 use Filament\Support\Enums\FontWeight;
 use Filament\Notifications\Notification;
 use Modules\Accounting\Models\ChartOfAccount;
+use Modules\Billing\Models\TaxRate;
 use Modules\Core\Models\Branch;
 use Modules\Inventory\Models\VendorBill;
 use Modules\Inventory\Models\VendorBillLine;
@@ -136,6 +137,7 @@ class VendorBillResource extends Resource
                                                     if ($product) {
                                                         $set('description', $product->getTranslation('name', app()->getLocale()));
                                                         $set('unit_price_minor', $product->cost_price_minor / 100);
+                                                        $set('tax_rate', TaxRate::getDefault()?->rate ?? 14);
                                                     }
                                                 }
                                             })
@@ -144,7 +146,20 @@ class VendorBillResource extends Resource
                                         Forms\Components\TextInput::make('description')
                                             ->required()
                                             ->maxLength(255)
-                                            ->columnSpan(['default' => 12, 'md' => 8]),
+                                            ->columnSpan(['default' => 12, 'md' => 4]),
+
+                                        Forms\Components\Select::make('account_id')
+                                            ->label('Account')
+                                            ->options(
+                                                ChartOfAccount::where('type', ChartOfAccount::TYPE_EXPENSE)
+                                                    ->where('is_active', true)
+                                                    ->orderBy('code')
+                                                    ->get()
+                                                    ->mapWithKeys(fn ($a) => [$a->id => "[{$a->code}] " . $a->getTranslation('name', app()->getLocale())])
+                                            )
+                                            ->searchable()
+                                            ->preload()
+                                            ->columnSpan(['default' => 12, 'md' => 4]),
 
                                         Forms\Components\TextInput::make('quantity')
                                             ->label('Qty')
@@ -193,26 +208,16 @@ class VendorBillResource extends Resource
                                             })
                                             ->columnSpan(['default' => 4, 'md' => 2]),
 
-                                        Forms\Components\TextInput::make('tax_rate')
-                                            ->label('Tax %')
-                                            ->numeric()
-                                            ->default(0)
-                                            ->suffix('%')
-                                            ->columnSpan(['default' => 4, 'md' => 2]),
-
-                                        Forms\Components\Select::make('account_id')
-                                            ->label('Account')
+                                        Forms\Components\Select::make('tax_rate')
+                                            ->label('Tax')
                                             ->options(
-                                                ChartOfAccount::where('type', ChartOfAccount::TYPE_EXPENSE)
-                                                    ->where('is_active', true)
-                                                    ->orderBy('code')
+                                                TaxRate::where('is_active', true)
+                                                    ->orderBy('rate')
                                                     ->get()
-                                                    ->mapWithKeys(fn ($a) => [$a->id => "[{$a->code}] " . $a->getTranslation('name', app()->getLocale())])
+                                                    ->mapWithKeys(fn ($t) => [$t->rate => $t->getTranslation('name', app()->getLocale()) . " ({$t->rate}%)"])
                                             )
-                                            ->searchable()
-                                            ->preload()
-                                            ->placeholder('Select account')
-                                            ->columnSpan(['default' => 12, 'md' => 4]),
+                                            ->default(fn () => TaxRate::getDefault()?->rate ?? 14)
+                                            ->columnSpan(['default' => 4, 'md' => 3]),
                                     ])
                                     ->columns(12)
                                     ->defaultItems(1)

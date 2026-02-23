@@ -120,7 +120,6 @@ class InvoiceResource extends Resource
                                                             ? $service->getPriceForBranch($branchId)
                                                             : $service->base_price_minor;
                                                         $set('description', $service->name);
-                                                        // $price is in minor, convert to display value
                                                         $set('unit_price_minor', $price / 100);
                                                         $set('tax_rate', TaxRate::getDefault()?->rate ?? 14);
                                                     }
@@ -131,7 +130,20 @@ class InvoiceResource extends Resource
                                         Forms\Components\TextInput::make('description')
                                             ->required()
                                             ->maxLength(255)
-                                            ->columnSpan(['default' => 12, 'md' => 8]),
+                                            ->columnSpan(['default' => 12, 'md' => 4]),
+
+                                        Forms\Components\Select::make('account_id')
+                                            ->label('Account')
+                                            ->options(
+                                                ChartOfAccount::where('type', ChartOfAccount::TYPE_REVENUE)
+                                                    ->where('is_active', true)
+                                                    ->orderBy('code')
+                                                    ->get()
+                                                    ->mapWithKeys(fn ($a) => [$a->id => "[{$a->code}] " . $a->getTranslation('name', app()->getLocale())])
+                                            )
+                                            ->searchable()
+                                            ->preload()
+                                            ->columnSpan(['default' => 12, 'md' => 4]),
 
                                         Forms\Components\TextInput::make('quantity')
                                             ->label('Qty')
@@ -180,26 +192,16 @@ class InvoiceResource extends Resource
                                             })
                                             ->columnSpan(['default' => 4, 'md' => 2]),
 
-                                        Forms\Components\TextInput::make('tax_rate')
-                                            ->label('Tax %')
-                                            ->numeric()
-                                            ->default(fn () => TaxRate::getDefault()?->rate ?? 14)
-                                            ->suffix('%')
-                                            ->columnSpan(['default' => 4, 'md' => 2]),
-
-                                        Forms\Components\Select::make('account_id')
-                                            ->label('Account')
+                                        Forms\Components\Select::make('tax_rate')
+                                            ->label('Tax')
                                             ->options(
-                                                ChartOfAccount::where('type', ChartOfAccount::TYPE_REVENUE)
-                                                    ->where('is_active', true)
-                                                    ->orderBy('code')
+                                                TaxRate::where('is_active', true)
+                                                    ->orderBy('rate')
                                                     ->get()
-                                                    ->mapWithKeys(fn ($a) => [$a->id => "[{$a->code}] " . $a->getTranslation('name', app()->getLocale())])
+                                                    ->mapWithKeys(fn ($t) => [$t->rate => $t->getTranslation('name', app()->getLocale()) . " ({$t->rate}%)"])
                                             )
-                                            ->searchable()
-                                            ->preload()
-                                            ->placeholder('Select account')
-                                            ->columnSpan(['default' => 12, 'md' => 4]),
+                                            ->default(fn () => TaxRate::getDefault()?->rate ?? 14)
+                                            ->columnSpan(['default' => 4, 'md' => 3]),
                                     ])
                                     ->columns(12)
                                     ->defaultItems(1)
