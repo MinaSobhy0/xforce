@@ -28,10 +28,17 @@ class AttendanceService
         string $source = AttendanceLog::SOURCE_MANUAL,
         ?string $attendanceType = null
     ): Attendance {
-        // Check if already checked in today
+        // Check if already checked in today (including soft-deleted)
         $existingAttendance = $this->getTodayAttendance($staff);
 
-        if ($existingAttendance && $existingAttendance->isCheckedIn()) {
+        // If soft-deleted, restore it
+        if ($existingAttendance && $existingAttendance->trashed()) {
+            $existingAttendance->restore();
+            // Clear previous check-in/out data for fresh start
+            $existingAttendance->check_in_time = null;
+            $existingAttendance->check_out_time = null;
+            $existingAttendance->working_hours = 0;
+        } elseif ($existingAttendance && $existingAttendance->isCheckedIn()) {
             throw new \Exception(__('attendance::attendance.already_checked_in'));
         }
 
@@ -198,34 +205,57 @@ class AttendanceService
     {
         $date = Carbon::parse($data['attendance_date']);
 
-        // Check if attendance already exists for this date
-        $existing = Attendance::where('tenant_id', $staff->tenant_id)
+        // Check if attendance already exists for this date (including soft-deleted)
+        $existing = Attendance::query()
+            ->withoutGlobalScope('branch')
+            ->withoutGlobalScope('tenant')
+            ->withTrashed()
+            ->where('tenant_id', $staff->tenant_id)
             ->where('staff_profile_id', $staff->id)
             ->whereDate('attendance_date', $date)
             ->first();
 
-        if ($existing) {
+        if ($existing && !$existing->trashed()) {
             throw new \Exception('Attendance record already exists for this date');
         }
 
-        return DB::transaction(function () use ($staff, $data, $date) {
+        return DB::transaction(function () use ($staff, $data, $date, $existing) {
             $schedule = $this->getStaffSchedule($staff);
 
-            $attendance = Attendance::create([
-                'tenant_id' => $staff->tenant_id,
-                'staff_profile_id' => $staff->id,
-                'branch_id' => $data['branch_id'] ?? $staff->branch_id,
-                'working_schedule_id' => $schedule?->id,
-                'attendance_date' => $date,
-                'check_in_time' => $data['check_in_time'] ?? null,
-                'check_out_time' => $data['check_out_time'] ?? null,
-                'attendance_type' => Attendance::TYPE_MANUAL,
-                'status' => $data['status'] ?? Attendance::STATUS_PRESENT,
-                'notes' => $data['notes'] ?? null,
-                'late_reason' => $data['late_reason'] ?? null,
-                'early_checkout_reason' => $data['early_checkout_reason'] ?? null,
-                'created_by' => auth()->id(),
-            ]);
+            // If soft-deleted record exists, restore and update it
+            if ($existing && $existing->trashed()) {
+                $existing->restore();
+                $attendance = $existing;
+                $attendance->fill([
+                    'branch_id' => $data['branch_id'] ?? $staff->branch_id,
+                    'working_schedule_id' => $schedule?->id,
+                    'check_in_time' => $data['check_in_time'] ?? null,
+                    'check_out_time' => $data['check_out_time'] ?? null,
+                    'attendance_type' => Attendance::TYPE_MANUAL,
+                    'status' => $data['status'] ?? Attendance::STATUS_PRESENT,
+                    'notes' => $data['notes'] ?? null,
+                    'late_reason' => $data['late_reason'] ?? null,
+                    'early_checkout_reason' => $data['early_checkout_reason'] ?? null,
+                    'updated_by' => auth()->id(),
+                ]);
+                $attendance->save();
+            } else {
+                $attendance = Attendance::create([
+                    'tenant_id' => $staff->tenant_id,
+                    'staff_profile_id' => $staff->id,
+                    'branch_id' => $data['branch_id'] ?? $staff->branch_id,
+                    'working_schedule_id' => $schedule?->id,
+                    'attendance_date' => $date,
+                    'check_in_time' => $data['check_in_time'] ?? null,
+                    'check_out_time' => $data['check_out_time'] ?? null,
+                    'attendance_type' => Attendance::TYPE_MANUAL,
+                    'status' => $data['status'] ?? Attendance::STATUS_PRESENT,
+                    'notes' => $data['notes'] ?? null,
+                    'late_reason' => $data['late_reason'] ?? null,
+                    'early_checkout_reason' => $data['early_checkout_reason'] ?? null,
+                    'created_by' => auth()->id(),
+                ]);
+            }
 
             // Calculate working hours if both times are set
             if ($attendance->check_in_time && $attendance->check_out_time) {
@@ -267,7 +297,11 @@ class AttendanceService
      */
     public function getTodayAttendance(StaffProfile $staff): ?Attendance
     {
-        return Attendance::where('tenant_id', $staff->tenant_id)
+        return Attendance::query()
+            ->withoutGlobalScope('branch')
+            ->withoutGlobalScope('tenant')
+            ->withTrashed()
+            ->where('tenant_id', $staff->tenant_id)
             ->where('staff_profile_id', $staff->id)
             ->whereDate('attendance_date', today())
             ->first();
@@ -411,7 +445,10 @@ class AttendanceService
         Carbon $startDate,
         Carbon $endDate
     ): array {
-        $attendances = Attendance::where('tenant_id', $staff->tenant_id)
+        $attendances = Attendance::query()
+            ->withoutGlobalScope('branch')
+            ->withoutGlobalScope('tenant')
+            ->where('tenant_id', $staff->tenant_id)
             ->where('staff_profile_id', $staff->id)
             ->whereBetween('attendance_date', [$startDate, $endDate])
             ->get();
