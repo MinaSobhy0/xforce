@@ -98,24 +98,54 @@ class JournalEntryResource extends Resource
                                 Forms\Components\TextInput::make('description')
                                     ->maxLength(255),
 
-                                Forms\Components\MorphToSelect::make('partner')
+                                Forms\Components\Select::make('partner_key')
                                     ->label(__('accounting::accounting.fields.partner'))
-                                    ->types([
-                                        Forms\Components\MorphToSelect\Type::make(\Modules\Patients\Models\Patient::class)
-                                            ->titleAttribute('first_name')
-                                            ->getOptionLabelFromRecordUsing(fn ($record) => $record->full_name)
-                                            ->label(__('patients::patients.labels.patient')),
-                                        Forms\Components\MorphToSelect\Type::make(\Modules\Inventory\Models\Supplier::class)
-                                            ->titleAttribute('name')
-                                            ->getOptionLabelFromRecordUsing(fn ($record) => $record->getTranslation('name', app()->getLocale()))
-                                            ->label(__('inventory::inventory.labels.supplier')),
-                                        Forms\Components\MorphToSelect\Type::make(\Modules\Staff\Models\StaffProfile::class)
-                                            ->titleAttribute('employee_number')
-                                            ->getOptionLabelFromRecordUsing(fn ($record) => $record->user?->name ?? $record->employee_number)
-                                            ->label(__('staff::staff.labels.profile')),
-                                    ])
+                                    ->options(function () {
+                                        $options = [];
+
+                                        // Patients
+                                        $patients = \Modules\Patients\Models\Patient::all();
+                                        foreach ($patients as $patient) {
+                                            $key = 'patient:' . $patient->id;
+                                            $options[$key] = $patient->full_name . ' (' . __('patients::patients.labels.patient') . ')';
+                                        }
+
+                                        // Suppliers
+                                        $suppliers = \Modules\Inventory\Models\Supplier::all();
+                                        foreach ($suppliers as $supplier) {
+                                            $key = 'supplier:' . $supplier->id;
+                                            $name = $supplier->getTranslation('name', app()->getLocale());
+                                            $options[$key] = $name . ' (' . __('inventory::inventory.labels.supplier') . ')';
+                                        }
+
+                                        // Staff
+                                        $staff = \Modules\Staff\Models\StaffProfile::with('user')->get();
+                                        foreach ($staff as $profile) {
+                                            $key = 'staff:' . $profile->id;
+                                            $name = $profile->user?->name ?? $profile->employee_number;
+                                            $options[$key] = $name . ' (' . __('staff::staff.labels.profile') . ')';
+                                        }
+
+                                        return $options;
+                                    })
                                     ->searchable()
                                     ->preload()
+                                    ->afterStateHydrated(function ($component, $state, $record) {
+                                        if ($record && $record->partner_id && $record->partner_type) {
+                                            $type = match ($record->partner_type) {
+                                                \Modules\Patients\Models\Patient::class => 'patient',
+                                                \Modules\Inventory\Models\Supplier::class => 'supplier',
+                                                \Modules\Staff\Models\StaffProfile::class => 'staff',
+                                                default => null,
+                                            };
+                                            if ($type) {
+                                                $component->state($type . ':' . $record->partner_id);
+                                            }
+                                        }
+                                    })
+                                    ->dehydrateStateUsing(function ($state) {
+                                        return $state; // Keep for mutation
+                                    })
                                     ->hiddenOn('view'),
 
                                 Forms\Components\Placeholder::make('partner_display')
@@ -142,7 +172,13 @@ class JournalEntryResource extends Resource
                             ->columns(6)
                             ->defaultItems(2)
                             ->addActionLabel('Add Line')
-                            ->reorderable(false),
+                            ->reorderable(false)
+                            ->mutateRelationshipDataBeforeCreateUsing(function (array $data): array {
+                                return self::parsePartnerKey($data);
+                            })
+                            ->mutateRelationshipDataBeforeSaveUsing(function (array $data): array {
+                                return self::parsePartnerKey($data);
+                            }),
                     ]),
             ]);
     }
@@ -268,5 +304,25 @@ class JournalEntryResource extends Resource
     {
         return parent::getEloquentQuery()
             ->with(['journal', 'fiscalPeriod', 'createdBy']);
+    }
+
+    protected static function parsePartnerKey(array $data): array
+    {
+        if (!empty($data['partner_key'])) {
+            [$type, $id] = explode(':', $data['partner_key']);
+            $data['partner_id'] = (int) $id;
+            $data['partner_type'] = match ($type) {
+                'patient' => \Modules\Patients\Models\Patient::class,
+                'supplier' => \Modules\Inventory\Models\Supplier::class,
+                'staff' => \Modules\Staff\Models\StaffProfile::class,
+                default => null,
+            };
+        } else {
+            $data['partner_id'] = null;
+            $data['partner_type'] = null;
+        }
+        unset($data['partner_key']);
+
+        return $data;
     }
 }
