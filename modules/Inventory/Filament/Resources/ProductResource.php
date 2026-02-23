@@ -10,6 +10,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
+use Modules\Accounting\Models\ChartOfAccount;
 use Modules\Inventory\Models\Product;
 use Modules\Inventory\Models\ProductCategory;
 use Modules\Inventory\Filament\Resources\ProductResource\Pages;
@@ -176,6 +177,44 @@ class ProductResource extends Resource
                                             ->label(__('inventory::inventory.fields.is_active'))
                                             ->default(true),
                                     ]),
+                            ]),
+
+                        Forms\Components\Tabs\Tab::make(__('inventory::inventory.sections.accounting'))
+                            ->schema([
+                                Forms\Components\Select::make('valuation_method')
+                                    ->label(__('inventory::inventory.fields.valuation_method'))
+                                    ->options(Product::VALUATION_METHODS)
+                                    ->default(Product::VALUATION_STANDARD)
+                                    ->helperText('Method used to value inventory'),
+
+                                Forms\Components\Section::make(__('inventory::inventory.sections.stock_accounts'))
+                                    ->description('Configure accounting accounts for automatic journal entries')
+                                    ->schema([
+                                        Forms\Components\Select::make('stock_valuation_account_id')
+                                            ->label(__('inventory::inventory.fields.stock_valuation_account'))
+                                            ->options(fn () => ChartOfAccount::where('type', 'asset')
+                                                ->pluck('name', 'id'))
+                                            ->searchable()
+                                            ->preload()
+                                            ->helperText('Inventory asset account (Balance Sheet)'),
+
+                                        Forms\Components\Select::make('stock_input_account_id')
+                                            ->label(__('inventory::inventory.fields.stock_input_account'))
+                                            ->options(fn () => ChartOfAccount::whereIn('type', ['liability', 'expense'])
+                                                ->pluck('name', 'id'))
+                                            ->searchable()
+                                            ->preload()
+                                            ->helperText('Account for stock receipts (e.g., Goods Received Not Invoiced)'),
+
+                                        Forms\Components\Select::make('stock_output_account_id')
+                                            ->label(__('inventory::inventory.fields.stock_output_account'))
+                                            ->options(fn () => ChartOfAccount::where('type', 'expense')
+                                                ->pluck('name', 'id'))
+                                            ->searchable()
+                                            ->preload()
+                                            ->helperText('Account for stock consumption (e.g., Cost of Goods Sold)'),
+                                    ])
+                                    ->columns(3),
                             ]),
                     ])
                     ->columnSpanFull(),

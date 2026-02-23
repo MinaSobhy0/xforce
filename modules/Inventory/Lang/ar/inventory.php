@@ -7,6 +7,7 @@ return [
         'suppliers' => 'الموردين',
         'purchase_orders' => 'أوامر الشراء',
         'stock_movements' => 'حركات المخزون',
+        'inventory_adjustments' => 'تسويات المخزون',
     ],
 
     'labels' => [
@@ -18,6 +19,8 @@ return [
         'suppliers' => 'الموردين',
         'purchase_order' => 'أمر شراء',
         'purchase_orders' => 'أوامر الشراء',
+        'inventory_adjustment' => 'تسوية مخزون',
+        'inventory_adjustments' => 'تسويات المخزون',
     ],
 
     'sections' => [
@@ -33,6 +36,11 @@ return [
         'items' => 'العناصر',
         'totals' => 'الإجماليات',
         'receive_items' => 'استلام العناصر',
+        'adjustment_info' => 'معلومات التسوية',
+        'adjustment_lines' => 'بنود التسوية',
+        'stock_accounts' => 'حسابات المخزون',
+        'validation_info' => 'معلومات التصديق',
+        'accounting' => 'المحاسبة',
     ],
 
     'fields' => [
@@ -104,6 +112,24 @@ return [
         'ordered' => 'مطلوب',
         'already_received' => 'مستلم مسبقاً',
         'receive_now' => 'استلام الآن',
+        'adjustment_type' => 'نوع التسوية',
+        'adjustment_date' => 'تاريخ التسوية',
+        'theoretical_qty' => 'الكمية النظرية',
+        'counted_qty' => 'الكمية المعدودة',
+        'difference' => 'الفرق',
+        'unit_cost' => 'تكلفة الوحدة',
+        'value_adjustment' => 'تعديل القيمة',
+        'total_value_adjustment' => 'إجمالي تعديل القيمة',
+        'valuation_method' => 'طريقة التقييم',
+        'stock_input_account' => 'حساب إدخال المخزون',
+        'stock_output_account' => 'حساب إخراج المخزون',
+        'stock_valuation_account' => 'حساب تقييم المخزون',
+        'validated_by' => 'صُدق بواسطة',
+        'validated_at' => 'تاريخ التصديق',
+        'journal_entry' => 'قيد يومية',
+        'lines' => 'البنود',
+        'lines_count' => 'عدد البنود',
+        'reason' => 'السبب',
     ],
 
     'filters' => [
@@ -117,6 +143,9 @@ return [
         'receive' => 'استلام العناصر',
         'cancel' => 'إلغاء',
         'confirm_receive' => 'تأكيد الاستلام',
+        'validate' => 'تصديق',
+        'validate_adjustment' => 'تصديق التسوية',
+        'load_products' => 'تحميل المنتجات من المخزون',
     ],
 
     'messages' => [
@@ -126,6 +155,12 @@ return [
         'items_received' => 'تم استلام العناصر بنجاح',
         'no_items_to_receive' => 'لا توجد عناصر للاستلام',
         'cannot_receive' => 'لا يمكن استلام عناصر لهذا الطلب',
+        'adjustment_validated' => 'تم تصديق تسوية المخزون بنجاح',
+        'validation_failed' => 'فشل في تصديق التسوية',
+        'adjustment_cancelled' => 'تم إلغاء تسوية المخزون',
+        'products_loaded' => 'تم تحميل المنتجات من المخزون الحالي',
+        'validate_confirmation' => 'سيتم تطبيق تغييرات المخزون وإنشاء القيود المحاسبية. لا يمكن التراجع عن هذا الإجراء.',
+        'no_lines_to_validate' => 'لا توجد بنود تسوية للتصديق',
     ],
 
     'pages' => [
@@ -138,6 +173,21 @@ return [
         'partially_received' => 'مستلم جزئياً',
         'received' => 'مستلم',
         'cancelled' => 'ملغي',
+        'validated' => 'مصدق',
+    ],
+
+    'adjustment_types' => [
+        'count' => 'جرد فعلي',
+        'loss' => 'فقدان',
+        'damage' => 'تلف',
+        'correction' => 'تصحيح',
+        'initial' => 'مخزون أولي',
+    ],
+
+    'valuation_methods' => [
+        'standard' => 'التكلفة المعيارية',
+        'fifo' => 'الوارد أولاً صادر أولاً',
+        'average' => 'متوسط التكلفة',
     ],
 
     'movement_types' => [

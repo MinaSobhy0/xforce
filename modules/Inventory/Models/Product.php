@@ -4,6 +4,7 @@ namespace Modules\Inventory\Models;
 
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Modules\Accounting\Models\ChartOfAccount;
 use Spatie\Translatable\HasTranslations;
 use XLinic\Framework\Core\Model\BaseModel;
 use XLinic\Framework\Core\Model\Traits\HasSequence;
@@ -36,6 +37,11 @@ class Product extends BaseModel
         'is_active',
         'barcode',
         'image_url',
+        // Accounting fields
+        'stock_input_account_id',
+        'stock_output_account_id',
+        'stock_valuation_account_id',
+        'valuation_method',
     ];
 
     protected $casts = [
@@ -62,6 +68,18 @@ class Product extends BaseModel
         'lead_time_days' => 7,
         'is_consumable' => true,
         'is_active' => true,
+        'valuation_method' => 'standard',
+    ];
+
+    // Valuation Methods
+    public const VALUATION_STANDARD = 'standard';
+    public const VALUATION_FIFO = 'fifo';
+    public const VALUATION_AVERAGE = 'average';
+
+    public const VALUATION_METHODS = [
+        self::VALUATION_STANDARD => 'Standard Price',
+        self::VALUATION_FIFO => 'First In First Out (FIFO)',
+        self::VALUATION_AVERAGE => 'Weighted Average',
     ];
 
     // Common units
@@ -111,6 +129,30 @@ class Product extends BaseModel
     public function purchaseOrderLines(): HasMany
     {
         return $this->hasMany(PurchaseOrderLine::class);
+    }
+
+    /**
+     * Get stock input account (used when receiving stock).
+     */
+    public function stockInputAccount(): BelongsTo
+    {
+        return $this->belongsTo(ChartOfAccount::class, 'stock_input_account_id');
+    }
+
+    /**
+     * Get stock output account (used when consuming/selling stock).
+     */
+    public function stockOutputAccount(): BelongsTo
+    {
+        return $this->belongsTo(ChartOfAccount::class, 'stock_output_account_id');
+    }
+
+    /**
+     * Get stock valuation account (inventory asset account).
+     */
+    public function stockValuationAccount(): BelongsTo
+    {
+        return $this->belongsTo(ChartOfAccount::class, 'stock_valuation_account_id');
     }
 
     /**

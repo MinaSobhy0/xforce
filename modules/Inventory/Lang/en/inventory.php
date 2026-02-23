@@ -7,6 +7,7 @@ return [
         'suppliers' => 'Suppliers',
         'purchase_orders' => 'Purchase Orders',
         'stock_movements' => 'Stock Movements',
+        'inventory_adjustments' => 'Inventory Adjustments',
     ],
 
     'labels' => [
@@ -18,6 +19,8 @@ return [
         'suppliers' => 'Suppliers',
         'purchase_order' => 'Purchase Order',
         'purchase_orders' => 'Purchase Orders',
+        'inventory_adjustment' => 'Inventory Adjustment',
+        'inventory_adjustments' => 'Inventory Adjustments',
     ],
 
     'sections' => [
@@ -33,6 +36,11 @@ return [
         'items' => 'Items',
         'totals' => 'Totals',
         'receive_items' => 'Receive Items',
+        'adjustment_info' => 'Adjustment Information',
+        'adjustment_lines' => 'Adjustment Lines',
+        'stock_accounts' => 'Stock Accounts',
+        'validation_info' => 'Validation Information',
+        'accounting' => 'Accounting',
     ],
 
     'fields' => [
@@ -104,6 +112,24 @@ return [
         'ordered' => 'Ordered',
         'already_received' => 'Already Received',
         'receive_now' => 'Receive Now',
+        'adjustment_type' => 'Adjustment Type',
+        'adjustment_date' => 'Adjustment Date',
+        'theoretical_qty' => 'Theoretical Qty',
+        'counted_qty' => 'Counted Qty',
+        'difference' => 'Difference',
+        'unit_cost' => 'Unit Cost',
+        'value_adjustment' => 'Value Adjustment',
+        'total_value_adjustment' => 'Total Value Adjustment',
+        'valuation_method' => 'Valuation Method',
+        'stock_input_account' => 'Stock Input Account',
+        'stock_output_account' => 'Stock Output Account',
+        'stock_valuation_account' => 'Stock Valuation Account',
+        'validated_by' => 'Validated By',
+        'validated_at' => 'Validated At',
+        'journal_entry' => 'Journal Entry',
+        'lines' => 'Lines',
+        'lines_count' => 'Items Count',
+        'reason' => 'Reason',
     ],
 
     'filters' => [
@@ -117,6 +143,9 @@ return [
         'receive' => 'Receive Items',
         'cancel' => 'Cancel',
         'confirm_receive' => 'Confirm Receipt',
+        'validate' => 'Validate',
+        'validate_adjustment' => 'Validate Adjustment',
+        'load_products' => 'Load Products from Stock',
     ],
 
     'messages' => [
@@ -126,6 +155,12 @@ return [
         'items_received' => 'Items received successfully',
         'no_items_to_receive' => 'No items to receive',
         'cannot_receive' => 'Cannot receive items for this order',
+        'adjustment_validated' => 'Inventory adjustment validated successfully',
+        'validation_failed' => 'Failed to validate adjustment',
+        'adjustment_cancelled' => 'Inventory adjustment cancelled',
+        'products_loaded' => 'Products loaded from current stock',
+        'validate_confirmation' => 'This will apply the stock changes and create journal entries. This action cannot be undone.',
+        'no_lines_to_validate' => 'No adjustment lines to validate',
     ],
 
     'pages' => [
@@ -138,6 +173,21 @@ return [
         'partially_received' => 'Partially Received',
         'received' => 'Received',
         'cancelled' => 'Cancelled',
+        'validated' => 'Validated',
+    ],
+
+    'adjustment_types' => [
+        'count' => 'Physical Count',
+        'loss' => 'Loss',
+        'damage' => 'Damage',
+        'correction' => 'Correction',
+        'initial' => 'Initial Stock',
+    ],
+
+    'valuation_methods' => [
+        'standard' => 'Standard Cost',
+        'fifo' => 'FIFO',
+        'average' => 'Average Cost',
     ],
 
     'movement_types' => [
