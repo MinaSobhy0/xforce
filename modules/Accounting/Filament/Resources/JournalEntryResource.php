@@ -102,13 +102,16 @@ class JournalEntryResource extends Resource
                                     ->label(__('accounting::accounting.fields.partner'))
                                     ->types([
                                         Forms\Components\MorphToSelect\Type::make(\Modules\Patients\Models\Patient::class)
-                                            ->titleAttribute('full_name')
+                                            ->titleAttribute('first_name')
+                                            ->getOptionLabelFromRecordUsing(fn ($record) => $record->full_name)
                                             ->label(__('patients::patients.labels.patient')),
                                         Forms\Components\MorphToSelect\Type::make(\Modules\Inventory\Models\Supplier::class)
                                             ->titleAttribute('name')
+                                            ->getOptionLabelFromRecordUsing(fn ($record) => $record->getTranslation('name', app()->getLocale()))
                                             ->label(__('inventory::inventory.labels.supplier')),
                                         Forms\Components\MorphToSelect\Type::make(\Modules\Staff\Models\StaffProfile::class)
-                                            ->titleAttribute('user.name')
+                                            ->titleAttribute('employee_number')
+                                            ->getOptionLabelFromRecordUsing(fn ($record) => $record->user?->name ?? $record->employee_number)
                                             ->label(__('staff::staff.labels.profile')),
                                     ])
                                     ->searchable()
