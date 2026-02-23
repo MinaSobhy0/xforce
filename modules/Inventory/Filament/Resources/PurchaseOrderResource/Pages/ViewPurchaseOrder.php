@@ -73,23 +73,6 @@ class ViewPurchaseOrder extends BaseViewRecord
                     }
                 }),
 
-            Actions\Action::make('reopen')
-                ->label(__('inventory::inventory.actions.reopen'))
-                ->icon('heroicon-o-lock-open')
-                ->color('warning')
-                ->visible(fn () => $this->record->canReopenReceiving())
-                ->requiresConfirmation()
-                ->modalDescription(__('inventory::inventory.messages.reopen_confirmation'))
-                ->action(function () {
-                    if ($this->record->reopenReceiving()) {
-                        Notification::make()
-                            ->title(__('inventory::inventory.messages.order_reopened'))
-                            ->success()
-                            ->send();
-                        $this->refreshFormData(['status']);
-                    }
-                }),
-
             Actions\Action::make('reverse_receiving')
                 ->label(__('inventory::inventory.actions.reverse_receiving'))
                 ->icon('heroicon-o-arrow-uturn-left')
