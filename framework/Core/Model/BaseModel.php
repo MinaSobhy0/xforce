@@ -212,10 +212,14 @@ abstract class BaseModel extends Model
                 return;
             }
 
+            // Use fully qualified column name to avoid ambiguity in joins
+            $tableName = $model->getTable();
+            $branchColumn = "{$tableName}.branch_id";
+
             // Filter by selected branch(es)
-            $builder->where(function ($query) use ($branchIds) {
-                $query->whereIn('branch_id', $branchIds)
-                      ->orWhereNull('branch_id'); // Include records without branch
+            $builder->where(function ($query) use ($branchIds, $branchColumn) {
+                $query->whereIn($branchColumn, $branchIds)
+                      ->orWhereNull($branchColumn); // Include records without branch
             });
         });
     }
@@ -241,8 +245,9 @@ abstract class BaseModel extends Model
      */
     public function scopeForBranches(Builder $query, array $branchIds): Builder
     {
+        $tableName = $this->getTable();
         return $query->withoutGlobalScope('branch')
-                     ->whereIn('branch_id', $branchIds);
+                     ->whereIn("{$tableName}.branch_id", $branchIds);
     }
 
     /**

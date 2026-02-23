@@ -564,13 +564,13 @@ class AttendanceRuleService
         }
 
         // Fallback to default schedule for the branch or tenant
-        return WorkSchedule::where('tenant_id', $staff->tenant_id)
+        return WorkSchedule::where('work_schedules.tenant_id', $staff->tenant_id)
             ->where(function ($query) use ($staff) {
-                $query->where('branch_id', $staff->branch_id)
-                    ->orWhereNull('branch_id');
+                $query->where('work_schedules.branch_id', $staff->branch_id)
+                    ->orWhereNull('work_schedules.branch_id');
             })
-            ->where('is_active', true)
-            ->orderByRaw('branch_id IS NOT NULL DESC')
+            ->where('work_schedules.is_active', true)
+            ->orderByRaw('work_schedules.branch_id IS NOT NULL DESC')
             ->first();
     }
 }

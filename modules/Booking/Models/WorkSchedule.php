@@ -283,8 +283,8 @@ class WorkSchedule extends BaseModel
     public function scopeForBranch($query, string $branchId)
     {
         return $query->where(function ($q) use ($branchId) {
-            $q->where('branch_id', $branchId)
-                ->orWhereNull('branch_id');
+            $q->where('work_schedules.branch_id', $branchId)
+                ->orWhereNull('work_schedules.branch_id');
         });
     }
 
