@@ -45,6 +45,8 @@ class DoctorDashboard extends Page implements HasForms
 
     protected static ?int $navigationSort = 1;
 
+    protected static ?string $slug = 'doctor-dashboard';
+
     protected static string $view = 'booking::filament.pages.doctor-dashboard';
 
     // Active session data

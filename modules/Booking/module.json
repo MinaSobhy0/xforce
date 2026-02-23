@@ -49,6 +49,15 @@
     },
     "navigation": [
         {
+            "id": "doctor_dashboard",
+            "label": {"en": "Doctor Dashboard", "ar": "لوحة الطبيب"},
+            "icon": "heroicon-o-clipboard-document-check",
+            "route": "filament.tenant.pages.doctor-dashboard",
+            "group": "operations",
+            "order": 8,
+            "permission": "appointments.start"
+        },
+        {
             "id": "calendar",
             "label": {"en": "Calendar", "ar": "التقويم"},
             "icon": "heroicon-o-calendar-days",
