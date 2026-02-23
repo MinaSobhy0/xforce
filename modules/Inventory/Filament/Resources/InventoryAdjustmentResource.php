@@ -339,9 +339,13 @@ class InventoryAdjustmentResource extends Resource
                                     ->money(current_currency())
                                     ->color(fn ($state) => $state >= 0 ? 'success' : 'danger'),
 
-                                Infolists\Components\TextEntry::make('journalEntry.entry_number')
+                                Infolists\Components\TextEntry::make('journalEntry.code')
                                     ->label(__('inventory::inventory.fields.journal_entry'))
-                                    ->placeholder('Not created'),
+                                    ->placeholder(__('inventory::inventory.messages.not_created'))
+                                    ->url(fn ($record) => $record->journal_entry_id
+                                        ? \Modules\Accounting\Filament\Resources\JournalEntryResource::getUrl('view', ['record' => $record->journal_entry_id])
+                                        : null)
+                                    ->color('primary'),
                             ]),
 
                         Infolists\Components\TextEntry::make('reason')

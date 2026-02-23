@@ -180,6 +180,7 @@ return [
         'receiving_reversed' => 'Receiving has been reversed successfully',
         'reopen_confirmation' => 'This will reopen the order so you can receive more items or make corrections.',
         'reverse_confirmation' => 'This will reverse all received items, decrease stock levels, and create reverse journal entries. This action cannot be undone.',
+        'not_created' => 'Not created',
     ],
 
     'pages' => [
