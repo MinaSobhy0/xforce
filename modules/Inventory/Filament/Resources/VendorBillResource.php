@@ -137,7 +137,8 @@ class VendorBillResource extends Resource
                                                     if ($product) {
                                                         $set('description', $product->getTranslation('name', app()->getLocale()));
                                                         $set('unit_price_minor', $product->cost_price_minor / 100);
-                                                        $set('tax_rate', TaxRate::getDefault()?->rate ?? 14);
+                                                        $defaultTax = TaxRate::getDefault();
+                                                        $set('tax_rate', $defaultTax ? (string) $defaultTax->rate : '14');
                                                     }
                                                 }
                                             })
@@ -210,13 +211,18 @@ class VendorBillResource extends Resource
 
                                         Forms\Components\Select::make('tax_rate')
                                             ->label('Tax')
-                                            ->options(
-                                                TaxRate::where('is_active', true)
+                                            ->options(function () {
+                                                return TaxRate::where('is_active', true)
                                                     ->orderBy('rate')
                                                     ->get()
-                                                    ->mapWithKeys(fn ($t) => [$t->rate => $t->getTranslation('name', app()->getLocale()) . " ({$t->rate}%)"])
-                                            )
-                                            ->default(fn () => TaxRate::getDefault()?->rate ?? 14)
+                                                    ->mapWithKeys(fn ($t) => [
+                                                        (string) $t->rate => $t->getTranslation('name', app()->getLocale()) . " ({$t->rate}%)"
+                                                    ]);
+                                            })
+                                            ->default(function () {
+                                                $default = TaxRate::getDefault();
+                                                return $default ? (string) $default->rate : '14';
+                                            })
                                             ->columnSpan(['default' => 4, 'md' => 3]),
                                     ])
                                     ->columns(12)

@@ -121,7 +121,8 @@ class InvoiceResource extends Resource
                                                             : $service->base_price_minor;
                                                         $set('description', $service->name);
                                                         $set('unit_price_minor', $price / 100);
-                                                        $set('tax_rate', TaxRate::getDefault()?->rate ?? 14);
+                                                        $defaultTax = TaxRate::getDefault();
+                                                        $set('tax_rate', $defaultTax ? (string) $defaultTax->rate : '14');
                                                     }
                                                 }
                                             })
@@ -194,13 +195,18 @@ class InvoiceResource extends Resource
 
                                         Forms\Components\Select::make('tax_rate')
                                             ->label('Tax')
-                                            ->options(
-                                                TaxRate::where('is_active', true)
+                                            ->options(function () {
+                                                return TaxRate::where('is_active', true)
                                                     ->orderBy('rate')
                                                     ->get()
-                                                    ->mapWithKeys(fn ($t) => [$t->rate => $t->getTranslation('name', app()->getLocale()) . " ({$t->rate}%)"])
-                                            )
-                                            ->default(fn () => TaxRate::getDefault()?->rate ?? 14)
+                                                    ->mapWithKeys(fn ($t) => [
+                                                        (string) $t->rate => $t->getTranslation('name', app()->getLocale()) . " ({$t->rate}%)"
+                                                    ]);
+                                            })
+                                            ->default(function () {
+                                                $default = TaxRate::getDefault();
+                                                return $default ? (string) $default->rate : '14';
+                                            })
                                             ->columnSpan(['default' => 4, 'md' => 3]),
                                     ])
                                     ->columns(12)
