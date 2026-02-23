@@ -39,36 +39,6 @@ class ViewTreatmentPlan extends BaseViewRecord
                     }
                 }),
 
-            Actions\Action::make('pause')
-                ->label(__('treatment_plans::treatment_plans.actions.pause'))
-                ->icon('heroicon-o-pause')
-                ->color('warning')
-                ->visible(fn () => $this->record->isActive())
-                ->requiresConfirmation()
-                ->action(function () {
-                    if ($this->record->pause()) {
-                        Notification::make()
-                            ->title(__('treatment_plans::treatment_plans.messages.paused'))
-                            ->success()
-                            ->send();
-                    }
-                }),
-
-            Actions\Action::make('resume')
-                ->label(__('treatment_plans::treatment_plans.actions.resume'))
-                ->icon('heroicon-o-play')
-                ->color('success')
-                ->visible(fn () => $this->record->isPaused())
-                ->requiresConfirmation()
-                ->action(function () {
-                    if ($this->record->resume()) {
-                        Notification::make()
-                            ->title(__('treatment_plans::treatment_plans.messages.resumed'))
-                            ->success()
-                            ->send();
-                    }
-                }),
-
             Actions\Action::make('complete')
                 ->label(__('treatment_plans::treatment_plans.actions.complete'))
                 ->icon('heroicon-o-check-circle')

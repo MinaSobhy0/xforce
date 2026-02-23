@@ -5,6 +5,7 @@ namespace Modules\Booking\Livewire;
 use Livewire\Component;
 use Modules\Packages\Models\PackageSubscription;
 use Modules\Packages\Models\Package;
+use Modules\TreatmentPlans\Services\TreatmentPlanService;
 use Illuminate\Support\Collection;
 
 class PatientPackages extends Component
@@ -85,6 +86,15 @@ class PatientPackages extends Component
             'purchased_at' => now(),
             'expires_at' => now()->addDays($package->validity_days),
         ]);
+
+        // Auto-create treatment plan from package subscription
+        try {
+            $treatmentPlanService = app(TreatmentPlanService::class);
+            $treatmentPlanService->createFromPackageSubscription($subscription);
+        } catch (\Exception $e) {
+            // Log error but don't fail the purchase
+            \Log::error('Failed to create treatment plan from package: ' . $e->getMessage());
+        }
 
         $this->selectedSubscriptionId = $subscription->id;
         $this->showPurchaseForm = false;

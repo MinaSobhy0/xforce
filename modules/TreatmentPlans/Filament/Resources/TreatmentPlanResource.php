@@ -32,7 +32,7 @@ class TreatmentPlanResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-list';
 
-    protected static ?string $navigationGroup = 'Clinical';
+    protected static ?string $navigationGroup = 'Operations';
 
     protected static ?int $navigationSort = 20;
 
@@ -66,7 +66,7 @@ class TreatmentPlanResource extends Resource
                                                 Forms\Components\Select::make('patient_id')
                                                     ->label(__('treatment_plans::treatment_plans.fields.patient'))
                                                     ->relationship('patient', 'first_name')
-                                                    ->getOptionLabelFromRecordUsing(fn (Patient $record) => $record->full_name)
+                                                    ->getOptionLabelFromRecordUsing(fn ($record) => $record?->full_name ?? '-')
                                                     ->required()
                                                     ->searchable()
                                                     ->preload()
@@ -75,7 +75,7 @@ class TreatmentPlanResource extends Resource
                                                 Forms\Components\Select::make('branch_id')
                                                     ->label(__('treatment_plans::treatment_plans.fields.branch'))
                                                     ->relationship('branch', 'name')
-                                                    ->getOptionLabelFromRecordUsing(fn (Branch $record) => $record->translated_name)
+                                                    ->getOptionLabelFromRecordUsing(fn ($record) => $record?->name ?? '-')
                                                     ->required()
                                                     ->searchable()
                                                     ->preload()
@@ -303,7 +303,6 @@ class TreatmentPlanResource extends Resource
 
                 Tables\Columns\TextColumn::make('branch.name')
                     ->label(__('treatment_plans::treatment_plans.fields.branch'))
-                    ->formatStateUsing(fn ($record) => $record->branch?->translated_name)
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('start_date')
@@ -332,14 +331,14 @@ class TreatmentPlanResource extends Resource
                 Tables\Filters\SelectFilter::make('patient_id')
                     ->label(__('treatment_plans::treatment_plans.filters.patient'))
                     ->relationship('patient', 'first_name')
-                    ->getOptionLabelFromRecordUsing(fn (Patient $record) => $record->full_name)
+                    ->getOptionLabelFromRecordUsing(fn ($record) => $record?->full_name ?? '-')
                     ->searchable()
                     ->preload(),
 
                 Tables\Filters\SelectFilter::make('branch_id')
                     ->label(__('treatment_plans::treatment_plans.filters.branch'))
                     ->relationship('branch', 'name')
-                    ->getOptionLabelFromRecordUsing(fn (Branch $record) => $record->translated_name)
+                    ->getOptionLabelFromRecordUsing(fn ($record) => $record?->name ?? '-')
                     ->searchable()
                     ->preload(),
 
@@ -390,8 +389,7 @@ class TreatmentPlanResource extends Resource
                                     ->label(__('treatment_plans::treatment_plans.fields.patient')),
 
                                 Infolists\Components\TextEntry::make('branch.name')
-                                    ->label(__('treatment_plans::treatment_plans.fields.branch'))
-                                    ->formatStateUsing(fn ($record) => $record->branch?->translated_name),
+                                    ->label(__('treatment_plans::treatment_plans.fields.branch')),
                             ]),
 
                         Infolists\Components\Grid::make(2)

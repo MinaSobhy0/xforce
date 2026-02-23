@@ -86,6 +86,8 @@ return [
     'sources' => [
         'manual' => 'Manual Entry',
         'consultation' => 'From Consultation',
+        'booking' => 'From Booking',
+        'package' => 'From Package',
     ],
 
     // Time slots

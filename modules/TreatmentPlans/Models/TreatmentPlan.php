@@ -79,14 +79,12 @@ class TreatmentPlan extends BaseModel
     // Status constants
     public const STATUS_DRAFT = 'draft';
     public const STATUS_ACTIVE = 'active';
-    public const STATUS_PAUSED = 'paused';
     public const STATUS_COMPLETED = 'completed';
     public const STATUS_CANCELLED = 'cancelled';
 
     public const STATUSES = [
         self::STATUS_DRAFT => 'Draft',
         self::STATUS_ACTIVE => 'Active',
-        self::STATUS_PAUSED => 'Paused',
         self::STATUS_COMPLETED => 'Completed',
         self::STATUS_CANCELLED => 'Cancelled',
     ];
@@ -94,7 +92,6 @@ class TreatmentPlan extends BaseModel
     public const STATUS_COLORS = [
         self::STATUS_DRAFT => 'gray',
         self::STATUS_ACTIVE => 'success',
-        self::STATUS_PAUSED => 'warning',
         self::STATUS_COMPLETED => 'info',
         self::STATUS_CANCELLED => 'danger',
     ];
@@ -102,10 +99,14 @@ class TreatmentPlan extends BaseModel
     // Source constants
     public const SOURCE_MANUAL = 'manual';
     public const SOURCE_CONSULTATION = 'consultation';
+    public const SOURCE_BOOKING = 'booking';
+    public const SOURCE_PACKAGE = 'package';
 
     public const SOURCES = [
         self::SOURCE_MANUAL => 'Manual Entry',
         self::SOURCE_CONSULTATION => 'From Consultation',
+        self::SOURCE_BOOKING => 'From Booking',
+        self::SOURCE_PACKAGE => 'From Package',
     ];
 
     protected static function booted(): void
@@ -213,7 +214,7 @@ class TreatmentPlan extends BaseModel
     public function getItemsNeedingSchedulingAttribute()
     {
         return $this->items->filter(function ($item) {
-            return $item->remaining_sessions > 0 && !$item->isCompleted() && !$item->isCancelled();
+            return $item->unscheduled_sessions > 0 && !$item->isCompleted() && !$item->isCancelled();
         });
     }
 
@@ -252,11 +253,6 @@ class TreatmentPlan extends BaseModel
         return $this->status === self::STATUS_ACTIVE;
     }
 
-    public function isPaused(): bool
-    {
-        return $this->status === self::STATUS_PAUSED;
-    }
-
     public function isCompleted(): bool
     {
         return $this->status === self::STATUS_COMPLETED;
@@ -269,7 +265,7 @@ class TreatmentPlan extends BaseModel
 
     public function isEditable(): bool
     {
-        return in_array($this->status, [self::STATUS_DRAFT, self::STATUS_ACTIVE, self::STATUS_PAUSED]);
+        return in_array($this->status, [self::STATUS_DRAFT, self::STATUS_ACTIVE]);
     }
 
     // State transitions
@@ -277,8 +273,7 @@ class TreatmentPlan extends BaseModel
     {
         $transitions = [
             self::STATUS_DRAFT => [self::STATUS_ACTIVE, self::STATUS_CANCELLED],
-            self::STATUS_ACTIVE => [self::STATUS_PAUSED, self::STATUS_COMPLETED, self::STATUS_CANCELLED],
-            self::STATUS_PAUSED => [self::STATUS_ACTIVE, self::STATUS_CANCELLED],
+            self::STATUS_ACTIVE => [self::STATUS_COMPLETED, self::STATUS_CANCELLED],
             self::STATUS_COMPLETED => [],
             self::STATUS_CANCELLED => [],
         ];
@@ -301,9 +296,6 @@ class TreatmentPlan extends BaseModel
                     $this->start_date = today();
                 }
                 break;
-            case self::STATUS_PAUSED:
-                $this->paused_at = now();
-                break;
             case self::STATUS_COMPLETED:
                 $this->completed_at = now();
                 $this->actual_end_date = today();
@@ -317,16 +309,6 @@ class TreatmentPlan extends BaseModel
     }
 
     public function activate(): bool
-    {
-        return $this->transitionTo(self::STATUS_ACTIVE);
-    }
-
-    public function pause(): bool
-    {
-        return $this->transitionTo(self::STATUS_PAUSED);
-    }
-
-    public function resume(): bool
     {
         return $this->transitionTo(self::STATUS_ACTIVE);
     }
@@ -426,11 +408,6 @@ class TreatmentPlan extends BaseModel
         return $query->where('status', self::STATUS_ACTIVE);
     }
 
-    public function scopePaused($query)
-    {
-        return $query->where('status', self::STATUS_PAUSED);
-    }
-
     public function scopeCompleted($query)
     {
         return $query->where('status', self::STATUS_COMPLETED);
@@ -443,7 +420,7 @@ class TreatmentPlan extends BaseModel
 
     public function scopeInProgress($query)
     {
-        return $query->whereIn('status', [self::STATUS_ACTIVE, self::STATUS_PAUSED]);
+        return $query->where('status', self::STATUS_ACTIVE);
     }
 
     public function scopeForPatient($query, string $patientId)

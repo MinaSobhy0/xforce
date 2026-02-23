@@ -11,6 +11,7 @@ use Modules\Booking\Models\Appointment;
 use Modules\Packages\Models\Package;
 use Modules\Packages\Models\PackageSubscription;
 use Modules\Patients\Models\Patient;
+use Modules\Services\Models\Service;
 
 class TreatmentPlanService
 {
@@ -318,5 +319,159 @@ class TreatmentPlanService
             });
 
         return $completed;
+    }
+
+    /**
+     * Create a treatment plan from a direct service booking.
+     * All appointments booked at once are grouped into one treatment plan.
+     *
+     * @param string $patientId
+     * @param string $branchId
+     * @param array $appointments Array of Appointment models
+     * @return TreatmentPlan
+     */
+    public function createFromServiceBooking(
+        string $patientId,
+        string $branchId,
+        array $appointments
+    ): TreatmentPlan {
+        if (empty($appointments)) {
+            throw new \InvalidArgumentException('At least one appointment is required');
+        }
+
+        return DB::transaction(function () use ($patientId, $branchId, $appointments) {
+            // Group appointments by service to create items
+            $serviceAppointments = collect($appointments)->groupBy('service_id');
+
+            // Build name from services
+            $serviceNames = $serviceAppointments->map(function ($appts, $serviceId) {
+                $service = Service::find($serviceId);
+                return $service?->translated_name ?? 'Service';
+            })->take(3)->implode(', ');
+
+            if ($serviceAppointments->count() > 3) {
+                $serviceNames .= ' +' . ($serviceAppointments->count() - 3);
+            }
+
+            // Create the treatment plan
+            $plan = TreatmentPlan::create([
+                'patient_id' => $patientId,
+                'branch_id' => $branchId,
+                'name' => [
+                    'en' => $serviceNames,
+                    'ar' => $serviceNames,
+                ],
+                'status' => TreatmentPlan::STATUS_ACTIVE,
+                'source' => TreatmentPlan::SOURCE_BOOKING,
+                'start_date' => today(),
+                'activated_at' => now(),
+            ]);
+
+            $sortOrder = 0;
+            foreach ($serviceAppointments as $serviceId => $appts) {
+                $service = Service::find($serviceId);
+                $appointmentCollection = collect($appts);
+
+                // Create treatment plan item
+                $item = TreatmentPlanItem::create([
+                    'tenant_id' => $plan->tenant_id,
+                    'treatment_plan_id' => $plan->id,
+                    'item_type' => TreatmentPlanItem::TYPE_SERVICE,
+                    'service_id' => $serviceId,
+                    'recommended_sessions' => $appointmentCollection->count(),
+                    'completed_sessions' => 0,
+                    'session_interval_days' => config('treatment_plans.default_session_interval_days', 7),
+                    'unit_price_minor' => $service?->base_price_minor ?? 0,
+                    'quantity' => $appointmentCollection->count(),
+                    'status' => TreatmentPlanItem::STATUS_PENDING,
+                    'sort_order' => $sortOrder++,
+                ]);
+
+                // Link appointments to the item
+                $sessionNumber = 1;
+                foreach ($appts as $appointment) {
+                    TreatmentPlanAppointment::create([
+                        'tenant_id' => $plan->tenant_id,
+                        'treatment_plan_item_id' => $item->id,
+                        'appointment_id' => $appointment->id,
+                        'session_number' => $sessionNumber++,
+                        'status' => $appointment->status,
+                    ]);
+                }
+            }
+
+            // Recalculate financials
+            $plan->recalculateFinancials();
+
+            return $plan;
+        });
+    }
+
+    /**
+     * Create a treatment plan from a package subscription.
+     * All services in the package become items waiting to be scheduled.
+     *
+     * @param PackageSubscription $subscription
+     * @param string|null $branchId Optional branch ID (falls back to subscription or current branch)
+     * @return TreatmentPlan
+     */
+    public function createFromPackageSubscription(PackageSubscription $subscription, ?string $branchId = null): TreatmentPlan
+    {
+        $package = $subscription->package;
+
+        if (!$package) {
+            throw new \InvalidArgumentException('Package not found for subscription');
+        }
+
+        // Determine branch_id with fallbacks
+        $effectiveBranchId = $branchId ?? $subscription->branch_id ?? current_branch_id();
+
+        if (!$effectiveBranchId) {
+            // Last resort: get the first branch for this tenant
+            $effectiveBranchId = \Modules\Core\Models\Branch::first()?->id;
+        }
+
+        return DB::transaction(function () use ($subscription, $package, $effectiveBranchId) {
+            // Create the treatment plan
+            $plan = TreatmentPlan::create([
+                'patient_id' => $subscription->patient_id,
+                'branch_id' => $effectiveBranchId,
+                'name' => [
+                    'en' => $package->getTranslation('name', 'en') ?? $package->translated_name,
+                    'ar' => $package->getTranslation('name', 'ar') ?? $package->translated_name,
+                ],
+                'description' => $package->description,
+                'status' => TreatmentPlan::STATUS_ACTIVE,
+                'source' => TreatmentPlan::SOURCE_PACKAGE,
+                'start_date' => today(),
+                'target_end_date' => $subscription->expires_at,
+                'activated_at' => now(),
+                'recommended_package_id' => $package->id,
+                'package_subscription_id' => $subscription->id,
+            ]);
+
+            // Create items from package items
+            $sortOrder = 0;
+            foreach ($package->items as $packageItem) {
+                TreatmentPlanItem::create([
+                    'tenant_id' => $plan->tenant_id,
+                    'treatment_plan_id' => $plan->id,
+                    'item_type' => TreatmentPlanItem::TYPE_SERVICE,
+                    'service_id' => $packageItem->service_id,
+                    'recommended_sessions' => $packageItem->quantity,
+                    'completed_sessions' => 0,
+                    'session_interval_days' => config('treatment_plans.default_session_interval_days', 7),
+                    'unit_price_minor' => 0, // Package sessions are prepaid
+                    'quantity' => $packageItem->quantity,
+                    'status' => TreatmentPlanItem::STATUS_PENDING,
+                    'sort_order' => $sortOrder++,
+                ]);
+            }
+
+            // Recalculate financials
+            $plan->recalculateFinancials();
+
+            return $plan;
+        });
     }
 }

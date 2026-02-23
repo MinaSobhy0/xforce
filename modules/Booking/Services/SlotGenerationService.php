@@ -739,7 +739,7 @@ class SlotGenerationService
             $minutesUntilNext = null;
 
             if ($nextAppointment) {
-                $nextStartTime = Carbon::parse($date->format('Y-m-d') . ' ' . $nextAppointment->start_time);
+                $nextStartTime = $date->copy()->setTimeFrom($nextAppointment->start_time);
                 $minutesUntilNext = $slotEnd->diffInMinutes($nextStartTime, false);
 
                 // If next appointment is within 30 minutes of slot end, mark as busy_soon

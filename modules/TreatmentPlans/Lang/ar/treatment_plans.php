@@ -86,6 +86,8 @@ return [
     'sources' => [
         'manual' => 'إدخال يدوي',
         'consultation' => 'من الاستشارة',
+        'booking' => 'من الحجز',
+        'package' => 'من الباقة',
     ],
 
     // Time slots

@@ -4,6 +4,32 @@ use App\Services\BranchContext;
 use Illuminate\Support\Collection;
 use Modules\Core\Models\Branch;
 
+if (!function_exists('current_tenant_id')) {
+    /**
+     * Get the current tenant ID.
+     */
+    function current_tenant_id(): ?string
+    {
+        if (app()->has('currentTenant')) {
+            return app('currentTenant')?->id;
+        }
+        return null;
+    }
+}
+
+if (!function_exists('current_tenant')) {
+    /**
+     * Get the current tenant.
+     */
+    function current_tenant(): ?\Modules\Core\Models\Tenant
+    {
+        if (app()->has('currentTenant')) {
+            return app('currentTenant');
+        }
+        return null;
+    }
+}
+
 if (!function_exists('current_branches')) {
     /**
      * Get the current selected branches.

@@ -29,9 +29,9 @@ trait HasTenancy
                 $searchPath = $result[0]->search_path ?? 'public';
             } catch (\Exception $e) {}
 
-            // If we're on a tenant schema (starts with tenant_), skip tenant_id filtering
+            // If we're on a tenant schema (contains tenant_), skip tenant_id filtering
             // The data is already isolated by schema
-            if (str_starts_with($searchPath, 'tenant_') || str_starts_with($searchPath, '"tenant_')) {
+            if (str_contains($searchPath, 'tenant_')) {
                 return;
             }
 

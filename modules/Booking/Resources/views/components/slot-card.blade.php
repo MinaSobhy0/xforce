@@ -94,6 +94,10 @@
                             'room_name' => $slot['room_name'] ?? null,
                             'equipment_id' => $slot['equipment_id'] ?? null,
                             'equipment_name' => $slot['equipment_name'] ?? null,
+                            // Package and treatment plan context
+                            'from_package' => $slot['from_package'] ?? null,
+                            'new_package_id' => $slot['new_package_id'] ?? null,
+                            'treatment_plan_item_id' => $slot['treatment_plan_item_id'] ?? null,
                         ];
                     @endphp
                     <button

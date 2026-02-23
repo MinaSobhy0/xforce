@@ -18,5 +18,6 @@
     "Reporting": true,
     "PatientPortal": true,
     "Api": true,
-    "Attendance": true
+    "Attendance": true,
+    "TreatmentPlans": true
 }

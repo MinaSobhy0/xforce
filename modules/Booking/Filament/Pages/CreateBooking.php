@@ -12,6 +12,7 @@ use Filament\Forms\Contracts\HasForms;
 use Filament\Pages\Page;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\HtmlString;
 use Livewire\Attributes\On;
 use Modules\Booking\Models\Appointment;
@@ -27,6 +28,7 @@ use Modules\Services\Models\Service;
 use Modules\TreatmentPlans\Models\TreatmentPlan;
 use Modules\TreatmentPlans\Models\TreatmentPlanItem;
 use Modules\TreatmentPlans\Models\TreatmentPlanAppointment;
+use Modules\TreatmentPlans\Services\TreatmentPlanService;
 use Modules\Auth\Models\User;
 use Carbon\Carbon;
 
@@ -724,6 +726,14 @@ class CreateBooking extends Page implements HasForms
         $dateTo = $data['date_to'] ?? null;
         $bookingType = $data['booking_type'] ?? 'service';
 
+        \Log::warning('generateSlots called', [
+            'booking_type' => $bookingType,
+            'package_mode' => $data['package_mode'] ?? null,
+            'package_subscription_id' => $data['package_subscription_id'] ?? null,
+            'package_service_id' => $data['package_service_id'] ?? null,
+            'new_package_id' => $data['new_package_id'] ?? null,
+        ]);
+
         if (!$branchId || !$dateFrom || !$dateTo) {
             Notification::make()
                 ->title(__('booking::booking.validation.branch_date_required'))
@@ -984,6 +994,12 @@ class CreateBooking extends Page implements HasForms
 
     public function selectSlot(array $slot): void
     {
+        \Log::warning('selectSlot called', [
+            'slot_service_id' => $slot['service_id'] ?? null,
+            'slot_from_package' => $slot['from_package'] ?? null,
+            'slot_new_package_id' => $slot['new_package_id'] ?? null,
+        ]);
+
         $serviceId = $slot['service_id'] ?? null;
         $slotKey = $slot['date'] . '_' . $slot['start_time'] . '_' . $serviceId;
         $practitionerId = $slot['practitioner_id'] ?? $slot['available_practitioners'][0]['id'] ?? null;
@@ -1145,11 +1161,24 @@ class CreateBooking extends Page implements HasForms
         $newPackageSubscriptions = []; // Track newly created subscriptions
 
         try {
+            // Log search path for debugging
+            $searchPath = DB::select('SHOW search_path')[0]->search_path ?? 'unknown';
+            \Log::warning('createBookings: Starting', [
+                'search_path' => $searchPath,
+                'patient_id' => $data['patient_id'] ?? null,
+            ]);
+
             // First, create any new package subscriptions needed
             foreach ($this->bookingItems as $item) {
                 if (!empty($item['new_package_id']) && !isset($newPackageSubscriptions[$item['new_package_id']])) {
                     $package = Package::find($item['new_package_id']);
                     if ($package) {
+                        \Log::warning('Creating package subscription', [
+                            'patient_id' => $data['patient_id'],
+                            'package_id' => $package->id,
+                            'search_path' => $searchPath,
+                        ]);
+
                         $subscription = PackageSubscription::create([
                             'patient_id' => $data['patient_id'],
                             'package_id' => $package->id,
@@ -1163,7 +1192,15 @@ class CreateBooking extends Page implements HasForms
                 }
             }
 
-            foreach ($this->bookingItems as $item) {
+            foreach ($this->bookingItems as $index => $item) {
+                \Log::warning('Processing booking item', [
+                    'index' => $index,
+                    'service_id' => $item['service_id'] ?? null,
+                    'from_package' => $item['from_package'] ?? null,
+                    'new_package_id' => $item['new_package_id'] ?? null,
+                    'treatment_plan_item_id' => $item['treatment_plan_item_id'] ?? null,
+                ]);
+
                 $service = Service::find($item['service_id']);
 
                 $appointment = Appointment::create([
@@ -1187,6 +1224,12 @@ class CreateBooking extends Page implements HasForms
 
                 // Record package usage if from existing package
                 if (!empty($item['from_package'])) {
+                    \Log::warning('Package booking: from_package detected', [
+                        'from_package' => $item['from_package'],
+                        'service_id' => $item['service_id'],
+                        'appointment_id' => $appointment->id,
+                    ]);
+
                     PackageSessionUsage::create([
                         'subscription_id' => $item['from_package'],
                         'service_id' => $item['service_id'],
@@ -1197,16 +1240,119 @@ class CreateBooking extends Page implements HasForms
                     // Check if package is now complete
                     $subscription = PackageSubscription::find($item['from_package']);
                     $subscription?->checkAndMarkComplete();
+
+                    // Create or find treatment plan for this package subscription
+                    if ($subscription) {
+                        \Log::warning('Package booking: Creating treatment plan', [
+                            'subscription_id' => $subscription->id,
+                            'patient_id' => $subscription->patient_id,
+                        ]);
+
+                        try {
+                            $treatmentPlanService = app(TreatmentPlanService::class);
+                            $plan = TreatmentPlan::where('package_subscription_id', $subscription->id)->first();
+
+                            \Log::warning('Package booking: Existing plan check', [
+                                'existing_plan' => $plan ? $plan->id : null,
+                            ]);
+
+                            if (!$plan) {
+                                $plan = $treatmentPlanService->createFromPackageSubscription($subscription, $data['branch_id']);
+                                \Log::warning('Package booking: Created new plan', [
+                                    'plan_id' => $plan->id,
+                                    'plan_code' => $plan->code ?? null,
+                                ]);
+                            }
+
+                            // Link appointment to treatment plan item
+                            if ($plan) {
+                                $planItem = $plan->items()->where('service_id', $item['service_id'])->first();
+                                \Log::warning('Package booking: Found plan item', [
+                                    'plan_item_id' => $planItem ? $planItem->id : null,
+                                    'service_id' => $item['service_id'],
+                                ]);
+
+                                if ($planItem && !TreatmentPlanAppointment::where('appointment_id', $appointment->id)->exists()) {
+                                    TreatmentPlanAppointment::create([
+                                        'tenant_id' => $appointment->tenant_id,
+                                        'treatment_plan_item_id' => $planItem->id,
+                                        'appointment_id' => $appointment->id,
+                                        'session_number' => $planItem->next_session_number,
+                                        'status' => $appointment->status,
+                                    ]);
+                                    \Log::warning('Package booking: Created treatment plan appointment link');
+                                }
+                            }
+                        } catch (\Exception $e) {
+                            \Log::error('Package booking: Treatment plan creation failed', [
+                                'error' => $e->getMessage(),
+                                'file' => $e->getFile(),
+                                'line' => $e->getLine(),
+                            ]);
+                        }
+                    } else {
+                        \Log::warning('Package booking: Subscription not found', [
+                            'from_package' => $item['from_package'],
+                        ]);
+                    }
                 }
 
                 // Record package usage if from newly purchased package
                 if (!empty($item['new_package_id']) && isset($newPackageSubscriptions[$item['new_package_id']])) {
-                    PackageSessionUsage::create([
+                    \Log::warning('New package booking: new_package_id detected', [
+                        'new_package_id' => $item['new_package_id'],
                         'subscription_id' => $newPackageSubscriptions[$item['new_package_id']],
+                    ]);
+
+                    $subscriptionId = $newPackageSubscriptions[$item['new_package_id']];
+
+                    PackageSessionUsage::create([
+                        'subscription_id' => $subscriptionId,
                         'service_id' => $item['service_id'],
                         'appointment_id' => $appointment->id,
                         'used_at' => now(),
                     ]);
+
+                    // Create treatment plan for new package subscription
+                    $subscription = PackageSubscription::find($subscriptionId);
+                    if ($subscription) {
+                        try {
+                            \Log::warning('New package booking: Creating treatment plan', [
+                                'subscription_id' => $subscription->id,
+                            ]);
+
+                            $treatmentPlanService = app(TreatmentPlanService::class);
+                            $plan = TreatmentPlan::where('package_subscription_id', $subscription->id)->first();
+
+                            if (!$plan) {
+                                $plan = $treatmentPlanService->createFromPackageSubscription($subscription, $data['branch_id']);
+                                \Log::warning('New package booking: Created plan', [
+                                    'plan_id' => $plan->id,
+                                ]);
+                            }
+
+                            // Link appointment to treatment plan item
+                            if ($plan) {
+                                $planItem = $plan->items()->where('service_id', $item['service_id'])->first();
+                                if ($planItem && !TreatmentPlanAppointment::where('appointment_id', $appointment->id)->exists()) {
+                                    TreatmentPlanAppointment::create([
+                                        'tenant_id' => $appointment->tenant_id,
+                                        'treatment_plan_item_id' => $planItem->id,
+                                        'appointment_id' => $appointment->id,
+                                        'session_number' => $planItem->next_session_number,
+                                        'status' => $appointment->status,
+                                    ]);
+                                    \Log::warning('New package booking: Linked appointment to plan');
+                                }
+                            }
+                        } catch (\Exception $e) {
+                            \Log::error('New package booking: Treatment plan creation failed', [
+                                'error' => $e->getMessage(),
+                                'file' => $e->getFile(),
+                                'line' => $e->getLine(),
+                            ]);
+                        }
+                    }
                 }
 
                 // Link to treatment plan if from treatment plan
@@ -1224,6 +1370,27 @@ class CreateBooking extends Page implements HasForms
                 }
             }
 
+            // Auto-create treatment plans for direct service bookings
+            // (Package treatment plans are created inline above when recording package usage)
+            $bookingType = $data['booking_type'] ?? 'service';
+
+            if ($bookingType === 'service' && !empty($createdAppointments)) {
+                $treatmentPlanService = app(TreatmentPlanService::class);
+                // Direct service booking: Create treatment plan from booked appointments
+                $appointmentsForNewPlan = array_filter($createdAppointments, function ($appt) {
+                    return !TreatmentPlanAppointment::where('appointment_id', $appt->id)->exists();
+                });
+
+                if (!empty($appointmentsForNewPlan)) {
+                    $treatmentPlanService->createFromServiceBooking(
+                        $data['patient_id'],
+                        $data['branch_id'],
+                        $appointmentsForNewPlan
+                    );
+                }
+            }
+            // Package treatment plans are created inline when recording package usage above
+
             $count = count($createdAppointments);
 
             Notification::make()
@@ -1235,6 +1402,13 @@ class CreateBooking extends Page implements HasForms
             $this->redirect(route('filament.tenant.resources.appointments.index'));
 
         } catch (\Exception $e) {
+            \Log::error('Booking creation failed', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
             Notification::make()
                 ->title(__('booking::booking.messages.booking_failed'))
                 ->body($e->getMessage())

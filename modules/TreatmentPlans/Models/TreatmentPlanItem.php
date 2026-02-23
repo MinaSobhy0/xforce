@@ -279,7 +279,7 @@ class TreatmentPlanItem extends BaseModel
 
     public function canBook(): bool
     {
-        return !$this->isCompleted() && !$this->isCancelled() && $this->remaining_sessions > 0;
+        return !$this->isCompleted() && !$this->isCancelled() && $this->unscheduled_sessions > 0;
     }
 
     // State transitions
