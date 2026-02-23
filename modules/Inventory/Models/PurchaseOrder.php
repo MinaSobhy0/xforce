@@ -92,7 +92,7 @@ class PurchaseOrder extends BaseModel
         self::STATUS_DRAFT => [self::STATUS_SENT, self::STATUS_CANCELLED],
         self::STATUS_SENT => [self::STATUS_PARTIALLY_RECEIVED, self::STATUS_RECEIVED, self::STATUS_CANCELLED],
         self::STATUS_PARTIALLY_RECEIVED => [self::STATUS_RECEIVED, self::STATUS_CANCELLED],
-        self::STATUS_RECEIVED => [],
+        self::STATUS_RECEIVED => [self::STATUS_SENT], // Can reopen
         self::STATUS_CANCELLED => [self::STATUS_DRAFT],
     ];
 
@@ -245,6 +245,62 @@ class PurchaseOrder extends BaseModel
     public function canResetToDraft(): bool
     {
         return $this->status === self::STATUS_CANCELLED;
+    }
+
+    /**
+     * Reopen a received order to allow more receiving or corrections.
+     */
+    public function reopenReceiving(): bool
+    {
+        if (!$this->canReopenReceiving()) {
+            return false;
+        }
+
+        $this->status = self::STATUS_SENT;
+        $this->received_date = null;
+        $this->received_by = null;
+
+        return $this->save();
+    }
+
+    /**
+     * Check if order can be reopened for more receiving.
+     */
+    public function canReopenReceiving(): bool
+    {
+        return $this->status === self::STATUS_RECEIVED;
+    }
+
+    /**
+     * Reverse all received items - decreases stock and creates reverse journal entries.
+     */
+    public function reverseReceiving(): bool
+    {
+        if (!$this->canReverseReceiving()) {
+            return false;
+        }
+
+        return \DB::transaction(function () {
+            foreach ($this->lines as $line) {
+                $line->reverseReceiving();
+            }
+
+            // Reset status back to sent
+            $this->status = self::STATUS_SENT;
+            $this->received_date = null;
+            $this->received_by = null;
+
+            return $this->save();
+        });
+    }
+
+    /**
+     * Check if receiving can be reversed.
+     */
+    public function canReverseReceiving(): bool
+    {
+        // Can only reverse if received or partially received
+        return in_array($this->status, [self::STATUS_RECEIVED, self::STATUS_PARTIALLY_RECEIVED]);
     }
 
     /**

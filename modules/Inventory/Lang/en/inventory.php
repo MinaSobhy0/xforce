@@ -155,6 +155,8 @@ return [
         'load_products' => 'Load Products from Stock',
         'add_product' => 'Add Product',
         'reset_to_draft' => 'Reset to Draft',
+        'reopen' => 'Reopen',
+        'reverse_receiving' => 'Reverse Receiving',
     ],
 
     'messages' => [
@@ -173,6 +175,10 @@ return [
         'no_lines_to_validate' => 'No adjustment lines to validate',
         'load_products_confirmation' => 'This will load all products with stock in this branch. Existing lines will not be affected.',
         'order_reset_to_draft' => 'Purchase order reset to draft',
+        'order_reopened' => 'Purchase order reopened for receiving',
+        'receiving_reversed' => 'Receiving has been reversed successfully',
+        'reopen_confirmation' => 'This will reopen the order so you can receive more items or make corrections.',
+        'reverse_confirmation' => 'This will reverse all received items, decrease stock levels, and create reverse journal entries. This action cannot be undone.',
     ],
 
     'pages' => [

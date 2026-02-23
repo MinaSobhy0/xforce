@@ -184,4 +184,84 @@ class PurchaseOrderLine extends BaseModel
     {
         return $this->line_total_minor / 100;
     }
+
+    /**
+     * Reverse receiving - decrease stock and create reverse journal entry.
+     */
+    public function reverseReceiving(): bool
+    {
+        if ($this->quantity_received <= 0) {
+            return true; // Nothing to reverse
+        }
+
+        $quantityToReverse = $this->quantity_received;
+
+        // Get stock level
+        $stockLevel = StockLevel::where('product_id', $this->product_id)
+            ->where('branch_id', $this->purchaseOrder->branch_id)
+            ->first();
+
+        if ($stockLevel) {
+            // Decrease stock
+            $movement = $stockLevel->decrease(
+                $quantityToReverse,
+                StockMovement::TYPE_ADJUSTMENT,
+                'purchase_order_reversal',
+                $this->purchase_order_id,
+                "Reversal of PO #{$this->purchaseOrder->order_number}"
+            );
+
+            // Create reverse journal entry
+            $this->createReversalJournalEntry($movement, $quantityToReverse);
+        }
+
+        // Reset quantity received
+        $this->quantity_received = 0;
+        $this->save();
+
+        return true;
+    }
+
+    /**
+     * Create reverse journal entry for stock reversal.
+     */
+    protected function createReversalJournalEntry(StockMovement $movement, int $quantity): void
+    {
+        try {
+            $accountingService = app(\Modules\Accounting\Services\AccountingIntegrationService::class);
+
+            // Calculate value in minor units
+            $valueMinor = $quantity * $this->unit_price_minor;
+
+            // Reverse entry: Debit Supplier Payables, Credit Inventory
+            $lines = [
+                [
+                    'account_code' => '2010', // Supplier Payables
+                    'debit' => $valueMinor,
+                    'credit' => 0,
+                    'description' => "Reversal: {$this->product->name}",
+                ],
+                [
+                    'account_code' => '1200', // Inventory
+                    'debit' => 0,
+                    'credit' => $valueMinor,
+                    'description' => "Reversal: {$this->product->name}",
+                ],
+            ];
+
+            $accountingService->createJournalEntry(
+                now(),
+                "Stock reversal: PO #{$this->purchaseOrder->order_number} - {$this->product->name} x {$quantity}",
+                $lines,
+                'purchase_order_reversal',
+                $this->purchase_order_id,
+                true
+            );
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning('Failed to create reversal journal entry', [
+                'error' => $e->getMessage(),
+                'purchase_order_line_id' => $this->id,
+            ]);
+        }
+    }
 }
