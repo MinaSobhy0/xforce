@@ -3,12 +3,14 @@
 namespace Modules\Billing\Filament\Resources\InvoiceResource\RelationManagers;
 
 use Modules\Billing\Models\Payment;
+use Modules\Billing\Models\Invoice;
 use Modules\Accounting\Models\Journal;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Filament\Notifications\Notification;
 
 class PaymentsRelationManager extends RelationManager
 {
@@ -94,9 +96,83 @@ class PaymentsRelationManager extends RelationManager
                         $data['received_by_user_id'] = auth()->id();
                         return $data;
                     }),
+
+                Tables\Actions\Action::make('link_payment')
+                    ->label('Link Payment')
+                    ->icon('heroicon-o-link')
+                    ->color('info')
+                    ->visible(fn () => $this->ownerRecord->canRecordPayment())
+                    ->form([
+                        Forms\Components\Select::make('payment_id')
+                            ->label('Select Unassigned Payment')
+                            ->options(function () {
+                                /** @var Invoice $invoice */
+                                $invoice = $this->ownerRecord;
+                                return Payment::unassigned()
+                                    ->where('patient_id', $invoice->patient_id)
+                                    ->get()
+                                    ->mapWithKeys(fn (Payment $payment) => [
+                                        $payment->id => sprintf(
+                                            '%s - %s %s (%s)',
+                                            $payment->code,
+                                            current_currency(),
+                                            number_format($payment->amount_minor / 100, 2),
+                                            $payment->paid_at?->format('Y-m-d')
+                                        ),
+                                    ]);
+                            })
+                            ->required()
+                            ->searchable()
+                            ->helperText('Only showing unassigned payments for this patient'),
+                    ])
+                    ->action(function (array $data) {
+                        $payment = Payment::find($data['payment_id']);
+                        if ($payment) {
+                            /** @var Invoice $invoice */
+                            $invoice = $this->ownerRecord;
+                            $invoice->applyUnassignedPayment($payment);
+
+                            Notification::make()
+                                ->title('Payment linked successfully')
+                                ->success()
+                                ->send();
+                        }
+                    }),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
+
+                Tables\Actions\Action::make('unlink')
+                    ->label('Unlink')
+                    ->icon('heroicon-o-x-mark')
+                    ->color('warning')
+                    ->requiresConfirmation()
+                    ->modalHeading('Unlink Payment')
+                    ->modalDescription('This will unlink the payment from this invoice. The payment will become unassigned and can be linked to another invoice.')
+                    ->action(function (Payment $record) {
+                        $record->invoice_id = null;
+                        $record->save();
+
+                        // Recalculate invoice paid amount and status
+                        /** @var Invoice $invoice */
+                        $invoice = $this->ownerRecord;
+                        $invoice->paid_minor = $invoice->payments()->sum('amount_minor');
+
+                        // Update status based on paid amount
+                        if ($invoice->paid_minor >= $invoice->total_minor) {
+                            $invoice->status = Invoice::STATUS_PAID;
+                        } elseif ($invoice->paid_minor > 0) {
+                            $invoice->status = Invoice::STATUS_PARTIALLY_PAID;
+                        } elseif ($invoice->issued_at) {
+                            $invoice->status = Invoice::STATUS_ISSUED;
+                        }
+                        $invoice->save();
+
+                        Notification::make()
+                            ->title('Payment unlinked successfully')
+                            ->success()
+                            ->send();
+                    }),
             ])
             ->bulkActions([])
             ->defaultSort('paid_at', 'desc');
