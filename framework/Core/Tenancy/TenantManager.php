@@ -15,7 +15,11 @@ class TenantManager
             return $this->currentTenant;
         }
 
-        // In actual implementation, this would resolve from tenancy context
+        // Fallback to app container instance (set by IdentifyTenant middleware)
+        if (app()->bound('currentTenant')) {
+            return app('currentTenant');
+        }
+
         return null;
     }
 

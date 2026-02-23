@@ -40,6 +40,8 @@ class AttendanceSettingsPage extends Page
 
     public function mount(): void
     {
+        // Default to current branch
+        $this->selectedBranchId = current_branch_id();
         $this->loadSettings();
     }
 
@@ -49,6 +51,8 @@ class AttendanceSettingsPage extends Page
 
         foreach (Attendance::CONFIGURABLE_TYPES as $type) {
             $setting = AttendanceTypeSetting::query()
+                ->withoutGlobalScope('branch')
+                ->withoutGlobalScope('tenant')
                 ->ofType($type)
                 ->where(function ($q) use ($branchId) {
                     if ($branchId) {
@@ -341,6 +345,8 @@ class AttendanceSettingsPage extends Page
         try {
             DB::transaction(function () use ($type, $data) {
                 $setting = AttendanceTypeSetting::query()
+                    ->withoutGlobalScope('branch')
+                    ->withoutGlobalScope('tenant')
                     ->ofType($type)
                     ->where(function ($q) {
                         if ($this->selectedBranchId) {
@@ -353,9 +359,9 @@ class AttendanceSettingsPage extends Page
 
                 if (!$setting) {
                     $setting = new AttendanceTypeSetting();
-                    $setting->tenant_id = tenant()?->id ?? session('tenant_id');
                     $setting->branch_id = $this->selectedBranchId;
                     $setting->type = $type;
+                    // tenant_id is auto-set by HasTenancy trait
                 }
 
                 $setting->is_enabled = $data['is_enabled'] ?? false;
@@ -390,6 +396,8 @@ class AttendanceSettingsPage extends Page
     public function regenerateQrStatic(): void
     {
         $setting = AttendanceTypeSetting::query()
+            ->withoutGlobalScope('branch')
+            ->withoutGlobalScope('tenant')
             ->ofType(Attendance::TYPE_QR_STATIC)
             ->where(function ($q) {
                 if ($this->selectedBranchId) {
@@ -412,6 +420,8 @@ class AttendanceSettingsPage extends Page
     public function regenerateQrDynamicSecret(): void
     {
         $setting = AttendanceTypeSetting::query()
+            ->withoutGlobalScope('branch')
+            ->withoutGlobalScope('tenant')
             ->ofType(Attendance::TYPE_QR_DYNAMIC)
             ->where(function ($q) {
                 if ($this->selectedBranchId) {

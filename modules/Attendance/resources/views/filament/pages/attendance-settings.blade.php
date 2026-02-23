@@ -25,7 +25,7 @@
                 {{ __('attendance::attendance.settings.geofence.description') }}
             </x-slot>
 
-            <form wire:submit="saveGeofence">
+            <form wire:submit.prevent="saveGeofence">
                 {{ $this->geofenceForm }}
 
                 <div class="mt-4 flex justify-end">
@@ -49,7 +49,7 @@
                 {{ __('attendance::attendance.settings.qr_static.description') }}
             </x-slot>
 
-            <form wire:submit="saveQrStatic">
+            <form wire:submit.prevent="saveQrStatic">
                 {{ $this->qrStaticForm }}
 
                 <div class="mt-4 flex justify-end gap-2">
@@ -80,7 +80,7 @@
                 {{ __('attendance::attendance.settings.qr_dynamic.description') }}
             </x-slot>
 
-            <form wire:submit="saveQrDynamic">
+            <form wire:submit.prevent="saveQrDynamic">
                 {{ $this->qrDynamicForm }}
 
                 <div class="mt-4 flex justify-end gap-2">
@@ -111,7 +111,7 @@
                 {{ __('attendance::attendance.settings.biometric.description') }}
             </x-slot>
 
-            <form wire:submit="saveBiometric">
+            <form wire:submit.prevent="saveBiometric">
                 {{ $this->biometricForm }}
 
                 <div class="mt-4 flex justify-end">
