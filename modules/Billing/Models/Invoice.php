@@ -431,14 +431,14 @@ class Invoice extends BaseModel
         $payment->invoice_id = $this->id;
         $payment->save();
 
-        // Update deposits applied
-        $this->increment('deposits_applied_minor', $amountToApply);
+        // Update paid amount
+        $this->increment('paid_minor', $amountToApply);
 
         // Check if invoice is now fully paid
         $this->refresh();
-        if ($this->remaining_minor <= 0 && $this->status !== self::STATUS_PAID) {
+        if ($this->paid_minor >= $this->total_minor && $this->status !== self::STATUS_PAID) {
             $this->transitionTo(self::STATUS_PAID);
-        } elseif ($this->total_paid > 0 && $this->status === self::STATUS_ISSUED) {
+        } elseif ($this->paid_minor > 0 && $this->status === self::STATUS_ISSUED) {
             $this->transitionTo(self::STATUS_PARTIALLY_PAID);
         }
 
