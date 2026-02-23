@@ -19,10 +19,15 @@ return [
     'referrals' => 'الإحالات',
     'referral' => 'إحالة',
 
+    // Common
+    'loyalty_points' => 'نقاط الولاء',
+
     // Fields
     'fields' => [
         'name' => 'الاسم',
         'description' => 'الوصف',
+        'date' => 'التاريخ',
+        'balance' => 'الرصيد',
         'type' => 'النوع',
         'points_amount' => 'عدد النقاط',
         'points_per_currency_unit' => 'نقاط لكل جنيه',

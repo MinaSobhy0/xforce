@@ -19,10 +19,15 @@ return [
     'referrals' => 'Referrals',
     'referral' => 'Referral',
 
+    // Common
+    'loyalty_points' => 'Loyalty Points',
+
     // Fields
     'fields' => [
         'name' => 'Name',
         'description' => 'Description',
+        'date' => 'Date',
+        'balance' => 'Balance',
         'type' => 'Type',
         'points_amount' => 'Points Amount',
         'points_per_currency_unit' => 'Points per Currency Unit',
