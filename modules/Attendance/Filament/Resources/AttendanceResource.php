@@ -60,13 +60,32 @@ class AttendanceResource extends Resource
                                     ->getOptionLabelFromRecordUsing(fn (StaffProfile $record) => $record->user?->name ?? $record->id)
                                     ->searchable()
                                     ->preload()
-                                    ->required(),
+                                    ->required()
+                                    ->live()
+                                    ->afterStateUpdated(function ($state, Forms\Set $set) {
+                                        if ($state) {
+                                            $staff = StaffProfile::find($state);
+                                            if ($staff) {
+                                                // Auto-fill branch from staff profile
+                                                $set('branch_id', $staff->branch_id);
+
+                                                // Auto-fill working schedule from staff's primary schedule
+                                                $primarySchedule = $staff->primaryWorkSchedule();
+                                                if ($primarySchedule) {
+                                                    $set('working_schedule_id', $primarySchedule->id);
+                                                }
+                                            }
+                                        }
+                                    }),
 
                                 Forms\Components\Select::make('branch_id')
                                     ->label(__('attendance::attendance.branch'))
                                     ->relationship('branch', 'name')
                                     ->searchable()
-                                    ->preload(),
+                                    ->preload()
+                                    ->disabled()
+                                    ->dehydrated()
+                                    ->helperText(__('Auto-detected from staff profile')),
                             ]),
                     ]),
 
@@ -109,7 +128,10 @@ class AttendanceResource extends Resource
                                     ->label(__('attendance::attendance.working_schedule'))
                                     ->relationship('workingSchedule', 'name')
                                     ->searchable()
-                                    ->preload(),
+                                    ->preload()
+                                    ->disabled()
+                                    ->dehydrated()
+                                    ->helperText(__('Auto-detected from staff schedule')),
                             ]),
                     ]),
 
