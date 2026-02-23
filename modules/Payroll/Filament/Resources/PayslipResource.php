@@ -175,11 +175,39 @@ class PayslipResource extends Resource
 
                 Infolists\Components\Section::make(__('payroll::payroll.sections.summary'))
                     ->schema([
+                        Infolists\Components\TextEntry::make('base_salary')
+                            ->label(__('payroll::payroll.fields.base_salary'))
+                            ->money(current_currency()),
+
+                        Infolists\Components\TextEntry::make('allowances')
+                            ->label(__('payroll::payroll.fields.allowances'))
+                            ->money(current_currency()),
+
+                        Infolists\Components\TextEntry::make('commissions')
+                            ->label(__('payroll::payroll.fields.commissions'))
+                            ->money(current_currency()),
+
+                        Infolists\Components\TextEntry::make('bonuses')
+                            ->label(__('payroll::payroll.fields.bonuses'))
+                            ->money(current_currency()),
+
                         Infolists\Components\TextEntry::make('gross_salary_minor')
                             ->label(__('payroll::payroll.fields.gross_salary'))
                             ->formatStateUsing(fn ($state) => format_money($state))
                             ->weight(FontWeight::Bold)
                             ->color('success'),
+
+                        Infolists\Components\TextEntry::make('deductions')
+                            ->label(__('payroll::payroll.fields.other_deductions'))
+                            ->money(current_currency()),
+
+                        Infolists\Components\TextEntry::make('tax')
+                            ->label(__('payroll::payroll.fields.tax'))
+                            ->money(current_currency()),
+
+                        Infolists\Components\TextEntry::make('social_insurance')
+                            ->label(__('payroll::payroll.fields.social_insurance'))
+                            ->money(current_currency()),
 
                         Infolists\Components\TextEntry::make('total_deductions_minor')
                             ->label(__('payroll::payroll.fields.total_deductions'))
@@ -193,7 +221,7 @@ class PayslipResource extends Resource
                             ->size(Infolists\Components\TextEntry\TextEntrySize::Large)
                             ->weight(FontWeight::Bold)
                             ->color('primary'),
-                    ])->columns(3),
+                    ])->columns(5),
             ]);
     }
 

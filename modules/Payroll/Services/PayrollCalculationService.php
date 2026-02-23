@@ -194,6 +194,7 @@ class PayrollCalculationService
         // Apply salary structure rules if available
         if ($salaryStructure) {
             $rules = $salaryStructure->rules()
+                ->withoutGlobalScopes()
                 ->with('category')
                 ->orderBy('salary_structure_rules.sequence')
                 ->get();
@@ -427,11 +428,38 @@ class PayrollCalculationService
         $line->tax_minor = $newLine->tax_minor;
         $line->social_insurance_minor = $newLine->social_insurance_minor;
         $line->net_salary_minor = $newLine->net_salary_minor;
+        $line->rule_amounts_json = $newLine->rule_amounts_json;
 
         if (in_array('calculation_details', $line->getFillable())) {
             $line->calculation_details = $newLine->calculation_details ?? null;
         }
 
+        $line->save();
+
+        return $line;
+    }
+
+    /**
+     * Calculate or recalculate payslip for a specific employee.
+     *
+     * @param PayrollRun $run
+     * @param StaffProfile $staff
+     * @return PayrollLine
+     */
+    public function calculateForEmployee(PayrollRun $run, StaffProfile $staff): PayrollLine
+    {
+        // Check if line already exists
+        $existingLine = $run->lines()
+            ->withoutGlobalScopes()
+            ->where('staff_profile_id', $staff->id)
+            ->first();
+
+        if ($existingLine) {
+            return $this->recalculatePayslip($existingLine);
+        }
+
+        // Create new line
+        $line = $this->calculateEmployeePayslip($staff, $run);
         $line->save();
 
         return $line;
