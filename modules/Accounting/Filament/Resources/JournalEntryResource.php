@@ -75,8 +75,10 @@ class JournalEntryResource extends Resource
                             ->schema([
                                 Forms\Components\Select::make('account_id')
                                     ->label('Account')
-                                    ->options(ChartOfAccount::active()->postable()->get()->pluck('display_name', 'id'))
-                                    ->searchable()
+                                    ->relationship('account', 'code')
+                                    ->getOptionLabelFromRecordUsing(fn (ChartOfAccount $record) => $record->display_name)
+                                    ->searchable(['code', 'name'])
+                                    ->preload()
                                     ->required(),
 
                                 Forms\Components\TextInput::make('debit_minor')
@@ -208,9 +210,7 @@ class JournalEntryResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            RelationManagers\LinesRelationManager::class,
-        ];
+        return [];
     }
 
     public static function getPages(): array
