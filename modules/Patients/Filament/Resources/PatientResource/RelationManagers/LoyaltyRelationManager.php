@@ -29,20 +29,12 @@ class LoyaltyRelationManager extends RelationManager
                     ->dateTime()
                     ->sortable(),
 
-                Tables\Columns\BadgeColumn::make('type')
+                Tables\Columns\TextColumn::make('type')
                     ->label(__('loyalty::loyalty.fields.type'))
-                    ->colors([
-                        'success' => fn ($state) => in_array($state, [
-                            LoyaltyTransaction::TYPE_EARNED,
-                            LoyaltyTransaction::TYPE_BONUS,
-                            LoyaltyTransaction::TYPE_REFERRAL_BONUS,
-                        ]),
-                        'danger' => fn ($state) => in_array($state, [
-                            LoyaltyTransaction::TYPE_REDEEMED,
-                            LoyaltyTransaction::TYPE_EXPIRED,
-                            LoyaltyTransaction::TYPE_ADJUSTMENT,
-                        ]),
-                    ]),
+                    ->badge()
+                    ->color(fn ($state) => LoyaltyTransaction::getTypeColor($state))
+                    ->icon(fn ($state) => LoyaltyTransaction::getTypeIcon($state))
+                    ->formatStateUsing(fn ($state) => LoyaltyTransaction::getTypeLabel($state)),
 
                 Tables\Columns\TextColumn::make('points')
                     ->label(__('loyalty::loyalty.fields.points'))
@@ -60,12 +52,7 @@ class LoyaltyRelationManager extends RelationManager
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('type')
-                    ->options([
-                        LoyaltyTransaction::TYPE_EARNED => __('loyalty::loyalty.types.earned'),
-                        LoyaltyTransaction::TYPE_REDEEMED => __('loyalty::loyalty.types.redeemed'),
-                        LoyaltyTransaction::TYPE_BONUS => __('loyalty::loyalty.types.bonus'),
-                        LoyaltyTransaction::TYPE_EXPIRED => __('loyalty::loyalty.types.expired'),
-                    ]),
+                    ->options(LoyaltyTransaction::getTypeOptions()),
             ])
             ->headerActions([])
             ->actions([])

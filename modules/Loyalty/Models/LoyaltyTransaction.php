@@ -85,6 +85,26 @@ class LoyaltyTransaction extends BaseModel
         ];
     }
 
+    public static function getTypeOptions(): array
+    {
+        return self::getTypes();
+    }
+
+    public static function getTypeLabel(?string $type): string
+    {
+        return self::getTypes()[$type] ?? $type ?? '-';
+    }
+
+    public static function getTypeColor(?string $type): string
+    {
+        return self::getTypeColors()[$type] ?? 'gray';
+    }
+
+    public static function getTypeIcon(?string $type): string
+    {
+        return self::getTypeIcons()[$type] ?? 'heroicon-o-question-mark-circle';
+    }
+
     public function patient(): BelongsTo
     {
         return $this->belongsTo(Patient::class);
