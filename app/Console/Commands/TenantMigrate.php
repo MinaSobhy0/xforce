@@ -84,7 +84,7 @@ class TenantMigrate extends Command
 
     protected function migrateTenant(Tenant $tenant): int
     {
-        $schemaName = 'tenant_' . str_replace('-', '_', $tenant->slug);
+        $schemaName = $tenant->database_name ?: ('tenant_' . $tenant->slug);
 
         $this->info("Migrating tenant: {$tenant->name} (schema: {$schemaName})");
 
@@ -142,7 +142,7 @@ class TenantMigrate extends Command
 
     protected function migrateTenantSilently(Tenant $tenant): void
     {
-        $schemaName = 'tenant_' . str_replace('-', '_', $tenant->slug);
+        $schemaName = $tenant->database_name ?: ('tenant_' . $tenant->slug);
 
         DB::statement("SET search_path TO \"{$schemaName}\", public");
         Config::set('database.connections.tenant.search_path', $schemaName);
@@ -167,6 +167,7 @@ class TenantMigrate extends Command
         return [
             'database/migrations/tenant',
             'modules/Core/Database/Migrations',
+            'modules/Auth/Database/Migrations',
             'modules/Patients/Database/Migrations',
             'modules/Services/Database/Migrations',
             'modules/Booking/Database/Migrations',
@@ -181,6 +182,9 @@ class TenantMigrate extends Command
             'modules/Marketing/Database/Migrations',
             'modules/Reporting/Database/Migrations',
             'modules/PatientPortal/Database/Migrations',
+            'modules/Accounting/Database/Migrations',
+            'modules/Loyalty/Database/Migrations',
+            'modules/TreatmentPlans/Database/Migrations',
         ];
     }
 }
