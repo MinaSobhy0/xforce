@@ -13,12 +13,8 @@ class InventoryAccountingService
 {
     protected AccountingIntegrationService $accountingService;
 
-    // Default account codes (matching clinic chart of accounts)
-    protected string $defaultStockValuationCode = '1200'; // Inventory Asset
-    protected string $defaultStockInputCode = '2010'; // Supplier Payables / AP
-    protected string $defaultStockOutputCode = '5010'; // Medical Supplies Used / COGS
-    protected string $defaultAdjustmentExpenseCode = '5020'; // Consumables Used (for losses)
-    protected string $defaultAdjustmentIncomeCode = '4300'; // Other Income (for gains)
+    // Note: All accounts are now configured per-product
+    // Products must have stock_valuation_account_id, stock_input_account_id, stock_output_account_id set
 
     public function __construct(AccountingIntegrationService $accountingService)
     {
@@ -115,11 +111,12 @@ class InventoryAccountingService
 
     /**
      * Create journal entry for inventory adjustment.
+     * Uses product-specific accounts for proper accounting.
      */
     public function createAdjustmentJournalEntry(InventoryAdjustment $adjustment): ?JournalEntry
     {
         // Reload lines to ensure we have fresh data
-        $adjustment->load('lines.product');
+        $adjustment->load('lines.product.stockValuationAccount', 'lines.product.stockInputAccount', 'lines.product.stockOutputAccount');
 
         // Check if there are any actual changes
         $hasChanges = $adjustment->lines->contains(fn ($line) => !$line->isNoChange());
@@ -132,8 +129,6 @@ class InventoryAccountingService
         }
 
         $lines = [];
-        $totalPositive = 0;
-        $totalNegative = 0;
 
         foreach ($adjustment->lines as $line) {
             if ($line->isNoChange()) {
@@ -146,69 +141,68 @@ class InventoryAccountingService
             }
 
             $stockValuationAccount = $this->getStockValuationAccount($product);
+            $absValue = abs($line->value_adjustment_minor);
+            $productName = $product->getTranslation('name', 'en') ?? $product->sku;
 
             if (!$stockValuationAccount) {
-                \Log::warning('InventoryAccountingService: Stock valuation account not found', [
+                \Log::warning('InventoryAccountingService: Skipping line - missing stock valuation account', [
                     'product_id' => $product->id,
+                    'product_sku' => $product->sku,
                 ]);
                 continue;
             }
 
-            $absValue = abs($line->value_adjustment_minor);
-            $productName = $product->getTranslation('name', 'en') ?? $product->sku;
-
             if ($line->isPositiveAdjustment()) {
-                // Stock increase - Debit Inventory, Credit Adjustment Income
+                // Stock increase: Debit Inventory (valuation), Credit Stock Input
+                $stockInputAccount = $this->getStockInputAccount($product);
+
+                if (!$stockInputAccount) {
+                    \Log::warning('InventoryAccountingService: Skipping line - missing stock input account', [
+                        'product_id' => $product->id,
+                    ]);
+                    continue;
+                }
+
                 $lines[] = [
                     'account_code' => $stockValuationAccount->code,
                     'debit' => $absValue,
                     'credit' => 0,
                     'description' => "Stock increase: {$productName}",
                 ];
-                $totalPositive += $absValue;
+                $lines[] = [
+                    'account_code' => $stockInputAccount->code,
+                    'debit' => 0,
+                    'credit' => $absValue,
+                    'description' => "Stock increase: {$productName}",
+                ];
             } else {
-                // Stock decrease - Debit Adjustment Expense, Credit Inventory
+                // Stock decrease: Debit Stock Output (expense), Credit Inventory (valuation)
+                $stockOutputAccount = $this->getStockOutputAccount($product);
+
+                if (!$stockOutputAccount) {
+                    \Log::warning('InventoryAccountingService: Skipping line - missing stock output account', [
+                        'product_id' => $product->id,
+                    ]);
+                    continue;
+                }
+
+                $lines[] = [
+                    'account_code' => $stockOutputAccount->code,
+                    'debit' => $absValue,
+                    'credit' => 0,
+                    'description' => "Stock decrease: {$productName}",
+                ];
                 $lines[] = [
                     'account_code' => $stockValuationAccount->code,
                     'debit' => 0,
                     'credit' => $absValue,
                     'description' => "Stock decrease: {$productName}",
                 ];
-                $totalNegative += $absValue;
-            }
-        }
-
-        // Add the offsetting entries
-        if ($totalPositive > 0) {
-            $adjustmentIncomeAccount = $this->getAdjustmentIncomeAccount();
-            if ($adjustmentIncomeAccount) {
-                $lines[] = [
-                    'account_code' => $adjustmentIncomeAccount->code,
-                    'debit' => 0,
-                    'credit' => $totalPositive,
-                    'description' => 'Inventory adjustment gain',
-                ];
-            } else {
-                \Log::warning('InventoryAccountingService: Adjustment income account not found');
-            }
-        }
-
-        if ($totalNegative > 0) {
-            $adjustmentExpenseAccount = $this->getAdjustmentExpenseAccount();
-            if ($adjustmentExpenseAccount) {
-                $lines[] = [
-                    'account_code' => $adjustmentExpenseAccount->code,
-                    'debit' => $totalNegative,
-                    'credit' => 0,
-                    'description' => 'Inventory adjustment loss',
-                ];
-            } else {
-                \Log::warning('InventoryAccountingService: Adjustment expense account not found');
             }
         }
 
         if (empty($lines)) {
-            \Log::warning('InventoryAccountingService: No journal lines created', [
+            \Log::warning('InventoryAccountingService: No journal lines created - check product account configuration', [
                 'adjustment_id' => $adjustment->id,
             ]);
             return null;
@@ -246,102 +240,56 @@ class InventoryAccountingService
 
     /**
      * Get stock valuation account for a product.
+     * Uses product's configured account, no fallback - must be configured.
      */
     protected function getStockValuationAccount(Product $product): ?ChartOfAccount
     {
         if ($product->stock_valuation_account_id) {
-            return ChartOfAccount::find($product->stock_valuation_account_id);
+            return $product->stockValuationAccount;
         }
 
-        // Try to find default inventory account by various methods
-        return ChartOfAccount::where('code', $this->defaultStockValuationCode)
-            ->orWhere('sub_type', 'inventory')
-            ->orWhere('name', 'like', '%Inventory%')
-            ->orWhere('name', 'like', '%Stock%')
-            ->orWhere('name', 'like', '%المخزون%')
-            ->where('type', 'asset')
-            ->first()
-            ?? ChartOfAccount::where('type', 'asset')
-                ->where(function ($q) {
-                    $q->where('code', 'like', '14%')
-                        ->orWhere('code', 'like', '15%');
-                })
-                ->first();
+        \Log::warning('Product missing stock_valuation_account', [
+            'product_id' => $product->id,
+            'product_sku' => $product->sku,
+        ]);
+
+        return null;
     }
 
     /**
      * Get stock input account for a product (Accounts Payable / Goods Received).
+     * Uses product's configured account, no fallback - must be configured.
      */
     protected function getStockInputAccount(Product $product): ?ChartOfAccount
     {
         if ($product->stock_input_account_id) {
-            return ChartOfAccount::find($product->stock_input_account_id);
+            return $product->stockInputAccount;
         }
 
-        return ChartOfAccount::where('code', $this->defaultStockInputCode)
-            ->orWhere('sub_type', 'accounts_payable')
-            ->orWhere('name', 'like', '%Payable%')
-            ->orWhere('name', 'like', '%دائنون%')
-            ->orWhere('name', 'like', '%موردين%')
-            ->first()
-            ?? ChartOfAccount::where('type', 'liability')
-                ->where('code', 'like', '21%')
-                ->first();
+        \Log::warning('Product missing stock_input_account', [
+            'product_id' => $product->id,
+            'product_sku' => $product->sku,
+        ]);
+
+        return null;
     }
 
     /**
      * Get stock output account for a product (Cost of Goods Sold).
+     * Uses product's configured account, no fallback - must be configured.
      */
     protected function getStockOutputAccount(Product $product): ?ChartOfAccount
     {
         if ($product->stock_output_account_id) {
-            return ChartOfAccount::find($product->stock_output_account_id);
+            return $product->stockOutputAccount;
         }
 
-        return ChartOfAccount::where('code', $this->defaultStockOutputCode)
-            ->orWhere('sub_type', 'cost_of_goods')
-            ->orWhere('name', 'like', '%Cost of Goods%')
-            ->orWhere('name', 'like', '%COGS%')
-            ->orWhere('name', 'like', '%تكلفة البضاعة%')
-            ->first()
-            ?? ChartOfAccount::where('type', 'expense')
-                ->where('code', 'like', '51%')
-                ->first();
-    }
+        \Log::warning('Product missing stock_output_account', [
+            'product_id' => $product->id,
+            'product_sku' => $product->sku,
+        ]);
 
-    /**
-     * Get adjustment expense account.
-     */
-    protected function getAdjustmentExpenseAccount(): ?ChartOfAccount
-    {
-        return ChartOfAccount::where('code', $this->defaultAdjustmentExpenseCode)
-            ->orWhere('sub_type', 'operating_expense')
-            ->orWhere('name', 'like', '%Adjustment%')
-            ->orWhere('name', 'like', '%Loss%')
-            ->orWhere('name', 'like', '%خسائر%')
-            ->orWhere('name', 'like', '%تسوية%')
-            ->first()
-            ?? ChartOfAccount::where('type', 'expense')
-                ->where('code', 'like', '62%')
-                ->first()
-            ?? ChartOfAccount::where('type', 'expense')->first();
-    }
-
-    /**
-     * Get adjustment income account.
-     */
-    protected function getAdjustmentIncomeAccount(): ?ChartOfAccount
-    {
-        return ChartOfAccount::where('code', $this->defaultAdjustmentIncomeCode)
-            ->orWhere('sub_type', 'other_income')
-            ->orWhere('name', 'like', '%Other Income%')
-            ->orWhere('name', 'like', '%Gain%')
-            ->orWhere('name', 'like', '%إيرادات أخرى%')
-            ->first()
-            ?? ChartOfAccount::where('type', 'income')
-                ->where('code', 'like', '49%')
-                ->first()
-            ?? ChartOfAccount::where('type', 'income')->first();
+        return null;
     }
 
     /**

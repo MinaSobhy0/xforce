@@ -147,19 +147,55 @@ class PurchaseOrderLine extends BaseModel
 
     /**
      * Create journal entry for stock receipt.
+     * Uses product-specific accounts.
      */
     protected function createReceiptJournalEntry(StockMovement $movement, int $quantity): void
     {
         try {
-            $accountingService = app(\Modules\Inventory\Services\InventoryAccountingService::class);
+            $product = $this->product;
 
-            // Calculate value in major units (value = qty * unit_price in major)
-            $valueMajor = ($quantity * $this->unit_price_minor) / 100;
+            // Get product accounts
+            $stockValuationAccount = $product->stockValuationAccount;
+            $stockInputAccount = $product->stockInputAccount;
 
-            $accountingService->createStockReceiptEntry(
-                $movement,
-                (int) $valueMajor,
-                "Stock receipt: PO #{$this->purchaseOrder->order_number} - {$this->product->name} x {$quantity}"
+            if (!$stockValuationAccount || !$stockInputAccount) {
+                \Illuminate\Support\Facades\Log::warning('Product missing accounts for receipt journal entry', [
+                    'product_id' => $product->id,
+                    'has_valuation' => (bool) $stockValuationAccount,
+                    'has_input' => (bool) $stockInputAccount,
+                ]);
+                return;
+            }
+
+            $accountingService = app(\Modules\Accounting\Services\AccountingIntegrationService::class);
+
+            // Calculate value in minor units
+            $valueMinor = $quantity * $this->unit_price_minor;
+            $productName = $product->getTranslation('name', 'en') ?? $product->sku;
+
+            // Receipt entry: Debit Inventory (valuation), Credit Stock Input (AP)
+            $lines = [
+                [
+                    'account_code' => $stockValuationAccount->code,
+                    'debit' => $valueMinor,
+                    'credit' => 0,
+                    'description' => "Stock receipt: {$productName}",
+                ],
+                [
+                    'account_code' => $stockInputAccount->code,
+                    'debit' => 0,
+                    'credit' => $valueMinor,
+                    'description' => "Stock receipt: {$productName}",
+                ],
+            ];
+
+            $accountingService->createJournalEntry(
+                now(),
+                "Stock receipt: PO #{$this->purchaseOrder->order_number} - {$productName} x {$quantity}",
+                $lines,
+                'purchase_order',
+                $this->purchase_order_id,
+                true
             );
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::warning('Failed to create stock receipt journal entry', [
@@ -233,34 +269,51 @@ class PurchaseOrderLine extends BaseModel
 
     /**
      * Create reverse journal entry for stock reversal.
+     * Uses product-specific accounts.
      */
     protected function createReversalJournalEntry(StockMovement $movement, int $quantity): void
     {
         try {
+            $product = $this->product;
+
+            // Get product accounts
+            $stockValuationAccount = $product->stockValuationAccount;
+            $stockInputAccount = $product->stockInputAccount;
+
+            if (!$stockValuationAccount || !$stockInputAccount) {
+                \Illuminate\Support\Facades\Log::warning('Product missing accounts for reversal journal entry', [
+                    'product_id' => $product->id,
+                    'has_valuation' => (bool) $stockValuationAccount,
+                    'has_input' => (bool) $stockInputAccount,
+                ]);
+                return;
+            }
+
             $accountingService = app(\Modules\Accounting\Services\AccountingIntegrationService::class);
 
             // Calculate value in minor units
             $valueMinor = $quantity * $this->unit_price_minor;
+            $productName = $product->getTranslation('name', 'en') ?? $product->sku;
 
-            // Reverse entry: Debit Supplier Payables, Credit Inventory
+            // Reverse entry: Debit Stock Input (AP), Credit Inventory (valuation)
             $lines = [
                 [
-                    'account_code' => '2010', // Supplier Payables
+                    'account_code' => $stockInputAccount->code,
                     'debit' => $valueMinor,
                     'credit' => 0,
-                    'description' => "Reversal: {$this->product->name}",
+                    'description' => "Reversal: {$productName}",
                 ],
                 [
-                    'account_code' => '1200', // Inventory
+                    'account_code' => $stockValuationAccount->code,
                     'debit' => 0,
                     'credit' => $valueMinor,
-                    'description' => "Reversal: {$this->product->name}",
+                    'description' => "Reversal: {$productName}",
                 ],
             ];
 
             $accountingService->createJournalEntry(
                 now(),
-                "Stock reversal: PO #{$this->purchaseOrder->order_number} - {$this->product->name} x {$quantity}",
+                "Stock reversal: PO #{$this->purchaseOrder->order_number} - {$productName} x {$quantity}",
                 $lines,
                 'purchase_order_reversal',
                 $this->purchase_order_id,
