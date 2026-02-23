@@ -11,45 +11,47 @@ class CreateSalaryJournalOnPayrollPaid
 {
     /**
      * Default account codes for system deductions.
+     * Uses account codes that exist in standard chart of accounts.
      */
     protected array $systemAccountCodes = [
         'SI_EMP' => [
-            'debit' => '2100',  // Salaries Payable
-            'credit' => '2210', // Social Insurance Payable
+            'debit' => '2110',  // Accrued Salaries (reduce payable)
+            'credit' => '2100', // Accrued Expenses (SI payable)
         ],
         'TAX' => [
-            'debit' => '2100',  // Salaries Payable
-            'credit' => '2200', // Tax Payable
+            'debit' => '2110',  // Accrued Salaries (reduce payable)
+            'credit' => '2320', // Income Tax Payable
         ],
         'VIOLATION' => [
-            'debit' => '2100',  // Salaries Payable
-            'credit' => '2150', // Deductions Payable
+            'debit' => '2110',  // Accrued Salaries (reduce payable)
+            'credit' => '4300', // Other Income (penalty income)
         ],
     ];
 
     /**
      * Default account codes for category types (fallback).
+     * Uses account codes that exist in standard chart of accounts.
      */
     protected array $categoryDefaultCodes = [
         'earning' => [
-            'debit' => '6100',  // Salary Expense
-            'credit' => '2100', // Salaries Payable
+            'debit' => '5110',  // Staff Salaries Expense
+            'credit' => '2110', // Accrued Salaries
         ],
         'allowance' => [
-            'debit' => '6110',  // Allowances Expense
-            'credit' => '2100', // Salaries Payable
+            'debit' => '5110',  // Staff Salaries Expense
+            'credit' => '2110', // Accrued Salaries
         ],
         'benefit' => [
-            'debit' => '6120',  // Benefits Expense
-            'credit' => '2100', // Salaries Payable
+            'debit' => '5110',  // Staff Salaries Expense
+            'credit' => '2110', // Accrued Salaries
         ],
         'deduction' => [
-            'debit' => '2100',  // Salaries Payable
-            'credit' => '2150', // Deductions Payable
+            'debit' => '2110',  // Accrued Salaries (reduce payable)
+            'credit' => '2100', // Accrued Expenses
         ],
         'employer_contribution' => [
-            'debit' => '6200',  // Employer Contributions Expense
-            'credit' => '2160', // Employer Contributions Payable
+            'debit' => '5110',  // Staff Salaries Expense
+            'credit' => '2100', // Accrued Expenses
         ],
     ];
 
@@ -146,18 +148,30 @@ class CreateSalaryJournalOnPayrollPaid
                 }
             }
 
-            // Add final payment line (Credit Cash/Bank for net salary)
+            // Add final payment line (Debit Salaries Payable, Credit Cash/Bank for net salary)
             if ($totalNetSalary > 0) {
+                // Debit: Reduce salary payable (2110)
+                $payableKey = 'debit_2110';
+                if (!isset($journalLines[$payableKey])) {
+                    $journalLines[$payableKey] = [
+                        'account_code' => '2110',
+                        'debit' => 0,
+                        'credit' => 0,
+                    ];
+                }
+                $journalLines[$payableKey]['debit'] += $totalNetSalary;
+
+                // Credit: Cash/Bank payment
                 $cashAccountCode = $this->getCashAccountCode($connection);
-                $key = "credit_{$cashAccountCode}";
-                if (!isset($journalLines[$key])) {
-                    $journalLines[$key] = [
+                $cashKey = "credit_{$cashAccountCode}";
+                if (!isset($journalLines[$cashKey])) {
+                    $journalLines[$cashKey] = [
                         'account_code' => $cashAccountCode,
                         'debit' => 0,
                         'credit' => 0,
                     ];
                 }
-                $journalLines[$key]['credit'] += $totalNetSalary;
+                $journalLines[$cashKey]['credit'] += $totalNetSalary;
             }
 
             // Filter out zero-amount lines and convert to array
@@ -178,7 +192,9 @@ class CreateSalaryJournalOnPayrollPaid
                 description: "Payroll - {$payrollRun->period_label}",
                 lines: $lines,
                 referenceType: 'payroll_run',
-                referenceId: $payrollRun->id
+                referenceId: $payrollRun->id,
+                autoPost: true,
+                tenantId: $payrollRun->tenant_id
             );
 
             Log::info('CreateSalaryJournalOnPayrollPaid: Journal entry created', [
@@ -215,8 +231,8 @@ class CreateSalaryJournalOnPayrollPaid
         if ($line->social_insurance_minor > 0) {
             // Debit: Salaries Payable (2110)
             $this->addToJournalLine($journalLines, '2110', $line->social_insurance_minor, 0);
-            // Credit: Social Insurance Payable - use existing account or create
-            $this->addToJournalLine($journalLines, '2310', 0, $line->social_insurance_minor);
+            // Credit: Accrued Expenses (2100) - for SI payable
+            $this->addToJournalLine($journalLines, '2100', 0, $line->social_insurance_minor);
         }
 
         // Tax
@@ -264,9 +280,23 @@ class CreateSalaryJournalOnPayrollPaid
         $salaryRules,
         string $connection
     ): array {
-        // For system rules (SI, Tax, Violations), use system defaults
-        if ($isSystem && isset($this->systemAccountCodes[$ruleCode])) {
-            return $this->systemAccountCodes[$ruleCode];
+        // For system rules, first try to find matching salary rule by code
+        if ($isSystem && !$ruleId) {
+            $rule = $salaryRules->firstWhere('code', $ruleCode);
+            if ($rule && $rule->creates_journal_entry) {
+                $debitAccount = $rule->debitAccount;
+                $creditAccount = $rule->creditAccount;
+                if ($debitAccount || $creditAccount) {
+                    return [
+                        'debit' => $debitAccount?->code,
+                        'credit' => $creditAccount?->code,
+                    ];
+                }
+            }
+            // Fall back to system defaults
+            if (isset($this->systemAccountCodes[$ruleCode])) {
+                return $this->systemAccountCodes[$ruleCode];
+            }
         }
 
         // For salary rules, check if they have configured accounts

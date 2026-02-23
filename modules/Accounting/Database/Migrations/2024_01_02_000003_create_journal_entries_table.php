@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('journal_entries', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->uuid('tenant_id')->index();
+            $table->uuid('journal_id')->nullable()->index();
             $table->string('code')->index();
             $table->date('date')->index();
             $table->string('reference')->nullable()->index();

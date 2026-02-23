@@ -68,6 +68,7 @@ class AccountingIntegrationService
      * @param string|null $referenceType
      * @param string|null $referenceId
      * @param bool $autoPost
+     * @param string|null $tenantId
      * @return JournalEntry|null
      */
     public function createJournalEntry(
@@ -76,14 +77,16 @@ class AccountingIntegrationService
         array $lines,
         ?string $referenceType = null,
         ?string $referenceId = null,
-        bool $autoPost = true
+        bool $autoPost = true,
+        ?string $tenantId = null
     ): ?JournalEntry {
         if (empty($lines)) {
             Log::warning('AccountingIntegrationService: No lines provided for journal entry');
             return null;
         }
 
-        $tenantId = $this->getTenantId();
+        // Use provided tenant_id or try to resolve it
+        $tenantId = $tenantId ?? $this->getTenantId();
 
         try {
             return DB::transaction(function () use ($date, $description, $lines, $referenceType, $referenceId, $autoPost, $tenantId) {
@@ -99,6 +102,8 @@ class AccountingIntegrationService
                         'code' => 'GJ',
                         'name' => 'General Journal',
                         'type' => 'general',
+                        'sequence_prefix' => 'GJ',
+                        'next_sequence' => 1,
                         'is_active' => true,
                     ]);
                 }
