@@ -24,7 +24,12 @@ class ReceivePurchaseOrder extends Page
 
     public function mount(int | string $record): void
     {
-        $this->record = PurchaseOrder::with('lines.product')->findOrFail($record);
+        // Handle case where record might be passed as JSON or model
+        $recordId = is_string($record) && str_starts_with($record, '{')
+            ? json_decode($record, true)['id'] ?? $record
+            : (is_object($record) ? $record->getKey() : $record);
+
+        $this->record = PurchaseOrder::with('lines.product')->findOrFail($recordId);
 
         if (!$this->record->canReceive()) {
             Notification::make()

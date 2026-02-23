@@ -39,7 +39,7 @@ class ViewPurchaseOrder extends BaseViewRecord
                 ->icon('heroicon-o-inbox-arrow-down')
                 ->color('success')
                 ->visible(fn () => $this->record->canReceive())
-                ->url(fn () => $this->getResource()::getUrl('receive', ['record' => $this->record])),
+                ->url(fn () => $this->getResource()::getUrl('receive', ['record' => $this->record->getKey()])),
 
             Actions\Action::make('cancel')
                 ->label(__('inventory::inventory.actions.cancel'))
