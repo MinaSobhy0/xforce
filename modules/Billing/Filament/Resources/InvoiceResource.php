@@ -192,6 +192,7 @@ class InvoiceResource extends Resource
                                     ->reorderable()
                                     ->reorderableWithButtons()
                                     ->cloneable()
+                                    ->live(onBlur: true)
                                     ->itemLabel(fn (array $state): ?string => $state['description'] ?? null),
                             ]),
                     ])
@@ -203,9 +204,26 @@ class InvoiceResource extends Resource
                             ->schema([
                                 Forms\Components\Placeholder::make('subtotal_display')
                                     ->label('Subtotal')
-                                    ->content(fn (?Invoice $record) => $record
-                                        ? format_money($record->subtotal_minor)
-                                        : '-'),
+                                    ->content(function (Forms\Get $get) {
+                                        $lines = $get('lines') ?? [];
+                                        $subtotal = 0;
+                                        foreach ($lines as $line) {
+                                            $qty = (float) ($line['quantity'] ?? 0);
+                                            $price = (float) ($line['unit_price_minor'] ?? 0) * 100;
+                                            $lineSubtotal = $qty * $price;
+
+                                            // Apply line discount
+                                            $discountType = $line['discount_type'] ?? 'fixed';
+                                            $discountValue = (float) ($line['discount_minor'] ?? 0);
+                                            if ($discountType === 'percent') {
+                                                $lineSubtotal -= $lineSubtotal * $discountValue / 100;
+                                            } else {
+                                                $lineSubtotal -= $discountValue * 100;
+                                            }
+                                            $subtotal += max(0, $lineSubtotal);
+                                        }
+                                        return format_money((int) $subtotal);
+                                    }),
 
                                 Forms\Components\Select::make('discount_type')
                                     ->options([
@@ -219,32 +237,91 @@ class InvoiceResource extends Resource
                                     ->label('Discount Value')
                                     ->numeric()
                                     ->default(0)
+                                    ->live(onBlur: true)
                                     ->formatStateUsing(function ($state, Forms\Get $get) {
                                         if ($get('discount_type') === 'percent') {
-                                            return $state ?: 0; // Percent stored as-is
+                                            return $state ?: 0;
                                         }
-                                        return $state ? $state / 100 : 0; // Fixed stored in minor
+                                        return $state ? $state / 100 : 0;
                                     })
                                     ->dehydrateStateUsing(function ($state, Forms\Get $get) {
                                         if ($get('discount_type') === 'percent') {
-                                            return $state ? (int) $state : 0; // Percent stored as-is
+                                            return $state ? (int) $state : 0;
                                         }
-                                        return $state ? (int) ($state * 100) : 0; // Fixed stored in minor
+                                        return $state ? (int) ($state * 100) : 0;
                                     })
                                     ->prefix(fn (Forms\Get $get) => $get('discount_type') === 'percent' ? null : current_currency())
                                     ->suffix(fn (Forms\Get $get) => $get('discount_type') === 'percent' ? '%' : null),
 
                                 Forms\Components\Placeholder::make('tax_display')
                                     ->label('Tax')
-                                    ->content(fn (?Invoice $record) => $record
-                                        ? format_money($record->tax_minor)
-                                        : '-'),
+                                    ->content(function (Forms\Get $get) {
+                                        $lines = $get('lines') ?? [];
+                                        $tax = 0;
+                                        foreach ($lines as $line) {
+                                            $qty = (float) ($line['quantity'] ?? 0);
+                                            $price = (float) ($line['unit_price_minor'] ?? 0) * 100;
+                                            $lineSubtotal = $qty * $price;
+
+                                            // Apply line discount first
+                                            $discountType = $line['discount_type'] ?? 'fixed';
+                                            $discountValue = (float) ($line['discount_minor'] ?? 0);
+                                            if ($discountType === 'percent') {
+                                                $lineSubtotal -= $lineSubtotal * $discountValue / 100;
+                                            } else {
+                                                $lineSubtotal -= $discountValue * 100;
+                                            }
+                                            $lineSubtotal = max(0, $lineSubtotal);
+
+                                            // Calculate tax
+                                            $taxRate = (float) ($line['tax_rate'] ?? 0);
+                                            $tax += $lineSubtotal * $taxRate / 100;
+                                        }
+                                        return format_money((int) $tax);
+                                    }),
 
                                 Forms\Components\Placeholder::make('total_display')
                                     ->label('Total')
-                                    ->content(fn (?Invoice $record) => $record
-                                        ? format_money($record->total_minor)
-                                        : '-'),
+                                    ->content(function (Forms\Get $get) {
+                                        $lines = $get('lines') ?? [];
+                                        $subtotal = 0;
+                                        $tax = 0;
+
+                                        foreach ($lines as $line) {
+                                            $qty = (float) ($line['quantity'] ?? 0);
+                                            $price = (float) ($line['unit_price_minor'] ?? 0) * 100;
+                                            $lineSubtotal = $qty * $price;
+
+                                            // Apply line discount
+                                            $discountType = $line['discount_type'] ?? 'fixed';
+                                            $discountValue = (float) ($line['discount_minor'] ?? 0);
+                                            if ($discountType === 'percent') {
+                                                $lineSubtotal -= $lineSubtotal * $discountValue / 100;
+                                            } else {
+                                                $lineSubtotal -= $discountValue * 100;
+                                            }
+                                            $lineSubtotal = max(0, $lineSubtotal);
+                                            $subtotal += $lineSubtotal;
+
+                                            // Calculate tax
+                                            $taxRate = (float) ($line['tax_rate'] ?? 0);
+                                            $tax += $lineSubtotal * $taxRate / 100;
+                                        }
+
+                                        // Apply invoice-level discount
+                                        $invoiceDiscountType = $get('discount_type') ?? 'fixed';
+                                        $invoiceDiscountValue = (float) ($get('discount_minor') ?? 0);
+                                        $invoiceDiscount = 0;
+                                        if ($invoiceDiscountType === 'percent') {
+                                            $invoiceDiscount = $subtotal * $invoiceDiscountValue / 100;
+                                        } else {
+                                            $invoiceDiscount = $invoiceDiscountValue * 100;
+                                        }
+
+                                        $total = max(0, $subtotal + $tax - $invoiceDiscount);
+                                        return format_money((int) $total);
+                                    })
+                                    ->extraAttributes(['class' => 'text-lg font-bold']),
                             ]),
 
                         Forms\Components\Section::make('Notes')
