@@ -12,6 +12,54 @@ use Modules\Accounting\Models\JournalEntryLine;
 class AccountingIntegrationService
 {
     /**
+     * Get the current tenant ID from various sources.
+     */
+    protected function getTenantId(): ?string
+    {
+        // Try TenantManager first
+        try {
+            $tenantManager = app(\XLinic\Framework\Core\Tenancy\TenantManager::class);
+            if ($tenantManager->current()) {
+                return $tenantManager->current()->id;
+            }
+        } catch (\Exception $e) {
+            // Ignore
+        }
+
+        // Try app('currentTenant')
+        try {
+            if ($tenant = app('currentTenant')) {
+                return $tenant->id;
+            }
+        } catch (\Exception $e) {
+            // Ignore
+        }
+
+        // Try to resolve from database search_path
+        try {
+            $result = DB::select('SHOW search_path');
+            $searchPath = $result[0]->search_path ?? 'public';
+
+            if (preg_match('/tenant[_-]([^,\s"]+)/', $searchPath, $matches)) {
+                $slug = str_replace('_', '-', $matches[1]);
+                $tenant = DB::connection('pgsql')
+                    ->table('tenants')
+                    ->where('slug', $slug)
+                    ->orWhere('slug', $matches[1])
+                    ->first();
+
+                if ($tenant) {
+                    return $tenant->id;
+                }
+            }
+        } catch (\Exception $e) {
+            // Ignore
+        }
+
+        return null;
+    }
+
+    /**
      * Create a journal entry with lines.
      *
      * @param \DateTimeInterface|string $date
@@ -35,8 +83,10 @@ class AccountingIntegrationService
             return null;
         }
 
+        $tenantId = $this->getTenantId();
+
         try {
-            return DB::transaction(function () use ($date, $description, $lines, $referenceType, $referenceId, $autoPost) {
+            return DB::transaction(function () use ($date, $description, $lines, $referenceType, $referenceId, $autoPost, $tenantId) {
                 // Get or create the general journal
                 $journal = Journal::withoutGlobalScopes()
                     ->where('code', 'GJ')
@@ -45,6 +95,7 @@ class AccountingIntegrationService
 
                 if (!$journal) {
                     $journal = Journal::create([
+                        'tenant_id' => $tenantId,
                         'code' => 'GJ',
                         'name' => 'General Journal',
                         'type' => 'general',
@@ -54,6 +105,7 @@ class AccountingIntegrationService
 
                 // Create the journal entry
                 $entry = JournalEntry::create([
+                    'tenant_id' => $tenantId,
                     'journal_id' => $journal->id,
                     'date' => $date,
                     'description' => $description,
@@ -90,6 +142,7 @@ class AccountingIntegrationService
                     }
 
                     JournalEntryLine::create([
+                        'tenant_id' => $tenantId,
                         'journal_entry_id' => $entry->id,
                         'account_id' => $account->id,
                         'debit_minor' => $debitMinor,
