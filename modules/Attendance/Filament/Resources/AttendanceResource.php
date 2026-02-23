@@ -203,8 +203,7 @@ class AttendanceResource extends Resource
                     ->label(__('attendance::attendance.violations'))
                     ->badge()
                     ->color('danger')
-                    ->getStateUsing(fn (Attendance $record) => $record->violations()->count())
-                    ->visible(fn ($state) => $state > 0),
+                    ->getStateUsing(fn (?Attendance $record) => $record?->violations()->count() ?? 0),
 
                 Tables\Columns\TextColumn::make('branch.name')
                     ->label(__('attendance::attendance.branch'))
