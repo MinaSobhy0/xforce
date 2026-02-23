@@ -15,9 +15,9 @@ class AttendanceSettingsPage extends Page
 {
     protected static ?string $navigationIcon = 'heroicon-o-cog-6-tooth';
 
-    protected static ?string $navigationGroup = 'Attendance';
+    protected static ?string $navigationGroup = 'HR';
 
-    protected static ?int $navigationSort = 10;
+    protected static ?int $navigationSort = 50;
 
     protected static string $view = 'attendance::filament.pages.attendance-settings';
 
