@@ -2,6 +2,18 @@
     :component="$getFieldWrapperView()"
     :field="$field"
 >
+    <style>
+        .fitzpatrick-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+        }
+        @media (min-width: 640px) {
+            .fitzpatrick-grid {
+                grid-template-columns: repeat(6, 1fr);
+            }
+        }
+    </style>
     <div
         x-data="{
             state: $wire.$entangle('{{ $getStatePath() }}'),
@@ -15,7 +27,7 @@
         }"
         class="fitzpatrick-selector"
     >
-        <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">
+        <div class="fitzpatrick-grid">
             @foreach ($getTypes() as $typeKey => $type)
                 <button
                     type="button"
@@ -24,7 +36,7 @@
                         'ring-2 ring-primary-500 ring-offset-2 dark:ring-offset-gray-900': isSelected('{{ $typeKey }}'),
                         'hover:ring-1 hover:ring-gray-300 dark:hover:ring-gray-600': !isSelected('{{ $typeKey }}')
                     }"
-                    class="relative flex flex-col items-center p-2 rounded-lg border border-gray-200 dark:border-gray-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    class="relative flex flex-col items-center p-2 rounded-lg border border-gray-200 dark:border-gray-700 transition-all duration-200 focus:outline-none"
                     title="{{ $type['description'] }}"
                 >
                     {{-- Skin tone circle --}}
