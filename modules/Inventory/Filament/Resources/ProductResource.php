@@ -124,16 +124,18 @@ class ProductResource extends Resource
                                             ->numeric()
                                             ->required()
                                             ->default(0)
-                                            ->suffix('cents')
-                                            ->helperText('Enter price in minor units (cents)'),
+                                            ->prefix(current_currency())
+                                            ->formatStateUsing(fn ($state) => $state ? $state / 100 : null)
+                                            ->dehydrateStateUsing(fn ($state) => $state ? (int) ($state * 100) : 0),
 
                                         Forms\Components\TextInput::make('sell_price_minor')
                                             ->label(__('inventory::inventory.fields.sell_price'))
                                             ->numeric()
                                             ->required()
                                             ->default(0)
-                                            ->suffix('cents')
-                                            ->helperText('Enter price in minor units (cents)'),
+                                            ->prefix(current_currency())
+                                            ->formatStateUsing(fn ($state) => $state ? $state / 100 : null)
+                                            ->dehydrateStateUsing(fn ($state) => $state ? (int) ($state * 100) : 0),
                                     ]),
                             ]),
 

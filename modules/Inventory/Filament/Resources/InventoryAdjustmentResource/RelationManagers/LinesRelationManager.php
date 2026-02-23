@@ -86,7 +86,8 @@ class LinesRelationManager extends RelationManager
                             ->numeric()
                             ->disabled()
                             ->dehydrated(true)
-                            ->suffix('cents'),
+                            ->prefix(current_currency())
+                            ->formatStateUsing(fn ($state) => $state ? number_format($state / 100, 2) : null),
                     ]),
 
                 Forms\Components\Hidden::make('value_adjustment_minor'),
