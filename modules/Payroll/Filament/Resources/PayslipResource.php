@@ -10,6 +10,8 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
+use Filament\Support\Enums\FontWeight;
+use Illuminate\Support\HtmlString;
 use Modules\Payroll\Models\PayrollLine;
 use Modules\Payroll\Models\PayrollRun;
 use Modules\Payroll\Filament\Resources\PayslipResource\Pages;
@@ -145,59 +147,53 @@ class PayslipResource extends Resource
                             ->color(fn ($state) => PayrollRun::STATUS_COLORS[$state] ?? 'gray'),
                     ])->columns(4),
 
-                Infolists\Components\Section::make(__('payroll::payroll.sections.earnings'))
+                // Salary Rules Breakdown - Earnings
+                Infolists\Components\Section::make(__('payroll::payroll.sections.salary_rules_earnings'))
                     ->schema([
-                        Infolists\Components\TextEntry::make('base_salary')
-                            ->label(__('payroll::payroll.fields.base_salary'))
-                            ->money(current_currency()),
+                        Infolists\Components\ViewEntry::make('rule_amounts_json')
+                            ->label('')
+                            ->view('payroll::filament.infolists.salary-rules-table', [
+                                'type' => 'earnings',
+                            ])
+                            ->columnSpanFull(),
+                    ])
+                    ->visible(fn (?PayrollLine $record) => !empty($record?->rule_amounts_json))
+                    ->collapsible(),
 
-                        Infolists\Components\TextEntry::make('allowances')
-                            ->label(__('payroll::payroll.fields.allowances'))
-                            ->money(current_currency()),
+                // Salary Rules Breakdown - Deductions
+                Infolists\Components\Section::make(__('payroll::payroll.sections.salary_rules_deductions'))
+                    ->schema([
+                        Infolists\Components\ViewEntry::make('rule_amounts_json')
+                            ->label('')
+                            ->view('payroll::filament.infolists.salary-rules-table', [
+                                'type' => 'deductions',
+                            ])
+                            ->columnSpanFull(),
+                    ])
+                    ->visible(fn (?PayrollLine $record) => !empty($record?->rule_amounts_json))
+                    ->collapsible(),
 
-                        Infolists\Components\TextEntry::make('commissions')
-                            ->label(__('payroll::payroll.fields.commissions'))
-                            ->money(current_currency()),
-
-                        Infolists\Components\TextEntry::make('bonuses')
-                            ->label(__('payroll::payroll.fields.bonuses'))
-                            ->money(current_currency()),
-
+                Infolists\Components\Section::make(__('payroll::payroll.sections.summary'))
+                    ->schema([
                         Infolists\Components\TextEntry::make('gross_salary_minor')
                             ->label(__('payroll::payroll.fields.gross_salary'))
                             ->formatStateUsing(fn ($state) => format_money($state))
-                            ->weight('bold'),
-                    ])->columns(5),
-
-                Infolists\Components\Section::make(__('payroll::payroll.sections.deductions'))
-                    ->schema([
-                        Infolists\Components\TextEntry::make('deductions')
-                            ->label(__('payroll::payroll.fields.deductions'))
-                            ->money(current_currency()),
-
-                        Infolists\Components\TextEntry::make('tax')
-                            ->label(__('payroll::payroll.fields.tax'))
-                            ->money(current_currency()),
-
-                        Infolists\Components\TextEntry::make('social_insurance')
-                            ->label(__('payroll::payroll.fields.social_insurance'))
-                            ->money(current_currency()),
+                            ->weight(FontWeight::Bold)
+                            ->color('success'),
 
                         Infolists\Components\TextEntry::make('total_deductions_minor')
                             ->label(__('payroll::payroll.fields.total_deductions'))
                             ->formatStateUsing(fn ($state) => format_money($state))
-                            ->weight('bold'),
-                    ])->columns(4),
+                            ->weight(FontWeight::Bold)
+                            ->color('danger'),
 
-                Infolists\Components\Section::make(__('payroll::payroll.sections.net'))
-                    ->schema([
                         Infolists\Components\TextEntry::make('net_salary')
                             ->label(__('payroll::payroll.fields.net_salary'))
                             ->money(current_currency())
-                            ->size('lg')
-                            ->weight('bold')
-                            ->color('success'),
-                    ]),
+                            ->size(Infolists\Components\TextEntry\TextEntrySize::Large)
+                            ->weight(FontWeight::Bold)
+                            ->color('primary'),
+                    ])->columns(3),
             ]);
     }
 

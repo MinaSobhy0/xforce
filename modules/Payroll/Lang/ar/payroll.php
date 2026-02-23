@@ -45,6 +45,9 @@ return [
         'dates' => 'التواريخ',
         'value' => 'القيمة',
         'linked_rule' => 'قاعدة الراتب المرتبطة',
+        'salary_rules_earnings' => 'تفاصيل الإيرادات',
+        'salary_rules_deductions' => 'تفاصيل الخصومات',
+        'summary' => 'ملخص الراتب',
     ],
 
     'fields' => [
@@ -104,6 +107,9 @@ return [
         'debit_account' => 'حساب المدين',
         'credit_account' => 'حساب الدائن',
         'journal_entries' => 'القيود اليومية',
+        'rule_code' => 'الكود',
+        'rule_name' => 'الوصف',
+        'total_earnings' => 'إجمالي الإيرادات',
     ],
 
     'types' => [
@@ -193,6 +199,8 @@ return [
         'no_rule' => 'لا توجد قاعدة راتب مرتبطة',
         'recalculate_single_confirm' => 'سيتم إعادة حساب كشف الراتب هذا بناءً على هيكل ومكونات راتب الموظف الحالية. سيتم الكتابة على أي تعديلات يدوية. متابعة؟',
         'payslip_recalculated' => 'تم إعادة حساب كشف الراتب بنجاح',
+        'no_earnings' => 'لا توجد قواعد إيرادات',
+        'no_deductions' => 'لا توجد قواعد خصومات',
     ],
 
     'help' => [

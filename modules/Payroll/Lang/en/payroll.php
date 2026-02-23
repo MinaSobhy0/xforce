@@ -45,6 +45,9 @@ return [
         'dates' => 'Dates',
         'value' => 'Value',
         'linked_rule' => 'Linked Salary Rule',
+        'salary_rules_earnings' => 'Earnings Breakdown',
+        'salary_rules_deductions' => 'Deductions Breakdown',
+        'summary' => 'Payment Summary',
     ],
 
     'fields' => [
@@ -104,6 +107,9 @@ return [
         'debit_account' => 'Debit Account',
         'credit_account' => 'Credit Account',
         'journal_entries' => 'Journal Entries',
+        'rule_code' => 'Code',
+        'rule_name' => 'Description',
+        'total_earnings' => 'Total Earnings',
     ],
 
     'types' => [
@@ -193,6 +199,8 @@ return [
         'no_rule' => 'No salary rule linked',
         'recalculate_single_confirm' => 'This will recalculate this payslip based on the employee\'s current salary structure and components. Any manual adjustments will be overwritten. Continue?',
         'payslip_recalculated' => 'Payslip recalculated successfully',
+        'no_earnings' => 'No earnings rules applied',
+        'no_deductions' => 'No deductions rules applied',
     ],
 
     'help' => [
