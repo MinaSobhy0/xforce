@@ -219,6 +219,13 @@ class PayrollCalculationService
                     'amount_minor' => $amountMinor,
                 ];
 
+                // Add rule result to context for subsequent calculations
+                // This allows formulas like "BASIC + HRA + TA" to work
+                $context[$rule->code] = $amountMinor / 100; // Major units
+
+                // Determine category type
+                $categoryType = $rule->category?->type ?? 'earning';
+
                 // Track for journal entries (only non-zero amounts)
                 if ($amountMinor != 0) {
                     $ruleAmounts[] = [
@@ -230,12 +237,7 @@ class PayrollCalculationService
                     ];
                 }
 
-                // Add rule result to context for subsequent calculations
-                // This allows formulas like "BASIC + HRA + TA" to work
-                $context[$rule->code] = $amountMinor / 100; // Major units
-
                 // Add to appropriate category
-                $categoryType = $rule->category?->type ?? 'earning';
 
                 switch ($categoryType) {
                     case 'allowance':
@@ -262,6 +264,7 @@ class PayrollCalculationService
         // Apply employee-specific salary components
         // Skip components that are linked to salary rules (they're already handled via rules)
         $components = EmployeeSalaryComponent::on($staff->getConnectionName())
+            ->withoutGlobalScopes()
             ->where('staff_profile_id', $staff->id)
             ->whereNull('salary_rule_id') // Only custom components not tied to rules
             ->active()
@@ -571,6 +574,7 @@ class PayrollCalculationService
         ];
 
         $components = EmployeeSalaryComponent::on($staff->getConnectionName())
+            ->withoutGlobalScopes()
             ->where('staff_profile_id', $staff->id)
             ->active()
             ->effective(now())
@@ -610,7 +614,9 @@ class PayrollCalculationService
     public function getEligibleEmployees(PayrollRun $run): Collection
     {
         // Use the same connection as the payroll run
+        // Skip global scopes since we're already operating in the correct tenant schema
         return StaffProfile::on($run->getConnectionName())
+            ->withoutGlobalScopes()
             ->with(['user', 'salaryStructures.salaryStructure', 'salaryComponents'])
             ->where('is_active', true)
             ->get();
@@ -630,7 +636,9 @@ class PayrollCalculationService
         }
 
         // Query directly using the same connection as the staff model
+        // Skip global scopes since we're already in the correct tenant schema
         return EmployeeSalaryStructure::on($staff->getConnectionName())
+            ->withoutGlobalScopes()
             ->where('staff_profile_id', $staff->id)
             ->where('is_current', true)
             ->with('salaryStructure.rules.category')
@@ -731,6 +739,7 @@ class PayrollCalculationService
     public function getCommissionData(StaffProfile $staff, Carbon $start, Carbon $end): array
     {
         $commissions = StaffCommissionRecord::on($staff->getConnectionName())
+            ->withoutGlobalScopes()
             ->where('staff_profile_id', $staff->id)
             ->whereBetween('created_at', [$start, $end])
             ->where('status', StaffCommissionRecord::STATUS_APPROVED)
@@ -769,6 +778,7 @@ class PayrollCalculationService
 
         try {
             $attendances = Attendance::on($staff->getConnectionName())
+                ->withoutGlobalScopes()
                 ->where('staff_profile_id', $staff->id)
                 ->whereBetween('attendance_date', [$start, $end])
                 ->get();
@@ -789,6 +799,7 @@ class PayrollCalculationService
 
             // Sum late minutes from violations
             $lateMinutes = AttendanceViolation::on($staff->getConnectionName())
+                ->withoutGlobalScopes()
                 ->where('staff_profile_id', $staff->id)
                 ->whereBetween('violation_date', [$start, $end])
                 ->where('violation_type', 'late_checkin')
@@ -797,6 +808,7 @@ class PayrollCalculationService
 
             // Sum early checkout minutes
             $earlyMinutes = AttendanceViolation::on($staff->getConnectionName())
+                ->withoutGlobalScopes()
                 ->where('staff_profile_id', $staff->id)
                 ->whereBetween('violation_date', [$start, $end])
                 ->where('violation_type', 'early_checkout')
@@ -854,6 +866,7 @@ class PayrollCalculationService
 
         try {
             $violations = AttendanceViolation::on($staff->getConnectionName())
+                ->withoutGlobalScopes()
                 ->where('staff_profile_id', $staff->id)
                 ->whereBetween('violation_date', [$start, $end])
                 ->where('status', AttendanceViolation::STATUS_APPROVED)
