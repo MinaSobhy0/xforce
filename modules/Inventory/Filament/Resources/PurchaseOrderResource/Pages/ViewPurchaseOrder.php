@@ -56,6 +56,22 @@ class ViewPurchaseOrder extends BaseViewRecord
                         $this->refreshFormData(['status']);
                     }
                 }),
+
+            Actions\Action::make('reset_to_draft')
+                ->label(__('inventory::inventory.actions.reset_to_draft'))
+                ->icon('heroicon-o-arrow-path')
+                ->color('warning')
+                ->visible(fn () => $this->record->canResetToDraft())
+                ->requiresConfirmation()
+                ->action(function () {
+                    if ($this->record->resetToDraft()) {
+                        Notification::make()
+                            ->title(__('inventory::inventory.messages.order_reset_to_draft'))
+                            ->success()
+                            ->send();
+                        $this->refreshFormData(['status']);
+                    }
+                }),
         ];
     }
 }

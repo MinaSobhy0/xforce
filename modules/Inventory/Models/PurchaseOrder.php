@@ -93,7 +93,7 @@ class PurchaseOrder extends BaseModel
         self::STATUS_SENT => [self::STATUS_PARTIALLY_RECEIVED, self::STATUS_RECEIVED, self::STATUS_CANCELLED],
         self::STATUS_PARTIALLY_RECEIVED => [self::STATUS_RECEIVED, self::STATUS_CANCELLED],
         self::STATUS_RECEIVED => [],
-        self::STATUS_CANCELLED => [],
+        self::STATUS_CANCELLED => [self::STATUS_DRAFT],
     ];
 
     /**
@@ -222,6 +222,29 @@ class PurchaseOrder extends BaseModel
 
         $this->status = self::STATUS_CANCELLED;
         return $this->save();
+    }
+
+    /**
+     * Reset cancelled order to draft.
+     */
+    public function resetToDraft(): bool
+    {
+        if (!$this->canTransitionTo(self::STATUS_DRAFT)) {
+            return false;
+        }
+
+        $this->status = self::STATUS_DRAFT;
+        $this->approved_by = null;
+        $this->approved_at = null;
+        return $this->save();
+    }
+
+    /**
+     * Check if order can be reset to draft.
+     */
+    public function canResetToDraft(): bool
+    {
+        return $this->status === self::STATUS_CANCELLED;
     }
 
     /**

@@ -147,6 +147,7 @@ return [
         'validate_adjustment' => 'تصديق التسوية',
         'load_products' => 'تحميل المنتجات من المخزون',
         'add_product' => 'إضافة منتج',
+        'reset_to_draft' => 'إعادة إلى مسودة',
     ],
 
     'messages' => [
@@ -163,6 +164,7 @@ return [
         'validate_confirmation' => 'سيتم تطبيق تغييرات المخزون وإنشاء القيود المحاسبية. لا يمكن التراجع عن هذا الإجراء.',
         'no_lines_to_validate' => 'لا توجد بنود تسوية للتصديق',
         'load_products_confirmation' => 'سيتم تحميل جميع المنتجات المتوفرة في هذا الفرع. البنود الموجودة لن تتأثر.',
+        'order_reset_to_draft' => 'تم إعادة أمر الشراء إلى مسودة',
     ],
 
     'pages' => [
