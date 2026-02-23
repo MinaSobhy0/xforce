@@ -168,7 +168,7 @@ class InvoiceResource extends Resource
                                             ->columnSpan(['default' => 8, 'md' => 3]),
 
                                         Forms\Components\Select::make('discount_type')
-                                            ->label('Type')
+                                            ->label('Disc. Type')
                                             ->options([
                                                 'fixed' => current_currency(),
                                                 'percent' => '%',
