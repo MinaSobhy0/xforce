@@ -98,8 +98,22 @@ class JournalEntryResource extends Resource
                                 Forms\Components\TextInput::make('description')
                                     ->maxLength(255),
 
+                                Forms\Components\MorphToSelect::make('partner')
+                                    ->label(__('accounting::accounting.fields.partner'))
+                                    ->types([
+                                        Forms\Components\MorphToSelect\Type::make(\Modules\Patients\Models\Patient::class)
+                                            ->titleAttribute('full_name')
+                                            ->label(__('patients::patients.labels.patient')),
+                                        Forms\Components\MorphToSelect\Type::make(\Modules\Inventory\Models\Supplier::class)
+                                            ->titleAttribute('name')
+                                            ->label(__('inventory::inventory.supplier')),
+                                    ])
+                                    ->searchable()
+                                    ->preload()
+                                    ->hiddenOn('view'),
+
                                 Forms\Components\Placeholder::make('partner_display')
-                                    ->label('Partner')
+                                    ->label(__('accounting::accounting.fields.partner'))
                                     ->content(function ($record) {
                                         if (!$record || !$record->partner_id) {
                                             return '-';
@@ -114,7 +128,7 @@ class JournalEntryResource extends Resource
                                     })
                                     ->visibleOn('view'),
                             ])
-                            ->columns(5)
+                            ->columns(6)
                             ->defaultItems(2)
                             ->addActionLabel('Add Line')
                             ->reorderable(false),
