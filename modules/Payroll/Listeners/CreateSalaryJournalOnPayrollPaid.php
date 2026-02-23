@@ -73,6 +73,7 @@ class CreateSalaryJournalOnPayrollPaid
 
             // Load all salary rules that might be used (for account lookup)
             $salaryRules = SalaryRule::on($connection)
+                ->withoutGlobalScopes()
                 ->with(['debitAccount', 'creditAccount', 'category'])
                 ->get()
                 ->keyBy('id');
@@ -86,56 +87,62 @@ class CreateSalaryJournalOnPayrollPaid
                 $totalNetSalary += $line->net_salary_minor;
                 $ruleAmounts = $line->rule_amounts_json ?? [];
 
-                foreach ($ruleAmounts as $ruleAmount) {
-                    $ruleId = $ruleAmount['rule_id'] ?? null;
-                    $ruleCode = $ruleAmount['rule_code'] ?? '';
-                    $categoryType = $ruleAmount['category_type'] ?? 'earning';
-                    $amountMinor = $ruleAmount['amount_minor'] ?? 0;
-                    $isSystem = $ruleAmount['is_system'] ?? false;
+                // If rule_amounts_json is populated, use it
+                if (!empty($ruleAmounts)) {
+                    foreach ($ruleAmounts as $ruleAmount) {
+                        $ruleId = $ruleAmount['rule_id'] ?? null;
+                        $ruleCode = $ruleAmount['rule_code'] ?? '';
+                        $categoryType = $ruleAmount['category_type'] ?? 'earning';
+                        $amountMinor = $ruleAmount['amount_minor'] ?? 0;
+                        $isSystem = $ruleAmount['is_system'] ?? false;
 
-                    if ($amountMinor == 0) {
-                        continue;
-                    }
-
-                    // Get accounts based on rule configuration or defaults
-                    $accounts = $this->getAccountsForRule(
-                        $ruleId,
-                        $ruleCode,
-                        $categoryType,
-                        $isSystem,
-                        $salaryRules,
-                        $connection
-                    );
-
-                    if (!$accounts['debit'] && !$accounts['credit']) {
-                        continue; // No accounts configured, skip
-                    }
-
-                    // Create debit line
-                    if ($accounts['debit']) {
-                        $key = "debit_{$accounts['debit']}";
-                        if (!isset($journalLines[$key])) {
-                            $journalLines[$key] = [
-                                'account_code' => $accounts['debit'],
-                                'debit' => 0,
-                                'credit' => 0,
-                            ];
+                        if ($amountMinor == 0) {
+                            continue;
                         }
-                        $journalLines[$key]['debit'] += $amountMinor;
-                    }
 
-                    // Create credit line
-                    if ($accounts['credit']) {
-                        $key = "credit_{$accounts['credit']}";
-                        if (!isset($journalLines[$key])) {
-                            $journalLines[$key] = [
-                                'account_code' => $accounts['credit'],
-                                'debit' => 0,
-                                'credit' => 0,
-                            ];
+                        // Get accounts based on rule configuration or defaults
+                        $accounts = $this->getAccountsForRule(
+                            $ruleId,
+                            $ruleCode,
+                            $categoryType,
+                            $isSystem,
+                            $salaryRules,
+                            $connection
+                        );
+
+                        if (!$accounts['debit'] && !$accounts['credit']) {
+                            continue; // No accounts configured, skip
                         }
-                        $journalLines[$key]['credit'] += $amountMinor;
+
+                        // Create debit line
+                        if ($accounts['debit']) {
+                            $key = "debit_{$accounts['debit']}";
+                            if (!isset($journalLines[$key])) {
+                                $journalLines[$key] = [
+                                    'account_code' => $accounts['debit'],
+                                    'debit' => 0,
+                                    'credit' => 0,
+                                ];
+                            }
+                            $journalLines[$key]['debit'] += $amountMinor;
+                        }
+
+                        // Create credit line
+                        if ($accounts['credit']) {
+                            $key = "credit_{$accounts['credit']}";
+                            if (!isset($journalLines[$key])) {
+                                $journalLines[$key] = [
+                                    'account_code' => $accounts['credit'],
+                                    'debit' => 0,
+                                    'credit' => 0,
+                                ];
+                            }
+                            $journalLines[$key]['credit'] += $amountMinor;
+                        }
                     }
+                } else {
+                    // Fallback: Create journal entries from aggregate amounts
+                    $this->addFallbackJournalLines($journalLines, $line);
                 }
             }
 
@@ -186,6 +193,64 @@ class CreateSalaryJournalOnPayrollPaid
                 'trace' => $e->getTraceAsString(),
             ]);
         }
+    }
+
+    /**
+     * Add fallback journal lines from aggregate amounts (for payslips without rule_amounts_json).
+     */
+    protected function addFallbackJournalLines(array &$journalLines, $line): void
+    {
+        // Gross salary (Base + Allowances + Commissions + Bonuses)
+        $grossSalary = $line->base_salary_minor + $line->allowances_minor
+                     + $line->commissions_minor + $line->bonuses_minor;
+
+        if ($grossSalary > 0) {
+            // Debit: Salary Expense (5110)
+            $this->addToJournalLine($journalLines, '5110', $grossSalary, 0);
+            // Credit: Salaries Payable (2110)
+            $this->addToJournalLine($journalLines, '2110', 0, $grossSalary);
+        }
+
+        // Social Insurance
+        if ($line->social_insurance_minor > 0) {
+            // Debit: Salaries Payable (2110)
+            $this->addToJournalLine($journalLines, '2110', $line->social_insurance_minor, 0);
+            // Credit: Social Insurance Payable - use existing account or create
+            $this->addToJournalLine($journalLines, '2310', 0, $line->social_insurance_minor);
+        }
+
+        // Tax
+        if ($line->tax_minor > 0) {
+            // Debit: Salaries Payable (2110)
+            $this->addToJournalLine($journalLines, '2110', $line->tax_minor, 0);
+            // Credit: Tax Payable (2320)
+            $this->addToJournalLine($journalLines, '2320', 0, $line->tax_minor);
+        }
+
+        // Other Deductions
+        if ($line->deductions_minor > 0) {
+            // Debit: Salaries Payable (2110)
+            $this->addToJournalLine($journalLines, '2110', $line->deductions_minor, 0);
+            // Credit: Deductions Payable (2100)
+            $this->addToJournalLine($journalLines, '2100', 0, $line->deductions_minor);
+        }
+    }
+
+    /**
+     * Helper to add amount to journal line.
+     */
+    protected function addToJournalLine(array &$journalLines, string $accountCode, int $debit, int $credit): void
+    {
+        $key = ($debit > 0 ? 'debit_' : 'credit_') . $accountCode;
+        if (!isset($journalLines[$key])) {
+            $journalLines[$key] = [
+                'account_code' => $accountCode,
+                'debit' => 0,
+                'credit' => 0,
+            ];
+        }
+        $journalLines[$key]['debit'] += $debit;
+        $journalLines[$key]['credit'] += $credit;
     }
 
     /**
@@ -260,16 +325,18 @@ class CreateSalaryJournalOnPayrollPaid
     {
         // Try to find a cash account
         $cashAccount = ChartOfAccount::on($connection)
+            ->withoutGlobalScopes()
             ->where('is_active', true)
             ->where(function ($q) {
-                $q->where('code', '1100')
-                    ->orWhere('code', 'like', '11%')
-                    ->orWhere('sub_type', 'cash')
-                    ->orWhere('sub_type', 'bank');
+                $q->where('code', '1000')
+                    ->orWhere('code', '1020')
+                    ->orWhere('code', 'like', '10%')
+                    ->orWhere('name', 'like', '%Cash%')
+                    ->orWhere('name', 'like', '%Bank%');
             })
-            ->orderByRaw("CASE WHEN code = '1100' THEN 0 ELSE 1 END")
+            ->orderByRaw("CASE WHEN code = '1020' THEN 0 WHEN code = '1000' THEN 1 ELSE 2 END")
             ->first();
 
-        return $cashAccount?->code ?? '1100';
+        return $cashAccount?->code ?? '1020';
     }
 }
