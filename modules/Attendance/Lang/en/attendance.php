@@ -67,7 +67,6 @@ return [
         'qr_static' => 'Static QR',
         'qr_dynamic' => 'Dynamic QR',
         'biometric' => 'Biometric',
-        'mobile' => 'Mobile App',
     ],
 
     /*
@@ -354,5 +353,89 @@ return [
         'pending_violations' => 'Pending Violations',
         'avg_hours' => 'Avg. Hours',
         'vs_last_week' => 'vs last week',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Settings
+    |--------------------------------------------------------------------------
+    */
+    'settings' => [
+        'title' => 'Attendance Settings',
+        'scope' => 'Settings Scope',
+        'scope_description' => 'Configure settings globally or per branch',
+        'branch' => 'Branch',
+        'global_settings' => 'Global Settings (All Branches)',
+        'enabled' => 'Enable this check-in method',
+        'save' => 'Save Settings',
+        'saved' => 'Settings saved successfully',
+        'save_error' => 'Failed to save settings',
+        'qr_regenerated' => 'QR code regenerated successfully',
+        'secret_regenerated' => 'Secret key regenerated successfully',
+
+        'geofence' => [
+            'title' => 'Geofence Settings',
+            'description' => 'Configure GPS-based location verification for attendance',
+            'radius' => 'Default Radius',
+            'radius_help' => 'Default geofence radius in meters',
+            'min_accuracy' => 'Minimum GPS Accuracy',
+            'require_accuracy' => 'Require High Accuracy',
+            'allow_mock' => 'Allow Mock Locations',
+            'allow_mock_help' => 'Warning: Enabling this allows fake GPS locations',
+            'check_checkout' => 'Verify Location on Checkout',
+            'locations' => 'Geofence Locations',
+            'location_name' => 'Location Name',
+            'latitude' => 'Latitude',
+            'longitude' => 'Longitude',
+            'location_radius' => 'Custom Radius',
+            'add_location' => 'Add Location',
+        ],
+
+        'qr_static' => [
+            'title' => 'Static QR Code Settings',
+            'description' => 'Configure permanent QR codes for attendance check-in',
+            'camera_only' => 'Camera Only Mode',
+            'camera_only_help' => 'Require camera scan, disable manual code entry',
+            'show_in_app' => 'Show QR in Staff App',
+            'show_in_app_help' => 'Allow staff to view QR code in their app',
+            'require_location' => 'Require Location',
+            'qr_code' => 'QR Code',
+            'qr_generated_info' => 'QR code will be automatically generated when enabled',
+            'regenerate' => 'Regenerate QR Code',
+        ],
+
+        'qr_dynamic' => [
+            'title' => 'Dynamic QR Code Settings',
+            'description' => 'Configure time-based rotating QR codes for enhanced security',
+            'refresh_interval' => 'Refresh Interval',
+            'refresh_interval_help' => 'How often the QR code changes',
+            'validity' => 'Code Validity',
+            'validity_help' => 'How long a code remains valid after generation',
+            'algorithm' => 'Algorithm',
+            'display_countdown' => 'Display Countdown Timer',
+            'require_location' => 'Require Location',
+            'regenerate_secret' => 'Regenerate Secret Key',
+        ],
+
+        'biometric' => [
+            'title' => 'Biometric Settings',
+            'description' => 'Configure biometric device integration for attendance',
+            'device_type' => 'Biometric Type',
+            'fingerprint' => 'Fingerprint',
+            'face' => 'Face Recognition',
+            'iris' => 'Iris Scan',
+            'verification_level' => 'Verification Level',
+            'verification_level_help' => 'Higher levels are more secure but may have more false rejections',
+            'level_low' => 'Low (Fast, less secure)',
+            'level_medium' => 'Medium (Balanced)',
+            'level_high' => 'High (Secure, slower)',
+            'allow_fallback' => 'Allow Fallback Method',
+            'fallback_method' => 'Fallback Method',
+            'api_endpoint' => 'Device API Endpoint',
+            'api_key' => 'API Key',
+            'device_ids' => 'Registered Device IDs',
+            'device_ids_placeholder' => 'Enter device ID',
+            'device_ids_help' => 'Add device serial numbers or IDs',
+        ],
     ],
 ];

@@ -64,13 +64,12 @@ class Attendance extends BaseModel
         'overtime_hours' => 0,
     ];
 
-    // Attendance Types
+    // Attendance Types (check-in methods)
     public const TYPE_MANUAL = 'manual';
     public const TYPE_GEOFENCE = 'geofence';
     public const TYPE_QR_STATIC = 'qr_static';
     public const TYPE_QR_DYNAMIC = 'qr_dynamic';
     public const TYPE_BIOMETRIC = 'biometric';
-    public const TYPE_MOBILE = 'mobile';
 
     public const TYPES = [
         self::TYPE_MANUAL => 'Manual',
@@ -78,7 +77,14 @@ class Attendance extends BaseModel
         self::TYPE_QR_STATIC => 'Static QR',
         self::TYPE_QR_DYNAMIC => 'Dynamic QR',
         self::TYPE_BIOMETRIC => 'Biometric',
-        self::TYPE_MOBILE => 'Mobile App',
+    ];
+
+    // Types that can be configured via settings
+    public const CONFIGURABLE_TYPES = [
+        self::TYPE_GEOFENCE,
+        self::TYPE_QR_STATIC,
+        self::TYPE_QR_DYNAMIC,
+        self::TYPE_BIOMETRIC,
     ];
 
     public const TYPE_COLORS = [
@@ -87,7 +93,6 @@ class Attendance extends BaseModel
         self::TYPE_QR_STATIC => 'primary',
         self::TYPE_QR_DYNAMIC => 'primary',
         self::TYPE_BIOMETRIC => 'success',
-        self::TYPE_MOBILE => 'warning',
     ];
 
     // Attendance Status
