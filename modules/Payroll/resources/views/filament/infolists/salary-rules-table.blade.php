@@ -4,11 +4,18 @@
     $currency = current_currency();
 
     // Filter rules based on type
+    // Exclude 'gross' and 'basic' summary types to avoid double-counting
     $filteredRules = collect($rules)->filter(function ($rule) use ($type) {
         $categoryType = $rule['category_type'] ?? 'earning';
+        $ruleCode = $rule['rule_code'] ?? '';
+
+        // Skip gross/net totals as they are summary values, not individual earnings
+        if (in_array($categoryType, ['gross', 'net'])) {
+            return false;
+        }
 
         if ($type === 'earnings') {
-            return in_array($categoryType, ['earning', 'allowance', 'benefit', 'gross']);
+            return in_array($categoryType, ['earning', 'allowance', 'benefit']);
         } else {
             return in_array($categoryType, ['deduction', 'tax', 'social_insurance']);
         }
