@@ -106,7 +106,10 @@ class JournalEntryResource extends Resource
                                             ->label(__('patients::patients.labels.patient')),
                                         Forms\Components\MorphToSelect\Type::make(\Modules\Inventory\Models\Supplier::class)
                                             ->titleAttribute('name')
-                                            ->label(__('inventory::inventory.supplier')),
+                                            ->label(__('inventory::inventory.labels.supplier')),
+                                        Forms\Components\MorphToSelect\Type::make(\Modules\Staff\Models\StaffProfile::class)
+                                            ->titleAttribute('user.name')
+                                            ->label(__('staff::staff.labels.profile')),
                                     ])
                                     ->searchable()
                                     ->preload()
@@ -123,7 +126,12 @@ class JournalEntryResource extends Resource
                                             return '-';
                                         }
                                         $type = class_basename($record->partner_type);
-                                        $name = $partner->full_name ?? $partner->name ?? $partner->getTranslation('name', app()->getLocale()) ?? '-';
+                                        // Handle different partner types
+                                        if ($partner instanceof \Modules\Staff\Models\StaffProfile) {
+                                            $name = $partner->user?->name ?? '-';
+                                        } else {
+                                            $name = $partner->full_name ?? $partner->name ?? $partner->getTranslation('name', app()->getLocale()) ?? '-';
+                                        }
                                         return "{$name} ({$type})";
                                     })
                                     ->visibleOn('view'),

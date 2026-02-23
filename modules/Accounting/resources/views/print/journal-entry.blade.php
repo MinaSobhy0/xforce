@@ -255,7 +255,11 @@
                     </td>
                     <td>
                         @if($line->partner)
-                            {{ $line->partner->full_name ?? $line->partner->name ?? $line->partner->getTranslation('name', app()->getLocale()) ?? '-' }}
+                            @if($line->partner instanceof \Modules\Staff\Models\StaffProfile)
+                                {{ $line->partner->user?->name ?? '-' }}
+                            @else
+                                {{ $line->partner->full_name ?? $line->partner->name ?? $line->partner->getTranslation('name', app()->getLocale()) ?? '-' }}
+                            @endif
                             <br><small style="color: #666;">({{ class_basename($line->partner_type) }})</small>
                         @else
                             -
