@@ -136,6 +136,7 @@ return [
     'discount_types' => [
         'amount' => 'Fixed Amount',
         'percentage' => 'Percentage',
+    ],
 
     'filters' => [
         'low_stock' => 'Low Stock',
