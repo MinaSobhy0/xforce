@@ -67,7 +67,8 @@ class InventoryAdjustmentResource extends Resource
                                     ->required()
                                     ->searchable()
                                     ->preload()
-                                    ->disabled(fn (?InventoryAdjustment $record) => $record && !$record->isDraft()),
+                                    ->default(fn () => current_branch_id())
+                                    ->disabled(fn (?InventoryAdjustment $record) => $record !== null),
 
                                 Forms\Components\Select::make('adjustment_type')
                                     ->label(__('inventory::inventory.fields.adjustment_type'))
@@ -97,92 +98,96 @@ class InventoryAdjustmentResource extends Resource
                     ]),
 
                 Forms\Components\Section::make(__('inventory::inventory.sections.adjustment_lines'))
+                    ->description(__('inventory::inventory.messages.adjustment_lines_help'))
                     ->schema([
                         Forms\Components\Repeater::make('lines')
                             ->relationship()
                             ->schema([
-                                Forms\Components\Select::make('product_id')
+                                Forms\Components\Hidden::make('product_id'),
+
+                                Forms\Components\Placeholder::make('product_display')
                                     ->label(__('inventory::inventory.fields.product'))
-                                    ->relationship('product', 'name')
-                                    ->getOptionLabelFromRecordUsing(fn ($record) => $record->sku . ' - ' . ($record->getTranslation('name', app()->getLocale()) ?? $record->name))
-                                    ->searchable()
-                                    ->preload()
-                                    ->required()
-                                    ->disableOptionsWhenSelectedInSiblingRepeaterItems()
-                                    ->reactive()
-                                    ->afterStateUpdated(function ($state, callable $set, $livewire) {
-                                        if ($state) {
-                                            $product = \Modules\Inventory\Models\Product::find($state);
-                                            $branchId = $livewire->data['branch_id'] ?? null;
-
-                                            if ($branchId) {
-                                                $stockLevel = \Modules\Inventory\Models\StockLevel::where('product_id', $state)
-                                                    ->where('branch_id', $branchId)
-                                                    ->first();
-
-                                                $theoreticalQty = $stockLevel?->quantity_on_hand ?? 0;
-                                            } else {
-                                                $theoreticalQty = 0;
-                                            }
-
-                                            $unitCost = $product?->cost_price_minor ?? 0;
-
-                                            $set('theoretical_qty', $theoreticalQty);
-                                            $set('counted_qty', $theoreticalQty);
-                                            $set('unit_cost_minor', $unitCost);
-                                            $set('difference_qty', 0);
-                                            $set('value_adjustment_minor', 0);
-                                        }
+                                    ->content(function ($get) {
+                                        $productId = $get('product_id');
+                                        if (!$productId) return '-';
+                                        $product = \Modules\Inventory\Models\Product::find($productId);
+                                        if (!$product) return '-';
+                                        return "[{$product->sku}] " . $product->getTranslation('name', app()->getLocale());
                                     })
-                                    ->columnSpan(3),
+                                    ->columnSpan(4),
 
                                 Forms\Components\TextInput::make('theoretical_qty')
                                     ->label(__('inventory::inventory.fields.theoretical_qty'))
                                     ->numeric()
                                     ->disabled()
                                     ->dehydrated(true)
-                                    ->columnSpan(1),
+                                    ->columnSpan(2),
 
                                 Forms\Components\TextInput::make('counted_qty')
                                     ->label(__('inventory::inventory.fields.counted_qty'))
                                     ->numeric()
                                     ->required()
-                                    ->reactive()
-                                    ->afterStateUpdated(function ($state, callable $get, callable $set) {
-                                        $theoretical = $get('theoretical_qty') ?? 0;
-                                        $counted = $state ?? 0;
-                                        $unitCost = $get('unit_cost_minor') ?? 0;
+                                    ->live(onBlur: true)
+                                    ->afterStateUpdated(function ($state, Forms\Get $get, Forms\Set $set) {
+                                        $theoretical = (float) ($get('theoretical_qty') ?? 0);
+                                        $counted = (float) ($state ?? 0);
+                                        $unitCost = (float) ($get('unit_cost_minor') ?? 0);
 
                                         $difference = $counted - $theoretical;
-                                        $valueAdjustment = $difference * $unitCost;
+                                        $valueAdjustment = (int) ($difference * $unitCost);
 
                                         $set('difference_qty', $difference);
                                         $set('value_adjustment_minor', $valueAdjustment);
                                     })
-                                    ->columnSpan(1),
+                                    ->columnSpan(2),
 
-                                Forms\Components\TextInput::make('difference_qty')
+                                Forms\Components\Placeholder::make('difference_display')
                                     ->label(__('inventory::inventory.fields.difference'))
-                                    ->numeric()
-                                    ->disabled()
-                                    ->dehydrated(true)
-                                    ->columnSpan(1),
+                                    ->content(function (Forms\Get $get) {
+                                        $theoretical = (float) ($get('theoretical_qty') ?? 0);
+                                        $counted = (float) ($get('counted_qty') ?? 0);
+                                        $diff = $counted - $theoretical;
+                                        $color = $diff > 0 ? 'text-green-600' : ($diff < 0 ? 'text-red-600' : 'text-gray-500');
+                                        $prefix = $diff > 0 ? '+' : '';
+                                        return new \Illuminate\Support\HtmlString(
+                                            "<span class=\"font-semibold {$color}\">{$prefix}{$diff}</span>"
+                                        );
+                                    })
+                                    ->columnSpan(2),
 
+                                Forms\Components\Hidden::make('difference_qty'),
                                 Forms\Components\Hidden::make('unit_cost_minor'),
                                 Forms\Components\Hidden::make('value_adjustment_minor'),
                             ])
-                            ->columns(6)
+                            ->columns(10)
                             ->defaultItems(0)
+                            ->addable(fn (?InventoryAdjustment $record) => $record && $record->isDraft())
                             ->addActionLabel(__('inventory::inventory.actions.add_product'))
+                            ->deletable(fn (?InventoryAdjustment $record) => $record && $record->isDraft())
                             ->reorderable(false)
-                            ->collapsible()
                             ->itemLabel(fn (array $state): ?string =>
                                 isset($state['product_id'])
-                                    ? \Modules\Inventory\Models\Product::find($state['product_id'])?->sku
+                                    ? \Modules\Inventory\Models\Product::find($state['product_id'])?->sku ?? 'Product'
                                     : null
                             )
-                            ->visible(fn (?InventoryAdjustment $record) => $record !== null)
                             ->disabled(fn (?InventoryAdjustment $record) => $record && !$record->isDraft()),
+
+                        Forms\Components\Placeholder::make('total_adjustment')
+                            ->label(__('inventory::inventory.fields.total_value_adjustment'))
+                            ->content(function (Forms\Get $get) {
+                                $lines = $get('lines') ?? [];
+                                $total = 0;
+                                foreach ($lines as $line) {
+                                    $diff = ((float) ($line['counted_qty'] ?? 0)) - ((float) ($line['theoretical_qty'] ?? 0));
+                                    $unitCost = (float) ($line['unit_cost_minor'] ?? 0);
+                                    $total += $diff * $unitCost / 100;
+                                }
+                                $color = $total > 0 ? 'text-green-600' : ($total < 0 ? 'text-red-600' : 'text-gray-500');
+                                $prefix = $total > 0 ? '+' : '';
+                                return new \Illuminate\Support\HtmlString(
+                                    "<span class=\"text-lg font-bold {$color}\">{$prefix}" . number_format($total, 2) . ' ' . current_currency() . "</span>"
+                                );
+                            }),
                     ])
                     ->visible(fn (?InventoryAdjustment $record) => $record !== null),
             ]);

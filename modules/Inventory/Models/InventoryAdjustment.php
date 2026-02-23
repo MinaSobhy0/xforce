@@ -230,6 +230,7 @@ class InventoryAdjustment extends BaseModel
 
     /**
      * Load products for counting from current stock levels.
+     * Loads ALL active products in the branch, not just those with stock.
      */
     public function loadProductsFromStock(): void
     {
@@ -237,26 +238,31 @@ class InventoryAdjustment extends BaseModel
             return;
         }
 
-        $stockLevels = StockLevel::where('branch_id', $this->branch_id)
-            ->where('quantity_on_hand', '>', 0)
-            ->with('product')
-            ->get();
+        // Get all active products
+        $products = Product::where('is_active', true)->get();
 
-        foreach ($stockLevels as $stockLevel) {
+        foreach ($products as $product) {
             // Check if line already exists
             $existingLine = $this->lines()
-                ->where('product_id', $stockLevel->product_id)
+                ->where('product_id', $product->id)
                 ->first();
 
             if (!$existingLine) {
+                // Get stock level for this branch
+                $stockLevel = StockLevel::where('product_id', $product->id)
+                    ->where('branch_id', $this->branch_id)
+                    ->first();
+
+                $theoreticalQty = $stockLevel?->quantity_on_hand ?? 0;
+
                 InventoryAdjustmentLine::create([
                     'tenant_id' => $this->tenant_id,
                     'inventory_adjustment_id' => $this->id,
-                    'product_id' => $stockLevel->product_id,
-                    'theoretical_qty' => $stockLevel->quantity_on_hand,
-                    'counted_qty' => $stockLevel->quantity_on_hand, // Default to same
+                    'product_id' => $product->id,
+                    'theoretical_qty' => $theoreticalQty,
+                    'counted_qty' => $theoreticalQty, // Default to theoretical
                     'difference_qty' => 0,
-                    'unit_cost_minor' => $stockLevel->product->cost_price_minor ?? 0,
+                    'unit_cost_minor' => $product->cost_price_minor ?? 0,
                     'value_adjustment_minor' => 0,
                 ]);
             }

@@ -168,6 +168,7 @@ return [
         'validation_failed' => 'Failed to validate adjustment',
         'adjustment_cancelled' => 'Inventory adjustment cancelled',
         'products_loaded' => 'Products loaded from current stock',
+        'adjustment_lines_help' => 'Enter the actual counted quantity for each product. The difference will be calculated automatically.',
         'validate_confirmation' => 'This will apply the stock changes and create journal entries. This action cannot be undone.',
         'no_lines_to_validate' => 'No adjustment lines to validate',
         'load_products_confirmation' => 'This will load all products with stock in this branch. Existing lines will not be affected.',
