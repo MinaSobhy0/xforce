@@ -17,6 +17,7 @@ class ViewVendorBill extends BaseViewRecord
     {
         return [
             RelationManagers\LinesRelationManager::class,
+            RelationManagers\PaymentsRelationManager::class,
         ];
     }
 
@@ -50,42 +51,11 @@ class ViewVendorBill extends BaseViewRecord
                 }),
 
             Actions\Action::make('record_payment')
-                ->label('Record Payment')
+                ->label(__('inventory::inventory.actions.record_payment'))
                 ->icon('heroicon-o-banknotes')
                 ->color('info')
                 ->visible(fn () => $this->record->canRecordPayment())
-                ->form([
-                    \Filament\Forms\Components\TextInput::make('amount')
-                        ->label('Amount')
-                        ->numeric()
-                        ->required()
-                        ->prefix(current_currency())
-                        ->default(fn () => $this->record->remaining_minor / 100),
-
-                    \Filament\Forms\Components\Select::make('payment_type')
-                        ->label('Payment Method')
-                        ->options([
-                            'cash' => 'Cash',
-                            'bank' => 'Bank Transfer',
-                        ])
-                        ->default('cash')
-                        ->required(),
-                ])
-                ->action(function (array $data) {
-                    $amountMinor = (int) ($data['amount'] * 100);
-                    $this->record->recordPayment($amountMinor);
-
-                    // Create payment journal entry
-                    $accountingService = app(\Modules\Inventory\Services\InventoryAccountingService::class);
-                    $accountingService->createVendorPaymentJournalEntry($this->record, $amountMinor, $data['payment_type']);
-
-                    Notification::make()
-                        ->title('Payment recorded successfully')
-                        ->success()
-                        ->send();
-
-                    $this->refreshFormData(['status', 'paid_minor', 'paid_at']);
-                }),
+                ->url(fn () => $this->getResource()::getUrl('record-payment', ['record' => $this->record])),
 
             Actions\Action::make('cancel')
                 ->label('Cancel')

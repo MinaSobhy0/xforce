@@ -44,6 +44,8 @@ return [
         'stock_accounts' => 'Stock Accounts',
         'validation_info' => 'Validation Information',
         'accounting' => 'Accounting',
+        'bill_summary' => 'Bill Summary',
+        'payment_details' => 'Payment Details',
     ],
 
     'fields' => [
@@ -136,6 +138,11 @@ return [
         'reason' => 'Reason',
         'discount_type' => 'Discount Type',
         'reverse_qty' => 'Qty to Reverse',
+        'paid' => 'Paid',
+        'payment_amount' => 'Payment Amount',
+        'payment_method' => 'Payment Method',
+        'payment_date' => 'Payment Date',
+        'reference_number' => 'Reference Number',
     ],
 
     'discount_types' => [
@@ -161,6 +168,7 @@ return [
         'reset_to_draft' => 'Reset to Draft',
         'reopen' => 'Reopen',
         'reverse_receiving' => 'Reverse Receiving',
+        'record_payment' => 'Record Payment',
     ],
 
     'messages' => [
@@ -184,6 +192,13 @@ return [
         'reopen_confirmation' => 'This will reopen the order so you can receive more items or make corrections.',
         'reverse_confirmation' => 'This will reverse all received items, decrease stock levels, and create reverse journal entries. This action cannot be undone.',
         'not_created' => 'Not created',
+        'payment_recorded' => 'Payment recorded successfully',
+        'payment_amount' => 'Amount: :amount',
+    ],
+
+    'help' => [
+        'max_payment' => 'Maximum: :amount',
+        'reference_number' => 'Check number, transfer reference, etc.',
     ],
 
     'pages' => [

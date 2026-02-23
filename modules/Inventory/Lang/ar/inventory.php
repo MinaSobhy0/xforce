@@ -44,6 +44,8 @@ return [
         'stock_accounts' => 'حسابات المخزون',
         'validation_info' => 'معلومات التصديق',
         'accounting' => 'المحاسبة',
+        'bill_summary' => 'ملخص الفاتورة',
+        'payment_details' => 'تفاصيل الدفع',
     ],
 
     'fields' => [
@@ -136,6 +138,11 @@ return [
         'reason' => 'السبب',
         'discount_type' => 'نوع الخصم',
         'reverse_qty' => 'الكمية للعكس',
+        'paid' => 'المدفوع',
+        'payment_amount' => 'مبلغ الدفع',
+        'payment_method' => 'طريقة الدفع',
+        'payment_date' => 'تاريخ الدفع',
+        'reference_number' => 'رقم المرجع',
     ],
 
     'discount_types' => [
@@ -161,6 +168,7 @@ return [
         'reset_to_draft' => 'إعادة إلى مسودة',
         'reopen' => 'إعادة فتح',
         'reverse_receiving' => 'عكس الاستلام',
+        'record_payment' => 'تسجيل دفعة',
     ],
 
     'messages' => [
@@ -184,6 +192,13 @@ return [
         'reopen_confirmation' => 'سيتم إعادة فتح الطلب لتتمكن من استلام المزيد من العناصر أو إجراء تصحيحات.',
         'reverse_confirmation' => 'سيتم عكس جميع العناصر المستلمة وتقليل مستويات المخزون وإنشاء قيود يومية عكسية. لا يمكن التراجع عن هذا الإجراء.',
         'not_created' => 'لم يتم إنشاؤه',
+        'payment_recorded' => 'تم تسجيل الدفعة بنجاح',
+        'payment_amount' => 'المبلغ: :amount',
+    ],
+
+    'help' => [
+        'max_payment' => 'الحد الأقصى: :amount',
+        'reference_number' => 'رقم الشيك، مرجع التحويل، إلخ.',
     ],
 
     'pages' => [

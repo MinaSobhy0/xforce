@@ -621,6 +621,7 @@ class VendorBillResource extends Resource
             'create' => Pages\CreateVendorBill::route('/create'),
             'view' => Pages\ViewVendorBill::route('/{record}'),
             'edit' => Pages\EditVendorBill::route('/{record}/edit'),
+            'record-payment' => Pages\RecordPayment::route('/{record}/record-payment'),
         ];
     }
 }

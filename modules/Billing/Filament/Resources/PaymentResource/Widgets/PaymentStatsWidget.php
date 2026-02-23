@@ -16,9 +16,9 @@ class PaymentStatsWidget extends BaseWidget
         $todayTotal = $today->sum('amount_minor');
         $monthTotal = $thisMonth->sum('amount_minor');
 
-        // Payment method breakdown for today
-        $todayCash = $today->clone()->byMethod(Payment::METHOD_CASH)->sum('amount_minor');
-        $todayCard = $today->clone()->byMethod(Payment::METHOD_CARD)->sum('amount_minor');
+        // Payment method breakdown for today (by journal type)
+        $todayCash = $today->clone()->byJournalType('cash')->sum('amount_minor');
+        $todayBank = $today->clone()->byJournalType('bank')->sum('amount_minor');
 
         return [
             Stat::make("Today's Payments", number_format($todayTotal / 100, 2) . ' ' . current_currency())
@@ -31,9 +31,9 @@ class PaymentStatsWidget extends BaseWidget
                 ->descriptionIcon('heroicon-m-banknotes')
                 ->color('success'),
 
-            Stat::make('Card Today', number_format($todayCard / 100, 2) . ' ' . current_currency())
-                ->description('Card payments')
-                ->descriptionIcon('heroicon-m-credit-card')
+            Stat::make('Bank Today', number_format($todayBank / 100, 2) . ' ' . current_currency())
+                ->description('Bank transfers')
+                ->descriptionIcon('heroicon-m-building-library')
                 ->color('primary'),
 
             Stat::make('Month Total', number_format($monthTotal / 100, 2) . ' ' . current_currency())

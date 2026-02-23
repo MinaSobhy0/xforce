@@ -13,6 +13,8 @@ use Modules\Patients\Models\Patient;
 use Modules\Core\Models\Branch;
 use Modules\TreatmentPlans\Models\TreatmentPlan;
 use Modules\Booking\Models\Appointment;
+use Modules\Inventory\Models\VendorBill;
+use Modules\Inventory\Models\Supplier;
 
 class Payment extends BaseModel
 {
@@ -21,7 +23,10 @@ class Payment extends BaseModel
     protected $fillable = [
         'tenant_id',
         'code',
+        'type',
         'invoice_id',
+        'vendor_bill_id',
+        'supplier_id',
         'patient_id',
         'branch_id',
         'treatment_plan_id',
@@ -62,6 +67,20 @@ class Payment extends BaseModel
         self::STATUS_CANCELLED => 'gray',
     ];
 
+    // Payment type constants
+    public const TYPE_RECEIVE = 'receive';
+    public const TYPE_SEND = 'send';
+
+    public const TYPES = [
+        self::TYPE_RECEIVE => 'Receive (Money In)',
+        self::TYPE_SEND => 'Send (Money Out)',
+    ];
+
+    public const TYPE_COLORS = [
+        self::TYPE_RECEIVE => 'success',
+        self::TYPE_SEND => 'danger',
+    ];
+
     protected static function booted(): void
     {
         parent::booted();
@@ -73,28 +92,50 @@ class Payment extends BaseModel
             if (empty($payment->status)) {
                 $payment->status = self::STATUS_COMPLETED;
             }
+            if (empty($payment->type)) {
+                // Default type based on whether it's an invoice or vendor bill payment
+                $payment->type = $payment->vendor_bill_id ? self::TYPE_SEND : self::TYPE_RECEIVE;
+            }
             // Generate code from journal's sequence
             if (empty($payment->code) && $payment->journal_id) {
                 $payment->code = $payment->journal->getNextSequence();
             }
-            // For unassigned payments, ensure patient_id is set from invoice or explicitly
+            // For invoice payments, ensure patient_id is set from invoice
             if (!$payment->patient_id && $payment->invoice_id) {
                 $payment->patient_id = $payment->invoice?->patient_id;
             }
             if (!$payment->branch_id && $payment->invoice_id) {
                 $payment->branch_id = $payment->invoice?->branch_id;
             }
+            // For vendor bill payments, set supplier_id and branch_id
+            if (!$payment->supplier_id && $payment->vendor_bill_id) {
+                $payment->supplier_id = $payment->vendorBill?->supplier_id;
+            }
+            if (!$payment->branch_id && $payment->vendor_bill_id) {
+                $payment->branch_id = $payment->vendorBill?->branch_id;
+            }
         });
 
         static::created(function (Payment $payment) {
-            // Update invoice paid amount (only for assigned payments)
-            if ($payment->invoice && $payment->status === self::STATUS_COMPLETED) {
-                $payment->invoice->recordPayment($payment->amount_minor);
+            if ($payment->status !== self::STATUS_COMPLETED) {
+                return;
             }
 
-            // Create journal entry for payment
-            app(\Modules\Billing\Services\AccountingIntegrationService::class)
-                ->createPaymentJournalEntry($payment);
+            // Handle invoice payment (receive)
+            if ($payment->invoice) {
+                $payment->invoice->recordPayment($payment->amount_minor);
+                // Create journal entry for invoice payment
+                app(\Modules\Billing\Services\AccountingIntegrationService::class)
+                    ->createPaymentJournalEntry($payment);
+            }
+
+            // Handle vendor bill payment (send)
+            if ($payment->vendorBill) {
+                $payment->vendorBill->recordPayment($payment->amount_minor);
+                // Create journal entry for vendor bill payment
+                app(\Modules\Inventory\Services\InventoryAccountingService::class)
+                    ->createVendorPaymentJournalEntry($payment->vendorBill, $payment->amount_minor, $payment->journal?->type ?? 'cash');
+            }
         });
     }
 
@@ -122,6 +163,16 @@ class Payment extends BaseModel
     public function appointment(): BelongsTo
     {
         return $this->belongsTo(Appointment::class);
+    }
+
+    public function vendorBill(): BelongsTo
+    {
+        return $this->belongsTo(VendorBill::class);
+    }
+
+    public function supplier(): BelongsTo
+    {
+        return $this->belongsTo(Supplier::class);
     }
 
     public function journal(): BelongsTo
@@ -188,6 +239,26 @@ class Payment extends BaseModel
     public function getStatusColorAttribute(): string
     {
         return self::STATUS_COLORS[$this->status] ?? 'gray';
+    }
+
+    public function getTypeLabelAttribute(): string
+    {
+        return self::TYPES[$this->type] ?? $this->type;
+    }
+
+    public function getTypeColorAttribute(): string
+    {
+        return self::TYPE_COLORS[$this->type] ?? 'gray';
+    }
+
+    public function isReceive(): bool
+    {
+        return $this->type === self::TYPE_RECEIVE;
+    }
+
+    public function isSend(): bool
+    {
+        return $this->type === self::TYPE_SEND;
     }
 
     // Accessors
@@ -270,5 +341,25 @@ class Payment extends BaseModel
     public function scopeCompleted($query)
     {
         return $query->where('status', self::STATUS_COMPLETED);
+    }
+
+    public function scopeReceived($query)
+    {
+        return $query->where('type', self::TYPE_RECEIVE);
+    }
+
+    public function scopeSent($query)
+    {
+        return $query->where('type', self::TYPE_SEND);
+    }
+
+    public function scopeForVendorBill($query, string $vendorBillId)
+    {
+        return $query->where('vendor_bill_id', $vendorBillId);
+    }
+
+    public function scopeForSupplier($query, string $supplierId)
+    {
+        return $query->where('supplier_id', $supplierId);
     }
 }

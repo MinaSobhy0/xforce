@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Modules\Accounting\Models\JournalEntry;
 use Modules\Auth\Models\User;
+use Modules\Billing\Models\Payment;
 use Modules\Core\Models\Branch;
 use XLinic\Framework\Core\Model\BaseModel;
 
@@ -108,6 +109,11 @@ class VendorBill extends BaseModel
     public function lines(): HasMany
     {
         return $this->hasMany(VendorBillLine::class)->orderBy('sort_order');
+    }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class)->orderBy('paid_at', 'desc');
     }
 
     public function journalEntry(): BelongsTo

@@ -83,21 +83,38 @@ class PaymentResource extends Resource
                     ->sortable()
                     ->weight(FontWeight::Bold),
 
-                Tables\Columns\TextColumn::make('invoice.code')
-                    ->label('Invoice')
-                    ->searchable()
-                    ->sortable()
-                    ->url(fn (Payment $record) => InvoiceResource::getUrl('view', ['record' => $record->invoice_id])),
+                Tables\Columns\TextColumn::make('type')
+                    ->label('Type')
+                    ->badge()
+                    ->formatStateUsing(fn ($state) => $state === Payment::TYPE_RECEIVE ? 'Receive' : 'Send')
+                    ->color(fn (Payment $record) => $record->type_color)
+                    ->icon(fn (Payment $record) => $record->isReceive() ? 'heroicon-o-arrow-down-tray' : 'heroicon-o-arrow-up-tray'),
 
-                Tables\Columns\TextColumn::make('invoice.patient.full_name')
-                    ->label('Patient')
-                    ->searchable(['first_name', 'last_name']),
+                Tables\Columns\TextColumn::make('document')
+                    ->label('Document')
+                    ->getStateUsing(fn (Payment $record) => $record->invoice?->code ?? $record->vendorBill?->code ?? '-')
+                    ->url(fn (Payment $record) => $record->invoice_id
+                        ? InvoiceResource::getUrl('view', ['record' => $record->invoice_id])
+                        : ($record->vendor_bill_id
+                            ? \Modules\Inventory\Filament\Resources\VendorBillResource::getUrl('view', ['record' => $record->vendor_bill_id])
+                            : null))
+                    ->searchable(query: function (Builder $query, string $search): Builder {
+                        return $query->where(function ($q) use ($search) {
+                            $q->whereHas('invoice', fn ($q) => $q->where('code', 'like', "%{$search}%"))
+                              ->orWhereHas('vendorBill', fn ($q) => $q->where('code', 'like', "%{$search}%"));
+                        });
+                    }),
+
+                Tables\Columns\TextColumn::make('party')
+                    ->label('Patient/Supplier')
+                    ->getStateUsing(fn (Payment $record) => $record->patient?->full_name ?? $record->supplier?->getTranslation('name', app()->getLocale()) ?? '-'),
 
                 Tables\Columns\TextColumn::make('amount_minor')
                     ->label('Amount')
                     ->formatStateUsing(fn ($state) => format_money($state))
                     ->sortable()
-                    ->weight(FontWeight::Bold),
+                    ->weight(FontWeight::Bold)
+                    ->color(fn (Payment $record) => $record->isReceive() ? 'success' : 'danger'),
 
                 Tables\Columns\TextColumn::make('journal.name')
                     ->label('Payment Method')
@@ -110,7 +127,7 @@ class PaymentResource extends Resource
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('receivedBy.name')
-                    ->label('Received By')
+                    ->label('Recorded By')
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('paid_at')
@@ -119,6 +136,13 @@ class PaymentResource extends Resource
                     ->sortable(),
             ])
             ->filters([
+                Tables\Filters\SelectFilter::make('type')
+                    ->label('Type')
+                    ->options([
+                        Payment::TYPE_RECEIVE => 'Receive (Money In)',
+                        Payment::TYPE_SEND => 'Send (Money Out)',
+                    ]),
+
                 Tables\Filters\SelectFilter::make('journal_id')
                     ->label('Payment Method')
                     ->relationship('journal', 'code')
@@ -159,6 +183,6 @@ class PaymentResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->with(['invoice.patient', 'journal', 'receivedBy']);
+            ->with(['invoice.patient', 'vendorBill.supplier', 'supplier', 'patient', 'journal', 'receivedBy']);
     }
 }
