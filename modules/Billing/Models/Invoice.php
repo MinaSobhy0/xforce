@@ -407,7 +407,8 @@ class Invoice extends BaseModel
     }
 
     /**
-     * Apply an unassigned payment (deposit) to this invoice
+     * Apply an unassigned payment (deposit) to this invoice.
+     * If payment exceeds remaining amount, creates a new unassigned payment for the excess.
      */
     public function applyUnassignedPayment(Payment $payment): bool
     {
@@ -425,6 +426,28 @@ class Invoice extends BaseModel
 
         if ($amountToApply <= 0) {
             return false;
+        }
+
+        $excessAmount = $payment->amount_minor - $amountToApply;
+
+        // If there's excess, split the payment
+        if ($excessAmount > 0) {
+            // Create new unassigned payment for the excess
+            Payment::create([
+                'tenant_id' => $payment->tenant_id,
+                'patient_id' => $payment->patient_id,
+                'branch_id' => $payment->branch_id,
+                'journal_id' => $payment->journal_id,
+                'amount_minor' => $excessAmount,
+                'reference_number' => $payment->reference_number ? $payment->reference_number . '-split' : null,
+                'received_by_user_id' => $payment->received_by_user_id,
+                'notes' => 'Split from payment ' . $payment->code . ' - excess amount',
+                'paid_at' => $payment->paid_at,
+                'status' => $payment->status ?? 'completed',
+            ]);
+
+            // Update original payment to the applied amount only
+            $payment->amount_minor = $amountToApply;
         }
 
         // Assign the payment to this invoice
