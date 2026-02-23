@@ -2,15 +2,15 @@
 
 namespace Modules\Services\Filament\Resources\ConsentTemplateResource\Pages;
 
+use App\Filament\Resources\Pages\BaseViewRecord;
 use Filament\Actions;
-use Filament\Resources\Pages\ViewRecord;
 use Modules\Services\Filament\Resources\ConsentTemplateResource;
 
-class ViewConsentTemplate extends ViewRecord
+class ViewConsentTemplate extends BaseViewRecord
 {
     protected static string $resource = ConsentTemplateResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getViewHeaderActions(): array
     {
         return [
             Actions\EditAction::make(),

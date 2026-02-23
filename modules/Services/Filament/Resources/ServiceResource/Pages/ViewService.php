@@ -2,15 +2,15 @@
 
 namespace Modules\Services\Filament\Resources\ServiceResource\Pages;
 
+use App\Filament\Resources\Pages\BaseViewRecord;
 use Filament\Actions;
-use Filament\Resources\Pages\ViewRecord;
 use Modules\Services\Filament\Resources\ServiceResource;
 
-class ViewService extends ViewRecord
+class ViewService extends BaseViewRecord
 {
     protected static string $resource = ServiceResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getViewHeaderActions(): array
     {
         return [
             Actions\EditAction::make(),

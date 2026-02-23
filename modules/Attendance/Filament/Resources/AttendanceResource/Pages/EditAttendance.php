@@ -2,15 +2,15 @@
 
 namespace Modules\Attendance\Filament\Resources\AttendanceResource\Pages;
 
+use App\Filament\Resources\Pages\BaseEditRecord;
 use Filament\Actions;
-use Filament\Resources\Pages\EditRecord;
 use Modules\Attendance\Filament\Resources\AttendanceResource;
 
-class EditAttendance extends EditRecord
+class EditAttendance extends BaseEditRecord
 {
     protected static string $resource = AttendanceResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getEditHeaderActions(): array
     {
         return [
             Actions\ViewAction::make(),

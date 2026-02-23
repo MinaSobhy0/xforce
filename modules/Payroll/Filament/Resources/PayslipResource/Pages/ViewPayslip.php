@@ -2,17 +2,17 @@
 
 namespace Modules\Payroll\Filament\Resources\PayslipResource\Pages;
 
-use Modules\Payroll\Filament\Resources\PayslipResource;
-use Modules\Payroll\Services\PayrollCalculationService;
+use App\Filament\Resources\Pages\BaseViewRecord;
 use Filament\Actions;
 use Filament\Notifications\Notification;
-use Filament\Resources\Pages\ViewRecord;
+use Modules\Payroll\Filament\Resources\PayslipResource;
+use Modules\Payroll\Services\PayrollCalculationService;
 
-class ViewPayslip extends ViewRecord
+class ViewPayslip extends BaseViewRecord
 {
     protected static string $resource = PayslipResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getViewHeaderActions(): array
     {
         return [
             Actions\Action::make('recalculate')

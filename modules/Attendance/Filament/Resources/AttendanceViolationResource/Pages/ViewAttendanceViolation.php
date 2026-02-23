@@ -2,17 +2,17 @@
 
 namespace Modules\Attendance\Filament\Resources\AttendanceViolationResource\Pages;
 
+use App\Filament\Resources\Pages\BaseViewRecord;
 use Filament\Actions;
 use Filament\Notifications\Notification;
-use Filament\Resources\Pages\ViewRecord;
 use Modules\Attendance\Filament\Resources\AttendanceViolationResource;
 use Modules\Attendance\Models\AttendanceViolation;
 
-class ViewAttendanceViolation extends ViewRecord
+class ViewAttendanceViolation extends BaseViewRecord
 {
     protected static string $resource = AttendanceViolationResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getViewHeaderActions(): array
     {
         return [
             Actions\Action::make('approve')

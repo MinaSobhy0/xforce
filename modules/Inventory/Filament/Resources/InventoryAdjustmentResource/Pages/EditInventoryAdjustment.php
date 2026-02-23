@@ -2,12 +2,12 @@
 
 namespace Modules\Inventory\Filament\Resources\InventoryAdjustmentResource\Pages;
 
+use App\Filament\Resources\Pages\BaseEditRecord;
 use Filament\Actions;
 use Filament\Notifications\Notification;
-use Filament\Resources\Pages\EditRecord;
 use Modules\Inventory\Filament\Resources\InventoryAdjustmentResource;
 
-class EditInventoryAdjustment extends EditRecord
+class EditInventoryAdjustment extends BaseEditRecord
 {
     protected static string $resource = InventoryAdjustmentResource::class;
 
@@ -22,7 +22,7 @@ class EditInventoryAdjustment extends EditRecord
         return $data;
     }
 
-    protected function getHeaderActions(): array
+    protected function getEditHeaderActions(): array
     {
         return [
             Actions\ViewAction::make(),

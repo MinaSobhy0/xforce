@@ -2,16 +2,16 @@
 
 namespace Modules\Inventory\Filament\Resources\InventoryAdjustmentResource\Pages;
 
+use App\Filament\Resources\Pages\BaseViewRecord;
 use Filament\Actions;
 use Filament\Notifications\Notification;
-use Filament\Resources\Pages\ViewRecord;
 use Modules\Inventory\Filament\Resources\InventoryAdjustmentResource;
 
-class ViewInventoryAdjustment extends ViewRecord
+class ViewInventoryAdjustment extends BaseViewRecord
 {
     protected static string $resource = InventoryAdjustmentResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getViewHeaderActions(): array
     {
         return [
             Actions\EditAction::make()

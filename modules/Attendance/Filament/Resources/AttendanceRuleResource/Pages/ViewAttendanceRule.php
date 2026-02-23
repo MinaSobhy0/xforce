@@ -2,15 +2,15 @@
 
 namespace Modules\Attendance\Filament\Resources\AttendanceRuleResource\Pages;
 
+use App\Filament\Resources\Pages\BaseViewRecord;
 use Filament\Actions;
-use Filament\Resources\Pages\ViewRecord;
 use Modules\Attendance\Filament\Resources\AttendanceRuleResource;
 
-class ViewAttendanceRule extends ViewRecord
+class ViewAttendanceRule extends BaseViewRecord
 {
     protected static string $resource = AttendanceRuleResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getViewHeaderActions(): array
     {
         return [
             Actions\EditAction::make(),
