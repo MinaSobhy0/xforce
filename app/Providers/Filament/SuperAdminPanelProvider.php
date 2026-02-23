@@ -13,7 +13,9 @@ use Filament\Support\Colors\Color;
 use Filament\Widgets;
 use Filament\SpatieLaravelTranslatablePlugin;
 use App\Models\PlatformSetting;
+use Filament\View\PanelsRenderHook;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
+use Illuminate\Support\HtmlString;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
@@ -58,9 +60,15 @@ class SuperAdminPanelProvider extends PanelProvider
             // Dark Mode
             ->darkMode()
 
-            // Sidebar settings - ensure visible on desktop
-            ->sidebarCollapsibleOnDesktop(false)
-            ->sidebarFullyCollapsibleOnDesktop(false)
+            // Custom double sidebar theme
+            ->renderHook(
+                PanelsRenderHook::HEAD_END,
+                fn (): HtmlString => new HtmlString('<link rel="stylesheet" href="' . asset('css/admin/theme.css') . '?v=' . @filemtime(public_path('css/admin/theme.css')) . '">')
+            )
+
+            // Sidebar settings
+            ->sidebarCollapsibleOnDesktop()
+            ->sidebarFullyCollapsibleOnDesktop()
 
             // Navigation Groups - Simplified structure
             ->navigationGroups([

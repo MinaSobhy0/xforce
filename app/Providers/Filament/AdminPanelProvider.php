@@ -10,7 +10,9 @@ use Filament\Navigation\NavigationGroup;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\View\PanelsRenderHook;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
+use Illuminate\Support\HtmlString;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
@@ -45,9 +47,15 @@ class AdminPanelProvider extends PanelProvider
                 return $favicon ? asset('storage/' . $favicon) : null;
             })
 
+            // Custom double sidebar theme
+            ->renderHook(
+                PanelsRenderHook::HEAD_END,
+                fn (): HtmlString => new HtmlString('<link rel="stylesheet" href="' . asset('css/admin/theme.css') . '?v=' . @filemtime(public_path('css/admin/theme.css')) . '">')
+            )
+
             // Sidebar settings
-            ->sidebarCollapsibleOnDesktop(false)
-            ->sidebarFullyCollapsibleOnDesktop(false)
+            ->sidebarCollapsibleOnDesktop()
+            ->sidebarFullyCollapsibleOnDesktop()
 
             // Navigation Groups for clinic owner portal
             ->navigationGroups([
