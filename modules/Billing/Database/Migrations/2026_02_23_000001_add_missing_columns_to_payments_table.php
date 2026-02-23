@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -26,6 +27,9 @@ return new class extends Migration
                 $table->string('status')->default('completed')->after('appointment_id');
             }
         });
+
+        // Make invoice_id nullable to support unassigned payments
+        DB::statement('ALTER TABLE payments ALTER COLUMN invoice_id DROP NOT NULL');
 
         // Add service_id to invoice_lines table
         Schema::table('invoice_lines', function (Blueprint $table) {
