@@ -136,7 +136,7 @@ class InvoiceResource extends Resource
                                                             : $service->base_price_minor;
                                                         $set('description', $service->name);
                                                         $set('unit_price_minor', $price / 100);
-                                                        $defaultTax = TaxRate::getDefault();
+                                                        $defaultTax = TaxRate::getDefault(TaxRate::TYPE_SALES);
                                                         $set('tax_rate', $defaultTax ? (string) $defaultTax->rate : '14');
                                                     }
                                                 }
@@ -214,6 +214,7 @@ class InvoiceResource extends Resource
                                             ->label(__('billing::billing.fields.tax'))
                                             ->options(function () {
                                                 return TaxRate::where('is_active', true)
+                                                    ->where('type', TaxRate::TYPE_SALES)
                                                     ->orderBy('rate')
                                                     ->get()
                                                     ->mapWithKeys(fn ($t) => [
@@ -221,7 +222,7 @@ class InvoiceResource extends Resource
                                                     ]);
                                             })
                                             ->default(function () {
-                                                $default = TaxRate::getDefault();
+                                                $default = TaxRate::getDefault(TaxRate::TYPE_SALES);
                                                 return $default ? (string) $default->rate : '14';
                                             })
                                             ->columnSpan(['default' => 4, 'md' => 3]),
