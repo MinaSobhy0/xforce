@@ -5,89 +5,94 @@
             {{ $this->form }}
         </x-filament::section>
 
-        {{-- Calendar Navigation & Legend --}}
-        <div class="flex flex-wrap items-center justify-between gap-4">
-            <div class="flex items-center gap-2">
-                {{-- Navigation --}}
-                <x-filament::icon-button
-                    icon="heroicon-o-chevron-left"
-                    wire:click="previous"
-                    color="gray"
-                />
+        {{-- Calendar Navigation --}}
+        <div class="space-y-3">
+            {{-- Top Row: Navigation & View Buttons --}}
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                {{-- Date Navigation --}}
+                <div class="flex items-center gap-1 sm:gap-2">
+                    <x-filament::icon-button
+                        icon="heroicon-o-chevron-left"
+                        wire:click="previous"
+                        color="gray"
+                        size="sm"
+                    />
 
-                <div class="w-40">
-                    <x-filament::input.wrapper>
-                        <x-filament::input
-                            type="date"
-                            wire:model.live="selectedDate"
-                            class="text-center"
-                        />
-                    </x-filament::input.wrapper>
+                    <div class="w-32 sm:w-40">
+                        <x-filament::input.wrapper>
+                            <x-filament::input
+                                type="date"
+                                wire:model.live="selectedDate"
+                                class="text-center text-sm"
+                            />
+                        </x-filament::input.wrapper>
+                    </div>
+
+                    <x-filament::icon-button
+                        icon="heroicon-o-chevron-right"
+                        wire:click="next"
+                        color="gray"
+                        size="sm"
+                    />
+
+                    @unless($this->isToday())
+                        <x-filament::button wire:click="today" size="xs" color="primary">
+                            {{ __('booking::calendar.today') }}
+                        </x-filament::button>
+                    @endunless
                 </div>
 
-                <x-filament::icon-button
-                    icon="heroicon-o-chevron-right"
-                    wire:click="next"
-                    color="gray"
-                />
-
-                @unless($this->isToday())
-                    <x-filament::button wire:click="today" size="sm" color="primary">
-                        {{ __('booking::calendar.today') }}
+                {{-- View Mode Buttons --}}
+                <div class="flex items-center gap-1">
+                    <x-filament::button wire:click="setViewMode('day')" size="xs" :color="$viewMode === 'day' ? 'primary' : 'gray'">
+                        <span class="hidden sm:inline">{{ __('booking::calendar.view.day') }}</span>
+                        <span class="sm:hidden">D</span>
                     </x-filament::button>
-                @endunless
 
-                <div class="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-2"></div>
+                    <x-filament::button wire:click="setViewMode('week')" size="xs" :color="$viewMode === 'week' ? 'primary' : 'gray'">
+                        <span class="hidden sm:inline">{{ __('booking::calendar.view.week') }}</span>
+                        <span class="sm:hidden">W</span>
+                    </x-filament::button>
 
-                {{-- Legend --}}
-                <div class="flex items-center gap-3 text-xs">
-                    <div class="flex items-center gap-1.5">
-                        <span class="inline-block w-3 h-3 rounded" style="background-color: #3b82f6;"></span>
-                        <span class="text-gray-500 dark:text-gray-400">{{ __('booking::calendar.status.scheduled') }}</span>
-                    </div>
-                    <div class="flex items-center gap-1.5">
-                        <span class="inline-block w-3 h-3 rounded" style="background-color: #8b5cf6;"></span>
-                        <span class="text-gray-500 dark:text-gray-400">{{ __('booking::calendar.status.confirmed') }}</span>
-                    </div>
-                    <div class="flex items-center gap-1.5">
-                        <span class="inline-block w-3 h-3 rounded" style="background-color: #f59e0b;"></span>
-                        <span class="text-gray-500 dark:text-gray-400">{{ __('booking::calendar.status.checked_in') }}</span>
-                    </div>
-                    <div class="flex items-center gap-1.5">
-                        <span class="inline-block w-3 h-3 rounded" style="background-color: #6366f1;"></span>
-                        <span class="text-gray-500 dark:text-gray-400">{{ __('booking::calendar.status.in_progress') }}</span>
-                    </div>
-                    <div class="flex items-center gap-1.5">
-                        <span class="inline-block w-3 h-3 rounded" style="background-color: #10b981;"></span>
-                        <span class="text-gray-500 dark:text-gray-400">{{ __('booking::calendar.status.completed') }}</span>
-                    </div>
+                    <x-filament::button wire:click="setViewMode('month')" size="xs" :color="$viewMode === 'month' ? 'primary' : 'gray'">
+                        <span class="hidden sm:inline">{{ __('booking::calendar.view.month') }}</span>
+                        <span class="sm:hidden">M</span>
+                    </x-filament::button>
+
+                    <x-filament::button tag="a" href="{{ route('filament.tenant.pages.room-calendar') }}" size="xs" color="gray" icon="heroicon-o-building-office">
+                        <span class="hidden sm:inline">{{ __('booking::calendar.view.rooms') }}</span>
+                    </x-filament::button>
                 </div>
             </div>
 
-            <div class="flex items-center gap-2">
-                <x-filament::button wire:click="setViewMode('day')" size="sm" :color="$viewMode === 'day' ? 'primary' : 'gray'">
-                    {{ __('booking::calendar.view.day') }}
-                </x-filament::button>
-
-                <x-filament::button wire:click="setViewMode('week')" size="sm" :color="$viewMode === 'week' ? 'primary' : 'gray'">
-                    {{ __('booking::calendar.view.week') }}
-                </x-filament::button>
-
-                <x-filament::button wire:click="setViewMode('month')" size="sm" :color="$viewMode === 'month' ? 'primary' : 'gray'">
-                    {{ __('booking::calendar.view.month') }}
-                </x-filament::button>
-
-                <div class="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-4"></div>
-
-                <x-filament::button tag="a" href="{{ route('filament.tenant.pages.room-calendar') }}" size="sm" color="gray" icon="heroicon-o-building-office">
-                    {{ __('booking::calendar.view.rooms') }}
-                </x-filament::button>
+            {{-- Legend - Hidden on mobile, shown on larger screens --}}
+            <div class="hidden md:flex items-center gap-3 text-xs">
+                <div class="flex items-center gap-1.5">
+                    <span class="inline-block w-3 h-3 rounded" style="background-color: #3b82f6;"></span>
+                    <span class="text-gray-500 dark:text-gray-400">{{ __('booking::calendar.status.scheduled') }}</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <span class="inline-block w-3 h-3 rounded" style="background-color: #8b5cf6;"></span>
+                    <span class="text-gray-500 dark:text-gray-400">{{ __('booking::calendar.status.confirmed') }}</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <span class="inline-block w-3 h-3 rounded" style="background-color: #f59e0b;"></span>
+                    <span class="text-gray-500 dark:text-gray-400">{{ __('booking::calendar.status.checked_in') }}</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <span class="inline-block w-3 h-3 rounded" style="background-color: #6366f1;"></span>
+                    <span class="text-gray-500 dark:text-gray-400">{{ __('booking::calendar.status.in_progress') }}</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <span class="inline-block w-3 h-3 rounded" style="background-color: #10b981;"></span>
+                    <span class="text-gray-500 dark:text-gray-400">{{ __('booking::calendar.status.completed') }}</span>
+                </div>
             </div>
         </div>
 
         {{-- Calendar Container --}}
         <x-filament::section>
-            <div id="calendar" class="min-h-[600px]" wire:ignore></div>
+            <div id="calendar" class="min-h-[400px] sm:min-h-[600px] overflow-x-auto" wire:ignore></div>
         </x-filament::section>
 
     </div>
@@ -296,7 +301,7 @@
                 x-transition:leave="ease-in duration-200"
                 x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
                 x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                class="inline-block align-bottom bg-white dark:bg-gray-900 rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full"
+                class="inline-block align-bottom bg-white dark:bg-gray-900 rounded-xl text-left overflow-hidden shadow-xl transform transition-all w-full mx-4 sm:mx-0 sm:my-8 sm:align-middle sm:max-w-2xl"
             >
                 {{-- Header --}}
                 <div class="bg-gray-50 dark:bg-gray-800 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
