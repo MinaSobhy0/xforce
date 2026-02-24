@@ -13,6 +13,7 @@ return [
     'no_rooms' => 'لا توجد غرف متاحة',
     'unknown' => 'غير معروف',
     'capacity' => 'السعة',
+    'back_to_calendar' => 'التقويم',
 
     'legend' => [
         'scheduled' => 'مجدول',

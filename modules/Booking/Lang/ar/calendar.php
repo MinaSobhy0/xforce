@@ -10,6 +10,7 @@ return [
         'day' => 'يوم',
         'week' => 'أسبوع',
         'month' => 'شهر',
+        'rooms' => 'الغرف',
     ],
 
     'filters' => [

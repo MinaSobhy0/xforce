@@ -10,6 +10,7 @@ return [
         'day' => 'Day',
         'week' => 'Week',
         'month' => 'Month',
+        'rooms' => 'Rooms',
     ],
 
     'filters' => [

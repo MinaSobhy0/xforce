@@ -65,6 +65,18 @@
             @endif
 
             {{-- Legend --}}
+                {{-- Back to Calendar Button --}}
+            <x-filament::button
+                tag="a"
+                href="{{ route('filament.tenant.pages.calendar') }}"
+                size="sm"
+                color="gray"
+                icon="heroicon-o-calendar-days"
+            >
+                {{ __('booking::room_calendar.back_to_calendar') }}
+            </x-filament::button>
+
+            {{-- Legend --}}
             <div class="flex items-center gap-3 text-xs">
                 <div class="flex items-center gap-1">
                     <span class="w-3 h-3 rounded bg-blue-200 border border-blue-400"></span>

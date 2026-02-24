@@ -13,6 +13,7 @@ return [
     'no_rooms' => 'No rooms available',
     'unknown' => 'Unknown',
     'capacity' => 'Capacity',
+    'back_to_calendar' => 'Calendar',
 
     'legend' => [
         'scheduled' => 'Scheduled',

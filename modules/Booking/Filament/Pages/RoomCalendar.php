@@ -28,11 +28,10 @@ class RoomCalendar extends Page implements HasForms
 
     protected static ?string $navigationIcon = 'heroicon-o-calendar-days';
 
-    protected static ?string $navigationGroup = 'Operations';
-
-    protected static ?int $navigationSort = 3;
-
     protected static ?string $slug = 'room-calendar';
+
+    // Hide from navigation - accessed via CalendarPage toggle
+    protected static bool $shouldRegisterNavigation = false;
 
     protected static string $view = 'booking::filament.pages.room-calendar';
 
@@ -49,7 +48,8 @@ class RoomCalendar extends Page implements HasForms
     public function mount(): void
     {
         $this->selectedDate = $this->selectedDate ?? today()->format('Y-m-d');
-        $this->selectedBranch = $this->selectedBranch ?? BranchContext::currentId();
+        // Always default to current branch context
+        $this->selectedBranch = BranchContext::currentId();
     }
 
     public static function getNavigationLabel(): string
@@ -261,23 +261,4 @@ class RoomCalendar extends Page implements HasForms
         return (int) (($currentMinutes / $this->intervalMinutes) * $slotHeight);
     }
 
-    public static function shouldRegisterNavigation(): bool
-    {
-        $user = auth()->user();
-        if (!$user) {
-            return false;
-        }
-        return $user->hasAnyRole([
-            'receptionist',
-            'admin',
-            'manager',
-            'super-admin',
-            'super_admin',
-            'owner',
-            'tenant-owner',
-            'tenant_owner',
-            'doctor',
-            'nurse',
-        ]);
-    }
 }
