@@ -169,19 +169,21 @@
                                             };
                                         @endphp
                                         <div
-                                            style="position: absolute; top: 0; left: 4px; width: calc(100% - 8px); height: {{ $position['height'] - 4 }}px; z-index: 5; background: {{ $statusStyles['bg'] }}; border-left: 4px solid {{ $statusStyles['border'] }}; border-radius: 8px; padding: 4px 8px; box-sizing: border-box; overflow: hidden; cursor: pointer;"
+                                            style="position: absolute; top: 2px; left: 4px; width: calc(100% - 8px); height: {{ $position['height'] - 6 }}px; z-index: 5; background: {{ $statusStyles['bg'] }}; border: none; border-left: 3px solid {{ $statusStyles['border'] }}; border-radius: 6px; padding: 4px 8px; box-sizing: border-box; overflow: hidden; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.05); transition: all 0.2s ease;"
+                                            onmouseover="this.style.boxShadow='0 4px 6px rgba(0,0,0,0.1)'; this.style.transform='translateY(-1px)';"
+                                            onmouseout="this.style.boxShadow='0 1px 2px rgba(0,0,0,0.05)'; this.style.transform='none';"
                                             title="{{ $position['startTime'] }} - {{ $position['endTime'] }} ({{ $position['duration'] }} min)&#10;{{ __('booking::room_calendar.practitioner') }}: {{ $appointment->practitioner?->full_name ?? '-' }}&#10;{{ __('booking::room_calendar.status') }}: {{ $appointment->status }}"
                                             wire:click="$dispatch('open-modal', { id: 'appointment-{{ $appointment->id }}' })"
                                         >
-                                            <p style="margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; font-weight: 500;">
+                                            <p style="margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; font-weight: 500; color: {{ $statusStyles['text'] }};">
                                                 {{ $appointment->patient?->full_name ?? __('booking::room_calendar.unknown') }}
                                             </p>
                                             @if($appointment->patient?->phone)
-                                                <p style="margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; color: #666;">
+                                                <p style="margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; color: {{ $statusStyles['text'] }}; opacity: 0.8;">
                                                     {{ $appointment->patient->phone }}
                                                 </p>
                                             @endif
-                                            <p style="margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; color: #888;">
+                                            <p style="margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; color: {{ $statusStyles['text'] }}; opacity: 0.7;">
                                                 {{ $appointment->service?->name }}
                                             </p>
                                         </div>
