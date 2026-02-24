@@ -8,6 +8,7 @@ return [
     'wizard' => [
         'patient' => 'اختيار المريض',
         'treatment' => 'اختيار العلاج',
+        'service' => 'اختيار الخدمة',
         'schedule' => 'الجدولة',
         'confirm' => 'التأكيد',
     ],
@@ -16,6 +17,7 @@ return [
         'code' => 'الكود',
         'patient' => 'المريض',
         'treatment' => 'العلاج',
+        'service' => 'الخدمة',
         'branch' => 'الفرع',
         'practitioner' => 'الطبيب',
         'room' => 'الغرفة',

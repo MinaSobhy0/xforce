@@ -8,6 +8,7 @@ return [
     'wizard' => [
         'patient' => 'Select Patient',
         'treatment' => 'Select Treatment',
+        'service' => 'Select Service',
         'schedule' => 'Schedule',
         'confirm' => 'Confirm',
     ],
@@ -16,6 +17,7 @@ return [
         'code' => 'Code',
         'patient' => 'Patient',
         'treatment' => 'Treatment',
+        'service' => 'Service',
         'branch' => 'Branch',
         'practitioner' => 'Doctor',
         'room' => 'Room',
