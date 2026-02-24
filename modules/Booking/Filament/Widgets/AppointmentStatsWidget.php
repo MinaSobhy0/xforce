@@ -88,9 +88,10 @@ class AppointmentStatsWidget extends BaseWidget
     protected function getWeeklyData(): array
     {
         return Appointment::whereBetween('date', [now()->subDays(6), now()])
+            ->selectRaw('date, COUNT(*) as count')
             ->groupBy('date')
             ->orderBy('date')
-            ->pluck(DB::raw('COUNT(*)'))
+            ->pluck('count')
             ->toArray();
     }
 
