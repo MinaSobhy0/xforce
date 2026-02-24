@@ -67,6 +67,12 @@ return [
     'all' => 'الكل',
     'none' => 'لا شيء',
     'general' => 'عام',
+
+    // Language
+    'language' => 'اللغة',
+    'english' => 'الإنجليزية',
+    'arabic' => 'العربية',
+
     'minutes' => 'دقائق',
     'hours' => 'ساعات',
     'days' => 'أيام',

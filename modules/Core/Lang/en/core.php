@@ -67,6 +67,11 @@ return [
     'all' => 'All',
     'none' => 'None',
     'general' => 'General',
+
+    // Language
+    'language' => 'Language',
+    'english' => 'English',
+    'arabic' => 'Arabic',
     'minutes' => 'minutes',
     'hours' => 'hours',
     'days' => 'days',

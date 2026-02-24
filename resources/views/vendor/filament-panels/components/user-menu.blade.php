@@ -65,6 +65,14 @@
         </x-filament::dropdown.list>
     @endif
 
+    {{-- Language Switcher --}}
+    <x-filament::dropdown.list>
+        <div class="px-3 py-2">
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">{{ __('core::core.language') }}</p>
+            @livewire('language-switcher')
+        </div>
+    </x-filament::dropdown.list>
+
     <x-filament::dropdown.list>
         @foreach ($items as $key => $item)
             @php
