@@ -102,15 +102,6 @@
             </div>
             <div class="text-sm font-medium text-gray-900 dark:text-white">{{ $appointment->room?->name ?? '-' }}</div>
         </div>
-
-        {{-- Branch - Full Width --}}
-        <div class="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3" style="grid-column: span 2;">
-            <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400 mb-1">
-                <x-heroicon-o-map-pin class="w-4 h-4 flex-shrink-0" />
-                <span class="text-xs font-medium uppercase">{{ __('booking::calendar.modal.branch') }}</span>
-            </div>
-            <div class="text-sm font-medium text-gray-900 dark:text-white">{{ $appointment->branch?->name ?? '-' }}</div>
-        </div>
     </div>
 
     {{-- Notes --}}
