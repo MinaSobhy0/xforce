@@ -8,6 +8,7 @@ use Modules\Billing\Models\TaxRate;
 use Modules\Accounting\Models\Journal;
 use Modules\Accounting\Models\JournalEntry;
 use Modules\Accounting\Models\ChartOfAccount;
+use Modules\Patients\Models\Patient;
 
 class AccountingIntegrationService
 {
@@ -52,34 +53,28 @@ class AccountingIntegrationService
             'source_id' => $invoice->id,
         ]);
 
-        // Debit: Accounts Receivable (full invoice amount)
-        $entry->lines()->create([
-            'tenant_id' => $invoice->tenant_id,
-            'account_id' => $arAccount->id,
-            'debit_minor' => $invoice->total_minor,
-            'credit_minor' => 0,
-            'description' => "Customer: {$invoice->patient?->full_name}",
-            'branch_id' => $invoice->branch_id,
-        ]);
-
         // Group revenue by account and taxes by tax account
         $revenueByAccount = [];
         $taxByAccount = [];
+        $totalAmount = 0;
 
         foreach ($invoice->lines as $line) {
+            // Calculate line revenue (subtotal - discount, before tax)
+            $lineRevenue = (int) round($line->quantity * $line->unit_price_minor);
+            // Apply discount
+            if ($line->discount_minor > 0) {
+                if ($line->discount_type === 'percent') {
+                    $lineRevenue -= (int) round($lineRevenue * $line->discount_minor / 100);
+                } else {
+                    $lineRevenue -= $line->discount_minor;
+                }
+            }
+
+            $totalAmount += $lineRevenue;
+
             // Revenue - use line account or default revenue account
             $revenueAccountId = $line->account_id ?? $this->getDefaultRevenueAccount()?->id;
             if ($revenueAccountId) {
-                $lineRevenue = (int) round($line->quantity * $line->unit_price_minor);
-                // Apply discount
-                if ($line->discount_minor > 0) {
-                    if ($line->discount_type === 'percent') {
-                        $lineRevenue -= (int) round($lineRevenue * $line->discount_minor / 100);
-                    } else {
-                        $lineRevenue -= $line->discount_minor;
-                    }
-                }
-
                 if (!isset($revenueByAccount[$revenueAccountId])) {
                     $revenueByAccount[$revenueAccountId] = 0;
                 }
@@ -99,13 +94,26 @@ class AccountingIntegrationService
                     }
                     $taxByAccount[$taxAccountId] += $line->tax_minor;
                 }
+
+                $totalAmount += $line->tax_minor;
             }
         }
+
+        // Debit: Accounts Receivable (revenue + tax, correctly calculated from lines)
+        $entry->lines()->create([
+            'tenant_id' => $invoice->tenant_id,
+            'account_id' => $arAccount->id,
+            'debit_minor' => $totalAmount,
+            'credit_minor' => 0,
+            'description' => "Customer: {$invoice->patient?->full_name}",
+            'branch_id' => $invoice->branch_id,
+            'partner_type' => $invoice->patient_id ? Patient::class : null,
+            'partner_id' => $invoice->patient_id,
+        ]);
 
         // Credit: Revenue accounts
         foreach ($revenueByAccount as $accountId => $amount) {
             if ($amount > 0) {
-                $account = ChartOfAccount::find($accountId);
                 $entry->lines()->create([
                     'tenant_id' => $invoice->tenant_id,
                     'account_id' => $accountId,
@@ -113,6 +121,8 @@ class AccountingIntegrationService
                     'credit_minor' => $amount,
                     'description' => "Services revenue",
                     'branch_id' => $invoice->branch_id,
+                    'partner_type' => $invoice->patient_id ? Patient::class : null,
+                    'partner_id' => $invoice->patient_id,
                 ]);
             }
         }
@@ -120,7 +130,6 @@ class AccountingIntegrationService
         // Credit: Tax accounts (separate line per tax account)
         foreach ($taxByAccount as $accountId => $amount) {
             if ($amount > 0) {
-                $account = ChartOfAccount::find($accountId);
                 $entry->lines()->create([
                     'tenant_id' => $invoice->tenant_id,
                     'account_id' => $accountId,
@@ -128,6 +137,8 @@ class AccountingIntegrationService
                     'credit_minor' => $amount,
                     'description' => "Tax on invoice {$invoice->code}",
                     'branch_id' => $invoice->branch_id,
+                    'partner_type' => $invoice->patient_id ? Patient::class : null,
+                    'partner_id' => $invoice->patient_id,
                 ]);
             }
         }
@@ -187,6 +198,8 @@ class AccountingIntegrationService
             'credit_minor' => 0,
             'description' => "Payment received via {$paymentJournal->name}",
             'branch_id' => $invoice?->branch_id,
+            'partner_type' => $invoice?->patient_id ? Patient::class : null,
+            'partner_id' => $invoice?->patient_id,
         ]);
 
         // Credit: Accounts Receivable
@@ -197,6 +210,8 @@ class AccountingIntegrationService
             'credit_minor' => $payment->amount_minor,
             'description' => "Customer: {$invoice?->patient?->full_name}",
             'branch_id' => $invoice?->branch_id,
+            'partner_type' => $invoice?->patient_id ? Patient::class : null,
+            'partner_id' => $invoice?->patient_id,
         ]);
 
         // Recalculate and post

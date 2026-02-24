@@ -321,9 +321,25 @@ class Invoice extends BaseModel
     // Calculation methods
     public function recalculateTotals(): void
     {
-        $subtotal = $this->lines()->sum('total_minor');
-        $tax = $this->lines()->sum('tax_minor');
+        // Calculate subtotal as sum of (line quantity * unit_price - discount), before tax
+        $subtotal = 0;
+        $tax = 0;
 
+        foreach ($this->lines as $line) {
+            $lineSubtotal = (int) round($line->quantity * $line->unit_price_minor);
+            // Apply line discount
+            if ($line->discount_minor > 0) {
+                if ($line->discount_type === 'percent') {
+                    $lineSubtotal -= (int) round($lineSubtotal * $line->discount_minor / 100);
+                } else {
+                    $lineSubtotal -= $line->discount_minor;
+                }
+            }
+            $subtotal += $lineSubtotal;
+            $tax += $line->tax_minor ?? 0;
+        }
+
+        // Apply invoice-level discount
         $discountAmount = 0;
         if ($this->discount_minor > 0) {
             if ($this->discount_type === self::DISCOUNT_PERCENT) {

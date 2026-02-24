@@ -10,6 +10,7 @@ use Modules\Billing\Models\TaxRate;
 use Modules\Inventory\Models\InventoryAdjustment;
 use Modules\Inventory\Models\Product;
 use Modules\Inventory\Models\StockMovement;
+use Modules\Inventory\Models\Supplier;
 use Modules\Inventory\Models\VendorBill;
 
 class InventoryAccountingService
@@ -496,6 +497,8 @@ class InventoryAccountingService
                     'credit_minor' => $lineData['credit'] ?? 0,
                     'description' => $lineData['description'] ?? null,
                     'branch_id' => $bill->branch_id,
+                    'partner_type' => $bill->supplier_id ? Supplier::class : null,
+                    'partner_id' => $bill->supplier_id,
                 ]);
             }
 
