@@ -108,16 +108,24 @@
             </x-filament::section>
 
             {{-- Legend --}}
-            <x-filament::section>
-                <div class="flex flex-wrap gap-4">
-                    @foreach(\Modules\Booking\Models\Appointment::STATUSES as $status => $label)
-                        <div class="flex items-center space-x-2">
-                            <div class="w-4 h-4 rounded" style="background-color: {{ $this->getStatusColor($status) }}"></div>
-                            <span class="text-sm text-gray-600 dark:text-gray-400">{{ $label }}</span>
-                        </div>
-                    @endforeach
+            <div class="flex items-center gap-3 text-xs">
+                <div class="flex items-center gap-1">
+                    <span class="w-3 h-3 rounded bg-blue-200 border border-blue-400"></span>
+                    <span class="text-gray-600 dark:text-gray-400">{{ __('booking::room_calendar.legend.scheduled') }}</span>
                 </div>
-            </x-filament::section>
+                <div class="flex items-center gap-1">
+                    <span class="w-3 h-3 rounded bg-amber-200 border border-amber-400"></span>
+                    <span class="text-gray-600 dark:text-gray-400">{{ __('booking::room_calendar.legend.checked_in') }}</span>
+                </div>
+                <div class="flex items-center gap-1">
+                    <span class="w-3 h-3 rounded bg-purple-200 border border-purple-400"></span>
+                    <span class="text-gray-600 dark:text-gray-400">{{ __('booking::room_calendar.legend.in_progress') }}</span>
+                </div>
+                <div class="flex items-center gap-1">
+                    <span class="w-3 h-3 rounded bg-green-200 border border-green-400"></span>
+                    <span class="text-gray-600 dark:text-gray-400">{{ __('booking::room_calendar.legend.completed') }}</span>
+                </div>
+            </div>
 
             <link rel="stylesheet" href="https://unpkg.com/tippy.js@6/themes/light-border.css"/>
             <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
