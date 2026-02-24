@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'navigation_label' => 'جلسة العلاج',
     'title' => 'جلسة العلاج',
     'heading' => 'جلسة العلاج',
     'session_of' => 'الجلسة :current من :total',

@@ -29,8 +29,8 @@ class RecordPayment extends Page
 
         if (!$record->canRecordPayment()) {
             Notification::make()
-                ->title('Cannot record payment')
-                ->body('This invoice does not accept payments.')
+                ->title(__('billing::billing.record_payment.cannot_record'))
+                ->body(__('billing::billing.record_payment.cannot_record_body'))
                 ->warning()
                 ->send();
 
@@ -50,50 +50,50 @@ class RecordPayment extends Page
 
     public function getTitle(): string|Htmlable
     {
-        return 'Record Payment for ' . $this->record->code;
+        return __('billing::billing.record_payment.title', ['code' => $this->record->code]);
     }
 
     public function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Invoice Summary')
+                Forms\Components\Section::make(__('billing::billing.record_payment.invoice_summary'))
                     ->schema([
                         Forms\Components\Placeholder::make('invoice_code')
-                            ->label('Invoice')
+                            ->label(__('billing::billing.invoice'))
                             ->content($this->record->code),
 
                         Forms\Components\Placeholder::make('patient')
-                            ->label('Patient')
+                            ->label(__('billing::billing.fields.patient'))
                             ->content($this->record->patient?->full_name),
 
                         Forms\Components\Placeholder::make('total')
-                            ->label('Total Amount')
+                            ->label(__('billing::billing.record_payment.total_amount'))
                             ->content(format_money($this->record->total_minor)),
 
                         Forms\Components\Placeholder::make('paid')
-                            ->label('Already Paid')
+                            ->label(__('billing::billing.record_payment.already_paid'))
                             ->content(format_money($this->record->paid_minor)),
 
                         Forms\Components\Placeholder::make('remaining')
-                            ->label('Remaining')
+                            ->label(__('billing::billing.fields.remaining'))
                             ->content(format_money($this->record->remaining_minor)),
                     ])
                     ->columns(5),
 
-                Forms\Components\Section::make('Payment Details')
+                Forms\Components\Section::make(__('billing::billing.sections.payment_details'))
                     ->schema([
                         Forms\Components\TextInput::make('amount_minor')
-                            ->label('Payment Amount')
+                            ->label(__('billing::billing.record_payment.payment_amount'))
                             ->numeric()
                             ->required()
                             ->minValue(0.01)
                             ->maxValue($this->record->remaining_minor / 100)
                             ->prefix(current_currency())
-                            ->helperText('Maximum: ' . format_money($this->record->remaining_minor)),
+                            ->helperText(__('billing::billing.record_payment.max_amount', ['amount' => format_money($this->record->remaining_minor)])),
 
                         Forms\Components\Select::make('journal_id')
-                            ->label('Payment Method')
+                            ->label(__('billing::billing.fields.payment_method'))
                             ->options(fn () => Journal::active()
                                 ->whereIn('type', ['cash', 'bank'])
                                 ->get()
@@ -103,17 +103,17 @@ class RecordPayment extends Page
                             ->searchable(),
 
                         Forms\Components\DateTimePicker::make('paid_at')
-                            ->label('Payment Date/Time')
+                            ->label(__('billing::billing.fields.paid_at'))
                             ->required()
                             ->default(now()),
 
                         Forms\Components\TextInput::make('reference_number')
-                            ->label('Reference Number')
+                            ->label(__('billing::billing.fields.reference'))
                             ->maxLength(255)
-                            ->helperText('Card last 4 digits, transfer reference, etc.'),
+                            ->helperText(__('billing::billing.record_payment.reference_help')),
 
                         Forms\Components\Textarea::make('notes')
-                            ->label('Notes')
+                            ->label(__('billing::billing.fields.notes'))
                             ->rows(2)
                             ->columnSpanFull(),
                     ])
@@ -141,8 +141,8 @@ class RecordPayment extends Page
         ]);
 
         Notification::make()
-            ->title('Payment recorded successfully')
-            ->body('Amount: ' . format_money($amountMinor))
+            ->title(__('billing::billing.record_payment.payment_recorded'))
+            ->body(__('billing::billing.record_payment.amount_label', ['amount' => format_money($amountMinor)]))
             ->success()
             ->send();
 
@@ -153,11 +153,11 @@ class RecordPayment extends Page
     {
         return [
             Actions\Action::make('save')
-                ->label('Record Payment')
+                ->label(__('billing::billing.actions.record_payment'))
                 ->submit('save'),
 
             Actions\Action::make('cancel')
-                ->label('Cancel')
+                ->label(__('billing::billing.actions.cancel_short'))
                 ->url($this->getResource()::getUrl('view', ['record' => $this->record]))
                 ->color('gray'),
         ];
@@ -166,9 +166,9 @@ class RecordPayment extends Page
     public function getBreadcrumbs(): array
     {
         return [
-            $this->getResource()::getUrl() => 'Invoices',
+            $this->getResource()::getUrl() => __('billing::billing.invoices'),
             $this->getResource()::getUrl('view', ['record' => $this->record]) => $this->record->code,
-            'Record Payment',
+            __('billing::billing.actions.record_payment'),
         ];
     }
 }

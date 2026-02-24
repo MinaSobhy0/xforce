@@ -16,14 +16,17 @@ class PaymentsRelationManager extends RelationManager
 {
     protected static string $relationship = 'payments';
 
-    protected static ?string $title = 'Payments';
+    public static function getTitle(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): string
+    {
+        return __('billing::billing.payments');
+    }
 
     public function form(Form $form): Form
     {
         return $form
             ->schema([
                 Forms\Components\TextInput::make('amount_minor')
-                    ->label('Amount')
+                    ->label(__('billing::billing.fields.amount'))
                     ->numeric()
                     ->required()
                     ->prefix(current_currency())
@@ -31,7 +34,7 @@ class PaymentsRelationManager extends RelationManager
                     ->dehydrateStateUsing(fn ($state) => $state ? (int) ($state * 100) : 0),
 
                 Forms\Components\Select::make('journal_id')
-                    ->label('Payment Method')
+                    ->label(__('billing::billing.fields.payment_method'))
                     ->options(fn () => Journal::active()
                         ->whereIn('type', ['cash', 'bank'])
                         ->get()
@@ -41,16 +44,16 @@ class PaymentsRelationManager extends RelationManager
                     ->default(fn () => Journal::getCashJournal()?->id),
 
                 Forms\Components\DateTimePicker::make('paid_at')
-                    ->label('Payment Date/Time')
+                    ->label(__('billing::billing.fields.paid_at'))
                     ->required()
                     ->default(now()),
 
                 Forms\Components\TextInput::make('reference_number')
-                    ->label('Reference Number')
+                    ->label(__('billing::billing.fields.reference'))
                     ->maxLength(255),
 
                 Forms\Components\Textarea::make('notes')
-                    ->label('Notes')
+                    ->label(__('billing::billing.fields.notes'))
                     ->rows(2),
             ]);
     }
@@ -61,29 +64,29 @@ class PaymentsRelationManager extends RelationManager
             ->recordTitleAttribute('code')
             ->columns([
                 Tables\Columns\TextColumn::make('code')
-                    ->label('Payment #')
+                    ->label(__('billing::billing.fields.code'))
                     ->searchable(),
 
                 Tables\Columns\TextColumn::make('amount_minor')
-                    ->label('Amount')
+                    ->label(__('billing::billing.fields.amount'))
                     ->formatStateUsing(fn ($state) => number_format($state / 100, 2))
                     ->suffix(' ' . current_currency())
                     ->weight('bold'),
 
                 Tables\Columns\TextColumn::make('journal.name')
-                    ->label('Method')
+                    ->label(__('billing::billing.relation.method'))
                     ->badge()
                     ->color(fn (Payment $record) => $record->journal?->type_color ?? 'gray'),
 
                 Tables\Columns\TextColumn::make('reference_number')
-                    ->label('Reference')
-                    ->placeholder('-'),
+                    ->label(__('billing::billing.fields.reference'))
+                    ->placeholder(__('billing::billing.placeholders.no_reference')),
 
                 Tables\Columns\TextColumn::make('receivedBy.name')
-                    ->label('Received By'),
+                    ->label(__('billing::billing.relation.received_by')),
 
                 Tables\Columns\TextColumn::make('paid_at')
-                    ->label('Date/Time')
+                    ->label(__('billing::billing.relation.date_time'))
                     ->dateTime(),
             ])
             ->filters([
@@ -98,13 +101,13 @@ class PaymentsRelationManager extends RelationManager
                     }),
 
                 Tables\Actions\Action::make('link_payment')
-                    ->label('Link Payment')
+                    ->label(__('billing::billing.relation.link_payment'))
                     ->icon('heroicon-o-link')
                     ->color('info')
                     ->visible(fn () => $this->ownerRecord->canRecordPayment())
                     ->form([
                         Forms\Components\Select::make('payment_id')
-                            ->label('Select Unassigned Payment')
+                            ->label(__('billing::billing.relation.select_unassigned_payment'))
                             ->options(function () {
                                 /** @var Invoice $invoice */
                                 $invoice = $this->ownerRecord;
@@ -123,7 +126,7 @@ class PaymentsRelationManager extends RelationManager
                             })
                             ->required()
                             ->searchable()
-                            ->helperText('Only showing unassigned payments for this patient'),
+                            ->helperText(__('billing::billing.relation.unassigned_payments_help')),
                     ])
                     ->action(function (array $data) {
                         $payment = Payment::find($data['payment_id']);
@@ -133,7 +136,7 @@ class PaymentsRelationManager extends RelationManager
                             $invoice->applyUnassignedPayment($payment);
 
                             Notification::make()
-                                ->title('Payment linked successfully')
+                                ->title(__('billing::billing.relation.payment_linked'))
                                 ->success()
                                 ->send();
 
@@ -145,12 +148,12 @@ class PaymentsRelationManager extends RelationManager
                 Tables\Actions\ViewAction::make(),
 
                 Tables\Actions\Action::make('unlink')
-                    ->label('Unlink')
+                    ->label(__('billing::billing.relation.unlink'))
                     ->icon('heroicon-o-x-mark')
                     ->color('warning')
                     ->requiresConfirmation()
-                    ->modalHeading('Unlink Payment')
-                    ->modalDescription('This will unlink the payment from this invoice. The payment will become unassigned and can be linked to another invoice.')
+                    ->modalHeading(__('billing::billing.relation.unlink_payment'))
+                    ->modalDescription(__('billing::billing.relation.unlink_description'))
                     ->action(function (Payment $record) {
                         $record->invoice_id = null;
                         $record->save();
@@ -171,7 +174,7 @@ class PaymentsRelationManager extends RelationManager
                         $invoice->save();
 
                         Notification::make()
-                            ->title('Payment unlinked successfully')
+                            ->title(__('billing::billing.relation.payment_unlinked'))
                             ->success()
                             ->send();
 

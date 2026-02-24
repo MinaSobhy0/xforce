@@ -15,14 +15,17 @@ class LinesRelationManager extends RelationManager
 {
     protected static string $relationship = 'lines';
 
-    protected static ?string $title = 'Line Items';
+    public static function getTitle(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): string
+    {
+        return __('billing::billing.sections.line_items');
+    }
 
     public function form(Form $form): Form
     {
         return $form
             ->schema([
                 Forms\Components\Select::make('service_id')
-                    ->label('Service')
+                    ->label(__('billing::billing.fields.service'))
                     ->options(Service::query()->where('is_active', true)->pluck('name', 'id'))
                     ->searchable()
                     ->preload()
@@ -49,7 +52,7 @@ class LinesRelationManager extends RelationManager
                     ->required(),
 
                 Forms\Components\TextInput::make('unit_price_minor')
-                    ->label('Unit Price')
+                    ->label(__('billing::billing.fields.unit_price'))
                     ->numeric()
                     ->required()
                     ->prefix(current_currency())
@@ -57,21 +60,22 @@ class LinesRelationManager extends RelationManager
                     ->dehydrateStateUsing(fn ($state) => $state ? (int) ($state * 100) : 0),
 
                 Forms\Components\TextInput::make('discount_minor')
-                    ->label('Discount')
+                    ->label(__('billing::billing.fields.discount'))
                     ->numeric()
                     ->default(0)
                     ->formatStateUsing(fn ($state) => $state ? $state / 100 : 0)
                     ->dehydrateStateUsing(fn ($state) => $state ? (int) ($state * 100) : 0),
 
                 Forms\Components\Select::make('discount_type')
+                    ->label(__('billing::billing.fields.discount_type'))
                     ->options([
-                        'fixed' => 'Fixed',
-                        'percent' => 'Percent',
+                        'fixed' => __('billing::billing.discount_types.fixed'),
+                        'percent' => __('billing::billing.discount_types.percent'),
                     ])
                     ->default('fixed'),
 
                 Forms\Components\TextInput::make('tax_rate')
-                    ->label('Tax %')
+                    ->label(__('billing::billing.fields.tax'))
                     ->numeric()
                     ->default(fn () => TaxRate::getDefault()?->rate ?? 14)
                     ->suffix('%'),
@@ -84,18 +88,20 @@ class LinesRelationManager extends RelationManager
             ->recordTitleAttribute('description')
             ->columns([
                 Tables\Columns\TextColumn::make('description')
+                    ->label(__('billing::billing.fields.description'))
                     ->searchable()
                     ->wrap(),
 
                 Tables\Columns\TextColumn::make('quantity')
+                    ->label(__('billing::billing.fields.quantity'))
                     ->numeric(2),
 
                 Tables\Columns\TextColumn::make('unit_price_minor')
-                    ->label('Unit Price')
+                    ->label(__('billing::billing.fields.unit_price'))
                     ->formatStateUsing(fn ($state) => format_money($state)),
 
                 Tables\Columns\TextColumn::make('discount_minor')
-                    ->label('Discount')
+                    ->label(__('billing::billing.fields.discount'))
                     ->formatStateUsing(fn ($state, $record) => $state > 0
                         ? ($record->discount_type === 'percent'
                             ? $state . '%'
@@ -103,11 +109,11 @@ class LinesRelationManager extends RelationManager
                         : '-'),
 
                 Tables\Columns\TextColumn::make('tax_rate')
-                    ->label('Tax')
+                    ->label(__('billing::billing.fields.tax'))
                     ->suffix('%'),
 
                 Tables\Columns\TextColumn::make('total_minor')
-                    ->label('Total')
+                    ->label(__('billing::billing.fields.total'))
                     ->formatStateUsing(fn ($state) => format_money($state))
                     ->weight('bold'),
             ])

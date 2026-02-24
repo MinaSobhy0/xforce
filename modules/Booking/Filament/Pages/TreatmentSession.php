@@ -40,10 +40,17 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
     protected static ?string $moduleCode = 'booking';
     protected static ?string $permissionKey = 'appointments';
     protected static ?string $navigationIcon = 'heroicon-o-play-circle';
+    protected static ?string $navigationGroup = 'Operations';
+    protected static ?int $navigationSort = 15;
     protected static ?string $slug = 'treatment-session';
-    protected static bool $shouldRegisterNavigation = false;
+    protected static bool $shouldRegisterNavigation = true;
 
     protected static string $view = 'booking::filament.pages.treatment-session';
+
+    public static function getNavigationLabel(): string
+    {
+        return __('booking::session.navigation_label');
+    }
 
     // Query string parameter for appointment
     #[Url]

@@ -41,6 +41,21 @@ class InvoiceResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'code';
 
+    public static function getNavigationLabel(): string
+    {
+        return __('billing::billing.invoices');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('billing::billing.invoice');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('billing::billing.invoices');
+    }
+
     public static function getNavigationBadge(): ?string
     {
         return static::getModel()::unpaid()->count() ?: null;
@@ -57,10 +72,10 @@ class InvoiceResource extends Resource
             ->schema([
                 Forms\Components\Group::make()
                     ->schema([
-                        Forms\Components\Section::make('Invoice Details')
+                        Forms\Components\Section::make(__('billing::billing.sections.invoice_details'))
                             ->schema([
                                 Forms\Components\Select::make('patient_id')
-                                    ->label('Patient')
+                                    ->label(__('billing::billing.fields.patient'))
                                     ->relationship('patient', 'first_name')
                                     ->getOptionLabelFromRecordUsing(fn (Patient $record) => $record->display_name)
                                     ->searchable(['first_name', 'last_name', 'phone', 'code'])
@@ -80,7 +95,7 @@ class InvoiceResource extends Resource
                                     ]),
 
                                 Forms\Components\Select::make('branch_id')
-                                    ->label('Branch')
+                                    ->label(__('billing::billing.fields.branch'))
                                     ->relationship('branch', 'name')
                                     ->searchable()
                                     ->preload()
@@ -95,18 +110,18 @@ class InvoiceResource extends Resource
                                     ->required(),
 
                                 Forms\Components\DatePicker::make('due_date')
-                                    ->label('Due Date')
+                                    ->label(__('billing::billing.fields.due_date'))
                                     ->default(fn () => now()->addDays(config('billing.default_payment_terms_days', 0))),
                             ])
                             ->columns(2),
 
-                        Forms\Components\Section::make('Line Items')
+                        Forms\Components\Section::make(__('billing::billing.sections.line_items'))
                             ->schema([
                                 Forms\Components\Repeater::make('lines')
                                     ->relationship()
                                     ->schema([
                                         Forms\Components\Select::make('service_id')
-                                            ->label('Service')
+                                            ->label(__('billing::billing.fields.service'))
                                             ->options(Service::query()->where('is_active', true)->pluck('name', 'id'))
                                             ->searchable()
                                             ->preload()
@@ -134,7 +149,7 @@ class InvoiceResource extends Resource
                                             ->columnSpan(['default' => 12, 'md' => 4]),
 
                                         Forms\Components\Select::make('account_id')
-                                            ->label('Account')
+                                            ->label(__('billing::billing.fields.account'))
                                             ->options(
                                                 ChartOfAccount::where('type', ChartOfAccount::TYPE_REVENUE)
                                                     ->where('is_active', true)
@@ -149,7 +164,7 @@ class InvoiceResource extends Resource
                                             ->columnSpan(['default' => 12, 'md' => 4]),
 
                                         Forms\Components\TextInput::make('quantity')
-                                            ->label('Qty')
+                                            ->label(__('billing::billing.fields.quantity'))
                                             ->numeric()
                                             ->default(1)
                                             ->minValue(0.01)
@@ -158,7 +173,7 @@ class InvoiceResource extends Resource
                                             ->columnSpan(['default' => 4, 'md' => 2]),
 
                                         Forms\Components\TextInput::make('unit_price_minor')
-                                            ->label('Unit Price')
+                                            ->label(__('billing::billing.fields.unit_price'))
                                             ->numeric()
                                             ->required()
                                             ->live(onBlur: true)
@@ -168,7 +183,7 @@ class InvoiceResource extends Resource
                                             ->columnSpan(['default' => 8, 'md' => 3]),
 
                                         Forms\Components\Select::make('discount_type')
-                                            ->label('Disc. Type')
+                                            ->label(__('billing::billing.fields.discount_type'))
                                             ->options([
                                                 'fixed' => current_currency(),
                                                 'percent' => '%',
@@ -178,7 +193,7 @@ class InvoiceResource extends Resource
                                             ->columnSpan(['default' => 4, 'md' => 2]),
 
                                         Forms\Components\TextInput::make('discount_minor')
-                                            ->label('Discount')
+                                            ->label(__('billing::billing.fields.discount'))
                                             ->numeric()
                                             ->default(0)
                                             ->formatStateUsing(function ($state, Forms\Get $get) {
@@ -196,7 +211,7 @@ class InvoiceResource extends Resource
                                             ->columnSpan(['default' => 4, 'md' => 2]),
 
                                         Forms\Components\Select::make('tax_rate')
-                                            ->label('Tax')
+                                            ->label(__('billing::billing.fields.tax'))
                                             ->options(function () {
                                                 return TaxRate::where('is_active', true)
                                                     ->orderBy('rate')
@@ -213,7 +228,7 @@ class InvoiceResource extends Resource
                                     ])
                                     ->columns(12)
                                     ->defaultItems(1)
-                                    ->addActionLabel('Add Line Item')
+                                    ->addActionLabel(__('billing::billing.actions.add_line_item'))
                                     ->reorderable()
                                     ->reorderableWithButtons()
                                     ->cloneable()
@@ -225,10 +240,10 @@ class InvoiceResource extends Resource
 
                 Forms\Components\Group::make()
                     ->schema([
-                        Forms\Components\Section::make('Summary')
+                        Forms\Components\Section::make(__('billing::billing.sections.summary'))
                             ->schema([
                                 Forms\Components\Placeholder::make('subtotal_display')
-                                    ->label('Subtotal')
+                                    ->label(__('billing::billing.fields.subtotal'))
                                     ->content(function (Forms\Get $get) {
                                         $lines = $get('lines') ?? [];
                                         $subtotal = 0;
@@ -252,14 +267,14 @@ class InvoiceResource extends Resource
 
                                 Forms\Components\Select::make('discount_type')
                                     ->options([
-                                        'fixed' => 'Fixed Amount',
-                                        'percent' => 'Percentage',
+                                        'fixed' => __('billing::billing.discount_types.fixed'),
+                                        'percent' => __('billing::billing.discount_types.percent'),
                                     ])
                                     ->default('fixed')
                                     ->live(),
 
                                 Forms\Components\TextInput::make('discount_minor')
-                                    ->label('Discount Value')
+                                    ->label(__('billing::billing.fields.discount_value'))
                                     ->numeric()
                                     ->default(0)
                                     ->live(onBlur: true)
@@ -279,7 +294,7 @@ class InvoiceResource extends Resource
                                     ->suffix(fn (Forms\Get $get) => $get('discount_type') === 'percent' ? '%' : null),
 
                                 Forms\Components\Placeholder::make('tax_display')
-                                    ->label('Tax')
+                                    ->label(__('billing::billing.fields.tax'))
                                     ->content(function (Forms\Get $get) {
                                         $lines = $get('lines') ?? [];
                                         $tax = 0;
@@ -306,7 +321,7 @@ class InvoiceResource extends Resource
                                     }),
 
                                 Forms\Components\Placeholder::make('total_display')
-                                    ->label('Total')
+                                    ->label(__('billing::billing.fields.total'))
                                     ->content(function (Forms\Get $get) {
                                         $lines = $get('lines') ?? [];
                                         $subtotal = 0;
@@ -349,14 +364,14 @@ class InvoiceResource extends Resource
                                     ->extraAttributes(['class' => 'text-lg font-bold']),
                             ]),
 
-                        Forms\Components\Section::make('Notes')
+                        Forms\Components\Section::make(__('billing::billing.sections.notes'))
                             ->schema([
                                 Forms\Components\Textarea::make('notes')
-                                    ->label('Customer Notes')
+                                    ->label(__('billing::billing.fields.customer_notes'))
                                     ->rows(2),
 
                                 Forms\Components\Textarea::make('internal_notes')
-                                    ->label('Internal Notes')
+                                    ->label(__('billing::billing.fields.internal_notes'))
                                     ->rows(2),
                             ])
                             ->collapsed(),
@@ -371,36 +386,36 @@ class InvoiceResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('code')
-                    ->label('Invoice #')
+                    ->label(__('billing::billing.fields.invoice_code'))
                     ->searchable()
                     ->sortable()
                     ->weight(FontWeight::Bold),
 
                 Tables\Columns\TextColumn::make('patient.full_name')
-                    ->label('Patient')
+                    ->label(__('billing::billing.fields.patient'))
                     ->searchable(['first_name', 'last_name'])
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('branch.name')
-                    ->label('Branch')
+                    ->label(__('billing::billing.fields.branch'))
                     ->sortable()
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('total_minor')
-                    ->label('Total')
+                    ->label(__('billing::billing.fields.total'))
                     ->formatStateUsing(fn ($state) => number_format($state / 100, 2))
                     ->suffix(' ' . current_currency())
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('paid_minor')
-                    ->label('Paid')
+                    ->label(__('billing::billing.fields.paid'))
                     ->formatStateUsing(fn ($state) => number_format($state / 100, 2))
                     ->suffix(' ' . current_currency())
                     ->sortable()
                     ->color(fn (Invoice $record) => $record->isPaid() ? 'success' : 'warning'),
 
                 Tables\Columns\TextColumn::make('remaining_minor')
-                    ->label('Remaining')
+                    ->label(__('billing::billing.fields.remaining'))
                     ->formatStateUsing(fn ($state) => number_format($state / 100, 2))
                     ->suffix(' ' . current_currency())
                     ->color(fn ($state) => $state > 0 ? 'danger' : 'success'),
@@ -415,13 +430,13 @@ class InvoiceResource extends Resource
                     ]),
 
                 Tables\Columns\TextColumn::make('due_date')
-                    ->label('Due Date')
+                    ->label(__('billing::billing.fields.due_date'))
                     ->date()
                     ->sortable()
                     ->color(fn (Invoice $record) => $record->is_overdue ? 'danger' : null),
 
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label('Created')
+                    ->label(__('billing::billing.fields.created'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -432,20 +447,22 @@ class InvoiceResource extends Resource
                     ->multiple(),
 
                 Tables\Filters\SelectFilter::make('branch_id')
-                    ->label('Branch')
+                    ->label(__('billing::billing.fields.branch'))
                     ->relationship('branch', 'name'),
 
                 Tables\Filters\SelectFilter::make('type')
                     ->options(Invoice::TYPES),
 
                 Tables\Filters\Filter::make('overdue')
-                    ->label('Overdue Only')
+                    ->label(__('billing::billing.filters.overdue_only'))
                     ->query(fn (Builder $query) => $query->overdue()),
 
                 Tables\Filters\Filter::make('created_at')
                     ->form([
-                        Forms\Components\DatePicker::make('from'),
-                        Forms\Components\DatePicker::make('until'),
+                        Forms\Components\DatePicker::make('from')
+                            ->label(__('billing::billing.filters.from')),
+                        Forms\Components\DatePicker::make('until')
+                            ->label(__('billing::billing.filters.until')),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
@@ -460,7 +477,7 @@ class InvoiceResource extends Resource
                         ->visible(fn (Invoice $record) => $record->isEditable()),
 
                     Tables\Actions\Action::make('issue')
-                        ->label('Issue Invoice')
+                        ->label(__('billing::billing.actions.issue'))
                         ->icon('heroicon-o-paper-airplane')
                         ->color('primary')
                         ->requiresConfirmation()
@@ -468,21 +485,21 @@ class InvoiceResource extends Resource
                         ->action(fn (Invoice $record) => $record->issue()),
 
                     Tables\Actions\Action::make('record_payment')
-                        ->label('Record Payment')
+                        ->label(__('billing::billing.actions.record_payment'))
                         ->icon('heroicon-o-banknotes')
                         ->color('success')
                         ->visible(fn (Invoice $record) => $record->canRecordPayment())
                         ->url(fn (Invoice $record) => route('filament.tenant.resources.invoices.record-payment', $record)),
 
                     Tables\Actions\Action::make('cancel')
-                        ->label('Cancel')
+                        ->label(__('billing::billing.actions.cancel_short'))
                         ->icon('heroicon-o-x-circle')
                         ->color('danger')
                         ->requiresConfirmation()
                         ->visible(fn (Invoice $record) => $record->canTransitionTo(Invoice::STATUS_CANCELLED))
                         ->form([
                             Forms\Components\Textarea::make('reason')
-                                ->label('Cancellation Reason')
+                                ->label(__('billing::billing.fields.cancellation_reason'))
                                 ->required(),
                         ])
                         ->action(fn (Invoice $record, array $data) => $record->cancel($data['reason'])),
@@ -504,7 +521,7 @@ class InvoiceResource extends Resource
                 Infolists\Components\Section::make()
                     ->schema([
                         Infolists\Components\TextEntry::make('code')
-                            ->label('Invoice #')
+                            ->label(__('billing::billing.fields.invoice_code'))
                             ->weight(FontWeight::Bold)
                             ->size(Infolists\Components\TextEntry\TextEntrySize::Large),
 
@@ -518,82 +535,82 @@ class InvoiceResource extends Resource
                     ])
                     ->columns(3),
 
-                Infolists\Components\Section::make('Customer')
+                Infolists\Components\Section::make(__('billing::billing.sections.customer'))
                     ->schema([
                         Infolists\Components\TextEntry::make('patient.full_name')
-                            ->label('Patient'),
+                            ->label(__('billing::billing.fields.patient')),
 
                         Infolists\Components\TextEntry::make('patient.phone')
-                            ->label('Phone'),
+                            ->label(__('billing::billing.fields.phone')),
 
                         Infolists\Components\TextEntry::make('branch.name')
-                            ->label('Branch'),
+                            ->label(__('billing::billing.fields.branch')),
                     ])
                     ->columns(3),
 
-                Infolists\Components\Section::make('Amounts')
+                Infolists\Components\Section::make(__('billing::billing.sections.amounts'))
                     ->schema([
                         Infolists\Components\TextEntry::make('subtotal_minor')
-                            ->label('Subtotal')
+                            ->label(__('billing::billing.fields.subtotal'))
                             ->formatStateUsing(fn ($state) => format_money($state)),
 
                         Infolists\Components\TextEntry::make('discount_minor')
-                            ->label('Discount')
+                            ->label(__('billing::billing.fields.discount'))
                             ->formatStateUsing(fn ($state) => format_money($state)),
 
                         Infolists\Components\TextEntry::make('tax_minor')
-                            ->label('Tax')
+                            ->label(__('billing::billing.fields.tax'))
                             ->formatStateUsing(fn ($state) => format_money($state)),
 
                         Infolists\Components\TextEntry::make('total_minor')
-                            ->label('Total')
+                            ->label(__('billing::billing.fields.total'))
                             ->formatStateUsing(fn ($state) => format_money($state))
                             ->weight(FontWeight::Bold),
 
                         Infolists\Components\TextEntry::make('paid_minor')
-                            ->label('Paid')
+                            ->label(__('billing::billing.fields.paid'))
                             ->formatStateUsing(fn ($state) => format_money($state))
                             ->color('success'),
 
                         Infolists\Components\TextEntry::make('remaining_minor')
-                            ->label('Remaining')
+                            ->label(__('billing::billing.fields.remaining'))
                             ->formatStateUsing(fn ($state) => format_money($state))
                             ->color(fn ($state) => $state > 0 ? 'danger' : 'success'),
                     ])
                     ->columns(3),
 
-                Infolists\Components\Section::make('Dates')
+                Infolists\Components\Section::make(__('billing::billing.sections.dates'))
                     ->schema([
                         Infolists\Components\TextEntry::make('created_at')
-                            ->label('Created')
+                            ->label(__('billing::billing.fields.created'))
                             ->dateTime(),
 
                         Infolists\Components\TextEntry::make('issued_at')
-                            ->label('Issued')
+                            ->label(__('billing::billing.fields.issued_at'))
                             ->dateTime()
-                            ->placeholder('Not issued'),
+                            ->placeholder(__('billing::billing.placeholders.not_issued')),
 
                         Infolists\Components\TextEntry::make('due_date')
-                            ->label('Due Date')
+                            ->label(__('billing::billing.fields.due_date'))
                             ->date()
-                            ->placeholder('No due date'),
+                            ->placeholder(__('billing::billing.placeholders.no_due_date')),
 
                         Infolists\Components\TextEntry::make('paid_at')
-                            ->label('Paid')
+                            ->label(__('billing::billing.fields.paid'))
                             ->dateTime()
-                            ->placeholder('Not paid'),
+                            ->placeholder(__('billing::billing.placeholders.not_paid')),
                     ])
                     ->columns(4),
 
-                Infolists\Components\Section::make('Notes')
+                Infolists\Components\Section::make(__('billing::billing.sections.notes'))
                     ->schema([
                         Infolists\Components\TextEntry::make('notes')
-                            ->label('Customer Notes')
-                            ->placeholder('No notes'),
+                            ->label(__('billing::billing.fields.customer_notes'))
+                            ->placeholder(__('billing::billing.placeholders.no_notes')),
 
                         Infolists\Components\TextEntry::make('internal_notes')
-                            ->label('Internal Notes')
-                            ->placeholder('No internal notes'),
+                            ->label(__('billing::billing.fields.internal_notes'))
+                            ->placeholder(__('billing::billing.placeholders.no_internal_notes')),
                     ])
                     ->columns(2)
                     ->collapsed(),
@@ -628,8 +645,8 @@ class InvoiceResource extends Resource
     public static function getGlobalSearchResultDetails(Model $record): array
     {
         return [
-            'Patient' => $record->patient?->full_name,
-            'Total' => format_money($record->total_minor),
+            __('billing::billing.fields.patient') => $record->patient?->full_name,
+            __('billing::billing.fields.total') => format_money($record->total_minor),
         ];
     }
 }

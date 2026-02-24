@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'navigation_label' => 'Treatment Session',
     'title' => 'Treatment Session',
     'heading' => 'Treatment Session',
     'session_of' => 'Session :current of :total',
