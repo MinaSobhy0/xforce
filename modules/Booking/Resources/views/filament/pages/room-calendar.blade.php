@@ -1,7 +1,6 @@
 <x-filament-panels::page>
     @php
         $rooms = $this->getRooms();
-        $branches = $this->getBranches();
         $timeSlots = $this->getTimeSlots();
         $appointmentsByRoom = $this->getAppointmentsByRoom();
         $currentTimePosition = $this->getCurrentTimePosition();
@@ -50,22 +49,7 @@
         </div>
 
         <div class="flex items-center gap-4">
-            {{-- Branch Filter --}}
-            @if($branches->count() > 1)
-                <div class="w-48">
-                    <x-filament::input.wrapper>
-                        <x-filament::input.select wire:model.live="selectedBranch">
-                            <option value="">{{ __('booking::room_calendar.all_branches') }}</option>
-                            @foreach($branches as $branch)
-                                <option value="{{ $branch->id }}">{{ $branch->name }}</option>
-                            @endforeach
-                        </x-filament::input.select>
-                    </x-filament::input.wrapper>
-                </div>
-            @endif
-
-            {{-- Legend --}}
-                {{-- Back to Calendar Button --}}
+            {{-- Back to Calendar Button --}}
             <x-filament::button
                 tag="a"
                 href="{{ route('filament.tenant.pages.calendar') }}"
