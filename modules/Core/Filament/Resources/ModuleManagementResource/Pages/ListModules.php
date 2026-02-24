@@ -41,10 +41,10 @@ class ListModules extends Page
                     $modules[] = [
                         'code' => $module->getLowerName(),
                         'name' => $module->getName(),
-                        'description' => $moduleJson['description'] ?? '',
+                        'description' => $this->getTranslatedValue($moduleJson['description'] ?? ''),
                         'version' => $moduleJson['version'] ?? '1.0.0',
                         'enabled' => $module->isEnabled(),
-                        'author' => $moduleJson['author'] ?? 'XLinic',
+                        'author' => $this->getTranslatedValue($moduleJson['author'] ?? 'XLinic'),
                         'category' => $moduleJson['category'] ?? 'general',
                         'icon' => $moduleJson['icon'] ?? 'heroicon-o-puzzle-piece',
                     ];
@@ -78,10 +78,10 @@ class ListModules extends Page
                     $modules[] = [
                         'code' => strtolower($moduleName),
                         'name' => $moduleJson['name'] ?? $moduleName,
-                        'description' => $moduleJson['description'] ?? '',
+                        'description' => $this->getTranslatedValue($moduleJson['description'] ?? ''),
                         'version' => $moduleJson['version'] ?? '1.0.0',
                         'enabled' => $statuses[$moduleName] ?? false,
-                        'author' => $moduleJson['author'] ?? 'XLinic',
+                        'author' => $this->getTranslatedValue($moduleJson['author'] ?? 'XLinic'),
                         'category' => $moduleJson['category'] ?? 'general',
                         'icon' => $moduleJson['icon'] ?? 'heroicon-o-puzzle-piece',
                     ];
@@ -104,6 +104,24 @@ class ListModules extends Page
         }
 
         return [];
+    }
+
+    /**
+     * Get translated value from a string or array.
+     * If array, returns the value for current locale or fallback to 'en'.
+     */
+    protected function getTranslatedValue(mixed $value): string
+    {
+        if (is_string($value)) {
+            return $value;
+        }
+
+        if (is_array($value)) {
+            $locale = app()->getLocale();
+            return $value[$locale] ?? $value['en'] ?? reset($value) ?: '';
+        }
+
+        return '';
     }
 
     public function toggleModule(string $code): void
