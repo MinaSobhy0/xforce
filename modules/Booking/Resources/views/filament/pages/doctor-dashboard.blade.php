@@ -23,8 +23,8 @@
                         </div>
                         @foreach($appointments['in_progress'] as $appointment)
                             <div class="px-4 py-3 bg-green-50/50 dark:bg-green-900/10 border-l-4 border-green-500">
-                                <div class="flex items-center justify-between">
-                                    <div>
+                                <div style="display: flex; align-items: center; justify-content: space-between;">
+                                    <div style="flex: 1;">
                                         <div class="font-medium text-gray-900 dark:text-white">
                                             {{ $appointment->patient->full_name }}
                                         </div>
@@ -37,14 +37,20 @@
                                             </div>
                                         @endif
                                     </div>
-                                    <button
-                                        wire:click="resumeSession('{{ $appointment->id }}')"
-                                        wire:loading.attr="disabled"
-                                        class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
-                                    >
-                                        <x-heroicon-o-play class="w-4 h-4" />
-                                        {{ __('booking::dashboard.actions.resume') }}
-                                    </button>
+                                    <div style="flex-shrink: 0; margin-left: 16px;">
+                                        <button
+                                            wire:click="resumeSession('{{ $appointment->id }}')"
+                                            wire:loading.attr="disabled"
+                                            style="background-color: #16a34a; color: white; padding: 8px 16px; border-radius: 8px; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; border: none; cursor: pointer;"
+                                            onmouseover="this.style.backgroundColor='#15803d'"
+                                            onmouseout="this.style.backgroundColor='#16a34a'"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 16px; height: 16px;">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" />
+                                            </svg>
+                                            {{ __('booking::dashboard.actions.resume') }}
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         @endforeach
@@ -59,8 +65,8 @@
                         </div>
                         @foreach($appointments['checked_in'] as $appointment)
                             <div class="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                                <div class="flex items-center justify-between">
-                                    <div>
+                                <div style="display: flex; align-items: center; justify-content: space-between;">
+                                    <div style="flex: 1;">
                                         <div class="font-medium text-gray-900 dark:text-white">
                                             {{ $appointment->patient->full_name }}
                                         </div>
@@ -73,13 +79,17 @@
                                             </div>
                                         @endif
                                     </div>
-                                    <button
-                                        wire:click="startSession('{{ $appointment->id }}')"
-                                        wire:loading.attr="disabled"
-                                        class="px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors"
-                                    >
-                                        {{ __('booking::dashboard.actions.start') }}
-                                    </button>
+                                    <div style="flex-shrink: 0; margin-left: 16px;">
+                                        <button
+                                            wire:click="startSession('{{ $appointment->id }}')"
+                                            wire:loading.attr="disabled"
+                                            style="background-color: #f97316; color: white; padding: 6px 12px; border-radius: 8px; font-weight: 500; border: none; cursor: pointer;"
+                                            onmouseover="this.style.backgroundColor='#ea580c'"
+                                            onmouseout="this.style.backgroundColor='#f97316'"
+                                        >
+                                            {{ __('booking::dashboard.actions.start') }}
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         @endforeach
@@ -94,8 +104,8 @@
                         </div>
                         @foreach($appointments['confirmed'] as $appointment)
                             <div class="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                                <div class="flex items-center justify-between">
-                                    <div>
+                                <div style="display: flex; align-items: center; justify-content: space-between;">
+                                    <div style="flex: 1;">
                                         <div class="font-medium text-gray-900 dark:text-white">
                                             {{ $appointment->patient->full_name }}
                                         </div>
@@ -108,11 +118,13 @@
                                             </div>
                                         @endif
                                     </div>
-                                    <div class="flex items-center gap-2">
+                                    <div style="flex-shrink: 0; margin-left: 16px;">
                                         <button
                                             wire:click="startSession('{{ $appointment->id }}')"
                                             wire:loading.attr="disabled"
-                                            class="px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors"
+                                            style="background-color: #7c3aed; color: white; padding: 6px 12px; border-radius: 8px; font-weight: 500; border: none; cursor: pointer;"
+                                            onmouseover="this.style.backgroundColor='#6d28d9'"
+                                            onmouseout="this.style.backgroundColor='#7c3aed'"
                                         >
                                             {{ __('booking::dashboard.actions.start') }}
                                         </button>
