@@ -14,6 +14,8 @@ return [
     'unknown' => 'Unknown',
     'capacity' => 'Capacity',
     'back_to_calendar' => 'Calendar',
+    'practitioner' => 'Practitioner',
+    'status' => 'Status',
 
     'legend' => [
         'scheduled' => 'Scheduled',

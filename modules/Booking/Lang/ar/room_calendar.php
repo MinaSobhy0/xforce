@@ -14,6 +14,8 @@ return [
     'unknown' => 'غير معروف',
     'capacity' => 'السعة',
     'back_to_calendar' => 'التقويم',
+    'practitioner' => 'الممارس',
+    'status' => 'الحالة',
 
     'legend' => [
         'scheduled' => 'مجدول',

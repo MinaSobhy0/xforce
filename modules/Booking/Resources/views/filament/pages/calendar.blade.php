@@ -124,12 +124,19 @@
                 },
                 eventDidMount: function(info) {
                     if (typeof tippy !== 'undefined') {
-                        let content = '<div class="p-2">';
-                        content += '<div class="font-semibold">' + (info.event.extendedProps.patient || '') + '</div>';
-                        if (info.event.extendedProps.phone) {
-                            content += '<div class="text-sm text-gray-600">' + info.event.extendedProps.phone + '</div>';
+                        let content = '<div class="p-2 text-sm">';
+                        if (info.event.extendedProps.time) {
+                            content += '<div class="text-gray-500">' + info.event.extendedProps.time + '</div>';
                         }
-                        content += '<div class="text-sm">' + (info.event.extendedProps.treatment || '') + '</div>';
+                        if (info.event.extendedProps.practitioner) {
+                            content += '<div>{{ __("booking::calendar.practitioner") }}: ' + info.event.extendedProps.practitioner + '</div>';
+                        }
+                        if (info.event.extendedProps.room) {
+                            content += '<div>{{ __("booking::calendar.room") }}: ' + info.event.extendedProps.room + '</div>';
+                        }
+                        if (info.event.extendedProps.status) {
+                            content += '<div class="mt-1 text-xs text-gray-400">' + info.event.extendedProps.status.replace('_', ' ') + '</div>';
+                        }
                         content += '</div>';
                         tippy(info.el, {
                             content: content,

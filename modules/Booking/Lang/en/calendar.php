@@ -5,6 +5,8 @@ return [
     'title' => 'Appointment Calendar',
 
     'today' => 'Today',
+    'practitioner' => 'Practitioner',
+    'room' => 'Room',
 
     'view' => [
         'day' => 'Day',

@@ -187,9 +187,30 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
         $this->skinReaction = $this->sessionData->skin_reaction ?? 'none';
         $this->painLevel = $this->sessionData->pain_level;
 
-        // If no parameter values and service has defaults, load them
+        // If no parameter values, try to apply default preset or service defaults
         if (empty($this->parameterValues) && $this->appointment->service) {
-            $this->parameterValues = $this->appointment->service->getDefaultParameterValues();
+            // First, try to find and apply the default preset for this service
+            $defaultPreset = ParameterPreset::query()
+                ->where('service_id', $this->appointment->service_id)
+                ->where('is_active', true)
+                ->where('is_default', true)
+                ->first();
+
+            if ($defaultPreset) {
+                $this->selectedPresetId = $defaultPreset->id;
+                $this->parameterValues = $defaultPreset->getValues();
+
+                // Save to session data
+                if ($this->sessionData) {
+                    $this->sessionData->update([
+                        'preset_id' => $defaultPreset->id,
+                        'parameter_values' => $this->parameterValues,
+                    ]);
+                }
+            } else {
+                // Fall back to service default values
+                $this->parameterValues = $this->appointment->service->getDefaultParameterValues();
+            }
         }
 
         // Load consumables and products

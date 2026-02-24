@@ -157,7 +157,7 @@
                                         <div
                                             class="absolute inset-x-1 top-0 rounded-lg border-l-4 px-2 py-1 overflow-hidden cursor-pointer hover:shadow-md transition-shadow {{ $statusColor }}"
                                             style="height: {{ $position['height'] - 4 }}px; z-index: 5;"
-                                            title="{{ $appointment->patient?->full_name }} - {{ $appointment->service?->name }} ({{ $position['startTime'] }} - {{ $position['endTime'] }})"
+                                            title="{{ $position['startTime'] }} - {{ $position['endTime'] }} ({{ $position['duration'] }} min)&#10;{{ __('booking::room_calendar.practitioner') }}: {{ $appointment->practitioner?->full_name ?? '-' }}&#10;{{ __('booking::room_calendar.status') }}: {{ $appointment->status }}"
                                             wire:click="$dispatch('open-modal', { id: 'appointment-{{ $appointment->id }}' })"
                                         >
                                             <div class="text-xs font-semibold truncate">
@@ -165,22 +165,12 @@
                                             </div>
                                             @if($appointment->patient?->phone)
                                                 <div class="text-[10px] truncate opacity-75">
-                                                    <x-heroicon-o-phone class="w-3 h-3 inline" />
                                                     {{ $appointment->patient->phone }}
                                                 </div>
                                             @endif
                                             <div class="text-[10px] truncate opacity-75">
                                                 {{ $appointment->service?->name }}
                                             </div>
-                                            <div class="text-[10px] truncate opacity-75">
-                                                {{ $position['startTime'] }} - {{ $position['endTime'] }} ({{ $position['duration'] }} min)
-                                            </div>
-                                            @if($appointment->practitioner)
-                                                <div class="text-[10px] truncate opacity-75">
-                                                    <x-heroicon-o-user class="w-3 h-3 inline" />
-                                                    {{ $appointment->practitioner->full_name }}
-                                                </div>
-                                            @endif
                                         </div>
                                     @endif
                                 </div>

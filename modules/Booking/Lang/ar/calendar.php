@@ -5,6 +5,8 @@ return [
     'title' => 'تقويم المواعيد',
 
     'today' => 'اليوم',
+    'practitioner' => 'الممارس',
+    'room' => 'الغرفة',
 
     'view' => [
         'day' => 'يوم',

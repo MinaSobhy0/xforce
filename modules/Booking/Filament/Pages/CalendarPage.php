@@ -95,9 +95,16 @@ class CalendarPage extends Page implements HasForms
         }
 
         return $query->ordered()->get()->map(function (Appointment $appointment) {
+            $phone = $appointment->patient?->phone;
+            $title = $appointment->patient?->full_name;
+            if ($phone) {
+                $title .= ' | ' . $phone;
+            }
+            $title .= ' | ' . $appointment->service?->name;
+
             return [
                 'id' => $appointment->id,
-                'title' => $appointment->patient?->full_name . ' - ' . $appointment->service?->name,
+                'title' => $title,
                 'start' => $appointment->date->format('Y-m-d') . 'T' . $appointment->start_time->format('H:i:s'),
                 'end' => $appointment->date->format('Y-m-d') . 'T' . ($appointment->end_time ? $appointment->end_time->format('H:i:s') : $appointment->start_time->addMinutes($appointment->duration_minutes)->format('H:i:s')),
                 'color' => $this->getStatusColor($appointment->status),
@@ -110,6 +117,7 @@ class CalendarPage extends Page implements HasForms
                     'practitioner' => $appointment->practitioner?->full_name,
                     'branch' => $appointment->branch?->name,
                     'room' => $appointment->room?->name,
+                    'time' => $appointment->start_time->format('H:i') . ' - ' . ($appointment->end_time ? $appointment->end_time->format('H:i') : $appointment->start_time->addMinutes($appointment->duration_minutes)->format('H:i')),
                 ],
             ];
         })->toArray();
