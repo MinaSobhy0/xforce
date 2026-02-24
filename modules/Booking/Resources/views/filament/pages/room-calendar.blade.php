@@ -152,7 +152,7 @@
                                     $appointment = $this->isSlotOccupied($room->id, $slot['time']);
                                     $isStartSlot = $appointment && $appointment->start_time->format('H:i') === $slot['label'];
                                 @endphp
-                                <div class="flex-1 min-w-[180px] border-r border-gray-200 dark:border-gray-700 last:border-r-0 relative">
+                                <div class="flex-1 min-w-[180px] border-r border-gray-200 dark:border-gray-700 last:border-r-0 relative overflow-hidden">
                                     @if($isStartSlot)
                                         @php
                                             $position = $this->getAppointmentPosition($appointment);
@@ -169,20 +169,20 @@
                                             };
                                         @endphp
                                         <div
-                                            class="absolute inset-x-1 top-0 rounded-lg border-l-4 px-2 py-1 cursor-pointer hover:shadow-lg transition-all"
-                                            style="height: {{ $position['height'] - 4 }}px; z-index: 5; background: {{ $statusStyles['bg'] }}; border-left-color: {{ $statusStyles['border'] }}; overflow: hidden;"
+                                            class="absolute top-0 left-1 right-1 rounded-lg border-l-4 px-2 py-1 cursor-pointer hover:shadow-lg transition-all"
+                                            style="height: {{ $position['height'] - 4 }}px; z-index: 5; background: {{ $statusStyles['bg'] }}; border-left-color: {{ $statusStyles['border'] }}; overflow: hidden; max-width: calc(100% - 8px);"
                                             title="{{ $position['startTime'] }} - {{ $position['endTime'] }} ({{ $position['duration'] }} min)&#10;{{ __('booking::room_calendar.practitioner') }}: {{ $appointment->practitioner?->full_name ?? '-' }}&#10;{{ __('booking::room_calendar.status') }}: {{ $appointment->status }}"
                                             wire:click="$dispatch('open-modal', { id: 'appointment-{{ $appointment->id }}' })"
                                         >
-                                            <div class="font-medium text-gray-900 dark:text-white text-xs whitespace-nowrap overflow-hidden text-ellipsis">
+                                            <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; font-weight: 500;">
                                                 {{ $appointment->patient?->full_name ?? __('booking::room_calendar.unknown') }}
                                             </div>
                                             @if($appointment->patient?->phone)
-                                                <div class="text-[10px] text-gray-600 dark:text-gray-300 whitespace-nowrap overflow-hidden text-ellipsis">
+                                                <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; color: #666;">
                                                     {{ $appointment->patient->phone }}
                                                 </div>
                                             @endif
-                                            <div class="text-[10px] text-gray-500 dark:text-gray-400 whitespace-nowrap overflow-hidden text-ellipsis">
+                                            <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; color: #888;">
                                                 {{ $appointment->service?->name }}
                                             </div>
                                         </div>
