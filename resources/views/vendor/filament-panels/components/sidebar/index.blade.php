@@ -3,16 +3,15 @@
 ])
 
 @php
-    $openSidebarClasses = 'fi-sidebar-open translate-x-0 shadow-xl ring-1 ring-gray-950/5 dark:ring-white/10 rtl:-translate-x-0';
-    $isRtl = __('filament-panels::layout.direction') === 'rtl';
+    $isRtl = in_array(app()->getLocale(), ['ar', 'he', 'fa', 'ur']);
 @endphp
 
 {{-- format-ignore-start --}}
 <aside
     x-data="{
         activeGroup: localStorage.getItem('sidebar_active_group') || null,
+        isRtl: {{ $isRtl ? 'true' : 'false' }},
         init() {
-            // Restore active group from localStorage
             this.activeGroup = localStorage.getItem('sidebar_active_group') || null;
         },
         setActiveGroup(group) {
@@ -33,10 +32,13 @@
         }
     }"
     x-cloak="-lg"
-    x-bind:class="$store.sidebar.isOpen ? @js($openSidebarClasses) : '-translate-x-full rtl:translate-x-full lg:translate-x-0'"
+    x-bind:class="$store.sidebar.isOpen ? 'fi-sidebar-open shadow-xl ring-1 ring-gray-950/5 dark:ring-white/10' : ''"
+    x-bind:style="$store.sidebar.isOpen ? 'transform: translateX(0)' : (window.innerWidth >= 1024 ? 'transform: translateX(0)' : (isRtl ? 'transform: translateX(100%)' : 'transform: translateX(-100%)'))"
     {{
         $attributes->class([
-            'fi-sidebar fixed inset-y-0 start-0 z-30 flex h-screen content-start bg-white transition-all dark:bg-gray-900 lg:z-0 lg:sticky lg:bg-transparent lg:shadow-none lg:ring-0 lg:transition-none dark:lg:bg-transparent',
+            'fi-sidebar fixed inset-y-0 z-30 flex h-screen content-start bg-white transition-all dark:bg-gray-900 lg:z-0 lg:sticky lg:bg-transparent lg:shadow-none lg:ring-0 lg:transition-none dark:lg:bg-transparent',
+            'left-0' => !$isRtl,
+            'right-0' => $isRtl,
         ])
     }}
 >

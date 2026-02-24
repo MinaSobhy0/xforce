@@ -1,7 +1,8 @@
-<div class="fi-language-switcher grid grid-flow-col gap-x-1">
+<div class="fi-language-switcher grid grid-flow-col gap-x-1" wire:key="language-switcher-{{ $locale }}">
     @foreach($this->getLocales() as $code => $localeData)
         <button
             wire:click="setLocale('{{ $code }}')"
+            wire:loading.attr="disabled"
             type="button"
             title="{{ $localeData['label'] }}"
             @class([

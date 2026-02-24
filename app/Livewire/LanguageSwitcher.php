@@ -45,15 +45,13 @@ class LanguageSwitcher extends Component
 
         // Set session locale
         session()->put('locale', $locale);
+        session()->save();
 
         // Set app locale
         App::setLocale($locale);
 
-        // Refresh the page to apply the new locale
-        $this->dispatch('locale-changed', locale: $locale);
-
-        // Redirect to refresh the page with new locale
-        $this->redirect(request()->header('Referer', '/'), navigate: true);
+        // Use JS to force a full page reload
+        $this->js('window.location.reload()');
     }
 
     public function render()
