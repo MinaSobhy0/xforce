@@ -155,7 +155,7 @@
                                             $statusColor = $this->getStatusColor($appointment->status);
                                         @endphp
                                         <div
-                                            class="absolute inset-x-1 top-0 rounded-lg border-l-4 px-2 py-1 overflow-hidden cursor-pointer hover:shadow-md transition-shadow {{ $statusColor }}"
+                                            class="absolute inset-x-1 top-0 rounded-lg border-l-4 px-2 py-1 overflow-hidden cursor-pointer shadow-sm hover:shadow-md transition-shadow {{ $statusColor }}"
                                             style="height: {{ $position['height'] - 4 }}px; z-index: 5;"
                                             title="{{ $position['startTime'] }} - {{ $position['endTime'] }} ({{ $position['duration'] }} min)&#10;{{ __('booking::room_calendar.practitioner') }}: {{ $appointment->practitioner?->full_name ?? '-' }}&#10;{{ __('booking::room_calendar.status') }}: {{ $appointment->status }}"
                                             wire:click="$dispatch('open-modal', { id: 'appointment-{{ $appointment->id }}' })"

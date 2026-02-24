@@ -235,12 +235,12 @@ class RoomCalendar extends Page implements HasForms
     public function getStatusColor(string $status): string
     {
         return match ($status) {
-            Appointment::STATUS_SCHEDULED => 'bg-blue-100 border-blue-300 text-blue-800 dark:bg-blue-900/50 dark:border-blue-700 dark:text-blue-200',
-            Appointment::STATUS_CONFIRMED => 'bg-indigo-100 border-indigo-300 text-indigo-800 dark:bg-indigo-900/50 dark:border-indigo-700 dark:text-indigo-200',
-            Appointment::STATUS_CHECKED_IN => 'bg-amber-100 border-amber-300 text-amber-800 dark:bg-amber-900/50 dark:border-amber-700 dark:text-amber-200',
-            Appointment::STATUS_IN_PROGRESS => 'bg-purple-100 border-purple-300 text-purple-800 dark:bg-purple-900/50 dark:border-purple-700 dark:text-purple-200',
-            Appointment::STATUS_COMPLETED => 'bg-green-100 border-green-300 text-green-800 dark:bg-green-900/50 dark:border-green-700 dark:text-green-200',
-            default => 'bg-gray-100 border-gray-300 text-gray-800 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200',
+            Appointment::STATUS_SCHEDULED => 'bg-blue-100 border-l-blue-500 text-blue-800 dark:bg-blue-900/50 dark:border-l-blue-400 dark:text-blue-200',
+            Appointment::STATUS_CONFIRMED => 'bg-indigo-100 border-l-indigo-500 text-indigo-800 dark:bg-indigo-900/50 dark:border-l-indigo-400 dark:text-indigo-200',
+            Appointment::STATUS_CHECKED_IN => 'bg-amber-100 border-l-amber-500 text-amber-800 dark:bg-amber-900/50 dark:border-l-amber-400 dark:text-amber-200',
+            Appointment::STATUS_IN_PROGRESS => 'bg-purple-100 border-l-purple-500 text-purple-800 dark:bg-purple-900/50 dark:border-l-purple-400 dark:text-purple-200',
+            Appointment::STATUS_COMPLETED => 'bg-green-100 border-l-green-500 text-green-800 dark:bg-green-900/50 dark:border-l-green-400 dark:text-green-200',
+            default => 'bg-gray-100 border-l-gray-500 text-gray-800 dark:bg-gray-800 dark:border-l-gray-400 dark:text-gray-200',
         };
     }
 
