@@ -11,16 +11,16 @@
                 <div class="text-base font-semibold text-gray-900 dark:text-white">{{ $appointment->patient?->full_name ?? '-' }}</div>
                 <div class="flex flex-wrap gap-x-4 gap-y-1 mt-1">
                     @if($appointment->patient?->phone)
-                        <div class="text-sm text-gray-600 dark:text-gray-300 flex items-center gap-1">
+                        <a href="tel:{{ $appointment->patient->phone }}" class="text-sm text-primary-600 dark:text-primary-400 hover:underline flex items-center gap-1">
                             <x-heroicon-o-phone class="w-3.5 h-3.5" />
                             {{ $appointment->patient->phone }}
-                        </div>
+                        </a>
                     @endif
                     @if($appointment->patient?->email)
-                        <div class="text-sm text-gray-600 dark:text-gray-300 flex items-center gap-1">
+                        <a href="mailto:{{ $appointment->patient->email }}" class="text-sm text-gray-600 dark:text-gray-300 hover:underline flex items-center gap-1">
                             <x-heroicon-o-envelope class="w-3.5 h-3.5" />
                             {{ $appointment->patient->email }}
-                        </div>
+                        </a>
                     @endif
                 </div>
             </div>
@@ -28,11 +28,11 @@
     </div>
 
     {{-- Main Info Grid - 2 Columns --}}
-    <div class="grid grid-cols-2 gap-3">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
         {{-- Date --}}
         <div class="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3">
             <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400 mb-1">
-                <x-heroicon-o-calendar class="w-4 h-4" />
+                <x-heroicon-o-calendar class="w-4 h-4 flex-shrink-0" />
                 <span class="text-xs font-medium uppercase">{{ __('booking::calendar.modal.date') }}</span>
             </div>
             <div class="text-sm font-medium text-gray-900 dark:text-white">{{ $appointment->date->format('D, M d, Y') }}</div>
@@ -41,7 +41,7 @@
         {{-- Time --}}
         <div class="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3">
             <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400 mb-1">
-                <x-heroicon-o-clock class="w-4 h-4" />
+                <x-heroicon-o-clock class="w-4 h-4 flex-shrink-0" />
                 <span class="text-xs font-medium uppercase">{{ __('booking::calendar.modal.time') }}</span>
             </div>
             <div class="text-sm font-medium text-gray-900 dark:text-white">
@@ -53,19 +53,19 @@
         {{-- Service --}}
         <div class="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3">
             <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400 mb-1">
-                <x-heroicon-o-clipboard-document-list class="w-4 h-4" />
+                <x-heroicon-o-clipboard-document-list class="w-4 h-4 flex-shrink-0" />
                 <span class="text-xs font-medium uppercase">{{ __('booking::calendar.modal.service') }}</span>
             </div>
-            <div class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ $appointment->service?->name ?? '-' }}</div>
+            <div class="text-sm font-medium text-gray-900 dark:text-white">{{ $appointment->service?->name ?? '-' }}</div>
             @if($appointment->service?->category)
-                <div class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ $appointment->service->category->translated_name }}</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400">{{ $appointment->service->category->translated_name }}</div>
             @endif
         </div>
 
         {{-- Status --}}
         <div class="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3">
             <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400 mb-1">
-                <x-heroicon-o-tag class="w-4 h-4" />
+                <x-heroicon-o-tag class="w-4 h-4 flex-shrink-0" />
                 <span class="text-xs font-medium uppercase">{{ __('booking::calendar.modal.status') }}</span>
             </div>
             @php
@@ -88,25 +88,25 @@
         {{-- Practitioner --}}
         <div class="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3">
             <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400 mb-1">
-                <x-heroicon-o-user-circle class="w-4 h-4" />
+                <x-heroicon-o-user-circle class="w-4 h-4 flex-shrink-0" />
                 <span class="text-xs font-medium uppercase">{{ __('booking::calendar.modal.practitioner') }}</span>
             </div>
-            <div class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ $appointment->practitioner?->full_name ?? '-' }}</div>
+            <div class="text-sm font-medium text-gray-900 dark:text-white">{{ $appointment->practitioner?->full_name ?? '-' }}</div>
         </div>
 
         {{-- Room --}}
         <div class="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3">
             <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400 mb-1">
-                <x-heroicon-o-building-office class="w-4 h-4" />
+                <x-heroicon-o-building-office class="w-4 h-4 flex-shrink-0" />
                 <span class="text-xs font-medium uppercase">{{ __('booking::calendar.modal.room') }}</span>
             </div>
-            <div class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ $appointment->room?->name ?? '-' }}</div>
+            <div class="text-sm font-medium text-gray-900 dark:text-white">{{ $appointment->room?->name ?? '-' }}</div>
         </div>
 
-        {{-- Branch --}}
-        <div class="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3 col-span-2">
+        {{-- Branch - Full Width --}}
+        <div class="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3" style="grid-column: span 2;">
             <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400 mb-1">
-                <x-heroicon-o-map-pin class="w-4 h-4" />
+                <x-heroicon-o-map-pin class="w-4 h-4 flex-shrink-0" />
                 <span class="text-xs font-medium uppercase">{{ __('booking::calendar.modal.branch') }}</span>
             </div>
             <div class="text-sm font-medium text-gray-900 dark:text-white">{{ $appointment->branch?->name ?? '-' }}</div>
@@ -117,7 +117,7 @@
     @if($appointment->notes)
         <div class="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-3 border border-amber-200 dark:border-amber-800">
             <div class="flex items-center gap-2 text-amber-600 dark:text-amber-400 mb-1">
-                <x-heroicon-o-document-text class="w-4 h-4" />
+                <x-heroicon-o-document-text class="w-4 h-4 flex-shrink-0" />
                 <span class="text-xs font-medium uppercase">{{ __('booking::calendar.modal.notes') }}</span>
             </div>
             <div class="text-sm text-gray-700 dark:text-gray-300">{{ $appointment->notes }}</div>
