@@ -136,7 +136,7 @@
 
                     {{-- Time Slots --}}
                     @foreach($timeSlots as $slot)
-                        <div class="flex border-b {{ $slot['isHour'] ? 'border-gray-300 dark:border-gray-600' : 'border-gray-100 dark:border-gray-800' }}" style="height: 48px;">
+                        <div class="flex border-b {{ $slot['isHour'] ? 'border-gray-300 dark:border-gray-600' : 'border-gray-100 dark:border-gray-800' }}" style="height: 48px; position: relative;">
                             {{-- Time Label --}}
                             <div class="w-20 flex-shrink-0 px-3 py-1 text-xs text-gray-500 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700 {{ $slot['isHour'] ? 'font-semibold text-gray-700 dark:text-gray-300' : 'text-gray-400 dark:text-gray-500' }}">
                                 @if($slot['isHour'])
@@ -152,7 +152,7 @@
                                     $appointment = $this->isSlotOccupied($room->id, $slot['time']);
                                     $isStartSlot = $appointment && $appointment->start_time->format('H:i') === $slot['label'];
                                 @endphp
-                                <div class="flex-1 min-w-[180px] relative overflow-hidden" style="border-right: 1px solid #d1d5db;">
+                                <div class="flex-1 min-w-[180px] relative" style="border-right: 1px solid #d1d5db; overflow: visible;">
                                     @if($isStartSlot)
                                         @php
                                             $position = $this->getAppointmentPosition($appointment);
@@ -170,7 +170,7 @@
                                         @endphp
                                         <div
                                             class="appointment-card"
-                                            style="position: absolute; top: 2px; left: 4px; width: calc(100% - 8px); height: {{ $position['height'] - 6 }}px; z-index: 5; background: {{ $statusStyles['bg'] }}; border: none; border-left: 3px solid {{ $statusStyles['border'] }}; border-radius: 6px; padding: 4px 8px; box-sizing: border-box; overflow: hidden; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.05); transition: all 0.2s ease;"
+                                            style="position: absolute; top: 2px; left: 4px; width: calc(100% - 8px); height: {{ $position['height'] - 6 }}px; z-index: 10; background: {{ $statusStyles['bg'] }}; border: none; border-left: 3px solid {{ $statusStyles['border'] }}; border-radius: 6px; padding: 4px 8px; box-sizing: border-box; overflow: hidden; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.05); transition: all 0.2s ease;"
                                             onmouseover="this.style.boxShadow='0 4px 6px rgba(0,0,0,0.1)'; this.style.transform='translateY(-1px)';"
                                             onmouseout="this.style.boxShadow='0 1px 2px rgba(0,0,0,0.05)'; this.style.transform='none';"
                                             title="{{ $appointment->patient?->full_name ?? __('booking::room_calendar.unknown') }}&#10;{{ $appointment->patient?->phone ?? '' }}&#10;{{ $appointment->service?->name ?? '' }}&#10;&#10;{{ __('booking::room_calendar.time') }}: {{ $position['startTime'] }} - {{ $position['endTime'] }} ({{ $position['duration'] }} min)&#10;{{ __('booking::room_calendar.practitioner') }}: {{ $appointment->practitioner?->full_name ?? '-' }}&#10;{{ __('booking::room_calendar.room') }}: {{ $appointment->room?->name ?? '-' }}&#10;{{ __('booking::room_calendar.status') }}: {{ ucfirst(str_replace('_', ' ', $appointment->status)) }}"
