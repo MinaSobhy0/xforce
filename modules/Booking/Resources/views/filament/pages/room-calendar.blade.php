@@ -169,20 +169,20 @@
                                             };
                                         @endphp
                                         <div
-                                            class="absolute inset-x-1 top-0 rounded-lg border-l-4 px-3 py-2 overflow-hidden cursor-pointer hover:shadow-lg transition-all"
-                                            style="height: {{ $position['height'] - 4 }}px; z-index: 5; background: {{ $statusStyles['bg'] }}; border-left-color: {{ $statusStyles['border'] }};"
+                                            class="absolute inset-x-1 top-0 rounded-lg border-l-4 px-2 py-1 cursor-pointer hover:shadow-lg transition-all"
+                                            style="height: {{ $position['height'] - 4 }}px; z-index: 5; background: {{ $statusStyles['bg'] }}; border-left-color: {{ $statusStyles['border'] }}; overflow: hidden;"
                                             title="{{ $position['startTime'] }} - {{ $position['endTime'] }} ({{ $position['duration'] }} min)&#10;{{ __('booking::room_calendar.practitioner') }}: {{ $appointment->practitioner?->full_name ?? '-' }}&#10;{{ __('booking::room_calendar.status') }}: {{ $appointment->status }}"
                                             wire:click="$dispatch('open-modal', { id: 'appointment-{{ $appointment->id }}' })"
                                         >
-                                            <div class="font-medium text-gray-900 dark:text-white text-xs truncate">
+                                            <div class="font-medium text-gray-900 dark:text-white text-xs whitespace-nowrap overflow-hidden text-ellipsis">
                                                 {{ $appointment->patient?->full_name ?? __('booking::room_calendar.unknown') }}
                                             </div>
                                             @if($appointment->patient?->phone)
-                                                <div class="text-[11px] text-gray-600 dark:text-gray-300 truncate">
+                                                <div class="text-[10px] text-gray-600 dark:text-gray-300 whitespace-nowrap overflow-hidden text-ellipsis">
                                                     {{ $appointment->patient->phone }}
                                                 </div>
                                             @endif
-                                            <div class="text-[11px] text-gray-500 dark:text-gray-400 truncate">
+                                            <div class="text-[10px] text-gray-500 dark:text-gray-400 whitespace-nowrap overflow-hidden text-ellipsis">
                                                 {{ $appointment->service?->name }}
                                             </div>
                                         </div>
