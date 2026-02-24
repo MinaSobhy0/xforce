@@ -31,6 +31,8 @@ class StaffProfileResource extends Resource
 
     protected static ?int $navigationSort = 1;
 
+    protected static ?string $recordTitleAttribute = 'employee_number';
+
     public static function getNavigationLabel(): string
     {
         return __('staff::staff.navigation.profiles');

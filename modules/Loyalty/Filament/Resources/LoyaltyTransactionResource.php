@@ -27,6 +27,8 @@ class LoyaltyTransactionResource extends Resource
 
     protected static ?int $navigationSort = 21;
 
+    protected static ?string $recordTitleAttribute = 'name';
+
     protected static ?string $navigationParentItem = 'Loyalty Program';
 
     public static function getNavigationLabel(): string

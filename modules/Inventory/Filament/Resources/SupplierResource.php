@@ -28,6 +28,8 @@ class SupplierResource extends Resource
 
     protected static ?int $navigationSort = 30;
 
+    protected static ?string $recordTitleAttribute = 'name';
+
     public static function getNavigationLabel(): string
     {
         return __('inventory::inventory.navigation.suppliers');

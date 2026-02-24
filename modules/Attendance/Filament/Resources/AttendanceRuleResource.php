@@ -28,6 +28,8 @@ class AttendanceRuleResource extends Resource
 
     protected static ?int $navigationSort = 22;
 
+    protected static ?string $recordTitleAttribute = 'name';
+
     public static function getNavigationLabel(): string
     {
         return __('attendance::attendance.attendance_rules');

@@ -27,6 +27,8 @@ class SalaryRuleCategoryResource extends Resource
 
     protected static ?int $navigationSort = 52;
 
+    protected static ?string $recordTitleAttribute = 'name';
+
     public static function getNavigationLabel(): string
     {
         return __('payroll::payroll.navigation.rule_categories');

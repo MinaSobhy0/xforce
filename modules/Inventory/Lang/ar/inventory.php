@@ -46,6 +46,11 @@ return [
         'accounting' => 'المحاسبة',
         'bill_summary' => 'ملخص الفاتورة',
         'payment_details' => 'تفاصيل الدفع',
+        'bill_details' => 'تفاصيل الفاتورة',
+        'line_items' => 'بنود الفاتورة',
+        'summary' => 'الملخص',
+        'dates' => 'التواريخ',
+        'amounts' => 'المبالغ',
     ],
 
     'fields' => [
@@ -143,6 +148,15 @@ return [
         'payment_method' => 'طريقة الدفع',
         'payment_date' => 'تاريخ الدفع',
         'reference_number' => 'رقم المرجع',
+        'bill_number' => 'رقم الفاتورة',
+        'bill_date' => 'تاريخ الفاتورة',
+        'vendor_reference' => 'مرجع المورد',
+        'due_date' => 'تاريخ الاستحقاق',
+        'account' => 'الحساب',
+        'qty' => 'الكمية',
+        'disc_type' => 'نوع الخصم',
+        'vendor_ref' => 'مرجع المورد',
+        'validated' => 'مصدق',
     ],
 
     'discount_types' => [
@@ -169,6 +183,7 @@ return [
         'reopen' => 'إعادة فتح',
         'reverse_receiving' => 'عكس الاستلام',
         'record_payment' => 'تسجيل دفعة',
+        'add_line_item' => 'إضافة بند',
     ],
 
     'messages' => [
@@ -194,6 +209,10 @@ return [
         'not_created' => 'لم يتم إنشاؤه',
         'payment_recorded' => 'تم تسجيل الدفعة بنجاح',
         'payment_amount' => 'المبلغ: :amount',
+        'bill_validated' => 'تم تصديق الفاتورة بنجاح',
+        'bill_validation_failed' => 'فشل في تصديق الفاتورة',
+        'validate_bill_confirmation' => 'سيتم تصديق الفاتورة وإنشاء القيود المحاسبية. لا يمكن التراجع عن هذا الإجراء.',
+        'cancellation_reason' => 'سبب الإلغاء',
     ],
 
     'help' => [

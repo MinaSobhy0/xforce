@@ -27,6 +27,8 @@ class ConsentTemplateResource extends Resource
 
     protected static ?int $navigationSort = 4;
 
+    protected static ?string $recordTitleAttribute = 'name';
+
     public static function getNavigationLabel(): string
     {
         return __('services::services.navigation.consent_templates');

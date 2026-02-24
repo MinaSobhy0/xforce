@@ -27,6 +27,8 @@ class NotificationLogResource extends Resource
 
     protected static ?int $navigationSort = 4;
 
+    protected static ?string $recordTitleAttribute = 'name';
+
     public static function getNavigationLabel(): string
     {
         return __('marketing::marketing.navigation.notification_logs');

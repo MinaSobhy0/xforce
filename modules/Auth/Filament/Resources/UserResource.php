@@ -25,6 +25,8 @@ class UserResource extends BaseResource
     protected static ?string $navigationIcon = 'heroicon-o-users';
     protected static ?string $navigationGroup = 'Settings';
     protected static ?int $navigationSort = 1;
+
+    protected static ?string $recordTitleAttribute = 'name';
     protected static ?string $moduleCode = 'auth';
     protected static ?string $permissionKey = 'users';
 

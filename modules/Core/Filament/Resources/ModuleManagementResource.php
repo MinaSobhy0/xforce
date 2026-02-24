@@ -22,6 +22,8 @@ class ModuleManagementResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-puzzle-piece';
     protected static ?string $navigationGroup = 'Settings';
     protected static ?int $navigationSort = 80;
+
+    protected static ?string $recordTitleAttribute = 'name';
     protected static bool $shouldRegisterNavigation = false;
 
     public static function getNavigationLabel(): string

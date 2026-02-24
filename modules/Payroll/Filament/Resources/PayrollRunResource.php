@@ -30,6 +30,8 @@ class PayrollRunResource extends Resource
 
     protected static ?int $navigationSort = 10;
 
+    protected static ?string $recordTitleAttribute = 'name';
+
     public static function getNavigationLabel(): string
     {
         return __('payroll::payroll.navigation.runs');

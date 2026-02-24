@@ -37,19 +37,21 @@ class VendorBillResource extends Resource
 
     protected static ?int $navigationSort = 2;
 
+    protected static ?string $recordTitleAttribute = 'code';
+
     public static function getNavigationLabel(): string
     {
-        return __('inventory::inventory.navigation.vendor_bills') ?? 'Vendor Bills';
+        return __('inventory::inventory.navigation.vendor_bills');
     }
 
     public static function getModelLabel(): string
     {
-        return __('inventory::inventory.labels.vendor_bill') ?? 'Vendor Bill';
+        return __('inventory::inventory.labels.vendor_bill');
     }
 
     public static function getPluralModelLabel(): string
     {
-        return __('inventory::inventory.labels.vendor_bills') ?? 'Vendor Bills';
+        return __('inventory::inventory.labels.vendor_bills');
     }
 
     public static function getNavigationBadge(): ?string
@@ -63,24 +65,25 @@ class VendorBillResource extends Resource
             ->schema([
                 Forms\Components\Group::make()
                     ->schema([
-                        Forms\Components\Section::make('Bill Details')
+                        Forms\Components\Section::make(__('inventory::inventory.sections.bill_details'))
                             ->schema([
                                 Forms\Components\Grid::make(3)
                                     ->schema([
                                         Forms\Components\TextInput::make('code')
-                                            ->label('Bill #')
+                                            ->label(__('inventory::inventory.fields.bill_number'))
                                             ->disabled()
                                             ->dehydrated(false)
                                             ->placeholder('Auto-generated'),
 
                                         Forms\Components\Select::make('status')
+                                            ->label(__('inventory::inventory.fields.status'))
                                             ->options(VendorBill::STATUSES)
                                             ->disabled()
                                             ->dehydrated(false)
                                             ->default(VendorBill::STATUS_DRAFT),
 
                                         Forms\Components\DatePicker::make('bill_date')
-                                            ->label('Bill Date')
+                                            ->label(__('inventory::inventory.fields.bill_date'))
                                             ->required()
                                             ->default(now()),
                                     ]),
@@ -88,7 +91,7 @@ class VendorBillResource extends Resource
                                 Forms\Components\Grid::make(2)
                                     ->schema([
                                         Forms\Components\Select::make('supplier_id')
-                                            ->label('Supplier')
+                                            ->label(__('inventory::inventory.fields.supplier'))
                                             ->relationship('supplier', 'id')
                                             ->getOptionLabelFromRecordUsing(fn (Supplier $record) => $record->getTranslation('name', app()->getLocale()))
                                             ->required()
@@ -96,7 +99,7 @@ class VendorBillResource extends Resource
                                             ->preload(),
 
                                         Forms\Components\Select::make('branch_id')
-                                            ->label('Branch')
+                                            ->label(__('inventory::inventory.fields.branch'))
                                             ->relationship('branch', 'id')
                                             ->getOptionLabelFromRecordUsing(fn (Branch $record) => $record->name)
                                             ->required()
@@ -110,21 +113,21 @@ class VendorBillResource extends Resource
                                 Forms\Components\Grid::make(2)
                                     ->schema([
                                         Forms\Components\TextInput::make('vendor_reference')
-                                            ->label('Vendor Reference')
+                                            ->label(__('inventory::inventory.fields.vendor_reference'))
                                             ->maxLength(255),
 
                                         Forms\Components\DatePicker::make('due_date')
-                                            ->label('Due Date'),
+                                            ->label(__('inventory::inventory.fields.due_date')),
                                     ]),
                             ]),
 
-                        Forms\Components\Section::make('Line Items')
+                        Forms\Components\Section::make(__('inventory::inventory.sections.line_items'))
                             ->schema([
                                 Forms\Components\Repeater::make('lines')
                                     ->relationship()
                                     ->schema([
                                         Forms\Components\Select::make('product_id')
-                                            ->label('Product')
+                                            ->label(__('inventory::inventory.fields.product'))
                                             ->options(Product::query()->where('is_active', true)->get()->mapWithKeys(fn ($p) => [
                                                 $p->id => "[{$p->sku}] " . $p->getTranslation('name', app()->getLocale())
                                             ]))
@@ -149,12 +152,13 @@ class VendorBillResource extends Resource
                                             ->columnSpan(['default' => 12, 'md' => 4]),
 
                                         Forms\Components\TextInput::make('description')
+                                            ->label(__('inventory::inventory.fields.description'))
                                             ->required()
                                             ->maxLength(255)
                                             ->columnSpan(['default' => 12, 'md' => 4]),
 
                                         Forms\Components\Select::make('account_id')
-                                            ->label('Account')
+                                            ->label(__('inventory::inventory.fields.account'))
                                             ->options(
                                                 ChartOfAccount::where('type', ChartOfAccount::TYPE_EXPENSE)
                                                     ->where('is_active', true)
@@ -169,7 +173,7 @@ class VendorBillResource extends Resource
                                             ->columnSpan(['default' => 12, 'md' => 4]),
 
                                         Forms\Components\TextInput::make('quantity')
-                                            ->label('Qty')
+                                            ->label(__('inventory::inventory.fields.qty'))
                                             ->numeric()
                                             ->default(1)
                                             ->minValue(0.01)
@@ -178,7 +182,7 @@ class VendorBillResource extends Resource
                                             ->columnSpan(['default' => 4, 'md' => 2]),
 
                                         Forms\Components\TextInput::make('unit_price_minor')
-                                            ->label('Unit Price')
+                                            ->label(__('inventory::inventory.fields.unit_price'))
                                             ->numeric()
                                             ->required()
                                             ->live(onBlur: true)
@@ -188,7 +192,7 @@ class VendorBillResource extends Resource
                                             ->columnSpan(['default' => 8, 'md' => 3]),
 
                                         Forms\Components\Select::make('discount_type')
-                                            ->label('Disc. Type')
+                                            ->label(__('inventory::inventory.fields.disc_type'))
                                             ->options([
                                                 'fixed' => current_currency(),
                                                 'percent' => '%',
@@ -198,7 +202,7 @@ class VendorBillResource extends Resource
                                             ->columnSpan(['default' => 4, 'md' => 2]),
 
                                         Forms\Components\TextInput::make('discount_minor')
-                                            ->label('Discount')
+                                            ->label(__('inventory::inventory.fields.discount'))
                                             ->numeric()
                                             ->default(0)
                                             ->formatStateUsing(function ($state, Forms\Get $get) {
@@ -216,7 +220,7 @@ class VendorBillResource extends Resource
                                             ->columnSpan(['default' => 4, 'md' => 2]),
 
                                         Forms\Components\Select::make('tax_rate')
-                                            ->label('Tax')
+                                            ->label(__('inventory::inventory.fields.tax'))
                                             ->options(function () {
                                                 return TaxRate::where('is_active', true)
                                                     ->orderBy('rate')
@@ -233,7 +237,7 @@ class VendorBillResource extends Resource
                                     ])
                                     ->columns(12)
                                     ->defaultItems(1)
-                                    ->addActionLabel('Add Line Item')
+                                    ->addActionLabel(__('inventory::inventory.actions.add_line_item'))
                                     ->reorderable()
                                     ->reorderableWithButtons()
                                     ->cloneable()
@@ -245,10 +249,10 @@ class VendorBillResource extends Resource
 
                 Forms\Components\Group::make()
                     ->schema([
-                        Forms\Components\Section::make('Summary')
+                        Forms\Components\Section::make(__('inventory::inventory.sections.summary'))
                             ->schema([
                                 Forms\Components\Placeholder::make('subtotal_display')
-                                    ->label('Subtotal')
+                                    ->label(__('inventory::inventory.fields.subtotal'))
                                     ->content(function (Forms\Get $get) {
                                         $lines = $get('lines') ?? [];
                                         $subtotal = 0;
@@ -261,7 +265,7 @@ class VendorBillResource extends Resource
                                     }),
 
                                 Forms\Components\Placeholder::make('discount_display')
-                                    ->label('Discount')
+                                    ->label(__('inventory::inventory.fields.discount'))
                                     ->content(function (Forms\Get $get) {
                                         $lines = $get('lines') ?? [];
                                         $totalDiscount = 0;
@@ -291,7 +295,7 @@ class VendorBillResource extends Resource
                                     }),
 
                                 Forms\Components\Placeholder::make('tax_display')
-                                    ->label('Tax')
+                                    ->label(__('inventory::inventory.fields.tax'))
                                     ->content(function (Forms\Get $get) {
                                         $lines = $get('lines') ?? [];
                                         $tax = 0;
@@ -316,7 +320,7 @@ class VendorBillResource extends Resource
                                     }),
 
                                 Forms\Components\Placeholder::make('total_display')
-                                    ->label('Total')
+                                    ->label(__('inventory::inventory.fields.total'))
                                     ->content(function (Forms\Get $get) {
                                         $lines = $get('lines') ?? [];
                                         $total = 0;
@@ -345,14 +349,14 @@ class VendorBillResource extends Resource
                                     ->extraAttributes(['class' => 'text-lg font-bold']),
                             ]),
 
-                        Forms\Components\Section::make('Notes')
+                        Forms\Components\Section::make(__('inventory::inventory.sections.notes'))
                             ->schema([
                                 Forms\Components\Textarea::make('notes')
-                                    ->label('Notes')
+                                    ->label(__('inventory::inventory.fields.notes'))
                                     ->rows(2),
 
                                 Forms\Components\Textarea::make('internal_notes')
-                                    ->label('Internal Notes')
+                                    ->label(__('inventory::inventory.fields.internal_notes'))
                                     ->rows(2),
                             ])
                             ->collapsed(),
@@ -367,64 +371,67 @@ class VendorBillResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('code')
-                    ->label('Bill #')
+                    ->label(__('inventory::inventory.fields.bill_number'))
                     ->searchable()
                     ->sortable()
                     ->weight(FontWeight::Bold),
 
                 Tables\Columns\TextColumn::make('supplier.name')
-                    ->label('Supplier')
+                    ->label(__('inventory::inventory.fields.supplier'))
                     ->searchable()
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('vendor_reference')
-                    ->label('Vendor Ref')
+                    ->label(__('inventory::inventory.fields.vendor_ref'))
                     ->placeholder('-')
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('total_minor')
-                    ->label('Total')
+                    ->label(__('inventory::inventory.fields.total'))
                     ->formatStateUsing(fn ($state) => format_money($state))
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('paid_minor')
-                    ->label('Paid')
+                    ->label(__('inventory::inventory.fields.paid'))
                     ->formatStateUsing(fn ($state) => format_money($state))
                     ->color(fn (VendorBill $record) => $record->isPaid() ? 'success' : 'warning'),
 
                 Tables\Columns\TextColumn::make('remaining_minor')
-                    ->label('Remaining')
+                    ->label(__('inventory::inventory.fields.remaining'))
                     ->formatStateUsing(fn ($state) => format_money($state))
                     ->color(fn ($state) => $state > 0 ? 'danger' : 'success'),
 
                 Tables\Columns\TextColumn::make('status')
+                    ->label(__('inventory::inventory.fields.status'))
                     ->badge()
                     ->formatStateUsing(fn (string $state): string => VendorBill::STATUSES[$state] ?? $state)
                     ->color(fn (string $state): string => VendorBill::STATUS_COLORS[$state] ?? 'gray'),
 
                 Tables\Columns\TextColumn::make('bill_date')
-                    ->label('Bill Date')
+                    ->label(__('inventory::inventory.fields.bill_date'))
                     ->date()
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('due_date')
-                    ->label('Due Date')
+                    ->label(__('inventory::inventory.fields.due_date'))
                     ->date()
                     ->sortable()
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('created_at')
+                    ->label(__('inventory::inventory.fields.created_at'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
+                    ->label(__('inventory::inventory.fields.status'))
                     ->options(VendorBill::STATUSES)
                     ->multiple(),
 
                 Tables\Filters\SelectFilter::make('supplier_id')
-                    ->label('Supplier')
+                    ->label(__('inventory::inventory.fields.supplier'))
                     ->relationship('supplier', 'name'),
             ])
             ->actions([
@@ -434,44 +441,44 @@ class VendorBillResource extends Resource
                         ->visible(fn (VendorBill $record) => $record->isDraft()),
 
                     Tables\Actions\Action::make('validate')
-                        ->label('Validate')
+                        ->label(__('inventory::inventory.actions.validate'))
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
                         ->requiresConfirmation()
-                        ->modalDescription('This will validate the bill and create journal entries. This action cannot be undone.')
+                        ->modalDescription(__('inventory::inventory.messages.validate_bill_confirmation'))
                         ->visible(fn (VendorBill $record) => $record->canValidate())
                         ->action(function (VendorBill $record) {
                             if ($record->validate()) {
                                 Notification::make()
-                                    ->title('Bill validated successfully')
+                                    ->title(__('inventory::inventory.messages.bill_validated'))
                                     ->success()
                                     ->send();
                             } else {
                                 Notification::make()
-                                    ->title('Failed to validate bill')
+                                    ->title(__('inventory::inventory.messages.bill_validation_failed'))
                                     ->danger()
                                     ->send();
                             }
                         }),
 
                     Tables\Actions\Action::make('record_payment')
-                        ->label('Record Payment')
+                        ->label(__('inventory::inventory.actions.record_payment'))
                         ->icon('heroicon-o-banknotes')
                         ->color('info')
                         ->visible(fn (VendorBill $record) => $record->canRecordPayment())
                         ->form([
                             Forms\Components\TextInput::make('amount')
-                                ->label('Amount')
+                                ->label(__('inventory::inventory.fields.payment_amount'))
                                 ->numeric()
                                 ->required()
                                 ->prefix(current_currency())
                                 ->default(fn (VendorBill $record) => $record->remaining_minor / 100),
 
                             Forms\Components\Select::make('payment_type')
-                                ->label('Payment Method')
+                                ->label(__('inventory::inventory.fields.payment_method'))
                                 ->options([
-                                    'cash' => 'Cash',
-                                    'bank' => 'Bank Transfer',
+                                    'cash' => __('billing::billing.payment_methods.cash'),
+                                    'bank' => __('billing::billing.payment_methods.bank_transfer'),
                                 ])
                                 ->default('cash')
                                 ->required(),
@@ -485,20 +492,20 @@ class VendorBillResource extends Resource
                             $accountingService->createVendorPaymentJournalEntry($record, $amountMinor, $data['payment_type']);
 
                             Notification::make()
-                                ->title('Payment recorded successfully')
+                                ->title(__('inventory::inventory.messages.payment_recorded'))
                                 ->success()
                                 ->send();
                         }),
 
                     Tables\Actions\Action::make('cancel')
-                        ->label('Cancel')
+                        ->label(__('inventory::inventory.actions.cancel'))
                         ->icon('heroicon-o-x-circle')
                         ->color('danger')
                         ->requiresConfirmation()
                         ->visible(fn (VendorBill $record) => $record->canCancel())
                         ->form([
                             Forms\Components\Textarea::make('reason')
-                                ->label('Cancellation Reason')
+                                ->label(__('inventory::inventory.messages.cancellation_reason'))
                                 ->required(),
                         ])
                         ->action(fn (VendorBill $record, array $data) => $record->cancel($data['reason'])),
@@ -515,90 +522,91 @@ class VendorBillResource extends Resource
                 Infolists\Components\Section::make()
                     ->schema([
                         Infolists\Components\TextEntry::make('code')
-                            ->label('Bill #')
+                            ->label(__('inventory::inventory.fields.bill_number'))
                             ->weight(FontWeight::Bold)
                             ->size(Infolists\Components\TextEntry\TextEntrySize::Large),
 
                         Infolists\Components\TextEntry::make('status')
+                            ->label(__('inventory::inventory.fields.status'))
                             ->badge()
                             ->formatStateUsing(fn (string $state): string => VendorBill::STATUSES[$state] ?? $state)
                             ->color(fn (string $state): string => VendorBill::STATUS_COLORS[$state] ?? 'gray'),
 
                         Infolists\Components\TextEntry::make('vendor_reference')
-                            ->label('Vendor Ref')
+                            ->label(__('inventory::inventory.fields.vendor_ref'))
                             ->placeholder('-'),
                     ])
                     ->columns(3),
 
-                Infolists\Components\Section::make('Supplier')
+                Infolists\Components\Section::make(__('inventory::inventory.fields.supplier'))
                     ->schema([
                         Infolists\Components\TextEntry::make('supplier.name')
-                            ->label('Supplier'),
+                            ->label(__('inventory::inventory.fields.supplier')),
 
                         Infolists\Components\TextEntry::make('branch.name')
-                            ->label('Branch'),
+                            ->label(__('inventory::inventory.fields.branch')),
 
                         Infolists\Components\TextEntry::make('purchaseOrder.order_number')
-                            ->label('Purchase Order')
-                            ->placeholder('None'),
+                            ->label(__('inventory::inventory.labels.purchase_order'))
+                            ->placeholder('-'),
                     ])
                     ->columns(3),
 
-                Infolists\Components\Section::make('Amounts')
+                Infolists\Components\Section::make(__('inventory::inventory.sections.amounts'))
                     ->schema([
                         Infolists\Components\TextEntry::make('subtotal_minor')
-                            ->label('Subtotal')
+                            ->label(__('inventory::inventory.fields.subtotal'))
                             ->formatStateUsing(fn ($state) => format_money($state)),
 
                         Infolists\Components\TextEntry::make('tax_minor')
-                            ->label('Tax')
+                            ->label(__('inventory::inventory.fields.tax'))
                             ->formatStateUsing(fn ($state) => format_money($state)),
 
                         Infolists\Components\TextEntry::make('total_minor')
-                            ->label('Total')
+                            ->label(__('inventory::inventory.fields.total'))
                             ->formatStateUsing(fn ($state) => format_money($state))
                             ->weight(FontWeight::Bold),
 
                         Infolists\Components\TextEntry::make('paid_minor')
-                            ->label('Paid')
+                            ->label(__('inventory::inventory.fields.paid'))
                             ->formatStateUsing(fn ($state) => format_money($state))
                             ->color('success'),
 
                         Infolists\Components\TextEntry::make('remaining_minor')
-                            ->label('Remaining')
+                            ->label(__('inventory::inventory.fields.remaining'))
                             ->formatStateUsing(fn ($state) => format_money($state))
                             ->color(fn ($state) => $state > 0 ? 'danger' : 'success'),
                     ])
                     ->columns(5),
 
-                Infolists\Components\Section::make('Dates')
+                Infolists\Components\Section::make(__('inventory::inventory.sections.dates'))
                     ->schema([
                         Infolists\Components\TextEntry::make('bill_date')
-                            ->label('Bill Date')
+                            ->label(__('inventory::inventory.fields.bill_date'))
                             ->date(),
 
                         Infolists\Components\TextEntry::make('due_date')
-                            ->label('Due Date')
+                            ->label(__('inventory::inventory.fields.due_date'))
                             ->date()
-                            ->placeholder('No due date'),
+                            ->placeholder('-'),
 
                         Infolists\Components\TextEntry::make('validated_at')
-                            ->label('Validated')
+                            ->label(__('inventory::inventory.fields.validated'))
                             ->dateTime()
-                            ->placeholder('Not validated'),
+                            ->placeholder('-'),
 
                         Infolists\Components\TextEntry::make('paid_at')
-                            ->label('Paid')
+                            ->label(__('inventory::inventory.fields.paid'))
                             ->dateTime()
-                            ->placeholder('Not paid'),
+                            ->placeholder('-'),
                     ])
                     ->columns(4),
 
-                Infolists\Components\Section::make('Journal Entry')
+                Infolists\Components\Section::make(__('inventory::inventory.fields.journal_entry'))
                     ->schema([
                         Infolists\Components\TextEntry::make('journalEntry.code')
-                            ->label('Journal Entry')
-                            ->placeholder('Not created')
+                            ->label(__('inventory::inventory.fields.journal_entry'))
+                            ->placeholder(__('inventory::inventory.messages.not_created'))
                             ->url(fn (VendorBill $record) => $record->journal_entry_id
                                 ? route('filament.tenant.resources.journal-entries.view', $record->journal_entry_id)
                                 : null),

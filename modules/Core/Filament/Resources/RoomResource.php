@@ -32,6 +32,8 @@ class RoomResource extends Resource
 
     protected static ?int $navigationSort = 3;
 
+    protected static ?string $recordTitleAttribute = 'name';
+
     public static function getNavigationLabel(): string
     {
         return __('core::core.rooms');

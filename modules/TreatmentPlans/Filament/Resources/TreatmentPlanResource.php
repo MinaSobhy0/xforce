@@ -36,6 +36,8 @@ class TreatmentPlanResource extends Resource
 
     protected static ?int $navigationSort = 20;
 
+    protected static ?string $recordTitleAttribute = 'code';
+
     public static function getNavigationLabel(): string
     {
         return __('treatment_plans::treatment_plans.navigation_label');

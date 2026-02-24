@@ -32,6 +32,8 @@ class WaitlistResource extends Resource
 
     protected static ?int $navigationSort = 20;
 
+    protected static ?string $recordTitleAttribute = 'name';
+
     public static function getNavigationLabel(): string
     {
         return __('booking::waitlist.navigation');

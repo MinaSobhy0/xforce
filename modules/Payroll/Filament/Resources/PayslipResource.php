@@ -32,6 +32,8 @@ class PayslipResource extends Resource
 
     protected static ?int $navigationSort = 11;
 
+    protected static ?string $recordTitleAttribute = 'name';
+
     protected static ?string $slug = 'payslips';
 
     public static function getNavigationLabel(): string

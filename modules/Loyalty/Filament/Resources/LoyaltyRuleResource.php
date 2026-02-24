@@ -29,6 +29,8 @@ class LoyaltyRuleResource extends Resource
 
     protected static ?int $navigationSort = 20;
 
+    protected static ?string $recordTitleAttribute = 'name';
+
     public static function getNavigationLabel(): string
     {
         return __('loyalty::loyalty.loyalty_rules');

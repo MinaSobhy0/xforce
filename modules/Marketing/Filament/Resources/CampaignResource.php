@@ -29,6 +29,8 @@ class CampaignResource extends Resource
 
     protected static ?int $navigationSort = 1;
 
+    protected static ?string $recordTitleAttribute = 'name';
+
     public static function getNavigationLabel(): string
     {
         return __('marketing::marketing.navigation.campaigns');

@@ -32,6 +32,8 @@ class ProductResource extends Resource
 
     protected static ?int $navigationSort = 10;
 
+    protected static ?string $recordTitleAttribute = 'sku';
+
     public static function getNavigationLabel(): string
     {
         return __('inventory::inventory.navigation.products');

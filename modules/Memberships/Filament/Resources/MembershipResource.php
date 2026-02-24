@@ -27,6 +27,8 @@ class MembershipResource extends Resource
 
     protected static ?int $navigationSort = 11;
 
+    protected static ?string $recordTitleAttribute = 'name';
+
     public static function getNavigationLabel(): string
     {
         return __('memberships::memberships.navigation_label');

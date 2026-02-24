@@ -46,6 +46,11 @@ return [
         'accounting' => 'Accounting',
         'bill_summary' => 'Bill Summary',
         'payment_details' => 'Payment Details',
+        'bill_details' => 'Bill Details',
+        'line_items' => 'Line Items',
+        'summary' => 'Summary',
+        'dates' => 'Dates',
+        'amounts' => 'Amounts',
     ],
 
     'fields' => [
@@ -143,6 +148,15 @@ return [
         'payment_method' => 'Payment Method',
         'payment_date' => 'Payment Date',
         'reference_number' => 'Reference Number',
+        'bill_number' => 'Bill #',
+        'bill_date' => 'Bill Date',
+        'vendor_reference' => 'Vendor Reference',
+        'due_date' => 'Due Date',
+        'account' => 'Account',
+        'qty' => 'Qty',
+        'disc_type' => 'Disc. Type',
+        'vendor_ref' => 'Vendor Ref',
+        'validated' => 'Validated',
     ],
 
     'discount_types' => [
@@ -169,6 +183,7 @@ return [
         'reopen' => 'Reopen',
         'reverse_receiving' => 'Reverse Receiving',
         'record_payment' => 'Record Payment',
+        'add_line_item' => 'Add Line Item',
     ],
 
     'messages' => [
@@ -194,6 +209,10 @@ return [
         'not_created' => 'Not created',
         'payment_recorded' => 'Payment recorded successfully',
         'payment_amount' => 'Amount: :amount',
+        'bill_validated' => 'Bill validated successfully',
+        'bill_validation_failed' => 'Failed to validate bill',
+        'validate_bill_confirmation' => 'This will validate the bill and create journal entries. This action cannot be undone.',
+        'cancellation_reason' => 'Cancellation Reason',
     ],
 
     'help' => [

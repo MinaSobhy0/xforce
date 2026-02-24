@@ -29,6 +29,8 @@ class RoleResource extends Resource
 
     protected static ?int $navigationSort = 5;
 
+    protected static ?string $recordTitleAttribute = 'name';
+
     public static function getNavigationLabel(): string
     {
         return __('auth::auth.navigation.roles');

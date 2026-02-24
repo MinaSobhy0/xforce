@@ -30,6 +30,8 @@ class ReferralProgramResource extends Resource
 
     protected static ?int $navigationSort = 22;
 
+    protected static ?string $recordTitleAttribute = 'name';
+
     public static function getNavigationLabel(): string
     {
         return __('loyalty::loyalty.referral_programs');

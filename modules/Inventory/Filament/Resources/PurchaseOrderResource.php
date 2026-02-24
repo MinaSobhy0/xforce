@@ -32,6 +32,8 @@ class PurchaseOrderResource extends Resource
 
     protected static ?int $navigationSort = 31;
 
+    protected static ?string $recordTitleAttribute = 'order_number';
+
     public static function getNavigationLabel(): string
     {
         return __('inventory::inventory.navigation.purchase_orders');

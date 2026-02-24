@@ -27,6 +27,8 @@ class ParameterTemplateResource extends Resource
 
     protected static ?int $navigationSort = 5;
 
+    protected static ?string $recordTitleAttribute = 'name';
+
     public static function getNavigationLabel(): string
     {
         return __('services::services.navigation.parameter_templates');

@@ -28,6 +28,8 @@ class AutomationRuleResource extends Resource
 
     protected static ?int $navigationSort = 3;
 
+    protected static ?string $recordTitleAttribute = 'name';
+
     public static function getNavigationLabel(): string
     {
         return __('marketing::marketing.navigation.automation');

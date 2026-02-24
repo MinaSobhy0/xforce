@@ -30,6 +30,8 @@ class WorkScheduleResource extends Resource
 
     protected static ?int $navigationSort = 2;
 
+    protected static ?string $recordTitleAttribute = 'name';
+
     public static function getNavigationLabel(): string
     {
         return __('booking::schedules.work_schedules');

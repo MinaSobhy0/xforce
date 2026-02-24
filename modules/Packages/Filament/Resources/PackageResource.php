@@ -27,6 +27,8 @@ class PackageResource extends Resource
 
     protected static ?int $navigationSort = 10;
 
+    protected static ?string $recordTitleAttribute = 'name';
+
     public static function getNavigationLabel(): string
     {
         return __('packages::packages.navigation_label');

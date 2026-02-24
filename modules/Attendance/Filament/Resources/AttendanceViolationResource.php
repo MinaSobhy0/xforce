@@ -28,6 +28,8 @@ class AttendanceViolationResource extends Resource
 
     protected static ?int $navigationSort = 23;
 
+    protected static ?string $recordTitleAttribute = 'name';
+
     public static function getNavigationLabel(): string
     {
         return __('attendance::attendance.violations');

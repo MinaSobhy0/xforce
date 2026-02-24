@@ -28,6 +28,8 @@ class GiftCardResource extends Resource
 
     protected static ?int $navigationSort = 12;
 
+    protected static ?string $recordTitleAttribute = 'code';
+
     public static function getNavigationLabel(): string
     {
         return __('giftcards::giftcards.navigation_label');

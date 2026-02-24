@@ -29,6 +29,8 @@ class PractitionerTimeOffResource extends Resource
 
     protected static ?int $navigationSort = 3;
 
+    protected static ?string $recordTitleAttribute = 'name';
+
     public static function getNavigationLabel(): string
     {
         return __('booking::time_off.navigation');

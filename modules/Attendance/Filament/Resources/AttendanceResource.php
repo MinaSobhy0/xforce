@@ -31,6 +31,8 @@ class AttendanceResource extends Resource
 
     protected static ?int $navigationSort = 20;
 
+    protected static ?string $recordTitleAttribute = 'id';
+
     public static function getNavigationLabel(): string
     {
         return __('attendance::attendance.attendances');

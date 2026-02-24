@@ -28,6 +28,8 @@ class AccessPolicyResource extends Resource
 
     protected static ?int $navigationSort = 50;
 
+    protected static ?string $recordTitleAttribute = 'name';
+
     public static function getNavigationLabel(): string
     {
         return __('auth::auth.navigation.access_policies');
