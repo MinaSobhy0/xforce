@@ -5,6 +5,7 @@ namespace Modules\Booking\Filament\Pages;
 use Modules\Booking\Models\Appointment;
 use Modules\Auth\Models\User;
 use Modules\Core\Models\Branch;
+use Modules\Core\Services\BranchContext;
 use Filament\Pages\Page;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\DatePicker;
@@ -45,18 +46,13 @@ class CalendarPage extends Page implements HasForms
     public function mount(): void
     {
         $this->selectedDate = today()->format('Y-m-d');
+        $this->selectedBranch = BranchContext::currentId();
     }
 
     public function form(Form $form): Form
     {
         return $form
             ->schema([
-                Select::make('selectedBranch')
-                    ->label(__('booking::calendar.filters.branch'))
-                    ->options(Branch::pluck('name', 'id'))
-                    ->placeholder(__('booking::calendar.filters.all_branches'))
-                    ->live(),
-
                 Select::make('selectedPractitioner')
                     ->label(__('booking::calendar.filters.practitioner'))
                     ->options(function () {
@@ -73,18 +69,15 @@ class CalendarPage extends Page implements HasForms
                     ->native(false)
                     ->live(),
             ])
-            ->columns(3);
+            ->columns(2);
     }
 
     public function getAppointments(): array
     {
         $query = Appointment::query()
             ->with(['patient', 'treatment', 'practitioner', 'branch', 'room'])
-            ->active();
-
-        if ($this->selectedBranch) {
-            $query->forBranch($this->selectedBranch);
-        }
+            ->active()
+            ->forBranch($this->selectedBranch);
 
         if ($this->selectedPractitioner) {
             $query->forPractitioner($this->selectedPractitioner);
