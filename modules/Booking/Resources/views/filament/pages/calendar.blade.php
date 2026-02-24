@@ -75,7 +75,7 @@
                     {{ __('booking::calendar.view.month') }}
                 </x-filament::button>
 
-                <div class="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-2"></div>
+                <div class="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-4"></div>
 
                 <x-filament::button tag="a" href="{{ route('filament.tenant.pages.room-calendar') }}" size="sm" color="gray" icon="heroicon-o-building-office">
                     {{ __('booking::calendar.view.rooms') }}
