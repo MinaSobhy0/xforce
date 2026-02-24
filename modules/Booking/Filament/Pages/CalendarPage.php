@@ -105,6 +105,7 @@ class CalendarPage extends Page implements HasForms
                     'code' => $appointment->code,
                     'status' => $appointment->status,
                     'patient' => $appointment->patient?->full_name,
+                    'phone' => $appointment->patient?->phone,
                     'treatment' => $appointment->service?->name,
                     'practitioner' => $appointment->practitioner?->full_name,
                     'branch' => $appointment->branch?->name,

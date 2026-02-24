@@ -124,8 +124,15 @@
                 },
                 eventDidMount: function(info) {
                     if (typeof tippy !== 'undefined') {
+                        let content = '<div class="p-2">';
+                        content += '<div class="font-semibold">' + (info.event.extendedProps.patient || '') + '</div>';
+                        if (info.event.extendedProps.phone) {
+                            content += '<div class="text-sm text-gray-600">' + info.event.extendedProps.phone + '</div>';
+                        }
+                        content += '<div class="text-sm">' + (info.event.extendedProps.treatment || '') + '</div>';
+                        content += '</div>';
                         tippy(info.el, {
-                            content: '<div class="p-2"><div class="font-semibold">' + (info.event.extendedProps.patient || '') + '</div><div class="text-sm">' + (info.event.extendedProps.treatment || '') + '</div></div>',
+                            content: content,
                             allowHTML: true,
                             theme: 'light-border',
                             placement: 'top',

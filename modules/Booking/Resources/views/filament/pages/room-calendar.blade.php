@@ -83,8 +83,8 @@
     </div>
 
     {{-- Calendar Grid --}}
-    <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div class="overflow-x-auto">
+    <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700">
+        <div class="overflow-x-auto overflow-y-visible">
             <div class="min-w-max">
                 {{-- Header: Room Names --}}
                 <div class="flex border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 sticky top-0 z-10">
@@ -155,7 +155,7 @@
                                             $statusColor = $this->getStatusColor($appointment->status);
                                         @endphp
                                         <div
-                                            class="absolute inset-x-1 rounded-lg border-l-4 px-2 py-1 overflow-hidden cursor-pointer hover:shadow-md transition-shadow {{ $statusColor }}"
+                                            class="absolute inset-x-1 top-0 rounded-lg border-l-4 px-2 py-1 overflow-hidden cursor-pointer hover:shadow-md transition-shadow {{ $statusColor }}"
                                             style="height: {{ $position['height'] - 4 }}px; z-index: 5;"
                                             title="{{ $appointment->patient?->full_name }} - {{ $appointment->service?->name }} ({{ $position['startTime'] }} - {{ $position['endTime'] }})"
                                             wire:click="$dispatch('open-modal', { id: 'appointment-{{ $appointment->id }}' })"
@@ -163,6 +163,12 @@
                                             <div class="text-xs font-semibold truncate">
                                                 {{ $appointment->patient?->full_name ?? __('booking::room_calendar.unknown') }}
                                             </div>
+                                            @if($appointment->patient?->phone)
+                                                <div class="text-[10px] truncate opacity-75">
+                                                    <x-heroicon-o-phone class="w-3 h-3 inline" />
+                                                    {{ $appointment->patient->phone }}
+                                                </div>
+                                            @endif
                                             <div class="text-[10px] truncate opacity-75">
                                                 {{ $appointment->service?->name }}
                                             </div>
