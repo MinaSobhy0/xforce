@@ -83,6 +83,7 @@ return [
 
     // Messages
     'messages' => [
+        'appointment_not_found' => 'الموعد غير موجود',
         'cannot_check_in' => 'لا يمكن تسجيل حضور المريض',
         'checked_in' => 'تم تسجيل الحضور',
         'checked_in_body' => 'تم تسجيل حضور :patient',

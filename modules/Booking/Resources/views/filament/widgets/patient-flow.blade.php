@@ -8,6 +8,8 @@
             $flowData = $this->getPatientFlowData();
             $patientsByRoom = $this->getPatientsByRoom();
             $lanes = $this->getFlowLanes();
+            $roomCount = count($patientsByRoom);
+            $totalColumns = 3 + $roomCount; // arriving + waiting + rooms + done
 
             // Color mapping for Tailwind classes
             $colorClasses = [
@@ -48,127 +50,132 @@
             ];
         @endphp
 
-        <div class="flex gap-4 overflow-x-auto pb-4" wire:poll.15s>
-            {{-- Arriving Lane --}}
-            @php
-                $arrivingLane = $lanes['arriving'];
-                $arrivingAppointments = $flowData['arriving'] ?? collect();
-                $arrivingColors = $colorClasses[$arrivingLane['color']];
-            @endphp
-            <div class="flex-shrink-0 w-64 flex flex-col rounded-xl border-2 {{ $arrivingColors['border'] }} overflow-hidden min-h-[400px]">
-                <div class="flex items-center justify-between px-4 py-3 {{ $arrivingColors['header'] }}">
-                    <div class="flex items-center gap-2">
-                        <x-dynamic-component :component="$arrivingLane['icon']" class="w-5 h-5 {{ $arrivingColors['icon'] }}" />
-                        <span class="text-sm font-semibold text-gray-900 dark:text-white">{{ $arrivingLane['label'] }}</span>
-                    </div>
-                    <span class="inline-flex items-center justify-center w-7 h-7 text-sm font-bold rounded-full {{ $arrivingColors['badge'] }}">
-                        {{ $arrivingAppointments->count() }}
-                    </span>
-                </div>
-                <div class="flex-1 p-3 space-y-3 overflow-y-auto {{ $arrivingColors['bg'] }}">
-                    @forelse($arrivingAppointments as $appointment)
-                        @include('booking::filament.widgets.partials.patient-card', ['appointment' => $appointment, 'waitTimeClasses' => $waitTimeClasses])
-                    @empty
-                        <div class="flex flex-col items-center justify-center py-8 text-gray-400 dark:text-gray-500">
-                            <x-dynamic-component :component="$arrivingLane['icon']" class="w-8 h-8 mb-2 opacity-50" />
-                            <span class="text-xs">{{ __('booking::reception.flow.empty') }}</span>
-                        </div>
-                    @endforelse
-                </div>
-            </div>
+        {{-- Responsive grid: stack on mobile, horizontal scroll on tablet, full width on desktop --}}
+        <div class="overflow-x-auto pb-4" wire:poll.15s>
+            <div class="grid gap-3 min-w-max lg:min-w-0"
+                 style="grid-template-columns: repeat({{ $totalColumns }}, minmax(200px, 1fr));">
 
-            {{-- Waiting Lane --}}
-            @php
-                $waitingLane = $lanes['waiting'];
-                $waitingAppointments = $flowData['waiting'] ?? collect();
-                $waitingColors = $colorClasses[$waitingLane['color']];
-            @endphp
-            <div class="flex-shrink-0 w-64 flex flex-col rounded-xl border-2 {{ $waitingColors['border'] }} overflow-hidden min-h-[400px]">
-                <div class="flex items-center justify-between px-4 py-3 {{ $waitingColors['header'] }}">
-                    <div class="flex items-center gap-2">
-                        <x-dynamic-component :component="$waitingLane['icon']" class="w-5 h-5 {{ $waitingColors['icon'] }}" />
-                        <span class="text-sm font-semibold text-gray-900 dark:text-white">{{ $waitingLane['label'] }}</span>
-                    </div>
-                    <span class="inline-flex items-center justify-center w-7 h-7 text-sm font-bold rounded-full {{ $waitingColors['badge'] }}">
-                        {{ $waitingAppointments->count() }}
-                    </span>
-                </div>
-                <div class="flex-1 p-3 space-y-3 overflow-y-auto {{ $waitingColors['bg'] }}">
-                    @forelse($waitingAppointments as $appointment)
-                        @include('booking::filament.widgets.partials.patient-card', ['appointment' => $appointment, 'waitTimeClasses' => $waitTimeClasses])
-                    @empty
-                        <div class="flex flex-col items-center justify-center py-8 text-gray-400 dark:text-gray-500">
-                            <x-dynamic-component :component="$waitingLane['icon']" class="w-8 h-8 mb-2 opacity-50" />
-                            <span class="text-xs">{{ __('booking::reception.flow.empty') }}</span>
-                        </div>
-                    @endforelse
-                </div>
-            </div>
-
-            {{-- Individual Room Columns --}}
-            @foreach($patientsByRoom as $roomId => $roomData)
+                {{-- Arriving Lane --}}
                 @php
-                    $room = $roomData['room'];
-                    $roomAppointments = $roomData['appointments'];
-                    $roomColors = $colorClasses['room'];
-                    $isOccupied = $roomAppointments->count() > 0;
+                    $arrivingLane = $lanes['arriving'];
+                    $arrivingAppointments = $flowData['arriving'] ?? collect();
+                    $arrivingColors = $colorClasses[$arrivingLane['color']];
                 @endphp
-                <div class="flex-shrink-0 w-64 flex flex-col rounded-xl border-2 {{ $roomColors['border'] }} overflow-hidden min-h-[400px] {{ $isOccupied ? '' : 'opacity-60' }}">
-                    <div class="flex items-center justify-between px-4 py-3 {{ $roomColors['header'] }}">
-                        <div class="flex items-center gap-2">
-                            <x-heroicon-o-building-office class="w-5 h-5 {{ $roomColors['icon'] }}" />
-                            <span class="text-sm font-semibold text-gray-900 dark:text-white truncate" title="{{ $room->name }}">
-                                {{ Str::limit($room->name, 15) }}
-                            </span>
+                <div class="flex flex-col rounded-xl border-2 {{ $arrivingColors['border'] }} overflow-hidden min-h-[350px]">
+                    <div class="flex items-center justify-between px-3 py-2 {{ $arrivingColors['header'] }}">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <x-dynamic-component :component="$arrivingLane['icon']" class="w-4 h-4 flex-shrink-0 {{ $arrivingColors['icon'] }}" />
+                            <span class="text-xs font-semibold text-gray-900 dark:text-white truncate">{{ $arrivingLane['label'] }}</span>
                         </div>
-                        @if($isOccupied)
-                            <span class="inline-flex items-center justify-center w-7 h-7 text-sm font-bold rounded-full {{ $roomColors['badge'] }}">
-                                {{ $roomAppointments->count() }}
-                            </span>
-                        @else
-                            <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-700 dark:bg-green-800 dark:text-green-300">
-                                {{ __('booking::reception.flow.room_available') }}
-                            </span>
-                        @endif
+                        <span class="inline-flex items-center justify-center w-6 h-6 text-xs font-bold rounded-full flex-shrink-0 {{ $arrivingColors['badge'] }}">
+                            {{ $arrivingAppointments->count() }}
+                        </span>
                     </div>
-                    <div class="flex-1 p-3 space-y-3 overflow-y-auto {{ $roomColors['bg'] }}">
-                        @forelse($roomAppointments as $appointment)
-                            @include('booking::filament.widgets.partials.patient-card', ['appointment' => $appointment, 'waitTimeClasses' => $waitTimeClasses, 'showRoom' => false])
+                    <div class="flex-1 p-2 space-y-2 overflow-y-auto {{ $arrivingColors['bg'] }}">
+                        @forelse($arrivingAppointments as $appointment)
+                            @include('booking::filament.widgets.partials.patient-card', ['appointment' => $appointment, 'waitTimeClasses' => $waitTimeClasses, 'showCheckIn' => true])
                         @empty
-                            <div class="flex flex-col items-center justify-center py-8 text-gray-400 dark:text-gray-500">
-                                <x-heroicon-o-check-circle class="w-8 h-8 mb-2 opacity-50 text-green-400" />
-                                <span class="text-xs">{{ __('booking::reception.flow.room_empty') }}</span>
+                            <div class="flex flex-col items-center justify-center py-6 text-gray-400 dark:text-gray-500">
+                                <x-dynamic-component :component="$arrivingLane['icon']" class="w-6 h-6 mb-1 opacity-50" />
+                                <span class="text-xs">{{ __('booking::reception.flow.empty') }}</span>
                             </div>
                         @endforelse
                     </div>
                 </div>
-            @endforeach
 
-            {{-- Done Lane --}}
-            @php
-                $doneLane = $lanes['done'];
-                $doneAppointments = $flowData['done'] ?? collect();
-                $doneColors = $colorClasses[$doneLane['color']];
-            @endphp
-            <div class="flex-shrink-0 w-64 flex flex-col rounded-xl border-2 {{ $doneColors['border'] }} overflow-hidden min-h-[400px]">
-                <div class="flex items-center justify-between px-4 py-3 {{ $doneColors['header'] }}">
-                    <div class="flex items-center gap-2">
-                        <x-dynamic-component :component="$doneLane['icon']" class="w-5 h-5 {{ $doneColors['icon'] }}" />
-                        <span class="text-sm font-semibold text-gray-900 dark:text-white">{{ $doneLane['label'] }}</span>
-                    </div>
-                    <span class="inline-flex items-center justify-center w-7 h-7 text-sm font-bold rounded-full {{ $doneColors['badge'] }}">
-                        {{ $doneAppointments->count() }}
-                    </span>
-                </div>
-                <div class="flex-1 p-3 space-y-3 overflow-y-auto {{ $doneColors['bg'] }}">
-                    @forelse($doneAppointments as $appointment)
-                        @include('booking::filament.widgets.partials.patient-card', ['appointment' => $appointment, 'waitTimeClasses' => $waitTimeClasses])
-                    @empty
-                        <div class="flex flex-col items-center justify-center py-8 text-gray-400 dark:text-gray-500">
-                            <x-dynamic-component :component="$doneLane['icon']" class="w-8 h-8 mb-2 opacity-50" />
-                            <span class="text-xs">{{ __('booking::reception.flow.empty') }}</span>
+                {{-- Waiting Lane --}}
+                @php
+                    $waitingLane = $lanes['waiting'];
+                    $waitingAppointments = $flowData['waiting'] ?? collect();
+                    $waitingColors = $colorClasses[$waitingLane['color']];
+                @endphp
+                <div class="flex flex-col rounded-xl border-2 {{ $waitingColors['border'] }} overflow-hidden min-h-[350px]">
+                    <div class="flex items-center justify-between px-3 py-2 {{ $waitingColors['header'] }}">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <x-dynamic-component :component="$waitingLane['icon']" class="w-4 h-4 flex-shrink-0 {{ $waitingColors['icon'] }}" />
+                            <span class="text-xs font-semibold text-gray-900 dark:text-white truncate">{{ $waitingLane['label'] }}</span>
                         </div>
-                    @endforelse
+                        <span class="inline-flex items-center justify-center w-6 h-6 text-xs font-bold rounded-full flex-shrink-0 {{ $waitingColors['badge'] }}">
+                            {{ $waitingAppointments->count() }}
+                        </span>
+                    </div>
+                    <div class="flex-1 p-2 space-y-2 overflow-y-auto {{ $waitingColors['bg'] }}">
+                        @forelse($waitingAppointments as $appointment)
+                            @include('booking::filament.widgets.partials.patient-card', ['appointment' => $appointment, 'waitTimeClasses' => $waitTimeClasses])
+                        @empty
+                            <div class="flex flex-col items-center justify-center py-6 text-gray-400 dark:text-gray-500">
+                                <x-dynamic-component :component="$waitingLane['icon']" class="w-6 h-6 mb-1 opacity-50" />
+                                <span class="text-xs">{{ __('booking::reception.flow.empty') }}</span>
+                            </div>
+                        @endforelse
+                    </div>
+                </div>
+
+                {{-- Individual Room Columns --}}
+                @foreach($patientsByRoom as $roomId => $roomData)
+                    @php
+                        $room = $roomData['room'];
+                        $roomAppointments = $roomData['appointments'];
+                        $roomColors = $colorClasses['room'];
+                        $isOccupied = $roomAppointments->count() > 0;
+                    @endphp
+                    <div class="flex flex-col rounded-xl border-2 {{ $roomColors['border'] }} overflow-hidden min-h-[350px] {{ $isOccupied ? '' : 'opacity-60' }}">
+                        <div class="flex items-center justify-between px-3 py-2 {{ $roomColors['header'] }}">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <x-heroicon-o-building-office class="w-4 h-4 flex-shrink-0 {{ $roomColors['icon'] }}" />
+                                <span class="text-xs font-semibold text-gray-900 dark:text-white truncate" title="{{ $room->name }}">
+                                    {{ $room->name }}
+                                </span>
+                            </div>
+                            @if($isOccupied)
+                                <span class="inline-flex items-center justify-center w-6 h-6 text-xs font-bold rounded-full flex-shrink-0 {{ $roomColors['badge'] }}">
+                                    {{ $roomAppointments->count() }}
+                                </span>
+                            @else
+                                <span class="inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-green-100 text-green-700 dark:bg-green-800 dark:text-green-300 flex-shrink-0">
+                                    {{ __('booking::reception.flow.room_available') }}
+                                </span>
+                            @endif
+                        </div>
+                        <div class="flex-1 p-2 space-y-2 overflow-y-auto {{ $roomColors['bg'] }}">
+                            @forelse($roomAppointments as $appointment)
+                                @include('booking::filament.widgets.partials.patient-card', ['appointment' => $appointment, 'waitTimeClasses' => $waitTimeClasses, 'showRoom' => false])
+                            @empty
+                                <div class="flex flex-col items-center justify-center py-6 text-gray-400 dark:text-gray-500">
+                                    <x-heroicon-o-check-circle class="w-6 h-6 mb-1 opacity-50 text-green-400" />
+                                    <span class="text-xs">{{ __('booking::reception.flow.room_empty') }}</span>
+                                </div>
+                            @endforelse
+                        </div>
+                    </div>
+                @endforeach
+
+                {{-- Done Lane --}}
+                @php
+                    $doneLane = $lanes['done'];
+                    $doneAppointments = $flowData['done'] ?? collect();
+                    $doneColors = $colorClasses[$doneLane['color']];
+                @endphp
+                <div class="flex flex-col rounded-xl border-2 {{ $doneColors['border'] }} overflow-hidden min-h-[350px]">
+                    <div class="flex items-center justify-between px-3 py-2 {{ $doneColors['header'] }}">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <x-dynamic-component :component="$doneLane['icon']" class="w-4 h-4 flex-shrink-0 {{ $doneColors['icon'] }}" />
+                            <span class="text-xs font-semibold text-gray-900 dark:text-white truncate">{{ $doneLane['label'] }}</span>
+                        </div>
+                        <span class="inline-flex items-center justify-center w-6 h-6 text-xs font-bold rounded-full flex-shrink-0 {{ $doneColors['badge'] }}">
+                            {{ $doneAppointments->count() }}
+                        </span>
+                    </div>
+                    <div class="flex-1 p-2 space-y-2 overflow-y-auto {{ $doneColors['bg'] }}">
+                        @forelse($doneAppointments as $appointment)
+                            @include('booking::filament.widgets.partials.patient-card', ['appointment' => $appointment, 'waitTimeClasses' => $waitTimeClasses])
+                        @empty
+                            <div class="flex flex-col items-center justify-center py-6 text-gray-400 dark:text-gray-500">
+                                <x-dynamic-component :component="$doneLane['icon']" class="w-6 h-6 mb-1 opacity-50" />
+                                <span class="text-xs">{{ __('booking::reception.flow.empty') }}</span>
+                            </div>
+                        @endforelse
+                    </div>
                 </div>
             </div>
         </div>

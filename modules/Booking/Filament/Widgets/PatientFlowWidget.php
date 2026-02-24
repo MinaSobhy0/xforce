@@ -87,4 +87,51 @@ class PatientFlowWidget extends Widget
     {
         return Carbon::parse($this->selectedDate)->format('l, M d, Y');
     }
+
+    public function checkInAppointment(string $appointmentId): void
+    {
+        $appointment = \Modules\Booking\Models\Appointment::find($appointmentId);
+
+        if (!$appointment) {
+            \Filament\Notifications\Notification::make()
+                ->title(__('booking::reception.messages.appointment_not_found'))
+                ->danger()
+                ->send();
+            return;
+        }
+
+        if (!in_array($appointment->status, [
+            \Modules\Booking\Models\Appointment::STATUS_SCHEDULED,
+            \Modules\Booking\Models\Appointment::STATUS_CONFIRMED,
+        ])) {
+            \Filament\Notifications\Notification::make()
+                ->title(__('booking::reception.messages.cannot_check_in'))
+                ->danger()
+                ->send();
+            return;
+        }
+
+        if ($appointment->checkIn()) {
+            \Filament\Notifications\Notification::make()
+                ->title(__('booking::reception.messages.checked_in'))
+                ->body(__('booking::reception.messages.checked_in_body', [
+                    'patient' => $appointment->patient?->full_name ?? 'Patient',
+                ]))
+                ->success()
+                ->send();
+        } else {
+            \Filament\Notifications\Notification::make()
+                ->title(__('booking::reception.messages.cannot_check_in'))
+                ->danger()
+                ->send();
+        }
+    }
+
+    public function canCheckIn($appointment): bool
+    {
+        return in_array($appointment->status, [
+            \Modules\Booking\Models\Appointment::STATUS_SCHEDULED,
+            \Modules\Booking\Models\Appointment::STATUS_CONFIRMED,
+        ]);
+    }
 }

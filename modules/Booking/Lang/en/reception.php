@@ -83,6 +83,7 @@ return [
 
     // Messages
     'messages' => [
+        'appointment_not_found' => 'Appointment not found',
         'cannot_check_in' => 'Cannot check in patient',
         'checked_in' => 'Patient Checked In',
         'checked_in_body' => ':patient has been checked in',
