@@ -6,84 +6,84 @@
         $currentTimePosition = $this->getCurrentTimePosition();
     @endphp
 
-    {{-- Navigation --}}
-    <div class="space-y-3 mb-4">
-        {{-- Top Row: Date Navigation & Back Button --}}
-        <div class="flex flex-wrap items-center justify-between gap-2">
-            {{-- Date Navigation --}}
-            <div class="flex items-center gap-1 sm:gap-2">
-                <x-filament::icon-button
-                    icon="heroicon-o-chevron-left"
-                    wire:click="previousDay"
-                    :label="__('booking::room_calendar.previous_day')"
-                    color="gray"
-                    size="sm"
-                />
-
-                <div class="w-32 sm:w-40">
-                    <x-filament::input.wrapper>
-                        <x-filament::input
-                            type="date"
-                            wire:model.live="selectedDate"
-                            class="text-center text-sm"
-                        />
-                    </x-filament::input.wrapper>
-                </div>
-
-                <x-filament::icon-button
-                    icon="heroicon-o-chevron-right"
-                    wire:click="nextDay"
-                    :label="__('booking::room_calendar.next_day')"
-                    color="gray"
-                    size="sm"
-                />
-
-                @unless($this->isToday())
-                    <x-filament::button
-                        wire:click="goToToday"
-                        color="primary"
-                        size="xs"
-                    >
-                        {{ __('booking::room_calendar.today') }}
-                    </x-filament::button>
-                @endunless
-            </div>
-
-            {{-- Back to Calendar Button --}}
-            <x-filament::button
-                tag="a"
-                href="{{ route('filament.tenant.pages.calendar') }}"
-                size="xs"
+    {{-- Filters & Legend --}}
+    <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+        <div class="flex items-center gap-2">
+            {{-- Previous Day Button --}}
+            <x-filament::icon-button
+                icon="heroicon-o-chevron-left"
+                wire:click="previousDay"
+                :label="__('booking::room_calendar.previous_day')"
                 color="gray"
-                icon="heroicon-o-calendar-days"
-            >
-                <span class="hidden sm:inline">{{ __('booking::room_calendar.back_to_calendar') }}</span>
-            </x-filament::button>
+            />
+
+            {{-- Date Picker --}}
+            <div class="w-48">
+                <x-filament::input.wrapper>
+                    <x-filament::input
+                        type="date"
+                        wire:model.live="selectedDate"
+                        class="text-center"
+                    />
+                </x-filament::input.wrapper>
+            </div>
+
+            {{-- Next Day Button --}}
+            <x-filament::icon-button
+                icon="heroicon-o-chevron-right"
+                wire:click="nextDay"
+                :label="__('booking::room_calendar.next_day')"
+                color="gray"
+            />
+
+            {{-- Today Button --}}
+            @unless($this->isToday())
+                <x-filament::button
+                    wire:click="goToToday"
+                    color="primary"
+                    size="sm"
+                >
+                    {{ __('booking::room_calendar.today') }}
+                </x-filament::button>
+            @endunless
+
+            <div class="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-2"></div>
+
+            {{-- Legend --}}
+            <div class="flex items-center gap-3 text-xs">
+                <div class="flex items-center gap-1.5">
+                    <span class="inline-block w-3 h-3 rounded" style="background-color: #3b82f6;"></span>
+                    <span class="text-gray-500 dark:text-gray-400">{{ __('booking::room_calendar.legend.scheduled') }}</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <span class="inline-block w-3 h-3 rounded" style="background-color: #6366f1;"></span>
+                    <span class="text-gray-500 dark:text-gray-400">{{ __('booking::room_calendar.legend.confirmed') }}</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <span class="inline-block w-3 h-3 rounded" style="background-color: #f59e0b;"></span>
+                    <span class="text-gray-500 dark:text-gray-400">{{ __('booking::room_calendar.legend.checked_in') }}</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <span class="inline-block w-3 h-3 rounded" style="background-color: #a855f7;"></span>
+                    <span class="text-gray-500 dark:text-gray-400">{{ __('booking::room_calendar.legend.in_progress') }}</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <span class="inline-block w-3 h-3 rounded" style="background-color: #22c55e;"></span>
+                    <span class="text-gray-500 dark:text-gray-400">{{ __('booking::room_calendar.legend.completed') }}</span>
+                </div>
+            </div>
         </div>
 
-        {{-- Legend - Hidden on mobile --}}
-        <div class="hidden md:flex items-center gap-3 text-xs">
-            <div class="flex items-center gap-1.5">
-                <span class="inline-block w-3 h-3 rounded" style="background-color: #3b82f6;"></span>
-                <span class="text-gray-500 dark:text-gray-400">{{ __('booking::room_calendar.legend.scheduled') }}</span>
-            </div>
-            <div class="flex items-center gap-1.5">
-                <span class="inline-block w-3 h-3 rounded" style="background-color: #6366f1;"></span>
-                <span class="text-gray-500 dark:text-gray-400">{{ __('booking::room_calendar.legend.confirmed') }}</span>
-            </div>
-            <div class="flex items-center gap-1.5">
-                <span class="inline-block w-3 h-3 rounded" style="background-color: #f59e0b;"></span>
-                <span class="text-gray-500 dark:text-gray-400">{{ __('booking::room_calendar.legend.checked_in') }}</span>
-            </div>
-            <div class="flex items-center gap-1.5">
-                <span class="inline-block w-3 h-3 rounded" style="background-color: #a855f7;"></span>
-                <span class="text-gray-500 dark:text-gray-400">{{ __('booking::room_calendar.legend.in_progress') }}</span>
-            </div>
-            <div class="flex items-center gap-1.5">
-                <span class="inline-block w-3 h-3 rounded" style="background-color: #22c55e;"></span>
-                <span class="text-gray-500 dark:text-gray-400">{{ __('booking::room_calendar.legend.completed') }}</span>
-            </div>
-        </div>
+        {{-- Back to Calendar Button --}}
+        <x-filament::button
+            tag="a"
+            href="{{ route('filament.tenant.pages.calendar') }}"
+            size="sm"
+            color="gray"
+            icon="heroicon-o-calendar-days"
+        >
+            {{ __('booking::room_calendar.back_to_calendar') }}
+        </x-filament::button>
     </div>
 
     {{-- Calendar Grid --}}
@@ -265,7 +265,7 @@
                 x-transition:leave="ease-in duration-200"
                 x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
                 x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                class="inline-block align-bottom bg-white dark:bg-gray-900 rounded-xl text-left overflow-hidden shadow-xl transform transition-all w-full mx-4 sm:mx-0 sm:my-8 sm:align-middle sm:max-w-2xl"
+                class="inline-block align-bottom bg-white dark:bg-gray-900 rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full"
             >
                 {{-- Header --}}
                 <div class="bg-gray-50 dark:bg-gray-800 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
