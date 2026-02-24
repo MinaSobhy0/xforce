@@ -5,7 +5,7 @@ namespace Modules\Booking\Filament\Pages;
 use Modules\Booking\Models\Appointment;
 use Modules\Auth\Models\User;
 use Modules\Core\Models\Branch;
-use Modules\Core\Services\BranchContext;
+use App\Services\BranchContext;
 use Filament\Pages\Page;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\DatePicker;
