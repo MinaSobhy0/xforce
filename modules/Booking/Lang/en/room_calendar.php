@@ -19,6 +19,7 @@ return [
 
     'legend' => [
         'scheduled' => 'Scheduled',
+        'confirmed' => 'Confirmed',
         'checked_in' => 'Checked In',
         'in_progress' => 'In Progress',
         'completed' => 'Completed',

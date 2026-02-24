@@ -22,4 +22,12 @@ return [
         'all_branches' => 'جميع الفروع',
         'all_practitioners' => 'جميع المختصين',
     ],
+
+    'status' => [
+        'scheduled' => 'مجدول',
+        'confirmed' => 'مؤكد',
+        'checked_in' => 'تم الحضور',
+        'in_progress' => 'جاري',
+        'completed' => 'مكتمل',
+    ],
 ];

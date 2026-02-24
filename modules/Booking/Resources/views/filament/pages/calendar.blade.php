@@ -42,30 +42,35 @@
             </div>
         </div>
 
+        {{-- Legend --}}
+        <div class="flex flex-wrap items-center gap-4 text-xs">
+            <div class="flex items-center gap-1.5">
+                <span class="w-3 h-3 rounded" style="background: rgba(59, 130, 246, 0.3); border-left: 3px solid #3b82f6;"></span>
+                <span class="text-gray-600 dark:text-gray-400">{{ __('booking::calendar.status.scheduled') }}</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+                <span class="w-3 h-3 rounded" style="background: rgba(139, 92, 246, 0.3); border-left: 3px solid #8b5cf6;"></span>
+                <span class="text-gray-600 dark:text-gray-400">{{ __('booking::calendar.status.confirmed') }}</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+                <span class="w-3 h-3 rounded" style="background: rgba(245, 158, 11, 0.3); border-left: 3px solid #f59e0b;"></span>
+                <span class="text-gray-600 dark:text-gray-400">{{ __('booking::calendar.status.checked_in') }}</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+                <span class="w-3 h-3 rounded" style="background: rgba(99, 102, 241, 0.3); border-left: 3px solid #6366f1;"></span>
+                <span class="text-gray-600 dark:text-gray-400">{{ __('booking::calendar.status.in_progress') }}</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+                <span class="w-3 h-3 rounded" style="background: rgba(16, 185, 129, 0.3); border-left: 3px solid #10b981;"></span>
+                <span class="text-gray-600 dark:text-gray-400">{{ __('booking::calendar.status.completed') }}</span>
+            </div>
+        </div>
+
         {{-- Calendar Container --}}
         <x-filament::section>
             <div id="calendar" class="min-h-[600px]" wire:ignore></div>
         </x-filament::section>
 
-        {{-- Legend --}}
-        <div class="flex items-center gap-3 text-xs">
-            <div class="flex items-center gap-1">
-                <span class="w-3 h-3 rounded bg-blue-200 border border-blue-400"></span>
-                <span class="text-gray-600 dark:text-gray-400">{{ __('booking::room_calendar.legend.scheduled') }}</span>
-            </div>
-            <div class="flex items-center gap-1">
-                <span class="w-3 h-3 rounded bg-amber-200 border border-amber-400"></span>
-                <span class="text-gray-600 dark:text-gray-400">{{ __('booking::room_calendar.legend.checked_in') }}</span>
-            </div>
-            <div class="flex items-center gap-1">
-                <span class="w-3 h-3 rounded bg-purple-200 border border-purple-400"></span>
-                <span class="text-gray-600 dark:text-gray-400">{{ __('booking::room_calendar.legend.in_progress') }}</span>
-            </div>
-            <div class="flex items-center gap-1">
-                <span class="w-3 h-3 rounded bg-green-200 border border-green-400"></span>
-                <span class="text-gray-600 dark:text-gray-400">{{ __('booking::room_calendar.legend.completed') }}</span>
-            </div>
-        </div>
     </div>
 
     @assets

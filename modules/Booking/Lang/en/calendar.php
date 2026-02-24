@@ -22,4 +22,12 @@ return [
         'all_branches' => 'All Branches',
         'all_practitioners' => 'All Practitioners',
     ],
+
+    'status' => [
+        'scheduled' => 'Scheduled',
+        'confirmed' => 'Confirmed',
+        'checked_in' => 'Checked In',
+        'in_progress' => 'In Progress',
+        'completed' => 'Completed',
+    ],
 ];

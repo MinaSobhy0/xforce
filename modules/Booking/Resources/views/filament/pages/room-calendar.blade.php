@@ -7,7 +7,7 @@
     @endphp
 
     {{-- Filters --}}
-    <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+    <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
         <div class="flex items-center gap-2">
             {{-- Previous Day Button --}}
             <x-filament::icon-button
@@ -48,37 +48,39 @@
             @endunless
         </div>
 
-        <div class="flex items-center gap-4">
-            {{-- Back to Calendar Button --}}
-            <x-filament::button
-                tag="a"
-                href="{{ route('filament.tenant.pages.calendar') }}"
-                size="sm"
-                color="gray"
-                icon="heroicon-o-calendar-days"
-            >
-                {{ __('booking::room_calendar.back_to_calendar') }}
-            </x-filament::button>
+        {{-- Back to Calendar Button --}}
+        <x-filament::button
+            tag="a"
+            href="{{ route('filament.tenant.pages.calendar') }}"
+            size="sm"
+            color="gray"
+            icon="heroicon-o-calendar-days"
+        >
+            {{ __('booking::room_calendar.back_to_calendar') }}
+        </x-filament::button>
+    </div>
 
-            {{-- Legend --}}
-            <div class="flex items-center gap-3 text-xs">
-                <div class="flex items-center gap-1">
-                    <span class="w-3 h-3 rounded bg-blue-200 border border-blue-400"></span>
-                    <span class="text-gray-600 dark:text-gray-400">{{ __('booking::room_calendar.legend.scheduled') }}</span>
-                </div>
-                <div class="flex items-center gap-1">
-                    <span class="w-3 h-3 rounded bg-amber-200 border border-amber-400"></span>
-                    <span class="text-gray-600 dark:text-gray-400">{{ __('booking::room_calendar.legend.checked_in') }}</span>
-                </div>
-                <div class="flex items-center gap-1">
-                    <span class="w-3 h-3 rounded bg-purple-200 border border-purple-400"></span>
-                    <span class="text-gray-600 dark:text-gray-400">{{ __('booking::room_calendar.legend.in_progress') }}</span>
-                </div>
-                <div class="flex items-center gap-1">
-                    <span class="w-3 h-3 rounded bg-green-200 border border-green-400"></span>
-                    <span class="text-gray-600 dark:text-gray-400">{{ __('booking::room_calendar.legend.completed') }}</span>
-                </div>
-            </div>
+    {{-- Legend --}}
+    <div class="flex flex-wrap items-center gap-4 text-xs mb-4">
+        <div class="flex items-center gap-1.5">
+            <span class="w-3 h-3 rounded" style="background: rgba(59, 130, 246, 0.3); border-left: 3px solid #3b82f6;"></span>
+            <span class="text-gray-600 dark:text-gray-400">{{ __('booking::room_calendar.legend.scheduled') }}</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+            <span class="w-3 h-3 rounded" style="background: rgba(99, 102, 241, 0.3); border-left: 3px solid #6366f1;"></span>
+            <span class="text-gray-600 dark:text-gray-400">{{ __('booking::room_calendar.legend.confirmed') }}</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+            <span class="w-3 h-3 rounded" style="background: rgba(245, 158, 11, 0.3); border-left: 3px solid #f59e0b;"></span>
+            <span class="text-gray-600 dark:text-gray-400">{{ __('booking::room_calendar.legend.checked_in') }}</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+            <span class="w-3 h-3 rounded" style="background: rgba(168, 85, 247, 0.3); border-left: 3px solid #a855f7;"></span>
+            <span class="text-gray-600 dark:text-gray-400">{{ __('booking::room_calendar.legend.in_progress') }}</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+            <span class="w-3 h-3 rounded" style="background: rgba(34, 197, 94, 0.3); border-left: 3px solid #22c55e;"></span>
+            <span class="text-gray-600 dark:text-gray-400">{{ __('booking::room_calendar.legend.completed') }}</span>
         </div>
     </div>
 

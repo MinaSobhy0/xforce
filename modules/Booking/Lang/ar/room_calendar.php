@@ -19,6 +19,7 @@ return [
 
     'legend' => [
         'scheduled' => 'مجدول',
+        'confirmed' => 'مؤكد',
         'checked_in' => 'تم الحضور',
         'in_progress' => 'جاري',
         'completed' => 'مكتمل',
