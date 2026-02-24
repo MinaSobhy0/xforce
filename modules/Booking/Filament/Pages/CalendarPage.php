@@ -160,11 +160,15 @@ class CalendarPage extends Page implements HasForms
     protected function formatAppointmentEvent(Appointment $appointment): array
     {
         $phone = $appointment->patient?->phone;
-        $title = $appointment->patient?->full_name;
-        if ($phone) {
-            $title .= "\n" . $phone;
+        $patientName = $appointment->patient?->full_name;
+        $time = $appointment->start_time->format('H:i');
+
+        // Order: Phone, Patient Name, Time
+        $title = $phone ?: '';
+        if ($patientName) {
+            $title .= ($title ? "\n" : '') . $patientName;
         }
-        $title .= "\n" . $appointment->service?->name;
+        $title .= ($title ? "\n" : '') . $time;
 
         $colors = $this->getStatusColors($appointment->status);
 
