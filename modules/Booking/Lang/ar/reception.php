@@ -68,6 +68,7 @@ return [
     // Actions
     'actions' => [
         'check_in' => 'تسجيل الحضور',
+        'checking_in' => 'جاري التسجيل',
         'assign_room' => 'تعيين غرفة',
         'assign_doctor' => 'تعيين طبيب',
         'start' => 'بدء الجلسة',

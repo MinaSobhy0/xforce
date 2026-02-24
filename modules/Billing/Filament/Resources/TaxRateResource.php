@@ -50,10 +50,17 @@ class TaxRateResource extends Resource
             ->schema([
                 Forms\Components\Section::make()
                     ->schema([
-                        Forms\Components\TextInput::make('name')
-                            ->label(__('billing::billing.tax_resource.tax_name'))
-                            ->required()
-                            ->maxLength(255),
+                        Forms\Components\Grid::make(2)
+                            ->schema([
+                                Forms\Components\TextInput::make('name.en')
+                                    ->label(__('billing::billing.tax_resource.tax_name') . ' (English)')
+                                    ->required()
+                                    ->maxLength(255),
+
+                                Forms\Components\TextInput::make('name.ar')
+                                    ->label(__('billing::billing.tax_resource.tax_name') . ' (Arabic)')
+                                    ->maxLength(255),
+                            ]),
 
                         Forms\Components\TextInput::make('rate')
                             ->label(__('billing::billing.tax_resource.rate'))
@@ -80,9 +87,9 @@ class TaxRateResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('name')
+                Tables\Columns\TextColumn::make('translated_name')
                     ->label(__('billing::billing.tax_resource.tax_name'))
-                    ->searchable()
+                    ->searchable(['name'])
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('rate')

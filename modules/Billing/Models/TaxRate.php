@@ -27,6 +27,16 @@ class TaxRate extends BaseModel
 
     public array $translatable = ['name'];
 
+    /**
+     * Get the translated name attribute.
+     */
+    public function getTranslatedNameAttribute(): string
+    {
+        return $this->getTranslation('name', app()->getLocale())
+            ?: $this->getTranslation('name', 'en')
+            ?: '';
+    }
+
     protected static function booted(): void
     {
         parent::booted();

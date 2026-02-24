@@ -68,6 +68,7 @@ return [
     // Actions
     'actions' => [
         'check_in' => 'Check In',
+        'checking_in' => 'Checking In',
         'assign_room' => 'Assign Room',
         'assign_doctor' => 'Assign Doctor',
         'start' => 'Start Session',
