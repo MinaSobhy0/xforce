@@ -56,8 +56,9 @@ class TaxRate extends BaseModel
 
         static::creating(function (TaxRate $taxRate) {
             if ($taxRate->is_default) {
-                // Unset other defaults
+                // Unset other defaults of the same type
                 static::where('tenant_id', $taxRate->tenant_id)
+                    ->where('type', $taxRate->type)
                     ->where('is_default', true)
                     ->update(['is_default' => false]);
             }
@@ -65,7 +66,9 @@ class TaxRate extends BaseModel
 
         static::updating(function (TaxRate $taxRate) {
             if ($taxRate->isDirty('is_default') && $taxRate->is_default) {
+                // Unset other defaults of the same type
                 static::where('tenant_id', $taxRate->tenant_id)
+                    ->where('type', $taxRate->type)
                     ->where('id', '!=', $taxRate->id)
                     ->where('is_default', true)
                     ->update(['is_default' => false]);
