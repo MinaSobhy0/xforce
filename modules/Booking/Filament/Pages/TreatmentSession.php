@@ -16,6 +16,7 @@ use Filament\Infolists\Concerns\InteractsWithInfolists;
 use Filament\Infolists\Contracts\HasInfolists;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Livewire\Attributes\Url;
 use Livewire\WithFileUploads;
 use Modules\Booking\Models\Appointment;
 use Modules\Patients\Models\Patient;
@@ -36,12 +37,15 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
     protected static ?string $moduleCode = 'booking';
     protected static ?string $permissionKey = 'appointments';
     protected static ?string $navigationIcon = 'heroicon-o-play-circle';
-    protected static ?string $slug = 'treatment-session/{appointmentId}';
+    protected static ?string $slug = 'treatment-session';
     protected static bool $shouldRegisterNavigation = false;
 
     protected static string $view = 'booking::filament.pages.treatment-session';
 
-    public ?string $appointmentId = null;
+    // Query string parameter for appointment
+    #[Url]
+    public ?string $appointment_id = null;
+
     public ?Appointment $appointment = null;
     public ?Patient $patient = null;
     public ?PatientMedicalHistory $medicalHistory = null;
@@ -57,9 +61,8 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
     // Treatment plan form
     public ?array $treatmentPlanData = [];
 
-    public function mount(string $appointmentId): void
+    public function mount(): void
     {
-        $this->appointmentId = $appointmentId;
         $this->loadAppointment();
 
         if (!$this->appointment) {
@@ -99,7 +102,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
             'room',
             'branch',
             'treatmentPlanAppointment.item.treatmentPlan',
-        ])->find($this->appointmentId);
+        ])->find($this->appointment_id);
 
         if ($this->appointment) {
             $this->patient = $this->appointment->patient;

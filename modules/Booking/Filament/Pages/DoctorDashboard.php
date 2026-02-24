@@ -209,7 +209,7 @@ class DoctorDashboard extends Page implements HasForms
             ->send();
 
         // Redirect to the Treatment Session page
-        $this->redirect(TreatmentSession::getUrl(['appointmentId' => $appointment->id]));
+        $this->redirect(TreatmentSession::getUrl() . '?appointment_id=' . $appointment->id);
     }
 
     /**
@@ -228,7 +228,7 @@ class DoctorDashboard extends Page implements HasForms
         }
 
         // Redirect to the Treatment Session page
-        $this->redirect(TreatmentSession::getUrl(['appointmentId' => $appointment->id]));
+        $this->redirect(TreatmentSession::getUrl() . '?appointment_id=' . $appointment->id);
     }
 
     /**
