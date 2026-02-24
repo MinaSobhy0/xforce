@@ -75,7 +75,7 @@ class CalendarPage extends Page implements HasForms
     public function getAppointments(): array
     {
         $query = Appointment::query()
-            ->with(['patient', 'treatment', 'practitioner', 'branch', 'room'])
+            ->with(['patient', 'service', 'practitioner', 'branch', 'room'])
             ->active()
             ->forBranch($this->selectedBranch);
 
@@ -97,17 +97,17 @@ class CalendarPage extends Page implements HasForms
         return $query->ordered()->get()->map(function (Appointment $appointment) {
             return [
                 'id' => $appointment->id,
-                'title' => $appointment->patient->full_name . ' - ' . $appointment->treatment->translated_name,
+                'title' => $appointment->patient?->full_name . ' - ' . $appointment->service?->name,
                 'start' => $appointment->date->format('Y-m-d') . 'T' . $appointment->start_time->format('H:i:s'),
                 'end' => $appointment->date->format('Y-m-d') . 'T' . ($appointment->end_time ? $appointment->end_time->format('H:i:s') : $appointment->start_time->addMinutes($appointment->duration_minutes)->format('H:i:s')),
                 'color' => $this->getStatusColor($appointment->status),
                 'extendedProps' => [
                     'code' => $appointment->code,
                     'status' => $appointment->status,
-                    'patient' => $appointment->patient->full_name,
-                    'treatment' => $appointment->treatment->translated_name,
-                    'practitioner' => $appointment->practitioner->full_name,
-                    'branch' => $appointment->branch->name,
+                    'patient' => $appointment->patient?->full_name,
+                    'treatment' => $appointment->service?->name,
+                    'practitioner' => $appointment->practitioner?->full_name,
+                    'branch' => $appointment->branch?->name,
                     'room' => $appointment->room?->name,
                 ],
             ];
