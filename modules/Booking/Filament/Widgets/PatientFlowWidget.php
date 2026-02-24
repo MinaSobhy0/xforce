@@ -38,6 +38,15 @@ class PatientFlowWidget extends Widget
         return $receptionService->getPatientFlowData($branchId, $date);
     }
 
+    public function getPatientsByRoom(): array
+    {
+        $receptionService = app(ReceptionService::class);
+        $branchId = BranchContext::currentId();
+        $date = Carbon::parse($this->selectedDate);
+
+        return $receptionService->getPatientsByRoom($branchId, $date);
+    }
+
     public function calculateWaitTime($appointment): ?array
     {
         $receptionService = app(ReceptionService::class);
@@ -59,18 +68,7 @@ class PatientFlowWidget extends Widget
                 'color' => 'warning',
                 'description' => __('booking::reception.flow.waiting_desc'),
             ],
-            'in_rooms' => [
-                'label' => __('booking::reception.flow.in_rooms'),
-                'icon' => 'heroicon-o-building-office',
-                'color' => 'secondary',
-                'description' => __('booking::reception.flow.in_rooms_desc'),
-            ],
-            'with_doctor' => [
-                'label' => __('booking::reception.flow.with_doctor'),
-                'icon' => 'heroicon-o-user',
-                'color' => 'primary',
-                'description' => __('booking::reception.flow.with_doctor_desc'),
-            ],
+            // Individual room columns are rendered dynamically
             'done' => [
                 'label' => __('booking::reception.flow.done'),
                 'icon' => 'heroicon-o-check-circle',

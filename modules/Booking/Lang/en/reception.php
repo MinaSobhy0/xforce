@@ -114,6 +114,8 @@ return [
         'done' => 'Done',
         'done_desc' => 'Completed (last 2 hrs)',
         'empty' => 'No patients',
+        'room_available' => 'Available',
+        'room_empty' => 'Room is available',
     ],
 
     // Misc

@@ -114,6 +114,8 @@ return [
         'done' => 'انتهى',
         'done_desc' => 'مكتمل (آخر ساعتين)',
         'empty' => 'لا يوجد مرضى',
+        'room_available' => 'متاحة',
+        'room_empty' => 'الغرفة متاحة',
     ],
 
     // Misc

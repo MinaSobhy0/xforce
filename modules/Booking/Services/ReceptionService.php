@@ -278,4 +278,66 @@ class ReceptionService
             ])
             ->first();
     }
+
+    /**
+     * Get patients grouped by room for a given date.
+     */
+    public function getPatientsByRoom(?string $branchId = null, ?Carbon $date = null): array
+    {
+        $branchId = $branchId ?? BranchContext::currentId();
+        $date = $date ?? today();
+
+        // Get all bookable rooms for the branch
+        $rooms = Room::query()
+            ->inBranch($branchId)
+            ->bookable()
+            ->active()
+            ->whereIn('room_type', ['treatment', 'consultation'])
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
+
+        // Get appointments that are in rooms (checked_in with room_id)
+        $appointments = Appointment::query()
+            ->with(['patient', 'service', 'practitioner', 'room'])
+            ->forDate($date)
+            ->whereNotNull('room_id')
+            ->where('status', Appointment::STATUS_CHECKED_IN)
+            ->ordered()
+            ->get();
+
+        if ($branchId) {
+            $appointments = $appointments->filter(function ($a) use ($branchId) {
+                return $a->branch_id === $branchId;
+            });
+        }
+
+        // Group appointments by room
+        $patientsByRoom = [];
+        foreach ($rooms as $room) {
+            $patientsByRoom[$room->id] = [
+                'room' => $room,
+                'appointments' => $appointments->filter(fn ($a) => $a->room_id === $room->id)->values(),
+            ];
+        }
+
+        return $patientsByRoom;
+    }
+
+    /**
+     * Get bookable rooms for a branch.
+     */
+    public function getBookableRooms(?string $branchId = null): Collection
+    {
+        $branchId = $branchId ?? BranchContext::currentId();
+
+        return Room::query()
+            ->inBranch($branchId)
+            ->bookable()
+            ->active()
+            ->whereIn('room_type', ['treatment', 'consultation'])
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
+    }
 }
