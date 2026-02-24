@@ -83,6 +83,11 @@ class CalendarPage extends Page implements HasForms, HasActions, HasInfolists
         $this->dispatch('calendarDateChanged', date: $this->selectedDate, events: $this->getAppointments());
     }
 
+    public function updatedSelectedPractitioner(): void
+    {
+        $this->dispatch('calendarDateChanged', date: $this->selectedDate, events: $this->getAppointments());
+    }
+
     public function getAppointments(): array
     {
         $query = Appointment::query()
