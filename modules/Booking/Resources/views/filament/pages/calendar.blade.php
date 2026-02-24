@@ -105,11 +105,12 @@
             cursor: pointer;
             padding: 4px 8px;
             border-radius: 6px;
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             border: none !important;
             border-left: 3px solid !important;
             box-shadow: 0 1px 2px rgba(0,0,0,0.05);
             transition: all 0.2s ease;
+            overflow: hidden;
         }
         .fc-event:hover {
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
@@ -117,17 +118,37 @@
         }
         .fc-event .fc-event-main {
             padding: 2px 0;
+            overflow: hidden;
         }
         .fc-event-title {
             font-weight: 500;
-            white-space: normal;
+            white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            display: block;
+        }
+        .fc-event-title-container {
+            overflow: hidden;
+        }
+        .fc-timegrid-event .fc-event-main {
+            overflow: hidden;
+        }
+        .fc-timegrid-event-harness {
+            overflow: hidden;
+        }
+        .fc-daygrid-event-dot { display: none; }
+        .fc-daygrid-event {
+            margin: 2px 4px;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+        .fc-timegrid-event {
+            margin: 0 2px;
+            overflow: hidden;
         }
         .fc-timegrid-slot { height: 2.5em; }
         .fc-col-header-cell-cushion, .fc-daygrid-day-number { padding: 8px; font-weight: 500; }
-        .fc-daygrid-event { margin: 2px 4px; }
-        .fc-timegrid-event { margin: 0 2px; }
     </style>
     @endassets
 
