@@ -191,7 +191,10 @@
                         return;
                     }
                     // Show appointment details in modal
-                    $wire.showAppointment(parseInt(info.event.id));
+                    const appointmentId = parseInt(info.event.id);
+                    if (appointmentId && !isNaN(appointmentId)) {
+                        $wire.showAppointment(appointmentId);
+                    }
                 },
                 select: function(info) {
                     const startDate = info.startStr.split('T')[0];
@@ -255,5 +258,73 @@
     </script>
     @endscript
 
-    <x-filament-actions::modals />
+    {{-- Appointment Details Modal --}}
+    @if($showModal)
+        <div
+            class="fixed inset-0 z-50 overflow-y-auto"
+            aria-labelledby="modal-title"
+            role="dialog"
+            aria-modal="true"
+        >
+            <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                {{-- Background overlay --}}
+                <div
+                    class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+                    wire:click="closeModal"
+                ></div>
+
+                {{-- Modal panel --}}
+                <div class="inline-block align-bottom bg-white dark:bg-gray-900 rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                    {{-- Header --}}
+                    <div class="bg-gray-50 dark:bg-gray-800 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                                {{ __('booking::calendar.appointment_details') }}
+                            </h3>
+                            <button
+                                type="button"
+                                wire:click="closeModal"
+                                class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+                            >
+                                <x-heroicon-o-x-mark class="w-5 h-5" />
+                            </button>
+                        </div>
+                    </div>
+
+                    {{-- Content --}}
+                    <div class="px-4 py-4 max-h-[60vh] overflow-y-auto">
+                        @php
+                            $appointment = $this->getSelectedAppointment();
+                        @endphp
+
+                        @if($appointment)
+                            @include('booking::filament.pages.partials.appointment-details', ['appointment' => $appointment])
+                        @else
+                            @include('booking::filament.pages.partials.appointment-not-found')
+                        @endif
+                    </div>
+
+                    {{-- Footer --}}
+                    @if($appointment)
+                        <div class="bg-gray-50 dark:bg-gray-800 px-4 py-3 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-2">
+                            <x-filament::button
+                                tag="a"
+                                :href="route('filament.tenant.resources.appointments.view', ['record' => $appointment->id])"
+                                color="primary"
+                                icon="heroicon-o-arrow-top-right-on-square"
+                            >
+                                {{ __('booking::calendar.open_full_view') }}
+                            </x-filament::button>
+                            <x-filament::button
+                                color="gray"
+                                wire:click="closeModal"
+                            >
+                                {{ __('booking::calendar.close') }}
+                            </x-filament::button>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    @endif
 </x-filament-panels::page>

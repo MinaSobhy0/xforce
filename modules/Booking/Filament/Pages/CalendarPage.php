@@ -297,13 +297,31 @@ class CalendarPage extends Page implements HasForms, HasActions, HasInfolists
         };
     }
 
+    public bool $showModal = false;
+
     public function showAppointment(?int $id): void
     {
         if (!$id) {
             return;
         }
         $this->selectedAppointmentId = $id;
-        $this->mountAction('viewAppointment');
+        $this->showModal = true;
+    }
+
+    public function closeModal(): void
+    {
+        $this->showModal = false;
+        $this->selectedAppointmentId = null;
+    }
+
+    public function getSelectedAppointment()
+    {
+        if (!$this->selectedAppointmentId) {
+            return null;
+        }
+
+        return Appointment::with(['patient', 'service.category', 'practitioner', 'branch', 'room'])
+            ->find($this->selectedAppointmentId);
     }
 
     public function viewAppointmentAction(): Action
