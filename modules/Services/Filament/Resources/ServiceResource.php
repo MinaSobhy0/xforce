@@ -343,7 +343,7 @@ class ServiceResource extends Resource
                                         Forms\Components\Select::make('parameter_template_id')
                                             ->label(__('services::services.fields.parameter_template'))
                                             ->relationship('parameterTemplate', 'id')
-                                            ->getOptionLabelFromRecordUsing(fn (ParameterTemplate $record) => $record->translated_name)
+                                            ->getOptionLabelFromRecordUsing(fn (ParameterTemplate $record): string => $record->translated_name ?: $record->id)
                                             ->searchable()
                                             ->preload()
                                             ->visible(fn (Forms\Get $get) => $get('has_dynamic_parameters') && $get('parameter_mode') === 'template')

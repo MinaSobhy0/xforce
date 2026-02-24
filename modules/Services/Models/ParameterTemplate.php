@@ -33,6 +33,16 @@ class ParameterTemplate extends BaseModel
         'is_active' => 'boolean',
     ];
 
+    protected $appends = ['translated_name'];
+
+    /**
+     * Get the translated name attribute.
+     */
+    public function getTranslatedNameAttribute(): string
+    {
+        return $this->template_name ?? '';
+    }
+
     /**
      * Get services using this template.
      */
