@@ -33,4 +33,44 @@
             </div>
         </div>
     </div>
+
+    <style>
+        /* Calendar toolbar buttons - gray style */
+        .fc .fc-button-primary {
+            background-color: #f3f4f6 !important;
+            border-color: #d1d5db !important;
+            color: #374151 !important;
+        }
+        .fc .fc-button-primary:hover {
+            background-color: #e5e7eb !important;
+            border-color: #9ca3af !important;
+            color: #1f2937 !important;
+        }
+        .fc .fc-button-primary:not(:disabled).fc-button-active,
+        .fc .fc-button-primary:not(:disabled):active {
+            background-color: #d1d5db !important;
+            border-color: #9ca3af !important;
+            color: #1f2937 !important;
+        }
+        .fc .fc-button-primary:focus {
+            box-shadow: 0 0 0 2px rgba(156, 163, 175, 0.5) !important;
+        }
+        /* Dark mode */
+        .dark .fc .fc-button-primary {
+            background-color: #374151 !important;
+            border-color: #4b5563 !important;
+            color: #e5e7eb !important;
+        }
+        .dark .fc .fc-button-primary:hover {
+            background-color: #4b5563 !important;
+            border-color: #6b7280 !important;
+            color: #f9fafb !important;
+        }
+        .dark .fc .fc-button-primary:not(:disabled).fc-button-active,
+        .dark .fc .fc-button-primary:not(:disabled):active {
+            background-color: #6b7280 !important;
+            border-color: #9ca3af !important;
+            color: #f9fafb !important;
+        }
+    </style>
 </x-filament-panels::page>
