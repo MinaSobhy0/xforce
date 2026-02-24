@@ -136,7 +136,7 @@
 
                     {{-- Time Slots --}}
                     @foreach($timeSlots as $slot)
-                        <div class="flex border-b border-gray-100 dark:border-gray-800 {{ $slot['isHour'] ? 'border-gray-200 dark:border-gray-700' : '' }}" style="height: 48px;">
+                        <div class="flex border-b {{ $slot['isHour'] ? 'border-gray-300 dark:border-gray-600' : 'border-gray-100 dark:border-gray-800' }}" style="height: 48px;">
                             {{-- Time Label --}}
                             <div class="w-20 flex-shrink-0 px-3 py-1 text-xs text-gray-500 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700 {{ $slot['isHour'] ? 'font-semibold text-gray-700 dark:text-gray-300' : 'text-gray-400 dark:text-gray-500' }}">
                                 @if($slot['isHour'])
@@ -152,7 +152,7 @@
                                     $appointment = $this->isSlotOccupied($room->id, $slot['time']);
                                     $isStartSlot = $appointment && $appointment->start_time->format('H:i') === $slot['label'];
                                 @endphp
-                                <div class="flex-1 min-w-[180px] border-r border-gray-100 dark:border-gray-800 last:border-r-0 relative {{ $slot['isHour'] ? 'border-gray-200 dark:border-gray-700' : '' }}">
+                                <div class="flex-1 min-w-[180px] border-r border-gray-200 dark:border-gray-700 last:border-r-0 relative">
                                     @if($isStartSlot)
                                         @php
                                             $position = $this->getAppointmentPosition($appointment);
