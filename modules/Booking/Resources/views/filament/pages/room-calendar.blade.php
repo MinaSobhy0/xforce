@@ -230,40 +230,62 @@
     </div>
 
     {{-- Appointment Details Modal --}}
-    @if($showModal)
-        <div
-            class="fixed inset-0 z-50 overflow-y-auto"
-            aria-labelledby="modal-title"
-            role="dialog"
-            aria-modal="true"
-        >
-            <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                {{-- Background overlay --}}
-                <div
-                    class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
-                    wire:click="closeModal"
-                ></div>
+    <div
+        x-data="{ open: @entangle('showModal') }"
+        x-show="open"
+        x-cloak
+        class="fixed inset-0 z-50 overflow-y-auto"
+        aria-labelledby="modal-title"
+        role="dialog"
+        aria-modal="true"
+    >
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            {{-- Background overlay --}}
+            <div
+                x-show="open"
+                x-transition:enter="ease-out duration-300"
+                x-transition:enter-start="opacity-0"
+                x-transition:enter-end="opacity-100"
+                x-transition:leave="ease-in duration-200"
+                x-transition:leave-start="opacity-100"
+                x-transition:leave-end="opacity-0"
+                class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+                @click="$wire.closeModal()"
+            ></div>
 
-                {{-- Modal panel --}}
-                <div class="inline-block align-bottom bg-white dark:bg-gray-900 rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                    {{-- Header --}}
-                    <div class="bg-gray-50 dark:bg-gray-800 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-                        <div class="flex items-center justify-between">
-                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                                {{ __('booking::calendar.appointment_details') }}
-                            </h3>
-                            <button
-                                type="button"
-                                wire:click="closeModal"
-                                class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
-                            >
-                                <x-heroicon-o-x-mark class="w-5 h-5" />
-                            </button>
-                        </div>
+            {{-- Spacer for centering --}}
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+            {{-- Modal panel --}}
+            <div
+                x-show="open"
+                x-transition:enter="ease-out duration-300"
+                x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                x-transition:leave="ease-in duration-200"
+                x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                class="inline-block align-bottom bg-white dark:bg-gray-900 rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full"
+            >
+                {{-- Header --}}
+                <div class="bg-gray-50 dark:bg-gray-800 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                            {{ __('booking::calendar.appointment_details') }}
+                        </h3>
+                        <button
+                            type="button"
+                            @click="$wire.closeModal()"
+                            class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+                        >
+                            <x-heroicon-o-x-mark class="w-5 h-5" />
+                        </button>
                     </div>
+                </div>
 
-                    {{-- Content --}}
-                    <div class="px-4 py-4 max-h-[60vh] overflow-y-auto">
+                {{-- Content --}}
+                <div class="px-4 py-4 max-h-[60vh] overflow-y-auto">
+                    @if($showModal && $selectedAppointmentId)
                         @php
                             $selectedAppointment = $this->getSelectedAppointment();
                         @endphp
@@ -273,9 +295,14 @@
                         @else
                             @include('booking::filament.pages.partials.appointment-not-found')
                         @endif
-                    </div>
+                    @endif
+                </div>
 
-                    {{-- Footer --}}
+                {{-- Footer --}}
+                @if($showModal && $selectedAppointmentId)
+                    @php
+                        $selectedAppointment = $selectedAppointment ?? $this->getSelectedAppointment();
+                    @endphp
                     @if($selectedAppointment)
                         <div class="bg-gray-50 dark:bg-gray-800 px-4 py-3 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-2">
                             <x-filament::button
@@ -294,8 +321,8 @@
                             </x-filament::button>
                         </div>
                     @endif
-                </div>
+                @endif
             </div>
         </div>
-    @endif
+    </div>
 </x-filament-panels::page>

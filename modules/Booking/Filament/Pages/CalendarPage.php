@@ -41,7 +41,8 @@ class CalendarPage extends Page implements HasForms, HasActions, HasInfolists
     public ?string $selectedPractitioner = null;
     public ?string $selectedDate = null;
     public string $viewMode = 'week';
-    public ?int $selectedAppointmentId = null;
+    public ?string $selectedAppointmentId = null;
+    public bool $showModal = false;
 
     public static function getNavigationLabel(): string
     {
@@ -297,9 +298,7 @@ class CalendarPage extends Page implements HasForms, HasActions, HasInfolists
         };
     }
 
-    public bool $showModal = false;
-
-    public function showAppointment(?int $id): void
+    public function showAppointment(?string $id): void
     {
         if (!$id) {
             return;
@@ -322,36 +321,5 @@ class CalendarPage extends Page implements HasForms, HasActions, HasInfolists
 
         return Appointment::with(['patient', 'service.category', 'practitioner', 'branch', 'room'])
             ->find($this->selectedAppointmentId);
-    }
-
-    public function viewAppointmentAction(): Action
-    {
-        return Action::make('viewAppointment')
-            ->modalHeading(fn () => __('booking::calendar.appointment_details'))
-            ->modalWidth('lg')
-            ->modalContent(function () {
-                $appointment = Appointment::with(['patient', 'service.category', 'practitioner', 'branch', 'room'])
-                    ->find($this->selectedAppointmentId);
-
-                if (!$appointment) {
-                    return view('booking::filament.pages.partials.appointment-not-found');
-                }
-
-                return view('booking::filament.pages.partials.appointment-details', [
-                    'appointment' => $appointment,
-                ]);
-            })
-            ->modalFooterActions([
-                Action::make('openFullView')
-                    ->label(__('booking::calendar.open_full_view'))
-                    ->color('primary')
-                    ->icon('heroicon-o-arrow-top-right-on-square')
-                    ->url(fn () => route('filament.tenant.resources.appointments.view', ['record' => $this->selectedAppointmentId]))
-                    ->openUrlInNewTab(false),
-                Action::make('close')
-                    ->label(__('booking::calendar.close'))
-                    ->color('gray')
-                    ->close(),
-            ]);
     }
 }

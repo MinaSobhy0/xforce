@@ -54,7 +54,8 @@ class RoomCalendar extends Page implements HasForms, HasActions, HasInfolists
     public int $startHour = 8;
     public int $endHour = 22;
     public int $intervalMinutes = 15;
-    public ?int $selectedAppointmentId = null;
+    public ?string $selectedAppointmentId = null;
+    public bool $showModal = false;
 
     public function mount(): void
     {
@@ -272,9 +273,7 @@ class RoomCalendar extends Page implements HasForms, HasActions, HasInfolists
         return (int) (($currentMinutes / $this->intervalMinutes) * $slotHeight);
     }
 
-    public bool $showModal = false;
-
-    public function showAppointment(?int $id): void
+    public function showAppointment(?string $id): void
     {
         if (!$id) {
             return;
