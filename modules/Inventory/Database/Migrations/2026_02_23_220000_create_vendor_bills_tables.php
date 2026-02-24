@@ -47,6 +47,7 @@ return new class extends Migration
             $table->uuid('tenant_id');
             $table->foreignUuid('vendor_bill_id')->constrained('vendor_bills')->cascadeOnDelete();
             $table->foreignUuid('product_id')->nullable()->constrained('products');
+            $table->uuid('account_id')->nullable();
             $table->foreignUuid('purchase_order_line_id')->nullable();
             $table->string('description');
             $table->decimal('quantity', 10, 2)->default(1);
@@ -59,6 +60,7 @@ return new class extends Migration
             $table->integer('sort_order')->default(0);
             $table->timestamps();
 
+            $table->foreign('account_id')->references('id')->on('chart_of_accounts')->nullOnDelete();
             $table->index('tenant_id');
             $table->index('vendor_bill_id');
         });

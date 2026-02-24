@@ -25,12 +25,46 @@ return new class extends Migration
             $table->boolean('is_active')->default(true);
             $table->string('barcode', 100)->nullable();
             $table->string('image_url')->nullable();
+
+            // Accounting integration
+            $table->uuid('stock_input_account_id')->nullable();
+            $table->uuid('stock_output_account_id')->nullable();
+            $table->uuid('stock_valuation_account_id')->nullable();
+            $table->uuid('income_account_id')->nullable();
+            $table->uuid('expense_account_id')->nullable();
+            $table->string('valuation_method', 50)->default('average'); // average, fifo, lifo
+
             $table->timestamps();
 
             $table->foreign('category_id')
                 ->references('id')
                 ->on('product_categories')
                 ->onDelete('set null');
+
+            $table->foreign('stock_input_account_id')
+                ->references('id')
+                ->on('chart_of_accounts')
+                ->nullOnDelete();
+
+            $table->foreign('stock_output_account_id')
+                ->references('id')
+                ->on('chart_of_accounts')
+                ->nullOnDelete();
+
+            $table->foreign('stock_valuation_account_id')
+                ->references('id')
+                ->on('chart_of_accounts')
+                ->nullOnDelete();
+
+            $table->foreign('income_account_id')
+                ->references('id')
+                ->on('chart_of_accounts')
+                ->nullOnDelete();
+
+            $table->foreign('expense_account_id')
+                ->references('id')
+                ->on('chart_of_accounts')
+                ->nullOnDelete();
 
             $table->index(['tenant_id', 'is_active']);
             $table->index(['tenant_id', 'category_id']);
