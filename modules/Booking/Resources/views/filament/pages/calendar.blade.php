@@ -45,66 +45,7 @@
 
             {{-- Calendar Container --}}
             <x-filament::section>
-                <div id="calendar" class="min-h-[600px]" wire:ignore x-data="{
-                    calendar: null,
-                    init() {
-                        this.initCalendar();
-                        Livewire.on('refreshCalendar', () => { this.calendar.refetchEvents(); });
-                        Livewire.on('calendarViewChanged', (data) => {
-                            const mode = data.mode || data;
-                            const events = data.events || [];
-                            this.calendar.changeView(this.modeToView(mode));
-                            this.updateEvents(events);
-                        });
-                        Livewire.on('calendarDateChanged', (data) => {
-                            const date = data.date || data;
-                            const events = data.events || [];
-                            this.calendar.gotoDate(date);
-                            this.updateEvents(events);
-                        });
-                    },
-                    updateEvents(events) {
-                        this.calendar.removeAllEvents();
-                        events.forEach(event => this.calendar.addEvent(event));
-                    },
-                    modeToView(mode) {
-                        return mode === 'day' ? 'timeGridDay' : mode === 'week' ? 'timeGridWeek' : 'dayGridMonth';
-                    },
-                    initCalendar() {
-                        this.calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
-                            initialView: this.modeToView('{{ $viewMode }}'),
-                            initialDate: '{{ $selectedDate }}',
-                            headerToolbar: false,
-                            slotMinTime: '08:00:00',
-                            slotMaxTime: '22:00:00',
-                            slotDuration: '00:15:00',
-                            allDaySlot: false,
-                            nowIndicator: true,
-                            editable: false,
-                            selectable: true,
-                            selectMirror: true,
-                            dayMaxEvents: true,
-                            weekends: true,
-                            locale: '{{ app()->getLocale() }}',
-                            direction: '{{ app()->getLocale() === 'ar' ? 'rtl' : 'ltr' }}',
-                            events: @json($this->getAppointments()),
-                            eventClick: (info) => { window.location.href = '{{ route('filament.tenant.resources.appointments.view', ':id') }}'.replace(':id', info.event.id); },
-                            select: (info) => { window.location.href = '/admin/create-booking?date=' + info.startStr.split('T')[0] + '&start_time=' + (info.startStr.split('T')[1] || '09:00:00'); },
-                            dateClick: (info) => { window.location.href = '/admin/create-booking?date=' + info.dateStr.split('T')[0] + '&start_time=' + (info.dateStr.split('T')[1] || '09:00:00'); },
-                            eventDidMount: (info) => {
-                                if (typeof tippy !== 'undefined') {
-                                    tippy(info.el, {
-                                        content: '<div class=\"p-2\"><div class=\"font-semibold\">' + (info.event.extendedProps.patient || '') + '</div><div class=\"text-sm\">' + (info.event.extendedProps.treatment || '') + '</div></div>',
-                                        allowHTML: true,
-                                        theme: 'light-border',
-                                        placement: 'top',
-                                    });
-                                }
-                            },
-                        });
-                        this.calendar.render();
-                    }
-                }"></div>
+                <div id="calendar" class="min-h-[600px]" wire:ignore></div>
             </x-filament::section>
 
             {{-- Legend --}}
@@ -132,6 +73,84 @@
             <script src="https://unpkg.com/@popperjs/core@2"></script>
             <script src="https://unpkg.com/tippy.js@6"></script>
             <style>.fc{font-family:inherit}.fc-theme-standard td,.fc-theme-standard th{border-color:#e5e7eb}.dark .fc-theme-standard td,.dark .fc-theme-standard th{border-color:#374151}.fc-event{cursor:pointer;padding:2px 4px;border-radius:4px;font-size:.75rem}.fc-timegrid-slot{height:2em}.fc-col-header-cell-cushion,.fc-daygrid-day-number{padding:8px}</style>
+
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    var calendarEl = document.getElementById('calendar');
+                    if (!calendarEl || calendarEl.dataset.initialized) return;
+                    calendarEl.dataset.initialized = 'true';
+
+                    var viewMode = '{{ $viewMode }}';
+                    var initialView = viewMode === 'day' ? 'timeGridDay' : viewMode === 'week' ? 'timeGridWeek' : 'dayGridMonth';
+
+                    var calendar = new FullCalendar.Calendar(calendarEl, {
+                        initialView: initialView,
+                        initialDate: '{{ $selectedDate }}',
+                        headerToolbar: false,
+                        slotMinTime: '08:00:00',
+                        slotMaxTime: '22:00:00',
+                        slotDuration: '00:15:00',
+                        allDaySlot: false,
+                        nowIndicator: true,
+                        editable: false,
+                        selectable: true,
+                        selectMirror: true,
+                        dayMaxEvents: true,
+                        weekends: true,
+                        locale: '{{ app()->getLocale() }}',
+                        direction: '{{ app()->getLocale() === "ar" ? "rtl" : "ltr" }}',
+                        events: @json($this->getAppointments()),
+                        eventClick: function(info) {
+                            window.location.href = '/admin/appointments/' + info.event.id;
+                        },
+                        select: function(info) {
+                            var startDate = info.startStr.split('T')[0];
+                            var startTime = info.startStr.split('T')[1] || '09:00:00';
+                            window.location.href = '/admin/create-booking?date=' + startDate + '&start_time=' + startTime;
+                        },
+                        dateClick: function(info) {
+                            var startDate = info.dateStr.split('T')[0];
+                            var startTime = info.dateStr.split('T')[1] || '09:00:00';
+                            window.location.href = '/admin/create-booking?date=' + startDate + '&start_time=' + startTime;
+                        },
+                        eventDidMount: function(info) {
+                            if (typeof tippy !== 'undefined') {
+                                tippy(info.el, {
+                                    content: '<div class="p-2"><div class="font-semibold">' + (info.event.extendedProps.patient || '') + '</div><div class="text-sm">' + (info.event.extendedProps.treatment || '') + '</div></div>',
+                                    allowHTML: true,
+                                    theme: 'light-border',
+                                    placement: 'top',
+                                });
+                            }
+                        },
+                    });
+
+                    calendar.render();
+
+                    window.calendarInstance = calendar;
+
+                    Livewire.on('refreshCalendar', function() {
+                        calendar.refetchEvents();
+                    });
+
+                    Livewire.on('calendarViewChanged', function(data) {
+                        var mode = data.mode || data;
+                        var events = data.events || [];
+                        var view = mode === 'day' ? 'timeGridDay' : mode === 'week' ? 'timeGridWeek' : 'dayGridMonth';
+                        calendar.changeView(view);
+                        calendar.removeAllEvents();
+                        events.forEach(function(event) { calendar.addEvent(event); });
+                    });
+
+                    Livewire.on('calendarDateChanged', function(data) {
+                        var date = data.date || data;
+                        var events = data.events || [];
+                        calendar.gotoDate(date);
+                        calendar.removeAllEvents();
+                        events.forEach(function(event) { calendar.addEvent(event); });
+                    });
+                });
+            </script>
         </div>
     </div>
 </x-filament-panels::page>
