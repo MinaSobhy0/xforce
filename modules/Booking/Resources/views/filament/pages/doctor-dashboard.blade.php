@@ -14,6 +14,42 @@
                 <div class="divide-y divide-gray-100 dark:divide-gray-800 max-h-[calc(100vh-320px)] overflow-y-auto">
                     @php $appointments = $this->getAppointmentsByStatus(); @endphp
 
+                    {{-- In Progress (Show first - highest priority) --}}
+                    @if($appointments['in_progress']->isNotEmpty())
+                        <div class="px-4 py-2 bg-green-50 dark:bg-green-900/20">
+                            <span class="text-xs font-medium text-green-700 dark:text-green-300 uppercase tracking-wide">
+                                {{ __('booking::dashboard.queue.in_progress') }} ({{ $appointments['in_progress']->count() }})
+                            </span>
+                        </div>
+                        @foreach($appointments['in_progress'] as $appointment)
+                            <div class="px-4 py-3 bg-green-50/50 dark:bg-green-900/10 border-l-4 border-green-500">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <div class="font-medium text-gray-900 dark:text-white">
+                                            {{ $appointment->patient->full_name }}
+                                        </div>
+                                        <div class="text-sm text-gray-500 dark:text-gray-400">
+                                            {{ $appointment->start_time?->format('H:i') }} - {{ $appointment->service?->translated_name }}
+                                        </div>
+                                        @if($appointment->treatmentPlanAppointment)
+                                            <div class="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                                                Session {{ $appointment->treatmentPlanAppointment->session_number }} of {{ $appointment->treatmentPlanAppointment->item->recommended_sessions }}
+                                            </div>
+                                        @endif
+                                    </div>
+                                    <button
+                                        wire:click="resumeSession('{{ $appointment->id }}')"
+                                        wire:loading.attr="disabled"
+                                        class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+                                    >
+                                        <x-heroicon-o-play class="w-4 h-4" />
+                                        {{ __('booking::dashboard.actions.resume') }}
+                                    </button>
+                                </div>
+                            </div>
+                        @endforeach
+                    @endif
+
                     {{-- Checked In (Waiting) --}}
                     @if($appointments['checked_in']->isNotEmpty())
                         <div class="px-4 py-2 bg-amber-50 dark:bg-amber-900/20">
@@ -29,7 +65,7 @@
                                             {{ $appointment->patient->full_name }}
                                         </div>
                                         <div class="text-sm text-gray-500 dark:text-gray-400">
-                                            {{ $appointment->start_time->format('H:i') }} - {{ $appointment->service?->translated_name }}
+                                            {{ $appointment->start_time?->format('H:i') }} - {{ $appointment->service?->translated_name }}
                                         </div>
                                         @if($appointment->treatmentPlanAppointment)
                                             <div class="text-xs text-blue-600 dark:text-blue-400 mt-1">
@@ -39,43 +75,10 @@
                                     </div>
                                     <button
                                         wire:click="startSession('{{ $appointment->id }}')"
+                                        wire:loading.attr="disabled"
                                         class="px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors"
                                     >
                                         {{ __('booking::dashboard.actions.start') }}
-                                    </button>
-                                </div>
-                            </div>
-                        @endforeach
-                    @endif
-
-                    {{-- In Progress --}}
-                    @if($appointments['in_progress']->isNotEmpty())
-                        <div class="px-4 py-2 bg-blue-50 dark:bg-blue-900/20">
-                            <span class="text-xs font-medium text-blue-700 dark:text-blue-300 uppercase tracking-wide">
-                                {{ __('booking::dashboard.queue.in_progress') }} ({{ $appointments['in_progress']->count() }})
-                            </span>
-                        </div>
-                        @foreach($appointments['in_progress'] as $appointment)
-                            <div class="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                                <div class="flex items-center justify-between">
-                                    <div>
-                                        <div class="font-medium text-gray-900 dark:text-white">
-                                            {{ $appointment->patient->full_name }}
-                                        </div>
-                                        <div class="text-sm text-gray-500 dark:text-gray-400">
-                                            {{ $appointment->start_time->format('H:i') }} - {{ $appointment->service?->translated_name }}
-                                        </div>
-                                        @if($appointment->treatmentPlanAppointment)
-                                            <div class="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                                                Session {{ $appointment->treatmentPlanAppointment->session_number }} of {{ $appointment->treatmentPlanAppointment->item->recommended_sessions }}
-                                            </div>
-                                        @endif
-                                    </div>
-                                    <button
-                                        wire:click="resumeSession('{{ $appointment->id }}')"
-                                        class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
-                                    >
-                                        {{ __('booking::dashboard.actions.resume') }}
                                     </button>
                                 </div>
                             </div>
@@ -97,7 +100,7 @@
                                             {{ $appointment->patient->full_name }}
                                         </div>
                                         <div class="text-sm text-gray-500 dark:text-gray-400">
-                                            {{ $appointment->start_time->format('H:i') }} - {{ $appointment->service?->translated_name }}
+                                            {{ $appointment->start_time?->format('H:i') }} - {{ $appointment->service?->translated_name }}
                                         </div>
                                         @if($appointment->treatmentPlanAppointment)
                                             <div class="text-xs text-blue-600 dark:text-blue-400 mt-1">
@@ -108,6 +111,7 @@
                                     <div class="flex items-center gap-2">
                                         <button
                                             wire:click="startSession('{{ $appointment->id }}')"
+                                            wire:loading.attr="disabled"
                                             class="px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors"
                                         >
                                             {{ __('booking::dashboard.actions.start') }}
@@ -151,7 +155,7 @@
                                             {{ $appointment->patient->full_name }}
                                         </div>
                                         <div class="text-sm text-gray-500 dark:text-gray-400">
-                                            {{ $appointment->start_time->format('H:i') }} - {{ $appointment->service?->translated_name }}
+                                            {{ $appointment->start_time?->format('H:i') }} - {{ $appointment->service?->translated_name }}
                                         </div>
                                         @if($appointment->treatmentPlanAppointment)
                                             <div class="text-xs text-green-600 dark:text-green-400 mt-1">
