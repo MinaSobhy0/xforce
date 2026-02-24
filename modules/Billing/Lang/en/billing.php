@@ -52,6 +52,11 @@ return [
         'today' => 'Today',
         'cash' => 'Cash',
         'bank' => 'Bank Transfer',
+        'draft' => 'Draft',
+        'issued' => 'Issued',
+        'unpaid' => 'Unpaid',
+        'paid' => 'Paid',
+        'overdue' => 'Overdue',
     ],
 
     'sections' => [
@@ -237,4 +242,24 @@ return [
     // Member discount
     'member_discount' => 'Member Discount',
     'membership_tier' => 'Membership Tier',
+
+    // Stats Widget
+    'stats' => [
+        'todays_revenue' => "Today's Revenue",
+        'total_payments_today' => 'Total payments received today',
+        'month_revenue' => 'Month Revenue',
+        'total_payments_month' => 'Total payments this month',
+        'outstanding' => 'Outstanding',
+        'unpaid_balance' => 'Unpaid invoice balance',
+        'overdue_invoices' => 'Overdue Invoices',
+        'invoices_past_due' => 'Invoices past due date',
+        'todays_payments' => "Today's Payments",
+        'payments_count' => ':count payments',
+        'cash_today' => 'Cash Today',
+        'cash_payments' => 'Cash payments',
+        'bank_today' => 'Bank Today',
+        'bank_transfers' => 'Bank transfers',
+        'month_total' => 'Month Total',
+        'payments_this_month' => ':count payments this month',
+    ],
 ];

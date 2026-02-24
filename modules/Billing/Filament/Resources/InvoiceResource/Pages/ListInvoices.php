@@ -31,29 +31,29 @@ class ListInvoices extends BaseListRecords
     public function getTabs(): array
     {
         return [
-            'all' => Tab::make('All'),
+            'all' => Tab::make(__('billing::billing.tabs.all')),
 
-            'draft' => Tab::make('Draft')
+            'draft' => Tab::make(__('billing::billing.tabs.draft'))
                 ->modifyQueryUsing(fn (Builder $query) => $query->where('status', Invoice::STATUS_DRAFT))
                 ->badge(Invoice::where('status', Invoice::STATUS_DRAFT)->count())
                 ->badgeColor('gray'),
 
-            'issued' => Tab::make('Issued')
+            'issued' => Tab::make(__('billing::billing.tabs.issued'))
                 ->modifyQueryUsing(fn (Builder $query) => $query->where('status', Invoice::STATUS_ISSUED))
                 ->badge(Invoice::where('status', Invoice::STATUS_ISSUED)->count())
                 ->badgeColor('info'),
 
-            'unpaid' => Tab::make('Unpaid')
+            'unpaid' => Tab::make(__('billing::billing.tabs.unpaid'))
                 ->modifyQueryUsing(fn (Builder $query) => $query->unpaid())
                 ->badge(Invoice::unpaid()->count())
                 ->badgeColor('warning'),
 
-            'paid' => Tab::make('Paid')
+            'paid' => Tab::make(__('billing::billing.tabs.paid'))
                 ->modifyQueryUsing(fn (Builder $query) => $query->where('status', Invoice::STATUS_PAID))
                 ->badge(Invoice::where('status', Invoice::STATUS_PAID)->count())
                 ->badgeColor('success'),
 
-            'overdue' => Tab::make('Overdue')
+            'overdue' => Tab::make(__('billing::billing.tabs.overdue'))
                 ->modifyQueryUsing(fn (Builder $query) => $query->overdue())
                 ->badge(Invoice::overdue()->count())
                 ->badgeColor('danger'),

@@ -290,4 +290,18 @@ return [
         'branch_assigned' => 'Branch has been assigned to user',
         'branch_removed' => 'Branch access has been removed',
     ],
+
+    // Stats Widget
+    'stats' => [
+        'total_users' => 'Total Users',
+        'all_registered' => 'All registered users',
+        'active_users' => 'Active Users',
+        'of_total' => 'of total',
+        'email_verified' => 'Email Verified',
+        'verified' => 'verified',
+        '2fa_enabled' => '2FA Enabled',
+        'secured' => 'secured',
+        'recent_logins' => 'Recent Logins',
+        'past_days' => 'Past :days days',
+    ],
 ];

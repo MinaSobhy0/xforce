@@ -52,6 +52,11 @@ return [
         'today' => 'اليوم',
         'cash' => 'نقدي',
         'bank' => 'تحويل بنكي',
+        'draft' => 'مسودة',
+        'issued' => 'صادرة',
+        'unpaid' => 'غير مدفوعة',
+        'paid' => 'مدفوعة',
+        'overdue' => 'متأخرة',
     ],
 
     'sections' => [
@@ -233,4 +238,24 @@ return [
     // خصم العضوية
     'member_discount' => 'خصم العضوية',
     'membership_tier' => 'فئة العضوية',
+
+    // إحصائيات
+    'stats' => [
+        'todays_revenue' => 'إيرادات اليوم',
+        'total_payments_today' => 'إجمالي المدفوعات المستلمة اليوم',
+        'month_revenue' => 'إيرادات الشهر',
+        'total_payments_month' => 'إجمالي المدفوعات هذا الشهر',
+        'outstanding' => 'المستحقات',
+        'unpaid_balance' => 'رصيد الفواتير غير المدفوعة',
+        'overdue_invoices' => 'الفواتير المتأخرة',
+        'invoices_past_due' => 'فواتير تجاوزت تاريخ الاستحقاق',
+        'todays_payments' => 'مدفوعات اليوم',
+        'payments_count' => ':count دفعة',
+        'cash_today' => 'النقدي اليوم',
+        'cash_payments' => 'المدفوعات النقدية',
+        'bank_today' => 'البنكي اليوم',
+        'bank_transfers' => 'التحويلات البنكية',
+        'month_total' => 'إجمالي الشهر',
+        'payments_this_month' => ':count دفعة هذا الشهر',
+    ],
 ];

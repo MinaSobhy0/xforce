@@ -24,24 +24,26 @@ class PatientStatsOverview extends BaseWidget
             ? round((($newThisMonth - $lastMonthNew) / $lastMonthNew) * 100, 1)
             : ($newThisMonth > 0 ? 100 : 0);
 
+        $activePercentage = round(($activePatients / max($totalPatients, 1)) * 100, 1);
+
         return [
             Stat::make(__('patients::patients.labels.patients'), number_format($totalPatients))
-                ->description('Total registered patients')
+                ->description(__('patients::patients.stats.total_registered'))
                 ->descriptionIcon('heroicon-m-user-group')
                 ->color('primary'),
 
             Stat::make(__('patients::patients.filters.new_this_month'), number_format($newThisMonth))
-                ->description($growth >= 0 ? "+{$growth}% from last month" : "{$growth}% from last month")
+                ->description(__('patients::patients.stats.growth_from_last_month', ['growth' => ($growth >= 0 ? '+' : '') . $growth]))
                 ->descriptionIcon($growth >= 0 ? 'heroicon-m-arrow-trending-up' : 'heroicon-m-arrow-trending-down')
                 ->color($growth >= 0 ? 'success' : 'danger'),
 
             Stat::make(__('patients::patients.filters.active'), number_format($activePatients))
-                ->description(round(($activePatients / max($totalPatients, 1)) * 100, 1) . '% of total')
+                ->description(__('patients::patients.stats.of_total', ['percent' => $activePercentage]))
                 ->descriptionIcon('heroicon-m-check-badge')
                 ->color('success'),
 
-            Stat::make('Recent Visitors', number_format($recentVisitors))
-                ->description('Visited in last 30 days')
+            Stat::make(__('patients::patients.stats.recent_visitors'), number_format($recentVisitors))
+                ->description(__('patients::patients.stats.visited_last_days', ['days' => 30]))
                 ->descriptionIcon('heroicon-m-calendar')
                 ->color('info'),
         ];

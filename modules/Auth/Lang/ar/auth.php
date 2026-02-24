@@ -290,4 +290,18 @@ return [
         'branch_assigned' => 'تم تعيين الفرع للمستخدم',
         'branch_removed' => 'تم إزالة صلاحية الفرع',
     ],
+
+    // إحصائيات
+    'stats' => [
+        'total_users' => 'إجمالي المستخدمين',
+        'all_registered' => 'جميع المستخدمين المسجلين',
+        'active_users' => 'المستخدمين النشطين',
+        'of_total' => 'من الإجمالي',
+        'email_verified' => 'بريد مُفعّل',
+        'verified' => 'مُفعّل',
+        '2fa_enabled' => 'المصادقة الثنائية',
+        'secured' => 'مؤمّن',
+        'recent_logins' => 'تسجيلات دخول حديثة',
+        'past_days' => 'خلال :days أيام',
+    ],
 ];

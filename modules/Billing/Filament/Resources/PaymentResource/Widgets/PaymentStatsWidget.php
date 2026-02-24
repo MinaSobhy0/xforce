@@ -15,29 +15,31 @@ class PaymentStatsWidget extends BaseWidget
 
         $todayTotal = $today->sum('amount_minor');
         $monthTotal = $thisMonth->sum('amount_minor');
+        $todayCount = $today->count();
+        $monthCount = $thisMonth->count();
 
         // Payment method breakdown for today (by journal type)
         $todayCash = $today->clone()->byJournalType('cash')->sum('amount_minor');
         $todayBank = $today->clone()->byJournalType('bank')->sum('amount_minor');
 
         return [
-            Stat::make("Today's Payments", number_format($todayTotal / 100, 2) . ' ' . current_currency())
-                ->description($today->count() . ' payments')
+            Stat::make(__('billing::billing.stats.todays_payments'), number_format($todayTotal / 100, 2) . ' ' . current_currency())
+                ->description(__('billing::billing.stats.payments_count', ['count' => $todayCount]))
                 ->descriptionIcon('heroicon-m-banknotes')
                 ->color('success'),
 
-            Stat::make('Cash Today', number_format($todayCash / 100, 2) . ' ' . current_currency())
-                ->description('Cash payments')
+            Stat::make(__('billing::billing.stats.cash_today'), number_format($todayCash / 100, 2) . ' ' . current_currency())
+                ->description(__('billing::billing.stats.cash_payments'))
                 ->descriptionIcon('heroicon-m-banknotes')
                 ->color('success'),
 
-            Stat::make('Bank Today', number_format($todayBank / 100, 2) . ' ' . current_currency())
-                ->description('Bank transfers')
+            Stat::make(__('billing::billing.stats.bank_today'), number_format($todayBank / 100, 2) . ' ' . current_currency())
+                ->description(__('billing::billing.stats.bank_transfers'))
                 ->descriptionIcon('heroicon-m-building-library')
                 ->color('primary'),
 
-            Stat::make('Month Total', number_format($monthTotal / 100, 2) . ' ' . current_currency())
-                ->description($thisMonth->count() . ' payments this month')
+            Stat::make(__('billing::billing.stats.month_total'), number_format($monthTotal / 100, 2) . ' ' . current_currency())
+                ->description(__('billing::billing.stats.payments_this_month', ['count' => $monthCount]))
                 ->descriptionIcon('heroicon-m-calendar')
                 ->color('info'),
         ];

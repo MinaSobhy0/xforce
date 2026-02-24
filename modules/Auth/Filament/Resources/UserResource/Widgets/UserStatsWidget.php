@@ -22,29 +22,29 @@ class UserStatsWidget extends BaseWidget
         $twoFactorPercentage = $totalUsers > 0 ? round(($twoFactorUsers / $totalUsers) * 100, 1) : 0;
 
         return [
-            Stat::make(__('Total Users'), $totalUsers)
-                ->description(__('All registered users'))
+            Stat::make(__('auth::auth.stats.total_users'), $totalUsers)
+                ->description(__('auth::auth.stats.all_registered'))
                 ->descriptionIcon('heroicon-m-users')
                 ->color('primary'),
 
-            Stat::make(__('Active Users'), $activeUsers)
-                ->description($activePercentage . '% ' . __('of total'))
+            Stat::make(__('auth::auth.stats.active_users'), $activeUsers)
+                ->description($activePercentage . '% ' . __('auth::auth.stats.of_total'))
                 ->descriptionIcon('heroicon-m-check-circle')
                 ->color('success')
                 ->chart([7, 12, 18, 14, 21, 28, $activeUsers]),
 
-            Stat::make(__('Email Verified'), $verifiedUsers)
-                ->description($verifiedPercentage . '% ' . __('verified'))
+            Stat::make(__('auth::auth.stats.email_verified'), $verifiedUsers)
+                ->description($verifiedPercentage . '% ' . __('auth::auth.stats.verified'))
                 ->descriptionIcon('heroicon-m-check-badge')
                 ->color('info'),
 
-            Stat::make(__('2FA Enabled'), $twoFactorUsers)
-                ->description($twoFactorPercentage . '% ' . __('secured'))
+            Stat::make(__('auth::auth.stats.2fa_enabled'), $twoFactorUsers)
+                ->description($twoFactorPercentage . '% ' . __('auth::auth.stats.secured'))
                 ->descriptionIcon('heroicon-m-shield-check')
                 ->color('warning'),
 
-            Stat::make(__('Recent Logins'), $recentLogins)
-                ->description(__('Past 7 days'))
+            Stat::make(__('auth::auth.stats.recent_logins'), $recentLogins)
+                ->description(__('auth::auth.stats.past_days', ['days' => 7]))
                 ->descriptionIcon('heroicon-m-clock')
                 ->color('success'),
         ];

@@ -43,7 +43,7 @@ class ListPatients extends BaseListRecords
                 ->badge($this->getModel()::newThisMonth()->count())
                 ->badgeColor('info'),
 
-            'inactive' => Tab::make('Inactive (90+ days)')
+            'inactive' => Tab::make(__('patients::patients.filters.inactive_days', ['days' => 90]))
                 ->modifyQueryUsing(fn (Builder $query) => $query->inactiveVisitors(90))
                 ->badge($this->getModel()::inactiveVisitors(90)->count())
                 ->badgeColor('warning'),

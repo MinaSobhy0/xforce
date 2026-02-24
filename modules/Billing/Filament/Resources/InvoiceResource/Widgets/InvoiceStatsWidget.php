@@ -17,23 +17,23 @@ class InvoiceStatsWidget extends BaseWidget
         $overdueCount = Invoice::overdue()->count();
 
         return [
-            Stat::make("Today's Revenue", number_format($todayRevenue / 100, 2) . ' ' . current_currency())
-                ->description('Total payments received today')
+            Stat::make(__('billing::billing.stats.todays_revenue'), number_format($todayRevenue / 100, 2) . ' ' . current_currency())
+                ->description(__('billing::billing.stats.total_payments_today'))
                 ->descriptionIcon('heroicon-m-banknotes')
                 ->color('success'),
 
-            Stat::make('Month Revenue', number_format($monthRevenue / 100, 2) . ' ' . current_currency())
-                ->description('Total payments this month')
+            Stat::make(__('billing::billing.stats.month_revenue'), number_format($monthRevenue / 100, 2) . ' ' . current_currency())
+                ->description(__('billing::billing.stats.total_payments_month'))
                 ->descriptionIcon('heroicon-m-calendar')
                 ->color('primary'),
 
-            Stat::make('Outstanding', number_format($outstanding / 100, 2) . ' ' . current_currency())
-                ->description('Unpaid invoice balance')
+            Stat::make(__('billing::billing.stats.outstanding'), number_format($outstanding / 100, 2) . ' ' . current_currency())
+                ->description(__('billing::billing.stats.unpaid_balance'))
                 ->descriptionIcon('heroicon-m-clock')
                 ->color($outstanding > 0 ? 'warning' : 'success'),
 
-            Stat::make('Overdue Invoices', $overdueCount)
-                ->description('Invoices past due date')
+            Stat::make(__('billing::billing.stats.overdue_invoices'), $overdueCount)
+                ->description(__('billing::billing.stats.invoices_past_due'))
                 ->descriptionIcon('heroicon-m-exclamation-triangle')
                 ->color($overdueCount > 0 ? 'danger' : 'success'),
         ];

@@ -208,5 +208,15 @@ return [
         'new_this_month' => 'New This Month',
         'returning' => 'Returning Patients',
         'with_upcoming' => 'With Upcoming Appointments',
+        'inactive_days' => 'Inactive (:days+ days)',
+    ],
+
+    // Stats Widget
+    'stats' => [
+        'total_registered' => 'Total registered patients',
+        'growth_from_last_month' => ':growth% from last month',
+        'of_total' => ':percent% of total',
+        'recent_visitors' => 'Recent Visitors',
+        'visited_last_days' => 'Visited in last :days days',
     ],
 ];

@@ -208,5 +208,15 @@ return [
         'new_this_month' => 'الجدد هذا الشهر',
         'returning' => 'المرضى العائدين',
         'with_upcoming' => 'لديهم مواعيد قادمة',
+        'inactive_days' => 'غير نشط (+:days يوم)',
+    ],
+
+    // إحصائيات
+    'stats' => [
+        'total_registered' => 'إجمالي المرضى المسجلين',
+        'growth_from_last_month' => ':growth% من الشهر الماضي',
+        'of_total' => ':percent% من الإجمالي',
+        'recent_visitors' => 'الزوار الأخيرون',
+        'visited_last_days' => 'زاروا خلال آخر :days يوم',
     ],
 ];
