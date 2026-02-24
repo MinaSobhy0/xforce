@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Config;
 use Modules\Core\Models\Tenant;
+use Modules\Core\Models\TenantStatus;
 use Symfony\Component\HttpFoundation\Response;
 
 class IdentifyTenant
@@ -49,7 +50,7 @@ class IdentifyTenant
                 DB::reconnect('pgsql');
 
                 $tenant = Tenant::where('slug', $sessionTenantSlug)
-                    ->where('status', 'active')
+                    ->where('status', TenantStatus::ACTIVE)
                     ->first();
 
                 if ($tenant && $tenant->database_name && $this->schemaExists($tenant->database_name)) {
@@ -74,7 +75,7 @@ class IdentifyTenant
 
         // Find tenant by slug (subdomain)
         $tenant = Tenant::where('slug', $subdomain)
-            ->where('status', 'active')
+            ->where('status', TenantStatus::ACTIVE)
             ->first();
 
         if (!$tenant) {

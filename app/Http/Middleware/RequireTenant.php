@@ -51,7 +51,7 @@ class RequireTenant
                 }
 
                 // If there's only one active tenant, auto-select it
-                $activeTenants = \Modules\Core\Models\Tenant::where('status', 'active')->get();
+                $activeTenants = \Modules\Core\Models\Tenant::where('status', \Modules\Core\Models\TenantStatus::ACTIVE)->get();
                 if ($activeTenants->count() === 1) {
                     $singleTenant = $activeTenants->first();
                     session(['_tenant_slug' => $singleTenant->slug]);
