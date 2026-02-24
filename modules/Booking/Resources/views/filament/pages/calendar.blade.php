@@ -203,41 +203,41 @@
                 @endforeach
             </div>
         </x-filament::section>
+
+        @push('scripts')
+            <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+            <script src="https://unpkg.com/@popperjs/core@2"></script>
+            <script src="https://unpkg.com/tippy.js@6"></script>
+        @endpush
+
+        @push('styles')
+            <link rel="stylesheet" href="https://unpkg.com/tippy.js@6/themes/light-border.css"/>
+            <style>
+                .fc {
+                    font-family: inherit;
+                }
+                .fc-theme-standard td, .fc-theme-standard th {
+                    border-color: rgb(229 231 235);
+                }
+                .dark .fc-theme-standard td, .dark .fc-theme-standard th {
+                    border-color: rgb(55 65 81);
+                }
+                .fc-event {
+                    cursor: pointer;
+                    padding: 2px 4px;
+                    border-radius: 4px;
+                    font-size: 0.75rem;
+                }
+                .fc-timegrid-slot {
+                    height: 2em;
+                }
+                .fc-col-header-cell-cushion {
+                    padding: 8px;
+                }
+                .fc-daygrid-day-number {
+                    padding: 8px;
+                }
+            </style>
+        @endpush
     </div>
-
-    @push('scripts')
-        <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
-        <script src="https://unpkg.com/@popperjs/core@2"></script>
-        <script src="https://unpkg.com/tippy.js@6"></script>
-    @endpush
-
-    @push('styles')
-        <link rel="stylesheet" href="https://unpkg.com/tippy.js@6/themes/light-border.css"/>
-        <style>
-            .fc {
-                font-family: inherit;
-            }
-            .fc-theme-standard td, .fc-theme-standard th {
-                border-color: rgb(229 231 235);
-            }
-            .dark .fc-theme-standard td, .dark .fc-theme-standard th {
-                border-color: rgb(55 65 81);
-            }
-            .fc-event {
-                cursor: pointer;
-                padding: 2px 4px;
-                border-radius: 4px;
-                font-size: 0.75rem;
-            }
-            .fc-timegrid-slot {
-                height: 2em;
-            }
-            .fc-col-header-cell-cushion {
-                padding: 8px;
-            }
-            .fc-daygrid-day-number {
-                padding: 8px;
-            }
-        </style>
-    @endpush
 </x-filament-panels::page>
