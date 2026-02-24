@@ -30,4 +30,6 @@ return [
         'in_progress' => 'جاري',
         'completed' => 'مكتمل',
     ],
+
+    'uncategorized' => 'خدمات أخرى',
 ];

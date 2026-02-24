@@ -74,7 +74,7 @@ class CalendarPage extends Page implements HasForms
     public function getAppointments(): array
     {
         $query = Appointment::query()
-            ->with(['patient', 'service', 'practitioner', 'branch', 'room'])
+            ->with(['patient', 'service.category', 'practitioner', 'branch', 'room'])
             ->active()
             ->forBranch($this->selectedBranch);
 
@@ -93,37 +93,115 @@ class CalendarPage extends Page implements HasForms
             $query->forDateRange($date->startOfMonth(), $date->copy()->endOfMonth());
         }
 
-        return $query->ordered()->get()->map(function (Appointment $appointment) {
-            $phone = $appointment->patient?->phone;
-            $title = $appointment->patient?->full_name;
-            if ($phone) {
-                $title .= "\n" . $phone;
-            }
-            $title .= "\n" . $appointment->service?->name;
+        $appointments = $query->ordered()->get();
 
-            $colors = $this->getStatusColors($appointment->status);
+        // For month view, group by date and category
+        if ($this->viewMode === 'month') {
+            return $this->getGroupedAppointments($appointments);
+        }
 
-            return [
-                'id' => $appointment->id,
-                'title' => $title,
-                'start' => $appointment->date->format('Y-m-d') . 'T' . $appointment->start_time->format('H:i:s'),
-                'end' => $appointment->date->format('Y-m-d') . 'T' . ($appointment->end_time ? $appointment->end_time->format('H:i:s') : $appointment->start_time->addMinutes($appointment->duration_minutes)->format('H:i:s')),
-                'backgroundColor' => $colors['bg'],
-                'borderColor' => $colors['border'],
-                'textColor' => $colors['text'],
+        // For day/week view, return individual appointments
+        return $appointments->map(function (Appointment $appointment) {
+            return $this->formatAppointmentEvent($appointment);
+        })->toArray();
+    }
+
+    protected function getGroupedAppointments($appointments): array
+    {
+        $events = [];
+
+        // Group by date and category
+        $grouped = $appointments->groupBy(function ($appointment) {
+            $categoryId = $appointment->service?->category_id ?? 'uncategorized';
+            return $appointment->date->format('Y-m-d') . '_' . $categoryId;
+        });
+
+        foreach ($grouped as $key => $group) {
+            [$dateStr, $categoryId] = explode('_', $key, 2);
+            $firstAppointment = $group->first();
+            $category = $firstAppointment->service?->category;
+            $categoryName = $category?->translated_name ?? __('booking::calendar.uncategorized');
+            $categoryColor = $category?->color ?? '#6b7280';
+            $count = $group->count();
+
+            // Build appointments list for tooltip
+            $appointmentsList = $group->map(function ($apt) {
+                return [
+                    'id' => $apt->id,
+                    'time' => $apt->start_time->format('H:i'),
+                    'patient' => $apt->patient?->full_name,
+                    'phone' => $apt->patient?->phone,
+                    'service' => $apt->service?->name,
+                    'practitioner' => $apt->practitioner?->full_name,
+                    'status' => $apt->status,
+                ];
+            })->toArray();
+
+            $events[] = [
+                'id' => 'group_' . $key,
+                'title' => $categoryName . ' (' . $count . ')',
+                'start' => $dateStr,
+                'allDay' => true,
+                'backgroundColor' => $this->hexToRgba($categoryColor, 0.15),
+                'borderColor' => $categoryColor,
+                'textColor' => $categoryColor,
                 'extendedProps' => [
-                    'code' => $appointment->code,
-                    'status' => $appointment->status,
-                    'patient' => $appointment->patient?->full_name,
-                    'phone' => $appointment->patient?->phone,
-                    'treatment' => $appointment->service?->name,
-                    'practitioner' => $appointment->practitioner?->full_name,
-                    'branch' => $appointment->branch?->name,
-                    'room' => $appointment->room?->name,
-                    'time' => $appointment->start_time->format('H:i') . ' - ' . ($appointment->end_time ? $appointment->end_time->format('H:i') : $appointment->start_time->addMinutes($appointment->duration_minutes)->format('H:i')),
+                    'isGroup' => true,
+                    'category' => $categoryName,
+                    'count' => $count,
+                    'appointments' => $appointmentsList,
                 ],
             ];
-        })->toArray();
+        }
+
+        return $events;
+    }
+
+    protected function formatAppointmentEvent(Appointment $appointment): array
+    {
+        $phone = $appointment->patient?->phone;
+        $title = $appointment->patient?->full_name;
+        if ($phone) {
+            $title .= "\n" . $phone;
+        }
+        $title .= "\n" . $appointment->service?->name;
+
+        $colors = $this->getStatusColors($appointment->status);
+
+        return [
+            'id' => $appointment->id,
+            'title' => $title,
+            'start' => $appointment->date->format('Y-m-d') . 'T' . $appointment->start_time->format('H:i:s'),
+            'end' => $appointment->date->format('Y-m-d') . 'T' . ($appointment->end_time ? $appointment->end_time->format('H:i:s') : $appointment->start_time->addMinutes($appointment->duration_minutes)->format('H:i:s')),
+            'backgroundColor' => $colors['bg'],
+            'borderColor' => $colors['border'],
+            'textColor' => $colors['text'],
+            'extendedProps' => [
+                'isGroup' => false,
+                'code' => $appointment->code,
+                'status' => $appointment->status,
+                'patient' => $appointment->patient?->full_name,
+                'phone' => $appointment->patient?->phone,
+                'treatment' => $appointment->service?->name,
+                'category' => $appointment->service?->category?->translated_name,
+                'practitioner' => $appointment->practitioner?->full_name,
+                'branch' => $appointment->branch?->name,
+                'room' => $appointment->room?->name,
+                'time' => $appointment->start_time->format('H:i') . ' - ' . ($appointment->end_time ? $appointment->end_time->format('H:i') : $appointment->start_time->addMinutes($appointment->duration_minutes)->format('H:i')),
+            ],
+        ];
+    }
+
+    protected function hexToRgba(string $hex, float $alpha): string
+    {
+        $hex = ltrim($hex, '#');
+        if (strlen($hex) === 3) {
+            $hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+        }
+        $r = hexdec(substr($hex, 0, 2));
+        $g = hexdec(substr($hex, 2, 2));
+        $b = hexdec(substr($hex, 4, 2));
+        return "rgba({$r}, {$g}, {$b}, {$alpha})";
     }
 
     protected function getStatusColor(string $status): string

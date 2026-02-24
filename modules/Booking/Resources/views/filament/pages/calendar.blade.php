@@ -147,17 +147,21 @@
                 slotMinTime: '08:00:00',
                 slotMaxTime: '22:00:00',
                 slotDuration: '00:15:00',
-                allDaySlot: false,
+                allDaySlot: true,
                 nowIndicator: true,
                 editable: false,
                 selectable: true,
                 selectMirror: true,
-                dayMaxEvents: true,
+                dayMaxEvents: 4,
                 weekends: true,
                 locale: '{{ app()->getLocale() }}',
                 direction: '{{ app()->getLocale() === "ar" ? "rtl" : "ltr" }}',
                 events: @json($this->getAppointments()),
                 eventClick: function(info) {
+                    // Don't navigate for grouped events
+                    if (info.event.extendedProps.isGroup) {
+                        return;
+                    }
                     window.location.href = '/admin/appointments/' + info.event.id;
                 },
                 select: function(info) {
@@ -172,25 +176,54 @@
                 },
                 eventDidMount: function(info) {
                     if (typeof tippy !== 'undefined') {
-                        let content = '<div class="p-2 text-sm">';
-                        if (info.event.extendedProps.time) {
-                            content += '<div class="text-gray-500">' + info.event.extendedProps.time + '</div>';
+                        let content = '';
+
+                        // Check if this is a grouped event (month view)
+                        if (info.event.extendedProps.isGroup) {
+                            const appointments = info.event.extendedProps.appointments || [];
+                            content = '<div class="p-2 text-sm max-h-64 overflow-y-auto">';
+                            content += '<div class="font-semibold mb-2 text-gray-700">' + info.event.extendedProps.category + ' (' + info.event.extendedProps.count + ')</div>';
+                            appointments.forEach(function(apt) {
+                                content += '<div class="py-1.5 border-b border-gray-100 last:border-0">';
+                                content += '<div class="font-medium">' + apt.patient + '</div>';
+                                if (apt.phone) {
+                                    content += '<div class="text-gray-500 text-xs">' + apt.phone + '</div>';
+                                }
+                                content += '<div class="text-xs text-gray-600">' + apt.time + ' - ' + apt.service + '</div>';
+                                if (apt.practitioner) {
+                                    content += '<div class="text-xs text-gray-400">{{ __("booking::calendar.practitioner") }}: ' + apt.practitioner + '</div>';
+                                }
+                                content += '</div>';
+                            });
+                            content += '</div>';
+                        } else {
+                            // Individual appointment tooltip
+                            content = '<div class="p-2 text-sm">';
+                            if (info.event.extendedProps.category) {
+                                content += '<div class="font-semibold text-gray-600 mb-1">' + info.event.extendedProps.category + '</div>';
+                            }
+                            if (info.event.extendedProps.time) {
+                                content += '<div class="text-gray-500">' + info.event.extendedProps.time + '</div>';
+                            }
+                            if (info.event.extendedProps.practitioner) {
+                                content += '<div>{{ __("booking::calendar.practitioner") }}: ' + info.event.extendedProps.practitioner + '</div>';
+                            }
+                            if (info.event.extendedProps.room) {
+                                content += '<div>{{ __("booking::calendar.room") }}: ' + info.event.extendedProps.room + '</div>';
+                            }
+                            if (info.event.extendedProps.status) {
+                                content += '<div class="mt-1 text-xs text-gray-400">' + info.event.extendedProps.status.replace('_', ' ') + '</div>';
+                            }
+                            content += '</div>';
                         }
-                        if (info.event.extendedProps.practitioner) {
-                            content += '<div>{{ __("booking::calendar.practitioner") }}: ' + info.event.extendedProps.practitioner + '</div>';
-                        }
-                        if (info.event.extendedProps.room) {
-                            content += '<div>{{ __("booking::calendar.room") }}: ' + info.event.extendedProps.room + '</div>';
-                        }
-                        if (info.event.extendedProps.status) {
-                            content += '<div class="mt-1 text-xs text-gray-400">' + info.event.extendedProps.status.replace('_', ' ') + '</div>';
-                        }
-                        content += '</div>';
+
                         tippy(info.el, {
                             content: content,
                             allowHTML: true,
                             theme: 'light-border',
                             placement: 'top',
+                            interactive: true,
+                            maxWidth: 320,
                         });
                     }
                 },

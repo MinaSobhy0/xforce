@@ -30,4 +30,6 @@ return [
         'in_progress' => 'In Progress',
         'completed' => 'Completed',
     ],
+
+    'uncategorized' => 'Other Services',
 ];
