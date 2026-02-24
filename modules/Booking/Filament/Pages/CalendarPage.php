@@ -23,6 +23,8 @@ class CalendarPage extends Page implements HasForms
 
     protected static ?int $navigationSort = 1;
 
+    protected static ?string $slug = 'calendar';
+
     protected static string $view = 'booking::filament.pages.calendar';
 
     public ?string $selectedBranch = null;
