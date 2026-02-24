@@ -32,37 +32,37 @@ class UserResource extends BaseResource
 
     public static function getNavigationLabel(): string
     {
-        return __('Users');
+        return __('auth::auth.labels.users');
     }
 
     public static function getModelLabel(): string
     {
-        return __('User');
+        return __('auth::auth.labels.user');
     }
 
     public static function getPluralModelLabel(): string
     {
-        return __('Users');
+        return __('auth::auth.labels.users');
     }
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\Tabs::make('User Information')
+                Forms\Components\Tabs::make(__('auth::auth.user_resource.tabs.user_information'))
                     ->tabs([
-                        Forms\Components\Tabs\Tab::make('Basic Information')
+                        Forms\Components\Tabs\Tab::make(__('auth::auth.user_resource.tabs.basic_information'))
                             ->icon('heroicon-o-user')
                             ->schema([
                                 Forms\Components\Grid::make(2)
                                     ->schema([
                                         Forms\Components\TextInput::make('first_name')
-                                            ->label(__('First Name'))
+                                            ->label(__('auth::auth.user_resource.first_name'))
                                             ->required()
                                             ->maxLength(255),
 
                                         Forms\Components\TextInput::make('last_name')
-                                            ->label(__('Last Name'))
+                                            ->label(__('auth::auth.user_resource.last_name'))
                                             ->required()
                                             ->maxLength(255),
                                     ]),
@@ -70,14 +70,14 @@ class UserResource extends BaseResource
                                 Forms\Components\Grid::make(2)
                                     ->schema([
                                         Forms\Components\TextInput::make('email')
-                                            ->label(__('Email Address'))
+                                            ->label(__('auth::auth.user_resource.email'))
                                             ->email()
                                             ->required()
                                             ->unique(ignoreRecord: true)
                                             ->maxLength(255),
 
                                         Forms\Components\TextInput::make('username')
-                                            ->label(__('Username'))
+                                            ->label(__('auth::auth.user_resource.username'))
                                             ->required()
                                             ->unique(ignoreRecord: true)
                                             ->maxLength(255),
@@ -86,40 +86,40 @@ class UserResource extends BaseResource
                                 Forms\Components\Grid::make(2)
                                     ->schema([
                                         Forms\Components\TextInput::make('phone')
-                                            ->label(__('Phone Number'))
+                                            ->label(__('auth::auth.user_resource.phone'))
                                             ->tel()
                                             ->nullable()
                                             ->maxLength(20),
 
                                         Forms\Components\DatePicker::make('date_of_birth')
-                                            ->label(__('Date of Birth'))
+                                            ->label(__('auth::auth.user_resource.date_of_birth'))
                                             ->nullable()
                                             ->maxDate(now()->subYears(16)),
                                     ]),
 
                                 Forms\Components\Select::make('gender')
-                                    ->label(__('Gender'))
+                                    ->label(__('auth::auth.user_resource.gender'))
                                     ->options([
-                                        'male' => __('Male'),
-                                        'female' => __('Female'),
-                                        'other' => __('Other'),
+                                        'male' => __('auth::auth.user_resource.male'),
+                                        'female' => __('auth::auth.user_resource.female'),
+                                        'other' => __('auth::auth.user_resource.other'),
                                     ])
                                     ->nullable(),
 
                                 Forms\Components\Textarea::make('address')
-                                    ->label(__('Address'))
+                                    ->label(__('auth::auth.user_resource.address'))
                                     ->nullable()
                                     ->rows(2)
                                     ->columnSpanFull(),
                             ]),
 
-                        Forms\Components\Tabs\Tab::make('Account Settings')
+                        Forms\Components\Tabs\Tab::make(__('auth::auth.user_resource.tabs.account_settings'))
                             ->icon('heroicon-o-cog-6-tooth')
                             ->schema([
                                 Forms\Components\Grid::make(2)
                                     ->schema([
                                         Forms\Components\TextInput::make('password')
-                                            ->label(__('Password'))
+                                            ->label(__('auth::auth.user_resource.password'))
                                             ->password()
                                             ->revealable()
                                             ->dehydrateStateUsing(fn ($state) => filled($state) ? Hash::make($state) : null)
@@ -130,7 +130,7 @@ class UserResource extends BaseResource
                                             ->maxLength(255),
 
                                         Forms\Components\TextInput::make('password_confirmation')
-                                            ->label(__('Confirm Password'))
+                                            ->label(__('auth::auth.user_resource.confirm_password'))
                                             ->password()
                                             ->revealable()
                                             ->required(fn (string $context): bool => $context === 'create')
@@ -140,30 +140,30 @@ class UserResource extends BaseResource
                                 Forms\Components\Grid::make(3)
                                     ->schema([
                                         Forms\Components\Select::make('status')
-                                            ->label(__('Status'))
+                                            ->label(__('auth::auth.user_resource.status'))
                                             ->options(UserStatus::class)
                                             ->default(UserStatus::ACTIVE)
                                             ->required(),
 
                                         Forms\Components\Toggle::make('email_verified_at')
-                                            ->label(__('Email Verified'))
+                                            ->label(__('auth::auth.user_resource.email_verified'))
                                             ->dehydrateStateUsing(fn ($state) => $state ? now() : null),
 
                                         Forms\Components\Toggle::make('must_change_password')
-                                            ->label(__('Must Change Password'))
-                                            ->helperText(__('Force user to change password on next login'))
+                                            ->label(__('auth::auth.user_resource.must_change_password'))
+                                            ->helperText(__('auth::auth.user_resource.must_change_password_help'))
                                             ->default(false),
                                     ]),
 
                                 Forms\Components\Select::make('roles')
-                                    ->label(__('Roles'))
+                                    ->label(__('auth::auth.user_resource.roles'))
                                     ->relationship('roles', 'name')
                                     ->multiple()
                                     ->preload()
                                     ->searchable(),
 
                                 Forms\Components\Select::make('branch_ids')
-                                    ->label(__('Allowed Branches'))
+                                    ->label(__('auth::auth.user_resource.allowed_branches'))
                                     ->options(function () {
                                         $allowedBranchIds = \App\Services\BranchContext::userAllowedIds();
 
@@ -181,7 +181,7 @@ class UserResource extends BaseResource
                                     ->multiple()
                                     ->preload()
                                     ->searchable()
-                                    ->helperText(__('Select branches this user can access.'))
+                                    ->helperText(__('auth::auth.user_resource.allowed_branches_help'))
                                     ->afterStateHydrated(function (Forms\Components\Select $component, ?User $record) {
                                         if ($record) {
                                             $branchIds = $record->branchRoles()
@@ -194,18 +194,18 @@ class UserResource extends BaseResource
                                     ->dehydrated(false),
 
                                 Forms\Components\DateTimePicker::make('last_login_at')
-                                    ->label(__('Last Login'))
+                                    ->label(__('auth::auth.user_resource.last_login'))
                                     ->nullable()
                                     ->displayFormat('Y-m-d H:i:s')
                                     ->disabled()
                                     ->dehydrated(false),
                             ]),
 
-                        Forms\Components\Tabs\Tab::make('Profile')
+                        Forms\Components\Tabs\Tab::make(__('auth::auth.user_resource.tabs.profile'))
                             ->icon('heroicon-o-user-circle')
                             ->schema([
                                 Forms\Components\FileUpload::make('avatar_url')
-                                    ->label(__('Profile Picture'))
+                                    ->label(__('auth::auth.user_resource.profile_picture'))
                                     ->image()
                                     ->directory('users/avatars')
                                     ->visibility('public')
@@ -216,12 +216,12 @@ class UserResource extends BaseResource
                                 Forms\Components\Grid::make(2)
                                     ->schema([
                                         Forms\Components\TextInput::make('job_title')
-                                            ->label(__('Job Title'))
+                                            ->label(__('auth::auth.user_resource.job_title'))
                                             ->nullable()
                                             ->maxLength(100),
 
                                         Forms\Components\TextInput::make('department')
-                                            ->label(__('Department'))
+                                            ->label(__('auth::auth.user_resource.department'))
                                             ->nullable()
                                             ->maxLength(100),
                                     ]),
@@ -229,7 +229,7 @@ class UserResource extends BaseResource
                                 Forms\Components\Grid::make(2)
                                     ->schema([
                                         Forms\Components\Select::make('timezone')
-                                            ->label(__('Timezone'))
+                                            ->label(__('auth::auth.user_resource.timezone'))
                                             ->options([
                                                 'Africa/Cairo' => 'Cairo (GMT+2)',
                                                 'Asia/Riyadh' => 'Riyadh (GMT+3)',
@@ -241,38 +241,38 @@ class UserResource extends BaseResource
                                             ->searchable(),
 
                                         Forms\Components\Select::make('locale')
-                                            ->label(__('Language'))
+                                            ->label(__('auth::auth.user_resource.language'))
                                             ->options([
-                                                'ar' => __('Arabic'),
-                                                'en' => __('English'),
+                                                'ar' => __('auth::auth.user_resource.arabic'),
+                                                'en' => __('auth::auth.user_resource.english'),
                                             ])
                                             ->default('en'),
                                     ]),
 
                                 Forms\Components\Textarea::make('bio')
-                                    ->label(__('Biography'))
+                                    ->label(__('auth::auth.user_resource.biography'))
                                     ->nullable()
                                     ->rows(3)
                                     ->columnSpanFull(),
                             ]),
 
-                        Forms\Components\Tabs\Tab::make('Two-Factor Authentication')
+                        Forms\Components\Tabs\Tab::make(__('auth::auth.user_resource.tabs.two_factor'))
                             ->icon('heroicon-o-shield-check')
                             ->schema([
                                 Forms\Components\Toggle::make('two_factor_enabled')
-                                    ->label(__('Enable Two-Factor Authentication'))
-                                    ->helperText(__('Require two-factor authentication for this user'))
+                                    ->label(__('auth::auth.user_resource.enable_2fa'))
+                                    ->helperText(__('auth::auth.user_resource.enable_2fa_help'))
                                     ->default(false)
                                     ->live(),
 
                                 Forms\Components\TextInput::make('two_factor_backup_codes')
-                                    ->label(__('Backup Codes'))
-                                    ->helperText(__('Comma-separated backup codes'))
+                                    ->label(__('auth::auth.user_resource.backup_codes'))
+                                    ->helperText(__('auth::auth.user_resource.backup_codes_help'))
                                     ->visible(fn (Forms\Get $get) => $get('two_factor_enabled'))
                                     ->nullable(),
 
                                 Forms\Components\DateTimePicker::make('two_factor_confirmed_at')
-                                    ->label(__('Two-Factor Confirmed At'))
+                                    ->label(__('auth::auth.user_resource.2fa_confirmed_at'))
                                     ->visible(fn (Forms\Get $get) => $get('two_factor_enabled'))
                                     ->nullable()
                                     ->disabled()
@@ -288,24 +288,24 @@ class UserResource extends BaseResource
         return $table
             ->columns([
                 Tables\Columns\ImageColumn::make('avatar_url')
-                    ->label(__('Avatar'))
+                    ->label(__('auth::auth.user_resource.avatar'))
                     ->circular()
                     ->defaultImageUrl(url('/images/default-avatar.png')),
 
                 Tables\Columns\TextColumn::make('name')
-                    ->label(__('Name'))
+                    ->label(__('auth::auth.user_resource.name'))
                     ->searchable(['first_name', 'last_name'])
                     ->sortable(['first_name'])
                     ->weight(FontWeight::Medium),
 
                 Tables\Columns\TextColumn::make('email')
-                    ->label(__('Email'))
+                    ->label(__('auth::auth.user_resource.email'))
                     ->searchable()
                     ->copyable()
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('roles.name')
-                    ->label(__('Roles'))
+                    ->label(__('auth::auth.user_resource.roles'))
                     ->badge()
                     ->separator(',')
                     ->colors([
@@ -316,7 +316,7 @@ class UserResource extends BaseResource
                     ]),
 
                 Tables\Columns\TextColumn::make('status')
-                    ->label(__('Status'))
+                    ->label(__('auth::auth.user_resource.status'))
                     ->badge()
                     ->formatStateUsing(fn (UserStatus $state): string => $state->label())
                     ->color(fn (UserStatus $state): string => match ($state) {
@@ -327,13 +327,13 @@ class UserResource extends BaseResource
                     }),
 
                 Tables\Columns\IconColumn::make('email_verified_at')
-                    ->label(__('Verified'))
+                    ->label(__('auth::auth.user_resource.verified'))
                     ->boolean()
                     ->trueIcon('heroicon-o-check-badge')
                     ->falseIcon('heroicon-o-x-mark'),
 
                 Tables\Columns\IconColumn::make('two_factor_enabled')
-                    ->label(__('2FA'))
+                    ->label(__('auth::auth.user_resource.2fa'))
                     ->boolean()
                     ->trueIcon('heroicon-o-shield-check')
                     ->falseIcon('heroicon-o-shield-exclamation')
@@ -342,37 +342,37 @@ class UserResource extends BaseResource
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('last_login_at')
-                    ->label(__('Last Login'))
+                    ->label(__('auth::auth.user_resource.last_login'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label(__('Created'))
+                    ->label(__('auth::auth.user_resource.created'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
-                    ->label(__('Status'))
+                    ->label(__('auth::auth.user_resource.status'))
                     ->options(UserStatus::class),
 
                 Tables\Filters\TernaryFilter::make('email_verified_at')
-                    ->label(__('Email Verified'))
+                    ->label(__('auth::auth.user_resource.email_verified'))
                     ->nullable(),
 
                 Tables\Filters\SelectFilter::make('roles')
-                    ->label(__('Role'))
+                    ->label(__('auth::auth.user_resource.role'))
                     ->relationship('roles', 'name')
                     ->multiple(),
 
                 Tables\Filters\TernaryFilter::make('two_factor_enabled')
-                    ->label(__('Two-Factor Auth'))
+                    ->label(__('auth::auth.user_resource.two_factor_auth'))
                     ->boolean(),
 
                 Tables\Filters\Filter::make('inactive_users')
-                    ->label(__('Inactive Users'))
+                    ->label(__('auth::auth.user_resource.inactive_users'))
                     ->query(fn (Builder $query): Builder => $query->where('last_login_at', '<', now()->subDays(30))),
             ], layout: FiltersLayout::AboveContent)
             ->actions([
@@ -380,7 +380,7 @@ class UserResource extends BaseResource
                 Tables\Actions\EditAction::make(),
 
                 Tables\Actions\Action::make('impersonate')
-                    ->label(__('Login as User'))
+                    ->label(__('auth::auth.user_resource.login_as_user'))
                     ->icon('heroicon-o-user')
                     ->color('warning')
                     ->action(function (User $record) {
@@ -390,12 +390,12 @@ class UserResource extends BaseResource
                     ->visible(fn (User $record) => $record->status === 'active' && !$record->hasRole('super_admin')),
 
                 Tables\Actions\Action::make('resetPassword')
-                    ->label(__('Reset Password'))
+                    ->label(__('auth::auth.user_resource.reset_password'))
                     ->icon('heroicon-o-key')
                     ->color('danger')
                     ->form([
                         Forms\Components\TextInput::make('new_password')
-                            ->label(__('New Password'))
+                            ->label(__('auth::auth.user_resource.new_password'))
                             ->password()
                             ->required()
                             ->minLength(8),
@@ -415,20 +415,20 @@ class UserResource extends BaseResource
                     Tables\Actions\DeleteBulkAction::make(),
 
                     Tables\Actions\BulkAction::make('activate')
-                        ->label(__('Activate'))
+                        ->label(__('auth::auth.user_resource.activate'))
                         ->icon('heroicon-o-check')
                         ->color('success')
                         ->action(fn ($records) => $records->each->update(['status' => 'active'])),
 
                     Tables\Actions\BulkAction::make('deactivate')
-                        ->label(__('Deactivate'))
+                        ->label(__('auth::auth.user_resource.deactivate'))
                         ->icon('heroicon-o-x-mark')
                         ->color('danger')
                         ->requiresConfirmation()
                         ->action(fn ($records) => $records->each->update(['status' => 'inactive'])),
 
                     Tables\Actions\BulkAction::make('forcePasswordChange')
-                        ->label(__('Force Password Change'))
+                        ->label(__('auth::auth.user_resource.force_password_change'))
                         ->icon('heroicon-o-key')
                         ->color('warning')
                         ->requiresConfirmation()
@@ -442,22 +442,22 @@ class UserResource extends BaseResource
     {
         return $infolist
             ->schema([
-                Infolists\Components\Section::make(__('User Profile'))
+                Infolists\Components\Section::make(__('auth::auth.user_resource.user_profile'))
                     ->schema([
                         Infolists\Components\Split::make([
                             Infolists\Components\Grid::make(2)
                                 ->schema([
                                     Infolists\Components\TextEntry::make('name')
-                                        ->label(__('Name'))
+                                        ->label(__('auth::auth.user_resource.name'))
                                         ->weight(FontWeight::Bold),
                                     Infolists\Components\TextEntry::make('email')
-                                        ->label(__('Email'))
+                                        ->label(__('auth::auth.user_resource.email'))
                                         ->copyable(),
                                     Infolists\Components\TextEntry::make('phone')
-                                        ->label(__('Phone'))
+                                        ->label(__('auth::auth.user_resource.phone'))
                                         ->copyable(),
                                     Infolists\Components\TextEntry::make('job_title')
-                                        ->label(__('Job Title')),
+                                        ->label(__('auth::auth.user_resource.job_title')),
                                 ]),
                             Infolists\Components\ImageEntry::make('avatar_url')
                                 ->hiddenLabel()
@@ -466,12 +466,12 @@ class UserResource extends BaseResource
                         ])->from('lg'),
                     ]),
 
-                Infolists\Components\Section::make(__('Account Status'))
+                Infolists\Components\Section::make(__('auth::auth.user_resource.account_status'))
                     ->schema([
                         Infolists\Components\Grid::make(4)
                             ->schema([
                                 Infolists\Components\TextEntry::make('status')
-                                    ->label(__('Status'))
+                                    ->label(__('auth::auth.user_resource.status'))
                                     ->badge()
                                     ->formatStateUsing(fn (UserStatus $state): string => $state->label())
                                     ->color(fn (UserStatus $state): string => match ($state) {
@@ -481,21 +481,21 @@ class UserResource extends BaseResource
                                         default => 'gray',
                                     }),
                                 Infolists\Components\IconEntry::make('email_verified_at')
-                                    ->label(__('Email Verified'))
+                                    ->label(__('auth::auth.user_resource.email_verified'))
                                     ->boolean(),
                                 Infolists\Components\IconEntry::make('two_factor_enabled')
-                                    ->label(__('2FA Enabled'))
+                                    ->label(__('auth::auth.user_resource.2fa_enabled'))
                                     ->boolean(),
                                 Infolists\Components\IconEntry::make('must_change_password')
-                                    ->label(__('Must Change Password'))
+                                    ->label(__('auth::auth.user_resource.must_change_password'))
                                     ->boolean(),
                             ]),
                     ]),
 
-                Infolists\Components\Section::make(__('Role & Permissions'))
+                Infolists\Components\Section::make(__('auth::auth.user_resource.role_permissions'))
                     ->schema([
                         Infolists\Components\TextEntry::make('roles.name')
-                            ->label(__('Roles'))
+                            ->label(__('auth::auth.user_resource.roles'))
                             ->badge()
                             ->separator(','),
                     ]),
