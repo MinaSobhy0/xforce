@@ -12,6 +12,11 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Skip if already migrated (staff_profile_id exists and user_id doesn't)
+        if (Schema::hasColumn('practitioner_schedule_assignments', 'staff_profile_id')) {
+            return;
+        }
+
         Schema::table('practitioner_schedule_assignments', function (Blueprint $table) {
             // Add staff_profile_id column
             $table->uuid('staff_profile_id')->nullable()->after('tenant_id');
@@ -30,10 +35,12 @@ return new class extends Migration
             AND sp.branch_id = psa.branch_id
         ");
 
-        // Drop old user_id column and foreign key
-        Schema::table('practitioner_schedule_assignments', function (Blueprint $table) {
-            $table->dropColumn('user_id');
-        });
+        // Drop old user_id column if it exists
+        if (Schema::hasColumn('practitioner_schedule_assignments', 'user_id')) {
+            Schema::table('practitioner_schedule_assignments', function (Blueprint $table) {
+                $table->dropColumn('user_id');
+            });
+        }
 
         // Make staff_profile_id required after migration
         Schema::table('practitioner_schedule_assignments', function (Blueprint $table) {

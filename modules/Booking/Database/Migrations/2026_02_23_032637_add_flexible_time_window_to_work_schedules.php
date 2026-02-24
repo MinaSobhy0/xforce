@@ -8,10 +8,17 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('work_schedules', function (Blueprint $table) {
-            $table->time('flexible_start_time')->nullable()->after('working_days');
-            $table->time('flexible_end_time')->nullable()->after('flexible_start_time');
-        });
+        if (!Schema::hasColumn('work_schedules', 'flexible_start_time')) {
+            Schema::table('work_schedules', function (Blueprint $table) {
+                $table->time('flexible_start_time')->nullable()->after('working_days');
+            });
+        }
+
+        if (!Schema::hasColumn('work_schedules', 'flexible_end_time')) {
+            Schema::table('work_schedules', function (Blueprint $table) {
+                $table->time('flexible_end_time')->nullable()->after('flexible_start_time');
+            });
+        }
     }
 
     public function down(): void

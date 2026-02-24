@@ -32,8 +32,38 @@ class IdentifyTenant
     {
         $subdomain = $this->extractSubdomain($request);
 
-        // Skip if no subdomain or if it's an excluded subdomain
+        // If no subdomain (e.g., IP access), try to get tenant from session or query param
         if (!$subdomain || in_array($subdomain, $this->excludedSubdomains)) {
+            // Check for tenant in query parameter (for development)
+            if ($tenantSlug = $request->query('_tenant')) {
+                session(['_tenant_slug' => $tenantSlug]);
+            }
+
+            // Try to get tenant from session
+            $sessionTenantSlug = session('_tenant_slug');
+
+            if ($sessionTenantSlug) {
+                // Ensure we query the public schema for tenants table
+                Config::set('database.connections.pgsql.search_path', 'public');
+                DB::purge('pgsql');
+                DB::reconnect('pgsql');
+
+                $tenant = Tenant::where('slug', $sessionTenantSlug)
+                    ->where('status', 'active')
+                    ->first();
+
+                if ($tenant && $tenant->database_name && $this->schemaExists($tenant->database_name)) {
+                    $this->switchToTenantSchema($tenant);
+                    $request->attributes->set('tenant', $tenant);
+                    app()->instance('currentTenant', $tenant);
+
+                    $tenantManager = app(\XLinic\Framework\Core\Tenancy\TenantManager::class);
+                    $tenantManager->setCurrentTenant($tenant);
+
+                    return $next($request);
+                }
+            }
+
             return $next($request);
         }
 

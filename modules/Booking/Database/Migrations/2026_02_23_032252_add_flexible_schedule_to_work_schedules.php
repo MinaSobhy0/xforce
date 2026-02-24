@@ -8,12 +8,29 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('work_schedules', function (Blueprint $table) {
-            $table->string('schedule_type', 20)->default('fixed')->after('description');
-            $table->decimal('required_hours_per_day', 4, 2)->nullable()->after('schedule_type');
-            $table->decimal('required_hours_per_week', 5, 2)->nullable()->after('required_hours_per_day');
-            $table->json('working_days')->nullable()->after('required_hours_per_week');
-        });
+        if (!Schema::hasColumn('work_schedules', 'schedule_type')) {
+            Schema::table('work_schedules', function (Blueprint $table) {
+                $table->string('schedule_type', 20)->default('fixed')->after('description');
+            });
+        }
+
+        if (!Schema::hasColumn('work_schedules', 'required_hours_per_day')) {
+            Schema::table('work_schedules', function (Blueprint $table) {
+                $table->decimal('required_hours_per_day', 4, 2)->nullable()->after('schedule_type');
+            });
+        }
+
+        if (!Schema::hasColumn('work_schedules', 'required_hours_per_week')) {
+            Schema::table('work_schedules', function (Blueprint $table) {
+                $table->decimal('required_hours_per_week', 5, 2)->nullable()->after('required_hours_per_day');
+            });
+        }
+
+        if (!Schema::hasColumn('work_schedules', 'working_days')) {
+            Schema::table('work_schedules', function (Blueprint $table) {
+                $table->json('working_days')->nullable()->after('required_hours_per_week');
+            });
+        }
     }
 
     public function down(): void
