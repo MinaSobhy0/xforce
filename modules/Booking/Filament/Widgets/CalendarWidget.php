@@ -159,6 +159,13 @@ class CalendarWidget extends FullCalendarWidget
         $this->redirect(route('filament.tenant.resources.appointments.view', ['record' => $event['id']]));
     }
 
+    public function onDateSelect(string $start, ?string $end, bool $allDay, ?array $view, ?array $resource): void
+    {
+        $startDate = \Carbon\Carbon::parse($start);
+        $url = route('filament.tenant.pages.create-booking') . '?date=' . $startDate->format('Y-m-d') . '&start_time=' . $startDate->format('H:i:s');
+        $this->redirect($url);
+    }
+
     public function onEventDrop(array $event, array $oldEvent, array $relatedEvents, array $delta, ?array $oldResource, ?array $newResource): bool
     {
         $appointment = Appointment::find($event['id']);
