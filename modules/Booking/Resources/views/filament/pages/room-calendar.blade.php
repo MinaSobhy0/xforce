@@ -99,7 +99,7 @@
 
                     {{-- Room Headers --}}
                     @foreach($rooms as $room)
-                        <div class="flex-1 min-w-[180px] px-3 py-3 text-center border-r border-gray-200 dark:border-gray-700 last:border-r-0">
+                        <div class="flex-1 min-w-[180px] px-3 py-3 text-center" style="border-right: 1px solid #d1d5db;">
                             <div class="text-sm font-semibold text-gray-900 dark:text-white truncate" title="{{ $room->name }}">
                                 {{ $room->name }}
                             </div>
@@ -152,7 +152,7 @@
                                     $appointment = $this->isSlotOccupied($room->id, $slot['time']);
                                     $isStartSlot = $appointment && $appointment->start_time->format('H:i') === $slot['label'];
                                 @endphp
-                                <div class="flex-1 min-w-[180px] border-r border-gray-200 dark:border-gray-700 last:border-r-0 relative overflow-hidden">
+                                <div class="flex-1 min-w-[180px] relative overflow-hidden" style="border-right: 1px solid #d1d5db;">
                                     @if($isStartSlot)
                                         @php
                                             $position = $this->getAppointmentPosition($appointment);
