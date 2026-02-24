@@ -5,7 +5,7 @@
 <!DOCTYPE html>
 <html
     lang="{{ str_replace('_', '-', app()->getLocale()) }}"
-    dir="{{ in_array(app()->getLocale(), ['ar', 'he', 'fa', 'ur']) ? 'rtl' : 'ltr' }}"
+    dir="{{ __('filament-panels::layout.direction') ?? 'ltr' }}"
     @class([
         'fi min-h-screen',
         'dark' => filament()->hasDarkModeForced(),

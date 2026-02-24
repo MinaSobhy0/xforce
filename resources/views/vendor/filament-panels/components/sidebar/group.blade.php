@@ -69,7 +69,7 @@
 
     @if ($hasDropdown)
         <x-filament::dropdown
-            :placement="in_array(app()->getLocale(), ['ar', 'he', 'fa', 'ur']) ? 'left-start' : 'right-start'"
+            :placement="(__('filament-panels::layout.direction') === 'rtl') ? 'left-start' : 'right-start'"
             teleport
             x-show="! $store.sidebar.isOpen"
         >

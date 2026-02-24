@@ -11,7 +11,7 @@
     }}
 >
     <nav
-        class="flex h-16 items-center gap-x-4 bg-white px-4 shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10 md:px-6 lg:px-8"
+        class="flex h-16 items-center gap-x-2 sm:gap-x-4 bg-white px-2 sm:px-4 shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10 md:px-6 lg:px-8"
     >
         {{ \Filament\Support\Facades\FilamentView::renderHook(\Filament\View\PanelsRenderHook::TOPBAR_START) }}
 
@@ -157,7 +157,7 @@
             @else
                 x-persist="topbar.end.panel-{{ filament()->getId() }}"
             @endif
-            class="ms-auto flex items-center gap-x-4"
+            class="ms-auto flex items-center gap-x-2 sm:gap-x-4"
         >
             {{ \Filament\Support\Facades\FilamentView::renderHook(\Filament\View\PanelsRenderHook::GLOBAL_SEARCH_BEFORE) }}
 
