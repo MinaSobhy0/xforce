@@ -219,21 +219,27 @@
                             content += '</div>';
                         } else {
                             // Individual appointment tooltip
-                            content = '<div class="p-2 text-sm">';
-                            if (info.event.extendedProps.category) {
-                                content += '<div class="font-semibold text-gray-600 mb-1">' + info.event.extendedProps.category + '</div>';
+                            content = '<div style="padding: 8px; font-size: 13px;">';
+                            if (info.event.extendedProps.patient) {
+                                content += '<div style="font-weight: 600; color: #1f2937; margin-bottom: 4px;">' + info.event.extendedProps.patient + '</div>';
+                            }
+                            if (info.event.extendedProps.phone) {
+                                content += '<div style="color: #4b5563;">' + info.event.extendedProps.phone + '</div>';
+                            }
+                            if (info.event.extendedProps.treatment) {
+                                content += '<div style="color: #4b5563; margin-top: 4px;">' + info.event.extendedProps.treatment + '</div>';
                             }
                             if (info.event.extendedProps.time) {
-                                content += '<div class="text-gray-500">' + info.event.extendedProps.time + '</div>';
+                                content += '<div style="color: #6b7280; margin-top: 8px;"><strong>{{ __("booking::calendar.time") }}:</strong> ' + info.event.extendedProps.time + '</div>';
                             }
                             if (info.event.extendedProps.practitioner) {
-                                content += '<div>{{ __("booking::calendar.practitioner") }}: ' + info.event.extendedProps.practitioner + '</div>';
+                                content += '<div style="color: #6b7280;"><strong>{{ __("booking::calendar.practitioner") }}:</strong> ' + info.event.extendedProps.practitioner + '</div>';
                             }
                             if (info.event.extendedProps.room) {
-                                content += '<div>{{ __("booking::calendar.room") }}: ' + info.event.extendedProps.room + '</div>';
+                                content += '<div style="color: #6b7280;"><strong>{{ __("booking::calendar.room") }}:</strong> ' + info.event.extendedProps.room + '</div>';
                             }
                             if (info.event.extendedProps.status) {
-                                content += '<div class="mt-1 text-xs text-gray-400">' + info.event.extendedProps.status.replace('_', ' ') + '</div>';
+                                content += '<div style="color: #6b7280;"><strong>{{ __("booking::calendar.status_label") }}:</strong> ' + info.event.extendedProps.status.replace('_', ' ') + '</div>';
                             }
                             content += '</div>';
                         }

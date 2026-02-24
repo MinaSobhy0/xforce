@@ -7,6 +7,8 @@ return [
     'today' => 'اليوم',
     'practitioner' => 'الممارس',
     'room' => 'الغرفة',
+    'time' => 'الوقت',
+    'status_label' => 'الحالة',
 
     'view' => [
         'day' => 'يوم',

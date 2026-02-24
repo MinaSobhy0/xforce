@@ -7,6 +7,8 @@ return [
     'today' => 'Today',
     'practitioner' => 'Practitioner',
     'room' => 'Room',
+    'time' => 'Time',
+    'status_label' => 'Status',
 
     'view' => [
         'day' => 'Day',
