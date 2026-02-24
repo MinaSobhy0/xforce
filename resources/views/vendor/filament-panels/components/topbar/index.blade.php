@@ -13,8 +13,6 @@
     <nav
         class="flex h-16 items-center gap-x-2 sm:gap-x-4 bg-white px-2 sm:px-4 shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10 md:px-6 lg:px-8"
     >
-        {{ \Filament\Support\Facades\FilamentView::renderHook(\Filament\View\PanelsRenderHook::TOPBAR_START) }}
-
         @if (filament()->hasNavigation())
             <x-filament::icon-button
                 color="gray"
@@ -45,6 +43,8 @@
                 class="fi-topbar-close-sidebar-btn lg:hidden"
             />
         @endif
+
+        {{ \Filament\Support\Facades\FilamentView::renderHook(\Filament\View\PanelsRenderHook::TOPBAR_START) }}
 
         @if (filament()->hasTopNavigation() || (! filament()->hasNavigation()))
             <div class="me-6 hidden lg:flex">
