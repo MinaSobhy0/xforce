@@ -174,7 +174,7 @@
                                             onmouseover="this.style.boxShadow='0 4px 6px rgba(0,0,0,0.1)'; this.style.transform='translateY(-1px)';"
                                             onmouseout="this.style.boxShadow='0 1px 2px rgba(0,0,0,0.05)'; this.style.transform='none';"
                                             title="{{ $appointment->patient?->full_name ?? __('booking::room_calendar.unknown') }}&#10;{{ $appointment->patient?->phone ?? '' }}&#10;{{ $appointment->service?->name ?? '' }}&#10;&#10;{{ __('booking::room_calendar.time') }}: {{ $position['startTime'] }} - {{ $position['endTime'] }} ({{ $position['duration'] }} min)&#10;{{ __('booking::room_calendar.practitioner') }}: {{ $appointment->practitioner?->full_name ?? '-' }}&#10;{{ __('booking::room_calendar.room') }}: {{ $appointment->room?->name ?? '-' }}&#10;{{ __('booking::room_calendar.status') }}: {{ ucfirst(str_replace('_', ' ', $appointment->status)) }}"
-                                            wire:click="showAppointment('{{ $appointment->id }}')"
+                                            x-on:click="$wire.set('showModal', true); $wire.set('selectedAppointmentId', '{{ $appointment->id }}')"
                                         >
                                             @if($appointment->patient?->phone)
                                                 <p style="margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; font-weight: 500; color: {{ $statusStyles['text'] }};">

@@ -192,9 +192,10 @@
                     }
                     // Show appointment details in modal (ID is a UUID string)
                     const appointmentId = info.event.id;
-                    console.log('Clicked appointment:', appointmentId);
                     if (appointmentId && !appointmentId.startsWith('group_')) {
-                        $wire.call('showAppointment', appointmentId);
+                        // Show modal immediately, then load data
+                        $wire.set('showModal', true);
+                        $wire.set('selectedAppointmentId', appointmentId);
                     }
                 },
                 select: function(info) {
