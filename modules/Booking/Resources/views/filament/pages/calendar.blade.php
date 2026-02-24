@@ -190,7 +190,8 @@
                     if (info.event.extendedProps.isGroup) {
                         return;
                     }
-                    window.location.href = '/admin/appointments/' + info.event.id;
+                    // Show appointment details in modal
+                    $wire.showAppointment(parseInt(info.event.id));
                 },
                 select: function(info) {
                     const startDate = info.startStr.split('T')[0];
@@ -253,4 +254,6 @@
         }
     </script>
     @endscript
+
+    <x-filament-actions::modals />
 </x-filament-panels::page>

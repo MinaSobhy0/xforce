@@ -34,4 +34,21 @@ return [
     ],
 
     'uncategorized' => 'Other Services',
+
+    'appointment_details' => 'Appointment Details',
+    'open_full_view' => 'Open Full View',
+    'close' => 'Close',
+
+    'modal' => [
+        'patient' => 'Patient',
+        'date' => 'Date',
+        'time' => 'Time',
+        'service' => 'Service',
+        'practitioner' => 'Practitioner',
+        'room' => 'Room',
+        'branch' => 'Branch',
+        'status' => 'Status',
+        'notes' => 'Notes',
+        'not_found' => 'Appointment not found',
+    ],
 ];

@@ -6,10 +6,15 @@ use App\Services\BranchContext;
 use App\Traits\ChecksResourcePermissions;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
+use Filament\Actions\Action;
+use Filament\Actions\Concerns\InteractsWithActions;
+use Filament\Actions\Contracts\HasActions;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
+use Filament\Infolists\Concerns\InteractsWithInfolists;
+use Filament\Infolists\Contracts\HasInfolists;
 use Filament\Pages\Page;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Url;
@@ -17,10 +22,12 @@ use Modules\Booking\Models\Appointment;
 use Modules\Core\Models\Branch;
 use Modules\Core\Models\Room;
 
-class RoomCalendar extends Page implements HasForms
+class RoomCalendar extends Page implements HasForms, HasActions, HasInfolists
 {
     use ChecksResourcePermissions;
     use InteractsWithForms;
+    use InteractsWithActions;
+    use InteractsWithInfolists;
 
     protected static ?string $moduleCode = 'booking';
 
@@ -47,6 +54,7 @@ class RoomCalendar extends Page implements HasForms
     public int $startHour = 8;
     public int $endHour = 22;
     public int $intervalMinutes = 15;
+    public ?int $selectedAppointmentId = null;
 
     public function mount(): void
     {
@@ -262,6 +270,46 @@ class RoomCalendar extends Page implements HasForms
 
         $slotHeight = 48;
         return (int) (($currentMinutes / $this->intervalMinutes) * $slotHeight);
+    }
+
+    public function showAppointment(?int $id): void
+    {
+        if (!$id) {
+            return;
+        }
+        $this->selectedAppointmentId = $id;
+        $this->mountAction('viewAppointment');
+    }
+
+    public function viewAppointmentAction(): Action
+    {
+        return Action::make('viewAppointment')
+            ->modalHeading(fn () => __('booking::calendar.appointment_details'))
+            ->modalWidth('lg')
+            ->modalContent(function () {
+                $appointment = Appointment::with(['patient', 'service.category', 'practitioner', 'branch', 'room'])
+                    ->find($this->selectedAppointmentId);
+
+                if (!$appointment) {
+                    return view('booking::filament.pages.partials.appointment-not-found');
+                }
+
+                return view('booking::filament.pages.partials.appointment-details', [
+                    'appointment' => $appointment,
+                ]);
+            })
+            ->modalFooterActions([
+                Action::make('openFullView')
+                    ->label(__('booking::calendar.open_full_view'))
+                    ->color('primary')
+                    ->icon('heroicon-o-arrow-top-right-on-square')
+                    ->url(fn () => route('filament.tenant.resources.appointments.view', ['record' => $this->selectedAppointmentId]))
+                    ->openUrlInNewTab(false),
+                Action::make('close')
+                    ->label(__('booking::calendar.close'))
+                    ->color('gray')
+                    ->close(),
+            ]);
     }
 
 }

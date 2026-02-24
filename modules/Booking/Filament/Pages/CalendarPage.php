@@ -11,11 +11,21 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
+use Filament\Actions\Action;
+use Filament\Actions\Concerns\InteractsWithActions;
+use Filament\Actions\Contracts\HasActions;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Components\Section;
+use Filament\Infolists\Infolist;
+use Filament\Infolists\Concerns\InteractsWithInfolists;
+use Filament\Infolists\Contracts\HasInfolists;
 use Illuminate\Contracts\View\View;
 
-class CalendarPage extends Page implements HasForms
+class CalendarPage extends Page implements HasForms, HasActions, HasInfolists
 {
     use InteractsWithForms;
+    use InteractsWithActions;
+    use InteractsWithInfolists;
 
     protected static ?string $navigationIcon = 'heroicon-o-calendar-days';
 
@@ -31,6 +41,7 @@ class CalendarPage extends Page implements HasForms
     public ?string $selectedPractitioner = null;
     public ?string $selectedDate = null;
     public string $viewMode = 'week';
+    public ?int $selectedAppointmentId = null;
 
     public static function getNavigationLabel(): string
     {
@@ -284,5 +295,45 @@ class CalendarPage extends Page implements HasForms
             'month' => $date->format('F Y'),
             default => $date->format('F Y'),
         };
+    }
+
+    public function showAppointment(?int $id): void
+    {
+        if (!$id) {
+            return;
+        }
+        $this->selectedAppointmentId = $id;
+        $this->mountAction('viewAppointment');
+    }
+
+    public function viewAppointmentAction(): Action
+    {
+        return Action::make('viewAppointment')
+            ->modalHeading(fn () => __('booking::calendar.appointment_details'))
+            ->modalWidth('lg')
+            ->modalContent(function () {
+                $appointment = Appointment::with(['patient', 'service.category', 'practitioner', 'branch', 'room'])
+                    ->find($this->selectedAppointmentId);
+
+                if (!$appointment) {
+                    return view('booking::filament.pages.partials.appointment-not-found');
+                }
+
+                return view('booking::filament.pages.partials.appointment-details', [
+                    'appointment' => $appointment,
+                ]);
+            })
+            ->modalFooterActions([
+                Action::make('openFullView')
+                    ->label(__('booking::calendar.open_full_view'))
+                    ->color('primary')
+                    ->icon('heroicon-o-arrow-top-right-on-square')
+                    ->url(fn () => route('filament.tenant.resources.appointments.view', ['record' => $this->selectedAppointmentId]))
+                    ->openUrlInNewTab(false),
+                Action::make('close')
+                    ->label(__('booking::calendar.close'))
+                    ->color('gray')
+                    ->close(),
+            ]);
     }
 }

@@ -174,18 +174,18 @@
                                             onmouseover="this.style.boxShadow='0 4px 6px rgba(0,0,0,0.1)'; this.style.transform='translateY(-1px)';"
                                             onmouseout="this.style.boxShadow='0 1px 2px rgba(0,0,0,0.05)'; this.style.transform='none';"
                                             title="{{ $appointment->patient?->full_name ?? __('booking::room_calendar.unknown') }}&#10;{{ $appointment->patient?->phone ?? '' }}&#10;{{ $appointment->service?->name ?? '' }}&#10;&#10;{{ __('booking::room_calendar.time') }}: {{ $position['startTime'] }} - {{ $position['endTime'] }} ({{ $position['duration'] }} min)&#10;{{ __('booking::room_calendar.practitioner') }}: {{ $appointment->practitioner?->full_name ?? '-' }}&#10;{{ __('booking::room_calendar.room') }}: {{ $appointment->room?->name ?? '-' }}&#10;{{ __('booking::room_calendar.status') }}: {{ ucfirst(str_replace('_', ' ', $appointment->status)) }}"
-                                            wire:click="$dispatch('open-modal', { id: 'appointment-{{ $appointment->id }}' })"
+                                            wire:click="showAppointment({{ $appointment->id }})"
                                         >
-                                            <p style="margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; font-weight: 500; color: {{ $statusStyles['text'] }};">
-                                                {{ $appointment->patient?->full_name ?? __('booking::room_calendar.unknown') }}
-                                            </p>
                                             @if($appointment->patient?->phone)
-                                                <p style="margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; color: {{ $statusStyles['text'] }}; opacity: 0.8;">
+                                                <p style="margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; font-weight: 500; color: {{ $statusStyles['text'] }};">
                                                     {{ $appointment->patient->phone }}
                                                 </p>
                                             @endif
+                                            <p style="margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; color: {{ $statusStyles['text'] }}; opacity: 0.8;">
+                                                {{ $appointment->patient?->full_name ?? __('booking::room_calendar.unknown') }}
+                                            </p>
                                             <p style="margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; color: {{ $statusStyles['text'] }}; opacity: 0.7;">
-                                                {{ $appointment->service?->name }}
+                                                {{ $position['startTime'] }} - {{ $position['endTime'] }}
                                             </p>
                                         </div>
                                     @endif
@@ -229,4 +229,5 @@
         </div>
     </div>
 
+    <x-filament-actions::modals />
 </x-filament-panels::page>
