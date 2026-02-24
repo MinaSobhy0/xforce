@@ -3,18 +3,25 @@
 namespace Modules\Core\Resources\ModuleManagementResource\Pages;
 
 use Modules\Core\Resources\ModuleManagementResource;
+use Modules\Core\Models\TenantModule;
 use Filament\Actions;
 use Filament\Resources\Pages\Page;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Nwidart\Modules\Facades\Module;
+use XLinic\Framework\Core\Tenancy\TenantManager;
 
 class ListModules extends Page
 {
     protected static string $resource = ModuleManagementResource::class;
 
     protected static string $view = 'filament.pages.list-modules';
+
+    /**
+     * Core modules that cannot be disabled.
+     */
+    protected const CORE_MODULES = ['core', 'auth'];
 
     public function getTitle(): string
     {
@@ -28,25 +35,36 @@ class ListModules extends Page
 
     public function getModules(): array
     {
-        $modules = [];
+        // Ensure modules are synced to database for current tenant
+        $this->syncModulesToDatabase();
 
-        // Primary: Use nwidart/laravel-modules
+        $modules = [];
+        $tenantStatuses = $this->getTenantModuleStatuses();
+
+        // Primary: Use nwidart/laravel-modules for module discovery
         if (class_exists(\Nwidart\Modules\Facades\Module::class)) {
             try {
                 $allModules = Module::all();
 
                 foreach ($allModules as $module) {
                     $moduleJson = $this->getModuleJson($module->getName());
+                    $code = $module->getLowerName();
+
+                    // Core modules are always enabled
+                    $isEnabled = in_array($code, self::CORE_MODULES)
+                        ? true
+                        : ($tenantStatuses[$code] ?? true);
 
                     $modules[] = [
-                        'code' => $module->getLowerName(),
+                        'code' => $code,
                         'name' => $module->getName(),
                         'description' => $moduleJson['description'] ?? '',
                         'version' => $moduleJson['version'] ?? '1.0.0',
-                        'enabled' => $module->isEnabled(),
+                        'enabled' => $isEnabled,
                         'author' => $moduleJson['author'] ?? 'XLinic',
                         'category' => $moduleJson['category'] ?? 'general',
                         'icon' => $moduleJson['icon'] ?? 'heroicon-o-puzzle-piece',
+                        'is_core' => in_array($code, self::CORE_MODULES),
                     ];
                 }
 
@@ -70,20 +88,23 @@ class ListModules extends Page
 
                 if (File::exists($moduleJsonPath)) {
                     $moduleJson = json_decode(File::get($moduleJsonPath), true) ?? [];
-                    $statusesPath = base_path('modules_statuses.json');
-                    $statuses = File::exists($statusesPath)
-                        ? json_decode(File::get($statusesPath), true) ?? []
-                        : [];
+                    $code = strtolower($moduleName);
+
+                    // Core modules are always enabled
+                    $isEnabled = in_array($code, self::CORE_MODULES)
+                        ? true
+                        : ($tenantStatuses[$code] ?? true);
 
                     $modules[] = [
-                        'code' => strtolower($moduleName),
+                        'code' => $code,
                         'name' => $moduleJson['name'] ?? $moduleName,
                         'description' => $moduleJson['description'] ?? '',
                         'version' => $moduleJson['version'] ?? '1.0.0',
-                        'enabled' => $statuses[$moduleName] ?? false,
+                        'enabled' => $isEnabled,
                         'author' => $moduleJson['author'] ?? 'XLinic',
                         'category' => $moduleJson['category'] ?? 'general',
                         'icon' => $moduleJson['icon'] ?? 'heroicon-o-puzzle-piece',
+                        'is_core' => in_array($code, self::CORE_MODULES),
                     ];
                 }
             }
@@ -93,6 +114,84 @@ class ListModules extends Page
         }
 
         return $modules;
+    }
+
+    /**
+     * Get module statuses for the current tenant from the database.
+     */
+    protected function getTenantModuleStatuses(): array
+    {
+        $tenant = app(TenantManager::class)->current();
+
+        if (!$tenant) {
+            return [];
+        }
+
+        return TenantModule::where('tenant_id', $tenant->id)
+            ->pluck('is_active', 'module_code')
+            ->toArray();
+    }
+
+    /**
+     * Sync all discovered modules to the database for the current tenant.
+     * Creates TenantModule records for any modules that don't have one.
+     */
+    protected function syncModulesToDatabase(): void
+    {
+        $tenant = app(TenantManager::class)->current();
+
+        if (!$tenant) {
+            return;
+        }
+
+        $discoveredModules = $this->discoverModuleCodes();
+        $existingModules = TenantModule::where('tenant_id', $tenant->id)
+            ->pluck('module_code')
+            ->toArray();
+
+        foreach ($discoveredModules as $moduleCode) {
+            if (!in_array($moduleCode, $existingModules)) {
+                TenantModule::create([
+                    'tenant_id' => $tenant->id,
+                    'module_code' => $moduleCode,
+                    'is_active' => true, // Default new modules to active
+                    'activated_at' => now(),
+                ]);
+            }
+        }
+    }
+
+    /**
+     * Discover all module codes from the filesystem.
+     */
+    protected function discoverModuleCodes(): array
+    {
+        $codes = [];
+
+        // Try nwidart first
+        if (class_exists(\Nwidart\Modules\Facades\Module::class)) {
+            try {
+                foreach (Module::all() as $module) {
+                    $codes[] = $module->getLowerName();
+                }
+                return $codes;
+            } catch (\Exception $e) {
+                // Fall through
+            }
+        }
+
+        // Fallback: scan directory
+        $modulesPath = base_path('modules');
+        if (File::isDirectory($modulesPath)) {
+            foreach (File::directories($modulesPath) as $directory) {
+                $moduleName = basename($directory);
+                if (File::exists($directory . '/module.json')) {
+                    $codes[] = strtolower($moduleName);
+                }
+            }
+        }
+
+        return $codes;
     }
 
     protected function getModuleJson(string $moduleName): array
@@ -110,52 +209,56 @@ class ListModules extends Page
     {
         $moduleName = ucfirst($code);
 
+        // Prevent disabling core modules
+        if (in_array($code, self::CORE_MODULES)) {
+            Notification::make()
+                ->title(__('Cannot disable core module'))
+                ->body(__(':module is a core module and cannot be disabled.', ['module' => $moduleName]))
+                ->warning()
+                ->send();
+            return;
+        }
+
         try {
-            // Use nwidart/laravel-modules
-            if (class_exists(\Nwidart\Modules\Facades\Module::class)) {
-                $module = Module::find($moduleName);
+            $tenant = app(TenantManager::class)->current();
 
-                if (!$module) {
-                    Notification::make()
-                        ->title(__('Module not found'))
-                        ->danger()
-                        ->send();
-                    return;
-                }
-
-                if ($module->isEnabled()) {
-                    $module->disable();
-                    Notification::make()
-                        ->title(__('Module disabled'))
-                        ->body(__(':module has been disabled.', ['module' => $moduleName]))
-                        ->success()
-                        ->send();
-                } else {
-                    $module->enable();
-                    Notification::make()
-                        ->title(__('Module enabled'))
-                        ->body(__(':module has been enabled.', ['module' => $moduleName]))
-                        ->success()
-                        ->send();
-                }
-
+            if (!$tenant) {
+                Notification::make()
+                    ->title(__('No tenant context'))
+                    ->body(__('Unable to determine current tenant.'))
+                    ->danger()
+                    ->send();
                 return;
             }
 
-            // Fallback: Update modules_statuses.json directly
-            $statusesPath = base_path('modules_statuses.json');
-            $statuses = File::exists($statusesPath)
-                ? json_decode(File::get($statusesPath), true) ?? []
-                : [];
+            // Find or create the TenantModule record
+            $tenantModule = TenantModule::firstOrCreate(
+                [
+                    'tenant_id' => $tenant->id,
+                    'module_code' => $code,
+                ],
+                [
+                    'is_active' => true,
+                    'activated_at' => now(),
+                ]
+            );
 
-            $statuses[$moduleName] = !($statuses[$moduleName] ?? false);
-            File::put($statusesPath, json_encode($statuses, JSON_PRETTY_PRINT));
-
-            $status = $statuses[$moduleName] ? __('enabled') : __('disabled');
-            Notification::make()
-                ->title(__('Module :status', ['status' => $status]))
-                ->success()
-                ->send();
+            // Toggle the status using model methods
+            if ($tenantModule->is_active) {
+                $tenantModule->deactivate();
+                Notification::make()
+                    ->title(__('Module disabled'))
+                    ->body(__(':module has been disabled.', ['module' => $moduleName]))
+                    ->success()
+                    ->send();
+            } else {
+                $tenantModule->activate(auth()->id());
+                Notification::make()
+                    ->title(__('Module enabled'))
+                    ->body(__(':module has been enabled.', ['module' => $moduleName]))
+                    ->success()
+                    ->send();
+            }
 
         } catch (\Exception $e) {
             Notification::make()
@@ -173,47 +276,51 @@ class ListModules extends Page
             Artisan::call('cache:clear');
             Artisan::call('config:clear');
 
-            // Re-scan modules directory and update statuses
-            $modulesPath = base_path('modules');
-            $statusesPath = base_path('modules_statuses.json');
+            $tenant = app(TenantManager::class)->current();
 
-            $currentStatuses = File::exists($statusesPath)
-                ? json_decode(File::get($statusesPath), true) ?? []
-                : [];
+            if (!$tenant) {
+                Notification::make()
+                    ->title(__('No tenant context'))
+                    ->body(__('Unable to determine current tenant.'))
+                    ->danger()
+                    ->send();
+                return;
+            }
 
-            $newStatuses = [];
+            // Get currently discovered modules
+            $discoveredModules = $this->discoverModuleCodes();
+
+            // Get existing database records
+            $existingRecords = TenantModule::where('tenant_id', $tenant->id)
+                ->pluck('module_code')
+                ->toArray();
+
             $added = [];
             $removed = [];
 
-            // Scan existing modules
-            if (File::isDirectory($modulesPath)) {
-                $directories = File::directories($modulesPath);
-
-                foreach ($directories as $directory) {
-                    $moduleName = basename($directory);
-                    $moduleJsonPath = $directory . '/module.json';
-
-                    if (File::exists($moduleJsonPath)) {
-                        // Keep existing status or default to true for new modules
-                        if (isset($currentStatuses[$moduleName])) {
-                            $newStatuses[$moduleName] = $currentStatuses[$moduleName];
-                        } else {
-                            $newStatuses[$moduleName] = true;
-                            $added[] = $moduleName;
-                        }
-                    }
+            // Add new modules to database
+            foreach ($discoveredModules as $moduleCode) {
+                if (!in_array($moduleCode, $existingRecords)) {
+                    TenantModule::create([
+                        'tenant_id' => $tenant->id,
+                        'module_code' => $moduleCode,
+                        'is_active' => true,
+                        'activated_at' => now(),
+                    ]);
+                    $added[] = ucfirst($moduleCode);
                 }
             }
 
-            // Find removed modules
-            foreach ($currentStatuses as $moduleName => $status) {
-                if (!isset($newStatuses[$moduleName])) {
-                    $removed[] = $moduleName;
+            // Find modules that no longer exist (for informational purposes)
+            foreach ($existingRecords as $moduleCode) {
+                if (!in_array($moduleCode, $discoveredModules)) {
+                    $removed[] = ucfirst($moduleCode);
+                    // Optionally clean up orphaned records
+                    TenantModule::where('tenant_id', $tenant->id)
+                        ->where('module_code', $moduleCode)
+                        ->delete();
                 }
             }
-
-            // Save updated statuses
-            File::put($statusesPath, json_encode($newStatuses, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 
             // Build notification message
             $message = [];

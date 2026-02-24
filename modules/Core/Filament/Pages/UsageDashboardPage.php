@@ -59,10 +59,6 @@ class UsageDashboardPage extends Page
             'users' => $usersLimit ?? 10,
             'branches' => $branchesLimit ?? 3,
             'storage_gb' => round(($storageLimit ?? 1024) / 1024, 1), // Convert MB to GB
-            'whatsapp_messages' => $tenant->getSetting('max_whatsapp_messages', 500),
-            'sms_messages' => $tenant->getSetting('max_sms_messages', 200),
-            'emails' => $tenant->getSetting('max_emails', 1000),
-            'api_requests' => $tenant->getSetting('max_api_requests', 10000),
         ];
 
         if ($tenantUsage) {
@@ -70,10 +66,6 @@ class UsageDashboardPage extends Page
                 'users' => $tenantUsage->users ?? 0,
                 'branches' => $tenantUsage->branches ?? 0,
                 'storage_gb' => round(($tenantUsage->storage_mb ?? 0) / 1024, 2),
-                'whatsapp_messages' => $tenantUsage->whatsapp_sent ?? 0,
-                'sms_messages' => $tenantUsage->sms_sent ?? 0,
-                'emails' => $tenantUsage->email_sent ?? 0,
-                'api_requests' => $tenantUsage->api_requests ?? 0,
                 // Unlimited resources (for stats display only)
                 'patients' => $tenantUsage->patients ?? 0,
                 'services' => $tenantUsage->services ?? 0,
@@ -163,40 +155,6 @@ class UsageDashboardPage extends Page
                 'icon' => 'heroicon-o-wrench-screwdriver',
                 'current' => $this->usage['equipment'] ?? 0,
                 'color' => 'warning',
-            ],
-        ];
-    }
-
-    public function getMonthlyUsageItems(): array
-    {
-        return [
-            [
-                'label' => __('core::core.whatsapp_messages'),
-                'icon' => 'heroicon-o-chat-bubble-left-right',
-                'current' => $this->usage['whatsapp_messages'] ?? 0,
-                'limit' => $this->limits['whatsapp_messages'] ?? 0,
-                'color' => 'success',
-            ],
-            [
-                'label' => __('core::core.sms_messages'),
-                'icon' => 'heroicon-o-device-phone-mobile',
-                'current' => $this->usage['sms_messages'] ?? 0,
-                'limit' => $this->limits['sms_messages'] ?? 0,
-                'color' => 'info',
-            ],
-            [
-                'label' => __('core::core.emails'),
-                'icon' => 'heroicon-o-envelope',
-                'current' => $this->usage['emails'] ?? 0,
-                'limit' => $this->limits['emails'] ?? 0,
-                'color' => 'primary',
-            ],
-            [
-                'label' => __('core::core.api_requests'),
-                'icon' => 'heroicon-o-code-bracket',
-                'current' => $this->usage['api_requests'] ?? 0,
-                'limit' => $this->limits['api_requests'] ?? 0,
-                'color' => 'gray',
             ],
         ];
     }

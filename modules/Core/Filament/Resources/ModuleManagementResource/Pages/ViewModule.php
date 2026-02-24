@@ -3,6 +3,7 @@
 namespace Modules\Core\Filament\Resources\ModuleManagementResource\Pages;
 
 use Modules\Core\Filament\Resources\ModuleManagementResource;
+use Modules\Core\Models\TenantModule;
 use Filament\Actions;
 use App\Filament\Resources\Pages\BaseViewRecord;
 use Filament\Infolists;
@@ -10,10 +11,16 @@ use Filament\Infolists\Infolist;
 use Filament\Notifications\Notification;
 use XLinic\Framework\Core\Module\ModuleManager;
 use XLinic\Framework\Core\Module\ModuleRegistry;
+use XLinic\Framework\Core\Tenancy\TenantManager;
 
 class ViewModule extends BaseViewRecord
 {
     protected static string $resource = ModuleManagementResource::class;
+
+    /**
+     * Core modules that cannot be disabled.
+     */
+    protected const CORE_MODULES = ['core', 'auth'];
 
     public function getRecord(): \Illuminate\Database\Eloquent\Model
     {
@@ -24,6 +31,9 @@ class ViewModule extends BaseViewRecord
         if (!$module) {
             abort(404, 'Module not found');
         }
+
+        // Get enabled status from TenantModule for current tenant
+        $isEnabled = $this->getModuleEnabledStatus($moduleCode);
 
         // Create a dynamic model to hold module data
         $dynamicModel = new class extends \Illuminate\Database\Eloquent\Model {
@@ -36,14 +46,39 @@ class ViewModule extends BaseViewRecord
             'name' => $module->getName(),
             'description' => $module->getDescription(),
             'version' => $module->getVersion(),
-            'enabled' => $module->isEnabled(),
+            'enabled' => $isEnabled,
             'dependencies' => $module->getDependencies(),
             'author' => $module->getAuthor(),
             'path' => $module->getPath(),
             'services' => $module->getServices(),
             'migrations' => $module->getMigrations(),
             'config' => $module->getConfig(),
+            'is_core' => in_array($moduleCode, self::CORE_MODULES),
         ]);
+    }
+
+    /**
+     * Get the enabled status for a module from the database.
+     */
+    protected function getModuleEnabledStatus(string $moduleCode): bool
+    {
+        // Core modules are always enabled
+        if (in_array($moduleCode, self::CORE_MODULES)) {
+            return true;
+        }
+
+        $tenant = app(TenantManager::class)->current();
+
+        if (!$tenant) {
+            return true; // Default to enabled if no tenant
+        }
+
+        $tenantModule = TenantModule::where('tenant_id', $tenant->id)
+            ->where('module_code', $moduleCode)
+            ->first();
+
+        // Default to enabled if no record exists
+        return $tenantModule ? $tenantModule->is_active : true;
     }
 
     public function infolist(Infolist $infolist): Infolist
@@ -149,20 +184,56 @@ class ViewModule extends BaseViewRecord
                 ->modalDescription(fn () => $this->getRecord()->enabled
                     ? __('Are you sure you want to disable this module? This may affect system functionality.')
                     : __('Are you sure you want to enable this module?'))
+                ->hidden(fn () => $this->getRecord()->is_core ?? false)
                 ->action(function () {
-                    $moduleManager = app(ModuleManager::class);
                     $record = $this->getRecord();
 
-                    if ($record->enabled) {
-                        $moduleManager->disable($record->code);
+                    // Prevent disabling core modules
+                    if (in_array($record->code, self::CORE_MODULES)) {
+                        Notification::make()
+                            ->title(__('Cannot disable core module'))
+                            ->body(__(':module is a core module and cannot be disabled.', ['module' => $record->name]))
+                            ->warning()
+                            ->send();
+                        return;
+                    }
+
+                    $tenant = app(TenantManager::class)->current();
+
+                    if (!$tenant) {
+                        Notification::make()
+                            ->title(__('No tenant context'))
+                            ->body(__('Unable to determine current tenant.'))
+                            ->danger()
+                            ->send();
+                        return;
+                    }
+
+                    // Find or create the TenantModule record
+                    $tenantModule = TenantModule::firstOrCreate(
+                        [
+                            'tenant_id' => $tenant->id,
+                            'module_code' => $record->code,
+                        ],
+                        [
+                            'is_active' => true,
+                            'activated_at' => now(),
+                        ]
+                    );
+
+                    // Toggle the status using model methods
+                    if ($tenantModule->is_active) {
+                        $tenantModule->deactivate();
                         Notification::make()
                             ->title(__('Module disabled'))
+                            ->body(__(':module has been disabled.', ['module' => $record->name]))
                             ->success()
                             ->send();
                     } else {
-                        $moduleManager->enable($record->code);
+                        $tenantModule->activate(auth()->id());
                         Notification::make()
                             ->title(__('Module enabled'))
+                            ->body(__(':module has been enabled.', ['module' => $record->name]))
                             ->success()
                             ->send();
                     }

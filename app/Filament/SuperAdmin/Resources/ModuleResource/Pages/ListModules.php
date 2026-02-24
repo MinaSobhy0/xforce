@@ -4,10 +4,13 @@ namespace App\Filament\SuperAdmin\Resources\ModuleResource\Pages;
 
 use App\Filament\SuperAdmin\Resources\ModuleResource;
 use App\Models\Module;
+use Modules\Core\Models\Tenant;
+use Modules\Core\Models\TenantModule;
 use Filament\Actions;
 use Filament\Notifications\Notification;
 use App\Filament\Resources\Pages\BaseListRecords;
 use Filament\Resources\Pages\ListRecords\Concerns\Translatable;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 
 class ListModules extends BaseListRecords
@@ -28,8 +31,17 @@ class ListModules extends BaseListRecords
                 ->color('warning')
                 ->requiresConfirmation()
                 ->modalHeading(__('Sync Modules from Filesystem'))
-                ->modalDescription(__('This will scan the modules directory and create/update module records in the database.'))
+                ->modalDescription(__('This will scan the modules directory and create/update module records in the database. It will also create tenant module records for all active tenants.'))
                 ->action(fn () => $this->syncModulesFromFilesystem()),
+
+            Actions\Action::make('syncToAllTenants')
+                ->label(__('Sync to All Tenants'))
+                ->icon('heroicon-o-users')
+                ->color('info')
+                ->requiresConfirmation()
+                ->modalHeading(__('Sync Modules to All Tenants'))
+                ->modalDescription(__('This will create tenant module records for all active tenants based on the current module registry.'))
+                ->action(fn () => $this->syncModulesToAllTenants()),
 
             Actions\CreateAction::make()
                 ->label('Register Module'),
@@ -154,6 +166,12 @@ class ListModules extends BaseListRecords
             }
         }
 
+        // Sync to all tenants if new modules were added
+        $tenantSyncResult = null;
+        if (!empty($added)) {
+            $tenantSyncResult = $this->syncModulesToAllTenants(false);
+        }
+
         // Build notification
         $messages = [];
         if (!empty($added)) {
@@ -168,6 +186,9 @@ class ListModules extends BaseListRecords
         if (!empty($errors)) {
             $messages[] = __('Errors: :errors', ['errors' => implode('; ', $errors)]);
         }
+        if ($tenantSyncResult) {
+            $messages[] = $tenantSyncResult;
+        }
         if (empty($added) && empty($updated) && empty($removed) && empty($errors)) {
             $messages[] = __('No changes detected.');
         }
@@ -177,6 +198,137 @@ class ListModules extends BaseListRecords
             ->body(implode("\n", $messages))
             ->success()
             ->send();
+    }
+
+    /**
+     * Sync modules to all active tenants.
+     * Creates TenantModule records for modules that don't have one.
+     */
+    protected function syncModulesToAllTenants(bool $showNotification = true): ?string
+    {
+        try {
+            // Get all module codes from central registry
+            $moduleCodes = Module::pluck('code')->toArray();
+
+            if (empty($moduleCodes)) {
+                if ($showNotification) {
+                    Notification::make()
+                        ->title(__('No modules found'))
+                        ->body(__('No modules in the registry to sync.'))
+                        ->warning()
+                        ->send();
+                }
+                return null;
+            }
+
+            // Get all active tenants
+            $tenants = Tenant::where('status', 'active')->get();
+            $tenantsUpdated = 0;
+            $recordsCreated = 0;
+
+            foreach ($tenants as $tenant) {
+                try {
+                    // Switch to tenant's database/schema
+                    $tenantConnection = $this->getTenantConnection($tenant);
+
+                    if (!$tenantConnection) {
+                        continue;
+                    }
+
+                    // Get existing module codes for this tenant
+                    $existingModules = DB::connection($tenantConnection)
+                        ->table('tenant_modules')
+                        ->where('tenant_id', $tenant->id)
+                        ->pluck('module_code')
+                        ->toArray();
+
+                    // Find modules that need to be created
+                    $missingModules = array_diff($moduleCodes, $existingModules);
+
+                    if (!empty($missingModules)) {
+                        $tenantsUpdated++;
+
+                        foreach ($missingModules as $moduleCode) {
+                            DB::connection($tenantConnection)
+                                ->table('tenant_modules')
+                                ->insert([
+                                    'id' => (string) \Illuminate\Support\Str::uuid(),
+                                    'tenant_id' => $tenant->id,
+                                    'module_code' => $moduleCode,
+                                    'is_active' => true,
+                                    'activated_at' => now(),
+                                    'created_at' => now(),
+                                    'updated_at' => now(),
+                                ]);
+                            $recordsCreated++;
+                        }
+                    }
+                } catch (\Exception $e) {
+                    // Log error but continue with other tenants
+                    \Log::warning("Failed to sync modules to tenant {$tenant->id}: " . $e->getMessage());
+                }
+            }
+
+            $message = __('Synced to :tenants tenants, created :records records', [
+                'tenants' => $tenantsUpdated,
+                'records' => $recordsCreated,
+            ]);
+
+            if ($showNotification) {
+                Notification::make()
+                    ->title(__('Modules synced to tenants'))
+                    ->body($message)
+                    ->success()
+                    ->send();
+            }
+
+            return $message;
+
+        } catch (\Exception $e) {
+            $errorMessage = __('Error syncing to tenants: :error', ['error' => $e->getMessage()]);
+
+            if ($showNotification) {
+                Notification::make()
+                    ->title(__('Error'))
+                    ->body($errorMessage)
+                    ->danger()
+                    ->send();
+            }
+
+            return $errorMessage;
+        }
+    }
+
+    /**
+     * Get the database connection name for a tenant.
+     */
+    protected function getTenantConnection(Tenant $tenant): ?string
+    {
+        // If using schema-based multi-tenancy
+        if ($tenant->database_name) {
+            // Configure a dynamic connection for this tenant
+            $connectionName = 'tenant_' . $tenant->id;
+
+            config([
+                "database.connections.{$connectionName}" => [
+                    'driver' => 'pgsql',
+                    'host' => $tenant->database_host ?? config('database.connections.pgsql.host'),
+                    'port' => $tenant->database_port ?? config('database.connections.pgsql.port'),
+                    'database' => $tenant->database_name,
+                    'username' => $tenant->database_username ?? config('database.connections.pgsql.username'),
+                    'password' => $tenant->database_password ?? config('database.connections.pgsql.password'),
+                    'charset' => 'utf8',
+                    'prefix' => '',
+                    'schema' => 'public',
+                ],
+            ]);
+
+            return $connectionName;
+        }
+
+        // If using same database with schema separation
+        // Just use the default tenant connection
+        return 'tenant';
     }
 
     protected function mapIconToEmoji(?string $icon): string

@@ -27,6 +27,11 @@
                                         <h3 class="text-lg font-semibold text-gray-950 dark:text-white">
                                             {{ $module['name'] }}
                                         </h3>
+                                        @if($module['is_core'] ?? false)
+                                            <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium bg-purple-50 text-purple-700 ring-1 ring-inset ring-purple-600/20 dark:bg-purple-500/10 dark:text-purple-400 dark:ring-purple-500/20">
+                                                {{ __('Core') }}
+                                            </span>
+                                        @endif
                                         <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset {{ $module['enabled'] ? 'bg-green-50 text-green-700 ring-green-600/20 dark:bg-green-500/10 dark:text-green-400 dark:ring-green-500/20' : 'bg-red-50 text-red-700 ring-red-600/20 dark:bg-red-500/10 dark:text-red-400 dark:ring-red-500/20' }}">
                                             {{ $module['enabled'] ? __('Enabled') : __('Disabled') }}
                                         </span>
@@ -53,19 +58,26 @@
                             @endif
 
                             <div class="mt-4 flex items-center gap-2">
-                                <button
-                                    type="button"
-                                    wire:click="toggleModule('{{ $module['code'] }}')"
-                                    class="inline-flex items-center justify-center gap-1 rounded-lg px-3 py-2 text-sm font-semibold outline-none transition duration-75 focus-visible:ring-2 {{ $module['enabled'] ? 'bg-warning-600 text-white hover:bg-warning-500 focus-visible:ring-warning-500/50 dark:bg-warning-500 dark:hover:bg-warning-400' : 'bg-success-600 text-white hover:bg-success-500 focus-visible:ring-success-500/50 dark:bg-success-500 dark:hover:bg-success-400' }}"
-                                >
-                                    @if($module['enabled'])
-                                        <x-heroicon-m-pause class="h-4 w-4" />
-                                        {{ __('Disable') }}
-                                    @else
-                                        <x-heroicon-m-play class="h-4 w-4" />
-                                        {{ __('Enable') }}
-                                    @endif
-                                </button>
+                                @if($module['is_core'] ?? false)
+                                    <span class="inline-flex items-center justify-center gap-1 rounded-lg px-3 py-2 text-sm font-semibold bg-gray-100 text-gray-400 cursor-not-allowed dark:bg-gray-800 dark:text-gray-500" title="{{ __('Core modules cannot be disabled') }}">
+                                        <x-heroicon-m-lock-closed class="h-4 w-4" />
+                                        {{ __('Protected') }}
+                                    </span>
+                                @else
+                                    <button
+                                        type="button"
+                                        wire:click="toggleModule('{{ $module['code'] }}')"
+                                        class="inline-flex items-center justify-center gap-1 rounded-lg px-3 py-2 text-sm font-semibold outline-none transition duration-75 focus-visible:ring-2 {{ $module['enabled'] ? 'bg-warning-600 text-white hover:bg-warning-500 focus-visible:ring-warning-500/50 dark:bg-warning-500 dark:hover:bg-warning-400' : 'bg-success-600 text-white hover:bg-success-500 focus-visible:ring-success-500/50 dark:bg-success-500 dark:hover:bg-success-400' }}"
+                                    >
+                                        @if($module['enabled'])
+                                            <x-heroicon-m-pause class="h-4 w-4" />
+                                            {{ __('Disable') }}
+                                        @else
+                                            <x-heroicon-m-play class="h-4 w-4" />
+                                            {{ __('Enable') }}
+                                        @endif
+                                    </button>
+                                @endif
 
                                 <a
                                     href="{{ \Modules\Core\Resources\ModuleManagementResource::getUrl('view', ['record' => $module['code']]) }}"
