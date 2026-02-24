@@ -4,12 +4,19 @@ namespace Modules\Booking\Filament\Pages;
 
 use App\Services\BranchContext;
 use App\Traits\ChecksResourcePermissions;
+use Carbon\Carbon;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Forms\Contracts\HasForms;
+use Filament\Forms\Form;
 use Filament\Pages\Page;
+use Livewire\Attributes\Url;
 use Modules\Booking\Services\ReceptionService;
 
-class ReceptionDashboard extends Page
+class ReceptionDashboard extends Page implements HasForms
 {
     use ChecksResourcePermissions;
+    use InteractsWithForms;
 
     protected static ?string $moduleCode = 'booking';
 
@@ -25,6 +32,14 @@ class ReceptionDashboard extends Page
 
     protected static string $view = 'booking::filament.pages.reception-dashboard';
 
+    #[Url]
+    public ?string $selectedDate = null;
+
+    public function mount(): void
+    {
+        $this->selectedDate = $this->selectedDate ?? today()->format('Y-m-d');
+    }
+
     public static function getNavigationLabel(): string
     {
         return __('booking::reception.navigation');
@@ -37,13 +52,64 @@ class ReceptionDashboard extends Page
 
     public function getHeading(): string
     {
-        return __('booking::reception.heading') . ' - ' . today()->format('l, M d, Y');
+        $date = Carbon::parse($this->selectedDate);
+        return __('booking::reception.heading') . ' - ' . $date->format('l, M d, Y');
+    }
+
+    public function form(Form $form): Form
+    {
+        return $form
+            ->schema([
+                DatePicker::make('selectedDate')
+                    ->label(__('booking::reception.filters.date'))
+                    ->native(false)
+                    ->displayFormat('D, M d, Y')
+                    ->closeOnDateSelection()
+                    ->live()
+                    ->afterStateUpdated(fn () => $this->dispatch('dateChanged', date: $this->selectedDate)),
+            ])
+            ->statePath('data');
+    }
+
+    public function updatedSelectedDate(): void
+    {
+        $this->dispatch('dateChanged', date: $this->selectedDate);
+    }
+
+    public function goToToday(): void
+    {
+        $this->selectedDate = today()->format('Y-m-d');
+        $this->dispatch('dateChanged', date: $this->selectedDate);
+    }
+
+    public function previousDay(): void
+    {
+        $this->selectedDate = Carbon::parse($this->selectedDate)->subDay()->format('Y-m-d');
+        $this->dispatch('dateChanged', date: $this->selectedDate);
+    }
+
+    public function nextDay(): void
+    {
+        $this->selectedDate = Carbon::parse($this->selectedDate)->addDay()->format('Y-m-d');
+        $this->dispatch('dateChanged', date: $this->selectedDate);
+    }
+
+    public function getSelectedDateProperty(): Carbon
+    {
+        return Carbon::parse($this->selectedDate);
+    }
+
+    public function isToday(): bool
+    {
+        return Carbon::parse($this->selectedDate)->isToday();
     }
 
     protected function getHeaderWidgets(): array
     {
         return [
-            \Modules\Booking\Filament\Widgets\ReceptionStatsWidget::class,
+            \Modules\Booking\Filament\Widgets\ReceptionStatsWidget::make([
+                'selectedDate' => $this->selectedDate,
+            ]),
         ];
     }
 

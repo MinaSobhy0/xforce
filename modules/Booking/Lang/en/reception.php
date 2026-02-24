@@ -57,6 +57,12 @@ return [
         'practitioner' => 'Practitioner',
         'room' => 'Room',
         'search' => 'Search patient...',
+        'date' => 'Date',
+        'previous_day' => 'Previous day',
+        'next_day' => 'Next day',
+        'today' => 'Today',
+        'viewing_today' => 'Viewing Today',
+        'viewing_date' => 'Viewing Past/Future Date',
     ],
 
     // Actions

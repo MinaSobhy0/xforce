@@ -112,15 +112,16 @@ class ReceptionService
     }
 
     /**
-     * Get today's appointments grouped by flow stage.
+     * Get appointments grouped by flow stage.
      */
-    public function getPatientFlowData(?string $branchId = null): array
+    public function getPatientFlowData(?string $branchId = null, ?Carbon $date = null): array
     {
         $branchId = $branchId ?? BranchContext::currentId();
+        $date = $date ?? today();
 
         $query = Appointment::query()
             ->with(['patient', 'service', 'practitioner', 'room'])
-            ->forDate(today())
+            ->forDate($date)
             ->ordered();
 
         if ($branchId) {
@@ -130,16 +131,25 @@ class ReceptionService
         $appointments = $query->get();
 
         $now = now();
+        $isToday = $date->isToday();
         $thirtyMinutesFromNow = $now->copy()->addMinutes(30);
         $twoHoursAgo = $now->copy()->subHours(2);
 
         return [
-            'arriving' => $appointments->filter(function ($a) use ($now, $thirtyMinutesFromNow) {
+            'arriving' => $appointments->filter(function ($a) use ($now, $thirtyMinutesFromNow, $isToday, $date) {
                 if (!in_array($a->status, [Appointment::STATUS_SCHEDULED, Appointment::STATUS_CONFIRMED])) {
                     return false;
                 }
                 $startTime = $a->start_date_time;
-                return $startTime && $startTime->between($now, $thirtyMinutesFromNow);
+                if (!$startTime) {
+                    return false;
+                }
+                // For today, show next 30 minutes
+                // For other days, show all scheduled/confirmed as "arriving"
+                if ($isToday) {
+                    return $startTime->between($now, $thirtyMinutesFromNow);
+                }
+                return true; // Show all upcoming for other days
             })->values(),
 
             'waiting' => $appointments->filter(function ($a) {
@@ -154,24 +164,30 @@ class ReceptionService
                 return $a->status === Appointment::STATUS_IN_PROGRESS;
             })->values(),
 
-            'done' => $appointments->filter(function ($a) use ($twoHoursAgo) {
+            'done' => $appointments->filter(function ($a) use ($twoHoursAgo, $isToday) {
                 if ($a->status !== Appointment::STATUS_COMPLETED) {
                     return false;
                 }
-                return $a->completed_at && $a->completed_at->gte($twoHoursAgo);
+                // For today, only show completed in last 2 hours
+                // For other days, show all completed
+                if ($isToday) {
+                    return $a->completed_at && $a->completed_at->gte($twoHoursAgo);
+                }
+                return true;
             })->values(),
         ];
     }
 
     /**
-     * Get reception statistics for today.
+     * Get reception statistics for a given date.
      */
-    public function getReceptionStats(?string $branchId = null): array
+    public function getReceptionStats(?string $branchId = null, ?Carbon $date = null): array
     {
         $branchId = $branchId ?? BranchContext::currentId();
+        $date = $date ?? today();
 
         $query = Appointment::query()
-            ->forDate(today());
+            ->forDate($date);
 
         if ($branchId) {
             $query->forBranch($branchId);
@@ -203,14 +219,15 @@ class ReceptionService
     }
 
     /**
-     * Get average wait time for today.
+     * Get average wait time for a given date.
      */
-    public function getAverageWaitTime(?string $branchId = null): ?int
+    public function getAverageWaitTime(?string $branchId = null, ?Carbon $date = null): ?int
     {
         $branchId = $branchId ?? BranchContext::currentId();
+        $date = $date ?? today();
 
         $query = Appointment::query()
-            ->forDate(today())
+            ->forDate($date)
             ->whereNotNull('checked_in_at')
             ->whereNotNull('started_at');
 

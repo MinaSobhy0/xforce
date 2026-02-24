@@ -3,8 +3,10 @@
 namespace Modules\Booking\Filament\Widgets;
 
 use App\Services\BranchContext;
+use Carbon\Carbon;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
+use Livewire\Attributes\On;
 use Modules\Booking\Services\ReceptionService;
 
 class ReceptionStatsWidget extends BaseWidget
@@ -13,13 +15,27 @@ class ReceptionStatsWidget extends BaseWidget
 
     protected int|string|array $columnSpan = 'full';
 
+    public ?string $selectedDate = null;
+
+    public function mount(?string $selectedDate = null): void
+    {
+        $this->selectedDate = $selectedDate ?? today()->format('Y-m-d');
+    }
+
+    #[On('dateChanged')]
+    public function handleDateChange(string $date): void
+    {
+        $this->selectedDate = $date;
+    }
+
     protected function getStats(): array
     {
         $receptionService = app(ReceptionService::class);
         $branchId = BranchContext::currentId();
+        $date = Carbon::parse($this->selectedDate);
 
-        $stats = $receptionService->getReceptionStats($branchId);
-        $avgWaitTime = $receptionService->getAverageWaitTime($branchId);
+        $stats = $receptionService->getReceptionStats($branchId, $date);
+        $avgWaitTime = $receptionService->getAverageWaitTime($branchId, $date);
 
         return [
             Stat::make(__('booking::reception.stats.total'), $stats['total'])

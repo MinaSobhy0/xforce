@@ -57,6 +57,12 @@ return [
         'practitioner' => 'الممارس',
         'room' => 'الغرفة',
         'search' => 'ابحث عن مريض...',
+        'date' => 'التاريخ',
+        'previous_day' => 'اليوم السابق',
+        'next_day' => 'اليوم التالي',
+        'today' => 'اليوم',
+        'viewing_today' => 'عرض اليوم',
+        'viewing_date' => 'عرض تاريخ آخر',
     ],
 
     // Actions

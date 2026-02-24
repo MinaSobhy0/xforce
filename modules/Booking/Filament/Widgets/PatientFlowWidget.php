@@ -3,7 +3,9 @@
 namespace Modules\Booking\Filament\Widgets;
 
 use App\Services\BranchContext;
+use Carbon\Carbon;
 use Filament\Widgets\Widget;
+use Livewire\Attributes\On;
 use Modules\Booking\Services\ReceptionService;
 
 class PatientFlowWidget extends Widget
@@ -14,12 +16,26 @@ class PatientFlowWidget extends Widget
 
     protected int|string|array $columnSpan = 'full';
 
+    public ?string $selectedDate = null;
+
+    public function mount(?string $selectedDate = null): void
+    {
+        $this->selectedDate = $selectedDate ?? today()->format('Y-m-d');
+    }
+
+    #[On('dateChanged')]
+    public function handleDateChange(string $date): void
+    {
+        $this->selectedDate = $date;
+    }
+
     public function getPatientFlowData(): array
     {
         $receptionService = app(ReceptionService::class);
         $branchId = BranchContext::currentId();
+        $date = Carbon::parse($this->selectedDate);
 
-        return $receptionService->getPatientFlowData($branchId);
+        return $receptionService->getPatientFlowData($branchId, $date);
     }
 
     public function calculateWaitTime($appointment): ?array
@@ -62,5 +78,15 @@ class PatientFlowWidget extends Widget
                 'description' => __('booking::reception.flow.done_desc'),
             ],
         ];
+    }
+
+    public function isToday(): bool
+    {
+        return Carbon::parse($this->selectedDate)->isToday();
+    }
+
+    public function getSelectedDateFormatted(): string
+    {
+        return Carbon::parse($this->selectedDate)->format('l, M d, Y');
     }
 }
