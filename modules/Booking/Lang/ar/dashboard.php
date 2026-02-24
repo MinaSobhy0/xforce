@@ -12,6 +12,10 @@ return [
         'in_progress' => 'جاري',
         'completed' => 'مكتمل',
         'upcoming' => 'قادم',
+        'checked_in_desc' => 'مرضى بالانتظار',
+        'in_progress_desc' => 'جلسات نشطة',
+        'completed_desc' => 'جلسات مكتملة اليوم',
+        'upcoming_desc' => 'مجدولة لليوم',
     ],
 
     // Queue
@@ -116,6 +120,7 @@ return [
     'messages' => [
         'cannot_start' => 'لا يمكن بدء الجلسة',
         'must_be_checked_in' => 'يجب تسجيل حضور المريض أولاً',
+        'must_be_confirmed' => 'يجب تأكيد الموعد أولاً',
         'cannot_resume' => 'لا يمكن استئناف الجلسة',
         'cannot_complete' => 'لا يمكن إنهاء الجلسة',
         'session_started' => 'بدأت الجلسة',

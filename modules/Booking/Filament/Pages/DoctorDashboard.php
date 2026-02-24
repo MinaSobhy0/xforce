@@ -82,6 +82,13 @@ class DoctorDashboard extends Page implements HasForms
         return __('booking::dashboard.heading');
     }
 
+    protected function getHeaderWidgets(): array
+    {
+        return [
+            \Modules\Booking\Filament\Widgets\DoctorDashboardStatsWidget::class,
+        ];
+    }
+
     public static function shouldRegisterNavigation(): bool
     {
         // Only show for practitioners
@@ -174,25 +181,35 @@ class DoctorDashboard extends Page implements HasForms
     {
         $appointment = Appointment::findOrFail($appointmentId);
 
-        if ($appointment->status !== Appointment::STATUS_CHECKED_IN) {
+        // Allow starting from checked_in or confirmed status
+        $allowedStatuses = [
+            Appointment::STATUS_CHECKED_IN,
+            Appointment::STATUS_CONFIRMED,
+        ];
+
+        if (!in_array($appointment->status, $allowedStatuses)) {
             Notification::make()
                 ->title(__('booking::dashboard.messages.cannot_start'))
-                ->body(__('booking::dashboard.messages.must_be_checked_in'))
+                ->body(__('booking::dashboard.messages.must_be_confirmed'))
                 ->danger()
                 ->send();
             return;
         }
 
-        $appointment->start();
+        // If confirmed, check in first
+        if ($appointment->status === Appointment::STATUS_CONFIRMED) {
+            $appointment->checkIn();
+        }
 
-        $this->activeAppointmentId = $appointment->id;
-        $this->loadPatientData($appointment->patient_id);
-        $this->activeTab = 'info';
+        $appointment->start();
 
         Notification::make()
             ->title(__('booking::dashboard.messages.session_started'))
             ->success()
             ->send();
+
+        // Redirect to the Treatment Session page
+        $this->redirect(TreatmentSession::getUrl(['appointmentId' => $appointment->id]));
     }
 
     /**
@@ -210,9 +227,8 @@ class DoctorDashboard extends Page implements HasForms
             return;
         }
 
-        $this->activeAppointmentId = $appointment->id;
-        $this->loadPatientData($appointment->patient_id);
-        $this->activeTab = 'info';
+        // Redirect to the Treatment Session page
+        $this->redirect(TreatmentSession::getUrl(['appointmentId' => $appointment->id]));
     }
 
     /**

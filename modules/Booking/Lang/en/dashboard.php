@@ -12,6 +12,10 @@ return [
         'in_progress' => 'In Progress',
         'completed' => 'Completed',
         'upcoming' => 'Upcoming',
+        'checked_in_desc' => 'Patients checked in',
+        'in_progress_desc' => 'Sessions active',
+        'completed_desc' => 'Sessions done today',
+        'upcoming_desc' => 'Scheduled for today',
     ],
 
     // Queue
@@ -116,6 +120,7 @@ return [
     'messages' => [
         'cannot_start' => 'Cannot Start Session',
         'must_be_checked_in' => 'Patient must be checked in first',
+        'must_be_confirmed' => 'Appointment must be confirmed first',
         'cannot_resume' => 'Cannot Resume Session',
         'cannot_complete' => 'Cannot Complete Session',
         'session_started' => 'Session Started',
