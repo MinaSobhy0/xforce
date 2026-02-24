@@ -61,6 +61,7 @@ return [
     ],
 
     'actions' => [
+        'new' => 'New Appointment',
         'confirm' => 'Confirm',
         'check_in' => 'Check In',
         'start' => 'Start',

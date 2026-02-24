@@ -61,6 +61,7 @@ return [
     ],
 
     'actions' => [
+        'new' => 'موعد جديد',
         'confirm' => 'تأكيد',
         'check_in' => 'تسجيل الوصول',
         'start' => 'بدء',

@@ -14,7 +14,10 @@ class ListAppointments extends BaseListRecords
     {
         return [
             ...parent::getHeaderActions(),
-            Actions\CreateAction::make(),
+            Actions\Action::make('create')
+                ->label(__('booking::appointments.actions.new'))
+                ->icon('heroicon-o-plus')
+                ->url(fn () => route('filament.tenant.pages.create-booking')),
         ];
     }
 }
