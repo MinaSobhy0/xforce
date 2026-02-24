@@ -169,22 +169,21 @@
                                             };
                                         @endphp
                                         <div
-                                            class="absolute top-0 left-1 right-1 rounded-lg border-l-4 px-2 py-1 cursor-pointer hover:shadow-lg transition-all"
-                                            style="height: {{ $position['height'] - 4 }}px; z-index: 5; background: {{ $statusStyles['bg'] }}; border-left-color: {{ $statusStyles['border'] }}; overflow: hidden; max-width: calc(100% - 8px);"
+                                            style="position: absolute; top: 0; left: 4px; width: calc(100% - 8px); height: {{ $position['height'] - 4 }}px; z-index: 5; background: {{ $statusStyles['bg'] }}; border-left: 4px solid {{ $statusStyles['border'] }}; border-radius: 8px; padding: 4px 8px; box-sizing: border-box; overflow: hidden; cursor: pointer;"
                                             title="{{ $position['startTime'] }} - {{ $position['endTime'] }} ({{ $position['duration'] }} min)&#10;{{ __('booking::room_calendar.practitioner') }}: {{ $appointment->practitioner?->full_name ?? '-' }}&#10;{{ __('booking::room_calendar.status') }}: {{ $appointment->status }}"
                                             wire:click="$dispatch('open-modal', { id: 'appointment-{{ $appointment->id }}' })"
                                         >
-                                            <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; font-weight: 500;">
+                                            <p style="margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; font-weight: 500;">
                                                 {{ $appointment->patient?->full_name ?? __('booking::room_calendar.unknown') }}
-                                            </div>
+                                            </p>
                                             @if($appointment->patient?->phone)
-                                                <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; color: #666;">
+                                                <p style="margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; color: #666;">
                                                     {{ $appointment->patient->phone }}
-                                                </div>
+                                                </p>
                                             @endif
-                                            <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; color: #888;">
+                                            <p style="margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; color: #888;">
                                                 {{ $appointment->service?->name }}
-                                            </div>
+                                            </p>
                                         </div>
                                     @endif
                                 </div>
