@@ -1,18 +1,5 @@
 <x-filament-panels::page>
     <div class="space-y-6">
-        {{-- Room Calendar Link --}}
-        <div class="flex justify-end">
-            <x-filament::button
-                tag="a"
-                href="{{ route('filament.tenant.pages.room-calendar') }}"
-                size="sm"
-                color="gray"
-                icon="heroicon-o-building-office"
-            >
-                {{ __('booking::calendar.view.rooms') }}
-            </x-filament::button>
-        </div>
-
         {{-- Legend --}}
         <div class="flex items-center gap-3 text-xs">
             <div class="flex items-center gap-1">

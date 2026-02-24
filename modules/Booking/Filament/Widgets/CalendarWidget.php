@@ -14,12 +14,24 @@ use Modules\Core\Models\Room;
 use Modules\Treatments\Models\Service;
 use Modules\Auth\Models\User;
 use Modules\Patients\Models\Patient;
+use Filament\Actions\Action;
 use Saade\FilamentFullCalendar\Data\EventData;
 use Saade\FilamentFullCalendar\Widgets\FullCalendarWidget;
 
 class CalendarWidget extends FullCalendarWidget
 {
     public Model|string|null $model = Appointment::class;
+
+    protected function headerActions(): array
+    {
+        return [
+            Action::make('rooms')
+                ->label(__('booking::calendar.view.rooms'))
+                ->icon('heroicon-o-building-office')
+                ->color('gray')
+                ->url(route('filament.tenant.pages.room-calendar')),
+        ];
+    }
 
     public function config(): array
     {
