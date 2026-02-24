@@ -2,18 +2,18 @@
     @if($branches->count() > 0)
         {{-- If only one branch, show it without dropdown --}}
         @if($branches->count() === 1)
-            <div class="flex items-center gap-2 rounded-lg px-2 md:px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200">
+            <div class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200">
                 <x-heroicon-o-building-office-2 class="h-5 w-5 text-primary-500" />
-                <span class="hidden md:inline max-w-[150px] truncate">{{ $branches->first()->name }}</span>
+                <span class="max-w-[150px] truncate hidden lg:block">{{ $branches->first()->name }}</span>
             </div>
         @else
             {{-- Multiple branches - show dropdown --}}
             <x-filament::dropdown placement="bottom-start" width="xs">
                 <x-slot name="trigger">
-                    <button type="button" class="flex items-center gap-2 rounded-lg px-2 md:px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-white/5 transition">
+                    <button type="button" class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-white/5 transition">
                         <x-heroicon-o-building-office-2 class="h-5 w-5 text-primary-500" />
-                        <span class="hidden md:inline max-w-[150px] truncate">{{ $displayLabel }}</span>
-                        <x-heroicon-m-chevron-down class="hidden md:inline h-4 w-4 text-gray-400" />
+                        <span class="max-w-[150px] truncate hidden lg:block">{{ $displayLabel }}</span>
+                        <x-heroicon-m-chevron-down class="h-4 w-4 text-gray-400 hidden lg:block" />
                     </button>
                 </x-slot>
 
