@@ -20,6 +20,8 @@ return [
         'consent_templates' => 'Consent Templates',
         'parameter_template' => 'Parameter Template',
         'parameter_templates' => 'Parameter Templates',
+        'custom_parameters' => 'Custom Parameters',
+        'parameter_presets' => 'Parameter Presets',
     ],
 
     'fields' => [
@@ -154,6 +156,44 @@ return [
         'branch' => 'Branch',
         'price' => 'Price',
         'is_active' => 'Active',
+    ],
+
+    'parameters' => [
+        'basic_info' => 'Basic Information',
+        'key' => 'Parameter Key',
+        'key_help' => 'Unique identifier (use snake_case, e.g., pulse_duration)',
+        'type' => 'Type',
+        'label' => 'Label',
+        'category' => 'Category',
+        'is_required' => 'Required',
+        'display_order' => 'Display Order',
+        'type_settings' => 'Type Settings',
+        'min' => 'Minimum',
+        'max' => 'Maximum',
+        'step' => 'Step',
+        'unit' => 'Unit',
+        'options' => 'Options',
+        'option_value' => 'Value',
+        'option_label' => 'Label',
+        'default_value' => 'Default Value',
+        'help_text' => 'Help Text',
+        'no_parameters' => 'No custom parameters',
+        'no_parameters_description' => 'Add parameters to record specific treatment data',
+        'use_custom_mode' => 'Switch to "Custom Parameters" mode to add custom parameters',
+        'types' => [
+            'text' => 'Text',
+            'number' => 'Number',
+            'decimal' => 'Decimal',
+            'select' => 'Dropdown',
+            'boolean' => 'Yes/No',
+            'textarea' => 'Long Text',
+        ],
+        'categories' => [
+            'equipment_settings' => 'Equipment Settings',
+            'clinical' => 'Clinical',
+            'safety' => 'Safety',
+            'outcomes' => 'Outcomes',
+        ],
     ],
 
     'presets' => [

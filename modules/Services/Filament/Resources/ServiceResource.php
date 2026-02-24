@@ -598,6 +598,7 @@ class ServiceResource extends Resource
     {
         return [
             RelationManagers\BranchPricingRelationManager::class,
+            RelationManagers\ServiceParametersRelationManager::class,
             RelationManagers\ParameterPresetsRelationManager::class,
             RelationManagers\AppointmentsRelationManager::class,
             RelationManagers\PackageItemsRelationManager::class,

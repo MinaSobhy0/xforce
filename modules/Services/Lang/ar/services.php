@@ -20,6 +20,8 @@ return [
         'consent_templates' => 'نماذج الموافقة',
         'parameter_template' => 'قالب المعايير',
         'parameter_templates' => 'قوالب المعايير',
+        'custom_parameters' => 'المعايير المخصصة',
+        'parameter_presets' => 'الإعدادات المسبقة للمعايير',
     ],
 
     'fields' => [
@@ -144,6 +146,44 @@ return [
         'branch' => 'الفرع',
         'price' => 'السعر',
         'is_active' => 'نشط',
+    ],
+
+    'parameters' => [
+        'basic_info' => 'المعلومات الأساسية',
+        'key' => 'مفتاح المعيار',
+        'key_help' => 'معرف فريد (استخدم snake_case، مثل pulse_duration)',
+        'type' => 'النوع',
+        'label' => 'التسمية',
+        'category' => 'الفئة',
+        'is_required' => 'مطلوب',
+        'display_order' => 'ترتيب العرض',
+        'type_settings' => 'إعدادات النوع',
+        'min' => 'الحد الأدنى',
+        'max' => 'الحد الأقصى',
+        'step' => 'الخطوة',
+        'unit' => 'الوحدة',
+        'options' => 'الخيارات',
+        'option_value' => 'القيمة',
+        'option_label' => 'التسمية',
+        'default_value' => 'القيمة الافتراضية',
+        'help_text' => 'نص المساعدة',
+        'no_parameters' => 'لا توجد معايير مخصصة',
+        'no_parameters_description' => 'أضف معايير لتسجيل بيانات العلاج المحددة',
+        'use_custom_mode' => 'قم بالتبديل إلى وضع "المعايير المخصصة" لإضافة معايير مخصصة',
+        'types' => [
+            'text' => 'نص',
+            'number' => 'رقم',
+            'decimal' => 'عشري',
+            'select' => 'قائمة منسدلة',
+            'boolean' => 'نعم/لا',
+            'textarea' => 'نص طويل',
+        ],
+        'categories' => [
+            'equipment_settings' => 'إعدادات المعدات',
+            'clinical' => 'سريري',
+            'safety' => 'السلامة',
+            'outcomes' => 'النتائج',
+        ],
     ],
 
     'presets' => [

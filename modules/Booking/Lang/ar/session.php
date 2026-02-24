@@ -27,6 +27,8 @@ return [
         'presets' => 'إعدادات مسبقة',
         'parameters' => 'معايير العلاج',
         'clinical_notes' => 'التوثيق السريري',
+        'consumables' => 'المستهلكات',
+        'products' => 'المنتجات',
     ],
 
     // Alerts
@@ -116,6 +118,10 @@ return [
         'clinical_notes_saved' => 'تم حفظ الملاحظات السريرية',
         'checklist_incomplete' => 'قائمة الفحص غير مكتملة',
         'complete_checklist_first' => 'يرجى إكمال جميع عناصر قائمة السلامة قبل إنهاء الجلسة',
+        'consumable_added' => 'تمت إضافة المستهلك',
+        'consumable_removed' => 'تم حذف المستهلك',
+        'product_added' => 'تمت إضافة المنتج',
+        'product_removed' => 'تم حذف المنتج',
     ],
 
     // Pre-treatment checklist
@@ -156,5 +162,27 @@ return [
         'observations' => 'الملاحظات السريرية',
         'observations_placeholder' => 'أدخل الملاحظات السريرية، ملاحظات عن منطقة العلاج، استجابة المريض، إلخ.',
         'save' => 'حفظ الملاحظات',
+    ],
+
+    // Consumables
+    'consumables' => [
+        'select' => 'اختر مستهلك...',
+        'quantity' => 'الكمية',
+        'add' => 'إضافة',
+        'none' => 'لم تتم إضافة مستهلكات',
+        'total_cost' => 'إجمالي التكلفة',
+        'unit' => 'الوحدة',
+    ],
+
+    // Products
+    'products' => [
+        'select' => 'اختر منتج...',
+        'quantity' => 'الكمية',
+        'add' => 'إضافة',
+        'none' => 'لم تتم إضافة منتجات',
+        'total_value' => 'إجمالي القيمة',
+        'usage_type' => 'الاستخدام',
+        'applied' => 'مطبق أثناء العلاج',
+        'sold' => 'مُباع للمريض',
     ],
 ];

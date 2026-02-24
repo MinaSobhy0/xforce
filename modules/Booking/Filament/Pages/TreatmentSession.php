@@ -29,6 +29,9 @@ use Modules\TreatmentPlans\Models\TreatmentPlanItem;
 use Modules\Services\Models\Service;
 use Modules\Services\Models\ParameterPreset;
 use Modules\Equipment\Models\Equipment;
+use Modules\Inventory\Models\Product;
+use Modules\Booking\Models\SessionConsumable;
+use Modules\Booking\Models\SessionProduct;
 
 class TreatmentSession extends Page implements HasForms, HasInfolists
 {
@@ -86,6 +89,15 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
 
     // Treatment plan form
     public ?array $treatmentPlanData = [];
+
+    // Consumables & Products
+    public array $sessionConsumables = [];
+    public array $sessionProducts = [];
+    public ?string $newConsumableId = null;
+    public ?float $newConsumableQty = 1;
+    public ?string $newProductId = null;
+    public ?float $newProductQty = 1;
+    public ?string $newProductUsageType = 'applied';
 
     public function mount(): void
     {
@@ -175,6 +187,45 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
         if (empty($this->parameterValues) && $this->appointment->service) {
             $this->parameterValues = $this->appointment->service->getDefaultParameterValues();
         }
+
+        // Load consumables and products
+        $this->loadConsumablesAndProducts();
+    }
+
+    protected function loadConsumablesAndProducts(): void
+    {
+        if (!$this->appointment) {
+            return;
+        }
+
+        $this->sessionConsumables = SessionConsumable::where('appointment_id', $this->appointment->id)
+            ->with('product')
+            ->get()
+            ->map(fn ($c) => [
+                'id' => $c->id,
+                'product_id' => $c->product_id,
+                'product_name' => $c->product?->getTranslation('name', app()->getLocale()) ?? '',
+                'quantity' => $c->quantity,
+                'unit' => $c->unit,
+                'unit_cost' => $c->unit_cost,
+                'total_cost' => $c->total_cost,
+            ])
+            ->toArray();
+
+        $this->sessionProducts = SessionProduct::where('appointment_id', $this->appointment->id)
+            ->with('product')
+            ->get()
+            ->map(fn ($p) => [
+                'id' => $p->id,
+                'product_id' => $p->product_id,
+                'product_name' => $p->product?->getTranslation('name', app()->getLocale()) ?? '',
+                'quantity' => $p->quantity,
+                'unit' => $p->unit,
+                'unit_price' => $p->unit_price,
+                'total_price' => $p->total_price,
+                'usage_type' => $p->usage_type,
+            ])
+            ->toArray();
     }
 
     protected function getDefaultChecklist(): array
@@ -292,6 +343,23 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
                 $planAppointment->item->incrementCompletedSessions();
                 $planAppointment->item->treatmentPlan->checkAndMarkComplete();
             }
+
+            // Mark consumables as deducted
+            SessionConsumable::where('appointment_id', $this->appointment->id)
+                ->where('is_deducted', false)
+                ->update([
+                    'is_deducted' => true,
+                    'deducted_at' => now(),
+                    'deducted_by' => auth()->id(),
+                ]);
+
+            // Mark products as deducted
+            SessionProduct::where('appointment_id', $this->appointment->id)
+                ->where('is_deducted', false)
+                ->update([
+                    'is_deducted' => true,
+                    'deducted_at' => now(),
+                ]);
         });
 
         Notification::make()
@@ -809,5 +877,156 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
     public function getSkinReactionOptions(): array
     {
         return TreatmentSessionData::SKIN_REACTIONS;
+    }
+
+    // ============================================
+    // CONSUMABLES METHODS
+    // ============================================
+
+    public function getAvailableConsumables(): Collection
+    {
+        return Product::query()
+            ->where('is_active', true)
+            ->where('is_consumable', true)
+            ->get();
+    }
+
+    public function addConsumable(): void
+    {
+        if (!$this->newConsumableId || !$this->appointment) {
+            return;
+        }
+
+        $product = Product::find($this->newConsumableId);
+        if (!$product) {
+            return;
+        }
+
+        $consumable = SessionConsumable::create([
+            'tenant_id' => $this->appointment->tenant_id,
+            'appointment_id' => $this->appointment->id,
+            'product_id' => $product->id,
+            'branch_id' => $this->appointment->branch_id,
+            'quantity' => $this->newConsumableQty ?? 1,
+            'unit' => $product->unit,
+            'unit_cost_minor' => $product->cost_price_minor,
+            'created_by' => auth()->id(),
+        ]);
+
+        $this->sessionConsumables[] = [
+            'id' => $consumable->id,
+            'product_id' => $consumable->product_id,
+            'product_name' => $product->getTranslation('name', app()->getLocale()),
+            'quantity' => $consumable->quantity,
+            'unit' => $consumable->unit,
+            'unit_cost' => $consumable->unit_cost,
+            'total_cost' => $consumable->total_cost,
+        ];
+
+        $this->newConsumableId = null;
+        $this->newConsumableQty = 1;
+
+        Notification::make()
+            ->title(__('booking::session.messages.consumable_added'))
+            ->success()
+            ->send();
+    }
+
+    public function removeConsumable(string $consumableId): void
+    {
+        SessionConsumable::where('id', $consumableId)->delete();
+
+        $this->sessionConsumables = array_values(
+            array_filter($this->sessionConsumables, fn ($c) => $c['id'] !== $consumableId)
+        );
+
+        Notification::make()
+            ->title(__('booking::session.messages.consumable_removed'))
+            ->success()
+            ->send();
+    }
+
+    public function getTotalConsumablesCost(): float
+    {
+        return array_sum(array_column($this->sessionConsumables, 'total_cost'));
+    }
+
+    // ============================================
+    // PRODUCTS METHODS
+    // ============================================
+
+    public function getAvailableProducts(): Collection
+    {
+        return Product::query()
+            ->where('is_active', true)
+            ->get();
+    }
+
+    public function addProduct(): void
+    {
+        if (!$this->newProductId || !$this->appointment) {
+            return;
+        }
+
+        $product = Product::find($this->newProductId);
+        if (!$product) {
+            return;
+        }
+
+        $sessionProduct = SessionProduct::create([
+            'tenant_id' => $this->appointment->tenant_id,
+            'appointment_id' => $this->appointment->id,
+            'product_id' => $product->id,
+            'branch_id' => $this->appointment->branch_id,
+            'quantity' => $this->newProductQty ?? 1,
+            'unit' => $product->unit,
+            'unit_price_minor' => $product->sell_price_minor,
+            'usage_type' => $this->newProductUsageType ?? 'applied',
+            'created_by' => auth()->id(),
+        ]);
+
+        $this->sessionProducts[] = [
+            'id' => $sessionProduct->id,
+            'product_id' => $sessionProduct->product_id,
+            'product_name' => $product->getTranslation('name', app()->getLocale()),
+            'quantity' => $sessionProduct->quantity,
+            'unit' => $sessionProduct->unit,
+            'unit_price' => $sessionProduct->unit_price,
+            'total_price' => $sessionProduct->total_price,
+            'usage_type' => $sessionProduct->usage_type,
+        ];
+
+        $this->newProductId = null;
+        $this->newProductQty = 1;
+        $this->newProductUsageType = 'applied';
+
+        Notification::make()
+            ->title(__('booking::session.messages.product_added'))
+            ->success()
+            ->send();
+    }
+
+    public function removeProduct(string $productId): void
+    {
+        SessionProduct::where('id', $productId)->delete();
+
+        $this->sessionProducts = array_values(
+            array_filter($this->sessionProducts, fn ($p) => $p['id'] !== $productId)
+        );
+
+        Notification::make()
+            ->title(__('booking::session.messages.product_removed'))
+            ->success()
+            ->send();
+    }
+
+    public function getTotalProductsValue(): float
+    {
+        return array_sum(array_column($this->sessionProducts, 'total_price'));
+    }
+
+    public function getProductUsageTypes(): array
+    {
+        return SessionProduct::USAGE_TYPES;
     }
 }

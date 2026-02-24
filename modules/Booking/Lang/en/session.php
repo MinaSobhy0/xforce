@@ -27,6 +27,8 @@ return [
         'presets' => 'Parameter Presets',
         'parameters' => 'Treatment Parameters',
         'clinical_notes' => 'Clinical Documentation',
+        'consumables' => 'Consumables',
+        'products' => 'Products',
     ],
 
     // Alerts
@@ -116,6 +118,10 @@ return [
         'clinical_notes_saved' => 'Clinical notes saved',
         'checklist_incomplete' => 'Pre-treatment checklist incomplete',
         'complete_checklist_first' => 'Please complete all safety checklist items before finishing the session',
+        'consumable_added' => 'Consumable added',
+        'consumable_removed' => 'Consumable removed',
+        'product_added' => 'Product added',
+        'product_removed' => 'Product removed',
     ],
 
     // Pre-treatment checklist
@@ -156,5 +162,27 @@ return [
         'observations' => 'Clinical Observations',
         'observations_placeholder' => 'Enter clinical observations, notes about treatment area, patient response, etc.',
         'save' => 'Save Notes',
+    ],
+
+    // Consumables
+    'consumables' => [
+        'select' => 'Select consumable...',
+        'quantity' => 'Qty',
+        'add' => 'Add',
+        'none' => 'No consumables added',
+        'total_cost' => 'Total Cost',
+        'unit' => 'Unit',
+    ],
+
+    // Products
+    'products' => [
+        'select' => 'Select product...',
+        'quantity' => 'Qty',
+        'add' => 'Add',
+        'none' => 'No products added',
+        'total_value' => 'Total Value',
+        'usage_type' => 'Usage',
+        'applied' => 'Applied during treatment',
+        'sold' => 'Sold to patient',
     ],
 ];

@@ -30,7 +30,7 @@ This document outlines the complete implementation plan for the Treatment Sessio
 - [x] Create migration file
 - [x] Create `ServiceParameter` model
 - [x] Add relationship to `Service` model
-- [ ] Create Filament Resource for managing parameters
+- [x] Create Filament RelationManager for managing parameters
 
 ---
 
@@ -40,8 +40,8 @@ This document outlines the complete implementation plan for the Treatment Sessio
 **Tasks:**
 - [x] Create migration file
 - [x] Create `ParameterTemplate` model
-- [ ] Create seeder for default templates (Laser, IPL, Botox, etc.)
-- [ ] Create Filament Resource for managing templates
+- [x] Create seeder for default templates (Laser, IPL, Botox, etc.)
+- [x] Create Filament Resource for managing templates
 
 ---
 
@@ -72,7 +72,7 @@ This document outlines the complete implementation plan for the Treatment Sessio
 **Tasks:**
 - [x] Create migration file
 - [x] Update `Service` model with relationships
-- [ ] Add parameter configuration to Service Filament Resource
+- [x] Add parameter configuration to Service Filament Resource
 
 ---
 
@@ -106,7 +106,7 @@ The Equipment module already exists with:
 
 ---
 
-## Phase 3: Session Enhancement ⏳ PARTIAL
+## Phase 3: Session Enhancement ✅ COMPLETED
 
 ### 3.1 Session Fields
 Most session data is stored in `treatment_session_data` table:
@@ -119,11 +119,17 @@ Most session data is stored in `treatment_session_data` table:
 - [x] Pre-treatment checklist (JSON)
 - [x] Session timing (started_at, ended_at, duration)
 
-### 3.2 Session Consumables Table
-**Status:** ❌ Not Implemented
+### 3.2 Session Consumables Table ✅
+- [x] Migration created
+- [x] SessionConsumable model with inventory integration
+- [x] Add/remove consumables during session
+- [x] Auto-deduct on session completion
 
-### 3.3 Session Products Table
-**Status:** ❌ Not Implemented
+### 3.3 Session Products Table ✅
+- [x] Migration created
+- [x] SessionProduct model with usage types (applied/sold)
+- [x] Add/remove products during session
+- [x] Auto-deduct on session completion
 
 ---
 
@@ -271,12 +277,16 @@ Most session data is stored in `treatment_session_data` table:
 - [x] `modules/Services/Database/Migrations/2026_02_24_000004_add_parameters_to_services_table.php`
 - [x] `modules/Services/Database/Migrations/2026_02_24_000005_update_parameter_presets_table.php`
 - [x] `modules/Booking/Database/Migrations/2026_02_24_000001_create_treatment_session_data_table.php`
+- [x] `modules/Booking/Database/Migrations/2026_02_24_000002_create_session_consumables_table.php`
+- [x] `modules/Booking/Database/Migrations/2026_02_24_000003_create_session_products_table.php`
 
 ### Models
 - [x] `modules/Services/Models/ParameterTemplate.php`
 - [x] `modules/Services/Models/ServiceParameter.php`
 - [x] `modules/Services/Models/ParameterPreset.php`
 - [x] `modules/Booking/Models/TreatmentSessionData.php`
+- [x] `modules/Booking/Models/SessionConsumable.php`
+- [x] `modules/Booking/Models/SessionProduct.php`
 
 ### Services
 - [x] `modules/Services/Services/ParameterValidationService.php`
@@ -291,6 +301,7 @@ Most session data is stored in `treatment_session_data` table:
 - [x] `modules/Services/Filament/Resources/ParameterTemplateResource/Pages/ViewParameterTemplate.php`
 - [x] `modules/Services/Filament/Resources/ParameterTemplateResource/Pages/EditParameterTemplate.php`
 - [x] `modules/Services/Filament/Resources/ServiceResource/RelationManagers/ParameterPresetsRelationManager.php`
+- [x] `modules/Services/Filament/Resources/ServiceResource/RelationManagers/ServiceParametersRelationManager.php`
 
 ### Updated Files
 - [x] `modules/Services/Models/Service.php` - Added parameter relationships
@@ -311,8 +322,8 @@ Most session data is stored in `treatment_session_data` table:
 1. ~~**Create Parameter Templates Seeder**~~ ✅ Done - 8 templates created
 2. ~~**Add Filament Resources**~~ ✅ Done - ParameterTemplateResource created
 3. ~~**Add Parameters tab to ServiceResource**~~ ✅ Done - Parameters tab with template selection and presets RelationManager
-4. **Test End-to-End** - Test complete flow from service setup to session completion
-5. **Session Consumables & Products** - Optional: Add consumables/products tracking
+4. ~~**Session Consumables & Products**~~ ✅ Done - Full consumables/products tracking implemented
+5. **Test End-to-End** - Test complete flow from service setup to session completion
 6. **Reporting & Analytics** - Phase 7: Add session analytics
 
 ---

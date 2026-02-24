@@ -7,6 +7,7 @@ use XLinic\Framework\Core\Model\Traits\HasTenancy;
 use XLinic\Framework\Core\Model\Traits\HasActivity;
 use XLinic\Framework\Core\Model\Traits\HasSequence;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Modules\Auth\Models\User;
@@ -176,6 +177,32 @@ class Appointment extends BaseModel
     public function sessionData(): HasOne
     {
         return $this->hasOne(TreatmentSessionData::class);
+    }
+
+    public function consumables(): HasMany
+    {
+        return $this->hasMany(SessionConsumable::class);
+    }
+
+    public function products(): HasMany
+    {
+        return $this->hasMany(SessionProduct::class);
+    }
+
+    /**
+     * Get total consumables cost for this appointment.
+     */
+    public function getTotalConsumablesCostAttribute(): int
+    {
+        return $this->consumables->sum('total_cost_minor');
+    }
+
+    /**
+     * Get total products value for this appointment.
+     */
+    public function getTotalProductsValueAttribute(): int
+    {
+        return $this->products->sum('total_price_minor');
     }
 
     // Accessors
