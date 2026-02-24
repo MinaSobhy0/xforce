@@ -36,6 +36,7 @@ class CalendarWidget extends FullCalendarWidget
     public function config(): array
     {
         return [
+            'initialView' => 'timeGridWeek',
             'headerToolbar' => [
                 'left' => 'prev,next today',
                 'center' => 'title',
