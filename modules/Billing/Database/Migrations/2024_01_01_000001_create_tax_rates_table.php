@@ -13,12 +13,20 @@ return new class extends Migration
             $table->uuid('tenant_id')->index();
             $table->jsonb('name');
             $table->decimal('rate', 5, 2)->default(0);
+            $table->string('type')->default('sales'); // sales, purchase
+            $table->uuid('account_id')->nullable();
             $table->boolean('is_default')->default(false);
             $table->boolean('is_active')->default(true);
             $table->timestamps();
 
+            $table->foreign('account_id')
+                ->references('id')
+                ->on('chart_of_accounts')
+                ->nullOnDelete();
+
             $table->index(['tenant_id', 'is_default']);
             $table->index(['tenant_id', 'is_active']);
+            $table->index(['tenant_id', 'type']);
         });
     }
 

@@ -3,6 +3,7 @@
 namespace Modules\Billing\Filament\Resources;
 
 use App\Traits\ChecksResourcePermissions;
+use Modules\Accounting\Models\ChartOfAccount;
 use Modules\Billing\Filament\Resources\TaxRateResource\Pages;
 use Modules\Billing\Models\TaxRate;
 use Filament\Forms;
@@ -62,14 +63,47 @@ class TaxRateResource extends Resource
                                     ->maxLength(255),
                             ]),
 
-                        Forms\Components\TextInput::make('rate')
-                            ->label(__('billing::billing.tax_resource.rate'))
-                            ->numeric()
-                            ->required()
-                            ->minValue(0)
-                            ->maxValue(100)
-                            ->suffix('%')
-                            ->step(0.01),
+                        Forms\Components\Grid::make(2)
+                            ->schema([
+                                Forms\Components\TextInput::make('rate')
+                                    ->label(__('billing::billing.tax_resource.rate'))
+                                    ->numeric()
+                                    ->required()
+                                    ->minValue(0)
+                                    ->maxValue(100)
+                                    ->suffix('%')
+                                    ->step(0.01),
+
+                                Forms\Components\Select::make('type')
+                                    ->label(__('billing::billing.tax_resource.type'))
+                                    ->options([
+                                        TaxRate::TYPE_SALES => __('billing::billing.tax_resource.type_sales'),
+                                        TaxRate::TYPE_PURCHASE => __('billing::billing.tax_resource.type_purchase'),
+                                    ])
+                                    ->default(TaxRate::TYPE_SALES)
+                                    ->required(),
+                            ]),
+
+                        Forms\Components\Select::make('account_id')
+                            ->label(__('billing::billing.tax_resource.account'))
+                            ->relationship('account', 'code', fn ($query) => $query->where('is_active', true)->orderBy('code'))
+                            ->getOptionLabelFromRecordUsing(fn (ChartOfAccount $record) => "{$record->code} - {$record->translated_name}")
+                            ->getSearchResultsUsing(function (string $search) {
+                                return ChartOfAccount::query()
+                                    ->where('is_active', true)
+                                    ->where(function ($query) use ($search) {
+                                        $query->where('code', 'ilike', "%{$search}%")
+                                            ->orWhereRaw("name->>'en' ILIKE ?", ["%{$search}%"])
+                                            ->orWhereRaw("name->>'ar' ILIKE ?", ["%{$search}%"]);
+                                    })
+                                    ->orderBy('code')
+                                    ->limit(50)
+                                    ->get()
+                                    ->mapWithKeys(fn ($account) => [$account->id => "{$account->code} - {$account->translated_name}"]);
+                            })
+                            ->searchable()
+                            ->preload()
+                            ->helperText(__('billing::billing.tax_resource.account_help')),
 
                         Forms\Components\Toggle::make('is_default')
                             ->label(__('billing::billing.tax_resource.default_tax_rate'))
@@ -97,6 +131,25 @@ class TaxRateResource extends Resource
                     ->suffix('%')
                     ->sortable(),
 
+                Tables\Columns\TextColumn::make('type')
+                    ->label(__('billing::billing.tax_resource.type'))
+                    ->badge()
+                    ->formatStateUsing(fn (string $state): string => match($state) {
+                        TaxRate::TYPE_SALES => __('billing::billing.tax_resource.type_sales'),
+                        TaxRate::TYPE_PURCHASE => __('billing::billing.tax_resource.type_purchase'),
+                        default => $state,
+                    })
+                    ->color(fn (string $state): string => match($state) {
+                        TaxRate::TYPE_SALES => 'success',
+                        TaxRate::TYPE_PURCHASE => 'warning',
+                        default => 'gray',
+                    }),
+
+                Tables\Columns\TextColumn::make('account.code')
+                    ->label(__('billing::billing.tax_resource.account'))
+                    ->placeholder('-')
+                    ->toggleable(),
+
                 Tables\Columns\IconColumn::make('is_default')
                     ->label(__('billing::billing.tax_resource.default'))
                     ->boolean(),
@@ -111,6 +164,13 @@ class TaxRateResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                Tables\Filters\SelectFilter::make('type')
+                    ->label(__('billing::billing.tax_resource.type'))
+                    ->options([
+                        TaxRate::TYPE_SALES => __('billing::billing.tax_resource.type_sales'),
+                        TaxRate::TYPE_PURCHASE => __('billing::billing.tax_resource.type_purchase'),
+                    ]),
+
                 Tables\Filters\TernaryFilter::make('is_active')
                     ->label(__('billing::billing.tax_resource.active')),
             ])

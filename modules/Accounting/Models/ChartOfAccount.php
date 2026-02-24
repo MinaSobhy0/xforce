@@ -123,6 +123,14 @@ class ChartOfAccount extends BaseModel
         return "{$this->code} - {$this->name}";
     }
 
+    // Get the translated name attribute
+    public function getTranslatedNameAttribute(): string
+    {
+        return $this->getTranslation('name', app()->getLocale())
+            ?: $this->getTranslation('name', 'en')
+            ?: '';
+    }
+
     // Get type label
     public function getTypeLabelAttribute(): string
     {

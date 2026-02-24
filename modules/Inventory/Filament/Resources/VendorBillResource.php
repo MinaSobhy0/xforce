@@ -140,7 +140,7 @@ class VendorBillResource extends Resource
                                                     if ($product) {
                                                         $set('description', $product->getTranslation('name', app()->getLocale()));
                                                         $set('unit_price_minor', $product->cost_price_minor / 100);
-                                                        $defaultTax = TaxRate::getDefault();
+                                                        $defaultTax = TaxRate::getDefault(TaxRate::TYPE_PURCHASE);
                                                         $set('tax_rate', $defaultTax ? (string) $defaultTax->rate : '14');
                                                         // Set expense account from product or fallback to first expense account
                                                         if ($product->expense_account_id) {
@@ -223,6 +223,7 @@ class VendorBillResource extends Resource
                                             ->label(__('inventory::inventory.fields.tax'))
                                             ->options(function () {
                                                 return TaxRate::where('is_active', true)
+                                                    ->where('type', TaxRate::TYPE_PURCHASE)
                                                     ->orderBy('rate')
                                                     ->get()
                                                     ->mapWithKeys(fn ($t) => [
@@ -230,7 +231,7 @@ class VendorBillResource extends Resource
                                                     ]);
                                             })
                                             ->default(function () {
-                                                $default = TaxRate::getDefault();
+                                                $default = TaxRate::getDefault(TaxRate::TYPE_PURCHASE);
                                                 return $default ? (string) $default->rate : '14';
                                             })
                                             ->columnSpan(['default' => 4, 'md' => 3]),

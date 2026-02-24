@@ -36,7 +36,7 @@ class LinesRelationManager extends RelationManager
                             if ($service) {
                                 $set('description', $service->name);
                                 $set('unit_price_minor', $service->base_price_minor / 100);
-                                $set('tax_rate', TaxRate::getDefault()?->rate ?? 14);
+                                $set('tax_rate', TaxRate::getDefault(TaxRate::TYPE_SALES)?->rate ?? 14);
                             }
                         }
                     }),
@@ -77,7 +77,7 @@ class LinesRelationManager extends RelationManager
                 Forms\Components\TextInput::make('tax_rate')
                     ->label(__('billing::billing.fields.tax'))
                     ->numeric()
-                    ->default(fn () => TaxRate::getDefault()?->rate ?? 14)
+                    ->default(fn () => TaxRate::getDefault(TaxRate::TYPE_SALES)?->rate ?? 14)
                     ->suffix('%'),
             ]);
     }
