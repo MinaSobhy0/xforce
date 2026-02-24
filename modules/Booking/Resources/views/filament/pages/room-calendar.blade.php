@@ -169,10 +169,19 @@
                                             };
                                         @endphp
                                         <div
+                                            class="appointment-card"
                                             style="position: absolute; top: 2px; left: 4px; width: calc(100% - 8px); height: {{ $position['height'] - 6 }}px; z-index: 5; background: {{ $statusStyles['bg'] }}; border: none; border-left: 3px solid {{ $statusStyles['border'] }}; border-radius: 6px; padding: 4px 8px; box-sizing: border-box; overflow: hidden; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.05); transition: all 0.2s ease;"
                                             onmouseover="this.style.boxShadow='0 4px 6px rgba(0,0,0,0.1)'; this.style.transform='translateY(-1px)';"
                                             onmouseout="this.style.boxShadow='0 1px 2px rgba(0,0,0,0.05)'; this.style.transform='none';"
-                                            title="{{ $position['startTime'] }} - {{ $position['endTime'] }} ({{ $position['duration'] }} min)&#10;{{ __('booking::room_calendar.practitioner') }}: {{ $appointment->practitioner?->full_name ?? '-' }}&#10;{{ __('booking::room_calendar.status') }}: {{ $appointment->status }}"
+                                            data-tippy-content="<div class='p-2 text-sm'>
+                                                <div class='font-semibold text-gray-800 mb-1'>{{ $appointment->patient?->full_name ?? __('booking::room_calendar.unknown') }}</div>
+                                                @if($appointment->patient?->phone)<div class='text-gray-600'>{{ $appointment->patient->phone }}</div>@endif
+                                                <div class='text-gray-600 mt-1'>{{ $appointment->service?->name }}</div>
+                                                <div class='text-gray-500 mt-2'><span class='font-medium'>{{ __('booking::room_calendar.time') }}:</span> {{ $position['startTime'] }} - {{ $position['endTime'] }} ({{ $position['duration'] }} min)</div>
+                                                <div class='text-gray-500'><span class='font-medium'>{{ __('booking::room_calendar.practitioner') }}:</span> {{ $appointment->practitioner?->full_name ?? '-' }}</div>
+                                                <div class='text-gray-500'><span class='font-medium'>{{ __('booking::room_calendar.room') }}:</span> {{ $appointment->room?->name ?? '-' }}</div>
+                                                <div class='text-gray-500'><span class='font-medium'>{{ __('booking::room_calendar.status') }}:</span> {{ ucfirst(str_replace('_', ' ', $appointment->status)) }}</div>
+                                            </div>"
                                             wire:click="$dispatch('open-modal', { id: 'appointment-{{ $appointment->id }}' })"
                                         >
                                             <p style="margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; font-weight: 500; color: {{ $statusStyles['text'] }};">
@@ -227,4 +236,32 @@
             <div class="text-sm text-gray-500 dark:text-gray-400">{{ __('booking::room_calendar.stats.avg_duration') }}</div>
         </div>
     </div>
+
+    @assets
+    <link rel="stylesheet" href="https://unpkg.com/tippy.js@6/themes/light-border.css"/>
+    <script src="https://unpkg.com/@popperjs/core@2"></script>
+    <script src="https://unpkg.com/tippy.js@6"></script>
+    @endassets
+
+    @script
+    <script>
+        document.addEventListener('livewire:navigated', initTippy);
+        document.addEventListener('DOMContentLoaded', initTippy);
+
+        function initTippy() {
+            if (typeof tippy !== 'undefined') {
+                tippy('.appointment-card', {
+                    allowHTML: true,
+                    theme: 'light-border',
+                    placement: 'top',
+                    interactive: true,
+                    maxWidth: 300,
+                });
+            }
+        }
+
+        // Initialize on first load
+        initTippy();
+    </script>
+    @endscript
 </x-filament-panels::page>

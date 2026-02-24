@@ -16,6 +16,7 @@ return [
     'back_to_calendar' => 'Calendar',
     'practitioner' => 'Practitioner',
     'status' => 'Status',
+    'room' => 'Room',
 
     'legend' => [
         'scheduled' => 'Scheduled',

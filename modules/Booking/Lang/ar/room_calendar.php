@@ -16,6 +16,7 @@ return [
     'back_to_calendar' => 'التقويم',
     'practitioner' => 'الممارس',
     'status' => 'الحالة',
+    'room' => 'الغرفة',
 
     'legend' => [
         'scheduled' => 'مجدول',
