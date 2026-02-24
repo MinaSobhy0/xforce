@@ -52,8 +52,8 @@
 
         {{-- Responsive grid: stack on mobile, horizontal scroll on tablet, full width on desktop --}}
         <div class="overflow-x-auto pb-4" wire:poll.15s>
-            <div class="grid gap-3 min-w-max lg:min-w-0"
-                 style="grid-template-columns: repeat({{ $totalColumns }}, minmax(200px, 1fr));">
+            <div class="grid gap-4 min-w-max lg:min-w-0"
+                 style="grid-template-columns: repeat({{ $totalColumns }}, minmax(280px, 1fr));">
 
                 {{-- Arriving Lane --}}
                 @php
