@@ -75,61 +75,93 @@
             </div>
         @endif
 
-        {{-- Equipment Selection --}}
+        {{-- Equipment Section --}}
         @if($this->hasServiceParameters())
             <x-filament::section>
                 <x-slot name="heading">
-                    <div class="flex items-center gap-2">
-                        <x-heroicon-o-cog-6-tooth class="w-5 h-5 text-gray-400" />
-                        {{ __('booking::session.sections.equipment') }}
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <x-heroicon-o-cog-6-tooth class="w-5 h-5 text-gray-400" />
+                            {{ __('booking::session.sections.equipment') }}
+                        </div>
+                        @if(count($sessionEquipment) > 0)
+                            <span class="text-sm text-gray-500 dark:text-gray-400">{{ count($sessionEquipment) }} {{ __('booking::session.equipment.devices') }}</span>
+                        @endif
                     </div>
                 </x-slot>
 
-                <div class="flex flex-wrap items-end gap-4">
-                    <div class="flex-1 min-w-[200px]">
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('booking::session.equipment.select') }}</label>
+                {{-- Equipment List --}}
+                @if(count($sessionEquipment) > 0)
+                    <div class="space-y-2 mb-4">
+                        @foreach($sessionEquipment as $index => $equipment)
+                            <div class="flex flex-wrap items-center gap-3 p-3 border border-gray-200 dark:border-gray-700 rounded-lg {{ $equipment['is_preset'] ? 'bg-blue-50/50 dark:bg-blue-900/10' : '' }}">
+                                <div class="flex-1 min-w-[150px]">
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-medium text-gray-900 dark:text-white text-sm">{{ $equipment['name'] }}</span>
+                                        <span class="text-xs text-gray-500 dark:text-gray-400">({{ $equipment['code'] }})</span>
+                                        @if($equipment['is_preset'])
+                                            <span class="px-1.5 py-0.5 text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 rounded">{{ __('booking::session.equipment.preset') }}</span>
+                                        @endif
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <div>
+                                        <input
+                                            type="number"
+                                            value="{{ $equipment['shots_used'] }}"
+                                            wire:change="updateEquipmentMetric('{{ $equipment['equipment_id'] }}', 'shots_used', $event.target.value)"
+                                            class="w-20 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm text-center"
+                                            min="0"
+                                            placeholder="{{ __('booking::session.equipment.shots') }}"
+                                        />
+                                    </div>
+                                    <div>
+                                        <input
+                                            type="number"
+                                            value="{{ $equipment['energy_delivered'] }}"
+                                            wire:change="updateEquipmentMetric('{{ $equipment['equipment_id'] }}', 'energy_delivered', $event.target.value)"
+                                            class="w-20 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm text-center"
+                                            min="0"
+                                            step="0.1"
+                                            placeholder="{{ __('booking::session.equipment.energy_short') }}"
+                                        />
+                                    </div>
+                                    @if(!$equipment['is_preset'])
+                                        <button
+                                            wire:click="removeEquipment('{{ $equipment['equipment_id'] }}')"
+                                            class="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                        >
+                                            <x-heroicon-o-x-mark class="w-4 h-4" />
+                                        </button>
+                                    @endif
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+
+                {{-- Add Equipment Form --}}
+                @php $availableEquipment = $this->getAvailableEquipment(); @endphp
+                @if($availableEquipment->isNotEmpty())
+                    <div class="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                         <select
-                            wire:model.live="selectedEquipmentId"
-                            wire:change="selectEquipment($event.target.value)"
-                            class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm"
+                            wire:model="newEquipmentId"
+                            class="flex-1 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm"
                         >
-                            <option value="">{{ __('booking::session.equipment.none') }}</option>
-                            @foreach($this->getAvailableEquipment() as $equipment)
-                                <option value="{{ $equipment->id }}">
-                                    {{ $equipment->name }} ({{ $equipment->code }})
-                                </option>
+                            <option value="">{{ __('booking::session.equipment.add_equipment') }}</option>
+                            @foreach($availableEquipment as $equipment)
+                                <option value="{{ $equipment->id }}">{{ $equipment->name }} ({{ $equipment->code }})</option>
                             @endforeach
                         </select>
+                        <x-filament::button wire:click="addEquipment" size="sm">
+                            <x-heroicon-o-plus class="w-4 h-4" />
+                        </x-filament::button>
                     </div>
-
-                    @if($selectedEquipmentId)
-                        <div class="flex gap-3">
-                            <div>
-                                <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ __('booking::session.equipment.shots_used') }}</label>
-                                <input
-                                    type="number"
-                                    wire:model.blur="equipmentMetrics.shots_used"
-                                    wire:change="updateEquipmentMetric('shots_used', $event.target.value)"
-                                    class="w-24 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm"
-                                    min="0"
-                                    placeholder="0"
-                                />
-                            </div>
-                            <div>
-                                <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ __('booking::session.equipment.energy') }}</label>
-                                <input
-                                    type="number"
-                                    wire:model.blur="equipmentMetrics.energy_delivered"
-                                    wire:change="updateEquipmentMetric('energy_delivered', $event.target.value)"
-                                    class="w-24 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm"
-                                    min="0"
-                                    step="0.1"
-                                    placeholder="0"
-                                />
-                            </div>
-                        </div>
-                    @endif
-                </div>
+                @elseif(count($sessionEquipment) === 0)
+                    <div class="text-center py-4 text-gray-500 dark:text-gray-400 text-sm">
+                        {{ __('booking::session.equipment.none_available') }}
+                    </div>
+                @endif
             </x-filament::section>
 
             {{-- Dynamic Parameters Form --}}

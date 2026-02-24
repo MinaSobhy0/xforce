@@ -73,7 +73,8 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
     public array $preTreatmentChecklist = [];
 
     // Equipment selection
-    public ?string $selectedEquipmentId = null;
+    public array $sessionEquipment = [];
+    public ?string $newEquipmentId = null;
     public ?string $selectedPresetId = null;
 
     // Clinical notes
@@ -181,11 +182,13 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
         $this->equipmentMetrics = $this->sessionData->equipment_metrics ?? [];
         $this->treatmentAreas = $this->sessionData->treatment_areas ?? [];
         $this->preTreatmentChecklist = $this->sessionData->pre_treatment_checklist ?? $this->getDefaultChecklist();
-        $this->selectedEquipmentId = $this->sessionData->equipment_id;
         $this->selectedPresetId = $this->sessionData->preset_id;
         $this->clinicalNotes = $this->sessionData->clinical_notes;
         $this->skinReaction = $this->sessionData->skin_reaction ?? 'none';
         $this->painLevel = $this->sessionData->pain_level;
+
+        // Load session equipment
+        $this->loadSessionEquipment();
 
         // If no parameter values, try to apply default preset or service defaults
         if (empty($this->parameterValues) && $this->appointment->service) {
@@ -752,41 +755,156 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
     // EQUIPMENT METHODS
     // ============================================
 
+    protected function loadSessionEquipment(): void
+    {
+        if (!$this->appointment) {
+            return;
+        }
+
+        // Load from session data if available
+        $savedEquipment = $this->sessionData->session_equipment ?? [];
+
+        if (!empty($savedEquipment)) {
+            $this->sessionEquipment = $savedEquipment;
+            return;
+        }
+
+        // Auto-load equipment from service requirements
+        $serviceEquipment = [];
+        if ($this->appointment->service) {
+            $requiredEquipment = $this->appointment->service->requiredEquipment()
+                ->where('branch_id', $this->appointment->branch_id)
+                ->where('status', Equipment::STATUS_ACTIVE)
+                ->get();
+
+            foreach ($requiredEquipment as $equipment) {
+                $serviceEquipment[] = [
+                    'id' => $equipment->id,
+                    'equipment_id' => $equipment->id,
+                    'name' => $equipment->name,
+                    'code' => $equipment->code,
+                    'is_preset' => true, // From service requirements
+                    'shots_used' => null,
+                    'energy_delivered' => null,
+                ];
+            }
+        }
+
+        // Also add equipment from appointment if set
+        if ($this->appointment->equipment_id && !collect($serviceEquipment)->pluck('equipment_id')->contains($this->appointment->equipment_id)) {
+            $equipment = Equipment::find($this->appointment->equipment_id);
+            if ($equipment) {
+                $serviceEquipment[] = [
+                    'id' => $equipment->id,
+                    'equipment_id' => $equipment->id,
+                    'name' => $equipment->name,
+                    'code' => $equipment->code,
+                    'is_preset' => true,
+                    'shots_used' => null,
+                    'energy_delivered' => null,
+                ];
+            }
+        }
+
+        $this->sessionEquipment = $serviceEquipment;
+
+        // Save to session data
+        if ($this->sessionData && !empty($serviceEquipment)) {
+            $this->sessionData->update([
+                'session_equipment' => $serviceEquipment,
+            ]);
+        }
+    }
+
     public function getAvailableEquipment(): Collection
     {
         if (!$this->appointment) {
             return collect();
         }
 
+        // Get equipment IDs already in session
+        $usedEquipmentIds = collect($this->sessionEquipment)->pluck('equipment_id')->toArray();
+
         return Equipment::query()
             ->where('branch_id', $this->appointment->branch_id)
             ->where('status', Equipment::STATUS_ACTIVE)
+            ->whereNotIn('id', $usedEquipmentIds)
             ->get();
     }
 
-    public function selectEquipment(?string $equipmentId): void
+    public function addEquipment(): void
     {
-        $this->selectedEquipmentId = $equipmentId;
+        if (!$this->newEquipmentId) {
+            return;
+        }
 
+        $equipment = Equipment::find($this->newEquipmentId);
+        if (!$equipment) {
+            return;
+        }
+
+        // Check if already exists
+        if (collect($this->sessionEquipment)->pluck('equipment_id')->contains($this->newEquipmentId)) {
+            Notification::make()
+                ->title(__('booking::session.equipment.already_added'))
+                ->warning()
+                ->send();
+            return;
+        }
+
+        $this->sessionEquipment[] = [
+            'id' => $equipment->id,
+            'equipment_id' => $equipment->id,
+            'name' => $equipment->name,
+            'code' => $equipment->code,
+            'is_preset' => false,
+            'shots_used' => null,
+            'energy_delivered' => null,
+        ];
+
+        // Save to session data
         if ($this->sessionData) {
             $this->sessionData->update([
-                'equipment_id' => $equipmentId,
+                'session_equipment' => $this->sessionEquipment,
             ]);
+        }
 
-            // Also update the appointment
-            $this->appointment->update([
-                'equipment_id' => $equipmentId,
+        $this->newEquipmentId = null;
+
+        Notification::make()
+            ->title(__('booking::session.equipment.added'))
+            ->success()
+            ->send();
+    }
+
+    public function removeEquipment(string $equipmentId): void
+    {
+        $this->sessionEquipment = array_values(array_filter(
+            $this->sessionEquipment,
+            fn ($e) => $e['equipment_id'] !== $equipmentId
+        ));
+
+        // Save to session data
+        if ($this->sessionData) {
+            $this->sessionData->update([
+                'session_equipment' => $this->sessionEquipment,
             ]);
         }
     }
 
-    public function updateEquipmentMetric(string $key, $value): void
+    public function updateEquipmentMetric(string $equipmentId, string $key, $value): void
     {
-        $this->equipmentMetrics[$key] = $value;
+        foreach ($this->sessionEquipment as $index => $equipment) {
+            if ($equipment['equipment_id'] === $equipmentId) {
+                $this->sessionEquipment[$index][$key] = $value;
+                break;
+            }
+        }
 
+        // Save to session data
         if ($this->sessionData) {
             $this->sessionData->update([
-                'equipment_metrics' => $this->equipmentMetrics,
+                'session_equipment' => $this->sessionEquipment,
             ]);
         }
     }

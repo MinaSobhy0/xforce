@@ -154,21 +154,31 @@
                                             $position = $this->getAppointmentPosition($appointment);
                                             $statusColor = $this->getStatusColor($appointment->status);
                                         @endphp
+                                        @php
+                                            $cardColors = match ($appointment->status) {
+                                                'scheduled' => 'background: #dbeafe; border-left-color: #3b82f6; color: #1e40af;',
+                                                'confirmed' => 'background: #e0e7ff; border-left-color: #6366f1; color: #3730a3;',
+                                                'checked_in' => 'background: #fef3c7; border-left-color: #f59e0b; color: #92400e;',
+                                                'in_progress' => 'background: #f3e8ff; border-left-color: #a855f7; color: #6b21a8;',
+                                                'completed' => 'background: #dcfce7; border-left-color: #22c55e; color: #166534;',
+                                                default => 'background: #f3f4f6; border-left-color: #6b7280; color: #374151;',
+                                            };
+                                        @endphp
                                         <div
-                                            class="absolute inset-x-1 top-0 rounded-lg border-l-4 px-2 py-1 overflow-hidden cursor-pointer shadow-sm hover:shadow-md transition-shadow {{ $statusColor }}"
-                                            style="height: {{ $position['height'] - 4 }}px; z-index: 5;"
+                                            class="absolute inset-x-1 top-0 rounded-md border-l-4 px-2 py-1 overflow-hidden cursor-pointer shadow hover:shadow-lg transition-all"
+                                            style="height: {{ $position['height'] - 4 }}px; z-index: 5; {{ $cardColors }}"
                                             title="{{ $position['startTime'] }} - {{ $position['endTime'] }} ({{ $position['duration'] }} min)&#10;{{ __('booking::room_calendar.practitioner') }}: {{ $appointment->practitioner?->full_name ?? '-' }}&#10;{{ __('booking::room_calendar.status') }}: {{ $appointment->status }}"
                                             wire:click="$dispatch('open-modal', { id: 'appointment-{{ $appointment->id }}' })"
                                         >
-                                            <div class="text-xs font-semibold truncate">
+                                            <div class="text-xs font-bold truncate">
                                                 {{ $appointment->patient?->full_name ?? __('booking::room_calendar.unknown') }}
                                             </div>
                                             @if($appointment->patient?->phone)
-                                                <div class="text-[10px] truncate opacity-75">
+                                                <div class="text-[10px] truncate" style="opacity: 0.8;">
                                                     {{ $appointment->patient->phone }}
                                                 </div>
                                             @endif
-                                            <div class="text-[10px] truncate opacity-75">
+                                            <div class="text-[10px] truncate" style="opacity: 0.8;">
                                                 {{ $appointment->service?->name }}
                                             </div>
                                         </div>
