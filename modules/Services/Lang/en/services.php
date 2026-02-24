@@ -8,6 +8,7 @@ return [
         'services' => 'Services',
         'categories' => 'Categories',
         'consent_templates' => 'Consent Templates',
+        'parameter_templates' => 'Parameter Templates',
     ],
 
     'labels' => [
@@ -17,6 +18,8 @@ return [
         'categories' => 'Categories',
         'consent_template' => 'Consent Template',
         'consent_templates' => 'Consent Templates',
+        'parameter_template' => 'Parameter Template',
+        'parameter_templates' => 'Parameter Templates',
     ],
 
     'fields' => [
@@ -50,10 +53,33 @@ return [
         'blackout_dates_help' => 'Enter dates when this service cannot be booked (format: YYYY-MM-DD)',
         'hours' => 'hours',
         'days' => 'days',
+        'has_dynamic_parameters' => 'Enable Dynamic Parameters',
+        'has_dynamic_parameters_help' => 'Allow practitioners to record treatment-specific parameters during sessions',
+        'parameter_mode' => 'Parameter Source',
+        'parameter_template' => 'Parameter Template',
+        'parameter_template_help' => 'Select a pre-defined template for this service\'s parameters',
+        'template_parameters' => 'Included Parameters',
+    ],
+
+    'parameter_modes' => [
+        'none' => 'No Parameters',
+        'template' => 'Use Template',
+        'custom' => 'Custom Parameters',
+    ],
+
+    'messages' => [
+        'created' => 'Service created successfully.',
+        'updated' => 'Service updated successfully.',
+        'deleted' => 'Service deleted successfully.',
+        'no_parameters_defined' => 'No parameters defined in this template',
+        'custom_parameters_note' => 'Custom parameters can be managed after saving the service. Use the Service Parameters section to add individual parameters.',
+        'presets_count' => ':count preset(s) configured for this service',
+        'save_first_for_presets' => 'Save the service first to manage parameter presets',
     ],
 
     'tabs' => [
         'scheduling' => 'Scheduling & Resources',
+        'parameters' => 'Treatment Parameters',
     ],
 
     'sections' => [
@@ -65,6 +91,14 @@ return [
         'required_equipment_description' => 'Specific equipment items required for this service',
         'time_restrictions' => 'Time Slot Restrictions',
         'time_restrictions_description' => 'Configure when this service can be booked',
+        'parameter_configuration' => 'Parameter Configuration',
+        'parameter_configuration_description' => 'Configure dynamic treatment parameters for this service',
+        'template_preview' => 'Template Preview',
+        'template_preview_description' => 'Parameters included in the selected template',
+        'custom_parameters' => 'Custom Parameters',
+        'custom_parameters_description' => 'Define custom parameters for this service',
+        'parameter_presets' => 'Parameter Presets',
+        'parameter_presets_description' => 'Pre-defined value sets for quick parameter selection',
     ],
 
     'staff' => [
@@ -122,10 +156,17 @@ return [
         'is_active' => 'Active',
     ],
 
-    'messages' => [
-        'created' => 'Service created successfully.',
-        'updated' => 'Service updated successfully.',
-        'deleted' => 'Service deleted successfully.',
+    'presets' => [
+        'basic_info' => 'Basic Information',
+        'is_default' => 'Default Preset',
+        'is_default_help' => 'This preset will be auto-selected when starting a new session',
+        'parameter_values' => 'Parameter Values',
+        'parameter_values_description' => 'Set the values for each parameter in this preset',
+        'created' => 'Created',
+        'set_as_default' => 'Set as Default',
+        'no_presets' => 'No parameter presets',
+        'no_presets_description' => 'Create presets to quickly apply common parameter configurations',
+        'configure_parameters_first' => 'Configure parameters for this service first to create presets',
     ],
 
     'category_tree' => [

@@ -173,6 +173,11 @@ class Appointment extends BaseModel
         return $this->hasOne(\Modules\TreatmentPlans\Models\TreatmentPlanAppointment::class);
     }
 
+    public function sessionData(): HasOne
+    {
+        return $this->hasOne(TreatmentSessionData::class);
+    }
+
     // Accessors
     public function getStartDateTimeAttribute(): ?\Carbon\Carbon
     {

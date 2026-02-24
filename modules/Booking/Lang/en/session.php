@@ -21,6 +21,11 @@ return [
         'current_plan' => 'Current Treatment Plan',
         'previous_visits' => 'Previous Visits',
         'create_plan' => 'Create Treatment Plan',
+        'pre_treatment_checklist' => 'Pre-Treatment Checklist',
+        'equipment' => 'Equipment',
+        'presets' => 'Parameter Presets',
+        'parameters' => 'Treatment Parameters',
+        'clinical_notes' => 'Clinical Documentation',
     ],
 
     // Alerts
@@ -106,5 +111,49 @@ return [
         'photo_uploaded' => 'Photo uploaded successfully',
         'plan_created' => 'Treatment plan created successfully',
         'plan_creation_failed' => 'Failed to create treatment plan',
+        'preset_applied' => 'Preset applied successfully',
+        'clinical_notes_saved' => 'Clinical notes saved',
+        'checklist_incomplete' => 'Pre-treatment checklist incomplete',
+        'complete_checklist_first' => 'Please complete all safety checklist items before finishing the session',
+    ],
+
+    // Pre-treatment checklist
+    'checklist' => [
+        'patient_identity_verified' => 'Patient identity verified',
+        'consent_signed' => 'Consent form signed',
+        'medical_history_reviewed' => 'Medical history reviewed',
+        'contraindications_checked' => 'Contraindications checked',
+        'allergies_confirmed' => 'Allergies confirmed',
+        'test_patch_done' => 'Test patch completed',
+        'eye_protection_provided' => 'Eye protection provided',
+        'treatment_area_clean' => 'Treatment area cleaned',
+    ],
+
+    // Equipment
+    'equipment' => [
+        'select' => 'Select Equipment',
+        'none' => 'No equipment selected',
+        'metrics' => 'Session Metrics',
+        'shots_used' => 'Shots Used',
+        'energy' => 'Energy Delivered (J)',
+    ],
+
+    // Presets
+    'presets' => [
+        'default' => 'Default',
+        'none' => 'No presets available for this service',
+    ],
+
+    // Clinical notes
+    'clinical' => [
+        'skin_reaction' => 'Skin Reaction',
+        'pain_level' => 'Pain Level',
+        'pain_none' => 'None',
+        'pain_mild' => 'Mild',
+        'pain_moderate' => 'Moderate',
+        'pain_severe' => 'Severe',
+        'observations' => 'Clinical Observations',
+        'observations_placeholder' => 'Enter clinical observations, notes about treatment area, patient response, etc.',
+        'save' => 'Save Notes',
     ],
 ];

@@ -8,6 +8,7 @@ return [
         'services' => 'الخدمات',
         'categories' => 'الفئات',
         'consent_templates' => 'نماذج الموافقة',
+        'parameter_templates' => 'قوالب المعايير',
     ],
 
     'labels' => [
@@ -17,6 +18,8 @@ return [
         'categories' => 'الفئات',
         'consent_template' => 'نموذج الموافقة',
         'consent_templates' => 'نماذج الموافقة',
+        'parameter_template' => 'قالب المعايير',
+        'parameter_templates' => 'قوالب المعايير',
     ],
 
     'fields' => [
@@ -50,10 +53,23 @@ return [
         'blackout_dates_help' => 'أدخل التواريخ التي لا يمكن حجز هذه الخدمة فيها (التنسيق: YYYY-MM-DD)',
         'hours' => 'ساعات',
         'days' => 'أيام',
+        'has_dynamic_parameters' => 'تفعيل المعايير الديناميكية',
+        'has_dynamic_parameters_help' => 'السماح للممارسين بتسجيل معايير العلاج المحددة أثناء الجلسات',
+        'parameter_mode' => 'مصدر المعايير',
+        'parameter_template' => 'قالب المعايير',
+        'parameter_template_help' => 'اختر قالبًا محددًا مسبقًا لمعايير هذه الخدمة',
+        'template_parameters' => 'المعايير المتضمنة',
+    ],
+
+    'parameter_modes' => [
+        'none' => 'بدون معايير',
+        'template' => 'استخدام قالب',
+        'custom' => 'معايير مخصصة',
     ],
 
     'tabs' => [
         'scheduling' => 'الجدولة والموارد',
+        'parameters' => 'معايير العلاج',
     ],
 
     'sections' => [
@@ -65,6 +81,14 @@ return [
         'required_equipment_description' => 'عناصر المعدات المحددة المطلوبة لهذه الخدمة',
         'time_restrictions' => 'قيود الفترات الزمنية',
         'time_restrictions_description' => 'تكوين متى يمكن حجز هذه الخدمة',
+        'parameter_configuration' => 'إعدادات المعايير',
+        'parameter_configuration_description' => 'تكوين معايير العلاج الديناميكية لهذه الخدمة',
+        'template_preview' => 'معاينة القالب',
+        'template_preview_description' => 'المعايير المتضمنة في القالب المحدد',
+        'custom_parameters' => 'معايير مخصصة',
+        'custom_parameters_description' => 'تحديد معايير مخصصة لهذه الخدمة',
+        'parameter_presets' => 'إعدادات المعايير المسبقة',
+        'parameter_presets_description' => 'مجموعات القيم المحددة مسبقًا للاختيار السريع',
     ],
 
     'staff' => [
@@ -122,10 +146,27 @@ return [
         'is_active' => 'نشط',
     ],
 
+    'presets' => [
+        'basic_info' => 'المعلومات الأساسية',
+        'is_default' => 'الإعداد الافتراضي',
+        'is_default_help' => 'سيتم اختيار هذا الإعداد تلقائيًا عند بدء جلسة جديدة',
+        'parameter_values' => 'قيم المعايير',
+        'parameter_values_description' => 'حدد قيم كل معيار في هذا الإعداد المسبق',
+        'created' => 'تاريخ الإنشاء',
+        'set_as_default' => 'تعيين كافتراضي',
+        'no_presets' => 'لا توجد إعدادات مسبقة',
+        'no_presets_description' => 'أنشئ إعدادات مسبقة لتطبيق تكوينات المعايير الشائعة بسرعة',
+        'configure_parameters_first' => 'قم بتكوين معايير هذه الخدمة أولاً لإنشاء الإعدادات المسبقة',
+    ],
+
     'messages' => [
         'created' => 'تم إضافة الخدمة بنجاح.',
         'updated' => 'تم تحديث الخدمة بنجاح.',
         'deleted' => 'تم حذف الخدمة بنجاح.',
+        'no_parameters_defined' => 'لم يتم تحديد معايير في هذا القالب',
+        'custom_parameters_note' => 'يمكن إدارة المعايير المخصصة بعد حفظ الخدمة. استخدم قسم معايير الخدمة لإضافة معايير فردية.',
+        'presets_count' => ':count إعداد(ات) مسبقة مكونة لهذه الخدمة',
+        'save_first_for_presets' => 'احفظ الخدمة أولاً لإدارة الإعدادات المسبقة للمعايير',
     ],
 
     'category_tree' => [

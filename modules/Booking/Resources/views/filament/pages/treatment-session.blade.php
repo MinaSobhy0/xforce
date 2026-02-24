@@ -75,6 +75,290 @@
             </div>
         @endif
 
+        {{-- Pre-Treatment Checklist --}}
+        @if($this->hasServiceParameters())
+            <x-filament::section>
+                <x-slot name="heading">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <x-heroicon-o-clipboard-document-check class="w-5 h-5 text-gray-400" />
+                            {{ __('booking::session.sections.pre_treatment_checklist') }}
+                        </div>
+                        @php $checklistProgress = $this->getChecklistProgress(); @endphp
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm {{ $checklistProgress['percentage'] === 100 ? 'text-green-600' : 'text-gray-500' }}">
+                                {{ $checklistProgress['completed'] }}/{{ $checklistProgress['total'] }}
+                            </span>
+                            @if($checklistProgress['percentage'] === 100)
+                                <x-heroicon-s-check-circle class="w-5 h-5 text-green-500" />
+                            @endif
+                        </div>
+                    </div>
+                </x-slot>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    @foreach($preTreatmentChecklist as $key => $value)
+                        <label class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition {{ $value ? 'ring-2 ring-green-500' : '' }}">
+                            <input
+                                type="checkbox"
+                                wire:model.live="preTreatmentChecklist.{{ $key }}"
+                                wire:change="updateChecklistItem('{{ $key }}', $event.target.checked)"
+                                class="rounded border-gray-300 text-primary-600 shadow-sm focus:ring-primary-500"
+                            />
+                            <span class="text-sm text-gray-700 dark:text-gray-300">
+                                {{ __('booking::session.checklist.' . $key) }}
+                            </span>
+                        </label>
+                    @endforeach
+                </div>
+            </x-filament::section>
+        @endif
+
+        {{-- Equipment & Parameters Row --}}
+        @if($this->hasServiceParameters())
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {{-- Equipment Selection --}}
+                <x-filament::section>
+                    <x-slot name="heading">
+                        <div class="flex items-center gap-2">
+                            <x-heroicon-o-cog-6-tooth class="w-5 h-5 text-gray-400" />
+                            {{ __('booking::session.sections.equipment') }}
+                        </div>
+                    </x-slot>
+
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{{ __('booking::session.equipment.select') }}</label>
+                            <select
+                                wire:model.live="selectedEquipmentId"
+                                wire:change="selectEquipment($event.target.value)"
+                                class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm"
+                            >
+                                <option value="">{{ __('booking::session.equipment.none') }}</option>
+                                @foreach($this->getAvailableEquipment() as $equipment)
+                                    <option value="{{ $equipment->id }}">
+                                        {{ $equipment->name }} ({{ $equipment->code }})
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        @if($selectedEquipmentId)
+                            <div class="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                                <div class="text-sm font-medium text-blue-700 dark:text-blue-300 mb-2">{{ __('booking::session.equipment.metrics') }}</div>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-xs text-gray-500 mb-1">{{ __('booking::session.equipment.shots_used') }}</label>
+                                        <input
+                                            type="number"
+                                            wire:model.blur="equipmentMetrics.shots_used"
+                                            wire:change="updateEquipmentMetric('shots_used', $event.target.value)"
+                                            class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm"
+                                            min="0"
+                                            placeholder="0"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs text-gray-500 mb-1">{{ __('booking::session.equipment.energy') }}</label>
+                                        <input
+                                            type="number"
+                                            wire:model.blur="equipmentMetrics.energy_delivered"
+                                            wire:change="updateEquipmentMetric('energy_delivered', $event.target.value)"
+                                            class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm"
+                                            min="0"
+                                            step="0.1"
+                                            placeholder="0"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+                </x-filament::section>
+
+                {{-- Parameter Presets --}}
+                <x-filament::section>
+                    <x-slot name="heading">
+                        <div class="flex items-center gap-2">
+                            <x-heroicon-o-bookmark class="w-5 h-5 text-gray-400" />
+                            {{ __('booking::session.sections.presets') }}
+                        </div>
+                    </x-slot>
+
+                    @php $presets = $this->getAvailablePresets(); @endphp
+                    @if($presets->isNotEmpty())
+                        <div class="space-y-2">
+                            @foreach($presets as $preset)
+                                <button
+                                    wire:click="applyPreset('{{ $preset->id }}')"
+                                    class="w-full text-left p-3 border rounded-lg transition {{ $selectedPresetId === $preset->id ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20' : 'border-gray-200 dark:border-gray-700 hover:border-primary-300 hover:bg-gray-50 dark:hover:bg-gray-800' }}"
+                                >
+                                    <div class="font-medium text-gray-900 dark:text-white">{{ $preset->preset_name }}</div>
+                                    @if($preset->description)
+                                        <div class="text-sm text-gray-500 dark:text-gray-400">{{ $preset->description }}</div>
+                                    @endif
+                                    @if($preset->is_default)
+                                        <span class="inline-flex items-center px-2 py-0.5 mt-1 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 rounded">
+                                            {{ __('booking::session.presets.default') }}
+                                        </span>
+                                    @endif
+                                </button>
+                            @endforeach
+                        </div>
+                    @else
+                        <div class="text-center py-4 text-gray-500 dark:text-gray-400 text-sm">
+                            {{ __('booking::session.presets.none') }}
+                        </div>
+                    @endif
+                </x-filament::section>
+            </div>
+
+            {{-- Dynamic Parameters Form --}}
+            @php $parameters = $this->getServiceParameters(); @endphp
+            @if(!empty($parameters))
+                <x-filament::section>
+                    <x-slot name="heading">
+                        <div class="flex items-center gap-2">
+                            <x-heroicon-o-adjustments-horizontal class="w-5 h-5 text-gray-400" />
+                            {{ __('booking::session.sections.parameters') }}
+                        </div>
+                    </x-slot>
+
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        @foreach($parameters as $param)
+                            @php
+                                $key = $param['key'] ?? '';
+                                $type = $param['type'] ?? 'text';
+                                $label = is_array($param['label'] ?? '') ? ($param['label'][app()->getLocale()] ?? $param['label']['en'] ?? $key) : ($param['label'] ?? $key);
+                                $required = $param['required'] ?? false;
+                                $unit = $param['unit'] ?? null;
+                                $helpText = is_array($param['help_text'] ?? '') ? ($param['help_text'][app()->getLocale()] ?? $param['help_text']['en'] ?? null) : ($param['help_text'] ?? null);
+                            @endphp
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    {{ $label }}
+                                    @if($required)
+                                        <span class="text-red-500">*</span>
+                                    @endif
+                                    @if($unit)
+                                        <span class="text-gray-400 font-normal">({{ $unit }})</span>
+                                    @endif
+                                </label>
+
+                                @if($type === 'number' || $type === 'decimal')
+                                    <input
+                                        type="number"
+                                        wire:model.blur="parameterValues.{{ $key }}"
+                                        wire:change="updateParameterValue('{{ $key }}', $event.target.value)"
+                                        class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm"
+                                        @if(isset($param['min'])) min="{{ $param['min'] }}" @endif
+                                        @if(isset($param['max'])) max="{{ $param['max'] }}" @endif
+                                        @if(isset($param['step'])) step="{{ $param['step'] }}" @endif
+                                        @if(isset($param['default'])) placeholder="{{ $param['default'] }}" @endif
+                                    />
+                                @elseif($type === 'select')
+                                    <select
+                                        wire:model.live="parameterValues.{{ $key }}"
+                                        wire:change="updateParameterValue('{{ $key }}', $event.target.value)"
+                                        class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm"
+                                    >
+                                        <option value="">{{ __('Select...') }}</option>
+                                        @foreach($param['options'] ?? [] as $option)
+                                            @php
+                                                $optionLabel = is_array($option['label'] ?? '') ? ($option['label'][app()->getLocale()] ?? $option['label']['en'] ?? $option['value']) : ($option['label'] ?? $option['value']);
+                                            @endphp
+                                            <option value="{{ $option['value'] }}">{{ $optionLabel }}</option>
+                                        @endforeach
+                                    </select>
+                                @elseif($type === 'boolean')
+                                    <label class="flex items-center gap-2 mt-2">
+                                        <input
+                                            type="checkbox"
+                                            wire:model.live="parameterValues.{{ $key }}"
+                                            wire:change="updateParameterValue('{{ $key }}', $event.target.checked)"
+                                            class="rounded border-gray-300 text-primary-600 shadow-sm focus:ring-primary-500"
+                                        />
+                                        <span class="text-sm text-gray-600 dark:text-gray-400">{{ __('Yes') }}</span>
+                                    </label>
+                                @elseif($type === 'textarea')
+                                    <textarea
+                                        wire:model.blur="parameterValues.{{ $key }}"
+                                        wire:change="updateParameterValue('{{ $key }}', $event.target.value)"
+                                        rows="2"
+                                        class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm"
+                                    ></textarea>
+                                @else
+                                    <input
+                                        type="text"
+                                        wire:model.blur="parameterValues.{{ $key }}"
+                                        wire:change="updateParameterValue('{{ $key }}', $event.target.value)"
+                                        class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm"
+                                        @if(isset($param['placeholder'])) placeholder="{{ is_array($param['placeholder']) ? ($param['placeholder'][app()->getLocale()] ?? $param['placeholder']['en'] ?? '') : $param['placeholder'] }}" @endif
+                                    />
+                                @endif
+
+                                @if($helpText)
+                                    <p class="text-xs text-gray-500 mt-1">{{ $helpText }}</p>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
+                </x-filament::section>
+            @endif
+
+            {{-- Clinical Notes Section --}}
+            <x-filament::section>
+                <x-slot name="heading">
+                    <div class="flex items-center gap-2">
+                        <x-heroicon-o-document-text class="w-5 h-5 text-gray-400" />
+                        {{ __('booking::session.sections.clinical_notes') }}
+                    </div>
+                </x-slot>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('booking::session.clinical.skin_reaction') }}</label>
+                        <select
+                            wire:model.live="skinReaction"
+                            class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm"
+                        >
+                            @foreach($this->getSkinReactionOptions() as $value => $label)
+                                <option value="{{ $value }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('booking::session.clinical.pain_level') }}</label>
+                        <select
+                            wire:model.live="painLevel"
+                            class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm"
+                        >
+                            <option value="">{{ __('Select...') }}</option>
+                            @for($i = 0; $i <= 10; $i++)
+                                <option value="{{ $i }}">{{ $i }} - {{ $i <= 2 ? __('booking::session.clinical.pain_none') : ($i <= 5 ? __('booking::session.clinical.pain_mild') : ($i <= 7 ? __('booking::session.clinical.pain_moderate') : __('booking::session.clinical.pain_severe'))) }}</option>
+                            @endfor
+                        </select>
+                    </div>
+                    <div class="flex items-end">
+                        <x-filament::button wire:click="saveClinicalNotes" class="w-full">
+                            {{ __('booking::session.clinical.save') }}
+                        </x-filament::button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('booking::session.clinical.observations') }}</label>
+                    <textarea
+                        wire:model.blur="clinicalNotes"
+                        rows="3"
+                        class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm"
+                        placeholder="{{ __('booking::session.clinical.observations_placeholder') }}"
+                    ></textarea>
+                </div>
+            </x-filament::section>
+        @endif
+
         {{-- Main Content Grid --}}
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {{-- Left Column --}}

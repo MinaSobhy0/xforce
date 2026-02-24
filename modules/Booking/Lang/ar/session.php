@@ -21,6 +21,11 @@ return [
         'current_plan' => 'خطة العلاج الحالية',
         'previous_visits' => 'الزيارات السابقة',
         'create_plan' => 'إنشاء خطة علاج',
+        'pre_treatment_checklist' => 'قائمة فحص ما قبل العلاج',
+        'equipment' => 'المعدات',
+        'presets' => 'إعدادات مسبقة',
+        'parameters' => 'معايير العلاج',
+        'clinical_notes' => 'التوثيق السريري',
     ],
 
     // Alerts
@@ -106,5 +111,49 @@ return [
         'photo_uploaded' => 'تم رفع الصورة بنجاح',
         'plan_created' => 'تم إنشاء خطة العلاج بنجاح',
         'plan_creation_failed' => 'فشل إنشاء خطة العلاج',
+        'preset_applied' => 'تم تطبيق الإعداد المسبق بنجاح',
+        'clinical_notes_saved' => 'تم حفظ الملاحظات السريرية',
+        'checklist_incomplete' => 'قائمة الفحص غير مكتملة',
+        'complete_checklist_first' => 'يرجى إكمال جميع عناصر قائمة السلامة قبل إنهاء الجلسة',
+    ],
+
+    // Pre-treatment checklist
+    'checklist' => [
+        'patient_identity_verified' => 'تم التحقق من هوية المريض',
+        'consent_signed' => 'تم توقيع نموذج الموافقة',
+        'medical_history_reviewed' => 'تمت مراجعة التاريخ الطبي',
+        'contraindications_checked' => 'تم فحص موانع الاستعمال',
+        'allergies_confirmed' => 'تم تأكيد الحساسية',
+        'test_patch_done' => 'تم إجراء اختبار الرقعة',
+        'eye_protection_provided' => 'تم توفير حماية العين',
+        'treatment_area_clean' => 'تم تنظيف منطقة العلاج',
+    ],
+
+    // Equipment
+    'equipment' => [
+        'select' => 'اختر المعدات',
+        'none' => 'لم يتم اختيار معدات',
+        'metrics' => 'مقاييس الجلسة',
+        'shots_used' => 'عدد النبضات',
+        'energy' => 'الطاقة المستخدمة (جول)',
+    ],
+
+    // Presets
+    'presets' => [
+        'default' => 'افتراضي',
+        'none' => 'لا توجد إعدادات مسبقة لهذه الخدمة',
+    ],
+
+    // Clinical notes
+    'clinical' => [
+        'skin_reaction' => 'تفاعل الجلد',
+        'pain_level' => 'مستوى الألم',
+        'pain_none' => 'لا يوجد',
+        'pain_mild' => 'خفيف',
+        'pain_moderate' => 'متوسط',
+        'pain_severe' => 'شديد',
+        'observations' => 'الملاحظات السريرية',
+        'observations_placeholder' => 'أدخل الملاحظات السريرية، ملاحظات عن منطقة العلاج، استجابة المريض، إلخ.',
+        'save' => 'حفظ الملاحظات',
     ],
 ];

@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Url;
 use Livewire\WithFileUploads;
 use Modules\Booking\Models\Appointment;
+use Modules\Booking\Models\TreatmentSessionData;
 use Modules\Patients\Models\Patient;
 use Modules\Patients\Models\PatientNote;
 use Modules\Patients\Models\PatientPhoto;
@@ -26,6 +27,8 @@ use Modules\Patients\Models\PatientMedicalHistory;
 use Modules\TreatmentPlans\Models\TreatmentPlan;
 use Modules\TreatmentPlans\Models\TreatmentPlanItem;
 use Modules\Services\Models\Service;
+use Modules\Services\Models\ParameterPreset;
+use Modules\Equipment\Models\Equipment;
 
 class TreatmentSession extends Page implements HasForms, HasInfolists
 {
@@ -49,6 +52,22 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
     public ?Appointment $appointment = null;
     public ?Patient $patient = null;
     public ?PatientMedicalHistory $medicalHistory = null;
+    public ?TreatmentSessionData $sessionData = null;
+
+    // Dynamic parameters
+    public array $parameterValues = [];
+    public array $equipmentMetrics = [];
+    public array $treatmentAreas = [];
+    public array $preTreatmentChecklist = [];
+
+    // Equipment selection
+    public ?string $selectedEquipmentId = null;
+    public ?string $selectedPresetId = null;
+
+    // Clinical notes
+    public ?string $clinicalNotes = null;
+    public ?string $skinReaction = 'none';
+    public ?string $painLevel = null;
 
     // Forms
     public ?string $noteContent = null;
@@ -91,6 +110,9 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
             ],
             'notes' => '',
         ];
+
+        // Load or create session data
+        $this->loadOrCreateSessionData();
     }
 
     protected function loadAppointment(): void
@@ -108,6 +130,58 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
             $this->patient = $this->appointment->patient;
             $this->medicalHistory = $this->patient?->medicalHistory;
         }
+    }
+
+    protected function loadOrCreateSessionData(): void
+    {
+        if (!$this->appointment) {
+            return;
+        }
+
+        // Try to load existing session data
+        $this->sessionData = TreatmentSessionData::where('appointment_id', $this->appointment->id)->first();
+
+        if (!$this->sessionData) {
+            // Create new session data
+            $this->sessionData = TreatmentSessionData::create([
+                'tenant_id' => $this->appointment->tenant_id,
+                'appointment_id' => $this->appointment->id,
+                'service_id' => $this->appointment->service_id,
+                'equipment_id' => $this->appointment->equipment_id,
+                'practitioner_id' => $this->appointment->practitioner_id,
+                'session_started_at' => $this->appointment->started_at ?? now(),
+            ]);
+        }
+
+        // Load state from session data
+        $this->parameterValues = $this->sessionData->parameter_values ?? [];
+        $this->equipmentMetrics = $this->sessionData->equipment_metrics ?? [];
+        $this->treatmentAreas = $this->sessionData->treatment_areas ?? [];
+        $this->preTreatmentChecklist = $this->sessionData->pre_treatment_checklist ?? $this->getDefaultChecklist();
+        $this->selectedEquipmentId = $this->sessionData->equipment_id;
+        $this->selectedPresetId = $this->sessionData->preset_id;
+        $this->clinicalNotes = $this->sessionData->clinical_notes;
+        $this->skinReaction = $this->sessionData->skin_reaction ?? 'none';
+        $this->painLevel = $this->sessionData->pain_level;
+
+        // If no parameter values and service has defaults, load them
+        if (empty($this->parameterValues) && $this->appointment->service) {
+            $this->parameterValues = $this->appointment->service->getDefaultParameterValues();
+        }
+    }
+
+    protected function getDefaultChecklist(): array
+    {
+        return [
+            'patient_identity_verified' => false,
+            'consent_signed' => false,
+            'medical_history_reviewed' => false,
+            'contraindications_checked' => false,
+            'allergies_confirmed' => false,
+            'test_patch_done' => false,
+            'eye_protection_provided' => false,
+            'treatment_area_clean' => false,
+        ];
     }
 
     public function getTitle(): string
@@ -162,7 +236,47 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
             return;
         }
 
+        // Check if checklist is complete (if service has parameters)
+        if ($this->hasServiceParameters() && !$this->isChecklistComplete()) {
+            Notification::make()
+                ->title(__('booking::session.messages.checklist_incomplete'))
+                ->body(__('booking::session.messages.complete_checklist_first'))
+                ->warning()
+                ->send();
+            return;
+        }
+
         DB::transaction(function () {
+            // Complete session data
+            if ($this->sessionData) {
+                $this->sessionData->update([
+                    'session_ended_at' => now(),
+                    'actual_duration_minutes' => $this->sessionData->session_started_at
+                        ? $this->sessionData->session_started_at->diffInMinutes(now())
+                        : null,
+                    'is_complete' => true,
+                    'parameter_values' => $this->parameterValues,
+                    'equipment_metrics' => $this->equipmentMetrics,
+                    'treatment_areas' => $this->treatmentAreas,
+                    'pre_treatment_checklist' => $this->preTreatmentChecklist,
+                    'clinical_notes' => $this->clinicalNotes,
+                    'skin_reaction' => $this->skinReaction,
+                    'pain_level' => $this->painLevel,
+                ]);
+            }
+
+            // Update equipment shot count if applicable
+            if ($this->selectedEquipmentId && !empty($this->equipmentMetrics['shots_used'])) {
+                $equipment = Equipment::find($this->selectedEquipmentId);
+                if ($equipment) {
+                    $equipment->recordShots(
+                        (int) $this->equipmentMetrics['shots_used'],
+                        $this->appointment->id,
+                        $this->parameterValues
+                    );
+                }
+            }
+
             $this->appointment->complete();
 
             // Update treatment plan progress if linked
@@ -471,5 +585,222 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
             ->orderByDesc('date')
             ->limit(5)
             ->get();
+    }
+
+    // ============================================
+    // DYNAMIC PARAMETERS METHODS
+    // ============================================
+
+    public function getServiceParameters(): array
+    {
+        if (!$this->appointment?->service) {
+            return [];
+        }
+
+        return $this->appointment->service->getParameterDefinitions();
+    }
+
+    public function hasServiceParameters(): bool
+    {
+        return $this->appointment?->service?->hasParameters() ?? false;
+    }
+
+    public function updateParameterValue(string $key, $value): void
+    {
+        $this->parameterValues[$key] = $value;
+        $this->saveParameterValues();
+    }
+
+    public function saveParameterValues(): void
+    {
+        if (!$this->sessionData) {
+            return;
+        }
+
+        $this->sessionData->update([
+            'parameter_values' => $this->parameterValues,
+        ]);
+    }
+
+    // ============================================
+    // EQUIPMENT METHODS
+    // ============================================
+
+    public function getAvailableEquipment(): Collection
+    {
+        if (!$this->appointment) {
+            return collect();
+        }
+
+        return Equipment::query()
+            ->where('branch_id', $this->appointment->branch_id)
+            ->where('status', Equipment::STATUS_ACTIVE)
+            ->get();
+    }
+
+    public function selectEquipment(?string $equipmentId): void
+    {
+        $this->selectedEquipmentId = $equipmentId;
+
+        if ($this->sessionData) {
+            $this->sessionData->update([
+                'equipment_id' => $equipmentId,
+            ]);
+
+            // Also update the appointment
+            $this->appointment->update([
+                'equipment_id' => $equipmentId,
+            ]);
+        }
+    }
+
+    public function updateEquipmentMetric(string $key, $value): void
+    {
+        $this->equipmentMetrics[$key] = $value;
+
+        if ($this->sessionData) {
+            $this->sessionData->update([
+                'equipment_metrics' => $this->equipmentMetrics,
+            ]);
+        }
+    }
+
+    // ============================================
+    // PRESET METHODS
+    // ============================================
+
+    public function getAvailablePresets(): Collection
+    {
+        if (!$this->appointment?->service_id) {
+            return collect();
+        }
+
+        return ParameterPreset::query()
+            ->where('service_id', $this->appointment->service_id)
+            ->where('is_active', true)
+            ->get();
+    }
+
+    public function applyPreset(string $presetId): void
+    {
+        $preset = ParameterPreset::find($presetId);
+        if (!$preset) {
+            return;
+        }
+
+        $this->selectedPresetId = $presetId;
+        $this->parameterValues = array_merge($this->parameterValues, $preset->getValues());
+
+        if ($this->sessionData) {
+            $this->sessionData->update([
+                'preset_id' => $presetId,
+                'parameter_values' => $this->parameterValues,
+            ]);
+        }
+
+        Notification::make()
+            ->title(__('booking::session.messages.preset_applied'))
+            ->success()
+            ->send();
+    }
+
+    // ============================================
+    // CHECKLIST METHODS
+    // ============================================
+
+    public function updateChecklistItem(string $key, bool $value): void
+    {
+        $this->preTreatmentChecklist[$key] = $value;
+
+        if ($this->sessionData) {
+            $this->sessionData->update([
+                'pre_treatment_checklist' => $this->preTreatmentChecklist,
+            ]);
+        }
+    }
+
+    public function isChecklistComplete(): bool
+    {
+        foreach ($this->preTreatmentChecklist as $value) {
+            if (!$value) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public function getChecklistProgress(): array
+    {
+        $total = count($this->preTreatmentChecklist);
+        $completed = count(array_filter($this->preTreatmentChecklist));
+
+        return [
+            'total' => $total,
+            'completed' => $completed,
+            'percentage' => $total > 0 ? round(($completed / $total) * 100) : 0,
+        ];
+    }
+
+    // ============================================
+    // CLINICAL NOTES METHODS
+    // ============================================
+
+    public function saveClinicalNotes(): void
+    {
+        if (!$this->sessionData) {
+            return;
+        }
+
+        $this->sessionData->update([
+            'clinical_notes' => $this->clinicalNotes,
+            'skin_reaction' => $this->skinReaction,
+            'pain_level' => $this->painLevel,
+        ]);
+
+        Notification::make()
+            ->title(__('booking::session.messages.clinical_notes_saved'))
+            ->success()
+            ->send();
+    }
+
+    // ============================================
+    // TREATMENT AREAS METHODS
+    // ============================================
+
+    public function addTreatmentArea(array $area): void
+    {
+        $this->treatmentAreas[] = $area;
+
+        if ($this->sessionData) {
+            $this->sessionData->update([
+                'treatment_areas' => $this->treatmentAreas,
+            ]);
+        }
+    }
+
+    public function removeTreatmentArea(int $index): void
+    {
+        unset($this->treatmentAreas[$index]);
+        $this->treatmentAreas = array_values($this->treatmentAreas);
+
+        if ($this->sessionData) {
+            $this->sessionData->update([
+                'treatment_areas' => $this->treatmentAreas,
+            ]);
+        }
+    }
+
+    public function getTotalPulses(): int
+    {
+        return array_sum(array_column($this->treatmentAreas, 'pulses'));
+    }
+
+    // ============================================
+    // SKIN REACTION OPTIONS
+    // ============================================
+
+    public function getSkinReactionOptions(): array
+    {
+        return TreatmentSessionData::SKIN_REACTIONS;
     }
 }

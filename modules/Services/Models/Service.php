@@ -10,6 +10,7 @@ use XLinic\Framework\Core\Model\Traits\HasSequence;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Modules\Equipment\Models\EquipmentType;
 use Modules\Equipment\Models\Equipment;
 use Modules\Core\Models\Room;
@@ -30,6 +31,9 @@ class Service extends BaseModel
         'tenant_id',
         'category_id',
         'consent_template_id',
+        'parameter_template_id',
+        'parameter_mode',
+        'has_dynamic_parameters',
         'code',
         'name',
         'description',
@@ -77,6 +81,7 @@ class Service extends BaseModel
         'is_bookable_online' => 'boolean',
         'time_slot_restrictions' => 'array',
         'sort_order' => 'integer',
+        'has_dynamic_parameters' => 'boolean',
     ];
 
     public array $translatable = [
@@ -114,6 +119,41 @@ class Service extends BaseModel
     public function consentTemplate(): BelongsTo
     {
         return $this->belongsTo(ConsentTemplate::class);
+    }
+
+    public function parameterTemplate(): BelongsTo
+    {
+        return $this->belongsTo(ParameterTemplate::class);
+    }
+
+    public function parameters(): HasMany
+    {
+        return $this->hasMany(ServiceParameter::class);
+    }
+
+    public function activeParameters(): HasMany
+    {
+        return $this->hasMany(ServiceParameter::class)
+            ->where('is_active', true)
+            ->orderBy('display_order');
+    }
+
+    public function parameterPresets(): HasMany
+    {
+        return $this->hasMany(ParameterPreset::class);
+    }
+
+    public function activePresets(): HasMany
+    {
+        return $this->hasMany(ParameterPreset::class)
+            ->where('is_active', true);
+    }
+
+    public function defaultPreset(): HasOne
+    {
+        return $this->hasOne(ParameterPreset::class)
+            ->where('is_default', true)
+            ->where('is_active', true);
     }
 
     public function branchPricing(): HasMany
@@ -287,6 +327,97 @@ class Service extends BaseModel
             $q->where('code', 'ilike', "%{$term}%")
                 ->orWhereRaw("name->>'en' ILIKE ?", ["%{$term}%"])
                 ->orWhereRaw("name->>'ar' ILIKE ?", ["%{$term}%"]);
+        });
+    }
+
+    /**
+     * Check if this service has dynamic parameters configured.
+     */
+    public function hasParameters(): bool
+    {
+        return $this->has_dynamic_parameters || $this->parameter_mode !== 'none';
+    }
+
+    /**
+     * Get all parameter definitions for this service.
+     * Returns parameters from template or custom service parameters.
+     */
+    public function getParameterDefinitions(): array
+    {
+        if ($this->parameter_mode === 'template' && $this->parameterTemplate) {
+            return $this->parameterTemplate->getParameterDefinitions();
+        }
+
+        if ($this->parameter_mode === 'custom') {
+            return $this->activeParameters->map(fn($p) => $p->toFormField())->toArray();
+        }
+
+        return [];
+    }
+
+    /**
+     * Validate parameter values for this service.
+     */
+    public function validateParameterValues(array $values): array
+    {
+        if ($this->parameter_mode === 'template' && $this->parameterTemplate) {
+            return $this->parameterTemplate->validateValues($values);
+        }
+
+        if ($this->parameter_mode === 'custom') {
+            $errors = [];
+            foreach ($this->activeParameters as $param) {
+                $key = $param->parameter_key;
+                $error = $param->validateValue($values[$key] ?? null);
+                if ($error) {
+                    $errors[$key] = $error;
+                }
+            }
+            return $errors;
+        }
+
+        return [];
+    }
+
+    /**
+     * Get default parameter values for this service.
+     */
+    public function getDefaultParameterValues(): array
+    {
+        // Check for default preset first
+        $defaultPreset = $this->defaultPreset;
+        if ($defaultPreset) {
+            return $defaultPreset->getValues();
+        }
+
+        // Fall back to template defaults
+        if ($this->parameter_mode === 'template' && $this->parameterTemplate) {
+            return $this->parameterTemplate->getDefaultValues();
+        }
+
+        // Fall back to parameter-level defaults
+        if ($this->parameter_mode === 'custom') {
+            $defaults = [];
+            foreach ($this->activeParameters as $param) {
+                $default = $param->getDefaultValue();
+                if ($default !== null) {
+                    $defaults[$param->parameter_key] = $default;
+                }
+            }
+            return $defaults;
+        }
+
+        return [];
+    }
+
+    /**
+     * Scope to services with dynamic parameters.
+     */
+    public function scopeWithParameters($query)
+    {
+        return $query->where(function ($q) {
+            $q->where('has_dynamic_parameters', true)
+                ->orWhere('parameter_mode', '!=', 'none');
         });
     }
 }

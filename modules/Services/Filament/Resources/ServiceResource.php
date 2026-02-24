@@ -11,6 +11,7 @@ use Filament\Tables\Table;
 use Modules\Services\Models\Service;
 use Modules\Services\Models\ServiceCategory;
 use Modules\Services\Models\ConsentTemplate;
+use Modules\Services\Models\ParameterTemplate;
 use Modules\Equipment\Models\EquipmentType;
 use Modules\Equipment\Models\Equipment;
 use Modules\Core\Models\Room;
@@ -307,6 +308,98 @@ class ServiceResource extends Resource
                                     ]),
                             ]),
 
+                        Forms\Components\Tabs\Tab::make(__('services::services.tabs.parameters'))
+                            ->schema([
+                                Forms\Components\Section::make(__('services::services.sections.parameter_configuration'))
+                                    ->description(__('services::services.sections.parameter_configuration_description'))
+                                    ->schema([
+                                        Forms\Components\Toggle::make('has_dynamic_parameters')
+                                            ->label(__('services::services.fields.has_dynamic_parameters'))
+                                            ->helperText(__('services::services.fields.has_dynamic_parameters_help'))
+                                            ->live()
+                                            ->afterStateUpdated(function (Forms\Set $set, $state) {
+                                                if (!$state) {
+                                                    $set('parameter_mode', 'none');
+                                                    $set('parameter_template_id', null);
+                                                }
+                                            }),
+
+                                        Forms\Components\Select::make('parameter_mode')
+                                            ->label(__('services::services.fields.parameter_mode'))
+                                            ->options([
+                                                'none' => __('services::services.parameter_modes.none'),
+                                                'template' => __('services::services.parameter_modes.template'),
+                                                'custom' => __('services::services.parameter_modes.custom'),
+                                            ])
+                                            ->default('none')
+                                            ->live()
+                                            ->visible(fn (Forms\Get $get) => $get('has_dynamic_parameters'))
+                                            ->afterStateUpdated(function (Forms\Set $set, $state) {
+                                                if ($state !== 'template') {
+                                                    $set('parameter_template_id', null);
+                                                }
+                                            }),
+
+                                        Forms\Components\Select::make('parameter_template_id')
+                                            ->label(__('services::services.fields.parameter_template'))
+                                            ->relationship('parameterTemplate', 'id')
+                                            ->getOptionLabelFromRecordUsing(fn (ParameterTemplate $record) => $record->translated_name)
+                                            ->searchable()
+                                            ->preload()
+                                            ->visible(fn (Forms\Get $get) => $get('has_dynamic_parameters') && $get('parameter_mode') === 'template')
+                                            ->helperText(__('services::services.fields.parameter_template_help')),
+                                    ]),
+
+                                Forms\Components\Section::make(__('services::services.sections.template_preview'))
+                                    ->description(__('services::services.sections.template_preview_description'))
+                                    ->visible(fn (Forms\Get $get) => $get('parameter_mode') === 'template' && $get('parameter_template_id'))
+                                    ->schema([
+                                        Forms\Components\Placeholder::make('template_parameters')
+                                            ->label(__('services::services.fields.template_parameters'))
+                                            ->content(function (Forms\Get $get) {
+                                                $templateId = $get('parameter_template_id');
+                                                if (!$templateId) {
+                                                    return '-';
+                                                }
+
+                                                $template = ParameterTemplate::find($templateId);
+                                                if (!$template || empty($template->parameters)) {
+                                                    return __('services::services.messages.no_parameters_defined');
+                                                }
+
+                                                $params = collect($template->parameters)->map(function ($p) {
+                                                    $label = $p['label'][app()->getLocale()] ?? $p['label']['en'] ?? $p['key'];
+                                                    $type = ucfirst($p['type'] ?? 'text');
+                                                    $required = ($p['is_required'] ?? false) ? '*' : '';
+                                                    return "{$label}{$required} ({$type})";
+                                                })->join(', ');
+
+                                                return $params ?: '-';
+                                            }),
+                                    ]),
+
+                                Forms\Components\Section::make(__('services::services.sections.custom_parameters'))
+                                    ->description(__('services::services.sections.custom_parameters_description'))
+                                    ->visible(fn (Forms\Get $get) => $get('has_dynamic_parameters') && $get('parameter_mode') === 'custom')
+                                    ->schema([
+                                        Forms\Components\Placeholder::make('custom_parameters_note')
+                                            ->content(__('services::services.messages.custom_parameters_note'))
+                                            ->columnSpanFull(),
+                                    ]),
+
+                                Forms\Components\Section::make(__('services::services.sections.parameter_presets'))
+                                    ->description(__('services::services.sections.parameter_presets_description'))
+                                    ->visible(fn (Forms\Get $get) => $get('has_dynamic_parameters') && $get('parameter_mode') !== 'none')
+                                    ->schema([
+                                        Forms\Components\Placeholder::make('presets_info')
+                                            ->content(fn ($record) => $record
+                                                ? __('services::services.messages.presets_count', ['count' => $record->parameterPresets()->count()])
+                                                : __('services::services.messages.save_first_for_presets')
+                                            )
+                                            ->columnSpanFull(),
+                                    ]),
+                            ]),
+
                         Forms\Components\Tabs\Tab::make(__('services::services.tabs.scheduling'))
                             ->schema([
                                 Forms\Components\Section::make(__('services::services.sections.qualified_staff'))
@@ -505,6 +598,7 @@ class ServiceResource extends Resource
     {
         return [
             RelationManagers\BranchPricingRelationManager::class,
+            RelationManagers\ParameterPresetsRelationManager::class,
             RelationManagers\AppointmentsRelationManager::class,
             RelationManagers\PackageItemsRelationManager::class,
         ];
