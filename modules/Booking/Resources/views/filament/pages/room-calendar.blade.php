@@ -173,15 +173,13 @@
                                             style="position: absolute; top: 2px; left: 4px; width: calc(100% - 8px); height: {{ $position['height'] - 6 }}px; z-index: 5; background: {{ $statusStyles['bg'] }}; border: none; border-left: 3px solid {{ $statusStyles['border'] }}; border-radius: 6px; padding: 4px 8px; box-sizing: border-box; overflow: hidden; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.05); transition: all 0.2s ease;"
                                             onmouseover="this.style.boxShadow='0 4px 6px rgba(0,0,0,0.1)'; this.style.transform='translateY(-1px)';"
                                             onmouseout="this.style.boxShadow='0 1px 2px rgba(0,0,0,0.05)'; this.style.transform='none';"
-                                            data-tippy-content="<div class='p-2 text-sm'>
-                                                <div class='font-semibold text-gray-800 mb-1'>{{ $appointment->patient?->full_name ?? __('booking::room_calendar.unknown') }}</div>
-                                                @if($appointment->patient?->phone)<div class='text-gray-600'>{{ $appointment->patient->phone }}</div>@endif
-                                                <div class='text-gray-600 mt-1'>{{ $appointment->service?->name }}</div>
-                                                <div class='text-gray-500 mt-2'><span class='font-medium'>{{ __('booking::room_calendar.time') }}:</span> {{ $position['startTime'] }} - {{ $position['endTime'] }} ({{ $position['duration'] }} min)</div>
-                                                <div class='text-gray-500'><span class='font-medium'>{{ __('booking::room_calendar.practitioner') }}:</span> {{ $appointment->practitioner?->full_name ?? '-' }}</div>
-                                                <div class='text-gray-500'><span class='font-medium'>{{ __('booking::room_calendar.room') }}:</span> {{ $appointment->room?->name ?? '-' }}</div>
-                                                <div class='text-gray-500'><span class='font-medium'>{{ __('booking::room_calendar.status') }}:</span> {{ ucfirst(str_replace('_', ' ', $appointment->status)) }}</div>
-                                            </div>"
+                                            data-patient="{{ $appointment->patient?->full_name ?? __('booking::room_calendar.unknown') }}"
+                                            data-phone="{{ $appointment->patient?->phone ?? '' }}"
+                                            data-service="{{ $appointment->service?->name ?? '' }}"
+                                            data-time="{{ $position['startTime'] }} - {{ $position['endTime'] }} ({{ $position['duration'] }} min)"
+                                            data-practitioner="{{ $appointment->practitioner?->full_name ?? '-' }}"
+                                            data-room="{{ $appointment->room?->name ?? '-' }}"
+                                            data-status="{{ ucfirst(str_replace('_', ' ', $appointment->status)) }}"
                                             wire:click="$dispatch('open-modal', { id: 'appointment-{{ $appointment->id }}' })"
                                         >
                                             <p style="margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; font-weight: 500; color: {{ $statusStyles['text'] }};">
@@ -245,23 +243,48 @@
 
     @script
     <script>
-        document.addEventListener('livewire:navigated', initTippy);
-        document.addEventListener('DOMContentLoaded', initTippy);
+        function initRoomCalendarTippy() {
+            if (typeof tippy === 'undefined') return;
 
-        function initTippy() {
-            if (typeof tippy !== 'undefined') {
-                tippy('.appointment-card', {
+            document.querySelectorAll('.appointment-card').forEach(function(el) {
+                if (el._tippy) return; // Already initialized
+
+                const patient = el.dataset.patient || '';
+                const phone = el.dataset.phone || '';
+                const service = el.dataset.service || '';
+                const time = el.dataset.time || '';
+                const practitioner = el.dataset.practitioner || '';
+                const room = el.dataset.room || '';
+                const status = el.dataset.status || '';
+
+                let content = '<div style="padding: 8px; font-size: 13px;">';
+                content += '<div style="font-weight: 600; color: #1f2937; margin-bottom: 4px;">' + patient + '</div>';
+                if (phone) content += '<div style="color: #4b5563;">' + phone + '</div>';
+                if (service) content += '<div style="color: #4b5563; margin-top: 4px;">' + service + '</div>';
+                content += '<div style="color: #6b7280; margin-top: 8px;"><strong>{{ __("booking::room_calendar.time") }}:</strong> ' + time + '</div>';
+                content += '<div style="color: #6b7280;"><strong>{{ __("booking::room_calendar.practitioner") }}:</strong> ' + practitioner + '</div>';
+                content += '<div style="color: #6b7280;"><strong>{{ __("booking::room_calendar.room") }}:</strong> ' + room + '</div>';
+                content += '<div style="color: #6b7280;"><strong>{{ __("booking::room_calendar.status") }}:</strong> ' + status + '</div>';
+                content += '</div>';
+
+                tippy(el, {
+                    content: content,
                     allowHTML: true,
                     theme: 'light-border',
                     placement: 'top',
                     interactive: true,
-                    maxWidth: 300,
+                    maxWidth: 320,
                 });
-            }
+            });
         }
 
-        // Initialize on first load
-        initTippy();
+        // Initialize immediately
+        initRoomCalendarTippy();
+
+        // Re-initialize on Livewire updates
+        Livewire.hook('morph.updated', () => {
+            setTimeout(initRoomCalendarTippy, 100);
+        });
     </script>
     @endscript
 </x-filament-panels::page>
