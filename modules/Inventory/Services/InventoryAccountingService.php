@@ -3,8 +3,10 @@
 namespace Modules\Inventory\Services;
 
 use Modules\Accounting\Models\ChartOfAccount;
+use Modules\Accounting\Models\Journal;
 use Modules\Accounting\Models\JournalEntry;
 use Modules\Accounting\Services\AccountingIntegrationService;
+use Modules\Billing\Models\TaxRate;
 use Modules\Inventory\Models\InventoryAdjustment;
 use Modules\Inventory\Models\Product;
 use Modules\Inventory\Models\StockMovement;
@@ -326,16 +328,24 @@ class InventoryAccountingService
 
     /**
      * Create journal entry for vendor bill.
-     * Debit: Inventory/Expense (per line)
-     * Credit: Accounts Payable
+     * Debit: Inventory/Expense (per line - subtotal without tax)
+     * Debit: Tax Receivable (per tax account)
+     * Credit: Accounts Payable (total including tax)
      */
     public function createVendorBillJournalEntry(VendorBill $bill): ?JournalEntry
     {
         $bill->load('lines.product.stockValuationAccount', 'supplier');
 
-        // Get Accounts Payable account
-        $apAccount = ChartOfAccount::where('code', '2000')->first()
-            ?? ChartOfAccount::where('type', 'liability')->where('name->en', 'like', '%Payable%')->first();
+        // Get Accounts Payable account (try multiple common codes)
+        $apAccount = ChartOfAccount::whereIn('code', ['2000', '2100', '2010'])
+            ->where('type', 'liability')
+            ->first()
+            ?? ChartOfAccount::where('type', 'liability')
+                ->where(function ($q) {
+                    $q->whereRaw("name->>'en' ILIKE '%payable%'")
+                      ->orWhereRaw("name->>'en' ILIKE '%accounts payable%'");
+                })
+                ->first();
 
         if (!$apAccount) {
             \Log::error('VendorBill: Accounts Payable account not found');
@@ -344,11 +354,22 @@ class InventoryAccountingService
 
         $lines = [];
         $totalAmount = 0;
+        $taxByAccount = [];
 
         foreach ($bill->lines as $line) {
             $product = $line->product;
-            $lineTotal = $line->total_minor;
-            $totalAmount += $lineTotal;
+
+            // Calculate subtotal without tax (quantity * unit_price - discount)
+            $subtotal = (int) round($line->quantity * $line->unit_price_minor);
+            if ($line->discount_minor > 0) {
+                if ($line->discount_type === 'percent') {
+                    $subtotal -= (int) round($subtotal * $line->discount_minor / 100);
+                } else {
+                    $subtotal -= $line->discount_minor;
+                }
+            }
+
+            $totalAmount += $subtotal;
 
             // Get the appropriate account for this line
             $debitAccount = null;
@@ -356,10 +377,18 @@ class InventoryAccountingService
                 $debitAccount = $this->getStockValuationAccount($product);
             }
 
-            // Fallback to general inventory account if no product account
+            // Fallback to line's account or general inventory account
+            if (!$debitAccount && $line->account_id) {
+                $debitAccount = $line->account;
+            }
+
             if (!$debitAccount) {
-                $debitAccount = ChartOfAccount::where('code', '1200')->first()
-                    ?? ChartOfAccount::where('type', 'asset')->where('name->en', 'like', '%Inventory%')->first();
+                $debitAccount = ChartOfAccount::whereIn('code', ['1200', '1210', '1300'])
+                    ->where('type', 'asset')
+                    ->first()
+                    ?? ChartOfAccount::where('type', 'asset')
+                        ->whereRaw("name->>'en' ILIKE '%inventory%'")
+                        ->first();
             }
 
             if (!$debitAccount) {
@@ -370,12 +399,32 @@ class InventoryAccountingService
                 continue;
             }
 
+            // Debit inventory/expense account (subtotal without tax)
             $lines[] = [
                 'account_code' => $debitAccount->code,
-                'debit' => $lineTotal,
+                'debit' => $subtotal,
                 'credit' => 0,
                 'description' => $line->description,
             ];
+
+            // Collect taxes by tax account
+            if ($line->tax_minor > 0 && $line->tax_rate > 0) {
+                // Find the tax rate and use its configured account
+                $taxRate = TaxRate::where('rate', $line->tax_rate)
+                    ->where('type', TaxRate::TYPE_PURCHASE)
+                    ->first();
+
+                $taxAccountId = $taxRate?->account_id ?? $this->getDefaultTaxReceivableAccount()?->id;
+
+                if ($taxAccountId) {
+                    if (!isset($taxByAccount[$taxAccountId])) {
+                        $taxByAccount[$taxAccountId] = 0;
+                    }
+                    $taxByAccount[$taxAccountId] += $line->tax_minor;
+                }
+
+                $totalAmount += $line->tax_minor;
+            }
         }
 
         if (empty($lines)) {
@@ -383,7 +432,22 @@ class InventoryAccountingService
             return null;
         }
 
-        // Credit Accounts Payable for total
+        // Debit: Tax accounts (separate line per tax account)
+        foreach ($taxByAccount as $accountId => $amount) {
+            if ($amount > 0) {
+                $taxAccount = ChartOfAccount::find($accountId);
+                if ($taxAccount) {
+                    $lines[] = [
+                        'account_code' => $taxAccount->code,
+                        'debit' => $amount,
+                        'credit' => 0,
+                        'description' => "Input tax on bill {$bill->code}",
+                    ];
+                }
+            }
+        }
+
+        // Credit Accounts Payable for total (including tax)
         $lines[] = [
             'account_code' => $apAccount->code,
             'debit' => 0,
@@ -391,18 +455,61 @@ class InventoryAccountingService
             'description' => "Vendor Bill: {$bill->code}",
         ];
 
+        // Get Purchase Journal
+        $purchaseJournal = Journal::getPurchaseJournal();
+        if (!$purchaseJournal) {
+            \Log::warning('VendorBill: Purchase journal not found, using General Journal');
+            $purchaseJournal = Journal::getMiscJournal();
+        }
+
+        if (!$purchaseJournal) {
+            \Log::error('VendorBill: No suitable journal found');
+            return null;
+        }
+
         $supplierName = $bill->supplier?->getTranslation('name', 'en') ?? 'Vendor';
-        $description = "Vendor Bill {$bill->code} - {$supplierName}";
 
         try {
-            return $this->accountingService->createJournalEntry(
-                $bill->bill_date,
-                $description,
-                $lines,
-                'vendor_bill',
-                $bill->id,
-                true
-            );
+            // Create journal entry directly with proper reference (bill code)
+            $entry = JournalEntry::create([
+                'tenant_id' => $bill->tenant_id,
+                'journal_id' => $purchaseJournal->id,
+                'date' => $bill->bill_date ?? now(),
+                'reference' => $bill->code,
+                'description' => "Vendor Bill {$bill->code} - {$supplierName}",
+                'source_type' => VendorBill::class,
+                'source_id' => $bill->id,
+            ]);
+
+            // Create journal entry lines
+            foreach ($lines as $lineData) {
+                $account = ChartOfAccount::where('code', $lineData['account_code'])->first();
+                if (!$account) {
+                    \Log::warning('VendorBill: Account not found', ['code' => $lineData['account_code']]);
+                    continue;
+                }
+
+                $entry->lines()->create([
+                    'tenant_id' => $bill->tenant_id,
+                    'account_id' => $account->id,
+                    'debit_minor' => $lineData['debit'] ?? 0,
+                    'credit_minor' => $lineData['credit'] ?? 0,
+                    'description' => $lineData['description'] ?? null,
+                    'branch_id' => $bill->branch_id,
+                ]);
+            }
+
+            // Recalculate and post
+            $entry->recalculateTotals();
+            $entry->post();
+
+            \Log::info('VendorBill: Journal entry created', [
+                'bill_id' => $bill->id,
+                'bill_code' => $bill->code,
+                'entry_id' => $entry->id,
+            ]);
+
+            return $entry;
         } catch (\Exception $e) {
             \Log::error('VendorBill: Failed to create journal entry', [
                 'bill_id' => $bill->id,
@@ -410,6 +517,25 @@ class InventoryAccountingService
             ]);
             return null;
         }
+    }
+
+    /**
+     * Get default tax receivable account (Input VAT / Tax Receivable).
+     */
+    protected function getDefaultTaxReceivableAccount(): ?ChartOfAccount
+    {
+        return ChartOfAccount::whereIn('code', ['1140', '1150', '1160'])
+            ->where('type', 'asset')
+            ->where('is_active', true)
+            ->first()
+            ?? ChartOfAccount::where('type', 'asset')
+                ->where(function ($q) {
+                    $q->whereRaw("name->>'en' ILIKE '%input%tax%'")
+                      ->orWhereRaw("name->>'en' ILIKE '%tax%receivable%'")
+                      ->orWhereRaw("name->>'en' ILIKE '%vat%receivable%'");
+                })
+                ->where('is_active', true)
+                ->first();
     }
 
     /**

@@ -4,6 +4,7 @@ namespace Modules\Billing\Services;
 
 use Modules\Billing\Models\Invoice;
 use Modules\Billing\Models\Payment;
+use Modules\Billing\Models\TaxRate;
 use Modules\Accounting\Models\Journal;
 use Modules\Accounting\Models\JournalEntry;
 use Modules\Accounting\Models\ChartOfAccount;
@@ -14,8 +15,8 @@ class AccountingIntegrationService
      * Create journal entry when invoice is issued.
      *
      * Debit: Accounts Receivable
-     * Credit: Revenue Account
-     * Credit: Tax Payable (if applicable)
+     * Credit: Revenue Account (per line)
+     * Credit: Tax Payable (per tax rate account)
      */
     public function createInvoiceJournalEntry(Invoice $invoice): ?JournalEntry
     {
@@ -27,15 +28,16 @@ class AccountingIntegrationService
         // Get Sales Journal
         $salesJournal = Journal::getSalesJournal();
         if (!$salesJournal) {
+            \Log::warning('AccountingIntegrationService: Sales journal not found');
             return null;
         }
 
-        // Get required accounts
-        $arAccount = ChartOfAccount::where('code', '1130')->first(); // Accounts Receivable
-        $revenueAccount = ChartOfAccount::where('code', '4110')->first(); // Treatment Revenue
-        $taxPayableAccount = ChartOfAccount::where('code', '2120')->first(); // Tax Payable
+        // Get Accounts Receivable account (try common codes)
+        $arAccount = $this->findAccountBySubType('accounts_receivable')
+            ?? ChartOfAccount::whereIn('code', ['1100', '1130', '1200'])->where('type', 'asset')->first();
 
-        if (!$arAccount || !$revenueAccount) {
+        if (!$arAccount) {
+            \Log::warning('AccountingIntegrationService: AR account not found');
             return null;
         }
 
@@ -60,27 +62,74 @@ class AccountingIntegrationService
             'branch_id' => $invoice->branch_id,
         ]);
 
-        // Credit: Revenue (subtotal amount)
-        $revenueAmount = $invoice->subtotal_minor - $invoice->discount_minor;
-        $entry->lines()->create([
-            'tenant_id' => $invoice->tenant_id,
-            'account_id' => $revenueAccount->id,
-            'debit_minor' => 0,
-            'credit_minor' => $revenueAmount,
-            'description' => "Services rendered",
-            'branch_id' => $invoice->branch_id,
-        ]);
+        // Group revenue by account and taxes by tax account
+        $revenueByAccount = [];
+        $taxByAccount = [];
 
-        // Credit: Tax Payable (if tax exists)
-        if ($invoice->tax_minor > 0 && $taxPayableAccount) {
-            $entry->lines()->create([
-                'tenant_id' => $invoice->tenant_id,
-                'account_id' => $taxPayableAccount->id,
-                'debit_minor' => 0,
-                'credit_minor' => $invoice->tax_minor,
-                'description' => "VAT on invoice {$invoice->code}",
-                'branch_id' => $invoice->branch_id,
-            ]);
+        foreach ($invoice->lines as $line) {
+            // Revenue - use line account or default revenue account
+            $revenueAccountId = $line->account_id ?? $this->getDefaultRevenueAccount()?->id;
+            if ($revenueAccountId) {
+                $lineRevenue = (int) round($line->quantity * $line->unit_price_minor);
+                // Apply discount
+                if ($line->discount_minor > 0) {
+                    if ($line->discount_type === 'percent') {
+                        $lineRevenue -= (int) round($lineRevenue * $line->discount_minor / 100);
+                    } else {
+                        $lineRevenue -= $line->discount_minor;
+                    }
+                }
+
+                if (!isset($revenueByAccount[$revenueAccountId])) {
+                    $revenueByAccount[$revenueAccountId] = 0;
+                }
+                $revenueByAccount[$revenueAccountId] += $lineRevenue;
+            }
+
+            // Tax - find tax rate and use its account
+            if ($line->tax_minor > 0 && $line->tax_rate > 0) {
+                $taxRate = TaxRate::where('rate', $line->tax_rate)
+                    ->where('type', TaxRate::TYPE_SALES)
+                    ->first();
+
+                $taxAccountId = $taxRate?->account_id ?? $this->getDefaultTaxPayableAccount()?->id;
+                if ($taxAccountId) {
+                    if (!isset($taxByAccount[$taxAccountId])) {
+                        $taxByAccount[$taxAccountId] = 0;
+                    }
+                    $taxByAccount[$taxAccountId] += $line->tax_minor;
+                }
+            }
+        }
+
+        // Credit: Revenue accounts
+        foreach ($revenueByAccount as $accountId => $amount) {
+            if ($amount > 0) {
+                $account = ChartOfAccount::find($accountId);
+                $entry->lines()->create([
+                    'tenant_id' => $invoice->tenant_id,
+                    'account_id' => $accountId,
+                    'debit_minor' => 0,
+                    'credit_minor' => $amount,
+                    'description' => "Services revenue",
+                    'branch_id' => $invoice->branch_id,
+                ]);
+            }
+        }
+
+        // Credit: Tax accounts (separate line per tax account)
+        foreach ($taxByAccount as $accountId => $amount) {
+            if ($amount > 0) {
+                $account = ChartOfAccount::find($accountId);
+                $entry->lines()->create([
+                    'tenant_id' => $invoice->tenant_id,
+                    'account_id' => $accountId,
+                    'debit_minor' => 0,
+                    'credit_minor' => $amount,
+                    'description' => "Tax on invoice {$invoice->code}",
+                    'branch_id' => $invoice->branch_id,
+                ]);
+            }
         }
 
         // Recalculate and post
@@ -104,8 +153,9 @@ class AccountingIntegrationService
             return null;
         }
 
-        // Get required accounts
-        $arAccount = ChartOfAccount::where('code', '1130')->first(); // Accounts Receivable
+        // Get Accounts Receivable account
+        $arAccount = $this->findAccountBySubType('accounts_receivable')
+            ?? ChartOfAccount::whereIn('code', ['1100', '1130', '1200'])->where('type', 'asset')->first();
 
         // Determine debit account based on journal type
         $debitAccount = $paymentJournal->default_debit_account_id
@@ -157,14 +207,50 @@ class AccountingIntegrationService
     }
 
     /**
+     * Find account by sub_type.
+     */
+    protected function findAccountBySubType(string $subType): ?ChartOfAccount
+    {
+        return ChartOfAccount::where('sub_type', $subType)
+            ->where('is_active', true)
+            ->first();
+    }
+
+    /**
+     * Get default revenue account.
+     */
+    protected function getDefaultRevenueAccount(): ?ChartOfAccount
+    {
+        return ChartOfAccount::whereIn('code', ['4100', '4110', '4000', '4010'])
+            ->where('type', 'revenue')
+            ->where('is_active', true)
+            ->first();
+    }
+
+    /**
+     * Get default tax payable account.
+     */
+    protected function getDefaultTaxPayableAccount(): ?ChartOfAccount
+    {
+        return $this->findAccountBySubType('tax_payable')
+            ?? ChartOfAccount::whereIn('code', ['2120', '2100', '2110'])
+                ->where('type', 'liability')
+                ->where('is_active', true)
+                ->first();
+    }
+
+    /**
      * Get account based on journal type.
      */
     protected function getAccountByJournalType(string $type): ?ChartOfAccount
     {
         return match ($type) {
-            'cash' => ChartOfAccount::where('code', '1110')->first(), // Cash
-            'bank' => ChartOfAccount::where('code', '1120')->first(), // Bank
-            default => ChartOfAccount::where('code', '1110')->first(), // Default to Cash
+            'cash' => $this->findAccountBySubType('cash')
+                ?? ChartOfAccount::whereIn('code', ['1110', '1010'])->where('type', 'asset')->first(),
+            'bank' => $this->findAccountBySubType('bank')
+                ?? ChartOfAccount::whereIn('code', ['1120', '1020'])->where('type', 'asset')->first(),
+            default => $this->findAccountBySubType('cash')
+                ?? ChartOfAccount::whereIn('code', ['1110', '1010'])->where('type', 'asset')->first(),
         };
     }
 
