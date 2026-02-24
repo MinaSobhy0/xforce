@@ -54,6 +54,17 @@ class CalendarWidget extends FullCalendarWidget
             'weekends' => true,
             'locale' => app()->getLocale(),
             'direction' => app()->getLocale() === 'ar' ? 'rtl' : 'ltr',
+            'handleWindowResize' => true,
+            'expandRows' => true,
+            'stickyHeaderDates' => true,
+            'views' => [
+                'timeGridWeek' => [
+                    'titleFormat' => ['year' => 'numeric', 'month' => 'short', 'day' => 'numeric'],
+                ],
+                'timeGridDay' => [
+                    'titleFormat' => ['year' => 'numeric', 'month' => 'long', 'day' => 'numeric', 'weekday' => 'long'],
+                ],
+            ],
         ];
     }
 

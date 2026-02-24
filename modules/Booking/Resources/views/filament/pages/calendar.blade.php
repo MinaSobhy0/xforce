@@ -59,5 +59,47 @@
             border-color: #9ca3af !important;
             color: #f9fafb !important;
         }
+
+        /* Responsive calendar */
+        .fc {
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+        .fc-view-harness {
+            min-height: 500px !important;
+        }
+        .fc-toolbar {
+            flex-wrap: wrap !important;
+            gap: 0.5rem !important;
+        }
+        .fc-toolbar-chunk {
+            display: flex !important;
+            flex-wrap: wrap !important;
+            gap: 0.25rem !important;
+        }
+        /* Mobile adjustments */
+        @media (max-width: 768px) {
+            .fc-toolbar {
+                flex-direction: column !important;
+                align-items: stretch !important;
+            }
+            .fc-toolbar-chunk {
+                justify-content: center !important;
+                margin-bottom: 0.5rem !important;
+            }
+            .fc-toolbar-title {
+                font-size: 1rem !important;
+            }
+            .fc .fc-button {
+                padding: 0.25rem 0.5rem !important;
+                font-size: 0.75rem !important;
+            }
+            .fc-timegrid-slot {
+                height: 2.5em !important;
+            }
+            .fc-event {
+                font-size: 0.65rem !important;
+            }
+        }
     </style>
 </x-filament-panels::page>
