@@ -8,6 +8,7 @@ use Modules\Booking\Livewire\SlotGrid;
 use Modules\Booking\Livewire\BookingCart;
 use Modules\Booking\Livewire\PatientPackages;
 use Modules\Booking\Services\SlotGenerationService;
+use Modules\Booking\Services\ReceptionService;
 
 class BookingServiceProvider extends ServiceProvider
 {
@@ -22,6 +23,11 @@ class BookingServiceProvider extends ServiceProvider
         // Register SlotGenerationService as singleton
         $this->app->singleton(SlotGenerationService::class, function ($app) {
             return new SlotGenerationService();
+        });
+
+        // Register ReceptionService as singleton
+        $this->app->singleton(ReceptionService::class, function ($app) {
+            return new ReceptionService();
         });
     }
 
