@@ -30,10 +30,13 @@ class RoomCalendar extends Page implements HasForms
 
     protected static ?string $slug = 'room-calendar';
 
-    // Hide from navigation - accessed via CalendarPage toggle
-    protected static bool $shouldRegisterNavigation = false;
-
     protected static string $view = 'booking::filament.pages.room-calendar';
+
+    // Hide from navigation - accessed via CalendarPage toggle
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
+    }
 
     #[Url]
     public ?string $selectedDate = null;
