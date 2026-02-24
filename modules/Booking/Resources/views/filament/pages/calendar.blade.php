@@ -204,9 +204,6 @@
             </div>
         </x-filament::section>
 
-    </div>
-
-    @assets
         <link rel="stylesheet" href="https://unpkg.com/tippy.js@6/themes/light-border.css"/>
         <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
         <script src="https://unpkg.com/@popperjs/core@2"></script>
@@ -237,5 +234,5 @@
                 padding: 8px;
             }
         </style>
-    @endassets
+    </div>
 </x-filament-panels::page>
