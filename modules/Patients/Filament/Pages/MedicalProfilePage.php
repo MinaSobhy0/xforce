@@ -35,10 +35,12 @@ class MedicalProfilePage extends Page implements HasForms, HasInfolists
     protected static ?string $moduleCode = 'patients';
     protected static ?string $permissionKey = 'patients';
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-list';
-    protected static ?string $navigationGroup = 'Patient Care';
-    protected static ?int $navigationSort = 20;
     protected static ?string $slug = 'medical-profile';
-    protected static bool $shouldRegisterNavigation = false;
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
+    }
 
     protected static string $view = 'patients::filament.pages.medical-profile';
 
