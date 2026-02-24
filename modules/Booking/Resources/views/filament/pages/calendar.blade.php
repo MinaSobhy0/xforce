@@ -315,18 +315,26 @@
                 </div>
 
                 {{-- Content --}}
-                <div class="px-4 py-4 max-h-[60vh] overflow-y-auto">
-                    @if($showModal && $selectedAppointmentId)
-                        @php
-                            $appointment = $this->getSelectedAppointment();
-                        @endphp
+                <div class="px-4 py-4 max-h-[60vh] overflow-y-auto" wire:key="modal-content-{{ $selectedAppointmentId }}">
+                    {{-- Loading State --}}
+                    <div wire:loading class="flex items-center justify-center py-8">
+                        <x-filament::loading-indicator class="w-8 h-8" />
+                    </div>
 
-                        @if($appointment)
-                            @include('booking::filament.pages.partials.appointment-details', ['appointment' => $appointment])
-                        @else
-                            @include('booking::filament.pages.partials.appointment-not-found')
+                    {{-- Content --}}
+                    <div wire:loading.remove>
+                        @if($showModal && $selectedAppointmentId)
+                            @php
+                                $appointment = $this->getSelectedAppointment();
+                            @endphp
+
+                            @if($appointment)
+                                @include('booking::filament.pages.partials.appointment-details', ['appointment' => $appointment])
+                            @else
+                                @include('booking::filament.pages.partials.appointment-not-found')
+                            @endif
                         @endif
-                    @endif
+                    </div>
                 </div>
 
                 {{-- Footer --}}
