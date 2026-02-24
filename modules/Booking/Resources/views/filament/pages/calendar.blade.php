@@ -280,7 +280,7 @@
                 x-transition:leave-start="opacity-100"
                 x-transition:leave-end="opacity-0"
                 class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
-                @click="$wire.closeModal()"
+                @click="open = false"
             ></div>
 
             {{-- Spacer for centering --}}
@@ -305,7 +305,7 @@
                         </h3>
                         <button
                             type="button"
-                            @click="$wire.closeModal()"
+                            @click="open = false"
                             class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
                         >
                             <x-heroicon-o-x-mark class="w-5 h-5" />
@@ -345,7 +345,7 @@
                             </x-filament::button>
                             <x-filament::button
                                 color="gray"
-                                wire:click="closeModal"
+                                x-on:click="open = false"
                             >
                                 {{ __('booking::calendar.close') }}
                             </x-filament::button>
