@@ -7,18 +7,33 @@
 
         {{-- Calendar Navigation & Legend --}}
         <div class="flex flex-wrap items-center justify-between gap-4">
-            <div class="flex items-center space-x-2">
+            <div class="flex items-center gap-2">
+                {{-- Navigation --}}
+                <x-filament::icon-button
+                    icon="heroicon-o-chevron-left"
+                    wire:click="previous"
+                    color="gray"
+                />
+
+                <div class="w-40">
+                    <x-filament::input.wrapper>
+                        <x-filament::input
+                            type="date"
+                            wire:model.live="selectedDate"
+                            class="text-center"
+                        />
+                    </x-filament::input.wrapper>
+                </div>
+
+                <x-filament::icon-button
+                    icon="heroicon-o-chevron-right"
+                    wire:click="next"
+                    color="gray"
+                />
+
                 <x-filament::button wire:click="today" size="sm" color="gray">
                     {{ __('booking::calendar.today') }}
                 </x-filament::button>
-
-                <x-filament::button wire:click="previous" size="sm" color="gray" icon="heroicon-o-chevron-left" icon-position="before"></x-filament::button>
-
-                <x-filament::button wire:click="next" size="sm" color="gray" icon="heroicon-o-chevron-right" icon-position="before"></x-filament::button>
-
-                <span class="text-lg font-semibold text-gray-900 dark:text-white">
-                    {{ $this->getDateRangeLabel() }}
-                </span>
 
                 <div class="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-2"></div>
 
@@ -47,7 +62,7 @@
                 </div>
             </div>
 
-            <div class="flex items-center space-x-2">
+            <div class="flex items-center gap-2">
                 <x-filament::button wire:click="setViewMode('day')" size="sm" :color="$viewMode === 'day' ? 'primary' : 'gray'">
                     {{ __('booking::calendar.view.day') }}
                 </x-filament::button>

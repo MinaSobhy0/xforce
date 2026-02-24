@@ -8,7 +8,6 @@ use Modules\Core\Models\Branch;
 use App\Services\BranchContext;
 use Filament\Pages\Page;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
@@ -63,13 +62,13 @@ class CalendarPage extends Page implements HasForms
                     })
                     ->placeholder(__('booking::calendar.filters.all_practitioners'))
                     ->live(),
-
-                DatePicker::make('selectedDate')
-                    ->label(__('booking::calendar.filters.date'))
-                    ->native(false)
-                    ->live(),
             ])
-            ->columns(2);
+            ->columns(1);
+    }
+
+    public function updatedSelectedDate(): void
+    {
+        $this->dispatch('calendarDateChanged', date: $this->selectedDate, events: $this->getAppointments());
     }
 
     public function getAppointments(): array
