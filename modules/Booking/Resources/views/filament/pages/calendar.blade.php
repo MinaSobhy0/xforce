@@ -24,24 +24,24 @@
 
                 {{-- Legend --}}
                 <div class="flex items-center gap-3 text-xs">
-                    <div class="flex items-center gap-1">
-                        <span class="w-2.5 h-2.5 rounded-sm" style="background: rgba(59, 130, 246, 0.3); border-left: 2px solid #3b82f6;"></span>
+                    <div class="flex items-center gap-1.5">
+                        <span class="inline-block w-3 h-3 rounded" style="background-color: #3b82f6;"></span>
                         <span class="text-gray-500 dark:text-gray-400">{{ __('booking::calendar.status.scheduled') }}</span>
                     </div>
-                    <div class="flex items-center gap-1">
-                        <span class="w-2.5 h-2.5 rounded-sm" style="background: rgba(139, 92, 246, 0.3); border-left: 2px solid #8b5cf6;"></span>
+                    <div class="flex items-center gap-1.5">
+                        <span class="inline-block w-3 h-3 rounded" style="background-color: #8b5cf6;"></span>
                         <span class="text-gray-500 dark:text-gray-400">{{ __('booking::calendar.status.confirmed') }}</span>
                     </div>
-                    <div class="flex items-center gap-1">
-                        <span class="w-2.5 h-2.5 rounded-sm" style="background: rgba(245, 158, 11, 0.3); border-left: 2px solid #f59e0b;"></span>
+                    <div class="flex items-center gap-1.5">
+                        <span class="inline-block w-3 h-3 rounded" style="background-color: #f59e0b;"></span>
                         <span class="text-gray-500 dark:text-gray-400">{{ __('booking::calendar.status.checked_in') }}</span>
                     </div>
-                    <div class="flex items-center gap-1">
-                        <span class="w-2.5 h-2.5 rounded-sm" style="background: rgba(99, 102, 241, 0.3); border-left: 2px solid #6366f1;"></span>
+                    <div class="flex items-center gap-1.5">
+                        <span class="inline-block w-3 h-3 rounded" style="background-color: #6366f1;"></span>
                         <span class="text-gray-500 dark:text-gray-400">{{ __('booking::calendar.status.in_progress') }}</span>
                     </div>
-                    <div class="flex items-center gap-1">
-                        <span class="w-2.5 h-2.5 rounded-sm" style="background: rgba(16, 185, 129, 0.3); border-left: 2px solid #10b981;"></span>
+                    <div class="flex items-center gap-1.5">
+                        <span class="inline-block w-3 h-3 rounded" style="background-color: #10b981;"></span>
                         <span class="text-gray-500 dark:text-gray-400">{{ __('booking::calendar.status.completed') }}</span>
                     </div>
                 </div>
