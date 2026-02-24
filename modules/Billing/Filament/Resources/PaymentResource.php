@@ -95,13 +95,18 @@ class PaymentResource extends Resource
                             ->label(__('billing::billing.fields.invoice'))
                             ->options(function () {
                                 return Invoice::whereIn('status', [Invoice::STATUS_ISSUED, Invoice::STATUS_PARTIALLY_PAID])
-                                    ->where('remaining_minor', '>', 0)
                                     ->orderBy('created_at', 'desc')
                                     ->limit(100)
                                     ->get()
+                                    ->filter(fn ($inv) => $inv->remaining_minor > 0)
                                     ->mapWithKeys(fn ($inv) => [
                                         $inv->id => "{$inv->code} - {$inv->patient?->full_name} (" . format_money($inv->remaining_minor) . " remaining)"
                                     ]);
+                            })
+                            ->getOptionLabelUsing(function ($value): ?string {
+                                $invoice = Invoice::find($value);
+                                if (!$invoice) return null;
+                                return "{$invoice->code} - {$invoice->patient?->full_name}";
                             })
                             ->searchable()
                             ->preload()
@@ -132,6 +137,11 @@ class PaymentResource extends Resource
                                     ->mapWithKeys(fn ($bill) => [
                                         $bill->id => "{$bill->code} - {$bill->supplier?->getTranslation('name', app()->getLocale())} (" . format_money($bill->remaining_minor) . " remaining)"
                                     ]);
+                            })
+                            ->getOptionLabelUsing(function ($value): ?string {
+                                $bill = VendorBill::find($value);
+                                if (!$bill) return null;
+                                return "{$bill->code} - {$bill->supplier?->getTranslation('name', app()->getLocale())}";
                             })
                             ->searchable()
                             ->preload()
