@@ -148,6 +148,11 @@ class TenantPanelProvider extends PanelProvider
                 SpatieLaravelTranslatablePlugin::make()
                     ->defaultLocales(['en', 'ar'])
             )
+            ->plugin(
+                \Saade\FilamentFullCalendar\FilamentFullCalendarPlugin::make()
+                    ->selectable()
+                    ->editable()
+            )
 
             // Branch Switcher in the topbar
             ->renderHook(
