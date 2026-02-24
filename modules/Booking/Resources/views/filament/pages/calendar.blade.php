@@ -77,9 +77,33 @@
         .fc { font-family: inherit; }
         .fc-theme-standard td, .fc-theme-standard th { border-color: rgb(229 231 235); }
         .dark .fc-theme-standard td, .dark .fc-theme-standard th { border-color: rgb(55 65 81); }
-        .fc-event { cursor: pointer; padding: 2px 4px; border-radius: 4px; font-size: 0.75rem; }
-        .fc-timegrid-slot { height: 2em; }
-        .fc-col-header-cell-cushion, .fc-daygrid-day-number { padding: 8px; }
+        .fc-event {
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            border: none !important;
+            border-left: 3px solid !important;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            transition: all 0.2s ease;
+        }
+        .fc-event:hover {
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transform: translateY(-1px);
+        }
+        .fc-event .fc-event-main {
+            padding: 2px 0;
+        }
+        .fc-event-title {
+            font-weight: 500;
+            white-space: normal;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .fc-timegrid-slot { height: 2.5em; }
+        .fc-col-header-cell-cushion, .fc-daygrid-day-number { padding: 8px; font-weight: 500; }
+        .fc-daygrid-event { margin: 2px 4px; }
+        .fc-timegrid-event { margin: 0 2px; }
     </style>
     @endassets
 

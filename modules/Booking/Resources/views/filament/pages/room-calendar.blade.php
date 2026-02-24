@@ -155,30 +155,30 @@
                                             $statusColor = $this->getStatusColor($appointment->status);
                                         @endphp
                                         @php
-                                            $cardColors = match ($appointment->status) {
-                                                'scheduled' => 'background: #dbeafe; border-left-color: #3b82f6; color: #1e40af;',
-                                                'confirmed' => 'background: #e0e7ff; border-left-color: #6366f1; color: #3730a3;',
-                                                'checked_in' => 'background: #fef3c7; border-left-color: #f59e0b; color: #92400e;',
-                                                'in_progress' => 'background: #f3e8ff; border-left-color: #a855f7; color: #6b21a8;',
-                                                'completed' => 'background: #dcfce7; border-left-color: #22c55e; color: #166534;',
-                                                default => 'background: #f3f4f6; border-left-color: #6b7280; color: #374151;',
+                                            $statusStyles = match ($appointment->status) {
+                                                'scheduled' => ['bg' => 'rgba(59, 130, 246, 0.1)', 'border' => '#3b82f6', 'text' => '#1e40af', 'darkBg' => 'rgba(59, 130, 246, 0.2)'],
+                                                'confirmed' => ['bg' => 'rgba(99, 102, 241, 0.1)', 'border' => '#6366f1', 'text' => '#4338ca', 'darkBg' => 'rgba(99, 102, 241, 0.2)'],
+                                                'checked_in' => ['bg' => 'rgba(245, 158, 11, 0.1)', 'border' => '#f59e0b', 'text' => '#b45309', 'darkBg' => 'rgba(245, 158, 11, 0.2)'],
+                                                'in_progress' => ['bg' => 'rgba(168, 85, 247, 0.1)', 'border' => '#a855f7', 'text' => '#7c3aed', 'darkBg' => 'rgba(168, 85, 247, 0.2)'],
+                                                'completed' => ['bg' => 'rgba(34, 197, 94, 0.1)', 'border' => '#22c55e', 'text' => '#15803d', 'darkBg' => 'rgba(34, 197, 94, 0.2)'],
+                                                default => ['bg' => 'rgba(107, 114, 128, 0.1)', 'border' => '#6b7280', 'text' => '#374151', 'darkBg' => 'rgba(107, 114, 128, 0.2)'],
                                             };
                                         @endphp
                                         <div
-                                            class="absolute inset-x-1 top-0 rounded-md border-l-4 px-2 py-1 overflow-hidden cursor-pointer shadow hover:shadow-lg transition-all"
-                                            style="height: {{ $position['height'] - 4 }}px; z-index: 5; {{ $cardColors }}"
+                                            class="absolute inset-x-1 top-0 rounded-lg border-l-4 px-3 py-2 overflow-hidden cursor-pointer hover:shadow-lg transition-all"
+                                            style="height: {{ $position['height'] - 4 }}px; z-index: 5; background: {{ $statusStyles['bg'] }}; border-left-color: {{ $statusStyles['border'] }};"
                                             title="{{ $position['startTime'] }} - {{ $position['endTime'] }} ({{ $position['duration'] }} min)&#10;{{ __('booking::room_calendar.practitioner') }}: {{ $appointment->practitioner?->full_name ?? '-' }}&#10;{{ __('booking::room_calendar.status') }}: {{ $appointment->status }}"
                                             wire:click="$dispatch('open-modal', { id: 'appointment-{{ $appointment->id }}' })"
                                         >
-                                            <div class="text-xs font-bold truncate">
+                                            <div class="font-medium text-gray-900 dark:text-white text-xs truncate">
                                                 {{ $appointment->patient?->full_name ?? __('booking::room_calendar.unknown') }}
                                             </div>
                                             @if($appointment->patient?->phone)
-                                                <div class="text-[10px] truncate" style="opacity: 0.8;">
+                                                <div class="text-[11px] text-gray-600 dark:text-gray-300 truncate">
                                                     {{ $appointment->patient->phone }}
                                                 </div>
                                             @endif
-                                            <div class="text-[10px] truncate" style="opacity: 0.8;">
+                                            <div class="text-[11px] text-gray-500 dark:text-gray-400 truncate">
                                                 {{ $appointment->service?->name }}
                                             </div>
                                         </div>

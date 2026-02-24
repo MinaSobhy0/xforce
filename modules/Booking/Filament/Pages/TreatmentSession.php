@@ -343,6 +343,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
                     'is_complete' => true,
                     'parameter_values' => $this->parameterValues,
                     'equipment_metrics' => $this->equipmentMetrics,
+                    'session_equipment' => $this->sessionEquipment,
                     'treatment_areas' => $this->treatmentAreas,
                     'pre_treatment_checklist' => $this->preTreatmentChecklist,
                     'clinical_notes' => $this->clinicalNotes,
@@ -351,15 +352,17 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
                 ]);
             }
 
-            // Update equipment shot count if applicable
-            if ($this->selectedEquipmentId && !empty($this->equipmentMetrics['shots_used'])) {
-                $equipment = Equipment::find($this->selectedEquipmentId);
-                if ($equipment) {
-                    $equipment->recordShots(
-                        (int) $this->equipmentMetrics['shots_used'],
-                        $this->appointment->id,
-                        $this->parameterValues
-                    );
+            // Update equipment shot counts for all session equipment
+            foreach ($this->sessionEquipment as $equipmentData) {
+                if (!empty($equipmentData['shots_used'])) {
+                    $equipment = Equipment::find($equipmentData['equipment_id']);
+                    if ($equipment) {
+                        $equipment->recordShots(
+                            (int) $equipmentData['shots_used'],
+                            $this->appointment->id,
+                            $this->parameterValues
+                        );
+                    }
                 }
             }
 

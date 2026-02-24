@@ -143,6 +143,14 @@ return [
         'metrics' => 'Session Metrics',
         'shots_used' => 'Shots Used',
         'energy' => 'Energy Delivered (J)',
+        'devices' => 'device(s)',
+        'preset' => 'Preset',
+        'shots' => 'Shots',
+        'energy_short' => 'Energy (J)',
+        'add_equipment' => 'Add equipment...',
+        'none_available' => 'No equipment available',
+        'already_added' => 'Equipment already added',
+        'added' => 'Equipment added',
     ],
 
     // Presets

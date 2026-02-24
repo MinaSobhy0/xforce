@@ -24,6 +24,7 @@ class TreatmentSessionData extends BaseModel
         'practitioner_id',
         'parameter_values',
         'equipment_metrics',
+        'session_equipment',
         'treatment_areas',
         'clinical_notes',
         'skin_reaction',
@@ -45,6 +46,7 @@ class TreatmentSessionData extends BaseModel
     protected $casts = [
         'parameter_values' => 'array',
         'equipment_metrics' => 'array',
+        'session_equipment' => 'array',
         'treatment_areas' => 'array',
         'adverse_events' => 'array',
         'pre_treatment_checklist' => 'array',

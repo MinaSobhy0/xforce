@@ -98,16 +98,20 @@ class CalendarPage extends Page implements HasForms
             $phone = $appointment->patient?->phone;
             $title = $appointment->patient?->full_name;
             if ($phone) {
-                $title .= ' | ' . $phone;
+                $title .= "\n" . $phone;
             }
-            $title .= ' | ' . $appointment->service?->name;
+            $title .= "\n" . $appointment->service?->name;
+
+            $colors = $this->getStatusColors($appointment->status);
 
             return [
                 'id' => $appointment->id,
                 'title' => $title,
                 'start' => $appointment->date->format('Y-m-d') . 'T' . $appointment->start_time->format('H:i:s'),
                 'end' => $appointment->date->format('Y-m-d') . 'T' . ($appointment->end_time ? $appointment->end_time->format('H:i:s') : $appointment->start_time->addMinutes($appointment->duration_minutes)->format('H:i:s')),
-                'color' => $this->getStatusColor($appointment->status),
+                'backgroundColor' => $colors['bg'],
+                'borderColor' => $colors['border'],
+                'textColor' => $colors['text'],
                 'extendedProps' => [
                     'code' => $appointment->code,
                     'status' => $appointment->status,
@@ -125,16 +129,21 @@ class CalendarPage extends Page implements HasForms
 
     protected function getStatusColor(string $status): string
     {
+        return $this->getStatusColors($status)['border'];
+    }
+
+    protected function getStatusColors(string $status): array
+    {
         return match ($status) {
-            Appointment::STATUS_SCHEDULED => '#3b82f6', // blue
-            Appointment::STATUS_CONFIRMED => '#8b5cf6', // purple
-            Appointment::STATUS_CHECKED_IN => '#f59e0b', // amber
-            Appointment::STATUS_IN_PROGRESS => '#6366f1', // indigo
-            Appointment::STATUS_COMPLETED => '#10b981', // green
-            Appointment::STATUS_CANCELLED => '#ef4444', // red
-            Appointment::STATUS_NO_SHOW => '#6b7280', // gray
-            Appointment::STATUS_RESCHEDULED => '#f59e0b', // amber
-            default => '#6b7280',
+            Appointment::STATUS_SCHEDULED => ['bg' => 'rgba(59, 130, 246, 0.15)', 'border' => '#3b82f6', 'text' => '#1e40af'],
+            Appointment::STATUS_CONFIRMED => ['bg' => 'rgba(139, 92, 246, 0.15)', 'border' => '#8b5cf6', 'text' => '#5b21b6'],
+            Appointment::STATUS_CHECKED_IN => ['bg' => 'rgba(245, 158, 11, 0.15)', 'border' => '#f59e0b', 'text' => '#b45309'],
+            Appointment::STATUS_IN_PROGRESS => ['bg' => 'rgba(99, 102, 241, 0.15)', 'border' => '#6366f1', 'text' => '#4338ca'],
+            Appointment::STATUS_COMPLETED => ['bg' => 'rgba(16, 185, 129, 0.15)', 'border' => '#10b981', 'text' => '#047857'],
+            Appointment::STATUS_CANCELLED => ['bg' => 'rgba(239, 68, 68, 0.15)', 'border' => '#ef4444', 'text' => '#b91c1c'],
+            Appointment::STATUS_NO_SHOW => ['bg' => 'rgba(107, 114, 128, 0.15)', 'border' => '#6b7280', 'text' => '#374151'],
+            Appointment::STATUS_RESCHEDULED => ['bg' => 'rgba(245, 158, 11, 0.15)', 'border' => '#f59e0b', 'text' => '#b45309'],
+            default => ['bg' => 'rgba(107, 114, 128, 0.15)', 'border' => '#6b7280', 'text' => '#374151'],
         };
     }
 

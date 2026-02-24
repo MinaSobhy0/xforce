@@ -143,6 +143,14 @@ return [
         'metrics' => 'مقاييس الجلسة',
         'shots_used' => 'عدد النبضات',
         'energy' => 'الطاقة المستخدمة (جول)',
+        'devices' => 'جهاز',
+        'preset' => 'مسبق',
+        'shots' => 'نبضات',
+        'energy_short' => 'طاقة (ج)',
+        'add_equipment' => 'إضافة جهاز...',
+        'none_available' => 'لا توجد معدات متاحة',
+        'already_added' => 'المعدات مضافة مسبقاً',
+        'added' => 'تمت إضافة المعدات',
     ],
 
     // Presets
