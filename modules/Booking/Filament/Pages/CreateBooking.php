@@ -205,7 +205,7 @@ class CreateBooking extends Page implements HasForms
                                                         ->get();
 
                                                     // Get active treatment plans
-                                                    $activePlans = [];
+                                                    $activePlans = collect([]);
                                                     try {
                                                         $activePlans = TreatmentPlan::query()
                                                             ->forPatient($patientId)
@@ -246,18 +246,18 @@ class CreateBooking extends Page implements HasForms
                                                     $html .= '<div class="flex items-center gap-2 mb-2">';
                                                     $html .= '<svg class="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>';
                                                     $html .= '<span class="font-semibold text-gray-900 dark:text-white">' . __('booking::booking.labels.active_treatment_plans') . '</span>';
-                                                    $html .= '<span class="ml-auto px-2 py-0.5 text-xs font-medium rounded-full ' . (count($activePlans) > 0 ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500') . '">' . count($activePlans) . '</span>';
+                                                    $html .= '<span class="ml-auto px-2 py-0.5 text-xs font-medium rounded-full ' . ($activePlans->count() > 0 ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500') . '">' . $activePlans->count() . '</span>';
                                                     $html .= '</div>';
 
-                                                    if (count($activePlans) > 0) {
+                                                    if ($activePlans->count() > 0) {
                                                         $html .= '<div class="space-y-1 ml-7">';
-                                                        foreach (array_slice($activePlans, 0, 3) as $plan) {
+                                                        foreach ($activePlans->take(3) as $plan) {
                                                             $html .= '<div class="text-sm text-gray-600 dark:text-gray-300">';
                                                             $html .= '• ' . $plan->name . ' <span class="text-blue-600">(' . $plan->progress_percentage . '% ' . __('booking::booking.labels.complete') . ')</span>';
                                                             $html .= '</div>';
                                                         }
-                                                        if (count($activePlans) > 3) {
-                                                            $html .= '<div class="text-xs text-gray-400">+' . (count($activePlans) - 3) . ' more...</div>';
+                                                        if ($activePlans->count() > 3) {
+                                                            $html .= '<div class="text-xs text-gray-400">+' . ($activePlans->count() - 3) . ' more...</div>';
                                                         }
                                                         $html .= '</div>';
                                                     } else {
