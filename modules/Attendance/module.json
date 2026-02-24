@@ -1,19 +1,37 @@
 {
     "name": "Attendance",
     "alias": "attendance",
-    "description": "Attendance tracking, working schedules, GPS check-in/out, and violation management",
+    "description": {
+        "en": "Attendance tracking, working schedules, GPS check-in/out, and violation management",
+        "ar": "تتبع حضور وانصراف الموظفين"
+    },
     "version": "1.0.0",
     "category": "hr",
     "icon": "heroicon-o-clock",
-    "keywords": ["attendance", "hr", "check-in", "violations", "schedules", "gps", "time-tracking"],
+    "keywords": [
+        "attendance",
+        "hr",
+        "check-in",
+        "violations",
+        "schedules",
+        "gps",
+        "time-tracking"
+    ],
     "priority": 56,
     "providers": [
         "Modules\\Attendance\\Providers\\AttendanceServiceProvider",
         "Modules\\Attendance\\Providers\\RouteServiceProvider",
         "Modules\\Attendance\\Providers\\FilamentServiceProvider"
     ],
-    "dependencies": ["Core", "Auth", "Staff", "Booking"],
-    "optional_dependencies": ["Payroll"],
+    "dependencies": [
+        "Core",
+        "Auth",
+        "Staff",
+        "Booking"
+    ],
+    "optional_dependencies": [
+        "Payroll"
+    ],
     "models": [
         "Modules\\Attendance\\Models\\Attendance",
         "Modules\\Attendance\\Models\\AttendanceLog",
@@ -50,15 +68,46 @@
         "attendance.export": "Export attendance data"
     },
     "default_role_permissions": {
-        "admin": ["attendances.*", "working_schedules.*", "attendance_rules.*", "violations.*", "attendance.reports", "attendance.export"],
-        "manager": ["attendances.*", "working_schedules.view_any", "working_schedules.view", "violations.*", "attendance.reports", "attendance.export"],
-        "hr": ["attendances.*", "working_schedules.*", "attendance_rules.*", "violations.*", "attendance.reports", "attendance.export"],
-        "staff": ["attendances.view_any", "attendances.view", "attendances.check_in", "attendances.check_out", "violations.view_any", "violations.dispute"]
+        "admin": [
+            "attendances.*",
+            "working_schedules.*",
+            "attendance_rules.*",
+            "violations.*",
+            "attendance.reports",
+            "attendance.export"
+        ],
+        "manager": [
+            "attendances.*",
+            "working_schedules.view_any",
+            "working_schedules.view",
+            "violations.*",
+            "attendance.reports",
+            "attendance.export"
+        ],
+        "hr": [
+            "attendances.*",
+            "working_schedules.*",
+            "attendance_rules.*",
+            "violations.*",
+            "attendance.reports",
+            "attendance.export"
+        ],
+        "staff": [
+            "attendances.view_any",
+            "attendances.view",
+            "attendances.check_in",
+            "attendances.check_out",
+            "violations.view_any",
+            "violations.dispute"
+        ]
     },
     "navigation": [
         {
             "id": "attendances",
-            "label": {"en": "Attendance", "ar": "الحضور"},
+            "label": {
+                "en": "Attendance",
+                "ar": "الحضور"
+            },
             "icon": "heroicon-o-clock",
             "route": "filament.tenant.resources.attendances.index",
             "group": "hr",
@@ -67,7 +116,10 @@
         },
         {
             "id": "attendance_rules",
-            "label": {"en": "Attendance Rules", "ar": "قواعد الحضور"},
+            "label": {
+                "en": "Attendance Rules",
+                "ar": "قواعد الحضور"
+            },
             "icon": "heroicon-o-clipboard-document-check",
             "route": "filament.tenant.resources.attendance-rules.index",
             "group": "hr",
@@ -76,7 +128,10 @@
         },
         {
             "id": "violations",
-            "label": {"en": "Violations", "ar": "المخالفات"},
+            "label": {
+                "en": "Violations",
+                "ar": "المخالفات"
+            },
             "icon": "heroicon-o-exclamation-triangle",
             "route": "filament.tenant.resources.attendance-violations.index",
             "group": "hr",
@@ -88,32 +143,50 @@
         "attendance.auto_checkout_enabled": {
             "type": "boolean",
             "default": true,
-            "label": {"en": "Auto Checkout at End of Day", "ar": "الخروج التلقائي نهاية اليوم"}
+            "label": {
+                "en": "Auto Checkout at End of Day",
+                "ar": "الخروج التلقائي نهاية اليوم"
+            }
         },
         "attendance.auto_checkout_time": {
             "type": "string",
             "default": "23:59",
-            "label": {"en": "Auto Checkout Time", "ar": "وقت الخروج التلقائي"}
+            "label": {
+                "en": "Auto Checkout Time",
+                "ar": "وقت الخروج التلقائي"
+            }
         },
         "attendance.geofence_radius_meters": {
             "type": "integer",
             "default": 100,
-            "label": {"en": "Geofence Radius (meters)", "ar": "نطاق السياج الجغرافي (متر)"}
+            "label": {
+                "en": "Geofence Radius (meters)",
+                "ar": "نطاق السياج الجغرافي (متر)"
+            }
         },
         "attendance.require_gps_for_mobile": {
             "type": "boolean",
             "default": true,
-            "label": {"en": "Require GPS for Mobile Check-in", "ar": "يتطلب GPS للتسجيل من الهاتف"}
+            "label": {
+                "en": "Require GPS for Mobile Check-in",
+                "ar": "يتطلب GPS للتسجيل من الهاتف"
+            }
         },
         "attendance.allow_early_checkin_minutes": {
             "type": "integer",
             "default": 30,
-            "label": {"en": "Allow Early Check-in (minutes)", "ar": "السماح بالحضور المبكر (دقائق)"}
+            "label": {
+                "en": "Allow Early Check-in (minutes)",
+                "ar": "السماح بالحضور المبكر (دقائق)"
+            }
         },
         "attendance.overtime_threshold_minutes": {
             "type": "integer",
             "default": 30,
-            "label": {"en": "Overtime Threshold (minutes)", "ar": "حد الوقت الإضافي (دقائق)"}
+            "label": {
+                "en": "Overtime Threshold (minutes)",
+                "ar": "حد الوقت الإضافي (دقائق)"
+            }
         }
     },
     "events": [
@@ -124,5 +197,9 @@
         "ViolationApproved",
         "ViolationWaived"
     ],
-    "active": true
+    "active": true,
+    "display_name": {
+        "en": "Attendance",
+        "ar": "الحضور والانصراف"
+    }
 }

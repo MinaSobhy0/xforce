@@ -1,18 +1,34 @@
 {
     "name": "Packages",
     "alias": "packages",
-    "description": "Treatment packages with session bundles and value bundles",
+    "description": {
+        "en": "Treatment packages with session bundles and value bundles",
+        "ar": "حزم العلاجات وباقات الجلسات"
+    },
     "version": "1.0.0",
     "category": "services",
     "icon": "heroicon-o-cube-transparent",
-    "keywords": ["packages", "bundles", "sessions", "treatments"],
+    "keywords": [
+        "packages",
+        "bundles",
+        "sessions",
+        "treatments"
+    ],
     "priority": 50,
     "providers": [
         "Modules\\Packages\\Providers\\PackagesServiceProvider",
         "Modules\\Packages\\Providers\\RouteServiceProvider"
     ],
-    "dependencies": ["Core", "Auth", "Services", "Patients"],
-    "optional_dependencies": ["Billing", "Booking"],
+    "dependencies": [
+        "Core",
+        "Auth",
+        "Services",
+        "Patients"
+    ],
+    "optional_dependencies": [
+        "Billing",
+        "Booking"
+    ],
     "models": [
         "Modules\\Packages\\Models\\Package",
         "Modules\\Packages\\Models\\PackageItem",
@@ -32,15 +48,36 @@
         "package_sessions.use": "Use package sessions"
     },
     "default_role_permissions": {
-        "admin": ["packages.*", "package_subscriptions.*", "package_sessions.*"],
-        "manager": ["packages.*", "package_subscriptions.*", "package_sessions.*"],
-        "doctor": ["packages.view_any", "packages.view", "package_subscriptions.view_any", "package_sessions.use"],
-        "receptionist": ["packages.view_any", "packages.view", "package_subscriptions.*", "package_sessions.use"]
+        "admin": [
+            "packages.*",
+            "package_subscriptions.*",
+            "package_sessions.*"
+        ],
+        "manager": [
+            "packages.*",
+            "package_subscriptions.*",
+            "package_sessions.*"
+        ],
+        "doctor": [
+            "packages.view_any",
+            "packages.view",
+            "package_subscriptions.view_any",
+            "package_sessions.use"
+        ],
+        "receptionist": [
+            "packages.view_any",
+            "packages.view",
+            "package_subscriptions.*",
+            "package_sessions.use"
+        ]
     },
     "navigation": [
         {
             "id": "packages",
-            "label": {"en": "Packages", "ar": "الباقات"},
+            "label": {
+                "en": "Packages",
+                "ar": "الباقات"
+            },
             "icon": "heroicon-o-cube-transparent",
             "route": "filament.tenant.resources.packages.index",
             "group": "services",
@@ -52,12 +89,18 @@
         "packages.allow_partial_usage": {
             "type": "boolean",
             "default": true,
-            "label": {"en": "Allow Partial Session Usage", "ar": "السماح بالاستخدام الجزئي للجلسات"}
+            "label": {
+                "en": "Allow Partial Session Usage",
+                "ar": "السماح بالاستخدام الجزئي للجلسات"
+            }
         },
         "packages.expiry_reminder_days": {
             "type": "integer",
             "default": 30,
-            "label": {"en": "Expiry Reminder (days before)", "ar": "تذكير انتهاء الصلاحية (أيام قبل)"}
+            "label": {
+                "en": "Expiry Reminder (days before)",
+                "ar": "تذكير انتهاء الصلاحية (أيام قبل)"
+            }
         }
     },
     "sequences": [
@@ -73,5 +116,9 @@
         "PackageSessionUsed",
         "PackageExpired"
     ],
-    "active": true
+    "active": true,
+    "display_name": {
+        "en": "Packages",
+        "ar": "الباقات"
+    }
 }

@@ -1,18 +1,34 @@
 {
     "name": "Api",
     "alias": "api",
-    "description": "REST API with Laravel Sanctum for patient and staff authentication",
+    "description": {
+        "en": "REST API with Laravel Sanctum for patient and staff authentication",
+        "ar": "واجهة برمجة REST للتكاملات الخارجية"
+    },
     "version": "1.0.0",
     "category": "infrastructure",
     "icon": "heroicon-o-code-bracket",
-    "keywords": ["api", "rest", "sanctum", "json", "mobile"],
+    "keywords": [
+        "api",
+        "rest",
+        "sanctum",
+        "json",
+        "mobile"
+    ],
     "priority": 55,
     "providers": [
         "Modules\\Api\\Providers\\ApiServiceProvider",
         "Modules\\Api\\Providers\\RouteServiceProvider"
     ],
-    "dependencies": ["Core", "Auth"],
-    "optional_dependencies": ["Patients", "Booking", "Billing"],
+    "dependencies": [
+        "Core",
+        "Auth"
+    ],
+    "optional_dependencies": [
+        "Patients",
+        "Booking",
+        "Billing"
+    ],
     "models": [],
     "permissions": {
         "api.access": "Access API endpoints",
@@ -20,25 +36,43 @@
         "api.view_logs": "View API logs"
     },
     "default_role_permissions": {
-        "admin": ["api.*"],
-        "manager": ["api.access", "api.view_logs"]
+        "admin": [
+            "api.*"
+        ],
+        "manager": [
+            "api.access",
+            "api.view_logs"
+        ]
     },
     "settings": {
         "api.rate_limit_per_minute": {
             "type": "integer",
             "default": 60,
-            "label": {"en": "Rate Limit (requests/minute)", "ar": "حد الطلبات (طلب/دقيقة)"}
+            "label": {
+                "en": "Rate Limit (requests/minute)",
+                "ar": "حد الطلبات (طلب/دقيقة)"
+            }
         },
         "api.token_expiry_days": {
             "type": "integer",
             "default": 30,
-            "label": {"en": "Token Expiry (days)", "ar": "انتهاء صلاحية الرمز (أيام)"}
+            "label": {
+                "en": "Token Expiry (days)",
+                "ar": "انتهاء صلاحية الرمز (أيام)"
+            }
         },
         "api.otp_expiry_minutes": {
             "type": "integer",
             "default": 5,
-            "label": {"en": "OTP Expiry (minutes)", "ar": "انتهاء صلاحية OTP (دقائق)"}
+            "label": {
+                "en": "OTP Expiry (minutes)",
+                "ar": "انتهاء صلاحية OTP (دقائق)"
+            }
         }
     },
-    "active": true
+    "active": true,
+    "display_name": {
+        "en": "Api",
+        "ar": "واجهة برمجة التطبيقات"
+    }
 }

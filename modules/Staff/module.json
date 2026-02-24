@@ -1,18 +1,33 @@
 {
     "name": "Staff",
     "alias": "staff",
-    "description": "Staff management - profiles, commissions, and performance tracking",
+    "description": {
+        "en": "Staff management - profiles, commissions, and performance tracking",
+        "ar": "ملفات الموظفين وتتبع العمولات"
+    },
     "version": "1.0.0",
     "category": "hr",
     "icon": "heroicon-o-user-group",
-    "keywords": ["staff", "commissions", "hr", "employees", "performance"],
+    "keywords": [
+        "staff",
+        "commissions",
+        "hr",
+        "employees",
+        "performance"
+    ],
     "priority": 50,
     "providers": [
         "Modules\\Staff\\Providers\\StaffServiceProvider",
         "Modules\\Staff\\Providers\\RouteServiceProvider"
     ],
-    "dependencies": ["Core", "Auth"],
-    "optional_dependencies": ["Services", "Billing"],
+    "dependencies": [
+        "Core",
+        "Auth"
+    ],
+    "optional_dependencies": [
+        "Services",
+        "Billing"
+    ],
     "models": [
         "Modules\\Staff\\Models\\StaffProfile",
         "Modules\\Staff\\Models\\CommissionPlan",
@@ -37,15 +52,38 @@
         "staff.reports": "View staff reports"
     },
     "default_role_permissions": {
-        "admin": ["staff_profiles.*", "commission_plans.*", "commissions.*", "staff.reports"],
-        "manager": ["staff_profiles.view_any", "staff_profiles.view", "commission_plans.view_any", "commissions.view_any", "staff.reports"],
-        "hr": ["staff_profiles.*", "commission_plans.*", "commissions.*", "staff.reports"],
-        "accountant": ["staff_profiles.view_any", "commissions.view_any", "staff.reports"]
+        "admin": [
+            "staff_profiles.*",
+            "commission_plans.*",
+            "commissions.*",
+            "staff.reports"
+        ],
+        "manager": [
+            "staff_profiles.view_any",
+            "staff_profiles.view",
+            "commission_plans.view_any",
+            "commissions.view_any",
+            "staff.reports"
+        ],
+        "hr": [
+            "staff_profiles.*",
+            "commission_plans.*",
+            "commissions.*",
+            "staff.reports"
+        ],
+        "accountant": [
+            "staff_profiles.view_any",
+            "commissions.view_any",
+            "staff.reports"
+        ]
     },
     "navigation": [
         {
             "id": "staff_profiles",
-            "label": {"en": "Staff Profiles", "ar": "ملفات الموظفين"},
+            "label": {
+                "en": "Staff Profiles",
+                "ar": "ملفات الموظفين"
+            },
             "icon": "heroicon-o-user-group",
             "route": "filament.tenant.resources.staff-profiles.index",
             "group": "hr",
@@ -54,7 +92,10 @@
         },
         {
             "id": "commission_plans",
-            "label": {"en": "Commission Plans", "ar": "خطط العمولات"},
+            "label": {
+                "en": "Commission Plans",
+                "ar": "خطط العمولات"
+            },
             "icon": "heroicon-o-currency-dollar",
             "route": "filament.tenant.resources.commission-plans.index",
             "group": "hr",
@@ -65,15 +106,29 @@
     "settings": {
         "staff.default_commission_type": {
             "type": "select",
-            "options": ["percentage", "flat", "tiered"],
+            "options": [
+                "percentage",
+                "flat",
+                "tiered"
+            ],
             "default": "percentage",
-            "label": {"en": "Default Commission Type", "ar": "نوع العمولة الافتراضي"}
+            "label": {
+                "en": "Default Commission Type",
+                "ar": "نوع العمولة الافتراضي"
+            }
         },
         "staff.commission_pay_period": {
             "type": "select",
-            "options": ["weekly", "bi-weekly", "monthly"],
+            "options": [
+                "weekly",
+                "bi-weekly",
+                "monthly"
+            ],
             "default": "monthly",
-            "label": {"en": "Commission Pay Period", "ar": "فترة دفع العمولة"}
+            "label": {
+                "en": "Commission Pay Period",
+                "ar": "فترة دفع العمولة"
+            }
         }
     },
     "events": [
@@ -82,5 +137,9 @@
         "CommissionEarned",
         "CommissionPaid"
     ],
-    "active": true
+    "active": true,
+    "display_name": {
+        "en": "Staff",
+        "ar": "الموظفين"
+    }
 }

@@ -1,16 +1,28 @@
 {
     "name": "Equipment",
     "alias": "equipment",
-    "description": "Equipment management, maintenance tracking, and shot counters",
+    "description": {
+        "en": "Equipment management, maintenance tracking, and shot counters",
+        "ar": "تتبع المعدات والصيانة وعداد النبضات"
+    },
     "version": "1.0.0",
     "category": "operations",
     "icon": "heroicon-o-cpu-chip",
-    "keywords": ["equipment", "machines", "laser", "maintenance", "shots"],
+    "keywords": [
+        "equipment",
+        "machines",
+        "laser",
+        "maintenance",
+        "shots"
+    ],
     "priority": 20,
     "providers": [
         "Modules\\Equipment\\Providers\\EquipmentServiceProvider"
     ],
-    "dependencies": ["Core", "Services"],
+    "dependencies": [
+        "Core",
+        "Services"
+    ],
     "optional_dependencies": [],
     "models": [
         "Modules\\Equipment\\Models\\EquipmentType",
@@ -32,17 +44,39 @@
         "equipment_types.delete": "Delete equipment types"
     },
     "default_role_permissions": {
-        "admin": ["equipment.*", "equipment_types.*"],
-        "manager": ["equipment.*", "equipment_types.*"],
-        "doctor": ["equipment.view_any", "equipment.view", "equipment.record_shots"],
-        "nurse": ["equipment.view_any", "equipment.view", "equipment.record_shots"],
-        "receptionist": ["equipment.view_any", "equipment.view"],
-        "staff": ["equipment.view_any"]
+        "admin": [
+            "equipment.*",
+            "equipment_types.*"
+        ],
+        "manager": [
+            "equipment.*",
+            "equipment_types.*"
+        ],
+        "doctor": [
+            "equipment.view_any",
+            "equipment.view",
+            "equipment.record_shots"
+        ],
+        "nurse": [
+            "equipment.view_any",
+            "equipment.view",
+            "equipment.record_shots"
+        ],
+        "receptionist": [
+            "equipment.view_any",
+            "equipment.view"
+        ],
+        "staff": [
+            "equipment.view_any"
+        ]
     },
     "navigation": [
         {
             "id": "equipment",
-            "label": {"en": "Equipment", "ar": "المعدات"},
+            "label": {
+                "en": "Equipment",
+                "ar": "المعدات"
+            },
             "icon": "heroicon-o-cpu-chip",
             "route": "filament.tenant.resources.equipment.index",
             "group": "operations",
@@ -51,7 +85,10 @@
         },
         {
             "id": "equipment_types",
-            "label": {"en": "Equipment Types", "ar": "أنواع المعدات"},
+            "label": {
+                "en": "Equipment Types",
+                "ar": "أنواع المعدات"
+            },
             "icon": "heroicon-o-squares-2x2",
             "route": "filament.tenant.resources.equipment-types.index",
             "group": "operations",
@@ -63,13 +100,23 @@
         "equipment.maintenance_reminder_days": {
             "type": "integer",
             "default": 7,
-            "label": {"en": "Maintenance reminder days before due", "ar": "أيام التذكير قبل الصيانة"}
+            "label": {
+                "en": "Maintenance reminder days before due",
+                "ar": "أيام التذكير قبل الصيانة"
+            }
         },
         "equipment.shot_counter_warning_threshold": {
             "type": "integer",
             "default": 90,
-            "label": {"en": "Shot counter warning threshold (%)", "ar": "حد التحذير لعداد الطلقات (%)"}
+            "label": {
+                "en": "Shot counter warning threshold (%)",
+                "ar": "حد التحذير لعداد الطلقات (%)"
+            }
         }
     },
-    "active": true
+    "active": true,
+    "display_name": {
+        "en": "Equipment",
+        "ar": "المعدات"
+    }
 }

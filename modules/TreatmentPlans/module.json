@@ -1,18 +1,36 @@
 {
     "name": "TreatmentPlans",
     "alias": "treatment_plans",
-    "description": "Clinical treatment plans with service recommendations and session tracking",
+    "description": {
+        "en": "Clinical treatment plans with service recommendations and session tracking",
+        "ar": "خطط العلاج المخصصة للمرضى"
+    },
     "version": "1.0.0",
     "category": "clinical",
     "icon": "heroicon-o-clipboard-document-list",
-    "keywords": ["treatment", "plans", "clinical", "sessions", "recommendations"],
+    "keywords": [
+        "treatment",
+        "plans",
+        "clinical",
+        "sessions",
+        "recommendations"
+    ],
     "priority": 45,
     "providers": [
         "Modules\\TreatmentPlans\\Providers\\TreatmentPlansServiceProvider",
         "Modules\\TreatmentPlans\\Providers\\RouteServiceProvider"
     ],
-    "dependencies": ["Core", "Auth", "Services", "Patients", "Booking"],
-    "optional_dependencies": ["Packages", "Billing"],
+    "dependencies": [
+        "Core",
+        "Auth",
+        "Services",
+        "Patients",
+        "Booking"
+    ],
+    "optional_dependencies": [
+        "Packages",
+        "Billing"
+    ],
     "models": [
         "Modules\\TreatmentPlans\\Models\\TreatmentPlan",
         "Modules\\TreatmentPlans\\Models\\TreatmentPlanItem",
@@ -29,15 +47,29 @@
         "treatment_plans.cancel": "Cancel treatment plans"
     },
     "default_role_permissions": {
-        "admin": ["treatment_plans.*"],
-        "manager": ["treatment_plans.*"],
-        "doctor": ["treatment_plans.*"],
-        "receptionist": ["treatment_plans.view_any", "treatment_plans.view", "treatment_plans.create", "treatment_plans.update"]
+        "admin": [
+            "treatment_plans.*"
+        ],
+        "manager": [
+            "treatment_plans.*"
+        ],
+        "doctor": [
+            "treatment_plans.*"
+        ],
+        "receptionist": [
+            "treatment_plans.view_any",
+            "treatment_plans.view",
+            "treatment_plans.create",
+            "treatment_plans.update"
+        ]
     },
     "navigation": [
         {
             "id": "treatment_plans",
-            "label": {"en": "Treatment Plans", "ar": "خطط العلاج"},
+            "label": {
+                "en": "Treatment Plans",
+                "ar": "خطط العلاج"
+            },
             "icon": "heroicon-o-clipboard-document-list",
             "route": "filament.tenant.resources.treatment-plans.index",
             "group": "clinical",
@@ -49,12 +81,18 @@
         "treatment_plans.auto_complete_on_all_sessions": {
             "type": "boolean",
             "default": true,
-            "label": {"en": "Auto-complete plan when all sessions done", "ar": "إكمال الخطة تلقائياً عند انتهاء جميع الجلسات"}
+            "label": {
+                "en": "Auto-complete plan when all sessions done",
+                "ar": "إكمال الخطة تلقائياً عند انتهاء جميع الجلسات"
+            }
         },
         "treatment_plans.default_session_interval_days": {
             "type": "integer",
             "default": 7,
-            "label": {"en": "Default Session Interval (days)", "ar": "الفاصل الافتراضي بين الجلسات (أيام)"}
+            "label": {
+                "en": "Default Session Interval (days)",
+                "ar": "الفاصل الافتراضي بين الجلسات (أيام)"
+            }
         }
     },
     "sequences": [
@@ -71,5 +109,9 @@
         "TreatmentPlanCancelled",
         "TreatmentPlanSessionCompleted"
     ],
-    "active": true
+    "active": true,
+    "display_name": {
+        "en": "TreatmentPlans",
+        "ar": "خطط العلاج"
+    }
 }

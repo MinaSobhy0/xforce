@@ -1,12 +1,25 @@
 {
     "name": "Reporting",
     "alias": "reporting",
-    "description": "Analytics and reporting with charts, data tables, and exports",
-    "keywords": ["reports", "analytics", "charts", "exports", "statistics"],
+    "description": {
+        "en": "Analytics and reporting with charts, data tables, and exports",
+        "ar": "التحليلات وتقارير الأعمال"
+    },
+    "keywords": [
+        "reports",
+        "analytics",
+        "charts",
+        "exports",
+        "statistics"
+    ],
     "priority": 54,
     "providers": [
         "Modules\\Reporting\\Providers\\ReportingServiceProvider",
         "Modules\\Reporting\\Providers\\RouteServiceProvider"
     ],
-    "files": []
+    "files": [],
+    "display_name": {
+        "en": "Reporting",
+        "ar": "التقارير"
+    }
 }

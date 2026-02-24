@@ -57,7 +57,7 @@ class ListModules extends Page
 
                     $modules[] = [
                         'code' => $code,
-                        'name' => $module->getName(),
+                        'name' => $this->getTranslatedValue($moduleJson['display_name'] ?? $moduleJson['name'] ?? $module->getName()),
                         'description' => $this->getTranslatedValue($moduleJson['description'] ?? ''),
                         'version' => $moduleJson['version'] ?? '1.0.0',
                         'enabled' => $isEnabled,
@@ -97,7 +97,7 @@ class ListModules extends Page
 
                     $modules[] = [
                         'code' => $code,
-                        'name' => $moduleJson['name'] ?? $moduleName,
+                        'name' => $this->getTranslatedValue($moduleJson['display_name'] ?? $moduleJson['name'] ?? $moduleName),
                         'description' => $this->getTranslatedValue($moduleJson['description'] ?? ''),
                         'version' => $moduleJson['version'] ?? '1.0.0',
                         'enabled' => $isEnabled,

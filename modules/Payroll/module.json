@@ -1,17 +1,30 @@
 {
     "name": "Payroll",
     "alias": "payroll",
-    "description": "Payroll management - salary runs, structures, rules, and slips",
+    "description": {
+        "en": "Payroll management - salary runs, structures, rules, and slips",
+        "ar": "معالجة الرواتب وكشوف المرتبات"
+    },
     "version": "1.0.0",
     "category": "hr",
     "icon": "heroicon-o-banknotes",
-    "keywords": ["payroll", "salary", "hr", "compensation", "payslip"],
+    "keywords": [
+        "payroll",
+        "salary",
+        "hr",
+        "compensation",
+        "payslip"
+    ],
     "priority": 55,
     "providers": [
         "Modules\\Payroll\\Providers\\PayrollServiceProvider",
         "Modules\\Payroll\\Providers\\RouteServiceProvider"
     ],
-    "dependencies": ["Core", "Auth", "Staff"],
+    "dependencies": [
+        "Core",
+        "Auth",
+        "Staff"
+    ],
     "optional_dependencies": [],
     "models": [
         "Modules\\Payroll\\Models\\PayrollRun",
@@ -46,15 +59,40 @@
         "payroll.reports": "View payroll reports"
     },
     "default_role_permissions": {
-        "admin": ["payroll_runs.*", "salary_structures.*", "salary_rules.*", "salary_categories.*", "payroll.reports"],
-        "manager": ["payroll_runs.view_any", "payroll_runs.view", "salary_structures.view_any", "payroll.reports"],
-        "accountant": ["payroll_runs.*", "salary_structures.view_any", "salary_rules.view_any", "payroll.reports"],
-        "hr": ["payroll_runs.*", "salary_structures.*", "salary_rules.*", "salary_categories.*", "payroll.reports"]
+        "admin": [
+            "payroll_runs.*",
+            "salary_structures.*",
+            "salary_rules.*",
+            "salary_categories.*",
+            "payroll.reports"
+        ],
+        "manager": [
+            "payroll_runs.view_any",
+            "payroll_runs.view",
+            "salary_structures.view_any",
+            "payroll.reports"
+        ],
+        "accountant": [
+            "payroll_runs.*",
+            "salary_structures.view_any",
+            "salary_rules.view_any",
+            "payroll.reports"
+        ],
+        "hr": [
+            "payroll_runs.*",
+            "salary_structures.*",
+            "salary_rules.*",
+            "salary_categories.*",
+            "payroll.reports"
+        ]
     },
     "navigation": [
         {
             "id": "payroll_runs",
-            "label": {"en": "Payroll Runs", "ar": "دورات الرواتب"},
+            "label": {
+                "en": "Payroll Runs",
+                "ar": "دورات الرواتب"
+            },
             "icon": "heroicon-o-banknotes",
             "route": "filament.tenant.resources.payroll-runs.index",
             "group": "hr",
@@ -63,7 +101,10 @@
         },
         {
             "id": "salary_structures",
-            "label": {"en": "Salary Structures", "ar": "هياكل الرواتب"},
+            "label": {
+                "en": "Salary Structures",
+                "ar": "هياكل الرواتب"
+            },
             "icon": "heroicon-o-rectangle-stack",
             "route": "filament.tenant.resources.salary-structures.index",
             "group": "hr",
@@ -72,7 +113,10 @@
         },
         {
             "id": "salary_rules",
-            "label": {"en": "Salary Rules", "ar": "قواعد الرواتب"},
+            "label": {
+                "en": "Salary Rules",
+                "ar": "قواعد الرواتب"
+            },
             "icon": "heroicon-o-calculator",
             "route": "filament.tenant.resources.salary-rules.index",
             "group": "hr",
@@ -81,7 +125,10 @@
         },
         {
             "id": "salary_categories",
-            "label": {"en": "Salary Categories", "ar": "فئات الرواتب"},
+            "label": {
+                "en": "Salary Categories",
+                "ar": "فئات الرواتب"
+            },
             "icon": "heroicon-o-tag",
             "route": "filament.tenant.resources.salary-rule-categories.index",
             "group": "hr",
@@ -92,19 +139,32 @@
     "settings": {
         "payroll.default_pay_frequency": {
             "type": "select",
-            "options": ["monthly", "bi-weekly", "weekly"],
+            "options": [
+                "monthly",
+                "bi-weekly",
+                "weekly"
+            ],
             "default": "monthly",
-            "label": {"en": "Default Pay Frequency", "ar": "دورية الدفع الافتراضية"}
+            "label": {
+                "en": "Default Pay Frequency",
+                "ar": "دورية الدفع الافتراضية"
+            }
         },
         "payroll.social_insurance_rate": {
             "type": "number",
             "default": 11,
-            "label": {"en": "Social Insurance Rate (%)", "ar": "معدل التأمين الاجتماعي (%)"}
+            "label": {
+                "en": "Social Insurance Rate (%)",
+                "ar": "معدل التأمين الاجتماعي (%)"
+            }
         },
         "payroll.auto_calculate_tax": {
             "type": "boolean",
             "default": true,
-            "label": {"en": "Auto Calculate Tax", "ar": "حساب الضريبة تلقائياً"}
+            "label": {
+                "en": "Auto Calculate Tax",
+                "ar": "حساب الضريبة تلقائياً"
+            }
         }
     },
     "sequences": [
@@ -120,5 +180,9 @@
         "PayrollApproved",
         "PayrollPaid"
     ],
-    "active": true
+    "active": true,
+    "display_name": {
+        "en": "Payroll",
+        "ar": "الرواتب"
+    }
 }

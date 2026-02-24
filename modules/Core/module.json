@@ -4,14 +4,14 @@
     "version": "1.0.0",
     "description": {
         "en": "Core system management and tenant administration",
-        "ar": "إدارة النظام الأساسي والمستأجرين"
+        "ar": "الفروع والغرف وإعدادات النظام"
     },
     "author": "XLinic",
     "dependencies": [],
     "providers": [
         "Modules\\Core\\Providers\\CoreServiceProvider"
     ],
-    "aliases": {},
+    "aliases": [],
     "files": [
         "start.php"
     ],
@@ -22,7 +22,11 @@
     "active": true,
     "order": 1,
     "category": "system",
-    "tags": ["core", "tenant", "system"],
+    "tags": [
+        "core",
+        "tenant",
+        "system"
+    ],
     "permissions": [
         {
             "name": "core.manage",
@@ -80,7 +84,11 @@
                 "en": "Full system administration access",
                 "ar": "الوصول الكامل لإدارة النظام"
             },
-            "permissions": ["core.manage", "tenants.manage", "system.settings"]
+            "permissions": [
+                "core.manage",
+                "tenants.manage",
+                "system.settings"
+            ]
         }
     ],
     "navigation": [
@@ -156,5 +164,9 @@
             "services",
             "inventory"
         ]
+    },
+    "display_name": {
+        "en": "Core",
+        "ar": "النظام الأساسي"
     }
 }

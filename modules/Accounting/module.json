@@ -1,16 +1,28 @@
 {
     "name": "Accounting",
     "alias": "accounting",
-    "description": "Double-entry accounting with chart of accounts, journal entries, and financial reports",
+    "description": {
+        "en": "Double-entry accounting with chart of accounts, journal entries, and financial reports",
+        "ar": "دليل الحسابات وقيود اليومية والتقارير المالية"
+    },
     "version": "1.0.0",
     "category": "finance",
     "icon": "heroicon-o-calculator",
-    "keywords": ["accounting", "journal", "ledger", "chart of accounts", "financial reports"],
+    "keywords": [
+        "accounting",
+        "journal",
+        "ledger",
+        "chart of accounts",
+        "financial reports"
+    ],
     "priority": 21,
     "providers": [
         "Modules\\Accounting\\Providers\\AccountingServiceProvider"
     ],
-    "dependencies": ["Core", "Billing"],
+    "dependencies": [
+        "Core",
+        "Billing"
+    ],
     "optional_dependencies": [],
     "models": [
         "Modules\\Accounting\\Models\\ChartOfAccount",
@@ -35,14 +47,33 @@
         "accounting.reports": "View accounting reports"
     },
     "default_role_permissions": {
-        "admin": ["chart_of_accounts.*", "journal_entries.*", "fiscal_periods.*", "accounting.reports"],
-        "manager": ["chart_of_accounts.view_any", "chart_of_accounts.view", "journal_entries.view_any", "journal_entries.view", "accounting.reports"],
-        "accountant": ["chart_of_accounts.*", "journal_entries.*", "fiscal_periods.view_any", "accounting.reports"]
+        "admin": [
+            "chart_of_accounts.*",
+            "journal_entries.*",
+            "fiscal_periods.*",
+            "accounting.reports"
+        ],
+        "manager": [
+            "chart_of_accounts.view_any",
+            "chart_of_accounts.view",
+            "journal_entries.view_any",
+            "journal_entries.view",
+            "accounting.reports"
+        ],
+        "accountant": [
+            "chart_of_accounts.*",
+            "journal_entries.*",
+            "fiscal_periods.view_any",
+            "accounting.reports"
+        ]
     },
     "navigation": [
         {
             "id": "chart_of_accounts",
-            "label": {"en": "Chart of Accounts", "ar": "دليل الحسابات"},
+            "label": {
+                "en": "Chart of Accounts",
+                "ar": "دليل الحسابات"
+            },
             "icon": "heroicon-o-list-bullet",
             "route": "filament.tenant.resources.chart-of-accounts.index",
             "group": "finance",
@@ -51,7 +82,10 @@
         },
         {
             "id": "journal_entries",
-            "label": {"en": "Journal Entries", "ar": "القيود اليومية"},
+            "label": {
+                "en": "Journal Entries",
+                "ar": "القيود اليومية"
+            },
             "icon": "heroicon-o-document-duplicate",
             "route": "filament.tenant.resources.journal-entries.index",
             "group": "finance",
@@ -60,7 +94,10 @@
         },
         {
             "id": "trial_balance",
-            "label": {"en": "Trial Balance", "ar": "ميزان المراجعة"},
+            "label": {
+                "en": "Trial Balance",
+                "ar": "ميزان المراجعة"
+            },
             "icon": "heroicon-o-scale",
             "route": "filament.tenant.pages.trial-balance",
             "group": "finance",
@@ -81,5 +118,9 @@
         "JournalEntryReversed",
         "FiscalPeriodClosed"
     ],
-    "active": true
+    "active": true,
+    "display_name": {
+        "en": "Accounting",
+        "ar": "المحاسبة"
+    }
 }

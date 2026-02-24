@@ -1,17 +1,33 @@
 {
     "name": "Booking",
     "alias": "booking",
-    "description": "Appointment scheduling, calendar management, practitioner schedules, and waitlist",
+    "description": {
+        "en": "Appointment scheduling, calendar management, practitioner schedules, and waitlist",
+        "ar": "المواعيد والتقويم وجداول العمل"
+    },
     "version": "1.0.0",
     "category": "operations",
     "icon": "heroicon-o-calendar-days",
-    "keywords": ["booking", "appointments", "calendar", "schedule", "waitlist"],
+    "keywords": [
+        "booking",
+        "appointments",
+        "calendar",
+        "schedule",
+        "waitlist"
+    ],
     "priority": 15,
     "providers": [
         "Modules\\Booking\\Providers\\BookingServiceProvider"
     ],
-    "dependencies": ["Core", "Auth", "Patients", "Services"],
-    "optional_dependencies": ["Equipment"],
+    "dependencies": [
+        "Core",
+        "Auth",
+        "Patients",
+        "Services"
+    ],
+    "optional_dependencies": [
+        "Equipment"
+    ],
     "models": [
         "Modules\\Booking\\Models\\Appointment",
         "Modules\\Booking\\Models\\AppointmentServiceNote",
@@ -40,17 +56,54 @@
         "waitlist.manage": "Manage waitlist"
     },
     "default_role_permissions": {
-        "admin": ["appointments.*", "calendar.*", "schedule.*", "time_off.*", "waitlist.*"],
-        "manager": ["appointments.*", "calendar.*", "schedule.*", "time_off.*", "waitlist.*"],
-        "doctor": ["appointments.view_any", "appointments.view", "appointments.check_in", "appointments.start", "appointments.complete", "calendar.view", "schedule.view_any"],
-        "nurse": ["appointments.view_any", "appointments.view", "appointments.check_in", "appointments.start", "calendar.view"],
-        "receptionist": ["appointments.*", "calendar.view", "schedule.view_any", "waitlist.*"],
-        "staff": ["appointments.view_any", "calendar.view"]
+        "admin": [
+            "appointments.*",
+            "calendar.*",
+            "schedule.*",
+            "time_off.*",
+            "waitlist.*"
+        ],
+        "manager": [
+            "appointments.*",
+            "calendar.*",
+            "schedule.*",
+            "time_off.*",
+            "waitlist.*"
+        ],
+        "doctor": [
+            "appointments.view_any",
+            "appointments.view",
+            "appointments.check_in",
+            "appointments.start",
+            "appointments.complete",
+            "calendar.view",
+            "schedule.view_any"
+        ],
+        "nurse": [
+            "appointments.view_any",
+            "appointments.view",
+            "appointments.check_in",
+            "appointments.start",
+            "calendar.view"
+        ],
+        "receptionist": [
+            "appointments.*",
+            "calendar.view",
+            "schedule.view_any",
+            "waitlist.*"
+        ],
+        "staff": [
+            "appointments.view_any",
+            "calendar.view"
+        ]
     },
     "navigation": [
         {
             "id": "doctor_dashboard",
-            "label": {"en": "Doctor Dashboard", "ar": "لوحة الطبيب"},
+            "label": {
+                "en": "Doctor Dashboard",
+                "ar": "لوحة الطبيب"
+            },
             "icon": "heroicon-o-clipboard-document-check",
             "route": "filament.tenant.pages.doctor-dashboard",
             "group": "operations",
@@ -59,7 +112,10 @@
         },
         {
             "id": "calendar",
-            "label": {"en": "Calendar", "ar": "التقويم"},
+            "label": {
+                "en": "Calendar",
+                "ar": "التقويم"
+            },
             "icon": "heroicon-o-calendar-days",
             "route": "filament.tenant.pages.calendar",
             "group": "operations",
@@ -68,7 +124,10 @@
         },
         {
             "id": "appointments",
-            "label": {"en": "Appointments", "ar": "المواعيد"},
+            "label": {
+                "en": "Appointments",
+                "ar": "المواعيد"
+            },
             "icon": "heroicon-o-clipboard-document-list",
             "route": "filament.tenant.resources.appointments.index",
             "group": "operations",
@@ -77,7 +136,10 @@
         },
         {
             "id": "schedules",
-            "label": {"en": "Schedules", "ar": "جداول العمل"},
+            "label": {
+                "en": "Schedules",
+                "ar": "جداول العمل"
+            },
             "icon": "heroicon-o-clock",
             "route": "filament.tenant.resources.practitioner-schedules.index",
             "group": "operations",
@@ -86,7 +148,10 @@
         },
         {
             "id": "time_off",
-            "label": {"en": "Time Off", "ar": "الإجازات"},
+            "label": {
+                "en": "Time Off",
+                "ar": "الإجازات"
+            },
             "icon": "heroicon-o-calendar",
             "route": "filament.tenant.resources.practitioner-time-off.index",
             "group": "operations",
@@ -95,7 +160,10 @@
         },
         {
             "id": "waitlist",
-            "label": {"en": "Waitlist", "ar": "قائمة الانتظار"},
+            "label": {
+                "en": "Waitlist",
+                "ar": "قائمة الانتظار"
+            },
             "icon": "heroicon-o-queue-list",
             "route": "filament.tenant.resources.waitlist.index",
             "group": "operations",
@@ -107,37 +175,58 @@
         "booking.default_slot_duration": {
             "type": "integer",
             "default": 30,
-            "label": {"en": "Default slot duration (minutes)", "ar": "مدة الفترة الافتراضية (دقائق)"}
+            "label": {
+                "en": "Default slot duration (minutes)",
+                "ar": "مدة الفترة الافتراضية (دقائق)"
+            }
         },
         "booking.buffer_minutes": {
             "type": "integer",
             "default": 5,
-            "label": {"en": "Buffer between appointments (minutes)", "ar": "الفاصل بين المواعيد (دقائق)"}
+            "label": {
+                "en": "Buffer between appointments (minutes)",
+                "ar": "الفاصل بين المواعيد (دقائق)"
+            }
         },
         "booking.auto_confirm": {
             "type": "boolean",
             "default": false,
-            "label": {"en": "Auto-confirm appointments", "ar": "تأكيد المواعيد تلقائياً"}
+            "label": {
+                "en": "Auto-confirm appointments",
+                "ar": "تأكيد المواعيد تلقائياً"
+            }
         },
         "booking.reminder_hours_before": {
             "type": "integer",
             "default": 24,
-            "label": {"en": "Send reminder hours before appointment", "ar": "إرسال تذكير قبل الموعد بـ (ساعة)"}
+            "label": {
+                "en": "Send reminder hours before appointment",
+                "ar": "إرسال تذكير قبل الموعد بـ (ساعة)"
+            }
         },
         "booking.allow_online_booking": {
             "type": "boolean",
             "default": true,
-            "label": {"en": "Allow online booking", "ar": "السماح بالحجز عبر الإنترنت"}
+            "label": {
+                "en": "Allow online booking",
+                "ar": "السماح بالحجز عبر الإنترنت"
+            }
         },
         "booking.max_advance_booking_days": {
             "type": "integer",
             "default": 60,
-            "label": {"en": "Maximum advance booking (days)", "ar": "أقصى مدة للحجز المسبق (يوم)"}
+            "label": {
+                "en": "Maximum advance booking (days)",
+                "ar": "أقصى مدة للحجز المسبق (يوم)"
+            }
         },
         "booking.cancellation_policy_hours": {
             "type": "integer",
             "default": 24,
-            "label": {"en": "Cancellation policy (hours before)", "ar": "سياسة الإلغاء (ساعة قبل الموعد)"}
+            "label": {
+                "en": "Cancellation policy (hours before)",
+                "ar": "سياسة الإلغاء (ساعة قبل الموعد)"
+            }
         }
     },
     "sequences": [
@@ -156,5 +245,9 @@
         "AppointmentCancelled",
         "AppointmentNoShow"
     ],
-    "active": true
+    "active": true,
+    "display_name": {
+        "en": "Booking",
+        "ar": "الحجوزات"
+    }
 }

@@ -4,14 +4,16 @@
     "version": "1.0.0",
     "description": {
         "en": "User authentication and role-based access control",
-        "ar": "مصادقة المستخدم والتحكم في الوصول القائم على الأدوار"
+        "ar": "المستخدمين والأدوار والصلاحيات"
     },
     "author": "XLinic",
-    "dependencies": ["core"],
+    "dependencies": [
+        "core"
+    ],
     "providers": [
         "Modules\\Auth\\Providers\\AuthServiceProvider"
     ],
-    "aliases": {},
+    "aliases": [],
     "files": [
         "start.php"
     ],
@@ -23,7 +25,12 @@
     "active": true,
     "order": 2,
     "category": "system",
-    "tags": ["auth", "users", "roles", "permissions"],
+    "tags": [
+        "auth",
+        "users",
+        "roles",
+        "permissions"
+    ],
     "permissions": [
         {
             "name": "users.view",
@@ -136,7 +143,15 @@
                 "en": "Clinic owner with full access to all features",
                 "ar": "مالك العيادة مع الوصول الكامل لجميع الميزات"
             },
-            "permissions": ["users.view", "users.create", "users.edit", "users.delete", "roles.view", "roles.manage", "permissions.view"]
+            "permissions": [
+                "users.view",
+                "users.create",
+                "users.edit",
+                "users.delete",
+                "roles.view",
+                "roles.manage",
+                "permissions.view"
+            ]
         },
         {
             "name": "admin",
@@ -148,7 +163,14 @@
                 "en": "Tenant administrator with full access",
                 "ar": "مدير المستأجر مع الوصول الكامل"
             },
-            "permissions": ["users.view", "users.create", "users.edit", "users.delete", "roles.view", "roles.manage"]
+            "permissions": [
+                "users.view",
+                "users.create",
+                "users.edit",
+                "users.delete",
+                "roles.view",
+                "roles.manage"
+            ]
         },
         {
             "name": "manager",
@@ -160,7 +182,12 @@
                 "en": "Department manager with limited admin access",
                 "ar": "مدير القسم مع وصول إداري محدود"
             },
-            "permissions": ["users.view", "users.create", "users.edit", "roles.view"]
+            "permissions": [
+                "users.view",
+                "users.create",
+                "users.edit",
+                "roles.view"
+            ]
         },
         {
             "name": "staff",
@@ -172,7 +199,9 @@
                 "en": "Regular staff member",
                 "ar": "موظف عادي"
             },
-            "permissions": ["users.view"]
+            "permissions": [
+                "users.view"
+            ]
         },
         {
             "name": "receptionist",
@@ -184,7 +213,9 @@
                 "en": "Front desk receptionist",
                 "ar": "موظف استقبال"
             },
-            "permissions": ["users.view"]
+            "permissions": [
+                "users.view"
+            ]
         },
         {
             "name": "doctor",
@@ -196,7 +227,9 @@
                 "en": "Medical doctor",
                 "ar": "طبيب"
             },
-            "permissions": ["users.view"]
+            "permissions": [
+                "users.view"
+            ]
         },
         {
             "name": "nurse",
@@ -208,7 +241,9 @@
                 "en": "Registered nurse",
                 "ar": "ممرض مسجل"
             },
-            "permissions": ["users.view"]
+            "permissions": [
+                "users.view"
+            ]
         },
         {
             "name": "technician",
@@ -220,7 +255,9 @@
                 "en": "Medical technician",
                 "ar": "فني طبي"
             },
-            "permissions": ["users.view"]
+            "permissions": [
+                "users.view"
+            ]
         }
     ],
     "navigation": [
@@ -317,7 +354,10 @@
         },
         "two_factor": {
             "enabled": true,
-            "required_for_roles": ["admin", "manager"],
+            "required_for_roles": [
+                "admin",
+                "manager"
+            ],
             "backup_codes": true
         },
         "account_lockout": {
@@ -325,5 +365,9 @@
             "max_attempts": 5,
             "lockout_minutes": 30
         }
+    },
+    "display_name": {
+        "en": "Auth",
+        "ar": "المصادقة"
     }
 }

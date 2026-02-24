@@ -1,19 +1,37 @@
 {
     "name": "Marketing",
     "alias": "marketing",
-    "description": "Marketing automation with WhatsApp, SMS, and Email campaigns",
+    "description": {
+        "en": "Marketing automation with WhatsApp, SMS, and Email campaigns",
+        "ar": "حملات واتساب والرسائل النصية والبريد الإلكتروني"
+    },
     "version": "1.0.0",
     "category": "marketing",
     "icon": "heroicon-o-megaphone",
-    "keywords": ["marketing", "whatsapp", "sms", "email", "campaigns", "notifications", "automation"],
+    "keywords": [
+        "marketing",
+        "whatsapp",
+        "sms",
+        "email",
+        "campaigns",
+        "notifications",
+        "automation"
+    ],
     "priority": 45,
     "providers": [
         "Modules\\Marketing\\Providers\\MarketingServiceProvider",
         "Modules\\Marketing\\Providers\\EventServiceProvider",
         "Modules\\Marketing\\Providers\\RouteServiceProvider"
     ],
-    "dependencies": ["Core", "Auth", "Patients"],
-    "optional_dependencies": ["Booking", "Billing"],
+    "dependencies": [
+        "Core",
+        "Auth",
+        "Patients"
+    ],
+    "optional_dependencies": [
+        "Booking",
+        "Billing"
+    ],
     "tenant_module": true,
     "models": [
         "Modules\\Marketing\\Models\\Campaign",
@@ -37,14 +55,32 @@
         "marketing.reports": "View marketing reports"
     },
     "default_role_permissions": {
-        "admin": ["campaigns.*", "templates.*", "automation.*", "notifications.*", "marketing.reports"],
-        "manager": ["campaigns.*", "templates.*", "automation.*", "notifications.*", "marketing.reports"],
-        "receptionist": ["campaigns.view_any", "templates.view_any"]
+        "admin": [
+            "campaigns.*",
+            "templates.*",
+            "automation.*",
+            "notifications.*",
+            "marketing.reports"
+        ],
+        "manager": [
+            "campaigns.*",
+            "templates.*",
+            "automation.*",
+            "notifications.*",
+            "marketing.reports"
+        ],
+        "receptionist": [
+            "campaigns.view_any",
+            "templates.view_any"
+        ]
     },
     "navigation": [
         {
             "id": "campaigns",
-            "label": {"en": "Campaigns", "ar": "الحملات"},
+            "label": {
+                "en": "Campaigns",
+                "ar": "الحملات"
+            },
             "icon": "heroicon-o-megaphone",
             "route": "filament.tenant.resources.campaigns.index",
             "group": "marketing",
@@ -53,7 +89,10 @@
         },
         {
             "id": "message_templates",
-            "label": {"en": "Templates", "ar": "القوالب"},
+            "label": {
+                "en": "Templates",
+                "ar": "القوالب"
+            },
             "icon": "heroicon-o-document-text",
             "route": "filament.tenant.resources.message-templates.index",
             "group": "marketing",
@@ -62,7 +101,10 @@
         },
         {
             "id": "automation_rules",
-            "label": {"en": "Automation", "ar": "الأتمتة"},
+            "label": {
+                "en": "Automation",
+                "ar": "الأتمتة"
+            },
             "icon": "heroicon-o-cog-6-tooth",
             "route": "filament.tenant.resources.automation-rules.index",
             "group": "marketing",
@@ -71,7 +113,10 @@
         },
         {
             "id": "notification_logs",
-            "label": {"en": "Notification Logs", "ar": "سجل الإشعارات"},
+            "label": {
+                "en": "Notification Logs",
+                "ar": "سجل الإشعارات"
+            },
             "icon": "heroicon-o-bell",
             "route": "filament.tenant.resources.notification-logs.index",
             "group": "marketing",
@@ -83,22 +128,34 @@
         "marketing.whatsapp_enabled": {
             "type": "boolean",
             "default": true,
-            "label": {"en": "Enable WhatsApp", "ar": "تفعيل واتساب"}
+            "label": {
+                "en": "Enable WhatsApp",
+                "ar": "تفعيل واتساب"
+            }
         },
         "marketing.sms_enabled": {
             "type": "boolean",
             "default": true,
-            "label": {"en": "Enable SMS", "ar": "تفعيل الرسائل النصية"}
+            "label": {
+                "en": "Enable SMS",
+                "ar": "تفعيل الرسائل النصية"
+            }
         },
         "marketing.email_enabled": {
             "type": "boolean",
             "default": true,
-            "label": {"en": "Enable Email", "ar": "تفعيل البريد الإلكتروني"}
+            "label": {
+                "en": "Enable Email",
+                "ar": "تفعيل البريد الإلكتروني"
+            }
         },
         "marketing.daily_message_limit": {
             "type": "integer",
             "default": 1000,
-            "label": {"en": "Daily Message Limit", "ar": "حد الرسائل اليومي"}
+            "label": {
+                "en": "Daily Message Limit",
+                "ar": "حد الرسائل اليومي"
+            }
         }
     },
     "events": [
@@ -109,5 +166,9 @@
         "MessageDelivered",
         "MessageFailed"
     ],
-    "active": true
+    "active": true,
+    "display_name": {
+        "en": "Marketing",
+        "ar": "التسويق"
+    }
 }

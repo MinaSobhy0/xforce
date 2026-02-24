@@ -1,18 +1,33 @@
 {
     "name": "Loyalty",
     "alias": "loyalty",
-    "description": "Loyalty points system with rewards, referrals, and tier management",
+    "description": {
+        "en": "Loyalty points system with rewards, referrals, and tier management",
+        "ar": "نقاط الولاء والإحالات والمكافآت"
+    },
     "version": "1.0.0",
     "category": "marketing",
     "icon": "heroicon-o-star",
-    "keywords": ["loyalty", "points", "rewards", "referrals", "tiers"],
+    "keywords": [
+        "loyalty",
+        "points",
+        "rewards",
+        "referrals",
+        "tiers"
+    ],
     "priority": 53,
     "providers": [
         "Modules\\Loyalty\\Providers\\LoyaltyServiceProvider",
         "Modules\\Loyalty\\Providers\\RouteServiceProvider"
     ],
-    "dependencies": ["Core", "Auth", "Patients"],
-    "optional_dependencies": ["Billing"],
+    "dependencies": [
+        "Core",
+        "Auth",
+        "Patients"
+    ],
+    "optional_dependencies": [
+        "Billing"
+    ],
     "models": [
         "Modules\\Loyalty\\Models\\LoyaltyRule",
         "Modules\\Loyalty\\Models\\LoyaltyTransaction",
@@ -33,14 +48,31 @@
         "loyalty.reports": "View loyalty reports"
     },
     "default_role_permissions": {
-        "admin": ["loyalty_rules.*", "loyalty_transactions.*", "referral_programs.*", "referrals.*", "loyalty.reports"],
-        "manager": ["loyalty_rules.view_any", "loyalty_transactions.view_any", "referrals.view_any", "loyalty.reports"],
-        "receptionist": ["loyalty_transactions.view_any", "referrals.view_any"]
+        "admin": [
+            "loyalty_rules.*",
+            "loyalty_transactions.*",
+            "referral_programs.*",
+            "referrals.*",
+            "loyalty.reports"
+        ],
+        "manager": [
+            "loyalty_rules.view_any",
+            "loyalty_transactions.view_any",
+            "referrals.view_any",
+            "loyalty.reports"
+        ],
+        "receptionist": [
+            "loyalty_transactions.view_any",
+            "referrals.view_any"
+        ]
     },
     "navigation": [
         {
             "id": "loyalty_rules",
-            "label": {"en": "Loyalty Rules", "ar": "قواعد الولاء"},
+            "label": {
+                "en": "Loyalty Rules",
+                "ar": "قواعد الولاء"
+            },
             "icon": "heroicon-o-star",
             "route": "filament.tenant.resources.loyalty-rules.index",
             "group": "marketing",
@@ -49,7 +81,10 @@
         },
         {
             "id": "referral_programs",
-            "label": {"en": "Referral Programs", "ar": "برامج الإحالة"},
+            "label": {
+                "en": "Referral Programs",
+                "ar": "برامج الإحالة"
+            },
             "icon": "heroicon-o-users",
             "route": "filament.tenant.resources.referral-programs.index",
             "group": "marketing",
@@ -61,12 +96,18 @@
         "loyalty.points_per_currency": {
             "type": "number",
             "default": 1,
-            "label": {"en": "Points per Currency Unit", "ar": "النقاط لكل وحدة عملة"}
+            "label": {
+                "en": "Points per Currency Unit",
+                "ar": "النقاط لكل وحدة عملة"
+            }
         },
         "loyalty.redemption_ratio": {
             "type": "number",
             "default": 100,
-            "label": {"en": "Points per Currency (Redemption)", "ar": "نقاط لكل وحدة (الاستبدال)"}
+            "label": {
+                "en": "Points per Currency (Redemption)",
+                "ar": "نقاط لكل وحدة (الاستبدال)"
+            }
         }
     },
     "events": [
@@ -75,5 +116,9 @@
         "ReferralCreated",
         "ReferralCompleted"
     ],
-    "active": true
+    "active": true,
+    "display_name": {
+        "en": "Loyalty",
+        "ar": "برنامج الولاء"
+    }
 }

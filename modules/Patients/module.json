@@ -1,16 +1,28 @@
 {
     "name": "Patients",
     "alias": "patients",
-    "description": "Patient CRM and medical history management",
+    "description": {
+        "en": "Patient CRM and medical history management",
+        "ar": "إدارة المرضى والتاريخ الطبي"
+    },
     "version": "1.0.0",
     "category": "crm",
     "icon": "heroicon-o-user-group",
-    "keywords": ["patients", "crm", "medical", "history", "consent"],
+    "keywords": [
+        "patients",
+        "crm",
+        "medical",
+        "history",
+        "consent"
+    ],
     "priority": 10,
     "providers": [
         "Modules\\Patients\\Providers\\PatientsServiceProvider"
     ],
-    "dependencies": ["Core", "Auth"],
+    "dependencies": [
+        "Core",
+        "Auth"
+    ],
     "optional_dependencies": [],
     "models": [
         "Modules\\Patients\\Models\\Patient",
@@ -34,17 +46,49 @@
         "patients.manage_notes": "Manage patient notes"
     },
     "default_role_permissions": {
-        "admin": ["patients.*"],
-        "manager": ["patients.*"],
-        "doctor": ["patients.view_any", "patients.view", "patients.create", "patients.update", "patients.view_medical_history", "patients.edit_medical_history", "patients.manage_consent_forms", "patients.manage_photos", "patients.manage_notes"],
-        "nurse": ["patients.view_any", "patients.view", "patients.view_medical_history", "patients.manage_consent_forms", "patients.manage_photos", "patients.manage_notes"],
-        "receptionist": ["patients.view_any", "patients.view", "patients.create", "patients.update"],
-        "staff": ["patients.view_any", "patients.view"]
+        "admin": [
+            "patients.*"
+        ],
+        "manager": [
+            "patients.*"
+        ],
+        "doctor": [
+            "patients.view_any",
+            "patients.view",
+            "patients.create",
+            "patients.update",
+            "patients.view_medical_history",
+            "patients.edit_medical_history",
+            "patients.manage_consent_forms",
+            "patients.manage_photos",
+            "patients.manage_notes"
+        ],
+        "nurse": [
+            "patients.view_any",
+            "patients.view",
+            "patients.view_medical_history",
+            "patients.manage_consent_forms",
+            "patients.manage_photos",
+            "patients.manage_notes"
+        ],
+        "receptionist": [
+            "patients.view_any",
+            "patients.view",
+            "patients.create",
+            "patients.update"
+        ],
+        "staff": [
+            "patients.view_any",
+            "patients.view"
+        ]
     },
     "navigation": [
         {
             "id": "patients",
-            "label": {"en": "Patients", "ar": "المرضى"},
+            "label": {
+                "en": "Patients",
+                "ar": "المرضى"
+            },
             "icon": "heroicon-o-user-group",
             "route": "filament.admin.resources.patients.index",
             "group": "crm",
@@ -56,22 +100,34 @@
         "patients.auto_generate_code": {
             "type": "boolean",
             "default": true,
-            "label": {"en": "Auto-generate patient code", "ar": "توليد كود المريض تلقائياً"}
+            "label": {
+                "en": "Auto-generate patient code",
+                "ar": "توليد كود المريض تلقائياً"
+            }
         },
         "patients.code_prefix": {
             "type": "string",
             "default": "PAT",
-            "label": {"en": "Patient code prefix", "ar": "بادئة كود المريض"}
+            "label": {
+                "en": "Patient code prefix",
+                "ar": "بادئة كود المريض"
+            }
         },
         "patients.require_consent_before_treatment": {
             "type": "boolean",
             "default": true,
-            "label": {"en": "Require consent before treatment", "ar": "يتطلب موافقة قبل العلاج"}
+            "label": {
+                "en": "Require consent before treatment",
+                "ar": "يتطلب موافقة قبل العلاج"
+            }
         },
         "patients.photo_retention_days": {
             "type": "integer",
             "default": 365,
-            "label": {"en": "Photo retention days", "ar": "مدة الاحتفاظ بالصور (أيام)"}
+            "label": {
+                "en": "Photo retention days",
+                "ar": "مدة الاحتفاظ بالصور (أيام)"
+            }
         }
     },
     "sequences": {
@@ -82,5 +138,9 @@
             "reset_on_year": true
         }
     },
-    "active": true
+    "active": true,
+    "display_name": {
+        "en": "Patients",
+        "ar": "المرضى"
+    }
 }

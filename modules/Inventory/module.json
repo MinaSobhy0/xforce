@@ -1,18 +1,32 @@
 {
     "name": "Inventory",
     "alias": "inventory",
-    "description": "Inventory management - products, stock, suppliers, and purchase orders",
+    "description": {
+        "en": "Inventory management - products, stock, suppliers, and purchase orders",
+        "ar": "إدارة المخزون وأوامر الشراء"
+    },
     "version": "1.0.0",
     "category": "operations",
     "icon": "heroicon-o-cube",
-    "keywords": ["inventory", "stock", "products", "suppliers", "purchase-orders"],
+    "keywords": [
+        "inventory",
+        "stock",
+        "products",
+        "suppliers",
+        "purchase-orders"
+    ],
     "priority": 25,
     "providers": [
         "Modules\\Inventory\\Providers\\InventoryServiceProvider",
         "Modules\\Inventory\\Providers\\RouteServiceProvider"
     ],
-    "dependencies": ["Core", "Auth"],
-    "optional_dependencies": ["Billing"],
+    "dependencies": [
+        "Core",
+        "Auth"
+    ],
+    "optional_dependencies": [
+        "Billing"
+    ],
     "models": [
         "Modules\\Inventory\\Models\\Product",
         "Modules\\Inventory\\Models\\ProductCategory",
@@ -47,15 +61,40 @@
         "inventory.reports": "View inventory reports"
     },
     "default_role_permissions": {
-        "admin": ["products.*", "product_categories.*", "suppliers.*", "purchase_orders.*", "stock.*", "inventory.reports"],
-        "manager": ["products.*", "product_categories.*", "suppliers.*", "purchase_orders.*", "stock.*", "inventory.reports"],
-        "accountant": ["products.view_any", "suppliers.view_any", "purchase_orders.view_any", "inventory.reports"],
-        "staff": ["products.view_any", "stock.view"]
+        "admin": [
+            "products.*",
+            "product_categories.*",
+            "suppliers.*",
+            "purchase_orders.*",
+            "stock.*",
+            "inventory.reports"
+        ],
+        "manager": [
+            "products.*",
+            "product_categories.*",
+            "suppliers.*",
+            "purchase_orders.*",
+            "stock.*",
+            "inventory.reports"
+        ],
+        "accountant": [
+            "products.view_any",
+            "suppliers.view_any",
+            "purchase_orders.view_any",
+            "inventory.reports"
+        ],
+        "staff": [
+            "products.view_any",
+            "stock.view"
+        ]
     },
     "navigation": [
         {
             "id": "products",
-            "label": {"en": "Products", "ar": "المنتجات"},
+            "label": {
+                "en": "Products",
+                "ar": "المنتجات"
+            },
             "icon": "heroicon-o-cube",
             "route": "filament.tenant.resources.products.index",
             "group": "inventory",
@@ -64,7 +103,10 @@
         },
         {
             "id": "suppliers",
-            "label": {"en": "Suppliers", "ar": "الموردون"},
+            "label": {
+                "en": "Suppliers",
+                "ar": "الموردون"
+            },
             "icon": "heroicon-o-truck",
             "route": "filament.tenant.resources.suppliers.index",
             "group": "inventory",
@@ -73,7 +115,10 @@
         },
         {
             "id": "purchase_orders",
-            "label": {"en": "Purchase Orders", "ar": "أوامر الشراء"},
+            "label": {
+                "en": "Purchase Orders",
+                "ar": "أوامر الشراء"
+            },
             "icon": "heroicon-o-clipboard-document-list",
             "route": "filament.tenant.resources.purchase-orders.index",
             "group": "inventory",
@@ -82,7 +127,10 @@
         },
         {
             "id": "stock_levels",
-            "label": {"en": "Stock Levels", "ar": "مستويات المخزون"},
+            "label": {
+                "en": "Stock Levels",
+                "ar": "مستويات المخزون"
+            },
             "icon": "heroicon-o-chart-bar",
             "route": "filament.tenant.resources.stock-levels.index",
             "group": "inventory",
@@ -94,17 +142,26 @@
         "inventory.low_stock_threshold": {
             "type": "integer",
             "default": 10,
-            "label": {"en": "Low Stock Alert Threshold", "ar": "حد تنبيه انخفاض المخزون"}
+            "label": {
+                "en": "Low Stock Alert Threshold",
+                "ar": "حد تنبيه انخفاض المخزون"
+            }
         },
         "inventory.auto_reorder": {
             "type": "boolean",
             "default": false,
-            "label": {"en": "Enable Auto-reorder", "ar": "تفعيل إعادة الطلب التلقائي"}
+            "label": {
+                "en": "Enable Auto-reorder",
+                "ar": "تفعيل إعادة الطلب التلقائي"
+            }
         },
         "inventory.track_expiry": {
             "type": "boolean",
             "default": true,
-            "label": {"en": "Track Product Expiry", "ar": "تتبع انتهاء صلاحية المنتج"}
+            "label": {
+                "en": "Track Product Expiry",
+                "ar": "تتبع انتهاء صلاحية المنتج"
+            }
         }
     },
     "sequences": [
@@ -127,5 +184,9 @@
         "StockLow",
         "StockAdjusted"
     ],
-    "active": true
+    "active": true,
+    "display_name": {
+        "en": "Inventory",
+        "ar": "المخزون"
+    }
 }
