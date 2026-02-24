@@ -31,9 +31,11 @@
                     color="gray"
                 />
 
-                <x-filament::button wire:click="today" size="sm" color="gray">
-                    {{ __('booking::calendar.today') }}
-                </x-filament::button>
+                @unless($this->isToday())
+                    <x-filament::button wire:click="today" size="sm" color="primary">
+                        {{ __('booking::calendar.today') }}
+                    </x-filament::button>
+                @endunless
 
                 <div class="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-2"></div>
 

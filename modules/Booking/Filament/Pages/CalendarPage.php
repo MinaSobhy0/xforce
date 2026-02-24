@@ -157,6 +157,11 @@ class CalendarPage extends Page implements HasForms
         $this->selectedDate = $date;
     }
 
+    public function isToday(): bool
+    {
+        return \Carbon\Carbon::parse($this->selectedDate)->isToday();
+    }
+
     public function today(): void
     {
         $this->selectedDate = today()->format('Y-m-d');
