@@ -1,0 +1,42 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('medical_medications', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->uuid('tenant_id');
+            $table->uuid('medical_profile_id');
+            $table->string('medication_name');
+            $table->string('generic_name')->nullable();
+            $table->string('dosage')->nullable();
+            $table->string('frequency')->nullable();
+            $table->string('route')->nullable();
+            $table->text('reason')->nullable();
+            $table->date('start_date')->nullable();
+            $table->date('end_date')->nullable();
+            $table->boolean('is_ongoing')->default(true);
+            $table->boolean('affects_treatment')->default(false);
+            $table->text('treatment_implications')->nullable();
+            $table->string('prescribing_doctor')->nullable();
+            $table->boolean('is_otc')->default(false)->comment('Over-the-counter medication');
+            $table->timestamps();
+            $table->softDeletes();
+
+            $table->foreign('tenant_id')->references('id')->on('tenants')->cascadeOnDelete();
+            $table->foreign('medical_profile_id')->references('id')->on('medical_profiles')->cascadeOnDelete();
+
+            $table->index(['medical_profile_id', 'is_ongoing']);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('medical_medications');
+    }
+};

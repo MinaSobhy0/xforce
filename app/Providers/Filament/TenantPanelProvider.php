@@ -77,8 +77,9 @@ class TenantPanelProvider extends PanelProvider
             // Discover Auth module resources
             ->discoverResources(in: base_path('modules/Auth/Filament/Resources'), for: 'Modules\\Auth\\Filament\\Resources')
 
-            // Discover Patients module resources
+            // Discover Patients module resources and pages
             ->discoverResources(in: base_path('modules/Patients/Filament/Resources'), for: 'Modules\\Patients\\Filament\\Resources')
+            ->discoverPages(in: base_path('modules/Patients/Filament/Pages'), for: 'Modules\\Patients\\Filament\\Pages')
 
             // Discover Services module resources and pages
             ->discoverResources(in: base_path('modules/Services/Filament/Resources'), for: 'Modules\\Services\\Filament\\Resources')

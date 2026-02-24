@@ -357,7 +357,174 @@
                     ></textarea>
                 </div>
             </x-filament::section>
+
         @endif
+
+        {{-- Consumables & Products Row (always visible) --}}
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {{-- Consumables Section --}}
+            <x-filament::section>
+                <x-slot name="heading">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <x-heroicon-o-beaker class="w-5 h-5 text-gray-400" />
+                            {{ __('booking::session.sections.consumables') }}
+                        </div>
+                        @if(count($sessionConsumables) > 0)
+                            <span class="text-sm font-medium text-gray-500">
+                                {{ __('booking::session.consumables.total_cost') }}: {{ number_format($this->getTotalConsumablesCost(), 2) }}
+                            </span>
+                        @endif
+                    </div>
+                </x-slot>
+
+                {{-- Add Consumable Form --}}
+                <div class="mb-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <div class="flex gap-2">
+                        <select
+                            wire:model="newConsumableId"
+                            class="flex-1 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm"
+                        >
+                            <option value="">{{ __('booking::session.consumables.select') }}</option>
+                            @foreach($this->getAvailableConsumables() as $consumable)
+                                <option value="{{ $consumable->id }}">
+                                    {{ $consumable->getTranslation('name', app()->getLocale()) }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <input
+                            type="number"
+                            wire:model="newConsumableQty"
+                            class="w-20 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm text-center"
+                            min="0.1"
+                            step="0.1"
+                            placeholder="{{ __('booking::session.consumables.quantity') }}"
+                        />
+                        <x-filament::button wire:click="addConsumable" size="sm">
+                            {{ __('booking::session.consumables.add') }}
+                        </x-filament::button>
+                    </div>
+                </div>
+
+                {{-- Consumables List --}}
+                @if(count($sessionConsumables) > 0)
+                    <div class="space-y-2">
+                        @foreach($sessionConsumables as $consumable)
+                            <div class="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg">
+                                <div class="flex-1">
+                                    <div class="font-medium text-gray-900 dark:text-white text-sm">{{ $consumable['product_name'] }}</div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">
+                                        {{ $consumable['quantity'] }} {{ $consumable['unit'] }} × {{ number_format($consumable['unit_cost'], 2) }}
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <span class="font-medium text-gray-900 dark:text-white text-sm">
+                                        {{ number_format($consumable['total_cost'], 2) }}
+                                    </span>
+                                    <button
+                                        wire:click="removeConsumable('{{ $consumable['id'] }}')"
+                                        class="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
+                                    >
+                                        <x-heroicon-o-trash class="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @else
+                    <div class="text-center py-4 text-gray-500 dark:text-gray-400 text-sm">
+                        {{ __('booking::session.consumables.none') }}
+                    </div>
+                @endif
+            </x-filament::section>
+
+            {{-- Products Section --}}
+            <x-filament::section>
+                <x-slot name="heading">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <x-heroicon-o-shopping-bag class="w-5 h-5 text-gray-400" />
+                            {{ __('booking::session.sections.products') }}
+                        </div>
+                        @if(count($sessionProducts) > 0)
+                            <span class="text-sm font-medium text-gray-500">
+                                {{ __('booking::session.products.total_value') }}: {{ number_format($this->getTotalProductsValue(), 2) }}
+                            </span>
+                        @endif
+                    </div>
+                </x-slot>
+
+                {{-- Add Product Form --}}
+                <div class="mb-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <div class="flex gap-2 flex-wrap">
+                        <select
+                            wire:model="newProductId"
+                            class="flex-1 min-w-[150px] border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm"
+                        >
+                            <option value="">{{ __('booking::session.products.select') }}</option>
+                            @foreach($this->getAvailableProducts() as $product)
+                                <option value="{{ $product->id }}">
+                                    {{ $product->getTranslation('name', app()->getLocale()) }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <input
+                            type="number"
+                            wire:model="newProductQty"
+                            class="w-16 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm text-center"
+                            min="1"
+                            placeholder="{{ __('booking::session.products.quantity') }}"
+                        />
+                        <select
+                            wire:model="newProductUsageType"
+                            class="w-32 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm"
+                        >
+                            <option value="applied">{{ __('booking::session.products.applied') }}</option>
+                            <option value="sold">{{ __('booking::session.products.sold') }}</option>
+                        </select>
+                        <x-filament::button wire:click="addProduct" size="sm">
+                            {{ __('booking::session.products.add') }}
+                        </x-filament::button>
+                    </div>
+                </div>
+
+                {{-- Products List --}}
+                @if(count($sessionProducts) > 0)
+                    <div class="space-y-2">
+                        @foreach($sessionProducts as $product)
+                            <div class="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-medium text-gray-900 dark:text-white text-sm">{{ $product['product_name'] }}</span>
+                                        <span class="px-2 py-0.5 text-xs rounded {{ $product['usage_type'] === 'sold' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' }}">
+                                            {{ $product['usage_type'] === 'sold' ? __('booking::session.products.sold') : __('booking::session.products.applied') }}
+                                        </span>
+                                    </div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">
+                                        {{ $product['quantity'] }} {{ $product['unit'] }} × {{ number_format($product['unit_price'], 2) }}
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <span class="font-medium text-gray-900 dark:text-white text-sm">
+                                        {{ number_format($product['total_price'], 2) }}
+                                    </span>
+                                    <button
+                                        wire:click="removeProduct('{{ $product['id'] }}')"
+                                        class="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
+                                    >
+                                        <x-heroicon-o-trash class="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @else
+                    <div class="text-center py-4 text-gray-500 dark:text-gray-400 text-sm">
+                        {{ __('booking::session.products.none') }}
+                    </div>
+                @endif
+            </x-filament::section>
+        </div>
 
         {{-- Main Content Grid --}}
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">

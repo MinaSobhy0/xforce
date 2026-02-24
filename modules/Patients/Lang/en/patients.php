@@ -188,6 +188,7 @@ return [
         'merge' => 'Merge Patients',
         'send_message' => 'Send Message',
         'book_appointment' => 'Book Appointment',
+        'medical_profile' => 'Medical Profile',
     ],
 
     // Messages

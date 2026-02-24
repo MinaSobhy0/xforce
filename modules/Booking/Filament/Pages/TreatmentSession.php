@@ -24,6 +24,7 @@ use Modules\Patients\Models\Patient;
 use Modules\Patients\Models\PatientNote;
 use Modules\Patients\Models\PatientPhoto;
 use Modules\Patients\Models\PatientMedicalHistory;
+use Modules\Patients\Models\MedicalProfile;
 use Modules\TreatmentPlans\Models\TreatmentPlan;
 use Modules\TreatmentPlans\Models\TreatmentPlanItem;
 use Modules\Services\Models\Service;
@@ -62,6 +63,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
     public ?Appointment $appointment = null;
     public ?Patient $patient = null;
     public ?PatientMedicalHistory $medicalHistory = null;
+    public ?MedicalProfile $medicalProfile = null;
     public ?TreatmentSessionData $sessionData = null;
 
     // Dynamic parameters
@@ -138,6 +140,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
     {
         $this->appointment = Appointment::with([
             'patient.medicalHistory',
+            'patient.medicalProfile',
             'service',
             'practitioner',
             'room',
@@ -148,6 +151,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
         if ($this->appointment) {
             $this->patient = $this->appointment->patient;
             $this->medicalHistory = $this->patient?->medicalHistory;
+            $this->medicalProfile = $this->patient?->medicalProfile;
         }
     }
 
@@ -434,6 +438,32 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
     public function getMedicalConditions(): array
     {
         return $this->medicalHistory?->medical_conditions ?? [];
+    }
+
+    // ============================================
+    // MEDICAL PROFILE METHODS
+    // ============================================
+
+    /**
+     * Check if patient has a medical profile
+     */
+    public function hasMedicalProfile(): bool
+    {
+        return $this->medicalProfile !== null;
+    }
+
+    /**
+     * Check if patient has medical alerts
+     */
+    public function hasMedicalAlerts(): bool
+    {
+        if (!$this->medicalHistory) {
+            return false;
+        }
+
+        return !empty($this->medicalHistory->allergies) ||
+               !empty($this->medicalHistory->contraindications) ||
+               !empty($this->medicalHistory->current_medications);
     }
 
     public function getPatientNotes(): Collection

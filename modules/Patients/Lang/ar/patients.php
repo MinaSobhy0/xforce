@@ -188,6 +188,7 @@ return [
         'merge' => 'دمج المرضى',
         'send_message' => 'إرسال رسالة',
         'book_appointment' => 'حجز موعد',
+        'medical_profile' => 'الملف الطبي',
     ],
 
     // Messages

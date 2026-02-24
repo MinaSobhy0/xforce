@@ -3,6 +3,7 @@
 namespace Modules\Patients\Filament\Resources\PatientResource\Pages;
 
 use Modules\Patients\Filament\Resources\PatientResource;
+use Modules\Patients\Filament\Pages\MedicalProfilePage;
 use Filament\Actions;
 use App\Filament\Resources\Pages\BaseViewRecord;
 use Filament\Infolists\Infolist;
@@ -16,6 +17,11 @@ class ViewPatient extends BaseViewRecord
     {
         return [
             Actions\EditAction::make(),
+            Actions\Action::make('medical_profile')
+                ->label(__('patients::patients.actions.medical_profile'))
+                ->icon('heroicon-o-clipboard-document-list')
+                ->color('info')
+                ->url(fn ($record) => MedicalProfilePage::getUrl(['patient_id' => $record->id])),
             Actions\Action::make('book_appointment')
                 ->label(__('patients::patients.actions.book_appointment'))
                 ->icon('heroicon-o-calendar')
@@ -23,7 +29,7 @@ class ViewPatient extends BaseViewRecord
             Actions\Action::make('send_message')
                 ->label(__('patients::patients.actions.send_message'))
                 ->icon('heroicon-o-chat-bubble-left')
-                ->color('info'),
+                ->color('gray'),
         ];
     }
 

@@ -228,6 +228,36 @@ class Patient extends BaseModel implements Authenticatable
     }
 
     /**
+     * Get the patient's medical profile (AMR).
+     */
+    public function medicalProfile(): HasOne
+    {
+        return $this->hasOne(\Modules\Patients\Models\MedicalProfile::class);
+    }
+
+    /**
+     * Check if patient has a medical profile.
+     */
+    public function hasMedicalProfile(): bool
+    {
+        return $this->medicalProfile !== null;
+    }
+
+    /**
+     * Get or create the patient's medical profile.
+     */
+    public function getOrCreateMedicalProfile(): \Modules\Patients\Models\MedicalProfile
+    {
+        if (!$this->medicalProfile) {
+            return \Modules\Patients\Models\MedicalProfile::create([
+                'tenant_id' => $this->tenant_id,
+                'patient_id' => $this->id,
+            ]);
+        }
+        return $this->medicalProfile;
+    }
+
+    /**
      * Check if patient has signed a specific consent template.
      */
     public function hasSignedConsent(string $templateId): bool
