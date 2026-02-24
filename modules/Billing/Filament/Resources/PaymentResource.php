@@ -79,7 +79,7 @@ class PaymentResource extends Resource
                         Forms\Components\Select::make('invoice_id')
                             ->label(__('billing::billing.fields.invoice'))
                             ->options(function () {
-                                return Invoice::whereIn('status', [Invoice::STATUS_CONFIRMED, Invoice::STATUS_PARTIALLY_PAID])
+                                return Invoice::whereIn('status', [Invoice::STATUS_ISSUED, Invoice::STATUS_PARTIALLY_PAID])
                                     ->where('remaining_minor', '>', 0)
                                     ->orderBy('created_at', 'desc')
                                     ->limit(100)

@@ -15,6 +15,30 @@ class EditJournalEntry extends BaseEditRecord
     {
         return [
             Actions\ViewAction::make(),
+
+            Actions\Action::make('post')
+                ->label(__('accounting::accounting.entry_actions.post'))
+                ->icon('heroicon-o-check-circle')
+                ->color('success')
+                ->requiresConfirmation()
+                ->modalDescription('This will post the journal entry and update account balances. This action cannot be undone.')
+                ->visible(fn () => $this->record->isDraft() && $this->record->isBalanced())
+                ->action(function () {
+                    if ($this->record->post()) {
+                        Notification::make()
+                            ->title(__('accounting::accounting.messages.entry_posted'))
+                            ->success()
+                            ->send();
+                        $this->redirect($this->getResource()::getUrl('view', ['record' => $this->record]));
+                    } else {
+                        Notification::make()
+                            ->title('Failed to post journal entry')
+                            ->body('Entry may be unbalanced or fiscal period may be closed.')
+                            ->danger()
+                            ->send();
+                    }
+                }),
+
             Actions\DeleteAction::make()
                 ->visible(fn () => $this->record->isDraft()),
         ];

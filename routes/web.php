@@ -9,6 +9,11 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+// Define login route for auth middleware redirect
+Route::get('/login', function () {
+    return redirect()->route('filament.tenant.auth.login');
+})->name('login');
+
 Route::post('/contact', [ContactController::class, 'submit'])->name('contact.submit');
 
 // Two-Factor Authentication Routes

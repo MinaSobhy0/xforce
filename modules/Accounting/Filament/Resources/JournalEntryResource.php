@@ -316,7 +316,7 @@ class JournalEntryResource extends Resource
     {
         if (!empty($data['partner_key'])) {
             [$type, $id] = explode(':', $data['partner_key']);
-            $data['partner_id'] = (int) $id;
+            $data['partner_id'] = $id;
             $data['partner_type'] = match ($type) {
                 'patient' => \Modules\Patients\Models\Patient::class,
                 'supplier' => \Modules\Inventory\Models\Supplier::class,
