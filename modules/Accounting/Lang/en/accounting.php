@@ -172,6 +172,20 @@ return [
 
     'journal_entry' => 'Journal Entry',
 
+    'sections' => [
+        'entry_details' => 'Entry Details',
+        'journal_lines' => 'Journal Lines',
+    ],
+
+    'entry_resource' => [
+        'entry_number' => 'Entry #',
+        'add_line' => 'Add Line',
+        'post' => 'Post',
+        'reverse' => 'Reverse',
+        'reversal_description' => 'Reversal Description',
+        'posted' => 'Posted',
+    ],
+
     'messages' => [
         'entry_posted' => 'Journal entry posted successfully',
         'entry_reversed' => 'Journal entry reversed successfully',

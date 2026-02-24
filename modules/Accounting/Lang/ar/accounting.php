@@ -172,6 +172,20 @@ return [
 
     'journal_entry' => 'قيد يومية',
 
+    'sections' => [
+        'entry_details' => 'تفاصيل القيد',
+        'journal_lines' => 'بنود القيد',
+    ],
+
+    'entry_resource' => [
+        'entry_number' => 'رقم القيد',
+        'add_line' => 'إضافة بند',
+        'post' => 'ترحيل',
+        'reverse' => 'عكس',
+        'reversal_description' => 'وصف العكس',
+        'posted' => 'تاريخ الترحيل',
+    ],
+
     'messages' => [
         'entry_posted' => 'تم ترحيل القيد بنجاح',
         'entry_reversed' => 'تم عكس القيد بنجاح',

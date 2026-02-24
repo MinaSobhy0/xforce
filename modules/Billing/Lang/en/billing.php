@@ -152,6 +152,17 @@ return [
         'amount_label' => 'Amount: :amount',
     ],
 
+    // Payment Resource
+    'payment_resource' => [
+        'document' => 'Document',
+        'patient_supplier' => 'Patient/Supplier',
+        'recorded_by' => 'Recorded By',
+        'receive' => 'Receive',
+        'send' => 'Send',
+        'receive_money_in' => 'Receive (Money In)',
+        'send_money_out' => 'Send (Money Out)',
+    ],
+
     'placeholders' => [
         'auto_generated' => 'Auto-generated',
     ],

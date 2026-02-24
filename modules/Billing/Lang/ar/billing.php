@@ -152,6 +152,17 @@ return [
         'amount_label' => 'المبلغ: :amount',
     ],
 
+    // Payment Resource
+    'payment_resource' => [
+        'document' => 'المستند',
+        'patient_supplier' => 'المريض/المورد',
+        'recorded_by' => 'سجلها',
+        'receive' => 'استلام',
+        'send' => 'إرسال',
+        'receive_money_in' => 'استلام (أموال واردة)',
+        'send_money_out' => 'إرسال (أموال صادرة)',
+    ],
+
     'messages' => [
         'invoice_issued' => 'تم إصدار الفاتورة بنجاح',
         'payment_recorded' => 'تم تسجيل الدفعة بنجاح',

@@ -38,6 +38,21 @@ class PaymentResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'code';
 
+    public static function getNavigationLabel(): string
+    {
+        return __('billing::billing.payments');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('billing::billing.payment');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('billing::billing.payments');
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -191,20 +206,22 @@ class PaymentResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('code')
-                    ->label('Payment #')
+                    ->label(__('billing::billing.fields.code'))
                     ->searchable()
                     ->sortable()
                     ->weight(FontWeight::Bold),
 
                 Tables\Columns\TextColumn::make('type')
-                    ->label('Type')
+                    ->label(__('billing::billing.fields.type'))
                     ->badge()
-                    ->formatStateUsing(fn ($state) => $state === Payment::TYPE_RECEIVE ? 'Receive' : 'Send')
+                    ->formatStateUsing(fn ($state) => $state === Payment::TYPE_RECEIVE
+                        ? __('billing::billing.payment_resource.receive')
+                        : __('billing::billing.payment_resource.send'))
                     ->color(fn (Payment $record) => $record->type_color)
                     ->icon(fn (Payment $record) => $record->isReceive() ? 'heroicon-o-arrow-down-tray' : 'heroicon-o-arrow-up-tray'),
 
                 Tables\Columns\TextColumn::make('document')
-                    ->label('Document')
+                    ->label(__('billing::billing.payment_resource.document'))
                     ->getStateUsing(fn (Payment $record) => $record->invoice?->code ?? $record->vendorBill?->code ?? '-')
                     ->url(fn (Payment $record) => $record->invoice_id
                         ? InvoiceResource::getUrl('view', ['record' => $record->invoice_id])
@@ -219,53 +236,55 @@ class PaymentResource extends Resource
                     }),
 
                 Tables\Columns\TextColumn::make('party')
-                    ->label('Patient/Supplier')
+                    ->label(__('billing::billing.payment_resource.patient_supplier'))
                     ->getStateUsing(fn (Payment $record) => $record->patient?->full_name ?? $record->supplier?->getTranslation('name', app()->getLocale()) ?? '-'),
 
                 Tables\Columns\TextColumn::make('amount_minor')
-                    ->label('Amount')
+                    ->label(__('billing::billing.fields.amount'))
                     ->formatStateUsing(fn ($state) => format_money($state))
                     ->sortable()
                     ->weight(FontWeight::Bold)
                     ->color(fn (Payment $record) => $record->isReceive() ? 'success' : 'danger'),
 
                 Tables\Columns\TextColumn::make('journal.name')
-                    ->label('Payment Method')
+                    ->label(__('billing::billing.fields.payment_method'))
                     ->badge()
                     ->color(fn (Payment $record) => $record->journal?->type_color ?? 'gray'),
 
                 Tables\Columns\TextColumn::make('reference_number')
-                    ->label('Reference')
+                    ->label(__('billing::billing.fields.reference'))
                     ->placeholder('-')
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('receivedBy.name')
-                    ->label('Recorded By')
+                    ->label(__('billing::billing.payment_resource.recorded_by'))
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('paid_at')
-                    ->label('Date/Time')
+                    ->label(__('billing::billing.relation.date_time'))
                     ->dateTime()
                     ->sortable(),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('type')
-                    ->label('Type')
+                    ->label(__('billing::billing.fields.type'))
                     ->options([
-                        Payment::TYPE_RECEIVE => 'Receive (Money In)',
-                        Payment::TYPE_SEND => 'Send (Money Out)',
+                        Payment::TYPE_RECEIVE => __('billing::billing.payment_resource.receive_money_in'),
+                        Payment::TYPE_SEND => __('billing::billing.payment_resource.send_money_out'),
                     ]),
 
                 Tables\Filters\SelectFilter::make('journal_id')
-                    ->label('Payment Method')
+                    ->label(__('billing::billing.fields.payment_method'))
                     ->relationship('journal', 'code')
                     ->getOptionLabelFromRecordUsing(fn (Journal $record) => $record->display_name)
                     ->multiple(),
 
                 Tables\Filters\Filter::make('paid_at')
                     ->form([
-                        Forms\Components\DatePicker::make('from'),
-                        Forms\Components\DatePicker::make('until'),
+                        Forms\Components\DatePicker::make('from')
+                            ->label(__('billing::billing.filters.from')),
+                        Forms\Components\DatePicker::make('until')
+                            ->label(__('billing::billing.filters.until')),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query

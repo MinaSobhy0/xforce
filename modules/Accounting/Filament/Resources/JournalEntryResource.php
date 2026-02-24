@@ -35,46 +35,64 @@ class JournalEntryResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'code';
 
+    public static function getNavigationLabel(): string
+    {
+        return __('accounting::accounting.journal_entries');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('accounting::accounting.journal_entry');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('accounting::accounting.journal_entries');
+    }
+
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Entry Details')
+                Forms\Components\Section::make(__('accounting::accounting.sections.entry_details'))
                     ->schema([
                         Forms\Components\Select::make('journal_id')
-                            ->label('Journal')
+                            ->label(__('accounting::accounting.fields.journal'))
                             ->options(fn () => Journal::active()->get()->pluck('display_name', 'id'))
                             ->required()
                             ->searchable()
                             ->default(fn () => Journal::getMiscJournal()?->id),
 
                         Forms\Components\DatePicker::make('date')
+                            ->label(__('accounting::accounting.fields.date'))
                             ->required()
                             ->default(now()),
 
                         Forms\Components\TextInput::make('reference')
+                            ->label(__('accounting::accounting.fields.reference'))
                             ->maxLength(255),
 
                         Forms\Components\Select::make('fiscal_period_id')
-                            ->label('Fiscal Period')
+                            ->label(__('accounting::accounting.fields.fiscal_period'))
                             ->relationship('fiscalPeriod', 'name')
                             ->searchable()
                             ->preload()
                             ->default(fn () => FiscalPeriod::getCurrent()?->id),
 
                         Forms\Components\Textarea::make('description')
+                            ->label(__('accounting::accounting.fields.description'))
                             ->rows(2)
                             ->columnSpanFull(),
                     ])
                     ->columns(4),
 
-                Forms\Components\Section::make('Journal Lines')
+                Forms\Components\Section::make(__('accounting::accounting.sections.journal_lines'))
                     ->schema([
                         Forms\Components\Repeater::make('lines')
                             ->relationship()
                             ->schema([
                                 Forms\Components\Select::make('account_id')
-                                    ->label('Account')
+                                    ->label(__('accounting::accounting.fields.account'))
                                     ->relationship('account', 'code')
                                     ->getOptionLabelFromRecordUsing(fn (ChartOfAccount $record) => $record->display_name)
                                     ->searchable(['code', 'name'])
@@ -83,7 +101,7 @@ class JournalEntryResource extends Resource
                                     ->columnSpan(1),
 
                                 Forms\Components\TextInput::make('debit_minor')
-                                    ->label('Debit')
+                                    ->label(__('accounting::accounting.fields.debit'))
                                     ->numeric()
                                     ->default(0)
                                     ->formatStateUsing(fn ($state) => $state ? $state / 100 : 0)
@@ -91,7 +109,7 @@ class JournalEntryResource extends Resource
                                     ->columnSpan(1),
 
                                 Forms\Components\TextInput::make('credit_minor')
-                                    ->label('Credit')
+                                    ->label(__('accounting::accounting.fields.credit'))
                                     ->numeric()
                                     ->default(0)
                                     ->formatStateUsing(fn ($state) => $state ? $state / 100 : 0)
@@ -99,6 +117,7 @@ class JournalEntryResource extends Resource
                                     ->columnSpan(1),
 
                                 Forms\Components\TextInput::make('description')
+                                    ->label(__('accounting::accounting.fields.description'))
                                     ->maxLength(255)
                                     ->columnSpan(1),
 
@@ -177,7 +196,7 @@ class JournalEntryResource extends Resource
                             ])
                             ->columns(5)
                             ->defaultItems(2)
-                            ->addActionLabel('Add Line')
+                            ->addActionLabel(__('accounting::accounting.entry_resource.add_line'))
                             ->reorderable(false)
                             ->mutateRelationshipDataBeforeCreateUsing(function (array $data): array {
                                 return self::parsePartnerKey($data);
@@ -194,42 +213,46 @@ class JournalEntryResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('journal.code')
-                    ->label('Journal')
+                    ->label(__('accounting::accounting.fields.journal'))
                     ->sortable()
                     ->badge()
                     ->color(fn ($record) => $record->journal?->type_color ?? 'gray'),
 
                 Tables\Columns\TextColumn::make('code')
-                    ->label('Entry #')
+                    ->label(__('accounting::accounting.entry_resource.entry_number'))
                     ->searchable()
                     ->sortable()
                     ->weight(FontWeight::Bold),
 
                 Tables\Columns\TextColumn::make('date')
+                    ->label(__('accounting::accounting.fields.date'))
                     ->date()
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('reference')
+                    ->label(__('accounting::accounting.fields.reference'))
                     ->searchable()
                     ->placeholder('-'),
 
                 Tables\Columns\TextColumn::make('description')
+                    ->label(__('accounting::accounting.fields.description'))
                     ->limit(50)
                     ->searchable(),
 
                 Tables\Columns\TextColumn::make('total_debit_minor')
-                    ->label('Debit')
+                    ->label(__('accounting::accounting.fields.debit'))
                     ->formatStateUsing(fn ($state) => number_format($state / 100, 2))
                     ->suffix(' ' . current_currency())
                     ->alignEnd(),
 
                 Tables\Columns\TextColumn::make('total_credit_minor')
-                    ->label('Credit')
+                    ->label(__('accounting::accounting.fields.credit'))
                     ->formatStateUsing(fn ($state) => number_format($state / 100, 2))
                     ->suffix(' ' . current_currency())
                     ->alignEnd(),
 
                 Tables\Columns\BadgeColumn::make('status')
+                    ->label(__('accounting::accounting.status'))
                     ->colors([
                         'gray' => JournalEntry::STATUS_DRAFT,
                         'success' => JournalEntry::STATUS_POSTED,
@@ -237,23 +260,26 @@ class JournalEntryResource extends Resource
                     ]),
 
                 Tables\Columns\TextColumn::make('posted_at')
-                    ->label('Posted')
+                    ->label(__('accounting::accounting.entry_resource.posted'))
                     ->dateTime()
                     ->placeholder('-')
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('journal_id')
-                    ->label('Journal')
+                    ->label(__('accounting::accounting.fields.journal'))
                     ->relationship('journal', 'code'),
 
                 Tables\Filters\SelectFilter::make('status')
+                    ->label(__('accounting::accounting.status'))
                     ->options(JournalEntry::STATUSES),
 
                 Tables\Filters\Filter::make('date')
                     ->form([
-                        Forms\Components\DatePicker::make('from'),
-                        Forms\Components\DatePicker::make('until'),
+                        Forms\Components\DatePicker::make('from')
+                            ->label(__('accounting::accounting.start_date')),
+                        Forms\Components\DatePicker::make('until')
+                            ->label(__('accounting::accounting.end_date')),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
@@ -267,7 +293,7 @@ class JournalEntryResource extends Resource
                     ->visible(fn (JournalEntry $record) => $record->isDraft()),
 
                 Tables\Actions\Action::make('post')
-                    ->label('Post')
+                    ->label(__('accounting::accounting.entry_resource.post'))
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     ->requiresConfirmation()
@@ -275,14 +301,14 @@ class JournalEntryResource extends Resource
                     ->action(fn (JournalEntry $record) => $record->post()),
 
                 Tables\Actions\Action::make('reverse')
-                    ->label('Reverse')
+                    ->label(__('accounting::accounting.entry_resource.reverse'))
                     ->icon('heroicon-o-arrow-uturn-left')
                     ->color('danger')
                     ->requiresConfirmation()
                     ->visible(fn (JournalEntry $record) => $record->isPosted() && !$record->isReversed())
                     ->form([
                         Forms\Components\Textarea::make('description')
-                            ->label('Reversal Description')
+                            ->label(__('accounting::accounting.entry_resource.reversal_description'))
                             ->required(),
                     ])
                     ->action(fn (JournalEntry $record, array $data) => $record->reverse($data['description'])),
