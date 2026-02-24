@@ -39,7 +39,7 @@ class SlotGenerationService
         Carbon $date,
         ?int $durationOverride = null
     ): Collection {
-        $service = Service::with(['qualifiedStaff', 'rooms', 'requiredEquipmentTypes'])
+        $service = Service::with(['qualifiedStaff', 'rooms', 'requiredEquipment'])
             ->find($serviceId);
 
         if (!$service) {
@@ -125,11 +125,11 @@ class SlotGenerationService
             );
 
             // Check if equipment is required but not available
-            $requiredEquipmentTypes = $service->requiredEquipmentTypes()
-                ->wherePivot('is_required', true)
+            $requiredEquipment = $service->requiredEquipment()
+                ->wherePivot('is_mandatory', true)
                 ->get();
 
-            if ($requiredEquipmentTypes->isNotEmpty() && !$equipment) {
+            if ($requiredEquipment->isNotEmpty() && !$equipment) {
                 continue;
             }
 
@@ -352,22 +352,18 @@ class SlotGenerationService
         $date = $datetime->copy()->startOfDay();
         $endTime = $datetime->copy()->addMinutes($duration);
 
-        // Get required equipment types
-        $requiredEquipmentTypeIds = $service->requiredEquipmentTypes()
-            ->wherePivot('is_required', true)
-            ->pluck('equipment_types.id')
-            ->toArray();
+        // Get required equipment for this service at this branch
+        $requiredEquipment = $service->requiredEquipment()
+            ->wherePivot('is_mandatory', true)
+            ->where('branch_id', $branchId)
+            ->where('status', Equipment::STATUS_ACTIVE)
+            ->get();
 
-        if (empty($requiredEquipmentTypeIds)) {
+        if ($requiredEquipment->isEmpty()) {
             return null;
         }
 
-        // Find active equipment of required types at this branch
-        $equipment = Equipment::query()
-            ->where('branch_id', $branchId)
-            ->where('status', Equipment::STATUS_ACTIVE)
-            ->whereIn('equipment_type_id', $requiredEquipmentTypeIds)
-            ->get();
+        $equipment = $requiredEquipment;
 
         foreach ($equipment as $item) {
             if ($this->isEquipmentAvailable($item->id, $date, $datetime, $endTime)) {

@@ -151,6 +151,8 @@ return [
         'none_available' => 'لا توجد معدات متاحة',
         'already_added' => 'المعدات مضافة مسبقاً',
         'added' => 'تمت إضافة المعدات',
+        'has_params' => 'معايير',
+        'tracking_params' => 'معايير التتبع',
     ],
 
     // Presets

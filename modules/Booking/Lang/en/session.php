@@ -151,6 +151,8 @@ return [
         'none_available' => 'No equipment available',
         'already_added' => 'Equipment already added',
         'added' => 'Equipment added',
+        'has_params' => 'Params',
+        'tracking_params' => 'Tracking Parameters',
     ],
 
     // Presets

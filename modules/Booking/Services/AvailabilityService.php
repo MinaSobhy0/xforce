@@ -343,19 +343,21 @@ class AvailabilityService
 
         $duration = $service->duration_minutes + ($service->buffer_minutes ?? 0);
 
-        // Get required equipment types from service
-        $requiredEquipmentTypeIds = [];
-        if (method_exists($service, 'requiredEquipmentTypes')) {
-            $requiredEquipmentTypeIds = $service->requiredEquipmentTypes()
-                ->wherePivot('is_required', true)
-                ->pluck('equipment_types.id')
+        // Get required equipment IDs from service
+        $requiredEquipmentIds = [];
+        if (method_exists($service, 'requiredEquipment')) {
+            $requiredEquipmentIds = $service->requiredEquipment()
+                ->wherePivot('is_mandatory', true)
+                ->where('branch_id', $branchId)
+                ->where('status', Equipment::STATUS_ACTIVE)
+                ->pluck('equipment.id')
                 ->toArray();
         }
 
         // Get base slots without equipment check first
         $slots = $this->getAvailableSlots($practitionerId, $branchId, $date, $duration);
 
-        if (empty($requiredEquipmentTypeIds)) {
+        if (empty($requiredEquipmentIds)) {
             return $slots;
         }
 
@@ -371,7 +373,7 @@ class AvailabilityService
                 $date,
                 $startTime,
                 $endTime,
-                $requiredEquipmentTypeIds
+                $requiredEquipmentIds
             );
 
             if ($equipmentInfo) {
@@ -452,18 +454,18 @@ class AvailabilityService
         Carbon $date,
         Carbon $startTime,
         Carbon $endTime,
-        array $requiredEquipmentTypeIds
+        array $requiredEquipmentIds
     ): ?array {
-        if (empty($requiredEquipmentTypeIds)) {
+        if (empty($requiredEquipmentIds)) {
             return null;
         }
 
-        // Find active equipment of required types at this branch
+        // Find available required equipment at this branch
         $availableEquipment = Equipment::query()
+            ->whereIn('id', $requiredEquipmentIds)
             ->where('branch_id', $branchId)
             ->where('status', Equipment::STATUS_ACTIVE)
-            ->whereIn('equipment_type_id', $requiredEquipmentTypeIds)
-            ->with(['type', 'room'])
+            ->with('room')
             ->get();
 
         foreach ($availableEquipment as $equipment) {
@@ -473,7 +475,7 @@ class AvailabilityService
                     'equipment_id' => $equipment->id,
                     'room_id' => $equipment->room_id,
                     'equipment_name' => $equipment->name,
-                    'equipment_type' => $equipment->type?->translated_name ?? $equipment->type?->name ?? '',
+                    'equipment_category' => Equipment::CATEGORIES[$equipment->category] ?? $equipment->category,
                 ];
             }
         }

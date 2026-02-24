@@ -3,9 +3,11 @@
 namespace Modules\Equipment\Filament\Resources\EquipmentResource\Pages;
 
 use Filament\Actions;
+use Filament\Notifications\Notification;
 use App\Filament\Resources\Pages\BaseViewRecord;
 use Modules\Equipment\Filament\Resources\EquipmentResource;
 use Modules\Equipment\Models\Equipment;
+use Modules\Equipment\Models\EquipmentParameterTemplate;
 
 class ViewEquipment extends BaseViewRecord
 {
@@ -15,6 +17,22 @@ class ViewEquipment extends BaseViewRecord
     {
         return [
             Actions\EditAction::make(),
+            Actions\Action::make('apply_template')
+                ->label(__('equipment::equipment.template.apply'))
+                ->icon('heroicon-o-document-duplicate')
+                ->color('info')
+                ->visible(fn (Equipment $record) => $record->tracking_enabled && $record->parameter_template_id)
+                ->requiresConfirmation()
+                ->modalDescription(__('equipment::equipment.template.apply_confirm'))
+                ->action(function (Equipment $record) {
+                    if ($record->parameterTemplate) {
+                        $record->parameterTemplate->applyToEquipment($record);
+                        Notification::make()
+                            ->success()
+                            ->title(__('equipment::equipment.template.applied'))
+                            ->send();
+                    }
+                }),
             Actions\Action::make('log_maintenance')
                 ->label(__('equipment::equipment.log_maintenance'))
                 ->icon('heroicon-o-wrench-screwdriver')

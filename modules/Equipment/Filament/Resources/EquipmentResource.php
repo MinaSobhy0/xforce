@@ -16,7 +16,7 @@ use Modules\Core\Models\Room;
 use Modules\Equipment\Filament\Resources\EquipmentResource\Pages;
 use Modules\Equipment\Filament\Resources\EquipmentResource\RelationManagers;
 use Modules\Equipment\Models\Equipment;
-use Modules\Equipment\Models\EquipmentType;
+use Modules\Equipment\Models\EquipmentParameterTemplate;
 
 class EquipmentResource extends Resource
 {
@@ -57,7 +57,6 @@ class EquipmentResource extends Resource
             $maintenanceDue = static::getModel()::where('next_maintenance_at', '<=', now())->count();
             return $maintenanceDue > 0 ? (string) $maintenanceDue : null;
         } catch (\Exception $e) {
-            // Table may not exist in current schema context
             return null;
         }
     }
@@ -80,20 +79,21 @@ class EquipmentResource extends Resource
                                     ->required()
                                     ->maxLength(255),
 
-                                Forms\Components\Select::make('equipment_type_id')
-                                    ->label(__('equipment::equipment.type'))
-                                    ->relationship('type', 'name')
-                                    ->getOptionLabelFromRecordUsing(fn (EquipmentType $record) => $record->getTranslation('name', app()->getLocale()))
-                                    ->searchable()
-                                    ->preload()
-                                    ->required()
-                                    ->createOptionForm([
-                                        Forms\Components\TextInput::make('name.en')
-                                            ->label('Name (English)')
-                                            ->required(),
+                                Forms\Components\Grid::make(3)
+                                    ->schema([
                                         Forms\Components\Select::make('category')
-                                            ->options(EquipmentType::CATEGORIES)
-                                            ->required(),
+                                            ->label(__('equipment::equipment.category'))
+                                            ->options(Equipment::CATEGORIES)
+                                            ->required()
+                                            ->default('other'),
+
+                                        Forms\Components\TextInput::make('manufacturer')
+                                            ->label(__('equipment::equipment.manufacturer'))
+                                            ->maxLength(255),
+
+                                        Forms\Components\TextInput::make('model')
+                                            ->label(__('equipment::equipment.model'))
+                                            ->maxLength(255),
                                     ]),
 
                                 Forms\Components\Grid::make(2)
@@ -118,7 +118,24 @@ class EquipmentResource extends Resource
                                 Forms\Components\TextInput::make('serial_number')
                                     ->label(__('equipment::equipment.serial_number'))
                                     ->maxLength(255),
+
+                                Forms\Components\FileUpload::make('image_url')
+                                    ->label(__('equipment::equipment.image'))
+                                    ->image()
+                                    ->directory('equipment')
+                                    ->columnSpanFull(),
                             ]),
+
+                        Forms\Components\Section::make(__('equipment::equipment.specifications'))
+                            ->schema([
+                                Forms\Components\KeyValue::make('specifications')
+                                    ->label(__('equipment::equipment.specifications'))
+                                    ->keyLabel(__('equipment::equipment.spec_name'))
+                                    ->valueLabel(__('equipment::equipment.spec_value'))
+                                    ->addActionLabel(__('equipment::equipment.add_spec'))
+                                    ->columnSpanFull(),
+                            ])
+                            ->collapsed(),
 
                         Forms\Components\Section::make(__('equipment::equipment.purchase_info'))
                             ->schema([
@@ -131,7 +148,7 @@ class EquipmentResource extends Resource
                                             ->label(__('equipment::equipment.purchase_price'))
                                             ->numeric()
                                             ->prefix(current_currency())
-                                            ->helperText('Enter price in piasters'),
+                                            ->helperText(__('equipment::equipment.price_help')),
                                     ]),
 
                                 Forms\Components\Grid::make(2)
@@ -142,7 +159,7 @@ class EquipmentResource extends Resource
                                         Forms\Components\TextInput::make('depreciation_years')
                                             ->label(__('equipment::equipment.depreciation_years'))
                                             ->numeric()
-                                            ->suffix('years'),
+                                            ->suffix(__('equipment::equipment.years')),
                                     ]),
                             ])
                             ->collapsed(),
@@ -170,7 +187,22 @@ class EquipmentResource extends Resource
 
                                 Forms\Components\Placeholder::make('code')
                                     ->label(__('equipment::equipment.code'))
-                                    ->content(fn (?Equipment $record): string => $record?->code ?? 'Auto-generated'),
+                                    ->content(fn (?Equipment $record): string => $record?->code ?? __('equipment::equipment.auto_generated')),
+
+                                Forms\Components\Toggle::make('tracking_enabled')
+                                    ->label(__('equipment::equipment.tracking_enabled'))
+                                    ->helperText(__('equipment::equipment.tracking_enabled_help'))
+                                    ->default(false)
+                                    ->live(),
+
+                                Forms\Components\Select::make('parameter_template_id')
+                                    ->label(__('equipment::equipment.template.select'))
+                                    ->options(fn () => EquipmentParameterTemplate::active()
+                                        ->pluck('template_name', 'id'))
+                                    ->searchable()
+                                    ->placeholder(__('equipment::equipment.template.none'))
+                                    ->helperText(__('equipment::equipment.template.select_help'))
+                                    ->visible(fn (Forms\Get $get) => $get('tracking_enabled')),
                             ]),
 
                         Forms\Components\Section::make(__('equipment::equipment.maintenance'))
@@ -182,24 +214,6 @@ class EquipmentResource extends Resource
                                     ->label(__('equipment::equipment.next_maintenance')),
                             ]),
 
-                        Forms\Components\Section::make(__('equipment::equipment.shot_counter'))
-                            ->schema([
-                                Forms\Components\TextInput::make('total_shots_fired')
-                                    ->label(__('equipment::equipment.total_shots'))
-                                    ->numeric()
-                                    ->default(0)
-                                    ->disabled(),
-
-                                Forms\Components\Placeholder::make('shots_remaining')
-                                    ->label(__('equipment::equipment.shots_remaining'))
-                                    ->content(function (?Equipment $record): string {
-                                        if (!$record || !$record->type || !$record->type->max_shots) {
-                                            return 'N/A';
-                                        }
-                                        return number_format($record->shots_remaining) . ' / ' . number_format($record->type->max_shots);
-                                    }),
-                            ])
-                            ->visible(fn (?Equipment $record) => $record?->type?->max_shots),
                     ])
                     ->columnSpan(['lg' => 1]),
             ])
@@ -219,11 +233,13 @@ class EquipmentResource extends Resource
                 Tables\Columns\TextColumn::make('name')
                     ->label(__('equipment::equipment.name'))
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->description(fn (Equipment $record) => $record->manufacturer ? "{$record->manufacturer} {$record->model}" : null),
 
-                Tables\Columns\TextColumn::make('type.name')
-                    ->label(__('equipment::equipment.type'))
-                    ->getStateUsing(fn ($record) => $record->type?->getTranslation('name', app()->getLocale()))
+                Tables\Columns\TextColumn::make('category')
+                    ->label(__('equipment::equipment.category'))
+                    ->badge()
+                    ->formatStateUsing(fn (string $state) => Equipment::CATEGORIES[$state] ?? $state)
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('branch.name')
@@ -234,24 +250,6 @@ class EquipmentResource extends Resource
                 Tables\Columns\TextColumn::make('room.name')
                     ->label(__('equipment::equipment.room'))
                     ->placeholder('—')
-                    ->toggleable(),
-
-                Tables\Columns\TextColumn::make('total_shots_fired')
-                    ->label(__('equipment::equipment.shots'))
-                    ->numeric()
-                    ->formatStateUsing(function (Equipment $record) {
-                        if (!$record->type || !$record->type->max_shots) {
-                            return number_format($record->total_shots_fired);
-                        }
-                        return number_format($record->total_shots_fired) . ' / ' . number_format($record->type->max_shots);
-                    })
-                    ->color(function (Equipment $record) {
-                        $percentage = $record->shots_percentage;
-                        if ($percentage === null) return null;
-                        if ($percentage >= 90) return 'danger';
-                        if ($percentage >= 75) return 'warning';
-                        return null;
-                    })
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('status')
@@ -273,13 +271,13 @@ class EquipmentResource extends Resource
                 Tables\Filters\SelectFilter::make('status')
                     ->options(Equipment::STATUSES),
 
+                Tables\Filters\SelectFilter::make('category')
+                    ->label(__('equipment::equipment.category'))
+                    ->options(Equipment::CATEGORIES),
+
                 Tables\Filters\SelectFilter::make('branch_id')
                     ->label(__('equipment::equipment.branch'))
                     ->relationship('branch', 'name'),
-
-                Tables\Filters\SelectFilter::make('equipment_type_id')
-                    ->label(__('equipment::equipment.type'))
-                    ->relationship('type', 'name'),
 
                 Tables\Filters\Filter::make('maintenance_due')
                     ->label(__('equipment::equipment.maintenance_due'))
@@ -320,28 +318,6 @@ class EquipmentResource extends Resource
                                 'performed_at' => now(),
                             ]);
                         }),
-                    Tables\Actions\Action::make('record_shots')
-                        ->label(__('equipment::equipment.record_shots'))
-                        ->icon('heroicon-o-bolt')
-                        ->color('info')
-                        ->visible(fn (Equipment $record) => $record->type?->max_shots)
-                        ->form([
-                            Forms\Components\TextInput::make('shots_count')
-                                ->label(__('equipment::equipment.shots_count'))
-                                ->numeric()
-                                ->required()
-                                ->minValue(1),
-                            Forms\Components\TextInput::make('energy_setting')
-                                ->label(__('equipment::equipment.energy_setting')),
-                            Forms\Components\TextInput::make('spot_size')
-                                ->label(__('equipment::equipment.spot_size')),
-                            Forms\Components\Textarea::make('notes')
-                                ->label(__('equipment::equipment.notes'))
-                                ->rows(2),
-                        ])
-                        ->action(function (Equipment $record, array $data) {
-                            $record->recordShots($data['shots_count'], null, $data);
-                        }),
                 ]),
             ])
             ->bulkActions([
@@ -363,8 +339,16 @@ class EquipmentResource extends Resource
                             ->copyable(),
                         Infolists\Components\TextEntry::make('name')
                             ->label(__('equipment::equipment.name')),
-                        Infolists\Components\TextEntry::make('type.name')
-                            ->label(__('equipment::equipment.type')),
+                        Infolists\Components\TextEntry::make('category')
+                            ->label(__('equipment::equipment.category'))
+                            ->badge()
+                            ->formatStateUsing(fn (string $state) => Equipment::CATEGORIES[$state] ?? $state),
+                        Infolists\Components\TextEntry::make('manufacturer')
+                            ->label(__('equipment::equipment.manufacturer'))
+                            ->placeholder('—'),
+                        Infolists\Components\TextEntry::make('model')
+                            ->label(__('equipment::equipment.model'))
+                            ->placeholder('—'),
                         Infolists\Components\TextEntry::make('branch.name')
                             ->label(__('equipment::equipment.branch')),
                         Infolists\Components\TextEntry::make('room.name')
@@ -386,8 +370,8 @@ class EquipmentResource extends Resource
     public static function getRelations(): array
     {
         return [
+            RelationManagers\TrackingParametersRelationManager::class,
             RelationManagers\MaintenanceLogsRelationManager::class,
-            RelationManagers\ShotLogsRelationManager::class,
         ];
     }
 

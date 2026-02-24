@@ -24,7 +24,12 @@ class Equipment extends BaseModel
         'tenant_id',
         'code',
         'name',
-        'equipment_type_id',
+        'manufacturer',
+        'model',
+        'category',
+        'specifications',
+        'max_shots',
+        'image_url',
         'branch_id',
         'room_id',
         'serial_number',
@@ -33,6 +38,8 @@ class Equipment extends BaseModel
         'warranty_expiry',
         'total_shots_fired',
         'status',
+        'tracking_enabled',
+        'parameter_template_id',
         'last_maintenance_at',
         'next_maintenance_at',
         'depreciation_years',
@@ -40,13 +47,29 @@ class Equipment extends BaseModel
     ];
 
     protected $casts = [
+        'specifications' => 'array',
+        'max_shots' => 'integer',
         'purchase_date' => 'date',
         'warranty_expiry' => 'date',
         'purchase_price_minor' => 'integer',
         'total_shots_fired' => 'integer',
+        'tracking_enabled' => 'boolean',
         'last_maintenance_at' => 'datetime',
         'next_maintenance_at' => 'datetime',
         'depreciation_years' => 'integer',
+    ];
+
+    // Equipment categories
+    public const CATEGORIES = [
+        'laser' => 'Laser',
+        'ipl' => 'IPL',
+        'rf' => 'Radio Frequency',
+        'hifu' => 'HIFU',
+        'cryolipolysis' => 'Cryolipolysis',
+        'microneedling' => 'Microneedling',
+        'hydrafacial' => 'Hydrafacial',
+        'led' => 'LED Therapy',
+        'other' => 'Other',
     ];
 
     public const STATUS_ACTIVE = 'active';
@@ -70,16 +93,13 @@ class Equipment extends BaseModel
 
     protected static function booted(): void
     {
+        parent::booted();
+
         static::creating(function (Equipment $equipment) {
             if (empty($equipment->status)) {
                 $equipment->status = self::STATUS_ACTIVE;
             }
         });
-    }
-
-    public function type(): BelongsTo
-    {
-        return $this->belongsTo(EquipmentType::class, 'equipment_type_id');
     }
 
     public function branch(): BelongsTo
@@ -92,6 +112,14 @@ class Equipment extends BaseModel
         return $this->belongsTo(Room::class);
     }
 
+    /**
+     * Get the parameter template for this equipment.
+     */
+    public function parameterTemplate(): BelongsTo
+    {
+        return $this->belongsTo(EquipmentParameterTemplate::class, 'parameter_template_id');
+    }
+
     public function maintenanceLogs(): HasMany
     {
         return $this->hasMany(EquipmentMaintenanceLog::class);
@@ -102,20 +130,116 @@ class Equipment extends BaseModel
         return $this->hasMany(EquipmentShotLog::class);
     }
 
+    /**
+     * Get the tracking parameters for this equipment.
+     */
+    public function trackingParameters(): HasMany
+    {
+        return $this->hasMany(EquipmentTrackingParameter::class);
+    }
+
+    /**
+     * Get active tracking parameters ordered by display order.
+     */
+    public function getActiveTrackingParameters()
+    {
+        return $this->trackingParameters()
+            ->active()
+            ->ordered()
+            ->get();
+    }
+
+    /**
+     * Get parameters that should be tracked in sessions.
+     */
+    public function getSessionTrackingParameters()
+    {
+        return $this->trackingParameters()
+            ->forSession()
+            ->ordered()
+            ->get();
+    }
+
+    /**
+     * Get required tracking parameters.
+     */
+    public function getRequiredTrackingParameters()
+    {
+        return $this->trackingParameters()
+            ->forSession()
+            ->required()
+            ->ordered()
+            ->get();
+    }
+
+    /**
+     * Check if tracking is enabled for this equipment.
+     */
+    public function hasTracking(): bool
+    {
+        return $this->tracking_enabled && $this->trackingParameters()->active()->exists();
+    }
+
+    /**
+     * Get tracking parameters grouped by category.
+     */
+    public function getTrackingParametersByCategory(): array
+    {
+        $parameters = $this->getSessionTrackingParameters();
+
+        $grouped = [];
+        foreach ($parameters as $param) {
+            $category = $param->category ?? 'other';
+            if (!isset($grouped[$category])) {
+                $grouped[$category] = [
+                    'label' => EquipmentTrackingParameter::CATEGORIES[$category] ?? ucfirst($category),
+                    'parameters' => [],
+                ];
+            }
+            $grouped[$category]['parameters'][] = $param;
+        }
+
+        return $grouped;
+    }
+
+    /**
+     * Get parameter definitions as array for forms.
+     */
+    public function getParameterDefinitions(): array
+    {
+        return $this->getSessionTrackingParameters()
+            ->map(fn ($param) => $param->toFormFieldConfig())
+            ->toArray();
+    }
+
+    /**
+     * Get default parameter values.
+     */
+    public function getDefaultParameterValues(): array
+    {
+        $defaults = [];
+        foreach ($this->getSessionTrackingParameters() as $param) {
+            if ($param->default_value !== null) {
+                $defaults[$param->parameter_key] = $param->castValue($param->default_value);
+            }
+        }
+        return $defaults;
+    }
+
     public function getShotsRemainingAttribute(): ?int
     {
-        if (!$this->type || !$this->type->max_shots) {
+        if (!$this->max_shots) {
             return null;
         }
-        return max(0, $this->type->max_shots - $this->total_shots_fired);
+        return max(0, $this->max_shots - $this->total_shots_fired);
     }
 
     public function getShotsPercentageAttribute(): ?float
     {
-        if (!$this->type || !$this->type->max_shots) {
+        if (!$this->max_shots) {
             return null;
         }
-        return round(($this->total_shots_fired / $this->type->max_shots) * 100, 1);
+        return round(($this->total_shots_fired / $this->max_shots) * 100, 1);
     }
 
     public function getDepreciatedValueAttribute(): int

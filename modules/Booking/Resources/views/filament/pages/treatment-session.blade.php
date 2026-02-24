@@ -92,39 +92,22 @@
 
                 {{-- Equipment List --}}
                 @if(count($sessionEquipment) > 0)
-                    <div class="space-y-2 mb-4">
+                    <div class="space-y-3 mb-4">
                         @foreach($sessionEquipment as $index => $equipment)
-                            <div class="flex flex-wrap items-center gap-3 p-3 border border-gray-200 dark:border-gray-700 rounded-lg {{ $equipment['is_preset'] ? 'bg-blue-50/50 dark:bg-blue-900/10' : '' }}">
-                                <div class="flex-1 min-w-[150px]">
-                                    <div class="flex items-center gap-2">
-                                        <span class="font-medium text-gray-900 dark:text-white text-sm">{{ $equipment['name'] }}</span>
-                                        <span class="text-xs text-gray-500 dark:text-gray-400">({{ $equipment['code'] }})</span>
-                                        @if($equipment['is_preset'])
-                                            <span class="px-1.5 py-0.5 text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 rounded">{{ __('booking::session.equipment.preset') }}</span>
-                                        @endif
-                                    </div>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <div>
-                                        <input
-                                            type="number"
-                                            value="{{ $equipment['shots_used'] }}"
-                                            wire:change="updateEquipmentMetric('{{ $equipment['equipment_id'] }}', 'shots_used', $event.target.value)"
-                                            class="w-20 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm text-center"
-                                            min="0"
-                                            placeholder="{{ __('booking::session.equipment.shots') }}"
-                                        />
-                                    </div>
-                                    <div>
-                                        <input
-                                            type="number"
-                                            value="{{ $equipment['energy_delivered'] }}"
-                                            wire:change="updateEquipmentMetric('{{ $equipment['equipment_id'] }}', 'energy_delivered', $event.target.value)"
-                                            class="w-20 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm text-center"
-                                            min="0"
-                                            step="0.1"
-                                            placeholder="{{ __('booking::session.equipment.energy_short') }}"
-                                        />
+                            <div class="border border-gray-200 dark:border-gray-700 rounded-lg {{ $equipment['is_preset'] ? 'bg-blue-50/50 dark:bg-blue-900/10' : '' }}">
+                                {{-- Equipment Header --}}
+                                <div class="flex flex-wrap items-center gap-3 p-3">
+                                    <div class="flex-1 min-w-[150px]">
+                                        <div class="flex items-center gap-2">
+                                            <span class="font-medium text-gray-900 dark:text-white text-sm">{{ $equipment['name'] }}</span>
+                                            <span class="text-xs text-gray-500 dark:text-gray-400">({{ $equipment['code'] }})</span>
+                                            @if($equipment['is_preset'])
+                                                <span class="px-1.5 py-0.5 text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 rounded">{{ __('booking::session.equipment.preset') }}</span>
+                                            @endif
+                                            @if(!empty($equipment['has_tracking']))
+                                                <span class="px-1.5 py-0.5 text-xs bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 rounded">{{ __('booking::session.equipment.has_params') }}</span>
+                                            @endif
+                                        </div>
                                     </div>
                                     @if(!$equipment['is_preset'])
                                         <button
@@ -135,6 +118,79 @@
                                         </button>
                                     @endif
                                 </div>
+
+                                {{-- Equipment Parameters (if tracking enabled) --}}
+                                @if(!empty($equipment['has_tracking']))
+                                    @php $equipmentParams = $this->getEquipmentParametersByCategory($equipment['equipment_id']); @endphp
+                                    @if(!empty($equipmentParams))
+                                        <div class="border-t border-gray-200 dark:border-gray-700 p-3 bg-gray-50/50 dark:bg-gray-800/50">
+                                            <div class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-wide">
+                                                {{ __('booking::session.equipment.tracking_params') }}
+                                            </div>
+                                            @foreach($equipmentParams as $category => $categoryData)
+                                                @if(count($categoryData['parameters']) > 0)
+                                                    @if(count($equipmentParams) > 1)
+                                                        <div class="text-xs font-medium text-gray-600 dark:text-gray-300 mb-2">{{ $categoryData['label'] }}</div>
+                                                    @endif
+                                                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-3">
+                                                        @foreach($categoryData['parameters'] as $param)
+                                                            <div>
+                                                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                                                                    {{ $param->name }}
+                                                                    @if($param->is_required)
+                                                                        <span class="text-red-500">*</span>
+                                                                    @endif
+                                                                    @if($param->unit)
+                                                                        <span class="text-gray-400 font-normal">({{ $param->unit }})</span>
+                                                                    @endif
+                                                                </label>
+
+                                                                @if($param->value_type === 'select')
+                                                                    <select
+                                                                        wire:change="updateEquipmentParameterValue('{{ $equipment['equipment_id'] }}', '{{ $param->parameter_key }}', $event.target.value)"
+                                                                        class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm"
+                                                                    >
+                                                                        <option value="">{{ __('Select...') }}</option>
+                                                                        @foreach($param->options ?? [] as $option)
+                                                                            <option value="{{ $option['value'] }}" {{ ($equipmentParameterValues[$equipment['equipment_id']][$param->parameter_key] ?? '') == $option['value'] ? 'selected' : '' }}>
+                                                                                {{ $option['label'] }}
+                                                                            </option>
+                                                                        @endforeach
+                                                                    </select>
+                                                                @elseif($param->value_type === 'boolean')
+                                                                    <label class="flex items-center gap-2">
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            wire:change="updateEquipmentParameterValue('{{ $equipment['equipment_id'] }}', '{{ $param->parameter_key }}', $event.target.checked)"
+                                                                            class="rounded border-gray-300 text-primary-600 shadow-sm focus:ring-primary-500"
+                                                                            {{ ($equipmentParameterValues[$equipment['equipment_id']][$param->parameter_key] ?? false) ? 'checked' : '' }}
+                                                                        />
+                                                                        <span class="text-sm text-gray-600 dark:text-gray-400">{{ __('Yes') }}</span>
+                                                                    </label>
+                                                                @else
+                                                                    <input
+                                                                        type="{{ in_array($param->value_type, ['integer', 'decimal']) ? 'number' : 'text' }}"
+                                                                        value="{{ $equipmentParameterValues[$equipment['equipment_id']][$param->parameter_key] ?? $param->default_value }}"
+                                                                        wire:change="updateEquipmentParameterValue('{{ $equipment['equipment_id'] }}', '{{ $param->parameter_key }}', $event.target.value)"
+                                                                        class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm"
+                                                                        @if($param->min_value !== null) min="{{ $param->min_value }}" @endif
+                                                                        @if($param->max_value !== null) max="{{ $param->max_value }}" @endif
+                                                                        @if($param->step) step="{{ $param->step }}" @elseif($param->value_type === 'decimal') step="0.01" @endif
+                                                                        placeholder="{{ $param->default_value }}"
+                                                                    />
+                                                                @endif
+
+                                                                @if($param->description)
+                                                                    <p class="text-xs text-gray-400 mt-0.5">{{ $param->description }}</p>
+                                                                @endif
+                                                            </div>
+                                                        @endforeach
+                                                    </div>
+                                                @endif
+                                            @endforeach
+                                        </div>
+                                    @endif
+                                @endif
                             </div>
                         @endforeach
                     </div>

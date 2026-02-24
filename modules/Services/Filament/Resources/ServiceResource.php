@@ -12,7 +12,6 @@ use Modules\Services\Models\Service;
 use Modules\Services\Models\ServiceCategory;
 use Modules\Services\Models\ConsentTemplate;
 use Modules\Services\Models\ParameterTemplate;
-use Modules\Equipment\Models\EquipmentType;
 use Modules\Equipment\Models\Equipment;
 use Modules\Core\Models\Room;
 use Modules\Auth\Models\User;
@@ -111,13 +110,13 @@ class ServiceResource extends Resource
 
                                         Forms\Components\Grid::make(2)
                                             ->schema([
-                                                Forms\Components\RichEditor::make('description.en')
+                                                Forms\Components\Textarea::make('description.en')
                                                     ->label(__('services::services.fields.description') . ' (English)')
-                                                    ->toolbarButtons(['bold', 'italic', 'bulletList', 'orderedList']),
+                                                    ->rows(4),
 
-                                                Forms\Components\RichEditor::make('description.ar')
+                                                Forms\Components\Textarea::make('description.ar')
                                                     ->label(__('services::services.fields.description') . ' (Arabic)')
-                                                    ->toolbarButtons(['bold', 'italic', 'bulletList', 'orderedList']),
+                                                    ->rows(4),
                                             ]),
                                     ]),
 
@@ -261,13 +260,13 @@ class ServiceResource extends Resource
                                     ->schema([
                                         Forms\Components\Grid::make(2)
                                             ->schema([
-                                                Forms\Components\RichEditor::make('pre_care_instructions.en')
+                                                Forms\Components\Textarea::make('pre_care_instructions.en')
                                                     ->label(__('services::services.fields.pre_care') . ' (English)')
-                                                    ->toolbarButtons(['bold', 'italic', 'bulletList', 'orderedList']),
+                                                    ->rows(5),
 
-                                                Forms\Components\RichEditor::make('pre_care_instructions.ar')
+                                                Forms\Components\Textarea::make('pre_care_instructions.ar')
                                                     ->label(__('services::services.fields.pre_care') . ' (Arabic)')
-                                                    ->toolbarButtons(['bold', 'italic', 'bulletList', 'orderedList']),
+                                                    ->rows(5),
                                             ]),
                                     ]),
 
@@ -275,13 +274,13 @@ class ServiceResource extends Resource
                                     ->schema([
                                         Forms\Components\Grid::make(2)
                                             ->schema([
-                                                Forms\Components\RichEditor::make('post_care_instructions.en')
+                                                Forms\Components\Textarea::make('post_care_instructions.en')
                                                     ->label(__('services::services.fields.post_care') . ' (English)')
-                                                    ->toolbarButtons(['bold', 'italic', 'bulletList', 'orderedList']),
+                                                    ->rows(5),
 
-                                                Forms\Components\RichEditor::make('post_care_instructions.ar')
+                                                Forms\Components\Textarea::make('post_care_instructions.ar')
                                                     ->label(__('services::services.fields.post_care') . ' (Arabic)')
-                                                    ->toolbarButtons(['bold', 'italic', 'bulletList', 'orderedList']),
+                                                    ->rows(5),
                                             ]),
                                     ]),
                             ]),
@@ -290,16 +289,16 @@ class ServiceResource extends Resource
                             ->schema([
                                 Forms\Components\Section::make('Equipment & Consumables')
                                     ->schema([
-                                        Forms\Components\CheckboxList::make('requiredEquipmentTypes')
+                                        Forms\Components\CheckboxList::make('requiredEquipment')
                                             ->label(__('services::services.fields.equipment_required'))
                                             ->relationship(
-                                                name: 'requiredEquipmentTypes',
-                                                titleAttribute: 'id',
-                                                modifyQueryUsing: fn ($query) => $query->where('is_active', true)
+                                                name: 'requiredEquipment',
+                                                titleAttribute: 'name',
+                                                modifyQueryUsing: fn ($query) => $query->where('status', Equipment::STATUS_ACTIVE)
                                             )
-                                            ->getOptionLabelFromRecordUsing(fn (EquipmentType $record) => $record->translated_name)
+                                            ->getOptionLabelFromRecordUsing(fn (Equipment $record) => "{$record->name} ({$record->code})")
                                             ->columns(2)
-                                            ->helperText('Equipment types needed for this service'),
+                                            ->helperText('Equipment needed for this service'),
 
                                         Forms\Components\TagsInput::make('consumables_required')
                                             ->label('Consumables Required')
@@ -422,10 +421,6 @@ class ServiceResource extends Resource
                                                 if ($record) {
                                                     $component->state($record->qualifiedStaff->pluck('id')->toArray());
                                                 }
-                                            })
-                                            ->dehydrated(false)
-                                            ->saveRelationshipsUsing(function ($record, $state) {
-                                                $record->qualifiedStaff()->sync($state ?? []);
                                             }),
                                     ]),
 
@@ -447,36 +442,9 @@ class ServiceResource extends Resource
                                                 if ($record) {
                                                     $component->state($record->rooms->pluck('id')->toArray());
                                                 }
-                                            })
-                                            ->dehydrated(false)
-                                            ->saveRelationshipsUsing(function ($record, $state) {
-                                                $record->rooms()->sync($state ?? []);
                                             }),
                                     ]),
 
-                                Forms\Components\Section::make(__('services::services.sections.required_equipment'))
-                                    ->description(__('services::services.sections.required_equipment_description'))
-                                    ->schema([
-                                        Forms\Components\Select::make('equipment_ids')
-                                            ->label(__('services::services.fields.required_equipment'))
-                                            ->options(fn () => Equipment::query()
-                                                ->where('status', Equipment::STATUS_ACTIVE)
-                                                ->get()
-                                                ->mapWithKeys(fn ($eq) => [$eq->id => "{$eq->name} ({$eq->code})"])
-                                            )
-                                            ->multiple()
-                                            ->searchable()
-                                            ->preload()
-                                            ->afterStateHydrated(function ($component, $state, $record) {
-                                                if ($record) {
-                                                    $component->state($record->requiredEquipment->pluck('id')->toArray());
-                                                }
-                                            })
-                                            ->dehydrated(false)
-                                            ->saveRelationshipsUsing(function ($record, $state) {
-                                                $record->requiredEquipment()->sync($state ?? []);
-                                            }),
-                                    ]),
 
                                 Forms\Components\Section::make(__('services::services.sections.time_restrictions'))
                                     ->description(__('services::services.sections.time_restrictions_description'))

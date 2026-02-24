@@ -11,7 +11,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Modules\Equipment\Models\EquipmentType;
 use Modules\Equipment\Models\Equipment;
 use Modules\Core\Models\Room;
 use Modules\Auth\Models\User;
@@ -159,16 +158,6 @@ class Service extends BaseModel
     public function branchPricing(): HasMany
     {
         return $this->hasMany(ServiceBranchPricing::class);
-    }
-
-    public function requiredEquipmentTypes(): BelongsToMany
-    {
-        return $this->belongsToMany(
-            EquipmentType::class,
-            'service_equipment_requirements',
-            'service_id',
-            'equipment_type_id'
-        )->withPivot('is_required')->withTimestamps();
     }
 
     public function appointments(): HasMany

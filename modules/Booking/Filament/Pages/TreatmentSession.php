@@ -74,6 +74,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
 
     // Equipment selection
     public array $sessionEquipment = [];
+    public array $equipmentParameterValues = []; // Equipment-specific parameter values
     public ?string $newEquipmentId = null;
     public ?string $selectedPresetId = null;
 
@@ -344,6 +345,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
                     'parameter_values' => $this->parameterValues,
                     'equipment_metrics' => $this->equipmentMetrics,
                     'session_equipment' => $this->sessionEquipment,
+                    'equipment_parameter_values' => $this->equipmentParameterValues,
                     'treatment_areas' => $this->treatmentAreas,
                     'pre_treatment_checklist' => $this->preTreatmentChecklist,
                     'clinical_notes' => $this->clinicalNotes,
@@ -766,9 +768,11 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
 
         // Load from session data if available
         $savedEquipment = $this->sessionData->session_equipment ?? [];
+        $savedParameterValues = $this->sessionData->equipment_parameter_values ?? [];
 
         if (!empty($savedEquipment)) {
             $this->sessionEquipment = $savedEquipment;
+            $this->equipmentParameterValues = $savedParameterValues;
             return;
         }
 
@@ -778,6 +782,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
             $requiredEquipment = $this->appointment->service->requiredEquipment()
                 ->where('branch_id', $this->appointment->branch_id)
                 ->where('status', Equipment::STATUS_ACTIVE)
+                ->with('trackingParameters')
                 ->get();
 
             foreach ($requiredEquipment as $equipment) {
@@ -787,15 +792,21 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
                     'name' => $equipment->name,
                     'code' => $equipment->code,
                     'is_preset' => true, // From service requirements
+                    'has_tracking' => $equipment->hasTracking(),
                     'shots_used' => null,
                     'energy_delivered' => null,
                 ];
+
+                // Initialize parameter values with defaults
+                if ($equipment->hasTracking()) {
+                    $this->equipmentParameterValues[$equipment->id] = $equipment->getDefaultParameterValues();
+                }
             }
         }
 
         // Also add equipment from appointment if set
         if ($this->appointment->equipment_id && !collect($serviceEquipment)->pluck('equipment_id')->contains($this->appointment->equipment_id)) {
-            $equipment = Equipment::find($this->appointment->equipment_id);
+            $equipment = Equipment::with('trackingParameters')->find($this->appointment->equipment_id);
             if ($equipment) {
                 $serviceEquipment[] = [
                     'id' => $equipment->id,
@@ -803,9 +814,15 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
                     'name' => $equipment->name,
                     'code' => $equipment->code,
                     'is_preset' => true,
+                    'has_tracking' => $equipment->hasTracking(),
                     'shots_used' => null,
                     'energy_delivered' => null,
                 ];
+
+                // Initialize parameter values with defaults
+                if ($equipment->hasTracking()) {
+                    $this->equipmentParameterValues[$equipment->id] = $equipment->getDefaultParameterValues();
+                }
             }
         }
 
@@ -815,6 +832,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
         if ($this->sessionData && !empty($serviceEquipment)) {
             $this->sessionData->update([
                 'session_equipment' => $serviceEquipment,
+                'equipment_parameter_values' => $this->equipmentParameterValues,
             ]);
         }
     }
@@ -841,7 +859,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
             return;
         }
 
-        $equipment = Equipment::find($this->newEquipmentId);
+        $equipment = Equipment::with('trackingParameters')->find($this->newEquipmentId);
         if (!$equipment) {
             return;
         }
@@ -861,14 +879,21 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
             'name' => $equipment->name,
             'code' => $equipment->code,
             'is_preset' => false,
+            'has_tracking' => $equipment->hasTracking(),
             'shots_used' => null,
             'energy_delivered' => null,
         ];
+
+        // Initialize parameter values with defaults if equipment has tracking
+        if ($equipment->hasTracking()) {
+            $this->equipmentParameterValues[$equipment->id] = $equipment->getDefaultParameterValues();
+        }
 
         // Save to session data
         if ($this->sessionData) {
             $this->sessionData->update([
                 'session_equipment' => $this->sessionEquipment,
+                'equipment_parameter_values' => $this->equipmentParameterValues,
             ]);
         }
 
@@ -887,10 +912,14 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
             fn ($e) => $e['equipment_id'] !== $equipmentId
         ));
 
+        // Remove parameter values for this equipment
+        unset($this->equipmentParameterValues[$equipmentId]);
+
         // Save to session data
         if ($this->sessionData) {
             $this->sessionData->update([
                 'session_equipment' => $this->sessionEquipment,
+                'equipment_parameter_values' => $this->equipmentParameterValues,
             ]);
         }
     }
@@ -910,6 +939,76 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
                 'session_equipment' => $this->sessionEquipment,
             ]);
         }
+    }
+
+    /**
+     * Get tracking parameters for a specific equipment.
+     */
+    public function getEquipmentTrackingParameters(string $equipmentId): array
+    {
+        $equipment = Equipment::with('trackingParameters')->find($equipmentId);
+
+        if (!$equipment || !$equipment->hasTracking()) {
+            return [];
+        }
+
+        return $equipment->getSessionTrackingParameters()
+            ->map(fn ($param) => $param->toFormFieldConfig())
+            ->toArray();
+    }
+
+    /**
+     * Get equipment tracking parameters grouped by category.
+     */
+    public function getEquipmentParametersByCategory(string $equipmentId): array
+    {
+        $equipment = Equipment::with('trackingParameters')->find($equipmentId);
+
+        if (!$equipment || !$equipment->hasTracking()) {
+            return [];
+        }
+
+        return $equipment->getTrackingParametersByCategory();
+    }
+
+    /**
+     * Update an equipment parameter value.
+     */
+    public function updateEquipmentParameterValue(string $equipmentId, string $key, $value): void
+    {
+        if (!isset($this->equipmentParameterValues[$equipmentId])) {
+            $this->equipmentParameterValues[$equipmentId] = [];
+        }
+
+        $this->equipmentParameterValues[$equipmentId][$key] = $value;
+
+        // Save to session data
+        if ($this->sessionData) {
+            $this->sessionData->update([
+                'equipment_parameter_values' => $this->equipmentParameterValues,
+            ]);
+        }
+    }
+
+    /**
+     * Get a specific equipment parameter value.
+     */
+    public function getEquipmentParameterValue(string $equipmentId, string $key)
+    {
+        return $this->equipmentParameterValues[$equipmentId][$key] ?? null;
+    }
+
+    /**
+     * Check if any equipment has tracking parameters.
+     */
+    public function hasEquipmentWithTracking(): bool
+    {
+        foreach ($this->sessionEquipment as $equipment) {
+            if (!empty($equipment['has_tracking'])) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // ============================================
