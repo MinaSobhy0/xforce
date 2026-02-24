@@ -163,6 +163,17 @@ return [
         'send_money_out' => 'إرسال (أموال صادرة)',
     ],
 
+    // Tax Rate Resource
+    'tax_resource' => [
+        'tax_name' => 'اسم الضريبة',
+        'rate' => 'النسبة',
+        'default_tax_rate' => 'معدل الضريبة الافتراضي',
+        'default_help' => 'يمكن أن يكون معدل ضريبة واحد فقط هو الافتراضي',
+        'default' => 'افتراضي',
+        'active' => 'نشط',
+        'created_at' => 'تاريخ الإنشاء',
+    ],
+
     'messages' => [
         'invoice_issued' => 'تم إصدار الفاتورة بنجاح',
         'payment_recorded' => 'تم تسجيل الدفعة بنجاح',

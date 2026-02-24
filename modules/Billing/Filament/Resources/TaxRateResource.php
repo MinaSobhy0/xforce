@@ -29,6 +29,21 @@ class TaxRateResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'name';
 
+    public static function getNavigationLabel(): string
+    {
+        return __('billing::billing.tax_rates');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('billing::billing.tax_rate');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('billing::billing.tax_rates');
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -36,12 +51,12 @@ class TaxRateResource extends Resource
                 Forms\Components\Section::make()
                     ->schema([
                         Forms\Components\TextInput::make('name')
-                            ->label('Tax Name')
+                            ->label(__('billing::billing.tax_resource.tax_name'))
                             ->required()
                             ->maxLength(255),
 
                         Forms\Components\TextInput::make('rate')
-                            ->label('Rate')
+                            ->label(__('billing::billing.tax_resource.rate'))
                             ->numeric()
                             ->required()
                             ->minValue(0)
@@ -50,11 +65,11 @@ class TaxRateResource extends Resource
                             ->step(0.01),
 
                         Forms\Components\Toggle::make('is_default')
-                            ->label('Default Tax Rate')
-                            ->helperText('Only one tax rate can be the default'),
+                            ->label(__('billing::billing.tax_resource.default_tax_rate'))
+                            ->helperText(__('billing::billing.tax_resource.default_help')),
 
                         Forms\Components\Toggle::make('is_active')
-                            ->label('Active')
+                            ->label(__('billing::billing.tax_resource.active'))
                             ->default(true),
                     ])
                     ->columns(2),
@@ -66,28 +81,31 @@ class TaxRateResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('name')
+                    ->label(__('billing::billing.tax_resource.tax_name'))
                     ->searchable()
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('rate')
+                    ->label(__('billing::billing.tax_resource.rate'))
                     ->suffix('%')
                     ->sortable(),
 
                 Tables\Columns\IconColumn::make('is_default')
-                    ->label('Default')
+                    ->label(__('billing::billing.tax_resource.default'))
                     ->boolean(),
 
                 Tables\Columns\ToggleColumn::make('is_active')
-                    ->label('Active'),
+                    ->label(__('billing::billing.tax_resource.active')),
 
                 Tables\Columns\TextColumn::make('created_at')
+                    ->label(__('billing::billing.tax_resource.created_at'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 Tables\Filters\TernaryFilter::make('is_active')
-                    ->label('Active'),
+                    ->label(__('billing::billing.tax_resource.active')),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

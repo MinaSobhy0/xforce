@@ -186,6 +186,33 @@ return [
         'posted' => 'تاريخ الترحيل',
     ],
 
+    // Chart of Accounts Resource
+    'chart_of_account' => 'حساب',
+    'account_resource' => [
+        'account_code' => 'رمز الحساب',
+        'account_name_en' => 'اسم الحساب (إنجليزي)',
+        'account_name_ar' => 'اسم الحساب (عربي)',
+        'parent_account' => 'الحساب الأب',
+        'description_en' => 'الوصف (إنجليزي)',
+        'description_ar' => 'الوصف (عربي)',
+        'parent' => 'الأب',
+        'root_accounts_only' => 'الحسابات الرئيسية فقط',
+    ],
+
+    // Fiscal Period Resource
+    'fiscal_period' => 'فترة مالية',
+    'period_resource' => [
+        'name' => 'الاسم',
+        'start_date' => 'تاريخ البداية',
+        'end_date' => 'تاريخ النهاية',
+        'closed_by' => 'أُغلق بواسطة',
+        'closed_at' => 'تاريخ الإغلاق',
+        'close_period' => 'إغلاق الفترة',
+        'reopen_period' => 'إعادة فتح الفترة',
+        'lock_period' => 'قفل الفترة',
+        'lock_warning' => 'قفل الفترة نهائي ولا يمكن التراجع عنه.',
+    ],
+
     'messages' => [
         'entry_posted' => 'تم ترحيل القيد بنجاح',
         'entry_reversed' => 'تم عكس القيد بنجاح',

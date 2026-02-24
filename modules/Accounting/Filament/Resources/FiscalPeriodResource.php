@@ -31,6 +31,21 @@ class FiscalPeriodResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'name';
 
+    public static function getNavigationLabel(): string
+    {
+        return __('accounting::accounting.fiscal_periods');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('accounting::accounting.fiscal_period');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('accounting::accounting.fiscal_periods');
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -38,13 +53,16 @@ class FiscalPeriodResource extends Resource
                 Forms\Components\Section::make()
                     ->schema([
                         Forms\Components\TextInput::make('name')
+                            ->label(__('accounting::accounting.period_resource.name'))
                             ->required()
                             ->maxLength(255),
 
                         Forms\Components\DatePicker::make('start_date')
+                            ->label(__('accounting::accounting.period_resource.start_date'))
                             ->required(),
 
                         Forms\Components\DatePicker::make('end_date')
+                            ->label(__('accounting::accounting.period_resource.end_date'))
                             ->required()
                             ->afterOrEqual('start_date'),
                     ])
@@ -57,19 +75,23 @@ class FiscalPeriodResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('name')
+                    ->label(__('accounting::accounting.period_resource.name'))
                     ->searchable()
                     ->sortable()
                     ->weight(FontWeight::Bold),
 
                 Tables\Columns\TextColumn::make('start_date')
+                    ->label(__('accounting::accounting.period_resource.start_date'))
                     ->date()
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('end_date')
+                    ->label(__('accounting::accounting.period_resource.end_date'))
                     ->date()
                     ->sortable(),
 
                 Tables\Columns\BadgeColumn::make('status')
+                    ->label(__('accounting::accounting.status'))
                     ->colors([
                         'success' => FiscalPeriod::STATUS_OPEN,
                         'warning' => FiscalPeriod::STATUS_CLOSED,
@@ -77,15 +99,17 @@ class FiscalPeriodResource extends Resource
                     ]),
 
                 Tables\Columns\TextColumn::make('closedBy.name')
-                    ->label('Closed By')
+                    ->label(__('accounting::accounting.period_resource.closed_by'))
                     ->placeholder('-'),
 
                 Tables\Columns\TextColumn::make('closed_at')
+                    ->label(__('accounting::accounting.period_resource.closed_at'))
                     ->dateTime()
                     ->placeholder('-'),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
+                    ->label(__('accounting::accounting.status'))
                     ->options(FiscalPeriod::STATUSES),
             ])
             ->actions([
@@ -93,7 +117,7 @@ class FiscalPeriodResource extends Resource
                     ->visible(fn (FiscalPeriod $record) => $record->isOpen()),
 
                 Tables\Actions\Action::make('close')
-                    ->label('Close Period')
+                    ->label(__('accounting::accounting.period_resource.close_period'))
                     ->icon('heroicon-o-lock-closed')
                     ->color('warning')
                     ->requiresConfirmation()
@@ -101,7 +125,7 @@ class FiscalPeriodResource extends Resource
                     ->action(fn (FiscalPeriod $record) => $record->close()),
 
                 Tables\Actions\Action::make('reopen')
-                    ->label('Reopen Period')
+                    ->label(__('accounting::accounting.period_resource.reopen_period'))
                     ->icon('heroicon-o-lock-open')
                     ->color('success')
                     ->requiresConfirmation()
@@ -109,11 +133,11 @@ class FiscalPeriodResource extends Resource
                     ->action(fn (FiscalPeriod $record) => $record->reopen()),
 
                 Tables\Actions\Action::make('lock')
-                    ->label('Lock Period')
+                    ->label(__('accounting::accounting.period_resource.lock_period'))
                     ->icon('heroicon-o-lock-closed')
                     ->color('danger')
                     ->requiresConfirmation()
-                    ->modalDescription('Locking a period is permanent and cannot be undone.')
+                    ->modalDescription(__('accounting::accounting.period_resource.lock_warning'))
                     ->visible(fn (FiscalPeriod $record) => $record->isClosed())
                     ->action(fn (FiscalPeriod $record) => $record->lock()),
             ])

@@ -163,6 +163,17 @@ return [
         'send_money_out' => 'Send (Money Out)',
     ],
 
+    // Tax Rate Resource
+    'tax_resource' => [
+        'tax_name' => 'Tax Name',
+        'rate' => 'Rate',
+        'default_tax_rate' => 'Default Tax Rate',
+        'default_help' => 'Only one tax rate can be the default',
+        'default' => 'Default',
+        'active' => 'Active',
+        'created_at' => 'Created At',
+    ],
+
     'placeholders' => [
         'auto_generated' => 'Auto-generated',
     ],

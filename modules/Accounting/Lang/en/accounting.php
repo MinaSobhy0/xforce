@@ -186,6 +186,33 @@ return [
         'posted' => 'Posted',
     ],
 
+    // Chart of Accounts Resource
+    'chart_of_account' => 'Chart of Account',
+    'account_resource' => [
+        'account_code' => 'Account Code',
+        'account_name_en' => 'Account Name (English)',
+        'account_name_ar' => 'Account Name (Arabic)',
+        'parent_account' => 'Parent Account',
+        'description_en' => 'Description (English)',
+        'description_ar' => 'Description (Arabic)',
+        'parent' => 'Parent',
+        'root_accounts_only' => 'Root Accounts Only',
+    ],
+
+    // Fiscal Period Resource
+    'fiscal_period' => 'Fiscal Period',
+    'period_resource' => [
+        'name' => 'Name',
+        'start_date' => 'Start Date',
+        'end_date' => 'End Date',
+        'closed_by' => 'Closed By',
+        'closed_at' => 'Closed At',
+        'close_period' => 'Close Period',
+        'reopen_period' => 'Reopen Period',
+        'lock_period' => 'Lock Period',
+        'lock_warning' => 'Locking a period is permanent and cannot be undone.',
+    ],
+
     'messages' => [
         'entry_posted' => 'Journal entry posted successfully',
         'entry_reversed' => 'Journal entry reversed successfully',

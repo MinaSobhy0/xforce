@@ -31,6 +31,21 @@ class ChartOfAccountResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'code';
 
+    public static function getNavigationLabel(): string
+    {
+        return __('accounting::accounting.chart_of_accounts');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('accounting::accounting.chart_of_account');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('accounting::accounting.chart_of_accounts');
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -38,46 +53,48 @@ class ChartOfAccountResource extends Resource
                 Forms\Components\Section::make()
                     ->schema([
                         Forms\Components\TextInput::make('code')
-                            ->label('Account Code')
+                            ->label(__('accounting::accounting.account_resource.account_code'))
                             ->required()
                             ->maxLength(20)
                             ->unique(ignoreRecord: true),
 
                         Forms\Components\TextInput::make('name.en')
-                            ->label('Account Name (English)')
+                            ->label(__('accounting::accounting.account_resource.account_name_en'))
                             ->required()
                             ->maxLength(255),
 
                         Forms\Components\TextInput::make('name.ar')
-                            ->label('Account Name (Arabic)')
+                            ->label(__('accounting::accounting.account_resource.account_name_ar'))
                             ->maxLength(255),
 
                         Forms\Components\Select::make('type')
+                            ->label(__('accounting::accounting.type'))
                             ->options(ChartOfAccount::TYPES)
                             ->required()
                             ->reactive(),
 
                         Forms\Components\Select::make('sub_type')
+                            ->label(__('accounting::accounting.account_type'))
                             ->options(ChartOfAccount::SUB_TYPES)
                             ->searchable(),
 
                         Forms\Components\Select::make('parent_id')
-                            ->label('Parent Account')
+                            ->label(__('accounting::accounting.account_resource.parent_account'))
                             ->relationship('parent', 'code')
                             ->getOptionLabelFromRecordUsing(fn (ChartOfAccount $record) => $record->display_name)
                             ->searchable()
                             ->preload(),
 
                         Forms\Components\Textarea::make('description.en')
-                            ->label('Description (English)')
+                            ->label(__('accounting::accounting.account_resource.description_en'))
                             ->rows(2),
 
                         Forms\Components\Textarea::make('description.ar')
-                            ->label('Description (Arabic)')
+                            ->label(__('accounting::accounting.account_resource.description_ar'))
                             ->rows(2),
 
                         Forms\Components\Toggle::make('is_active')
-                            ->label('Active')
+                            ->label(__('accounting::accounting.statuses.open'))
                             ->default(true),
                     ])
                     ->columns(2),
@@ -89,43 +106,46 @@ class ChartOfAccountResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('code')
-                    ->label('Code')
+                    ->label(__('accounting::accounting.code'))
                     ->searchable()
                     ->sortable()
                     ->weight(FontWeight::Bold),
 
                 Tables\Columns\TextColumn::make('name')
+                    ->label(__('accounting::accounting.account_name'))
                     ->searchable()
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('type')
+                    ->label(__('accounting::accounting.type'))
                     ->badge()
                     ->formatStateUsing(fn ($state) => ChartOfAccount::TYPES[$state] ?? $state)
                     ->color(fn ($state) => ChartOfAccount::TYPE_COLORS[$state] ?? 'gray'),
 
                 Tables\Columns\TextColumn::make('parent.display_name')
-                    ->label('Parent')
+                    ->label(__('accounting::accounting.account_resource.parent'))
                     ->placeholder('-'),
 
                 Tables\Columns\TextColumn::make('balance_minor')
-                    ->label('Balance')
+                    ->label(__('accounting::accounting.balance'))
                     ->formatStateUsing(fn ($state) => number_format($state / 100, 2))
                     ->suffix(' ' . current_currency())
                     ->alignEnd(),
 
                 Tables\Columns\IconColumn::make('is_active')
-                    ->label('Active')
+                    ->label(__('accounting::accounting.statuses.open'))
                     ->boolean(),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('type')
+                    ->label(__('accounting::accounting.type'))
                     ->options(ChartOfAccount::TYPES),
 
                 Tables\Filters\TernaryFilter::make('is_active')
-                    ->label('Active'),
+                    ->label(__('accounting::accounting.statuses.open')),
 
                 Tables\Filters\Filter::make('root_only')
-                    ->label('Root Accounts Only')
+                    ->label(__('accounting::accounting.account_resource.root_accounts_only'))
                     ->query(fn (Builder $query) => $query->root()),
             ])
             ->actions([
