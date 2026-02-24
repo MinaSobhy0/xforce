@@ -100,52 +100,62 @@
         .dark .fc-theme-standard td, .dark .fc-theme-standard th { border-color: rgb(55 65 81); }
         .fc-event {
             cursor: pointer;
-            padding: 4px 8px;
+            padding: 2px 6px !important;
             border-radius: 6px;
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             border: none !important;
             border-left: 3px solid !important;
             box-shadow: 0 1px 2px rgba(0,0,0,0.05);
             transition: all 0.2s ease;
-            overflow: hidden;
+            overflow: hidden !important;
+            max-width: 100% !important;
         }
         .fc-event:hover {
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             transform: translateY(-1px);
         }
         .fc-event .fc-event-main {
-            padding: 2px 0;
-            overflow: hidden;
+            padding: 1px 0;
+            overflow: hidden !important;
+            max-width: 100% !important;
         }
-        .fc-event-title {
+        .fc-event-title, .fc-event-title-container {
             font-weight: 500;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            display: block;
-        }
-        .fc-event-title-container {
-            overflow: hidden;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            display: block !important;
+            max-width: 100% !important;
         }
         .fc-timegrid-event .fc-event-main {
-            overflow: hidden;
+            overflow: hidden !important;
         }
         .fc-timegrid-event-harness {
-            overflow: hidden;
+            overflow: hidden !important;
         }
         .fc-daygrid-event-dot { display: none; }
         .fc-daygrid-event {
-            margin: 2px 4px;
-            overflow: hidden;
-            white-space: nowrap;
-            text-overflow: ellipsis;
+            margin: 1px 2px;
+            overflow: hidden !important;
+            white-space: nowrap !important;
+            text-overflow: ellipsis !important;
+            max-width: calc(100% - 4px) !important;
+        }
+        .fc-daygrid-event-harness {
+            overflow: hidden !important;
+        }
+        .fc-daygrid-day-events {
+            overflow: hidden !important;
         }
         .fc-timegrid-event {
             margin: 0 2px;
-            overflow: hidden;
+            overflow: hidden !important;
         }
         .fc-timegrid-slot { height: 2.5em; }
         .fc-col-header-cell-cushion, .fc-daygrid-day-number { padding: 8px; font-weight: 500; }
+        .fc-h-event .fc-event-main-frame {
+            overflow: hidden !important;
+        }
     </style>
     @endassets
 
