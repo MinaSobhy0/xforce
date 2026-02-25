@@ -495,7 +495,7 @@
         </div>
 
         {{-- Prescription Section --}}
-        <x-filament::section collapsible>
+        <x-filament::section collapsible collapsed>
             <x-slot name="heading">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-2">
