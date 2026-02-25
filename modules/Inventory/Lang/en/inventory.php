@@ -195,6 +195,7 @@ return [
         'reverse_receiving' => 'Reverse Receiving',
         'record_payment' => 'Record Payment',
         'add_line_item' => 'Add Line Item',
+        'view_source' => 'View Source',
     ],
 
     'messages' => [

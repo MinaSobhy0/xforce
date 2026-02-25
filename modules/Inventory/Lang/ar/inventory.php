@@ -195,6 +195,7 @@ return [
         'reverse_receiving' => 'عكس الاستلام',
         'record_payment' => 'تسجيل دفعة',
         'add_line_item' => 'إضافة بند',
+        'view_source' => 'عرض المصدر',
     ],
 
     'messages' => [
