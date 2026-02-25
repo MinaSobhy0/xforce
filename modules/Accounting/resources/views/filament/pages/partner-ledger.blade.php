@@ -4,22 +4,22 @@
     </x-filament-panels::form>
 
     {{-- Stats Cards --}}
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-4">
-        <div class="bg-white dark:bg-gray-800 rounded-lg px-3 py-2 border border-gray-200 dark:border-gray-700">
-            <div class="text-xs text-gray-500 dark:text-gray-400">{{ __('accounting::accounting.total_partners') }}</div>
-            <div class="text-lg font-bold text-primary-600 dark:text-primary-400">{{ $stats['total_partners'] ?? 0 }}</div>
+    <div class="flex flex-wrap gap-2 mt-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg px-3 py-1.5 border border-gray-200 dark:border-gray-700 inline-flex items-center gap-2">
+            <span class="text-xs text-gray-500 dark:text-gray-400">{{ __('accounting::accounting.total_partners') }}:</span>
+            <span class="text-sm font-bold text-primary-600 dark:text-primary-400">{{ $stats['total_partners'] ?? 0 }}</span>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg px-3 py-2 border border-gray-200 dark:border-gray-700">
-            <div class="text-xs text-gray-500 dark:text-gray-400">{{ __('accounting::accounting.total_debit') }}</div>
-            <div class="text-lg font-bold text-success-600 dark:text-success-400 font-mono">{{ $this->formatCurrency($stats['total_debit'] ?? 0) }}</div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg px-3 py-1.5 border border-gray-200 dark:border-gray-700 inline-flex items-center gap-2">
+            <span class="text-xs text-gray-500 dark:text-gray-400">{{ __('accounting::accounting.total_debit') }}:</span>
+            <span class="text-sm font-bold text-success-600 dark:text-success-400 font-mono">{{ $this->formatCurrency($stats['total_debit'] ?? 0) }}</span>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg px-3 py-2 border border-gray-200 dark:border-gray-700">
-            <div class="text-xs text-gray-500 dark:text-gray-400">{{ __('accounting::accounting.total_credit') }}</div>
-            <div class="text-lg font-bold text-danger-600 dark:text-danger-400 font-mono">{{ $this->formatCurrency($stats['total_credit'] ?? 0) }}</div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg px-3 py-1.5 border border-gray-200 dark:border-gray-700 inline-flex items-center gap-2">
+            <span class="text-xs text-gray-500 dark:text-gray-400">{{ __('accounting::accounting.total_credit') }}:</span>
+            <span class="text-sm font-bold text-danger-600 dark:text-danger-400 font-mono">{{ $this->formatCurrency($stats['total_credit'] ?? 0) }}</span>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg px-3 py-2 border border-gray-200 dark:border-gray-700">
-            <div class="text-xs text-gray-500 dark:text-gray-400">{{ __('accounting::accounting.net_balance') }}</div>
-            <div class="text-lg font-bold font-mono {{ ($stats['net_balance'] ?? 0) >= 0 ? 'text-success-600 dark:text-success-400' : 'text-danger-600 dark:text-danger-400' }}">{{ $this->formatCurrency($stats['net_balance'] ?? 0) }}</div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg px-3 py-1.5 border border-gray-200 dark:border-gray-700 inline-flex items-center gap-2">
+            <span class="text-xs text-gray-500 dark:text-gray-400">{{ __('accounting::accounting.net_balance') }}:</span>
+            <span class="text-sm font-bold font-mono {{ ($stats['net_balance'] ?? 0) >= 0 ? 'text-success-600 dark:text-success-400' : 'text-danger-600 dark:text-danger-400' }}">{{ $this->formatCurrency($stats['net_balance'] ?? 0) }}</span>
         </div>
     </div>
 
