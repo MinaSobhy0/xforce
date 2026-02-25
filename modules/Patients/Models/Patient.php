@@ -236,6 +236,60 @@ class Patient extends BaseModel implements Authenticatable
     }
 
     /**
+     * Get the patient's AMR tests.
+     */
+    public function amrTests(): HasMany
+    {
+        return $this->hasMany(PatientAmrTest::class)->orderByDesc('collection_date');
+    }
+
+    /**
+     * Get the patient's AMR summary.
+     */
+    public function amrSummary(): HasOne
+    {
+        return $this->hasOne(PatientAmrSummary::class);
+    }
+
+    /**
+     * Check if patient has any MDRO flags.
+     */
+    public function hasMdroFlags(): bool
+    {
+        return $this->amrSummary && !empty($this->amrSummary->mdro_flags);
+    }
+
+    /**
+     * Check if patient has critical resistance.
+     */
+    public function hasCriticalResistance(): bool
+    {
+        return $this->amrSummary && $this->amrSummary->has_critical_resistance;
+    }
+
+    /**
+     * Get known resistances.
+     */
+    public function getKnownResistancesAttribute(): array
+    {
+        return $this->amrSummary?->known_resistances ?? [];
+    }
+
+    /**
+     * Get or create the patient's AMR summary.
+     */
+    public function getOrCreateAmrSummary(): PatientAmrSummary
+    {
+        if (!$this->amrSummary) {
+            return PatientAmrSummary::create([
+                'tenant_id' => $this->tenant_id,
+                'patient_id' => $this->id,
+            ]);
+        }
+        return $this->amrSummary;
+    }
+
+    /**
      * Check if patient has a medical profile.
      */
     public function hasMedicalProfile(): bool

@@ -478,6 +478,7 @@ class PatientResource extends Resource
             RelationManagers\InvoicesRelationManager::class,
             RelationManagers\PackagesRelationManager::class,
             RelationManagers\LoyaltyRelationManager::class,
+            RelationManagers\AmrTestsRelationManager::class,
         ];
     }
 

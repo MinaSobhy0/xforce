@@ -29,7 +29,9 @@
         "Modules\\Patients\\Models\\PatientMedicalHistory",
         "Modules\\Patients\\Models\\PatientConsentForm",
         "Modules\\Patients\\Models\\PatientPhoto",
-        "Modules\\Patients\\Models\\PatientNote"
+        "Modules\\Patients\\Models\\PatientNote",
+        "Modules\\Patients\\Models\\PatientAmrTest",
+        "Modules\\Patients\\Models\\PatientAmrSummary"
     ],
     "permissions": {
         "patients.view_any": "View patients list",
@@ -43,7 +45,10 @@
         "patients.edit_medical_history": "Edit medical history",
         "patients.manage_consent_forms": "Manage consent forms",
         "patients.manage_photos": "Manage patient photos",
-        "patients.manage_notes": "Manage patient notes"
+        "patients.manage_notes": "Manage patient notes",
+        "patients.view_amr": "View AMR test results",
+        "patients.manage_amr": "Manage AMR test results",
+        "patients.verify_amr": "Verify AMR test results"
     },
     "default_role_permissions": {
         "admin": [
@@ -61,7 +66,10 @@
             "patients.edit_medical_history",
             "patients.manage_consent_forms",
             "patients.manage_photos",
-            "patients.manage_notes"
+            "patients.manage_notes",
+            "patients.view_amr",
+            "patients.manage_amr",
+            "patients.verify_amr"
         ],
         "nurse": [
             "patients.view_any",
@@ -69,7 +77,9 @@
             "patients.view_medical_history",
             "patients.manage_consent_forms",
             "patients.manage_photos",
-            "patients.manage_notes"
+            "patients.manage_notes",
+            "patients.view_amr",
+            "patients.manage_amr"
         ],
         "receptionist": [
             "patients.view_any",

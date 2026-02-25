@@ -126,6 +126,53 @@ class ViewPatient extends BaseViewRecord
                             ->columnSpanFull(),
                     ]),
 
+                // AMR Summary Section
+                Components\Section::make(__('patients::amr.amr_summary'))
+                    ->visible(fn ($record) => $record->amrSummary?->has_any_data)
+                    ->collapsible()
+                    ->icon('heroicon-o-beaker')
+                    ->iconColor(fn ($record) => $record->amrSummary?->has_critical_resistance ? 'danger' : 'warning')
+                    ->columns(2)
+                    ->schema([
+                        Components\TextEntry::make('amrSummary.last_test_date')
+                            ->label(__('patients::amr.last_test_date'))
+                            ->date('M d, Y'),
+
+                        Components\TextEntry::make('amrSummary.mdro_flags_display')
+                            ->label(__('patients::amr.mdro_flags'))
+                            ->badge()
+                            ->color('danger')
+                            ->visible(fn ($record) => !empty($record->amrSummary?->mdro_flags)),
+
+                        Components\TextEntry::make('amrSummary.known_organisms')
+                            ->label(__('patients::amr.known_organisms'))
+                            ->badge()
+                            ->color('gray')
+                            ->separator(', ')
+                            ->columnSpanFull(),
+
+                        Components\TextEntry::make('amrSummary.known_resistances')
+                            ->label(__('patients::amr.known_resistances'))
+                            ->badge()
+                            ->color('danger')
+                            ->formatStateUsing(fn ($state) => is_array($state) ? implode(', ', array_map(fn ($a) => \Modules\Patients\Models\PatientAmrTest::getAntibioticLabel($a), $state)) : $state)
+                            ->columnSpanFull()
+                            ->visible(fn ($record) => !empty($record->amrSummary?->known_resistances)),
+
+                        Components\TextEntry::make('amrSummary.known_sensitivities')
+                            ->label(__('patients::amr.known_sensitivities'))
+                            ->badge()
+                            ->color('success')
+                            ->formatStateUsing(fn ($state) => is_array($state) ? implode(', ', array_map(fn ($a) => \Modules\Patients\Models\PatientAmrTest::getAntibioticLabel($a), $state)) : $state)
+                            ->columnSpanFull()
+                            ->visible(fn ($record) => !empty($record->amrSummary?->known_sensitivities)),
+
+                        Components\TextEntry::make('amrSummary.alert_notes')
+                            ->label(__('patients::amr.alert_notes'))
+                            ->columnSpanFull()
+                            ->visible(fn ($record) => $record->amrSummary?->alert_notes),
+                    ]),
+
                 Components\Section::make('Alert Notes')
                     ->visible(fn ($record) => $record->notes()->activeAlerts()->exists())
                     ->schema([
