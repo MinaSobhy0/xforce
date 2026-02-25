@@ -24,6 +24,8 @@ return [
         'vendor_bills' => 'فواتير الموردين',
         'inventory_adjustment' => 'تسوية مخزون',
         'inventory_adjustments' => 'تسويات المخزون',
+        'stock_movement' => 'حركة مخزون',
+        'stock_movements' => 'حركات المخزون',
     ],
 
     'sections' => [
@@ -51,6 +53,7 @@ return [
         'summary' => 'الملخص',
         'dates' => 'التواريخ',
         'amounts' => 'المبالغ',
+        'transfer_info' => 'معلومات التحويل',
     ],
 
     'fields' => [
@@ -157,6 +160,12 @@ return [
         'disc_type' => 'نوع الخصم',
         'vendor_ref' => 'مرجع المورد',
         'validated' => 'مصدق',
+        'source_branch' => 'الفرع المصدر',
+        'destination_branch' => 'الفرع الوجهة',
+        'reference_type' => 'نوع المرجع',
+        'reference_id' => 'رقم المرجع',
+        'from_date' => 'من تاريخ',
+        'until_date' => 'إلى تاريخ',
     ],
 
     'discount_types' => [
@@ -166,6 +175,8 @@ return [
 
     'filters' => [
         'low_stock' => 'مخزون منخفض',
+        'incoming' => 'الوارد فقط',
+        'outgoing' => 'الصادر فقط',
     ],
 
     'actions' => [
@@ -266,5 +277,16 @@ return [
         'shortage' => 'النقص',
         'no_low_stock' => 'لا توجد منتجات بمخزون منخفض',
         'all_stock_levels_ok' => 'جميع مستويات المخزون أعلى من نقاط إعادة الطلب',
+    ],
+
+    'stats' => [
+        'today_movements' => 'حركات اليوم',
+        'movements_today' => 'إجمالي الحركات اليوم',
+        'today_incoming' => 'الوارد اليوم',
+        'units_received' => 'الوحدات المستلمة اليوم',
+        'today_outgoing' => 'الصادر اليوم',
+        'units_issued' => 'الوحدات الصادرة اليوم',
+        'month_net' => 'صافي الشهر',
+        'net_change_this_month' => 'صافي التغير في المخزون هذا الشهر',
     ],
 ];

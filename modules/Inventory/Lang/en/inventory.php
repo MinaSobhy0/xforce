@@ -24,6 +24,8 @@ return [
         'vendor_bills' => 'Vendor Bills',
         'inventory_adjustment' => 'Inventory Adjustment',
         'inventory_adjustments' => 'Inventory Adjustments',
+        'stock_movement' => 'Stock Movement',
+        'stock_movements' => 'Stock Movements',
     ],
 
     'sections' => [
@@ -51,6 +53,7 @@ return [
         'summary' => 'Summary',
         'dates' => 'Dates',
         'amounts' => 'Amounts',
+        'transfer_info' => 'Transfer Information',
     ],
 
     'fields' => [
@@ -157,6 +160,12 @@ return [
         'disc_type' => 'Disc. Type',
         'vendor_ref' => 'Vendor Ref',
         'validated' => 'Validated',
+        'source_branch' => 'Source Branch',
+        'destination_branch' => 'Destination Branch',
+        'reference_type' => 'Reference Type',
+        'reference_id' => 'Reference ID',
+        'from_date' => 'From Date',
+        'until_date' => 'Until Date',
     ],
 
     'discount_types' => [
@@ -166,6 +175,8 @@ return [
 
     'filters' => [
         'low_stock' => 'Low Stock',
+        'incoming' => 'Incoming Only',
+        'outgoing' => 'Outgoing Only',
     ],
 
     'actions' => [
@@ -266,5 +277,16 @@ return [
         'shortage' => 'Shortage',
         'no_low_stock' => 'No Low Stock Items',
         'all_stock_levels_ok' => 'All inventory levels are above reorder points',
+    ],
+
+    'stats' => [
+        'today_movements' => 'Today\'s Movements',
+        'movements_today' => 'Total movements today',
+        'today_incoming' => 'Today Incoming',
+        'units_received' => 'Units received today',
+        'today_outgoing' => 'Today Outgoing',
+        'units_issued' => 'Units issued today',
+        'month_net' => 'Month Net',
+        'net_change_this_month' => 'Net stock change this month',
     ],
 ];
