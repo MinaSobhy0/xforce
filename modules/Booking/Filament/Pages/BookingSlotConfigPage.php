@@ -90,14 +90,14 @@ class BookingSlotConfigPage extends Page implements Forms\Contracts\HasForms, Ha
             [
                 'code' => 'default-advance-booking',
                 'name' => __('booking::config.default_advance_booking'),
-                'rule_type' => BookingRule::TYPE_ADVANCE_MIN_HOURS,
+                'rule_type' => BookingRule::TYPE_MIN_ADVANCE,
                 'actions' => ['min_hours' => 2],
                 'priority' => 0,
             ],
             [
                 'code' => 'default-max-advance',
                 'name' => __('booking::config.default_max_advance'),
-                'rule_type' => BookingRule::TYPE_ADVANCE_MAX_DAYS,
+                'rule_type' => BookingRule::TYPE_MAX_ADVANCE,
                 'actions' => ['max_days' => 60],
                 'priority' => 0,
             ],
@@ -324,27 +324,27 @@ class BookingSlotConfigPage extends Page implements Forms\Contracts\HasForms, Ha
                         'end' => $actions['end_time'] ?? $config['working_hours']['end'],
                     ];
                     break;
-                case BookingRule::TYPE_ADVANCE_MIN_HOURS:
+                case BookingRule::TYPE_MIN_ADVANCE:
                     $config['min_advance_hours'] = $actions['min_hours'] ?? $config['min_advance_hours'];
                     break;
-                case BookingRule::TYPE_ADVANCE_MAX_DAYS:
+                case BookingRule::TYPE_MAX_ADVANCE:
                     $config['max_advance_days'] = $actions['max_days'] ?? $config['max_advance_days'];
                     break;
-                case BookingRule::TYPE_ADVANCE_SAME_DAY:
+                case BookingRule::TYPE_SAME_DAY:
                     $config['allow_same_day'] = $actions['allow_same_day'] ?? $config['allow_same_day'];
                     break;
                 case BookingRule::TYPE_ONLINE_ENABLED:
-                    $config['online_booking'] = $actions['online_enabled'] ?? $config['online_booking'];
+                    $config['online_booking'] = $actions['enabled'] ?? $config['online_booking'];
                     break;
-                case BookingRule::TYPE_CONFIRMATION_AUTO:
+                case BookingRule::TYPE_AUTO_CONFIRM:
                     $config['auto_confirm'] = $actions['auto_confirm'] ?? $config['auto_confirm'];
                     break;
-                case BookingRule::TYPE_ONLINE_PRACTITIONER_SELECTION:
+                case BookingRule::TYPE_ONLINE_PRACTITIONER:
                     $config['practitioner_selection'] = $actions['allow_selection'] ?? $config['practitioner_selection'];
                     break;
-                case BookingRule::TYPE_DEPOSIT_REQUIRED:
-                    $config['deposit_required'] = $actions['deposit_required'] ?? $config['deposit_required'];
-                    $config['deposit_percentage'] = $actions['deposit_percentage'] ?? $config['deposit_percentage'];
+                case BookingRule::TYPE_REQUIRE_DEPOSIT:
+                    $config['deposit_required'] = $actions['required'] ?? $config['deposit_required'];
+                    $config['deposit_percentage'] = $actions['percentage'] ?? $config['deposit_percentage'];
                     break;
             }
         }
