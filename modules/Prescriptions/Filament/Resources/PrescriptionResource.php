@@ -7,6 +7,7 @@ use Modules\Prescriptions\Filament\Resources\PrescriptionResource\Pages;
 use Modules\Prescriptions\Filament\Resources\PrescriptionResource\RelationManagers;
 use Modules\Prescriptions\Models\Prescription;
 use Modules\Prescriptions\Models\PrescriptionItem;
+use Modules\Prescriptions\Models\MedicineCatalog;
 use Modules\Prescriptions\Services\PrescriptionPdfService;
 use Modules\Patients\Models\Patient;
 use Modules\Core\Models\Branch;
@@ -121,84 +122,212 @@ class PrescriptionResource extends Resource
                                 Forms\Components\Repeater::make('items')
                                     ->relationship()
                                     ->schema([
-                                        Forms\Components\TextInput::make('medication_name')
-                                            ->label(__('prescriptions::prescription.fields.medication_name'))
-                                            ->required()
-                                            ->maxLength(255)
-                                            ->columnSpan(['default' => 12, 'md' => 4]),
-
-                                        Forms\Components\TextInput::make('generic_name')
-                                            ->label(__('prescriptions::prescription.fields.generic_name'))
-                                            ->maxLength(255)
-                                            ->columnSpan(['default' => 12, 'md' => 4]),
-
-                                        Forms\Components\Select::make('form')
-                                            ->label(__('prescriptions::prescription.fields.form'))
-                                            ->options(PrescriptionItem::FORMS)
+                                        Forms\Components\Select::make('medicine_catalog_id')
+                                            ->label(__('prescriptions::prescription.catalog.quick_add'))
+                                            ->options(function () {
+                                                return MedicineCatalog::query()
+                                                    ->withSystemMedicines()
+                                                    ->active()
+                                                    ->orderBy('category')
+                                                    ->orderBy('brand_name')
+                                                    ->get()
+                                                    ->mapWithKeys(fn ($m) => [$m->id => $m->full_name])
+                                                    ->toArray();
+                                            })
                                             ->searchable()
-                                            ->columnSpan(['default' => 6, 'md' => 2]),
+                                            ->placeholder(__('prescriptions::prescription.catalog.select_medicine'))
+                                            ->live()
+                                            ->afterStateUpdated(function ($state, Forms\Set $set) {
+                                                if (!$state) return;
 
-                                        Forms\Components\TextInput::make('dosage')
-                                            ->label(__('prescriptions::prescription.fields.dosage'))
-                                            ->maxLength(50)
-                                            ->columnSpan(['default' => 3, 'md' => 1]),
+                                                $medicine = MedicineCatalog::find($state);
+                                                if (!$medicine) return;
 
-                                        Forms\Components\Select::make('dosage_unit')
-                                            ->label(__('prescriptions::prescription.fields.dosage_unit'))
-                                            ->options(PrescriptionItem::DOSAGE_UNITS)
-                                            ->columnSpan(['default' => 3, 'md' => 1]),
+                                                $data = $medicine->toPrescriptionItemData();
+                                                $set('medication_name', $data['medication_name']);
+                                                $set('generic_name', $data['generic_name']);
+                                                $set('form', $data['form']);
+                                                $set('dosage', $data['dosage']);
+                                                $set('dosage_unit', $data['dosage_unit']);
+                                                $set('frequency', $data['frequency']);
+                                                $set('duration', $data['duration']);
+                                                $set('duration_unit', $data['duration_unit']);
+                                                $set('route', $data['route']);
+                                                $set('instructions', $data['instructions']);
+                                            })
+                                            ->createOptionForm([
+                                                Forms\Components\Section::make(__('prescriptions::prescription.catalog.sections.basic_info'))
+                                                    ->schema([
+                                                        Forms\Components\TextInput::make('brand_name')
+                                                            ->label(__('prescriptions::prescription.catalog.fields.brand_name'))
+                                                            ->required()
+                                                            ->maxLength(255),
 
-                                        Forms\Components\Select::make('frequency')
-                                            ->label(__('prescriptions::prescription.fields.frequency'))
-                                            ->options(PrescriptionItem::FREQUENCIES)
-                                            ->searchable()
-                                            ->required()
-                                            ->columnSpan(['default' => 6, 'md' => 3]),
+                                                        Forms\Components\TextInput::make('generic_name')
+                                                            ->label(__('prescriptions::prescription.catalog.fields.generic_name'))
+                                                            ->maxLength(255),
 
-                                        Forms\Components\TextInput::make('duration')
-                                            ->label(__('prescriptions::prescription.fields.duration'))
-                                            ->numeric()
-                                            ->minValue(1)
-                                            ->columnSpan(['default' => 3, 'md' => 1]),
+                                                        Forms\Components\Select::make('category')
+                                                            ->label(__('prescriptions::prescription.catalog.fields.category'))
+                                                            ->options(MedicineCatalog::CATEGORIES)
+                                                            ->searchable(),
 
-                                        Forms\Components\Select::make('duration_unit')
-                                            ->label(__('prescriptions::prescription.fields.duration_unit'))
-                                            ->options(PrescriptionItem::DURATION_UNITS)
-                                            ->default('days')
-                                            ->columnSpan(['default' => 3, 'md' => 2]),
+                                                        Forms\Components\Select::make('form')
+                                                            ->label(__('prescriptions::prescription.fields.form'))
+                                                            ->options(PrescriptionItem::FORMS)
+                                                            ->searchable(),
+                                                    ])
+                                                    ->columns(2),
 
-                                        Forms\Components\Select::make('route')
-                                            ->label(__('prescriptions::prescription.fields.route'))
-                                            ->options(PrescriptionItem::ROUTES)
-                                            ->searchable()
-                                            ->default('oral')
-                                            ->columnSpan(['default' => 6, 'md' => 3]),
+                                                Forms\Components\Section::make(__('prescriptions::prescription.catalog.sections.strength'))
+                                                    ->schema([
+                                                        Forms\Components\TextInput::make('strength')
+                                                            ->label(__('prescriptions::prescription.catalog.fields.strength'))
+                                                            ->maxLength(50),
 
-                                        Forms\Components\TextInput::make('quantity')
-                                            ->label(__('prescriptions::prescription.fields.quantity'))
-                                            ->numeric()
-                                            ->minValue(1)
-                                            ->columnSpan(['default' => 6, 'md' => 3]),
+                                                        Forms\Components\Select::make('strength_unit')
+                                                            ->label(__('prescriptions::prescription.catalog.fields.strength_unit'))
+                                                            ->options(PrescriptionItem::DOSAGE_UNITS),
+                                                    ])
+                                                    ->columns(2),
 
-                                        Forms\Components\Select::make('instructions')
-                                            ->label(__('prescriptions::prescription.fields.instructions'))
-                                            ->options(PrescriptionItem::INSTRUCTIONS)
-                                            ->searchable()
-                                            ->columnSpan(['default' => 6, 'md' => 3]),
+                                                Forms\Components\Section::make(__('prescriptions::prescription.catalog.sections.default_prescription'))
+                                                    ->description(__('prescriptions::prescription.catalog.sections.default_prescription_desc'))
+                                                    ->schema([
+                                                        Forms\Components\Select::make('default_frequency')
+                                                            ->label(__('prescriptions::prescription.fields.frequency'))
+                                                            ->options(PrescriptionItem::FREQUENCIES)
+                                                            ->searchable(),
 
-                                        Forms\Components\TextInput::make('refills_allowed')
-                                            ->label(__('prescriptions::prescription.fields.refills'))
-                                            ->numeric()
-                                            ->default(0)
-                                            ->minValue(0)
-                                            ->columnSpan(['default' => 6, 'md' => 3]),
+                                                        Forms\Components\Select::make('default_route')
+                                                            ->label(__('prescriptions::prescription.fields.route'))
+                                                            ->options(PrescriptionItem::ROUTES)
+                                                            ->searchable(),
+
+                                                        Forms\Components\TextInput::make('default_duration')
+                                                            ->label(__('prescriptions::prescription.fields.duration'))
+                                                            ->numeric()
+                                                            ->minValue(1),
+
+                                                        Forms\Components\Select::make('default_duration_unit')
+                                                            ->label(__('prescriptions::prescription.fields.duration_unit'))
+                                                            ->options(PrescriptionItem::DURATION_UNITS)
+                                                            ->default('days'),
+
+                                                        Forms\Components\Select::make('default_instructions')
+                                                            ->label(__('prescriptions::prescription.fields.instructions'))
+                                                            ->options(PrescriptionItem::INSTRUCTIONS)
+                                                            ->searchable()
+                                                            ->columnSpan(2),
+                                                    ])
+                                                    ->columns(2),
+                                            ])
+                                            ->createOptionUsing(function (array $data): string {
+                                                $medicine = MedicineCatalog::create([
+                                                    'brand_name' => $data['brand_name'],
+                                                    'generic_name' => $data['generic_name'] ?? null,
+                                                    'category' => $data['category'] ?? null,
+                                                    'form' => $data['form'] ?? null,
+                                                    'strength' => $data['strength'] ?? null,
+                                                    'strength_unit' => $data['strength_unit'] ?? null,
+                                                    'default_frequency' => $data['default_frequency'] ?? null,
+                                                    'default_route' => $data['default_route'] ?? null,
+                                                    'default_duration' => $data['default_duration'] ?? null,
+                                                    'default_duration_unit' => $data['default_duration_unit'] ?? 'days',
+                                                    'default_instructions' => $data['default_instructions'] ?? null,
+                                                    'default_dosage' => $data['strength'] ?? null,
+                                                    'default_dosage_unit' => $data['strength_unit'] ?? null,
+                                                    'is_active' => true,
+                                                    'is_system' => false,
+                                                ]);
+
+                                                return $medicine->id;
+                                            })
+                                            ->createOptionModalHeading(__('prescriptions::prescription.catalog.create_medicine'))
+                                            ->columnSpanFull()
+                                            ->dehydrated(false),
+
+                                        Forms\Components\Grid::make(4)
+                                            ->schema([
+                                                Forms\Components\TextInput::make('medication_name')
+                                                    ->label(__('prescriptions::prescription.fields.medication_name'))
+                                                    ->required()
+                                                    ->maxLength(255)
+                                                    ->columnSpan(2),
+
+                                                Forms\Components\TextInput::make('generic_name')
+                                                    ->label(__('prescriptions::prescription.fields.generic_name'))
+                                                    ->maxLength(255)
+                                                    ->columnSpan(2),
+                                            ]),
+
+                                        Forms\Components\Grid::make(4)
+                                            ->schema([
+                                                Forms\Components\Select::make('form')
+                                                    ->label(__('prescriptions::prescription.fields.form'))
+                                                    ->options(PrescriptionItem::FORMS)
+                                                    ->searchable(),
+
+                                                Forms\Components\TextInput::make('dosage')
+                                                    ->label(__('prescriptions::prescription.fields.dosage'))
+                                                    ->maxLength(50),
+
+                                                Forms\Components\Select::make('dosage_unit')
+                                                    ->label(__('prescriptions::prescription.fields.dosage_unit'))
+                                                    ->options(PrescriptionItem::DOSAGE_UNITS),
+
+                                                Forms\Components\Select::make('route')
+                                                    ->label(__('prescriptions::prescription.fields.route'))
+                                                    ->options(PrescriptionItem::ROUTES)
+                                                    ->searchable()
+                                                    ->default('oral'),
+                                            ]),
+
+                                        Forms\Components\Grid::make(4)
+                                            ->schema([
+                                                Forms\Components\Select::make('frequency')
+                                                    ->label(__('prescriptions::prescription.fields.frequency'))
+                                                    ->options(PrescriptionItem::FREQUENCIES)
+                                                    ->searchable()
+                                                    ->required(),
+
+                                                Forms\Components\TextInput::make('duration')
+                                                    ->label(__('prescriptions::prescription.fields.duration'))
+                                                    ->numeric()
+                                                    ->minValue(1),
+
+                                                Forms\Components\Select::make('duration_unit')
+                                                    ->label(__('prescriptions::prescription.fields.duration_unit'))
+                                                    ->options(PrescriptionItem::DURATION_UNITS)
+                                                    ->default('days'),
+
+                                                Forms\Components\TextInput::make('quantity')
+                                                    ->label(__('prescriptions::prescription.fields.quantity'))
+                                                    ->numeric()
+                                                    ->minValue(1),
+                                            ]),
+
+                                        Forms\Components\Grid::make(4)
+                                            ->schema([
+                                                Forms\Components\Select::make('instructions')
+                                                    ->label(__('prescriptions::prescription.fields.instructions'))
+                                                    ->options(PrescriptionItem::INSTRUCTIONS)
+                                                    ->searchable()
+                                                    ->columnSpan(2),
+
+                                                Forms\Components\TextInput::make('refills_allowed')
+                                                    ->label(__('prescriptions::prescription.fields.refills'))
+                                                    ->numeric()
+                                                    ->default(0)
+                                                    ->minValue(0)
+                                                    ->columnSpan(2),
+                                            ]),
 
                                         Forms\Components\Textarea::make('special_instructions')
                                             ->label(__('prescriptions::prescription.fields.special_instructions'))
                                             ->rows(2)
                                             ->columnSpanFull(),
                                     ])
-                                    ->columns(12)
                                     ->defaultItems(1)
                                     ->addActionLabel(__('prescriptions::prescription.actions.add_medication'))
                                     ->reorderable()

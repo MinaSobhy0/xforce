@@ -239,6 +239,7 @@ return [
         'quick_add' => 'Quick Add from Catalog',
         'select_medicine' => 'Select medicine from catalog...',
         'quick_add_help' => 'Select a medicine to auto-fill prescription details',
+        'create_medicine' => 'Create New Medicine',
         'sections' => [
             'basic_info' => 'Basic Information',
             'strength' => 'Strength & Form',

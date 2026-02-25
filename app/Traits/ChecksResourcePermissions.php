@@ -61,9 +61,9 @@ trait ChecksResourcePermissions
             return true;
         }
 
-        // Super users bypass module checks
+        // Only platform super-admin bypasses module checks (not tenant admins)
         $user = auth()->user();
-        if ($user && static::isSuperUser($user)) {
+        if ($user && $user->hasRole(['super-admin', 'super_admin'])) {
             return true;
         }
 

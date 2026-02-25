@@ -630,11 +630,12 @@
                                 <select
                                     id="medicine-catalog-select"
                                     class="flex-1 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm"
-                                    onchange="if(this.value) { @this.call('addMedicineFromCatalog', this.value); this.value=''; }"
+                                    x-data
+                                    x-on:change="if($el.value) { $wire.addMedicineFromCatalog($el.value); $el.value=''; }"
                                 >
                                     <option value="">{{ __('prescriptions::prescription.catalog.select_medicine') }}</option>
                                     @foreach($availableMedicines->groupBy('category') as $category => $medicines)
-                                        <optgroup label="{{ \Modules\Prescriptions\Models\MedicineCatalog::CATEGORIES[$category] ?? $category }}">
+                                        <optgroup label="{{ __('prescriptions::prescription.categories.' . $category) }}">
                                             @foreach($medicines as $medicine)
                                                 <option value="{{ $medicine->id }}">
                                                     {{ $medicine->full_name }}
