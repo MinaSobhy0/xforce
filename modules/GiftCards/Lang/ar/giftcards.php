@@ -174,5 +174,6 @@ return [
         'existing_patient' => 'مريض موجود',
         'new_patient' => 'مريض جديد',
         'recipient_hint' => 'اختياري - إذا كانت البطاقة هدية لشخص آخر',
+        'payment_method' => 'طريقة الدفع',
     ],
 ];

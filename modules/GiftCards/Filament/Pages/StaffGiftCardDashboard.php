@@ -15,6 +15,7 @@ use Modules\GiftCards\Models\GiftCard;
 use Modules\GiftCards\Models\GiftCardTemplate;
 use Modules\GiftCards\Services\GiftCardService;
 use Modules\Patients\Models\Patient;
+use Modules\Accounting\Models\Journal;
 use Livewire\Attributes\Computed;
 
 class StaffGiftCardDashboard extends Page implements HasForms
@@ -146,6 +147,15 @@ class StaffGiftCardDashboard extends Page implements HasForms
                     ])
                     ->visible(fn (Forms\Get $get) => $get('patient_type') === 'new'),
 
+                Forms\Components\Select::make('journal_id')
+                    ->label(__('giftcards::giftcards.staff_dashboard.payment_method'))
+                    ->options(fn () => Journal::where('is_active', true)
+                        ->whereIn('type', [Journal::TYPE_CASH, Journal::TYPE_BANK])
+                        ->get()
+                        ->pluck('name', 'id'))
+                    ->required()
+                    ->searchable(),
+
                 Forms\Components\Select::make('recipient_patient_id')
                     ->label(__('giftcards::giftcards.fields.recipient'))
                     ->helperText(__('giftcards::giftcards.staff_dashboard.recipient_hint'))
@@ -200,16 +210,18 @@ class StaffGiftCardDashboard extends Page implements HasForms
                 $purchaserId = $data['purchaser_patient_id'];
             }
 
-            // Update card details
-            $card->update([
-                'purchaser_patient_id' => $purchaserId,
-                'recipient_patient_id' => $data['recipient_patient_id'] ?? null,
-                'notes' => $data['notes'] ?? null,
-                'sold_by_staff_id' => Auth::id(),
-            ]);
+            // Update notes on the card
+            if (!empty($data['notes'])) {
+                $card->update(['notes' => $data['notes']]);
+            }
 
-            // Activate the card
-            $card->activate();
+            // Process the sale with payment and GL entry
+            app(GiftCardService::class)->processSale(
+                $card,
+                $data['journal_id'],
+                $purchaserId,
+                $data['recipient_patient_id'] ?? null
+            );
         });
 
         Notification::make()

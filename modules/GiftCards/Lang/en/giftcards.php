@@ -174,5 +174,6 @@ return [
         'existing_patient' => 'Existing Patient',
         'new_patient' => 'New Patient',
         'recipient_hint' => 'Optional - if the card is a gift for someone else',
+        'payment_method' => 'Payment Method',
     ],
 ];

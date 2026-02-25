@@ -148,7 +148,7 @@ class GiftCardService
      */
     public function processSale(
         GiftCard $card,
-        Payment $payment,
+        string $journalId,
         ?string $purchaserPatientId = null,
         ?string $recipientPatientId = null
     ): array {
@@ -156,21 +156,18 @@ class GiftCardService
             return ['success' => false, 'error' => 'Card must be in draft status to sell'];
         }
 
-        $actualPaid = $payment->amount_minor;
-        $discount = $card->initial_value_minor - $actualPaid;
-
-        DB::transaction(function () use ($card, $payment, $purchaserPatientId, $recipientPatientId, $discount) {
+        DB::transaction(function () use ($card, $journalId, $purchaserPatientId, $recipientPatientId) {
             // Update card
             $card->update([
                 'purchaser_patient_id' => $purchaserPatientId,
                 'recipient_patient_id' => $recipientPatientId,
-                'sold_by_staff_id' => auth()->user()?->staffProfile?->id,
+                'sold_by_staff_id' => auth()->id(),
                 'status' => GiftCard::STATUS_ACTIVE,
                 'activated_at' => now(),
             ]);
 
             // Create GL entry
-            $journalEntry = $this->glService->postGiftCardSale($card, $payment, $discount > 0 ? $discount : null);
+            $journalEntry = $this->glService->postGiftCardSale($card, $journalId);
 
             if ($journalEntry) {
                 $card->update(['sale_journal_entry_id' => $journalEntry->id]);
@@ -191,8 +188,8 @@ class GiftCardService
 
         Log::info("Gift card sold: {$card->code}", [
             'card_id' => $card->id,
-            'payment_id' => $payment->id,
-            'amount_paid' => $payment->amount_minor,
+            'journal_id' => $journalId,
+            'amount' => $card->initial_value_minor,
         ]);
 
         return [

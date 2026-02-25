@@ -5,6 +5,7 @@ namespace Modules\GiftCards\Services;
 use Modules\GiftCards\Models\GiftCard;
 use Modules\Billing\Models\Invoice;
 use Modules\Billing\Models\Payment;
+use Modules\Accounting\Models\Journal;
 use Modules\Accounting\Models\JournalEntry;
 use Modules\Accounting\Services\AccountingIntegrationService;
 use Modules\Accounting\Services\DefaultAccountsService;
@@ -23,34 +24,42 @@ class GiftCardGLService
 
     /**
      * Post gift card sale journal entry
-     * DR: Cash/Bank (payment method)
+     * DR: Cash/Bank (payment method from journal)
      * CR: Gift Card Liability
      */
     public function postGiftCardSale(
         GiftCard $card,
-        Payment $payment,
-        ?int $discountMinor = null
+        string $journalId
     ): ?JournalEntry {
         $template = $card->template;
+        $journal = Journal::find($journalId);
+
+        if (!$journal || !$journal->default_debit_account_id) {
+            Log::warning('Gift card sale journal not configured', [
+                'card_id' => $card->id,
+                'journal_id' => $journalId,
+            ]);
+            return null;
+        }
 
         // Get accounts - template specific or system defaults
         $liabilityAccount = $template?->liabilityAccount
             ?? $this->defaultAccounts->getGiftCardLiabilityAccount();
-        $cashAccount = $this->defaultAccounts->getCashAccount();
+        $paymentAccount = $journal->defaultDebitAccount;
 
-        if (!$liabilityAccount || !$cashAccount) {
+        if (!$liabilityAccount || !$paymentAccount) {
             Log::warning('Gift card GL accounts not configured', [
                 'card_id' => $card->id,
                 'has_liability' => (bool) $liabilityAccount,
-                'has_cash' => (bool) $cashAccount,
+                'has_payment_account' => (bool) $paymentAccount,
             ]);
             return null;
         }
 
         $lines = [
             [
-                'account_code' => $cashAccount->code,
-                'debit' => $payment->amount_minor,
+                'account_code' => $paymentAccount->code,
+                'debit' => $card->initial_value_minor,
                 'credit' => 0,
                 'description' => "Gift card sale: {$card->code}",
             ],
@@ -61,21 +70,6 @@ class GiftCardGLService
                 'description' => "Gift card liability: {$card->code}",
             ],
         ];
-
-        // Handle discount if sold below face value
-        if ($discountMinor && $discountMinor > 0) {
-            $expenseAccount = $template?->expenseAccount
-                ?? $this->defaultAccounts->getDiscountAccount();
-
-            if ($expenseAccount) {
-                $lines[] = [
-                    'account_code' => $expenseAccount->code,
-                    'debit' => $discountMinor,
-                    'credit' => 0,
-                    'description' => "Gift card discount: {$card->code}",
-                ];
-            }
-        }
 
         return $this->accountingService->createJournalEntry(
             now(),
