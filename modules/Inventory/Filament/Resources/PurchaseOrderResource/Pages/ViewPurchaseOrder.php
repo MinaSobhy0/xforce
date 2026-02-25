@@ -24,7 +24,7 @@ class ViewPurchaseOrder extends BaseViewRecord
                 ->label(__('inventory::inventory.actions.send'))
                 ->icon('heroicon-o-paper-airplane')
                 ->color('info')
-                ->visible(fn () => $this->record->canTransitionTo(PurchaseOrder::STATUS_SENT))
+                ->visible(fn () => $this->record->canTransitionTo(PurchaseOrder::STATUS_SENT) && !$this->record->vendor_bill_id)
                 ->requiresConfirmation()
                 ->action(function () {
                     if ($this->record->send(auth()->id())) {
@@ -40,7 +40,7 @@ class ViewPurchaseOrder extends BaseViewRecord
                 ->label(__('inventory::inventory.actions.receive'))
                 ->icon('heroicon-o-inbox-arrow-down')
                 ->color('success')
-                ->visible(fn () => $this->record->canReceive())
+                ->visible(fn () => $this->record->canReceive() && !$this->record->vendor_bill_id)
                 ->url(fn () => $this->getResource()::getUrl('receive', ['record' => $this->record->getKey()])),
 
             Actions\Action::make('cancel')
@@ -112,7 +112,7 @@ class ViewPurchaseOrder extends BaseViewRecord
                 ->label(__('inventory::inventory.actions.reverse_receiving'))
                 ->icon('heroicon-o-arrow-uturn-left')
                 ->color('danger')
-                ->visible(fn () => $this->record->canReverseReceiving())
+                ->visible(fn () => $this->record->canReverseReceiving() && !$this->record->vendor_bill_id)
                 ->modalHeading(__('inventory::inventory.actions.reverse_receiving'))
                 ->modalDescription(__('inventory::inventory.messages.reverse_confirmation'))
                 ->form(function () {
