@@ -652,7 +652,6 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
         $photo = PatientPhoto::create([
             'patient_id' => $this->patient->id,
             'appointment_id' => $this->appointment->id,
-            'service_id' => $this->appointment->service_id,
             'type' => $this->photoType,
             'body_area' => $this->photoBodyArea,
             'description' => $this->photoDescription ?? $this->getPhotoDescription(),

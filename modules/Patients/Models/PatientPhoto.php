@@ -23,7 +23,7 @@ class PatientPhoto extends BaseModel implements HasMedia
     protected $fillable = [
         'patient_id',
         'appointment_id',
-        'service_id',
+        'treatment_id',
         'type',
         'body_area',
         'description',

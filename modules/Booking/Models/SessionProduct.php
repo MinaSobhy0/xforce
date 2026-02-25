@@ -60,6 +60,8 @@ class SessionProduct extends BaseModel
 
     protected static function booted(): void
     {
+        parent::booted();
+
         static::saving(function (self $model) {
             // Auto-calculate total price
             $model->total_price_minor = (int) (($model->quantity * $model->unit_price_minor) - $model->discount_minor);

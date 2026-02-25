@@ -41,6 +41,8 @@ class SessionConsumable extends BaseModel
 
     protected static function booted(): void
     {
+        parent::booted();
+
         static::saving(function (self $model) {
             // Auto-calculate total cost
             $model->total_cost_minor = (int) ($model->quantity * $model->unit_cost_minor);
