@@ -13,6 +13,7 @@ return [
     'general_ledger' => 'General Ledger',
     'cash_flow' => 'Cash Flow',
     'cash_flow_statement' => 'Cash Flow Statement',
+    'cash_management' => 'Cash Management',
 
     // Report filters
     'filters' => 'Filters',
@@ -137,6 +138,26 @@ return [
     // PDF
     'generated_at' => 'Generated at',
 
+    // Cash Management
+    'cash_in' => 'Cash In',
+    'cash_out' => 'Cash Out',
+    'cash_in_short' => 'In',
+    'cash_out_short' => 'Out',
+    'select_account' => 'Select Account',
+    'current_balance' => 'Current Balance',
+    'today_activity' => 'Today\'s Activity',
+    'counter_account' => 'Counter Account',
+    'transaction_type' => 'Type',
+    'transaction_form' => 'Transaction',
+    'new_transaction' => 'New Transaction',
+    'save_transaction' => 'Save Transaction',
+    'recent_transactions' => 'Recent Transactions',
+    'no_transactions' => 'No transactions yet',
+    'select_counter_account' => 'Select counter account...',
+    'optional_partner' => 'Optional - Select partner...',
+    'reference_placeholder' => 'e.g., Receipt #, Check #',
+    'description_placeholder' => 'Brief description of the transaction',
+
     'types' => [
         'asset' => 'Asset',
         'liability' => 'Liability',
@@ -245,5 +266,10 @@ return [
         'reset_to_draft_warning' => 'This will reverse the account balance updates and set the entry back to draft status. Are you sure?',
         'reset_to_draft_success' => 'Journal entry reset to draft successfully',
         'reset_to_draft_failed' => 'Failed to reset journal entry to draft',
+        'select_account_first' => 'Please select an account first',
+        'select_account_hint' => 'Select a cash or bank account from the dropdown above to start recording transactions.',
+        'transaction_saved' => 'Transaction saved successfully',
+        'transaction_failed' => 'Failed to save transaction',
+        'entry_code' => 'Entry: :code',
     ],
 ];

@@ -13,6 +13,7 @@ return [
     'general_ledger' => 'دفتر الأستاذ العام',
     'cash_flow' => 'التدفق النقدي',
     'cash_flow_statement' => 'قائمة التدفق النقدي',
+    'cash_management' => 'إدارة النقدية',
 
     // Report filters
     'filters' => 'التصفية',
@@ -137,6 +138,26 @@ return [
     // PDF
     'generated_at' => 'تاريخ الإنشاء',
 
+    // Cash Management
+    'cash_in' => 'إيداع نقدي',
+    'cash_out' => 'سحب نقدي',
+    'cash_in_short' => 'إيداع',
+    'cash_out_short' => 'سحب',
+    'select_account' => 'اختر الحساب',
+    'current_balance' => 'الرصيد الحالي',
+    'today_activity' => 'نشاط اليوم',
+    'counter_account' => 'الحساب المقابل',
+    'transaction_type' => 'النوع',
+    'transaction_form' => 'المعاملة',
+    'new_transaction' => 'معاملة جديدة',
+    'save_transaction' => 'حفظ المعاملة',
+    'recent_transactions' => 'المعاملات الأخيرة',
+    'no_transactions' => 'لا توجد معاملات بعد',
+    'select_counter_account' => 'اختر الحساب المقابل...',
+    'optional_partner' => 'اختياري - اختر الطرف...',
+    'reference_placeholder' => 'مثال: رقم الإيصال، رقم الشيك',
+    'description_placeholder' => 'وصف مختصر للمعاملة',
+
     'types' => [
         'asset' => 'أصول',
         'liability' => 'خصوم',
@@ -245,5 +266,10 @@ return [
         'reset_to_draft_warning' => 'سيؤدي هذا إلى عكس تحديثات أرصدة الحسابات وإعادة القيد إلى حالة المسودة. هل أنت متأكد؟',
         'reset_to_draft_success' => 'تم إعادة القيد إلى مسودة بنجاح',
         'reset_to_draft_failed' => 'فشل إعادة القيد إلى مسودة',
+        'select_account_first' => 'يرجى اختيار حساب أولاً',
+        'select_account_hint' => 'اختر حساب نقدي أو بنكي من القائمة أعلاه لبدء تسجيل المعاملات.',
+        'transaction_saved' => 'تم حفظ المعاملة بنجاح',
+        'transaction_failed' => 'فشل حفظ المعاملة',
+        'entry_code' => 'القيد: :code',
     ],
 ];
