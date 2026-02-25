@@ -520,7 +520,7 @@ class BookingRuleResource extends Resource
                                 ->helperText(__('booking::config.equipment_source_help')),
                             Forms\Components\Select::make('actions.required_equipment')
                                 ->label(__('booking::config.required_equipment'))
-                                ->options(fn () => class_exists(Equipment::class) ? Equipment::where('status', 'active')->pluck('name', 'id') : [])
+                                ->options(fn () => class_exists(Equipment::class) ? Equipment::where('equipment.status', 'active')->pluck('name', 'id') : [])
                                 ->multiple()
                                 ->searchable()
                                 ->visible(fn (Get $get) => $get('actions.equipment_source') === 'manual'),
