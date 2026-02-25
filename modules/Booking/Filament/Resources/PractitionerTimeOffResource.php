@@ -77,6 +77,7 @@ class PractitionerTimeOffResource extends Resource
                                     ->relationship('timeOffType', 'name', fn ($query) => $query->active()->ordered())
                                     ->searchable()
                                     ->preload()
+                                    ->required()
                                     ->live()
                                     ->afterStateUpdated(function ($state, Forms\Get $get, Forms\Set $set) {
                                         // Auto-calculate days when type changes
@@ -103,23 +104,14 @@ class PractitionerTimeOffResource extends Resource
                                     }),
                             ]),
 
-                        Forms\Components\Grid::make(2)
-                            ->schema([
-                                Forms\Components\Select::make('type')
-                                    ->label(__('booking::time_off.fields.legacy_type'))
-                                    ->options(PractitionerTimeOff::TYPES)
-                                    ->visible(fn (Forms\Get $get) => !$get('time_off_type_id'))
-                                    ->helperText(__('booking::time_off.fields.legacy_type_help')),
-
-                                Forms\Components\Select::make('branch_id')
-                                    ->label(__('booking::time_off.fields.branch'))
-                                    ->relationship('branch', 'name')
-                                    ->searchable()
-                                    ->preload()
-                                    ->disabled()
-                                    ->dehydrated()
-                                    ->helperText(__('booking::time_off.fields.branch_auto')),
-                            ]),
+                        Forms\Components\Select::make('branch_id')
+                            ->label(__('booking::time_off.fields.branch'))
+                            ->relationship('branch', 'name')
+                            ->searchable()
+                            ->preload()
+                            ->disabled()
+                            ->dehydrated()
+                            ->helperText(__('booking::time_off.fields.branch_auto')),
                     ]),
 
                 Forms\Components\Section::make(__('booking::time_off.sections.period'))
