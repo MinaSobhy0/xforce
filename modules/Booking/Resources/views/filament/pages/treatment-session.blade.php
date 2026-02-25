@@ -865,8 +865,9 @@
                                 @endif
                             </div>
                         @endforeach
-                        <button wire:click="addServiceRow" class="text-xs text-primary-600 hover:text-primary-700 flex items-center gap-1 mt-1">
-                            <x-heroicon-o-plus class="w-3 h-3" />{{ __('booking::session.plan.add_service') }}
+                        <button type="button" wire:click="addServiceRow" class="mt-2 w-full flex items-center justify-center gap-1 p-2 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-500 dark:text-gray-400 hover:border-primary-500 hover:text-primary-500 transition-colors">
+                            <x-heroicon-o-plus class="w-5 h-5" />
+                            {{ __('booking::session.plan.add_service') }}
                         </button>
                     </div>
 
