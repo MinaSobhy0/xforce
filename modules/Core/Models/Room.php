@@ -73,7 +73,7 @@ class Room extends BaseModel
      */
     public function scopeActive($query)
     {
-        return $query->where('is_active', true);
+        return $query->where('rooms.is_active', true);
     }
 
     /**
@@ -81,7 +81,7 @@ class Room extends BaseModel
      */
     public function scopeBookable($query)
     {
-        return $query->where('is_bookable', true);
+        return $query->where('rooms.is_bookable', true);
     }
 
     /**
@@ -89,7 +89,7 @@ class Room extends BaseModel
      */
     public function scopeOfType($query, string $type)
     {
-        return $query->where('room_type', $type);
+        return $query->where('rooms.room_type', $type);
     }
 
     /**
@@ -97,7 +97,7 @@ class Room extends BaseModel
      */
     public function scopeInBranch($query, string $branchId)
     {
-        return $query->where('branch_id', $branchId);
+        return $query->where('rooms.branch_id', $branchId);
     }
 
     /**

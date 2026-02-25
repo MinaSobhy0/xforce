@@ -42,7 +42,9 @@ trait HasTenancy
             $hasTenantIdField = in_array('tenant_id', (new static())->getFillable());
 
             if ($currentTenant && $hasTenantIdField) {
-                $builder->where('tenant_id', $currentTenant->id);
+                // Qualify tenant_id with table name to avoid ambiguity in joins
+                $table = (new static())->getTable();
+                $builder->where("{$table}.tenant_id", $currentTenant->id);
             }
         });
 
@@ -70,7 +72,8 @@ trait HasTenancy
         $currentTenant = $tenantManager->current();
 
         if ($currentTenant) {
-            return $query->where('tenant_id', $currentTenant->id);
+            $table = $this->getTable();
+            return $query->where("{$table}.tenant_id", $currentTenant->id);
         }
 
         return $query;
@@ -81,7 +84,8 @@ trait HasTenancy
      */
     public function scopeForTenant(Builder $query, string $tenantId): Builder
     {
-        return $query->where('tenant_id', $tenantId);
+        $table = $this->getTable();
+        return $query->where("{$table}.tenant_id", $tenantId);
     }
 
     /**
