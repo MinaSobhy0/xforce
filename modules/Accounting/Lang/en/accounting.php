@@ -112,6 +112,7 @@ return [
     'no_partner_activity' => 'No partner activity in the selected period',
     'customer' => 'Customer',
     'supplier' => 'Supplier',
+    'staff' => 'Staff',
     'unknown_partner' => 'Unknown Partner',
 
     // Cash Flow

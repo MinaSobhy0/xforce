@@ -112,6 +112,7 @@ return [
     'no_partner_activity' => 'لا يوجد نشاط للشركاء خلال الفترة المحددة',
     'customer' => 'عميل',
     'supplier' => 'مورد',
+    'staff' => 'موظف',
     'unknown_partner' => 'شريك غير معروف',
 
     // Cash Flow

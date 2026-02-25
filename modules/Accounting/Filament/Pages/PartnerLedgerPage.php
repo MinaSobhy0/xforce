@@ -78,6 +78,7 @@ class PartnerLedgerPage extends Page implements HasForms
                             ->options([
                                 'customer' => __('accounting::accounting.customers'),
                                 'supplier' => __('accounting::accounting.suppliers'),
+                                'staff' => __('accounting::accounting.staff'),
                             ])
                             ->placeholder(__('accounting::accounting.all_partners'))
                             ->reactive()

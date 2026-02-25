@@ -9,6 +9,7 @@ use Modules\Accounting\Models\JournalEntry;
 use Modules\Accounting\Models\JournalEntryLine;
 use Modules\Inventory\Models\Supplier;
 use Modules\Patients\Models\Patient;
+use Modules\Staff\Models\StaffProfile;
 
 class PartnerLedgerService
 {
@@ -236,6 +237,14 @@ class PartnerLedgerService
                 }
             }
             $typeLabel = __('accounting::accounting.supplier');
+        } elseif ($partnerType === StaffProfile::class || str_contains($partnerType, 'StaffProfile')) {
+            $staff = StaffProfile::with('user')->find($partnerId);
+            if ($staff && $staff->user) {
+                $name = $staff->user->name;
+            } elseif ($staff) {
+                $name = $staff->employee_number ?? __('accounting::accounting.unknown_partner');
+            }
+            $typeLabel = __('accounting::accounting.staff');
         }
 
         return [
@@ -252,6 +261,7 @@ class PartnerLedgerService
         return match ($partnerType) {
             'customer' => Patient::class,
             'supplier' => Supplier::class,
+            'staff' => StaffProfile::class,
             default => $partnerType,
         };
     }
@@ -281,6 +291,14 @@ class PartnerLedgerService
                     }
                     return [$s->id => $name];
                 })
+                ->toArray();
+        }
+
+        if ($partnerType === 'staff') {
+            return StaffProfile::with('user')
+                ->orderBy('employee_number')
+                ->get()
+                ->mapWithKeys(fn($s) => [$s->id => $s->user?->name ?? $s->employee_number])
                 ->toArray();
         }
 
