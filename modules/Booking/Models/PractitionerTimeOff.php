@@ -78,6 +78,8 @@ class PractitionerTimeOff extends BaseModel
 
     protected static function booted(): void
     {
+        parent::booted();
+
         static::creating(function (PractitionerTimeOff $timeOff) {
             if (empty($timeOff->status)) {
                 $timeOff->status = self::STATUS_PENDING;

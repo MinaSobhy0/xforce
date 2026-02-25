@@ -16,6 +16,7 @@ return [
         'staff' => 'Staff Member',
         'branch' => 'Branch',
         'branch_help' => 'Leave empty to apply to all branches',
+        'branch_auto' => 'Auto-filled from staff member',
         'type' => 'Type',
         'time_off_type' => 'Time Off Type',
         'legacy_type' => 'Type (Legacy)',

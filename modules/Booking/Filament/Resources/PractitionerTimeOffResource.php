@@ -62,7 +62,15 @@ class PractitionerTimeOffResource extends Resource
                                     ->searchable()
                                     ->preload()
                                     ->required()
-                                    ->live(),
+                                    ->live()
+                                    ->afterStateUpdated(function ($state, Forms\Set $set) {
+                                        if ($state) {
+                                            $user = User::find($state);
+                                            if ($user && $user->branch_id) {
+                                                $set('branch_id', $user->branch_id);
+                                            }
+                                        }
+                                    }),
 
                                 Forms\Components\Select::make('time_off_type_id')
                                     ->label(__('booking::time_off.fields.time_off_type'))
@@ -108,8 +116,9 @@ class PractitionerTimeOffResource extends Resource
                                     ->relationship('branch', 'name')
                                     ->searchable()
                                     ->preload()
-                                    ->default(fn () => current_branch_id())
-                                    ->helperText(__('booking::time_off.fields.branch_help')),
+                                    ->disabled()
+                                    ->dehydrated()
+                                    ->helperText(__('booking::time_off.fields.branch_auto')),
                             ]),
                     ]),
 
