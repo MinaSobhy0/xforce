@@ -220,7 +220,7 @@ class ProductResource extends Resource
 
                                         Forms\Components\Select::make('income_account_id')
                                             ->label('Income Account')
-                                            ->options(fn () => ChartOfAccount::where('type', ChartOfAccount::TYPE_REVENUE)
+                                            ->options(fn () => ChartOfAccount::where('type', ChartOfAccount::TYPE_INCOME)
                                                 ->where('is_active', true)
                                                 ->orderBy('code')
                                                 ->get()
