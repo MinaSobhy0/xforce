@@ -1507,7 +1507,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
                         'instructions' => $med['instructions'] ?: null,
                         'special_instructions' => $med['special_instructions'] ?: null,
                         'sort_order' => $index,
-                        'refills_allowed' => !empty($med['refills_allowed']) ? (int) $med['refills_allowed'] : null,
+                        'refills_allowed' => !empty($med['refills_allowed']) ? (int) $med['refills_allowed'] : 0,
                     ]);
                 }
 

@@ -38,19 +38,31 @@ class PrescriptionItem extends BaseModel
     ];
 
     /**
-     * Boot the model - convert empty strings to null for integer fields.
+     * Boot the model - convert empty strings to null/defaults for integer fields.
      */
     protected static function boot(): void
     {
         parent::boot();
 
         static::saving(function ($model) {
-            $integerFields = ['duration', 'quantity', 'refills_allowed', 'sort_order'];
+            // Fields that can be null
+            $nullableIntFields = ['duration', 'quantity'];
+            // Fields with default values (not null)
+            $defaultIntFields = ['refills_allowed' => 0, 'sort_order' => 0];
 
-            foreach ($integerFields as $field) {
+            foreach ($nullableIntFields as $field) {
                 $value = $model->getAttributes()[$field] ?? null;
                 if ($value === '' || $value === null || (is_string($value) && trim($value) === '')) {
                     $model->{$field} = null;
+                } elseif (is_numeric($value)) {
+                    $model->{$field} = (int) $value;
+                }
+            }
+
+            foreach ($defaultIntFields as $field => $default) {
+                $value = $model->getAttributes()[$field] ?? null;
+                if ($value === '' || $value === null || (is_string($value) && trim($value) === '')) {
+                    $model->{$field} = $default;
                 } elseif (is_numeric($value)) {
                     $model->{$field} = (int) $value;
                 }
