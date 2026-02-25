@@ -8,7 +8,6 @@ use Modules\Prescriptions\Filament\Resources\PrescriptionResource\RelationManage
 use Modules\Prescriptions\Models\Prescription;
 use Modules\Prescriptions\Models\PrescriptionItem;
 use Modules\Prescriptions\Models\MedicineCatalog;
-use Modules\Prescriptions\Services\PrescriptionPdfService;
 use Modules\Patients\Models\Patient;
 use Modules\Core\Models\Branch;
 use Modules\Auth\Models\User;
@@ -494,9 +493,8 @@ class PrescriptionResource extends Resource
                         ->icon('heroicon-o-printer')
                         ->color('info')
                         ->visible(fn (Prescription $record) => $record->canPrint())
-                        ->url(fn (Prescription $record) => route('prescriptions.print', $record))
-                        ->openUrlInNewTab()
-                        ->after(fn (Prescription $record) => $record->markPrinted()),
+                        ->url(fn (Prescription $record) => route('filament.tenant.prescriptions.print', ['prescription' => $record->id]))
+                        ->openUrlInNewTab(),
 
                     Tables\Actions\Action::make('cancel')
                         ->label(__('prescriptions::prescription.actions.cancel'))

@@ -41,11 +41,10 @@ class ViewPrescription extends ViewRecord
                 ->icon('heroicon-o-printer')
                 ->color('info')
                 ->visible(fn () => $this->record->canPrint())
-                ->url(fn () => route('prescriptions.print', $this->record))
-                ->openUrlInNewTab()
-                ->after(function () {
+                ->action(function () {
                     $this->record->markPrinted();
-                    $this->refreshFormData(['is_printed', 'print_count', 'last_printed_at']);
+                    $url = route('filament.tenant.prescriptions.print', ['prescription' => $this->record->id]);
+                    $this->js("window.open('{$url}', '_blank')");
                 }),
 
             Actions\Action::make('download')
@@ -55,7 +54,8 @@ class ViewPrescription extends ViewRecord
                 ->visible(fn () => $this->record->canPrint())
                 ->action(function () {
                     $this->record->markPrinted();
-                    return app(PrescriptionPdfService::class)->download($this->record);
+                    $url = route('filament.tenant.prescriptions.download', ['prescription' => $this->record->id]);
+                    $this->js("window.location.href = '{$url}'");
                 }),
 
             Actions\Action::make('cancel')
