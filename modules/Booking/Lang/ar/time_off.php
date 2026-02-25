@@ -13,6 +13,7 @@ return [
 
     'fields' => [
         'practitioner' => 'المختص',
+        'staff' => 'الموظف',
         'branch' => 'الفرع',
         'branch_help' => 'اتركه فارغاً لتطبيقه على جميع الفروع',
         'type' => 'النوع',

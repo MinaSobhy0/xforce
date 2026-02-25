@@ -13,6 +13,7 @@ return [
 
     'fields' => [
         'practitioner' => 'Practitioner',
+        'staff' => 'Staff Member',
         'branch' => 'Branch',
         'branch_help' => 'Leave empty to apply to all branches',
         'type' => 'Type',

@@ -57,9 +57,8 @@ class PractitionerTimeOffResource extends Resource
                         Forms\Components\Grid::make(2)
                             ->schema([
                                 Forms\Components\Select::make('user_id')
-                                    ->label(__('booking::time_off.fields.practitioner'))
-                                    ->relationship('practitioner', 'first_name')
-                                    ->getOptionLabelFromRecordUsing(fn (User $record) => $record->full_name)
+                                    ->label(__('booking::time_off.fields.staff'))
+                                    ->options(fn () => User::query()->get()->pluck('full_name', 'id'))
                                     ->searchable()
                                     ->preload()
                                     ->required()
@@ -193,8 +192,9 @@ class PractitionerTimeOffResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('practitioner.full_name')
-                    ->label(__('booking::time_off.fields.practitioner'))
+                Tables\Columns\TextColumn::make('practitioner.first_name')
+                    ->label(__('booking::time_off.fields.staff'))
+                    ->formatStateUsing(fn ($record) => $record->practitioner?->full_name)
                     ->searchable(['first_name', 'last_name'])
                     ->sortable(),
 
@@ -246,9 +246,8 @@ class PractitionerTimeOffResource extends Resource
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('user_id')
-                    ->label(__('booking::time_off.fields.practitioner'))
-                    ->relationship('practitioner', 'first_name')
-                    ->getOptionLabelFromRecordUsing(fn (User $record) => $record->full_name)
+                    ->label(__('booking::time_off.fields.staff'))
+                    ->options(fn () => User::query()->get()->pluck('full_name', 'id'))
                     ->preload()
                     ->searchable(),
 
