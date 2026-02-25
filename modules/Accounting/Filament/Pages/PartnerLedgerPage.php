@@ -65,12 +65,12 @@ class PartnerLedgerPage extends Page implements HasForms
                     ->schema([
                         DatePicker::make('start_date')
                             ->label(__('accounting::accounting.start_date'))
-                            ->reactive()
+                            ->live()
                             ->afterStateUpdated(fn() => $this->loadReportData()),
 
                         DatePicker::make('end_date')
                             ->label(__('accounting::accounting.end_date'))
-                            ->reactive()
+                            ->live()
                             ->afterStateUpdated(fn() => $this->loadReportData()),
 
                         Select::make('partner_type')
@@ -81,7 +81,7 @@ class PartnerLedgerPage extends Page implements HasForms
                                 'staff' => __('accounting::accounting.staff'),
                             ])
                             ->placeholder(__('accounting::accounting.all_partners'))
-                            ->reactive()
+                            ->live()
                             ->afterStateUpdated(function () {
                                 $this->partner_id = null;
                                 $this->loadReportData();
@@ -92,43 +92,51 @@ class PartnerLedgerPage extends Page implements HasForms
                             ->options(fn() => $this->getPartnerOptions())
                             ->searchable()
                             ->placeholder(__('accounting::accounting.all'))
-                            ->reactive()
-                            ->afterStateUpdated(fn() => $this->loadReportData())
-                            ->visible(fn() => !empty($this->partner_type)),
+                            ->live()
+                            ->afterStateUpdated(fn() => $this->loadReportData()),
 
                         Select::make('account_id')
                             ->label(__('accounting::accounting.account'))
                             ->options(
                                 ChartOfAccount::where('is_active', true)
-                                    ->whereIn('type', ['asset', 'liability']) // Receivable/Payable accounts
+                                    ->whereIn('sub_type', ['accounts_receivable', 'accounts_payable'])
                                     ->orderBy('code')
                                     ->get()
-                                    ->mapWithKeys(fn($a) => [$a->id => "{$a->code} - {$a->name}"])
+                                    ->mapWithKeys(fn($a) => [$a->id => "{$a->code} - {$a->translated_name}"])
                             )
                             ->searchable()
                             ->placeholder(__('accounting::accounting.all_accounts'))
-                            ->reactive()
+                            ->live()
                             ->afterStateUpdated(fn() => $this->loadReportData()),
 
                         Toggle::make('show_zero_balances')
                             ->label(__('accounting::accounting.show_zero_balances'))
-                            ->reactive()
+                            ->live()
                             ->afterStateUpdated(fn() => $this->loadReportData()),
                     ])
                     ->columns(6),
-            ])
-            ->statePath('data');
+            ]);
     }
 
     protected function loadReportData(): void
     {
         $service = app(PartnerLedgerService::class);
 
+        // Parse partner_id which may contain type prefix (e.g., "customer:uuid")
+        $partnerType = $this->partner_type;
+        $partnerId = $this->partner_id;
+
+        if ($partnerId && str_contains($partnerId, ':')) {
+            $parsed = $service->parsePartnerKey($partnerId);
+            $partnerType = $parsed['type'];
+            $partnerId = $parsed['id'];
+        }
+
         $partnerData = $service->getPartnerLedger(
             Carbon::parse($this->start_date),
             Carbon::parse($this->end_date),
-            $this->partner_type,
-            $this->partner_id,
+            $partnerType,
+            $partnerId,
             $this->account_id,
             $this->show_zero_balances
         );
@@ -140,7 +148,7 @@ class PartnerLedgerPage extends Page implements HasForms
     protected function getPartnerOptions(): array
     {
         $service = app(PartnerLedgerService::class);
-        return $service->getPartnerOptions($this->partner_type);
+        return $service->getPartnerOptions($this->partner_type, true);
     }
 
     protected function getHeaderActions(): array
@@ -161,11 +169,23 @@ class PartnerLedgerPage extends Page implements HasForms
 
     public function exportPdf()
     {
+        $service = app(PartnerLedgerService::class);
+
+        // Parse partner_id which may contain type prefix
+        $partnerType = $this->partner_type;
+        $partnerId = $this->partner_id;
+
+        if ($partnerId && str_contains($partnerId, ':')) {
+            $parsed = $service->parsePartnerKey($partnerId);
+            $partnerType = $parsed['type'];
+            $partnerId = $parsed['id'];
+        }
+
         return app(PartnerLedgerPdfService::class)->download(
             $this->start_date,
             $this->end_date,
-            $this->partner_type,
-            $this->partner_id,
+            $partnerType,
+            $partnerId,
             $this->account_id,
             $this->show_zero_balances
         );

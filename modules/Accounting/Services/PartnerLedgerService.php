@@ -285,18 +285,23 @@ class PartnerLedgerService
     /**
      * Get options for partner dropdown based on type.
      */
-    public function getPartnerOptions(?string $partnerType): array
+    public function getPartnerOptions(?string $partnerType, bool $includeAll = false): array
     {
-        if ($partnerType === 'customer') {
-            return Patient::orderBy('first_name')
+        $options = [];
+
+        if ($partnerType === 'customer' || ($includeAll && !$partnerType)) {
+            $customers = Patient::orderBy('first_name')
                 ->orderBy('last_name')
                 ->get()
-                ->mapWithKeys(fn($p) => [$p->id => $p->full_name])
+                ->mapWithKeys(fn($p) => [
+                    'customer:' . $p->id => $p->full_name . ' (' . __('accounting::accounting.customer') . ')'
+                ])
                 ->toArray();
+            $options = array_merge($options, $customers);
         }
 
-        if ($partnerType === 'supplier') {
-            return Supplier::orderBy('name')
+        if ($partnerType === 'supplier' || ($includeAll && !$partnerType)) {
+            $suppliers = Supplier::orderBy('name')
                 ->get()
                 ->mapWithKeys(function ($s) {
                     $name = $s->getTranslation('name', app()->getLocale())
@@ -305,19 +310,45 @@ class PartnerLedgerService
                     if (is_array($name)) {
                         $name = $name[app()->getLocale()] ?? $name['en'] ?? '';
                     }
-                    return [$s->id => $name];
+                    return ['supplier:' . $s->id => $name . ' (' . __('accounting::accounting.supplier') . ')'];
                 })
                 ->toArray();
+            $options = array_merge($options, $suppliers);
         }
 
-        if ($partnerType === 'staff') {
-            return StaffProfile::with('user')
+        if ($partnerType === 'staff' || ($includeAll && !$partnerType)) {
+            $staff = StaffProfile::with('user')
                 ->orderBy('employee_number')
                 ->get()
-                ->mapWithKeys(fn($s) => [$s->id => $s->user?->name ?? $s->employee_number])
+                ->mapWithKeys(fn($s) => [
+                    'staff:' . $s->id => ($s->user?->name ?? $s->employee_number) . ' (' . __('accounting::accounting.staff') . ')'
+                ])
                 ->toArray();
+            $options = array_merge($options, $staff);
         }
 
-        return [];
+        // If specific type selected, return simple format without prefix
+        if ($partnerType) {
+            return collect($options)->mapWithKeys(function ($label, $key) {
+                $id = explode(':', $key)[1] ?? $key;
+                $name = preg_replace('/\s*\([^)]+\)\s*$/', '', $label); // Remove type suffix
+                return [$id => $name];
+            })->toArray();
+        }
+
+        return $options;
+    }
+
+    /**
+     * Parse partner key to get type and ID.
+     */
+    public function parsePartnerKey(?string $partnerKey): array
+    {
+        if (!$partnerKey || !str_contains($partnerKey, ':')) {
+            return ['type' => null, 'id' => $partnerKey];
+        }
+
+        [$type, $id] = explode(':', $partnerKey, 2);
+        return ['type' => $type, 'id' => $id];
     }
 }
