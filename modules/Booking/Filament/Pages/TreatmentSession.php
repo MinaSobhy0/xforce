@@ -348,7 +348,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
                 $this->sessionData->update([
                     'session_ended_at' => now(),
                     'actual_duration_minutes' => $this->sessionData->session_started_at
-                        ? $this->sessionData->session_started_at->diffInMinutes(now())
+                        ? (int) $this->sessionData->session_started_at->diffInMinutes(now())
                         : null,
                     'is_complete' => true,
                     'parameter_values' => $this->parameterValues,

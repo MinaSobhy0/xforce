@@ -252,7 +252,7 @@ class TreatmentSessionData extends BaseModel
             return null;
         }
 
-        return $this->session_started_at->diffInMinutes($this->session_ended_at);
+        return (int) $this->session_started_at->diffInMinutes($this->session_ended_at);
     }
 
     /**
