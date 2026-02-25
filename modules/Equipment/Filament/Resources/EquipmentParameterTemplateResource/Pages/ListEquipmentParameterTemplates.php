@@ -3,10 +3,10 @@
 namespace Modules\Equipment\Filament\Resources\EquipmentParameterTemplateResource\Pages;
 
 use Filament\Actions;
-use Filament\Resources\Pages\ListRecords;
+use App\Filament\Resources\Pages\BaseListRecords;
 use Modules\Equipment\Filament\Resources\EquipmentParameterTemplateResource;
 
-class ListEquipmentParameterTemplates extends ListRecords
+class ListEquipmentParameterTemplates extends BaseListRecords
 {
     protected static string $resource = EquipmentParameterTemplateResource::class;
 
@@ -14,6 +14,7 @@ class ListEquipmentParameterTemplates extends ListRecords
     {
         return [
             Actions\CreateAction::make(),
+            ...parent::getHeaderActions(),
         ];
     }
 }

@@ -3,11 +3,11 @@
 namespace Modules\Inventory\Filament\Resources\StockMovementResource\Pages;
 
 use Filament\Actions;
-use Filament\Resources\Pages\ListRecords;
+use App\Filament\Resources\Pages\BaseListRecords;
 use Modules\Inventory\Filament\Resources\StockMovementResource;
 use Modules\Inventory\Models\StockMovement;
 
-class ListStockMovements extends ListRecords
+class ListStockMovements extends BaseListRecords
 {
     protected static string $resource = StockMovementResource::class;
 
@@ -15,6 +15,7 @@ class ListStockMovements extends ListRecords
     {
         return [
             // No create action - movements are created by other processes
+            ...parent::getHeaderActions(),
         ];
     }
 

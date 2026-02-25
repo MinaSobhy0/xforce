@@ -3,10 +3,10 @@
 namespace Modules\Staff\Filament\Resources\CommissionPlanResource\Pages;
 
 use Filament\Actions;
-use Filament\Resources\Pages\ListRecords;
+use App\Filament\Resources\Pages\BaseListRecords;
 use Modules\Staff\Filament\Resources\CommissionPlanResource;
 
-class ListCommissionPlans extends ListRecords
+class ListCommissionPlans extends BaseListRecords
 {
     protected static string $resource = CommissionPlanResource::class;
 
@@ -14,6 +14,7 @@ class ListCommissionPlans extends ListRecords
     {
         return [
             Actions\CreateAction::make(),
+            ...parent::getHeaderActions(),
         ];
     }
 }

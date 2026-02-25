@@ -5,12 +5,12 @@ namespace Modules\Core\Resources\TenantResource\Pages;
 use Modules\Core\Resources\TenantResource;
 use XLinic\Framework\Core\Filament\BasePage;
 use Filament\Actions;
-use Filament\Resources\Pages\ListRecords;
+use App\Filament\Resources\Pages\BaseListRecords;
 use Filament\Resources\Components\Tab;
 use Illuminate\Database\Eloquent\Builder;
 use Modules\Core\Models\TenantStatus;
 
-class ListTenants extends ListRecords
+class ListTenants extends BaseListRecords
 {
     protected static string $resource = TenantResource::class;
 
@@ -19,6 +19,7 @@ class ListTenants extends ListRecords
         return [
             Actions\CreateAction::make()
                 ->label(__('New Tenant')),
+            ...parent::getHeaderActions(),
         ];
     }
 

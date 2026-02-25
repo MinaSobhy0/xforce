@@ -3,10 +3,10 @@
 namespace Modules\Attendance\Filament\Resources\AttendanceRuleResource\Pages;
 
 use Filament\Actions;
-use Filament\Resources\Pages\ListRecords;
+use App\Filament\Resources\Pages\BaseListRecords;
 use Modules\Attendance\Filament\Resources\AttendanceRuleResource;
 
-class ListAttendanceRules extends ListRecords
+class ListAttendanceRules extends BaseListRecords
 {
     protected static string $resource = AttendanceRuleResource::class;
 
@@ -14,6 +14,7 @@ class ListAttendanceRules extends ListRecords
     {
         return [
             Actions\CreateAction::make(),
+            ...parent::getHeaderActions(),
         ];
     }
 }

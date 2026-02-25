@@ -3,10 +3,10 @@
 namespace Modules\Inventory\Filament\Resources\InventoryAdjustmentResource\Pages;
 
 use Filament\Actions;
-use Filament\Resources\Pages\ListRecords;
+use App\Filament\Resources\Pages\BaseListRecords;
 use Modules\Inventory\Filament\Resources\InventoryAdjustmentResource;
 
-class ListInventoryAdjustments extends ListRecords
+class ListInventoryAdjustments extends BaseListRecords
 {
     protected static string $resource = InventoryAdjustmentResource::class;
 
@@ -14,6 +14,7 @@ class ListInventoryAdjustments extends ListRecords
     {
         return [
             Actions\CreateAction::make(),
+            ...parent::getHeaderActions(),
         ];
     }
 }

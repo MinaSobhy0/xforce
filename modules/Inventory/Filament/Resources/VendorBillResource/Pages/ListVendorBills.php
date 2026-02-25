@@ -3,10 +3,10 @@
 namespace Modules\Inventory\Filament\Resources\VendorBillResource\Pages;
 
 use Filament\Actions;
-use Filament\Resources\Pages\ListRecords;
+use App\Filament\Resources\Pages\BaseListRecords;
 use Modules\Inventory\Filament\Resources\VendorBillResource;
 
-class ListVendorBills extends ListRecords
+class ListVendorBills extends BaseListRecords
 {
     protected static string $resource = VendorBillResource::class;
 
@@ -14,6 +14,7 @@ class ListVendorBills extends ListRecords
     {
         return [
             Actions\CreateAction::make(),
+            ...parent::getHeaderActions(),
         ];
     }
 }

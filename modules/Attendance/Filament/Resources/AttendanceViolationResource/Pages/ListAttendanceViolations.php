@@ -2,15 +2,17 @@
 
 namespace Modules\Attendance\Filament\Resources\AttendanceViolationResource\Pages;
 
-use Filament\Resources\Pages\ListRecords;
+use App\Filament\Resources\Pages\BaseListRecords;
 use Modules\Attendance\Filament\Resources\AttendanceViolationResource;
 
-class ListAttendanceViolations extends ListRecords
+class ListAttendanceViolations extends BaseListRecords
 {
     protected static string $resource = AttendanceViolationResource::class;
 
     protected function getHeaderActions(): array
     {
-        return [];
+        return [
+            ...parent::getHeaderActions(),
+        ];
     }
 }

@@ -5,11 +5,11 @@ namespace Modules\Auth\Filament\Resources\UserResource\Pages;
 use Modules\Auth\Filament\Resources\UserResource;
 use Modules\Auth\Models\UserStatus;
 use Filament\Actions;
-use Filament\Resources\Pages\ListRecords;
+use App\Filament\Resources\Pages\BaseListRecords;
 use Filament\Resources\Components\Tab;
 use Illuminate\Database\Eloquent\Builder;
 
-class ListUsers extends ListRecords
+class ListUsers extends BaseListRecords
 {
     protected static string $resource = UserResource::class;
 
@@ -18,6 +18,7 @@ class ListUsers extends ListRecords
         return [
             Actions\CreateAction::make()
                 ->label(__('New User')),
+            ...parent::getHeaderActions(),
         ];
     }
 

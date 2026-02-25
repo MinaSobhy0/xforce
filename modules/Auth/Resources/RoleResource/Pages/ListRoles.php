@@ -4,9 +4,9 @@ namespace Modules\Auth\Resources\RoleResource\Pages;
 
 use Modules\Auth\Resources\RoleResource;
 use Filament\Actions;
-use Filament\Resources\Pages\ListRecords;
+use App\Filament\Resources\Pages\BaseListRecords;
 
-class ListRoles extends ListRecords
+class ListRoles extends BaseListRecords
 {
     protected static string $resource = RoleResource::class;
 
@@ -15,6 +15,7 @@ class ListRoles extends ListRecords
         return [
             Actions\CreateAction::make()
                 ->label(__('New Role')),
+            ...parent::getHeaderActions(),
         ];
     }
 

@@ -3,10 +3,10 @@
 namespace Modules\Services\Filament\Resources\ConsentTemplateResource\Pages;
 
 use Filament\Actions;
-use Filament\Resources\Pages\ListRecords;
+use App\Filament\Resources\Pages\BaseListRecords;
 use Modules\Services\Filament\Resources\ConsentTemplateResource;
 
-class ListConsentTemplates extends ListRecords
+class ListConsentTemplates extends BaseListRecords
 {
     protected static string $resource = ConsentTemplateResource::class;
 
@@ -14,6 +14,7 @@ class ListConsentTemplates extends ListRecords
     {
         return [
             Actions\CreateAction::make(),
+            ...parent::getHeaderActions(),
         ];
     }
 }

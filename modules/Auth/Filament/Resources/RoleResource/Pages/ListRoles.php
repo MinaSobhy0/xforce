@@ -3,10 +3,10 @@
 namespace Modules\Auth\Filament\Resources\RoleResource\Pages;
 
 use Filament\Actions;
-use Filament\Resources\Pages\ListRecords;
+use App\Filament\Resources\Pages\BaseListRecords;
 use Modules\Auth\Filament\Resources\RoleResource;
 
-class ListRoles extends ListRecords
+class ListRoles extends BaseListRecords
 {
     protected static string $resource = RoleResource::class;
 
@@ -14,6 +14,7 @@ class ListRoles extends ListRecords
     {
         return [
             Actions\CreateAction::make(),
+            ...parent::getHeaderActions(),
         ];
     }
 }

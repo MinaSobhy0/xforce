@@ -3,10 +3,10 @@
 namespace Modules\Services\Filament\Resources\ServiceResource\Pages;
 
 use Filament\Actions;
-use Filament\Resources\Pages\ListRecords;
+use App\Filament\Resources\Pages\BaseListRecords;
 use Modules\Services\Filament\Resources\ServiceResource;
 
-class ListServices extends ListRecords
+class ListServices extends BaseListRecords
 {
     protected static string $resource = ServiceResource::class;
 
@@ -14,6 +14,7 @@ class ListServices extends ListRecords
     {
         return [
             Actions\CreateAction::make(),
+            ...parent::getHeaderActions(),
         ];
     }
 }
