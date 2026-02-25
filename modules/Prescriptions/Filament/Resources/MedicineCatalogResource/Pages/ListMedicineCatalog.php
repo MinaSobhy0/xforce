@@ -3,10 +3,10 @@
 namespace Modules\Prescriptions\Filament\Resources\MedicineCatalogResource\Pages;
 
 use Modules\Prescriptions\Filament\Resources\MedicineCatalogResource;
+use App\Filament\Resources\Pages\BaseListRecords;
 use Filament\Actions;
-use Filament\Resources\Pages\ListRecords;
 
-class ListMedicineCatalog extends ListRecords
+class ListMedicineCatalog extends BaseListRecords
 {
     protected static string $resource = MedicineCatalogResource::class;
 
