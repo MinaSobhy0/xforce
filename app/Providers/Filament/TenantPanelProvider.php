@@ -137,6 +137,9 @@ class TenantPanelProvider extends PanelProvider
             // Discover Reporting module pages
             ->discoverPages(in: base_path('modules/Reporting/Filament/Pages'), for: 'Modules\\Reporting\\Filament\\Pages')
 
+            // Discover Prescriptions module resources
+            ->discoverResources(in: base_path('modules/Prescriptions/Filament/Resources'), for: 'Modules\\Prescriptions\\Filament\\Resources')
+
             // Default pages (widgets are defined in Dashboard class)
             ->pages([
                 \App\Filament\Pages\Dashboard::class,

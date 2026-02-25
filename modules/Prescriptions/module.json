@@ -1,0 +1,118 @@
+{
+    "name": "Prescriptions",
+    "alias": "prescriptions",
+    "description": {
+        "en": "Medical prescription management system",
+        "ar": "نظام إدارة الوصفات الطبية"
+    },
+    "version": "1.0.0",
+    "category": "clinical",
+    "icon": "heroicon-o-clipboard-document-list",
+    "keywords": [
+        "prescriptions",
+        "medications",
+        "pharmacy",
+        "rx"
+    ],
+    "priority": 25,
+    "providers": [
+        "Modules\\Prescriptions\\Providers\\PrescriptionsServiceProvider"
+    ],
+    "dependencies": [
+        "Core",
+        "Auth",
+        "Patients"
+    ],
+    "optional_dependencies": [
+        "Booking"
+    ],
+    "models": [
+        "Modules\\Prescriptions\\Models\\Prescription",
+        "Modules\\Prescriptions\\Models\\PrescriptionItem"
+    ],
+    "permissions": {
+        "prescriptions.view_any": "View prescriptions list",
+        "prescriptions.view": "View prescription details",
+        "prescriptions.create": "Create new prescriptions",
+        "prescriptions.update": "Update prescriptions",
+        "prescriptions.delete": "Delete prescriptions",
+        "prescriptions.finalize": "Finalize prescriptions",
+        "prescriptions.cancel": "Cancel prescriptions",
+        "prescriptions.print": "Print prescriptions"
+    },
+    "default_role_permissions": {
+        "admin": [
+            "prescriptions.*"
+        ],
+        "manager": [
+            "prescriptions.*"
+        ],
+        "doctor": [
+            "prescriptions.*"
+        ],
+        "nurse": [
+            "prescriptions.view_any",
+            "prescriptions.view",
+            "prescriptions.print"
+        ],
+        "receptionist": [
+            "prescriptions.view_any",
+            "prescriptions.view",
+            "prescriptions.print"
+        ],
+        "staff": [
+            "prescriptions.view_any",
+            "prescriptions.view"
+        ]
+    },
+    "navigation": [
+        {
+            "id": "prescriptions",
+            "label": {
+                "en": "Prescriptions",
+                "ar": "الوصفات الطبية"
+            },
+            "icon": "heroicon-o-clipboard-document-list",
+            "route": "filament.tenant.resources.prescriptions.index",
+            "group": "operations",
+            "order": 25,
+            "permission": "prescriptions.view_any"
+        }
+    ],
+    "settings": {
+        "prescriptions.default_validity_days": {
+            "type": "integer",
+            "default": 30,
+            "label": {
+                "en": "Default Prescription Validity (days)",
+                "ar": "صلاحية الوصفة الافتراضية (أيام)"
+            }
+        },
+        "prescriptions.auto_print_on_finalize": {
+            "type": "boolean",
+            "default": false,
+            "label": {
+                "en": "Auto-print when finalized",
+                "ar": "طباعة تلقائية عند الاعتماد"
+            }
+        }
+    },
+    "sequences": [
+        {
+            "code": "prescription",
+            "prefix": "RX-",
+            "padding": 6
+        }
+    ],
+    "events": [
+        "PrescriptionCreated",
+        "PrescriptionFinalized",
+        "PrescriptionCancelled",
+        "PrescriptionPrinted"
+    ],
+    "active": true,
+    "display_name": {
+        "en": "Prescriptions",
+        "ar": "الوصفات الطبية"
+    }
+}

@@ -533,6 +533,233 @@
             </x-filament::section>
         </div>
 
+        {{-- Prescription Section --}}
+        <x-filament::section collapsible>
+            <x-slot name="heading">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <x-heroicon-o-clipboard-document-list class="w-5 h-5 text-blue-500" />
+                        {{ __('prescriptions::prescription.prescription') }}
+                    </div>
+                    @php $existingPrescriptions = $this->getAppointmentPrescriptions(); @endphp
+                    @if($existingPrescriptions->count() > 0)
+                        <span class="text-sm text-gray-500">
+                            {{ $existingPrescriptions->count() }} {{ __('prescriptions::prescription.prescriptions') }}
+                        </span>
+                    @endif
+                </div>
+            </x-slot>
+
+            {{-- Existing Prescriptions --}}
+            @if($existingPrescriptions->count() > 0)
+                <div class="mb-6 space-y-3">
+                    <div class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {{ __('prescriptions::prescription.sections.previous') }}
+                    </div>
+                    @foreach($existingPrescriptions as $prescription)
+                        <div class="p-3 border border-gray-200 dark:border-gray-700 rounded-lg {{ $prescription->status === 'finalized' ? 'bg-green-50 dark:bg-green-900/10' : 'bg-gray-50 dark:bg-gray-800' }}">
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-medium text-gray-900 dark:text-white text-sm">{{ $prescription->prescription_number }}</span>
+                                    <span class="px-2 py-0.5 text-xs rounded {{ $prescription->status === 'finalized' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-300' }}">
+                                        {{ $prescription->status_label }}
+                                    </span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    @if($prescription->canPrint())
+                                        <a href="{{ route('prescriptions.print', $prescription) }}" target="_blank" class="p-1.5 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded">
+                                            <x-heroicon-o-printer class="w-4 h-4" />
+                                        </a>
+                                    @endif
+                                    <a href="{{ route('filament.tenant.resources.prescriptions.view', $prescription) }}" class="p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
+                                        <x-heroicon-o-eye class="w-4 h-4" />
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">
+                                {{ $prescription->items->count() }} {{ __('prescriptions::prescription.fields.medications') }}
+                                @if($prescription->diagnosis)
+                                    - {{ Str::limit($prescription->diagnosis, 50) }}
+                                @endif
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
+
+            {{-- New Prescription Form --}}
+            <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
+                <div class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
+                    {{ __('prescriptions::prescription.sections.new_prescription') }}
+                </div>
+
+                {{-- Diagnosis --}}
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ __('prescriptions::prescription.fields.diagnosis') }}
+                    </label>
+                    <textarea
+                        wire:model="prescriptionDiagnosis"
+                        rows="2"
+                        class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm"
+                        placeholder="{{ __('prescriptions::prescription.placeholders.diagnosis') }}"
+                    ></textarea>
+                </div>
+
+                {{-- Medications --}}
+                <div class="mb-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            {{ __('prescriptions::prescription.sections.medications') }}
+                        </label>
+                        <button wire:click="addPrescriptionMedication" class="text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400 flex items-center gap-1">
+                            <x-heroicon-o-plus class="w-4 h-4" />
+                            {{ __('prescriptions::prescription.actions.add_medication') }}
+                        </button>
+                    </div>
+
+                    @if(count($prescriptionMedications) > 0)
+                        <div class="space-y-4">
+                            @foreach($prescriptionMedications as $index => $medication)
+                                <div class="p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800">
+                                    <div class="flex items-start justify-between mb-3">
+                                        <span class="inline-flex items-center justify-center w-6 h-6 bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300 text-xs font-bold rounded-full">
+                                            {{ $index + 1 }}
+                                        </span>
+                                        <button wire:click="removePrescriptionMedication({{ $index }})" class="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded">
+                                            <x-heroicon-o-trash class="w-4 h-4" />
+                                        </button>
+                                    </div>
+
+                                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                        {{-- Medication Name --}}
+                                        <div class="col-span-2">
+                                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ __('prescriptions::prescription.fields.medication_name') }} *</label>
+                                            <input type="text" wire:model="prescriptionMedications.{{ $index }}.medication_name" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm" placeholder="e.g., Amoxicillin" />
+                                        </div>
+
+                                        {{-- Form --}}
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ __('prescriptions::prescription.fields.form') }}</label>
+                                            <select wire:model="prescriptionMedications.{{ $index }}.form" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm">
+                                                @foreach($this->getPrescriptionForms() as $key => $label)
+                                                    <option value="{{ $key }}">{{ $label }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+
+                                        {{-- Dosage --}}
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ __('prescriptions::prescription.fields.dosage') }}</label>
+                                            <div class="flex gap-1">
+                                                <input type="text" wire:model="prescriptionMedications.{{ $index }}.dosage" class="flex-1 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm" placeholder="500" />
+                                                <select wire:model="prescriptionMedications.{{ $index }}.dosage_unit" class="w-16 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm">
+                                                    @foreach($this->getPrescriptionDosageUnits() as $key => $label)
+                                                        <option value="{{ $key }}">{{ $label }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        {{-- Frequency --}}
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ __('prescriptions::prescription.fields.frequency') }} *</label>
+                                            <select wire:model="prescriptionMedications.{{ $index }}.frequency" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm">
+                                                @foreach($this->getPrescriptionFrequencies() as $key => $label)
+                                                    <option value="{{ $key }}">{{ $label }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+
+                                        {{-- Duration --}}
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ __('prescriptions::prescription.fields.duration') }}</label>
+                                            <div class="flex gap-1">
+                                                <input type="number" wire:model="prescriptionMedications.{{ $index }}.duration" class="flex-1 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm" min="1" placeholder="7" />
+                                                <select wire:model="prescriptionMedications.{{ $index }}.duration_unit" class="w-20 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm">
+                                                    @foreach($this->getPrescriptionDurationUnits() as $key => $label)
+                                                        <option value="{{ $key }}">{{ $label }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        {{-- Route --}}
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ __('prescriptions::prescription.fields.route') }}</label>
+                                            <select wire:model="prescriptionMedications.{{ $index }}.route" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm">
+                                                @foreach($this->getPrescriptionRoutes() as $key => $label)
+                                                    <option value="{{ $key }}">{{ $label }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+
+                                        {{-- Quantity --}}
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ __('prescriptions::prescription.fields.quantity') }}</label>
+                                            <input type="number" wire:model="prescriptionMedications.{{ $index }}.quantity" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm" min="1" />
+                                        </div>
+
+                                        {{-- Instructions --}}
+                                        <div class="col-span-2">
+                                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ __('prescriptions::prescription.fields.instructions') }}</label>
+                                            <select wire:model="prescriptionMedications.{{ $index }}.instructions" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm">
+                                                <option value="">{{ __('Select...') }}</option>
+                                                @foreach($this->getPrescriptionInstructions() as $key => $label)
+                                                    <option value="{{ $key }}">{{ $label }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+
+                                        {{-- Special Instructions --}}
+                                        <div class="col-span-2">
+                                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ __('prescriptions::prescription.fields.special_instructions') }}</label>
+                                            <input type="text" wire:model="prescriptionMedications.{{ $index }}.special_instructions" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm" placeholder="{{ __('prescriptions::prescription.placeholders.special_notes') }}" />
+                                        </div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <div class="text-center py-6 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
+                            <x-heroicon-o-clipboard-document-list class="w-10 h-10 mx-auto text-gray-400 mb-2" />
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">{{ __('prescriptions::prescription.placeholders.no_medications') }}</p>
+                            <button wire:click="addPrescriptionMedication" class="text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400 font-medium">
+                                {{ __('prescriptions::prescription.actions.add_medication') }}
+                            </button>
+                        </div>
+                    @endif
+                </div>
+
+                {{-- Notes --}}
+                @if(count($prescriptionMedications) > 0)
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            {{ __('prescriptions::prescription.fields.notes') }}
+                        </label>
+                        <textarea
+                            wire:model="prescriptionNotes"
+                            rows="2"
+                            class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm"
+                            placeholder="{{ __('prescriptions::prescription.placeholders.additional_instructions') }}"
+                        ></textarea>
+                    </div>
+
+                    {{-- Actions --}}
+                    <div class="flex items-center justify-end gap-3">
+                        <x-filament::button wire:click="savePrescriptionDraft" color="gray" size="sm">
+                            <x-heroicon-o-document class="w-4 h-4 mr-1" />
+                            {{ __('prescriptions::prescription.actions.save_draft') }}
+                        </x-filament::button>
+                        <x-filament::button wire:click="finalizePrescription" color="success" size="sm">
+                            <x-heroicon-o-check-circle class="w-4 h-4 mr-1" />
+                            {{ __('prescriptions::prescription.actions.finalize') }}
+                        </x-filament::button>
+                    </div>
+                @endif
+            </div>
+        </x-filament::section>
+
         {{-- Main Content Grid --}}
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {{-- Left Column --}}

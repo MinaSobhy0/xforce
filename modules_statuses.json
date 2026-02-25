@@ -19,5 +19,6 @@
     "PatientPortal": true,
     "Api": true,
     "Attendance": true,
-    "TreatmentPlans": true
+    "TreatmentPlans": true,
+    "Prescriptions": true
 }

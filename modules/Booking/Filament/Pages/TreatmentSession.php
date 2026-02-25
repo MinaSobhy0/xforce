@@ -103,6 +103,11 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
     public ?float $newProductQty = 1;
     public ?string $newProductUsageType = 'applied';
 
+    // Prescription data
+    public array $prescriptionMedications = [];
+    public ?string $prescriptionDiagnosis = null;
+    public ?string $prescriptionNotes = null;
+
     public function mount(): void
     {
         $this->loadAppointment();
@@ -1299,5 +1304,210 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
     public function getProductUsageTypes(): array
     {
         return SessionProduct::USAGE_TYPES;
+    }
+
+    // ============================================
+    // PRESCRIPTION METHODS
+    // ============================================
+
+    /**
+     * Get existing prescriptions for this appointment.
+     */
+    public function getAppointmentPrescriptions(): \Illuminate\Support\Collection
+    {
+        if (!$this->appointment) {
+            return collect();
+        }
+
+        return \Modules\Prescriptions\Models\Prescription::query()
+            ->where('appointment_id', $this->appointment->id)
+            ->with('items')
+            ->orderByDesc('created_at')
+            ->get();
+    }
+
+    /**
+     * Add a new medication row to the prescription form.
+     */
+    public function addPrescriptionMedication(): void
+    {
+        $this->prescriptionMedications[] = [
+            'medication_name' => '',
+            'generic_name' => '',
+            'dosage' => '',
+            'dosage_unit' => 'mg',
+            'form' => 'tablet',
+            'frequency' => 'twice_daily',
+            'duration' => '',
+            'duration_unit' => 'days',
+            'quantity' => '',
+            'route' => 'oral',
+            'instructions' => '',
+            'special_instructions' => '',
+        ];
+    }
+
+    /**
+     * Remove a medication row from the prescription form.
+     */
+    public function removePrescriptionMedication(int $index): void
+    {
+        if (isset($this->prescriptionMedications[$index])) {
+            unset($this->prescriptionMedications[$index]);
+            $this->prescriptionMedications = array_values($this->prescriptionMedications);
+        }
+    }
+
+    /**
+     * Save prescription as draft.
+     */
+    public function savePrescriptionDraft(): void
+    {
+        if (empty($this->prescriptionMedications)) {
+            Notification::make()
+                ->title(__('prescriptions::prescription.messages.no_medications'))
+                ->warning()
+                ->send();
+            return;
+        }
+
+        $this->createPrescription(false);
+    }
+
+    /**
+     * Finalize and optionally print prescription.
+     */
+    public function finalizePrescription(): void
+    {
+        if (empty($this->prescriptionMedications)) {
+            Notification::make()
+                ->title(__('prescriptions::prescription.messages.no_medications'))
+                ->warning()
+                ->send();
+            return;
+        }
+
+        $prescription = $this->createPrescription(true);
+
+        if ($prescription) {
+            Notification::make()
+                ->title(__('prescriptions::prescription.messages.finalized'))
+                ->success()
+                ->send();
+        }
+    }
+
+    /**
+     * Create a prescription with medications.
+     */
+    protected function createPrescription(bool $finalize): ?\Modules\Prescriptions\Models\Prescription
+    {
+        if (!$this->appointment || empty($this->prescriptionMedications)) {
+            return null;
+        }
+
+        try {
+            return DB::transaction(function () use ($finalize) {
+                $prescription = \Modules\Prescriptions\Models\Prescription::create([
+                    'tenant_id' => $this->appointment->tenant_id,
+                    'patient_id' => $this->appointment->patient_id,
+                    'prescriber_id' => auth()->id(),
+                    'appointment_id' => $this->appointment->id,
+                    'branch_id' => $this->appointment->branch_id,
+                    'diagnosis' => $this->prescriptionDiagnosis,
+                    'notes' => $this->prescriptionNotes,
+                    'status' => $finalize ? \Modules\Prescriptions\Models\Prescription::STATUS_FINALIZED : \Modules\Prescriptions\Models\Prescription::STATUS_DRAFT,
+                    'issued_at' => $finalize ? now() : null,
+                    'finalized_at' => $finalize ? now() : null,
+                    'finalized_by' => $finalize ? auth()->id() : null,
+                ]);
+
+                foreach ($this->prescriptionMedications as $index => $med) {
+                    if (empty($med['medication_name'])) {
+                        continue;
+                    }
+
+                    \Modules\Prescriptions\Models\PrescriptionItem::create([
+                        'tenant_id' => $this->appointment->tenant_id,
+                        'prescription_id' => $prescription->id,
+                        'medication_name' => $med['medication_name'],
+                        'generic_name' => $med['generic_name'] ?? null,
+                        'dosage' => $med['dosage'] ?? null,
+                        'dosage_unit' => $med['dosage_unit'] ?? null,
+                        'form' => $med['form'] ?? null,
+                        'frequency' => $med['frequency'] ?? null,
+                        'duration' => $med['duration'] ?? null,
+                        'duration_unit' => $med['duration_unit'] ?? null,
+                        'quantity' => $med['quantity'] ?? null,
+                        'route' => $med['route'] ?? null,
+                        'instructions' => $med['instructions'] ?? null,
+                        'special_instructions' => $med['special_instructions'] ?? null,
+                        'sort_order' => $index,
+                    ]);
+                }
+
+                // Clear the form
+                $this->prescriptionMedications = [];
+                $this->prescriptionDiagnosis = null;
+                $this->prescriptionNotes = null;
+
+                return $prescription;
+            });
+        } catch (\Exception $e) {
+            Notification::make()
+                ->title(__('prescriptions::prescription.messages.error'))
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
+            return null;
+        }
+    }
+
+    /**
+     * Get prescription frequency options.
+     */
+    public function getPrescriptionFrequencies(): array
+    {
+        return \Modules\Prescriptions\Models\PrescriptionItem::FREQUENCIES;
+    }
+
+    /**
+     * Get prescription route options.
+     */
+    public function getPrescriptionRoutes(): array
+    {
+        return \Modules\Prescriptions\Models\PrescriptionItem::ROUTES;
+    }
+
+    /**
+     * Get prescription form options.
+     */
+    public function getPrescriptionForms(): array
+    {
+        return \Modules\Prescriptions\Models\PrescriptionItem::FORMS;
+    }
+
+    /**
+     * Get prescription instruction options.
+     */
+    public function getPrescriptionInstructions(): array
+    {
+        return \Modules\Prescriptions\Models\PrescriptionItem::INSTRUCTIONS;
+    }
+
+    /**
+     * Get duration unit options.
+     */
+    public function getPrescriptionDurationUnits(): array
+    {
+        return \Modules\Prescriptions\Models\PrescriptionItem::DURATION_UNITS;
+    }
+
+    /**
+     * Get dosage unit options.
+     */
+    public function getPrescriptionDosageUnits(): array
+    {
+        return \Modules\Prescriptions\Models\PrescriptionItem::DOSAGE_UNITS;
     }
 }
