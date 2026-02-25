@@ -628,7 +628,7 @@
                                 </div>
                                 <div class="flex items-center gap-2">
                                     @if($prescription->canPrint())
-                                        <a href="{{ route('prescriptions.print', $prescription) }}" target="_blank" class="p-1.5 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded">
+                                        <a href="{{ route('filament.tenant.prescriptions.print', ['prescription' => $prescription->id]) }}" target="_blank" class="p-1.5 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded">
                                             <x-heroicon-o-printer class="w-4 h-4" />
                                         </a>
                                     @endif
