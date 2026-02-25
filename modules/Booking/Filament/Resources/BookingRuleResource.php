@@ -100,110 +100,7 @@ class BookingRuleResource extends Resource
                             ->default(true),
                     ]),
 
-                // Scope Section
-                Forms\Components\Section::make(__('booking::config.scope'))
-                    ->description(__('booking::config.scope_desc'))
-                    ->schema([
-                        Forms\Components\Grid::make(3)
-                            ->schema([
-                                Forms\Components\Select::make('scope_level')
-                                    ->label(__('booking::config.scope_level'))
-                                    ->options(BookingRule::SCOPE_LEVELS)
-                                    ->default(BookingRule::SCOPE_TENANT)
-                                    ->live()
-                                    ->required(),
-
-                                Forms\Components\Select::make('branch_id')
-                                    ->label(__('booking::config.branch'))
-                                    ->options(fn () => Branch::pluck('name', 'id'))
-                                    ->visible(fn (Get $get) => in_array($get('scope_level'), [
-                                        BookingRule::SCOPE_BRANCH,
-                                        BookingRule::SCOPE_SERVICE,
-                                    ]))
-                                    ->searchable(),
-
-                                Forms\Components\Select::make('service_id')
-                                    ->label(__('booking::config.service'))
-                                    ->options(fn () => Service::where('is_active', true)->pluck('name', 'id'))
-                                    ->visible(fn (Get $get) => $get('scope_level') === BookingRule::SCOPE_SERVICE)
-                                    ->searchable(),
-                            ]),
-                    ]),
-
-                // Conditions Section
-                Forms\Components\Section::make(__('booking::config.conditions'))
-                    ->description(__('booking::config.conditions_desc'))
-                    ->schema([
-                        // Days of Week
-                        Forms\Components\CheckboxList::make('conditions.days_of_week')
-                            ->label(__('booking::config.days_of_week'))
-                            ->options(BookingRule::DAYS_OF_WEEK)
-                            ->columns(7)
-                            ->columnSpanFull()
-                            ->helperText(__('booking::config.leave_empty_all')),
-
-                        Forms\Components\Grid::make(2)
-                            ->schema([
-                                // Time Range
-                                Forms\Components\Fieldset::make(__('booking::config.time_range'))
-                                    ->schema([
-                                        Forms\Components\TimePicker::make('conditions.time_range.start')
-                                            ->label(__('booking::config.start_time'))
-                                            ->seconds(false),
-                                        Forms\Components\TimePicker::make('conditions.time_range.end')
-                                            ->label(__('booking::config.end_time'))
-                                            ->seconds(false),
-                                    ]),
-
-                                // Date Range
-                                Forms\Components\Fieldset::make(__('booking::config.date_range'))
-                                    ->schema([
-                                        Forms\Components\DatePicker::make('conditions.date_range.start')
-                                            ->label(__('booking::config.start_date')),
-                                        Forms\Components\DatePicker::make('conditions.date_range.end')
-                                            ->label(__('booking::config.end_date')),
-                                    ]),
-                            ]),
-
-                        Forms\Components\Grid::make(2)
-                            ->schema([
-                                Forms\Components\Select::make('conditions.services')
-                                    ->label(__('booking::config.apply_to_services'))
-                                    ->options(fn () => Service::where('is_active', true)->pluck('name', 'id'))
-                                    ->multiple()
-                                    ->searchable()
-                                    ->helperText(__('booking::config.leave_empty_all')),
-
-                                Forms\Components\Select::make('conditions.practitioners')
-                                    ->label(__('booking::config.apply_to_practitioners'))
-                                    ->options(fn () => User::whereHas('roles', fn ($q) => $q->whereIn('name', ['doctor', 'practitioner', 'therapist']))
-                                        ->get()
-                                        ->pluck('full_name', 'id'))
-                                    ->multiple()
-                                    ->searchable()
-                                    ->helperText(__('booking::config.leave_empty_all')),
-                            ]),
-
-                        Forms\Components\Grid::make(2)
-                            ->schema([
-                                Forms\Components\Select::make('conditions.booking_source')
-                                    ->label(__('booking::config.booking_source'))
-                                    ->options(BookingRule::BOOKING_SOURCES)
-                                    ->multiple()
-                                    ->helperText(__('booking::config.leave_empty_all')),
-
-                                Forms\Components\Select::make('conditions.patient_type')
-                                    ->label(__('booking::config.patient_type'))
-                                    ->options([
-                                        'new' => __('booking::config.new_patient'),
-                                        'returning' => __('booking::config.returning_patient'),
-                                    ])
-                                    ->placeholder(__('booking::config.all_patients')),
-                            ]),
-                    ])
-                    ->collapsible(),
-
-                // Actions Section - Dynamic based on rule type
+                // Actions Section - Dynamic based on rule type (moved directly after Rule Identification)
                 Forms\Components\Section::make(__('booking::config.actions'))
                     ->description(fn (Get $get) => BookingRule::RULE_TYPE_DESCRIPTIONS[$get('rule_type')] ?? __('booking::config.actions_desc'))
                     ->schema([
@@ -665,6 +562,110 @@ class BookingRuleResource extends Resource
                                 ->helperText(__('booking::config.strict_practitioner_help')),
                         ])->visible(fn (Get $get) => $get('rule_type') === BookingRule::TYPE_PRACTITIONER_REQUIRED),
                     ]),
+
+                // Scope Section
+                Forms\Components\Section::make(__('booking::config.scope'))
+                    ->description(__('booking::config.scope_desc'))
+                    ->collapsible()
+                    ->schema([
+                        Forms\Components\Grid::make(3)
+                            ->schema([
+                                Forms\Components\Select::make('scope_level')
+                                    ->label(__('booking::config.scope_level'))
+                                    ->options(BookingRule::SCOPE_LEVELS)
+                                    ->default(BookingRule::SCOPE_TENANT)
+                                    ->live()
+                                    ->required(),
+
+                                Forms\Components\Select::make('branch_id')
+                                    ->label(__('booking::config.branch'))
+                                    ->options(fn () => Branch::pluck('name', 'id'))
+                                    ->visible(fn (Get $get) => in_array($get('scope_level'), [
+                                        BookingRule::SCOPE_BRANCH,
+                                        BookingRule::SCOPE_SERVICE,
+                                    ]))
+                                    ->searchable(),
+
+                                Forms\Components\Select::make('service_id')
+                                    ->label(__('booking::config.service'))
+                                    ->options(fn () => Service::where('is_active', true)->pluck('name', 'id'))
+                                    ->visible(fn (Get $get) => $get('scope_level') === BookingRule::SCOPE_SERVICE)
+                                    ->searchable(),
+                            ]),
+                    ]),
+
+                // Conditions Section
+                Forms\Components\Section::make(__('booking::config.conditions'))
+                    ->description(__('booking::config.conditions_desc'))
+                    ->schema([
+                        // Days of Week
+                        Forms\Components\CheckboxList::make('conditions.days_of_week')
+                            ->label(__('booking::config.days_of_week'))
+                            ->options(BookingRule::DAYS_OF_WEEK)
+                            ->columns(7)
+                            ->columnSpanFull()
+                            ->helperText(__('booking::config.leave_empty_all')),
+
+                        Forms\Components\Grid::make(2)
+                            ->schema([
+                                // Time Range
+                                Forms\Components\Fieldset::make(__('booking::config.time_range'))
+                                    ->schema([
+                                        Forms\Components\TimePicker::make('conditions.time_range.start')
+                                            ->label(__('booking::config.start_time'))
+                                            ->seconds(false),
+                                        Forms\Components\TimePicker::make('conditions.time_range.end')
+                                            ->label(__('booking::config.end_time'))
+                                            ->seconds(false),
+                                    ]),
+
+                                // Date Range
+                                Forms\Components\Fieldset::make(__('booking::config.date_range'))
+                                    ->schema([
+                                        Forms\Components\DatePicker::make('conditions.date_range.start')
+                                            ->label(__('booking::config.start_date')),
+                                        Forms\Components\DatePicker::make('conditions.date_range.end')
+                                            ->label(__('booking::config.end_date')),
+                                    ]),
+                            ]),
+
+                        Forms\Components\Grid::make(2)
+                            ->schema([
+                                Forms\Components\Select::make('conditions.services')
+                                    ->label(__('booking::config.apply_to_services'))
+                                    ->options(fn () => Service::where('is_active', true)->pluck('name', 'id'))
+                                    ->multiple()
+                                    ->searchable()
+                                    ->helperText(__('booking::config.leave_empty_all')),
+
+                                Forms\Components\Select::make('conditions.practitioners')
+                                    ->label(__('booking::config.apply_to_practitioners'))
+                                    ->options(fn () => User::whereHas('roles', fn ($q) => $q->whereIn('name', ['doctor', 'practitioner', 'therapist']))
+                                        ->get()
+                                        ->pluck('full_name', 'id'))
+                                    ->multiple()
+                                    ->searchable()
+                                    ->helperText(__('booking::config.leave_empty_all')),
+                            ]),
+
+                        Forms\Components\Grid::make(2)
+                            ->schema([
+                                Forms\Components\Select::make('conditions.booking_source')
+                                    ->label(__('booking::config.booking_source'))
+                                    ->options(BookingRule::BOOKING_SOURCES)
+                                    ->multiple()
+                                    ->helperText(__('booking::config.leave_empty_all')),
+
+                                Forms\Components\Select::make('conditions.patient_type')
+                                    ->label(__('booking::config.patient_type'))
+                                    ->options([
+                                        'new' => __('booking::config.new_patient'),
+                                        'returning' => __('booking::config.returning_patient'),
+                                    ])
+                                    ->placeholder(__('booking::config.all_patients')),
+                            ]),
+                    ])
+                    ->collapsible(),
             ]);
     }
 
