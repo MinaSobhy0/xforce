@@ -269,13 +269,25 @@ return [
     'time' => 'Time',
     'room' => 'Room',
 
+    // Current Configuration
+    'current_configuration' => 'Current Configuration',
+    'current_configuration_desc' => 'These values are derived from active tenant-level booking rules',
+    'config_from_rules_note' => 'Configuration is derived from booking rules. Edit or create rules to change these defaults.',
+    'rules_by_category' => 'Rules by Category',
+    'advance_booking' => 'Advance Booking',
+    'default_buffer' => 'Default Buffer',
+    'default_working_hours' => 'Default Working Hours',
+    'default_advance_booking' => 'Default Minimum Advance',
+    'default_max_advance' => 'Default Maximum Advance',
+    'showing_first_20' => 'Showing first 20 slots',
+
     // Stats
     'active_rules' => 'Active Rules',
     'upcoming_blackouts' => 'Upcoming Blackouts',
     'no_upcoming_blackouts' => 'No upcoming blackouts',
     'no_rules' => 'No Rules Configured',
     'no_rules_desc' => 'Create booking rules to customize slot availability',
-    'rules_description' => 'Rules that affect slot availability',
+    'rules_description' => 'Rules that affect slot availability and booking behavior',
 
     // Actions
     'add_rule' => 'Add Rule',
