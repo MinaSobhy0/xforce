@@ -618,6 +618,36 @@
                         </button>
                     </div>
 
+                    {{-- Quick Add from Catalog --}}
+                    @php $availableMedicines = $this->getAvailableMedicines(); @endphp
+                    @if($availableMedicines->count() > 0)
+                        <div class="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
+                            <div class="flex items-center gap-2 mb-2">
+                                <x-heroicon-o-beaker class="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                <span class="text-sm font-medium text-blue-700 dark:text-blue-300">{{ __('prescriptions::prescription.catalog.quick_add') }}</span>
+                            </div>
+                            <div class="flex gap-2">
+                                <select
+                                    id="medicine-catalog-select"
+                                    class="flex-1 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm"
+                                    onchange="if(this.value) { @this.call('addMedicineFromCatalog', this.value); this.value=''; }"
+                                >
+                                    <option value="">{{ __('prescriptions::prescription.catalog.select_medicine') }}</option>
+                                    @foreach($availableMedicines->groupBy('category') as $category => $medicines)
+                                        <optgroup label="{{ \Modules\Prescriptions\Models\MedicineCatalog::CATEGORIES[$category] ?? $category }}">
+                                            @foreach($medicines as $medicine)
+                                                <option value="{{ $medicine->id }}">
+                                                    {{ $medicine->full_name }}
+                                                </option>
+                                            @endforeach
+                                        </optgroup>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <p class="text-xs text-blue-600 dark:text-blue-400 mt-1">{{ __('prescriptions::prescription.catalog.quick_add_help') }}</p>
+                        </div>
+                    @endif
+
                     @if(count($prescriptionMedications) > 0)
                         <div class="space-y-4">
                             @foreach($prescriptionMedications as $index => $medication)

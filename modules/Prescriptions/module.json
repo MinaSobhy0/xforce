@@ -38,31 +38,47 @@
         "prescriptions.delete": "Delete prescriptions",
         "prescriptions.finalize": "Finalize prescriptions",
         "prescriptions.cancel": "Cancel prescriptions",
-        "prescriptions.print": "Print prescriptions"
+        "prescriptions.print": "Print prescriptions",
+        "medicine_catalog.view_any": "View medicine catalog",
+        "medicine_catalog.view": "View medicine details",
+        "medicine_catalog.create": "Add medicines to catalog",
+        "medicine_catalog.update": "Update medicines",
+        "medicine_catalog.delete": "Delete medicines"
     },
     "default_role_permissions": {
         "admin": [
-            "prescriptions.*"
+            "prescriptions.*",
+            "medicine_catalog.*"
         ],
         "manager": [
-            "prescriptions.*"
+            "prescriptions.*",
+            "medicine_catalog.*"
         ],
         "doctor": [
-            "prescriptions.*"
+            "prescriptions.*",
+            "medicine_catalog.view_any",
+            "medicine_catalog.view",
+            "medicine_catalog.create"
         ],
         "nurse": [
             "prescriptions.view_any",
             "prescriptions.view",
-            "prescriptions.print"
+            "prescriptions.print",
+            "medicine_catalog.view_any",
+            "medicine_catalog.view"
         ],
         "receptionist": [
             "prescriptions.view_any",
             "prescriptions.view",
-            "prescriptions.print"
+            "prescriptions.print",
+            "medicine_catalog.view_any",
+            "medicine_catalog.view"
         ],
         "staff": [
             "prescriptions.view_any",
-            "prescriptions.view"
+            "prescriptions.view",
+            "medicine_catalog.view_any",
+            "medicine_catalog.view"
         ]
     },
     "navigation": [

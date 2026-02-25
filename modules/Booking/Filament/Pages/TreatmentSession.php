@@ -1510,4 +1510,30 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
     {
         return \Modules\Prescriptions\Models\PrescriptionItem::DOSAGE_UNITS;
     }
+
+    /**
+     * Get available medicines from catalog for selection.
+     */
+    public function getAvailableMedicines(): \Illuminate\Support\Collection
+    {
+        return \Modules\Prescriptions\Models\MedicineCatalog::query()
+            ->withSystemMedicines()
+            ->active()
+            ->orderBy('brand_name')
+            ->get();
+    }
+
+    /**
+     * Add medication from catalog.
+     */
+    public function addMedicineFromCatalog(string $medicineId): void
+    {
+        $medicine = \Modules\Prescriptions\Models\MedicineCatalog::find($medicineId);
+
+        if (!$medicine) {
+            return;
+        }
+
+        $this->prescriptionMedications[] = $medicine->toPrescriptionItemData();
+    }
 }
