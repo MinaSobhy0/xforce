@@ -314,7 +314,7 @@ class JournalEntryResource extends Resource
                     ->action(fn (JournalEntry $record, array $data) => $record->reverse($data['description'])),
             ])
             ->bulkActions([])
-            ->defaultSort('date', 'desc');
+            ->defaultSort('created_at', 'desc');
     }
 
     public static function getRelations(): array
