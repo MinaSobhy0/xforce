@@ -5,6 +5,8 @@ namespace Modules\Booking\Filament\Resources;
 use App\Traits\ChecksResourcePermissions;
 use Modules\Booking\Filament\Resources\PractitionerTimeOffResource\Pages;
 use Modules\Booking\Models\PractitionerTimeOff;
+use Modules\Booking\Models\TimeOffAllocation;
+use Modules\Booking\Models\TimeOffType;
 use Modules\Auth\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -60,21 +62,56 @@ class PractitionerTimeOffResource extends Resource
                                     ->getOptionLabelFromRecordUsing(fn (User $record) => $record->full_name)
                                     ->searchable()
                                     ->preload()
-                                    ->required(),
+                                    ->required()
+                                    ->live(),
 
-                                Forms\Components\Select::make('type')
-                                    ->label(__('booking::time_off.fields.type'))
-                                    ->options(PractitionerTimeOff::TYPES)
-                                    ->required(),
+                                Forms\Components\Select::make('time_off_type_id')
+                                    ->label(__('booking::time_off.fields.time_off_type'))
+                                    ->relationship('timeOffType', 'name', fn ($query) => $query->active()->ordered())
+                                    ->searchable()
+                                    ->preload()
+                                    ->live()
+                                    ->afterStateUpdated(function ($state, Forms\Get $get, Forms\Set $set) {
+                                        // Auto-calculate days when type changes
+                                        $startDate = $get('start_date');
+                                        $endDate = $get('end_date');
+                                        if ($startDate && $endDate) {
+                                            $days = \Carbon\Carbon::parse($startDate)->diffInDays(\Carbon\Carbon::parse($endDate)) + 1;
+                                            $set('days_requested', $days);
+                                        }
+                                    })
+                                    ->helperText(function (Forms\Get $get) {
+                                        $userId = $get('user_id');
+                                        $typeId = $get('time_off_type_id');
+                                        if ($userId && $typeId) {
+                                            $allocation = TimeOffAllocation::where('user_id', $userId)
+                                                ->where('time_off_type_id', $typeId)
+                                                ->where('year', now()->year)
+                                                ->first();
+                                            if ($allocation) {
+                                                return __('booking::time_off.fields.remaining_days', ['days' => number_format($allocation->remaining_days, 1)]);
+                                            }
+                                        }
+                                        return null;
+                                    }),
                             ]),
 
-                        Forms\Components\Select::make('branch_id')
-                            ->label(__('booking::time_off.fields.branch'))
-                            ->relationship('branch', 'name')
-                            ->searchable()
-                            ->preload()
-                            ->default(fn () => current_branch_id())
-                            ->helperText(__('booking::time_off.fields.branch_help')),
+                        Forms\Components\Grid::make(2)
+                            ->schema([
+                                Forms\Components\Select::make('type')
+                                    ->label(__('booking::time_off.fields.legacy_type'))
+                                    ->options(PractitionerTimeOff::TYPES)
+                                    ->visible(fn (Forms\Get $get) => !$get('time_off_type_id'))
+                                    ->helperText(__('booking::time_off.fields.legacy_type_help')),
+
+                                Forms\Components\Select::make('branch_id')
+                                    ->label(__('booking::time_off.fields.branch'))
+                                    ->relationship('branch', 'name')
+                                    ->searchable()
+                                    ->preload()
+                                    ->default(fn () => current_branch_id())
+                                    ->helperText(__('booking::time_off.fields.branch_help')),
+                            ]),
                     ]),
 
                 Forms\Components\Section::make(__('booking::time_off.sections.period'))
@@ -84,18 +121,42 @@ class PractitionerTimeOffResource extends Resource
                             ->default(true)
                             ->live(),
 
-                        Forms\Components\Grid::make(2)
+                        Forms\Components\Grid::make(3)
                             ->schema([
                                 Forms\Components\DatePicker::make('start_date')
                                     ->label(__('booking::time_off.fields.start_date'))
                                     ->native(false)
-                                    ->required(),
+                                    ->required()
+                                    ->live()
+                                    ->afterStateUpdated(function ($state, Forms\Get $get, Forms\Set $set) {
+                                        $endDate = $get('end_date');
+                                        if ($state && $endDate) {
+                                            $days = \Carbon\Carbon::parse($state)->diffInDays(\Carbon\Carbon::parse($endDate)) + 1;
+                                            $set('days_requested', $days);
+                                        }
+                                    }),
 
                                 Forms\Components\DatePicker::make('end_date')
                                     ->label(__('booking::time_off.fields.end_date'))
                                     ->native(false)
                                     ->required()
-                                    ->afterOrEqual('start_date'),
+                                    ->afterOrEqual('start_date')
+                                    ->live()
+                                    ->afterStateUpdated(function ($state, Forms\Get $get, Forms\Set $set) {
+                                        $startDate = $get('start_date');
+                                        if ($startDate && $state) {
+                                            $days = \Carbon\Carbon::parse($startDate)->diffInDays(\Carbon\Carbon::parse($state)) + 1;
+                                            $set('days_requested', $days);
+                                        }
+                                    }),
+
+                                Forms\Components\TextInput::make('days_requested')
+                                    ->label(__('booking::time_off.fields.days_requested'))
+                                    ->numeric()
+                                    ->step(0.5)
+                                    ->minValue(0.5)
+                                    ->visible(fn (Forms\Get $get) => $get('time_off_type_id'))
+                                    ->helperText(__('booking::time_off.fields.days_requested_help')),
                             ]),
 
                         Forms\Components\Grid::make(2)
@@ -137,10 +198,18 @@ class PractitionerTimeOffResource extends Resource
                     ->searchable(['first_name', 'last_name'])
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('type')
-                    ->label(__('booking::time_off.fields.type'))
-                    ->formatStateUsing(fn (string $state): string => PractitionerTimeOff::TYPES[$state] ?? $state)
+                Tables\Columns\TextColumn::make('timeOffType.name')
+                    ->label(__('booking::time_off.fields.time_off_type'))
+                    ->badge()
+                    ->color(fn ($record) => $record->timeOffType?->color ?? 'gray')
+                    ->placeholder(fn ($record) => PractitionerTimeOff::TYPES[$record->type] ?? $record->type)
                     ->sortable(),
+
+                Tables\Columns\TextColumn::make('days_requested')
+                    ->label(__('booking::time_off.fields.days_requested'))
+                    ->numeric(decimalPlaces: 1)
+                    ->placeholder('-')
+                    ->toggleable(),
 
                 Tables\Columns\TextColumn::make('formatted_period')
                     ->label(__('booking::time_off.fields.period')),
@@ -183,9 +252,11 @@ class PractitionerTimeOffResource extends Resource
                     ->preload()
                     ->searchable(),
 
-                Tables\Filters\SelectFilter::make('type')
-                    ->label(__('booking::time_off.fields.type'))
-                    ->options(PractitionerTimeOff::TYPES),
+                Tables\Filters\SelectFilter::make('time_off_type_id')
+                    ->label(__('booking::time_off.fields.time_off_type'))
+                    ->relationship('timeOffType', 'name')
+                    ->searchable()
+                    ->preload(),
 
                 Tables\Filters\SelectFilter::make('status')
                     ->label(__('booking::time_off.fields.status'))
@@ -270,6 +341,6 @@ class PractitionerTimeOffResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->with(['practitioner', 'branch', 'approvedBy']);
+            ->with(['practitioner', 'branch', 'approvedBy', 'timeOffType']);
     }
 }

@@ -18,12 +18,14 @@ class PractitionerTimeOff extends BaseModel
         'tenant_id',
         'user_id',
         'branch_id',
+        'time_off_type_id',
         'type',
         'start_date',
         'end_date',
         'start_time',
         'end_time',
         'is_full_day',
+        'days_requested',
         'reason',
         'status',
         'approved_by_user_id',
@@ -35,6 +37,7 @@ class PractitionerTimeOff extends BaseModel
         'start_date' => 'date',
         'end_date' => 'date',
         'is_full_day' => 'boolean',
+        'days_requested' => 'decimal:1',
         'approved_at' => 'datetime',
     ];
 
@@ -100,6 +103,11 @@ class PractitionerTimeOff extends BaseModel
         return $this->belongsTo(User::class, 'approved_by_user_id');
     }
 
+    public function timeOffType(): BelongsTo
+    {
+        return $this->belongsTo(TimeOffType::class);
+    }
+
     public function getTypeLabelAttribute(): string
     {
         return self::TYPES[$this->type] ?? $this->type;
@@ -162,11 +170,23 @@ class PractitionerTimeOff extends BaseModel
             return false;
         }
 
-        return $this->update([
+        $result = $this->update([
             'status' => self::STATUS_APPROVED,
             'approved_by_user_id' => $approvedByUserId,
             'approved_at' => now(),
         ]);
+
+        // Deduct days from allocation if using typed time off
+        if ($result && $this->time_off_type_id && $this->days_requested) {
+            $allocation = TimeOffAllocation::getOrCreate(
+                $this->user_id,
+                $this->time_off_type_id,
+                $this->start_date->year
+            );
+            $allocation->useDays($this->days_requested);
+        }
+
+        return $result;
     }
 
     public function reject(string $approvedByUserId, ?string $notes = null): bool
@@ -189,9 +209,25 @@ class PractitionerTimeOff extends BaseModel
             return false;
         }
 
-        return $this->update([
+        $wasApproved = $this->isApproved();
+
+        $result = $this->update([
             'status' => self::STATUS_CANCELLED,
         ]);
+
+        // Return days to allocation if was approved and using typed time off
+        if ($result && $wasApproved && $this->time_off_type_id && $this->days_requested) {
+            $allocation = TimeOffAllocation::where('user_id', $this->user_id)
+                ->where('time_off_type_id', $this->time_off_type_id)
+                ->where('year', $this->start_date->year)
+                ->first();
+
+            if ($allocation) {
+                $allocation->returnDays($this->days_requested);
+            }
+        }
+
+        return $result;
     }
 
     public function coversDate(\Carbon\Carbon $date): bool
