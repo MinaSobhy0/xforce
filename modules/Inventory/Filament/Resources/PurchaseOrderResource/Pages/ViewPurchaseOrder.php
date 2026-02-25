@@ -79,10 +79,18 @@ class ViewPurchaseOrder extends BaseViewRecord
                 ->label('Create Vendor Bill')
                 ->icon('heroicon-o-document-minus')
                 ->color('primary')
-                ->visible(fn () => $this->record->isReceived() && !$this->record->vendor_bill_id)
+                ->visible(fn () => ($this->record->isReceived() || $this->record->areAllItemsReceived()) && !$this->record->vendor_bill_id)
                 ->requiresConfirmation()
                 ->modalDescription('This will create a vendor bill from this purchase order.')
                 ->action(function () {
+                    // Fix status if all items received but status is not "received"
+                    if (!$this->record->isReceived() && $this->record->areAllItemsReceived()) {
+                        $this->record->status = PurchaseOrder::STATUS_RECEIVED;
+                        $this->record->received_date = $this->record->received_date ?? now();
+                        $this->record->received_by = $this->record->received_by ?? auth()->id();
+                        $this->record->save();
+                    }
+
                     $bill = VendorBill::createFromPurchaseOrder($this->record);
 
                     Notification::make()

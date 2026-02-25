@@ -154,11 +154,22 @@ class PurchaseOrder extends BaseModel
     }
 
     /**
-     * Check if the order is fully received.
+     * Check if the order status is received.
      */
     public function isReceived(): bool
     {
         return $this->status === self::STATUS_RECEIVED;
+    }
+
+    /**
+     * Check if all items have been received (regardless of status).
+     */
+    public function areAllItemsReceived(): bool
+    {
+        $totalOrdered = $this->lines()->sum('quantity');
+        $totalReceived = $this->lines()->sum('quantity_received');
+
+        return $totalOrdered > 0 && $totalReceived >= $totalOrdered;
     }
 
     /**
