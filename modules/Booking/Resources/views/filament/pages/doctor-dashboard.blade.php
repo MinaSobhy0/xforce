@@ -136,9 +136,9 @@
 
                     {{-- Empty State --}}
                     @if($appointments['checked_in']->isEmpty() && $appointments['in_progress']->isEmpty() && $appointments['confirmed']->isEmpty())
-                        <div class="px-4 py-8 text-center">
-                            <x-heroicon-o-calendar class="w-12 h-12 mx-auto text-gray-300 dark:text-gray-600" />
-                            <p class="mt-2 text-gray-500 dark:text-gray-400">{{ __('booking::dashboard.queue.empty') }}</p>
+                        <div class="px-4 py-6 text-center">
+                            <x-heroicon-o-calendar class="w-8 h-8 mx-auto text-gray-300 dark:text-gray-600" />
+                            <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ __('booking::dashboard.queue.empty') }}</p>
                         </div>
                     @endif
                 </div>
@@ -180,9 +180,9 @@
                             </div>
                         @endforeach
                     @else
-                        <div class="px-4 py-8 text-center">
-                            <x-heroicon-o-clipboard-document-check class="w-12 h-12 mx-auto text-gray-300 dark:text-gray-600" />
-                            <p class="mt-2 text-gray-500 dark:text-gray-400">{{ __('booking::dashboard.workspace.no_session') }}</p>
+                        <div class="px-4 py-6 text-center">
+                            <x-heroicon-o-clipboard-document-check class="w-8 h-8 mx-auto text-gray-300 dark:text-gray-600" />
+                            <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ __('booking::dashboard.workspace.no_session') }}</p>
                         </div>
                     @endif
                 </div>

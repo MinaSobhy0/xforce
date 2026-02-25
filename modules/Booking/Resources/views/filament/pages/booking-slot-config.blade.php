@@ -255,9 +255,9 @@
             </x-slot>
 
             @if($upcomingBlackouts->isEmpty())
-                <div class="text-center py-8 text-gray-500">
-                    <x-heroicon-o-calendar class="w-12 h-12 mx-auto mb-2 opacity-50" />
-                    <p>{{ __('booking::config.no_upcoming_blackouts') }}</p>
+                <div class="text-center py-6 text-gray-500">
+                    <x-heroicon-o-calendar class="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    <p class="text-sm">{{ __('booking::config.no_upcoming_blackouts') }}</p>
                 </div>
             @else
                 <div class="divide-y divide-gray-200 dark:divide-gray-700">
@@ -344,9 +344,9 @@
 
             @if($previewSlots !== null)
                 @if(empty($previewSlots))
-                    <div class="text-center py-8 text-gray-500">
-                        <x-heroicon-o-clock class="w-12 h-12 mx-auto mb-2 opacity-50" />
-                        <p>{{ __('booking::config.no_slots_available') }}</p>
+                    <div class="text-center py-6 text-gray-500">
+                        <x-heroicon-o-clock class="w-8 h-8 mx-auto mb-2 opacity-50" />
+                        <p class="text-sm">{{ __('booking::config.no_slots_available') }}</p>
                     </div>
                 @else
                     <div class="overflow-x-auto">
