@@ -26,7 +26,7 @@ class SupplierResource extends Resource
 
     protected static ?string $navigationGroup = 'Inventory';
 
-    protected static ?int $navigationSort = 30;
+    protected static ?int $navigationSort = 21;
 
     protected static ?string $recordTitleAttribute = 'name';
 

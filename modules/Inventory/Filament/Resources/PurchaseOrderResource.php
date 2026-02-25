@@ -30,7 +30,7 @@ class PurchaseOrderResource extends Resource
 
     protected static ?string $navigationGroup = 'Inventory';
 
-    protected static ?int $navigationSort = 31;
+    protected static ?int $navigationSort = 22;
 
     protected static ?string $recordTitleAttribute = 'order_number';
 
