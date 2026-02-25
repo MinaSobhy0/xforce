@@ -3,14 +3,16 @@
 namespace Modules\Booking\Services;
 
 use Modules\Booking\Models\Appointment;
-use Modules\Booking\Models\BookingRule;
+use Modules\Booking\Models\BookingConfig;
 use Modules\Booking\Models\BookingBlackoutDate;
+use Modules\Core\Models\Branch;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
 class BookingRuleEvaluator
 {
-    protected Collection $rules;
+    protected ?BookingConfig $config = null;
+    protected ?Branch $branch = null;
     protected Collection $blackoutDates;
     protected ?string $branchId = null;
     protected ?string $serviceId = null;
@@ -18,7 +20,7 @@ class BookingRuleEvaluator
     protected bool $isStaffBooking = false;
 
     /**
-     * Load rules and blackout dates for evaluation.
+     * Load configuration and blackout dates for evaluation.
      */
     public function forContext(
         string $branchId,
@@ -31,11 +33,11 @@ class BookingRuleEvaluator
         $this->isOnlineBooking = $isOnlineBooking;
         $this->isStaffBooking = !$isOnlineBooking;
 
-        // Load applicable rules
-        $this->rules = BookingRule::active()
-            ->applicableTo($branchId, $serviceId)
-            ->orderedByPriority()
-            ->get();
+        // Load branch for working hours
+        $this->branch = Branch::find($branchId);
+
+        // Load configuration for this branch
+        $this->config = BookingConfig::getForBranch($branchId);
 
         // Load applicable blackout dates
         $this->blackoutDates = BookingBlackoutDate::active()
@@ -66,49 +68,27 @@ class BookingRuleEvaluator
     }
 
     /**
-     * Check if a specific time slot is blocked by rules.
+     * Check if a specific time slot is blocked.
      */
     public function isSlotBlocked(
         Carbon $date,
         string $time,
         ?string $practitionerId = null
     ): bool|array {
-        // First check blackout dates
+        // Check blackout dates
         $dateBlocked = $this->isDateBlocked($date);
         if ($dateBlocked !== false) {
             return $dateBlocked;
         }
 
-        // Evaluate each rule
-        foreach ($this->rules as $rule) {
-            if (!$rule->appliesTo(
-                $date,
-                $time,
-                $this->branchId,
-                $this->serviceId,
-                $practitionerId,
-                $this->isOnlineBooking
-            )) {
-                continue;
-            }
-
-            // Check slot block rules
-            if ($rule->shouldBlockSlot()) {
+        // Check break times from branch working hours
+        $breakTimes = $this->getBreakTimes($date);
+        foreach ($breakTimes as $break) {
+            if ($time >= $break['start'] && $time < $break['end']) {
                 return [
                     'blocked' => true,
-                    'reason' => $rule->getBlockReason() ?? $rule->name,
-                    'rule_id' => $rule->id,
-                    'rule_type' => $rule->rule_type,
-                ];
-            }
-
-            // Check online booking restrictions
-            if ($this->isOnlineBooking && $rule->restrictsOnlineBooking()) {
-                return [
-                    'blocked' => true,
-                    'reason' => $rule->getBlockReason() ?? __('booking::config.online_restricted'),
-                    'rule_id' => $rule->id,
-                    'rule_type' => $rule->rule_type,
+                    'reason' => $break['rule_name'] ?? __('booking::config.break_time'),
+                    'rule_type' => 'break_time',
                 ];
             }
         }
@@ -116,38 +96,123 @@ class BookingRuleEvaluator
         return false;
     }
 
+    // ========================================
+    // SLOT GENERATION CONFIG
+    // ========================================
+
     /**
-     * Get the effective buffer time for a service/slot.
+     * Get the effective slot duration from config.
+     */
+    public function getEffectiveSlotDuration(?int $serviceDuration = null): int
+    {
+        // Service duration takes priority if set
+        if ($serviceDuration) {
+            return $serviceDuration;
+        }
+
+        return $this->config->slot_duration ?? 30;
+    }
+
+    /**
+     * Get the effective slot interval from config.
+     */
+    public function getEffectiveSlotInterval(?int $serviceDuration = null): int
+    {
+        if ($this->config->slot_interval) {
+            return $this->config->slot_interval;
+        }
+
+        // Fall back to service duration or slot duration
+        return $serviceDuration ?? $this->config->slot_duration ?? 30;
+    }
+
+    /**
+     * Get the effective buffer time from config.
      */
     public function getEffectiveBuffer(
-        Carbon $date,
+        Carbon $date = null,
         ?string $time = null,
-        ?string $practitionerId = null,
-        int $defaultBuffer = 5
+        ?string $practitionerId = null
     ): int {
-        foreach ($this->rules as $rule) {
-            if ($rule->rule_type !== BookingRule::TYPE_BUFFER_OVERRIDE) {
-                continue;
-            }
+        return $this->config->buffer_minutes ?? 5;
+    }
 
-            if (!$rule->appliesTo(
-                $date,
-                $time,
-                $this->branchId,
-                $this->serviceId,
-                $practitionerId,
-                $this->isOnlineBooking
-            )) {
-                continue;
-            }
+    // ========================================
+    // TIME/SCHEDULE CONFIG
+    // ========================================
 
-            $customBuffer = $rule->getBufferMinutes();
-            if ($customBuffer !== null) {
-                return $customBuffer;
+    /**
+     * Get effective working hours from Branch settings.
+     */
+    public function getEffectiveWorkingHours(Carbon $date = null): array
+    {
+        // Get day of week (0 = Sunday, 6 = Saturday)
+        $dayOfWeek = $date ? $date->dayOfWeek : now()->dayOfWeek;
+        $dayName = strtolower(Carbon::getDays()[$dayOfWeek]);
+
+        // Try to get from Branch working_hours
+        if ($this->branch && $this->branch->working_hours) {
+            $dayHours = $this->branch->getWorkingHoursForDay($dayName);
+
+            if ($dayHours) {
+                // Check if closed
+                if (!empty($dayHours['is_closed'])) {
+                    return [
+                        'start' => null,
+                        'end' => null,
+                        'is_closed' => true,
+                        'rule_id' => null,
+                        'rule_name' => null,
+                        'is_special' => false,
+                    ];
+                }
+
+                return [
+                    'start' => $dayHours['open_time'] ?? $dayHours['start'] ?? $dayHours['open'] ?? '09:00',
+                    'end' => $dayHours['close_time'] ?? $dayHours['end'] ?? $dayHours['close'] ?? '21:00',
+                    'rule_id' => null,
+                    'rule_name' => null,
+                    'is_special' => false,
+                ];
             }
         }
 
-        return $defaultBuffer;
+        // Default fallback
+        return [
+            'start' => '09:00',
+            'end' => '21:00',
+            'rule_id' => null,
+            'rule_name' => null,
+            'is_special' => false,
+        ];
+    }
+
+    /**
+     * Get break times from Branch settings.
+     */
+    public function getBreakTimes(Carbon $date): array
+    {
+        // Get day of week
+        $dayOfWeek = $date->dayOfWeek;
+        $dayName = strtolower(Carbon::getDays()[$dayOfWeek]);
+
+        // Try to get from Branch working_hours
+        if ($this->branch && $this->branch->working_hours) {
+            $dayHours = $this->branch->getWorkingHoursForDay($dayName);
+
+            if ($dayHours && !empty($dayHours['break_start']) && !empty($dayHours['break_end'])) {
+                return [
+                    [
+                        'start' => $dayHours['break_start'],
+                        'end' => $dayHours['break_end'],
+                        'rule_id' => null,
+                        'rule_name' => __('booking::config.break_time'),
+                    ],
+                ];
+            }
+        }
+
+        return [];
     }
 
     /**
@@ -155,107 +220,138 @@ class BookingRuleEvaluator
      */
     public function getEffectiveTimeRestrictions(Carbon $date): ?array
     {
-        foreach ($this->rules as $rule) {
-            if ($rule->rule_type !== BookingRule::TYPE_TIME_RESTRICTION) {
-                continue;
-            }
-
-            if (!$rule->appliesTo($date, null, $this->branchId, $this->serviceId)) {
-                continue;
-            }
-
-            $allowedStart = $rule->getAllowedStartTime();
-            $allowedEnd = $rule->getAllowedEndTime();
-
-            if ($allowedStart || $allowedEnd) {
-                return [
-                    'start' => $allowedStart,
-                    'end' => $allowedEnd,
-                    'rule_id' => $rule->id,
-                    'rule_name' => $rule->name,
-                ];
-            }
-        }
-
+        // No time restrictions in simplified config
         return null;
     }
 
     /**
-     * Get effective advance booking restrictions.
+     * Get online booking hours restrictions.
      */
-    public function getEffectiveAdvanceBooking(Carbon $date): ?array
+    public function getOnlineBookingHours(Carbon $date): ?array
     {
-        foreach ($this->rules as $rule) {
-            if ($rule->rule_type !== BookingRule::TYPE_ADVANCE_BOOKING) {
-                continue;
-            }
-
-            if (!$rule->appliesTo($date, null, $this->branchId, $this->serviceId)) {
-                continue;
-            }
-
-            $minHours = $rule->actions['min_hours'] ?? null;
-            $maxDays = $rule->actions['max_days'] ?? null;
-
-            if ($minHours !== null || $maxDays !== null) {
-                return [
-                    'min_hours' => $minHours,
-                    'max_days' => $maxDays,
-                    'rule_id' => $rule->id,
-                ];
-            }
-        }
-
+        // Uses same working hours
         return null;
     }
 
+    // ========================================
+    // ADVANCE BOOKING CONFIG
+    // ========================================
+
     /**
-     * Check capacity limits for a date/practitioner.
+     * Get minimum advance booking hours from config.
+     */
+    public function getMinAdvanceHours(): int
+    {
+        return $this->config->min_advance_hours ?? 2;
+    }
+
+    /**
+     * Get maximum advance booking days from config.
+     */
+    public function getMaxAdvanceDays(): int
+    {
+        return $this->config->max_advance_days ?? 60;
+    }
+
+    /**
+     * Get same-day booking configuration from config.
+     */
+    public function getSameDayBookingConfig(): array
+    {
+        return [
+            'allowed' => $this->config->allow_same_day ?? true,
+            'cutoff_time' => $this->config->same_day_cutoff,
+            'rule_id' => null,
+            'rule_name' => null,
+        ];
+    }
+
+    /**
+     * Check if a date is within allowed booking advance range.
+     */
+    public function isDateWithinAdvanceRange(Carbon $date): bool|array
+    {
+        $now = now();
+        $dateStart = $date->copy()->startOfDay();
+        $isToday = $dateStart->isSameDay($now);
+
+        // Check same-day booking
+        if ($isToday) {
+            $sameDayConfig = $this->getSameDayBookingConfig();
+            if (!$sameDayConfig['allowed']) {
+                return [
+                    'allowed' => false,
+                    'reason' => __('booking::config.same_day_not_allowed'),
+                    'rule_id' => null,
+                ];
+            }
+
+            if ($sameDayConfig['cutoff_time']) {
+                $cutoff = Carbon::parse($sameDayConfig['cutoff_time']);
+                if ($now->format('H:i') > $cutoff->format('H:i')) {
+                    return [
+                        'allowed' => false,
+                        'reason' => __('booking::config.same_day_cutoff_passed'),
+                        'rule_id' => null,
+                    ];
+                }
+            }
+        }
+
+        // Check max advance days
+        $maxDays = $this->getMaxAdvanceDays();
+        $daysUntil = $now->startOfDay()->diffInDays($dateStart, false);
+        if ($daysUntil > $maxDays) {
+            return [
+                'allowed' => false,
+                'reason' => __('booking::config.exceeds_max_advance', ['days' => $maxDays]),
+            ];
+        }
+
+        return true;
+    }
+
+    /**
+     * Check if a slot time meets minimum advance requirement.
+     */
+    public function meetsMinAdvanceRequirement(Carbon $slotDateTime): bool
+    {
+        $minHours = $this->getMinAdvanceHours();
+        if ($minHours <= 0) {
+            return true;
+        }
+
+        $hoursUntilSlot = now()->diffInHours($slotDateTime, false);
+        return $hoursUntilSlot >= $minHours;
+    }
+
+    // ========================================
+    // CAPACITY CONFIG
+    // ========================================
+
+    /**
+     * Check all capacity limits for a date/practitioner.
      */
     public function checkCapacityLimits(
         Carbon $date,
-        ?string $practitionerId = null
+        ?string $practitionerId = null,
+        ?string $time = null
     ): ?array {
-        foreach ($this->rules as $rule) {
-            if ($rule->rule_type !== BookingRule::TYPE_CAPACITY_LIMIT) {
-                continue;
-            }
-
-            if (!$rule->appliesTo($date, null, $this->branchId, $this->serviceId, $practitionerId)) {
-                continue;
-            }
-
-            $maxAppointments = $rule->getMaxAppointments();
-            $scope = $rule->actions['scope'] ?? 'day';
-
-            if ($maxAppointments === null) {
-                continue;
-            }
-
-            // Count existing appointments
-            $query = Appointment::query()
+        // Check practitioner daily capacity
+        if ($practitionerId && $this->config->max_per_doctor_daily) {
+            $currentCount = Appointment::query()
                 ->forDate($date)
-                ->forBranch($this->branchId)
-                ->active();
+                ->forPractitioner($practitionerId)
+                ->active()
+                ->count();
 
-            if ($this->serviceId) {
-                $query->forService($this->serviceId);
-            }
-
-            if ($scope === 'practitioner' && $practitionerId) {
-                $query->forPractitioner($practitionerId);
-            }
-
-            $currentCount = $query->count();
-
-            if ($currentCount >= $maxAppointments) {
+            if ($currentCount >= $this->config->max_per_doctor_daily) {
                 return [
                     'exceeded' => true,
-                    'max' => $maxAppointments,
+                    'type' => 'practitioner',
+                    'max' => $this->config->max_per_doctor_daily,
                     'current' => $currentCount,
-                    'scope' => $scope,
-                    'rule_id' => $rule->id,
-                    'rule_name' => $rule->name,
+                    'practitioner_id' => $practitionerId,
                 ];
             }
         }
@@ -263,8 +359,109 @@ class BookingRuleEvaluator
         return null;
     }
 
+    // ========================================
+    // ONLINE BOOKING CONFIG
+    // ========================================
+
     /**
-     * Filter a collection of time slots based on rules.
+     * Check if online booking is enabled.
+     */
+    public function isOnlineBookingEnabled(): bool
+    {
+        // Online booking is enabled by default in simplified config
+        return true;
+    }
+
+    /**
+     * Check if practitioner selection is allowed for online booking.
+     */
+    public function isOnlinePractitionerSelectionAllowed(): bool
+    {
+        return true;
+    }
+
+    // ========================================
+    // CONFIRMATION CONFIG
+    // ========================================
+
+    /**
+     * Check if auto-confirm is enabled.
+     */
+    public function isAutoConfirmEnabled(): bool
+    {
+        return false;
+    }
+
+    /**
+     * Get deposit requirements.
+     */
+    public function getDepositRequirements(): ?array
+    {
+        return null;
+    }
+
+    /**
+     * Check if approval is required.
+     */
+    public function isApprovalRequired(): bool
+    {
+        return false;
+    }
+
+    // ========================================
+    // RESOURCE CONFIG
+    // ========================================
+
+    /**
+     * Get room preference configuration.
+     */
+    public function getRoomPreference(): ?array
+    {
+        return [
+            'source' => $this->config->room_assignment ?? 'service',
+            'preferred_rooms' => [],
+            'strict' => false,
+            'check_availability' => $this->config->check_room_availability ?? true,
+            'allow_overlap' => $this->config->allow_room_overlap ?? false,
+        ];
+    }
+
+    /**
+     * Get equipment requirements configuration.
+     */
+    public function getEquipmentRequirements(): ?array
+    {
+        return [
+            'source' => $this->config->equipment_assignment ?? 'service',
+            'required_equipment' => [],
+            'strict' => false,
+            'check_availability' => $this->config->check_equipment_availability ?? true,
+            'allow_overlap' => $this->config->allow_equipment_overlap ?? false,
+        ];
+    }
+
+    /**
+     * Get practitioner requirements configuration.
+     */
+    public function getPractitionerRequirements(): ?array
+    {
+        return [
+            'source' => 'service',
+            'required_practitioners' => [],
+            'required_qualifications' => [],
+            'strict' => false,
+            'check_schedule' => $this->config->check_doctor_schedule ?? true,
+            'check_timeoff' => $this->config->check_doctor_timeoff ?? true,
+            'allow_overlap' => $this->config->allow_doctor_overlap ?? false,
+        ];
+    }
+
+    // ========================================
+    // UTILITY METHODS
+    // ========================================
+
+    /**
+     * Filter a collection of time slots based on configuration.
      */
     public function filterSlots(Collection $slots, Carbon $date): Collection
     {
@@ -274,35 +471,55 @@ class BookingRuleEvaluator
             return collect();
         }
 
-        // Get time restrictions
-        $timeRestrictions = $this->getEffectiveTimeRestrictions($date);
+        // Check date is within advance booking range
+        $advanceCheck = $this->isDateWithinAdvanceRange($date);
+        if ($advanceCheck !== true) {
+            return collect();
+        }
 
-        return $slots->filter(function ($slot) use ($date, $timeRestrictions) {
+        // Get working hours (from Branch)
+        $workingHours = $this->getEffectiveWorkingHours($date);
+
+        // Check if branch is closed on this day
+        if (!empty($workingHours['is_closed']) || empty($workingHours['start']) || empty($workingHours['end'])) {
+            return collect();
+        }
+
+        // Get break times (from Branch)
+        $breakTimes = $this->getBreakTimes($date);
+
+        // Get min advance hours
+        $minAdvanceHours = $this->getMinAdvanceHours();
+
+        return $slots->filter(function ($slot) use ($date, $workingHours, $breakTimes, $minAdvanceHours) {
             $startTime = $slot['start_time'] ?? $slot['start'] ?? null;
             if (!$startTime) {
                 return true;
             }
 
-            // Apply time restrictions
-            if ($timeRestrictions) {
-                $slotTime = Carbon::parse($startTime);
+            $slotDateTime = Carbon::parse($date->format('Y-m-d') . ' ' . $startTime);
 
-                if ($timeRestrictions['start']) {
-                    $restrictStart = Carbon::parse($timeRestrictions['start']);
-                    if ($slotTime->lt($restrictStart)) {
-                        return false;
-                    }
-                }
-
-                if ($timeRestrictions['end']) {
-                    $restrictEnd = Carbon::parse($timeRestrictions['end']);
-                    if ($slotTime->gte($restrictEnd)) {
-                        return false;
-                    }
+            // Check min advance hours
+            if ($minAdvanceHours > 0) {
+                $hoursUntilSlot = now()->diffInHours($slotDateTime, false);
+                if ($hoursUntilSlot < $minAdvanceHours) {
+                    return false;
                 }
             }
 
-            // Check if slot is blocked by rules
+            // Apply working hours
+            if ($startTime < $workingHours['start'] || $startTime >= $workingHours['end']) {
+                return false;
+            }
+
+            // Apply break times
+            foreach ($breakTimes as $break) {
+                if ($startTime >= $break['start'] && $startTime < $break['end']) {
+                    return false;
+                }
+            }
+
+            // Check if slot is blocked
             $blocked = $this->isSlotBlocked($date, $startTime);
             if ($blocked !== false) {
                 return false;
@@ -310,14 +527,6 @@ class BookingRuleEvaluator
 
             return true;
         });
-    }
-
-    /**
-     * Get all applicable rules for debugging/display.
-     */
-    public function getApplicableRules(): Collection
-    {
-        return $this->rules;
     }
 
     /**
@@ -329,64 +538,29 @@ class BookingRuleEvaluator
     }
 
     /**
-     * Evaluate all rules and return a summary of what would be applied.
+     * Get configuration summary.
      */
-    public function evaluateSummary(Carbon $date, ?string $time = null): array
+    public function getConfigSummary(): array
     {
-        $summary = [
-            'date_blocked' => false,
-            'blocked_reason' => null,
-            'time_restrictions' => null,
-            'buffer_override' => null,
-            'capacity_limit' => null,
-            'applicable_rules' => [],
-            'applicable_blackouts' => [],
+        return [
+            'slot_duration' => $this->config->slot_duration,
+            'slot_interval' => $this->config->effective_slot_interval,
+            'buffer_minutes' => $this->config->buffer_minutes,
+            'working_hours' => $this->branch?->working_hours,
+            'working_hours_source' => 'branch',
+            'min_advance_hours' => $this->config->min_advance_hours,
+            'max_advance_days' => $this->config->max_advance_days,
+            'allow_same_day' => $this->config->allow_same_day,
+            'check_doctor_schedule' => $this->config->check_doctor_schedule,
+            'check_doctor_timeoff' => $this->config->check_doctor_timeoff,
+            'max_per_doctor_daily' => $this->config->max_per_doctor_daily,
+            'allow_doctor_overlap' => $this->config->allow_doctor_overlap,
+            'room_assignment' => $this->config->room_assignment,
+            'check_room_availability' => $this->config->check_room_availability,
+            'allow_room_overlap' => $this->config->allow_room_overlap,
+            'equipment_assignment' => $this->config->equipment_assignment,
+            'check_equipment_availability' => $this->config->check_equipment_availability,
+            'allow_equipment_overlap' => $this->config->allow_equipment_overlap,
         ];
-
-        // Check date blocking
-        $dateBlocked = $this->isDateBlocked($date);
-        if ($dateBlocked !== false) {
-            $summary['date_blocked'] = true;
-            $summary['blocked_reason'] = $dateBlocked['reason'];
-        }
-
-        // Get time restrictions
-        $summary['time_restrictions'] = $this->getEffectiveTimeRestrictions($date);
-
-        // Get buffer override
-        $defaultBuffer = config('booking.buffer_minutes', 5);
-        $effectiveBuffer = $this->getEffectiveBuffer($date, $time);
-        if ($effectiveBuffer !== $defaultBuffer) {
-            $summary['buffer_override'] = $effectiveBuffer;
-        }
-
-        // Check capacity
-        $summary['capacity_limit'] = $this->checkCapacityLimits($date);
-
-        // List applicable rules
-        foreach ($this->rules as $rule) {
-            if ($rule->appliesTo($date, $time, $this->branchId, $this->serviceId)) {
-                $summary['applicable_rules'][] = [
-                    'id' => $rule->id,
-                    'name' => $rule->name,
-                    'type' => $rule->rule_type,
-                    'priority' => $rule->priority,
-                ];
-            }
-        }
-
-        // List applicable blackouts
-        foreach ($this->blackoutDates as $blackout) {
-            if ($blackout->blocksDate($date, $this->branchId, $this->isOnlineBooking, $this->isStaffBooking)) {
-                $summary['applicable_blackouts'][] = [
-                    'id' => $blackout->id,
-                    'name' => $blackout->name,
-                    'start_date' => $blackout->start_date->format('Y-m-d'),
-                    'end_date' => $blackout->end_date->format('Y-m-d'),
-                ];
-            }
-        }
-
-        return $summary;
     }
 }

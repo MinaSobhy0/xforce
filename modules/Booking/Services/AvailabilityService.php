@@ -14,11 +14,26 @@ class AvailabilityService
 {
     protected int $slotDuration;
     protected int $bufferMinutes;
+    protected ?BookingRuleEvaluator $ruleEvaluator = null;
 
     public function __construct()
     {
-        $this->slotDuration = config('booking.default_slot_duration', 30);
-        $this->bufferMinutes = config('booking.buffer_minutes', 5);
+        // Default values - will be overridden by rules when context is available
+        $this->slotDuration = 30;
+        $this->bufferMinutes = 5;
+    }
+
+    /**
+     * Initialize rule evaluator for a specific context.
+     */
+    protected function initRuleEvaluator(string $branchId, ?string $serviceId = null): void
+    {
+        $this->ruleEvaluator = app(BookingRuleEvaluator::class)
+            ->forContext($branchId, $serviceId, false);
+
+        // Get values from rules
+        $this->slotDuration = $this->ruleEvaluator->getEffectiveSlotDuration();
+        $this->bufferMinutes = $this->ruleEvaluator->getEffectiveBuffer();
     }
 
     /**
@@ -32,6 +47,9 @@ class AvailabilityService
         ?string $roomId = null,
         ?string $equipmentId = null
     ): array {
+        // Initialize rule evaluator for this context
+        $this->initRuleEvaluator($branchId);
+
         $duration = $durationMinutes ?? $this->slotDuration;
         $dayOfWeek = $date->dayOfWeek;
 

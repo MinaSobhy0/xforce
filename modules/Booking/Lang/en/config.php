@@ -3,7 +3,73 @@
 return [
     // Page titles
     'booking_configuration' => 'Booking Configuration',
-    'booking_config_description' => 'Configure slot generation algorithm, booking rules, and blackout dates',
+    'booking_config_description' => 'Configure how appointment slots are generated step by step',
+
+    // Branch selector
+    'branch_config_help' => 'Select a branch to override tenant-wide settings, or leave empty for global configuration',
+
+    // Step titles
+    'step1_title' => 'Step 1: Service & Time Configuration',
+    'step1_description' => 'Configure default slot duration, intervals, and working hours',
+    'step2_title' => 'Step 2: Doctor Availability',
+    'step2_description' => 'Configure how doctor schedules and availability affect slot generation',
+    'step3_title' => 'Step 3: Room Assignment',
+    'step3_description' => 'Configure how rooms are assigned to appointments',
+    'step4_title' => 'Step 4: Equipment Assignment',
+    'step4_description' => 'Configure how equipment is assigned to appointments',
+
+    // Step 1 fields
+    'slot_duration' => 'Slot Duration',
+    'slot_duration_help' => 'Default duration for appointment slots',
+    'slot_interval_help' => 'How often slots start. Leave empty to use slot duration',
+    'use_slot_duration' => 'Same as duration',
+    'working_hours_start' => 'Working Hours Start',
+    'working_hours_end' => 'Working Hours End',
+    'working_hours_from_branch' => 'Working hours are configured in Branch Settings. Each branch can have different working hours per day.',
+    'break_enabled' => 'Enable Break Time',
+    'break_start' => 'Break Start',
+    'break_end' => 'Break End',
+
+    // Step 2 fields
+    'doctor_schedule' => 'Doctor Schedule',
+    'doctor_schedule_from_work_schedule' => 'Doctor availability is based on their assigned Work Schedule. Configure schedules in Settings → Work Schedules.',
+    'check_doctor_schedule' => 'Check Doctor Schedule',
+    'check_doctor_schedule_help' => 'Only show slots when doctor has working hours',
+    'check_doctor_timeoff' => 'Check Doctor Time-Off',
+    'check_doctor_timeoff_help' => 'Respect approved time-off requests',
+    'max_per_doctor_daily' => 'Max Appointments Per Doctor',
+    'max_per_doctor_daily_help' => 'Leave empty for unlimited',
+    'allow_doctor_overlap' => 'Allow Doctor Overlap',
+    'allow_doctor_overlap_help' => 'Allow booking same doctor at same time (double-booking)',
+
+    // Step 3 fields
+    'room_assignment' => 'Room Assignment Method',
+    'check_room_availability' => 'Check Room Availability',
+    'check_room_availability_help' => 'Verify room is not already booked',
+    'allow_room_overlap' => 'Allow Room Overlap',
+    'allow_room_overlap_help' => 'Allow multiple appointments in same room at same time',
+
+    // Step 4 fields
+    'equipment_assignment' => 'Equipment Assignment Method',
+    'check_equipment_availability' => 'Check Equipment Availability',
+    'check_equipment_availability_help' => 'Verify equipment is not already in use',
+    'allow_equipment_overlap' => 'Allow Equipment Overlap',
+    'allow_equipment_overlap_help' => 'Allow equipment to be used by multiple appointments',
+
+    // Advance booking section
+    'advance_booking_description' => 'Configure how far in advance patients can book',
+    'min_advance_hours' => 'Minimum Advance',
+    'min_advance_hours_help' => 'Patients must book this many hours ahead',
+    'max_advance_days' => 'Maximum Advance',
+    'max_advance_days_help' => 'How far ahead can patients book',
+    'allow_same_day_help' => 'Allow booking appointments for the same day',
+    'same_day_cutoff' => 'Same-Day Cutoff Time',
+    'same_day_cutoff_help' => 'Latest time to allow same-day booking',
+
+    // Actions
+    'save_configuration' => 'Save Configuration',
+    'configuration_saved' => 'Configuration saved successfully',
+    'manage_blackouts' => 'Manage Blackouts',
     'booking_rules' => 'Booking Rules',
     'blackout_dates' => 'Blackout Dates',
     'blackout_date' => 'Blackout Date',
@@ -321,4 +387,13 @@ return [
     'minutes' => 'minutes',
     'hours' => 'hours',
     'days' => 'days',
+
+    // Validation messages
+    'same_day_not_allowed' => 'Same-day booking is not allowed',
+    'same_day_cutoff_passed' => 'Same-day booking cutoff time has passed',
+    'exceeds_max_advance' => 'Cannot book more than :days days in advance',
+    'break_time' => 'Break time',
+    'online_booking_disabled' => 'Online booking is currently disabled',
+    'capacity_exceeded' => 'Booking capacity has been reached',
+    'min_advance_not_met' => 'Appointments must be booked at least :hours hours in advance',
 ];

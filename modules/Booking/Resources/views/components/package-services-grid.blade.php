@@ -58,17 +58,17 @@
     }
 @endphp
 
-<div class="space-y-3">
-    <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
+<div class="space-y-2">
+    <label class="text-xs font-medium text-gray-500 dark:text-gray-400">
         {{ __('booking::booking.labels.select_services_to_book') }}
     </label>
 
     @if(empty($services))
-        <div class="text-sm text-gray-400 text-center py-4 border-2 border-dashed border-gray-200 rounded-lg">
+        <div class="text-xs text-gray-400 py-2">
             {{ __('booking::booking.messages.select_package_first') }}
         </div>
     @else
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div class="flex flex-wrap gap-1.5">
             @foreach($services as $svc)
                 @php
                     $svcIdStr = (string) $svc['id'];
@@ -77,80 +77,65 @@
                     $bookedInfo = $bookedServices[$svcIdStr] ?? null;
 
                     if ($isBooked) {
-                        $borderClasses = 'border-green-500 ring-2 ring-green-200';
-                        $bgClasses = 'bg-green-50';
+                        $pillStyle = 'background-color: #16a34a; color: white; box-shadow: 0 0 0 2px #4ade80;';
+                        $badgeStyle = 'background-color: #22c55e; color: white;';
+                        $pillClass = 'ring-2';
+                        $badgeClass = '';
                     } elseif ($isSelected) {
-                        $borderClasses = 'border-primary-500 ring-2 ring-primary-200';
-                        $bgClasses = 'bg-primary-50';
+                        $pillStyle = 'background-color: #22c55e; color: white; box-shadow: 0 0 0 2px #86efac;';
+                        $badgeStyle = 'background-color: #4ade80; color: white;';
+                        $pillClass = 'ring-2';
+                        $badgeClass = '';
                     } else {
-                        $borderClasses = 'border-gray-200 hover:border-primary-300';
-                        $bgClasses = 'bg-white';
+                        $pillStyle = 'background-color: #f3f4f6; color: #374151; border: 1px solid #e5e7eb;';
+                        $badgeStyle = 'background-color: #e5e7eb; color: #374151;';
+                        $pillClass = 'hover:bg-gray-200';
+                        $badgeClass = '';
                     }
                 @endphp
 
-                <div
+                <button
+                    type="button"
                     wire:click="$set('data.{{ $svc['field'] }}', '{{ $svc['id'] }}')"
-                    class="cursor-pointer rounded-lg border-2 {{ $borderClasses }} {{ $bgClasses }} p-4 transition-all hover:shadow-md"
+                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all cursor-pointer {{ $pillClass }}"
+                    style="{{ $pillStyle }}"
                 >
-                    <div class="flex items-start justify-between">
-                        <div class="flex-1">
-                            <h5 class="font-medium text-gray-900 dark:text-white">{{ $svc['name'] }}</h5>
-                            <div class="mt-1 flex items-center gap-2 text-sm text-gray-500">
-                                <span class="inline-flex items-center">
-                                    <x-heroicon-o-clock class="mr-1 h-4 w-4" />
-                                    {{ $svc['duration'] }} {{ __('booking::booking.minutes') }}
-                                </span>
-                            </div>
-                        </div>
-                        @if($isBooked)
-                            <span class="flex h-6 w-6 items-center justify-center rounded-full flex-shrink-0" style="background-color: #22c55e;">
-                                <x-heroicon-s-check class="h-4 w-4 text-white" />
-                            </span>
-                        @elseif($isSelected)
-                            <span class="flex h-6 w-6 items-center justify-center rounded-full flex-shrink-0 bg-primary-500">
-                                <x-heroicon-o-cursor-arrow-rays class="h-4 w-4 text-white" />
-                            </span>
-                        @endif
-                    </div>
-
-                    {{-- Sessions badge --}}
-                    @php
-                        $badgeColor = $svc['remaining'] > 2 ? 'bg-green-100 text-green-700' : ($svc['remaining'] > 0 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700');
-                    @endphp
-                    <div class="mt-3">
-                        <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $badgeColor }}">
-                            {{ $svc['remaining'] }} {{ __('booking::booking.labels.sessions') }} {{ __('booking::booking.labels.remaining') }}
-                        </span>
-                    </div>
-
-                    {{-- Booked slot info --}}
-                    @if($isBooked && $bookedInfo)
-                        <div class="mt-3 rounded-md bg-green-100 dark:bg-green-900/30 p-2">
-                            <div class="flex items-center gap-2 text-sm text-green-800 dark:text-green-300">
-                                <x-heroicon-s-calendar class="h-4 w-4 flex-shrink-0" />
-                                <span class="font-medium">
-                                    {{ \Carbon\Carbon::parse($bookedInfo['date'])->format('M d, Y') }}
-                                </span>
-                                <span>•</span>
-                                <span>{{ $bookedInfo['start_time'] }} - {{ $bookedInfo['end_time'] }}</span>
-                            </div>
-                            @if($bookedInfo['practitioner_name'])
-                                <div class="mt-1 flex items-center gap-2 text-xs text-green-700 dark:text-green-400">
-                                    <x-heroicon-o-user class="h-3 w-3 flex-shrink-0" />
-                                    <span>{{ $bookedInfo['practitioner_name'] }}</span>
-                                </div>
-                            @endif
-                        </div>
+                    @if($isBooked)
+                        <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
                     @elseif($isSelected)
-                        <div class="mt-3 text-xs text-primary-600 dark:text-primary-400">
-                            <span class="inline-flex items-center gap-1">
-                                <x-heroicon-o-arrow-down class="h-3 w-3" />
-                                {{ __('booking::booking.messages.select_slot_below') }}
-                            </span>
-                        </div>
+                        <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"/>
+                        </svg>
                     @endif
-                </div>
+                    <span class="truncate max-w-[140px]">{{ $svc['name'] }}</span>
+                    <span class="px-1.5 py-0.5 rounded-full text-[10px] font-semibold" style="{{ $badgeStyle }}">
+                        {{ $svc['remaining'] }}/{{ $svc['total'] }}
+                    </span>
+                </button>
             @endforeach
         </div>
+
+        {{-- Show booked slot info for selected service --}}
+        @foreach($services as $svc)
+            @php
+                $svcIdStr = (string) $svc['id'];
+                $isBooked = isset($bookedServices[$svcIdStr]);
+                $bookedInfo = $bookedServices[$svcIdStr] ?? null;
+            @endphp
+            @if($isBooked && $bookedInfo)
+                <div class="mt-1 inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] bg-green-100 text-green-700">
+                    <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    <span class="font-medium">{{ $svc['name'] }}:</span>
+                    <span>{{ \Carbon\Carbon::parse($bookedInfo['date'])->format('M d') }} {{ $bookedInfo['start_time'] }}</span>
+                    @if($bookedInfo['practitioner_name'])
+                        <span>- {{ $bookedInfo['practitioner_name'] }}</span>
+                    @endif
+                </div>
+            @endif
+        @endforeach
     @endif
 </div>

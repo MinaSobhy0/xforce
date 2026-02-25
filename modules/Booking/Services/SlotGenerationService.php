@@ -17,28 +17,18 @@ use Illuminate\Support\Facades\DB;
 
 class SlotGenerationService
 {
-    protected int $defaultSlotDuration;
-    protected int $bufferMinutes;
-    protected int $maxAdvanceBookingDays;
-    protected int $minAdvanceHours;
-
-    public function __construct()
-    {
-        $this->defaultSlotDuration = config('booking.default_slot_duration', 30);
-        $this->bufferMinutes = config('booking.buffer_minutes', 5);
-        $this->maxAdvanceBookingDays = config('booking.max_advance_booking_days', 60);
-        $this->minAdvanceHours = config('booking.min_advance_hours', 0);
-    }
+    protected ?BookingRuleEvaluator $ruleEvaluator = null;
 
     /**
      * Generate available time slots for a service at a branch on a specific date.
-     * Returns slots with available practitioners, room, and equipment assignments.
+     * All settings are derived from booking rules.
      */
     public function generateAvailableSlots(
         string $serviceId,
         string $branchId,
         Carbon $date,
-        ?int $durationOverride = null
+        ?int $durationOverride = null,
+        bool $isOnlineBooking = false
     ): Collection {
         $service = Service::with(['qualifiedStaff', 'rooms', 'requiredEquipment'])
             ->find($serviceId);
@@ -47,19 +37,49 @@ class SlotGenerationService
             return collect();
         }
 
-        // Check service time restrictions
+        // Initialize rule evaluator for this context
+        $this->ruleEvaluator = $this->getRuleEvaluator($branchId, $serviceId, $isOnlineBooking);
+
+        // Check if online booking is enabled (for online requests)
+        if ($isOnlineBooking && !$this->ruleEvaluator->isOnlineBookingEnabled()) {
+            return collect();
+        }
+
+        // Check if date is within allowed advance booking range
+        $advanceCheck = $this->ruleEvaluator->isDateWithinAdvanceRange($date);
+        if ($advanceCheck !== true) {
+            return collect();
+        }
+
+        // Check if date is blocked by blackout dates
+        $dateBlocked = $this->ruleEvaluator->isDateBlocked($date);
+        if ($dateBlocked !== false) {
+            return collect();
+        }
+
+        // Check service time restrictions (service-specific blackouts/allowed days)
         if (!$this->isDateAllowedForService($service, $date)) {
             return collect();
         }
 
-        // Check blackout dates
-        if ($this->isDateBlocked($date, $branchId)) {
+        // Check capacity limits for the date
+        $capacityLimit = $this->ruleEvaluator->checkCapacityLimits($date);
+        if ($capacityLimit && $capacityLimit['exceeded']) {
             return collect();
         }
 
-        // Get effective duration (override or service duration)
-        $duration = $durationOverride ?? $service->duration_minutes;
-        $totalDuration = $duration + ($service->buffer_minutes ?? $this->bufferMinutes);
+        // Get effective duration from rules or service
+        $ruleDuration = $this->ruleEvaluator->getEffectiveSlotDuration($service->duration_minutes);
+        $duration = $durationOverride ?? $ruleDuration;
+
+        // Get effective buffer from rules
+        $bufferMinutes = $this->ruleEvaluator->getEffectiveBuffer($date);
+        $serviceBuffer = $service->buffer_minutes ?? 0;
+        $totalBuffer = max($bufferMinutes, $serviceBuffer);
+        $totalDuration = $duration + $totalBuffer;
+
+        // Get effective slot interval from rules
+        $slotInterval = $this->ruleEvaluator->getEffectiveSlotInterval($duration);
 
         // Get all qualified practitioners for this service at this branch
         $qualifiedPractitioners = $this->getQualifiedPractitioners($service, $branchId);
@@ -68,47 +88,128 @@ class SlotGenerationService
             return collect();
         }
 
-        // Get time range for slots (considering service restrictions)
-        $timeRange = $this->getTimeRangeForService($service, $date, $branchId);
-        if (!$timeRange) {
+        // Get working hours from rules (now from Branch settings)
+        $workingHours = $this->ruleEvaluator->getEffectiveWorkingHours($date);
+
+        // Check if branch is closed on this day
+        if (!empty($workingHours['is_closed']) || empty($workingHours['start']) || empty($workingHours['end'])) {
             return collect();
         }
 
-        // Generate all possible slots based on service duration
-        $possibleSlots = $this->generateTimeSlots(
-            $timeRange['start'],
-            $timeRange['end'],
-            $duration
-        );
+        // Get time restrictions from rules (may override working hours)
+        $timeRestrictions = $this->ruleEvaluator->getEffectiveTimeRestrictions($date);
+
+        // Get online hours restrictions if applicable
+        $onlineHours = $isOnlineBooking ? $this->ruleEvaluator->getOnlineBookingHours($date) : null;
+
+        // Determine effective time range
+        $startTime = $workingHours['start'];
+        $endTime = $workingHours['end'];
+
+        // Apply time restrictions
+        if ($timeRestrictions) {
+            if ($timeRestrictions['start']) {
+                $startTime = max($startTime, $timeRestrictions['start']);
+            }
+            if ($timeRestrictions['end']) {
+                $endTime = min($endTime, $timeRestrictions['end']);
+            }
+        }
+
+        // Apply online hours restrictions
+        if ($onlineHours) {
+            if ($onlineHours['start']) {
+                $startTime = max($startTime, $onlineHours['start']);
+            }
+            if ($onlineHours['end']) {
+                $endTime = min($endTime, $onlineHours['end']);
+            }
+        }
+
+        // Apply service-specific time restrictions if any
+        $serviceTimeRange = $this->getTimeRangeForService($service, $date, $branchId);
+        if ($serviceTimeRange) {
+            $startTime = max($startTime, $serviceTimeRange['start']);
+            $endTime = min($endTime, $serviceTimeRange['end']);
+        }
+
+        // Validate time range
+        if ($startTime >= $endTime) {
+            return collect();
+        }
+
+        // Get break times from rules
+        $breakTimes = $this->ruleEvaluator->getBreakTimes($date);
+
+        // Get min advance hours from rules
+        $minAdvanceHours = $this->ruleEvaluator->getMinAdvanceHours();
+
+        // Generate all possible slots based on interval
+        $possibleSlots = $this->generateTimeSlots($startTime, $endTime, $duration, $slotInterval);
 
         // Build available slots with resources
         $availableSlots = collect();
 
         foreach ($possibleSlots as $slot) {
-            $startTime = Carbon::parse($date->format('Y-m-d') . ' ' . $slot['start']);
-            $endTime = Carbon::parse($date->format('Y-m-d') . ' ' . $slot['end']);
+            $slotStartTime = Carbon::parse($date->format('Y-m-d') . ' ' . $slot['start']);
+            $slotEndTime = Carbon::parse($date->format('Y-m-d') . ' ' . $slot['end']);
 
             // Skip slots in the past
-            if ($startTime->isPast()) {
+            if ($slotStartTime->isPast()) {
                 continue;
             }
 
-            // Check min advance hours
-            if ($this->minAdvanceHours > 0) {
-                $hoursUntilSlot = now()->diffInHours($startTime, false);
-                if ($hoursUntilSlot < $this->minAdvanceHours) {
+            // Check min advance hours from rules
+            if ($minAdvanceHours > 0) {
+                $hoursUntilSlot = now()->diffInHours($slotStartTime, false);
+                if ($hoursUntilSlot < $minAdvanceHours) {
                     continue;
                 }
+            }
+
+            // Check if slot falls within a break time
+            $inBreak = false;
+            foreach ($breakTimes as $break) {
+                if ($slot['start'] >= $break['start'] && $slot['start'] < $break['end']) {
+                    $inBreak = true;
+                    break;
+                }
+            }
+            if ($inBreak) {
+                continue;
+            }
+
+            // Check if slot is blocked by rules
+            $slotBlocked = $this->ruleEvaluator->isSlotBlocked($date, $slot['start']);
+            if ($slotBlocked !== false) {
+                continue;
+            }
+
+            // Check hourly capacity
+            $hourlyCapacity = $this->ruleEvaluator->checkCapacityLimits($date, null, $slot['start']);
+            if ($hourlyCapacity && $hourlyCapacity['exceeded']) {
+                continue;
             }
 
             // Find available practitioners for this slot
             $availablePractitioners = $this->getAvailablePractitioners(
                 $serviceId,
                 $branchId,
-                $startTime,
+                $slotStartTime,
                 $totalDuration,
                 $qualifiedPractitioners
             );
+
+            if ($availablePractitioners->isEmpty()) {
+                continue;
+            }
+
+            // Filter practitioners by capacity limits
+            $availablePractitioners = $availablePractitioners->filter(function ($practitioner) use ($date) {
+                $practitionerId = $practitioner->user_id;
+                $practitionerCapacity = $this->ruleEvaluator->checkCapacityLimits($date, $practitionerId);
+                return !$practitionerCapacity || !$practitionerCapacity['exceeded'];
+            });
 
             if ($availablePractitioners->isEmpty()) {
                 continue;
@@ -118,7 +219,7 @@ class SlotGenerationService
             $room = $this->findAvailableRoom(
                 $serviceId,
                 $branchId,
-                $startTime,
+                $slotStartTime,
                 $totalDuration
             );
 
@@ -126,7 +227,7 @@ class SlotGenerationService
             $equipment = $this->findAvailableEquipment(
                 $serviceId,
                 $branchId,
-                $startTime,
+                $slotStartTime,
                 $totalDuration
             );
 
@@ -143,7 +244,7 @@ class SlotGenerationService
             $practitionerData = $this->enrichPractitionerData(
                 $availablePractitioners,
                 $branchId,
-                $startTime,
+                $slotStartTime,
                 $totalDuration
             );
 
@@ -154,9 +255,10 @@ class SlotGenerationService
                 'start_time' => $slot['start'],
                 'end_time' => $slot['end'],
                 'date' => $date->format('Y-m-d'),
-                'datetime_start' => $startTime->format('Y-m-d H:i:s'),
-                'datetime_end' => $endTime->format('Y-m-d H:i:s'),
+                'datetime_start' => $slotStartTime->format('Y-m-d H:i:s'),
+                'datetime_end' => $slotEndTime->format('Y-m-d H:i:s'),
                 'duration' => $duration,
+                'buffer' => $totalBuffer,
                 'available_practitioners' => $practitionerData,
                 'room' => $room ? [
                     'id' => $room->id,
@@ -177,9 +279,6 @@ class SlotGenerationService
         return $availableSlots;
     }
 
-    /**
-     * Get practitioners qualified for a service and available at a specific time.
-     */
     /**
      * Get practitioners available at a specific time.
      * Now works with StaffProfile models instead of User models.
@@ -298,31 +397,59 @@ class SlotGenerationService
         $date = $datetime->copy()->startOfDay();
         $endTime = $datetime->copy()->addMinutes($duration);
 
-        // Try primary room first
-        $primaryRoom = $service->rooms()
-            ->wherePivot('is_primary', true)
-            ->where('branch_id', $branchId)
-            ->active()
-            ->bookable()
-            ->first();
+        // Check for room preference rules
+        $roomPreference = $this->ruleEvaluator?->getRoomPreference();
+        $useServiceRooms = !$roomPreference || $roomPreference['source'] === 'service';
+        $strictRoom = $roomPreference['strict'] ?? false;
 
-        if ($primaryRoom && $this->isRoomAvailable($primaryRoom->id, $date, $datetime, $endTime)) {
-            return $primaryRoom;
+        if ($useServiceRooms) {
+            // Try primary room first
+            $primaryRoom = $service->rooms()
+                ->wherePivot('is_primary', true)
+                ->where('rooms.branch_id', $branchId)
+                ->active()
+                ->bookable()
+                ->first();
+
+            if ($primaryRoom && $this->isRoomAvailable($primaryRoom->id, $date, $datetime, $endTime)) {
+                return $primaryRoom;
+            }
+
+            // Try backup rooms in priority order
+            $backupRooms = $service->rooms()
+                ->wherePivot('is_primary', false)
+                ->where('rooms.branch_id', $branchId)
+                ->active()
+                ->bookable()
+                ->orderByPivot('priority')
+                ->get();
+
+            foreach ($backupRooms as $room) {
+                if ($this->isRoomAvailable($room->id, $date, $datetime, $endTime)) {
+                    return $room;
+                }
+            }
+        } else {
+            // Use manually specified rooms from rule
+            $preferredRoomIds = $roomPreference['preferred_rooms'] ?? [];
+            if (!empty($preferredRoomIds)) {
+                $preferredRooms = Room::whereIn('id', $preferredRoomIds)
+                    ->where('rooms.branch_id', $branchId)
+                    ->active()
+                    ->bookable()
+                    ->get();
+
+                foreach ($preferredRooms as $room) {
+                    if ($this->isRoomAvailable($room->id, $date, $datetime, $endTime)) {
+                        return $room;
+                    }
+                }
+            }
         }
 
-        // Try backup rooms in priority order
-        $backupRooms = $service->rooms()
-            ->wherePivot('is_primary', false)
-            ->where('branch_id', $branchId)
-            ->active()
-            ->bookable()
-            ->orderByPivot('priority')
-            ->get();
-
-        foreach ($backupRooms as $room) {
-            if ($this->isRoomAvailable($room->id, $date, $datetime, $endTime)) {
-                return $room;
-            }
+        // If strict mode, don't fall back to any room
+        if ($strictRoom) {
+            return null;
         }
 
         // If no service-specific room is available, try any bookable room at branch
@@ -358,22 +485,41 @@ class SlotGenerationService
         $date = $datetime->copy()->startOfDay();
         $endTime = $datetime->copy()->addMinutes($duration);
 
-        // Get required equipment for this service at this branch
-        $requiredEquipment = $service->requiredEquipment()
-            ->wherePivot('is_mandatory', true)
-            ->where('branch_id', $branchId)
-            ->where('status', Equipment::STATUS_ACTIVE)
-            ->get();
+        // Check for equipment requirement rules
+        $equipmentReq = $this->ruleEvaluator?->getEquipmentRequirements();
+        $useServiceEquipment = !$equipmentReq || $equipmentReq['source'] === 'service';
 
-        if ($requiredEquipment->isEmpty()) {
-            return null;
-        }
+        if ($useServiceEquipment) {
+            // Get required equipment for this service at this branch
+            $requiredEquipment = $service->requiredEquipment()
+                ->wherePivot('is_mandatory', true)
+                ->where('equipment.branch_id', $branchId)
+                ->where('equipment.status', Equipment::STATUS_ACTIVE)
+                ->get();
 
-        $equipment = $requiredEquipment;
+            if ($requiredEquipment->isEmpty()) {
+                return null;
+            }
 
-        foreach ($equipment as $item) {
-            if ($this->isEquipmentAvailable($item->id, $date, $datetime, $endTime)) {
-                return $item;
+            foreach ($requiredEquipment as $item) {
+                if ($this->isEquipmentAvailable($item->id, $date, $datetime, $endTime)) {
+                    return $item;
+                }
+            }
+        } else {
+            // Use manually specified equipment from rule
+            $requiredEquipmentIds = $equipmentReq['required_equipment'] ?? [];
+            if (!empty($requiredEquipmentIds)) {
+                $equipment = Equipment::whereIn('id', $requiredEquipmentIds)
+                    ->where('equipment.branch_id', $branchId)
+                    ->where('equipment.status', Equipment::STATUS_ACTIVE)
+                    ->get();
+
+                foreach ($equipment as $item) {
+                    if ($this->isEquipmentAvailable($item->id, $date, $datetime, $endTime)) {
+                        return $item;
+                    }
+                }
             }
         }
 
@@ -389,12 +535,34 @@ class SlotGenerationService
         string $practitionerId,
         Carbon $datetime,
         int $duration,
-        ?string $excludeAppointmentId = null
+        ?string $excludeAppointmentId = null,
+        bool $isOnlineBooking = false
     ): bool {
+        // Initialize rule evaluator
+        $this->ruleEvaluator = $this->getRuleEvaluator($branchId, $serviceId, $isOnlineBooking);
+
         $date = $datetime->copy()->startOfDay();
         $endTime = $datetime->copy()->addMinutes($duration);
         $dayOfWeek = $datetime->dayOfWeek;
         $startTimeStr = $datetime->format('H:i');
+
+        // Check if date is within allowed range
+        $advanceCheck = $this->ruleEvaluator->isDateWithinAdvanceRange($date);
+        if ($advanceCheck !== true) {
+            return false;
+        }
+
+        // Check if date/slot is blocked
+        $slotBlocked = $this->ruleEvaluator->isSlotBlocked($date, $startTimeStr, $practitionerId);
+        if ($slotBlocked !== false) {
+            return false;
+        }
+
+        // Check capacity limits
+        $capacityLimit = $this->ruleEvaluator->checkCapacityLimits($date, $practitionerId, $startTimeStr);
+        if ($capacityLimit && $capacityLimit['exceeded']) {
+            return false;
+        }
 
         // Check practitioner schedule
         $assignment = PractitionerScheduleAssignment::query()
@@ -476,13 +644,14 @@ class SlotGenerationService
         array $serviceIds,
         string $branchId,
         Carbon $date,
-        array $durationOverrides = []
+        array $durationOverrides = [],
+        bool $isOnlineBooking = false
     ): array {
         $result = [];
 
         foreach ($serviceIds as $serviceId) {
             $duration = $durationOverrides[$serviceId] ?? null;
-            $slots = $this->generateAvailableSlots($serviceId, $branchId, $date, $duration);
+            $slots = $this->generateAvailableSlots($serviceId, $branchId, $date, $duration, $isOnlineBooking);
             $result[$serviceId] = $slots;
         }
 
@@ -496,13 +665,18 @@ class SlotGenerationService
         string $serviceId,
         string $branchId,
         ?Carbon $fromDate = null,
-        int $maxDaysAhead = 30
+        ?int $maxDaysAhead = null,
+        bool $isOnlineBooking = false
     ): ?array {
+        // Initialize rule evaluator to get max advance days
+        $this->ruleEvaluator = $this->getRuleEvaluator($branchId, $serviceId, $isOnlineBooking);
+        $maxAdvanceDays = $maxDaysAhead ?? $this->ruleEvaluator->getMaxAdvanceDays();
+
         $date = $fromDate ?? today();
-        $endDate = $date->copy()->addDays($maxDaysAhead);
+        $endDate = $date->copy()->addDays($maxAdvanceDays);
 
         while ($date->lte($endDate)) {
-            $slots = $this->generateAvailableSlots($serviceId, $branchId, $date);
+            $slots = $this->generateAvailableSlots($serviceId, $branchId, $date, null, $isOnlineBooking);
 
             if ($slots->isNotEmpty()) {
                 return [
@@ -580,37 +754,86 @@ class SlotGenerationService
         return $conflicts;
     }
 
+    /**
+     * Get booking policy summary for display (e.g., in booking UI).
+     */
+    public function getBookingPolicySummary(
+        string $branchId,
+        ?string $serviceId = null,
+        bool $isOnlineBooking = false
+    ): array {
+        $evaluator = $this->getRuleEvaluator($branchId, $serviceId, $isOnlineBooking);
+
+        return [
+            'min_advance_hours' => $evaluator->getMinAdvanceHours(),
+            'max_advance_days' => $evaluator->getMaxAdvanceDays(),
+            'same_day_booking' => $evaluator->getSameDayBookingConfig(),
+            'deposit_requirements' => $evaluator->getDepositRequirements(),
+            'auto_confirm' => $evaluator->isAutoConfirmEnabled(),
+            'online_booking_enabled' => $evaluator->isOnlineBookingEnabled(),
+            'practitioner_selection_allowed' => $evaluator->isOnlinePractitionerSelectionAllowed(),
+        ];
+    }
+
+    /**
+     * Get the booking rule evaluator instance.
+     */
+    public function getRuleEvaluator(
+        string $branchId,
+        ?string $serviceId = null,
+        bool $isOnlineBooking = false
+    ): BookingRuleEvaluator {
+        return app(BookingRuleEvaluator::class)
+            ->forContext($branchId, $serviceId, $isOnlineBooking);
+    }
+
     // Protected helper methods
 
     protected function getQualifiedPractitioners(Service $service, string $branchId): Collection
     {
-        // Get qualified staff profiles for this service
-        // Now qualifiedStaff() returns StaffProfile models
-        return $service->qualifiedStaff()
-            ->with('user')
-            ->where('is_active', true)
-            ->where(function ($query) use ($branchId) {
-                // Staff profile is at this branch
-                $query->where('branch_id', $branchId)
-                // Or has a schedule assignment at this branch
-                ->orWhereExists(function ($subQuery) use ($branchId) {
-                    $subQuery->select(DB::raw(1))
-                        ->from('practitioner_schedule_assignments')
-                        ->whereColumn('practitioner_schedule_assignments.staff_profile_id', 'staff_profiles.id')
-                        ->where('practitioner_schedule_assignments.branch_id', $branchId)
-                        ->where('practitioner_schedule_assignments.is_active', true)
-                        ->whereNull('practitioner_schedule_assignments.deleted_at')
-                        ->where(function ($q) {
-                            $q->whereNull('practitioner_schedule_assignments.effective_from')
-                                ->orWhere('practitioner_schedule_assignments.effective_from', '<=', now());
-                        })
-                        ->where(function ($q) {
-                            $q->whereNull('practitioner_schedule_assignments.effective_until')
-                                ->orWhere('practitioner_schedule_assignments.effective_until', '>=', now());
-                        });
-                });
-            })
-            ->get();
+        // Check for practitioner requirement rules
+        $practitionerReq = $this->ruleEvaluator?->getPractitionerRequirements();
+        $useServicePractitioners = !$practitionerReq || $practitionerReq['source'] === 'service';
+
+        if ($useServicePractitioners) {
+            // Get qualified staff profiles for this service
+            return $service->qualifiedStaff()
+                ->with('user')
+                ->where('staff_profiles.is_active', true)
+                ->where(function ($query) use ($branchId) {
+                    // Staff profile is at this branch
+                    $query->where('staff_profiles.branch_id', $branchId)
+                    // Or has a schedule assignment at this branch
+                    ->orWhereExists(function ($subQuery) use ($branchId) {
+                        $subQuery->select(DB::raw(1))
+                            ->from('practitioner_schedule_assignments')
+                            ->whereColumn('practitioner_schedule_assignments.staff_profile_id', 'staff_profiles.id')
+                            ->where('practitioner_schedule_assignments.branch_id', $branchId)
+                            ->where('practitioner_schedule_assignments.is_active', true)
+                            ->whereNull('practitioner_schedule_assignments.deleted_at')
+                            ->where(function ($q) {
+                                $q->whereNull('practitioner_schedule_assignments.effective_from')
+                                    ->orWhere('practitioner_schedule_assignments.effective_from', '<=', now());
+                            })
+                            ->where(function ($q) {
+                                $q->whereNull('practitioner_schedule_assignments.effective_until')
+                                    ->orWhere('practitioner_schedule_assignments.effective_until', '>=', now());
+                            });
+                    });
+                })
+                ->get();
+        } else {
+            // Use manually specified practitioners from rule
+            $requiredPractitionerIds = $practitionerReq['required_practitioners'] ?? [];
+            if (!empty($requiredPractitionerIds)) {
+                return \Modules\Staff\Models\StaffProfile::whereIn('user_id', $requiredPractitionerIds)
+                    ->with('user')
+                    ->where('staff_profiles.is_active', true)
+                    ->get();
+            }
+
+            return collect();
+        }
     }
 
     protected function isDateAllowedForService(Service $service, Carbon $date): bool
@@ -630,7 +853,8 @@ class SlotGenerationService
             return false;
         }
 
-        // Check max advance days
+        // Note: max_advance_days is now handled by rules, not service restrictions
+        // But we keep service-level restriction as an additional check if configured
         if (isset($restrictions['max_advance_days'])) {
             $daysUntil = now()->startOfDay()->diffInDays($date, false);
             if ($daysUntil > $restrictions['max_advance_days']) {
@@ -645,20 +869,27 @@ class SlotGenerationService
     {
         $restrictions = $service->time_slot_restrictions ?? [];
 
-        $startTime = $restrictions['allowed_time_start'] ?? config('booking.default_start_time', '09:00');
-        $endTime = $restrictions['allowed_time_end'] ?? config('booking.default_end_time', '21:00');
+        $startTime = $restrictions['allowed_time_start'] ?? null;
+        $endTime = $restrictions['allowed_time_end'] ?? null;
 
-        return [
-            'start' => $startTime,
-            'end' => $endTime,
-        ];
+        if ($startTime && $endTime) {
+            return [
+                'start' => $startTime,
+                'end' => $endTime,
+            ];
+        }
+
+        return null;
     }
 
-    protected function generateTimeSlots(string $startTime, string $endTime, int $durationMinutes): array
+    protected function generateTimeSlots(string $startTime, string $endTime, int $durationMinutes, ?int $intervalMinutes = null): array
     {
         $slots = [];
         $start = Carbon::createFromFormat('H:i', $startTime);
         $end = Carbon::createFromFormat('H:i', $endTime);
+
+        // Use interval if specified, otherwise use duration
+        $interval = $intervalMinutes ?? $durationMinutes;
 
         $current = $start->copy();
 
@@ -667,7 +898,7 @@ class SlotGenerationService
                 'start' => $current->format('H:i'),
                 'end' => $current->copy()->addMinutes($durationMinutes)->format('H:i'),
             ];
-            $current->addMinutes($durationMinutes);
+            $current->addMinutes($interval);
         }
 
         return $slots;
@@ -783,28 +1014,8 @@ class SlotGenerationService
     }
 
     /**
-     * Check if a date is blocked by blackout dates.
-     */
-    protected function isDateBlocked(Carbon $date, string $branchId, bool $isOnlineBooking = false): bool
-    {
-        return BookingBlackoutDate::isDateBlocked($date, $branchId, $isOnlineBooking, !$isOnlineBooking);
-    }
-
-    /**
-     * Get the booking rule evaluator instance.
-     */
-    public function getRuleEvaluator(
-        string $branchId,
-        ?string $serviceId = null,
-        bool $isOnlineBooking = false
-    ): BookingRuleEvaluator {
-        return app(BookingRuleEvaluator::class)
-            ->forContext($branchId, $serviceId, $isOnlineBooking);
-    }
-
-    /**
-     * Generate slots with rule evaluation.
-     * This is an enhanced version that applies booking rules.
+     * Legacy method for backward compatibility.
+     * @deprecated Use generateAvailableSlots with isOnlineBooking parameter instead.
      */
     public function generateAvailableSlotsWithRules(
         string $serviceId,
@@ -813,48 +1024,6 @@ class SlotGenerationService
         ?int $durationOverride = null,
         bool $isOnlineBooking = false
     ): Collection {
-        // Get base slots
-        $slots = $this->generateAvailableSlots($serviceId, $branchId, $date, $durationOverride);
-
-        if ($slots->isEmpty()) {
-            return $slots;
-        }
-
-        // Apply rule-based filtering
-        $evaluator = $this->getRuleEvaluator($branchId, $serviceId, $isOnlineBooking);
-
-        // Get time restrictions from rules
-        $timeRestrictions = $evaluator->getEffectiveTimeRestrictions($date);
-
-        // Filter slots based on rules
-        return $slots->filter(function ($slot) use ($date, $evaluator, $timeRestrictions) {
-            $startTime = $slot['start_time'] ?? null;
-            if (!$startTime) {
-                return true;
-            }
-
-            // Apply time restrictions from rules
-            if ($timeRestrictions) {
-                $slotTime = Carbon::parse($startTime);
-
-                if ($timeRestrictions['start']) {
-                    $restrictStart = Carbon::parse($timeRestrictions['start']);
-                    if ($slotTime->lt($restrictStart)) {
-                        return false;
-                    }
-                }
-
-                if ($timeRestrictions['end']) {
-                    $restrictEnd = Carbon::parse($timeRestrictions['end']);
-                    if ($slotTime->gte($restrictEnd)) {
-                        return false;
-                    }
-                }
-            }
-
-            // Check if slot is blocked by specific rules
-            $blocked = $evaluator->isSlotBlocked($date, $startTime);
-            return $blocked === false;
-        })->values();
+        return $this->generateAvailableSlots($serviceId, $branchId, $date, $durationOverride, $isOnlineBooking);
     }
 }

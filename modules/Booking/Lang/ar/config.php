@@ -3,7 +3,73 @@
 return [
     // Page titles
     'booking_configuration' => 'إعدادات الحجز',
-    'booking_config_description' => 'إعداد خوارزمية إنشاء المواعيد وقواعد الحجز وتواريخ الحظر',
+    'booking_config_description' => 'إعداد كيفية إنشاء مواعيد الحجز خطوة بخطوة',
+
+    // Branch selector
+    'branch_config_help' => 'اختر فرعاً لتخصيص الإعدادات، أو اتركه فارغاً للإعدادات العامة',
+
+    // Step titles
+    'step1_title' => 'الخطوة 1: إعدادات الخدمة والوقت',
+    'step1_description' => 'إعداد مدة الموعد الافتراضية والفترات وساعات العمل',
+    'step2_title' => 'الخطوة 2: توفر الطبيب',
+    'step2_description' => 'إعداد كيفية تأثير جداول الأطباء على إنشاء المواعيد',
+    'step3_title' => 'الخطوة 3: تعيين الغرف',
+    'step3_description' => 'إعداد كيفية تعيين الغرف للمواعيد',
+    'step4_title' => 'الخطوة 4: تعيين المعدات',
+    'step4_description' => 'إعداد كيفية تعيين المعدات للمواعيد',
+
+    // Step 1 fields
+    'slot_duration' => 'مدة الموعد',
+    'slot_duration_help' => 'المدة الافتراضية لمواعيد الحجز',
+    'slot_interval_help' => 'كم مرة تبدأ المواعيد. اتركه فارغاً لاستخدام مدة الموعد',
+    'use_slot_duration' => 'نفس المدة',
+    'working_hours_start' => 'بداية ساعات العمل',
+    'working_hours_end' => 'نهاية ساعات العمل',
+    'working_hours_from_branch' => 'يتم تكوين ساعات العمل في إعدادات الفرع. كل فرع يمكن أن يكون له ساعات عمل مختلفة لكل يوم.',
+    'break_enabled' => 'تفعيل وقت الراحة',
+    'break_start' => 'بداية الراحة',
+    'break_end' => 'نهاية الراحة',
+
+    // Step 2 fields
+    'doctor_schedule' => 'جدول الطبيب',
+    'doctor_schedule_from_work_schedule' => 'توفر الطبيب يعتمد على جدول العمل المعين له. قم بإعداد الجداول في الإعدادات ← جداول العمل.',
+    'check_doctor_schedule' => 'التحقق من جدول الطبيب',
+    'check_doctor_schedule_help' => 'عرض المواعيد فقط عندما يكون الطبيب متاحاً',
+    'check_doctor_timeoff' => 'التحقق من إجازات الطبيب',
+    'check_doctor_timeoff_help' => 'احترام طلبات الإجازة المعتمدة',
+    'max_per_doctor_daily' => 'الحد الأقصى للمواعيد لكل طبيب',
+    'max_per_doctor_daily_help' => 'اتركه فارغاً لعدم وجود حد',
+    'allow_doctor_overlap' => 'السماح بتداخل الطبيب',
+    'allow_doctor_overlap_help' => 'السماح بحجز نفس الطبيب في نفس الوقت (حجز مزدوج)',
+
+    // Step 3 fields
+    'room_assignment' => 'طريقة تعيين الغرفة',
+    'check_room_availability' => 'التحقق من توفر الغرفة',
+    'check_room_availability_help' => 'التأكد من أن الغرفة ليست محجوزة مسبقاً',
+    'allow_room_overlap' => 'السماح بتداخل الغرف',
+    'allow_room_overlap_help' => 'السماح بمواعيد متعددة في نفس الغرفة في نفس الوقت',
+
+    // Step 4 fields
+    'equipment_assignment' => 'طريقة تعيين المعدات',
+    'check_equipment_availability' => 'التحقق من توفر المعدات',
+    'check_equipment_availability_help' => 'التأكد من أن المعدات ليست قيد الاستخدام',
+    'allow_equipment_overlap' => 'السماح بتداخل المعدات',
+    'allow_equipment_overlap_help' => 'السماح باستخدام المعدات لمواعيد متعددة',
+
+    // Advance booking section
+    'advance_booking_description' => 'إعداد مدى تقدم حجز المرضى',
+    'min_advance_hours' => 'الحد الأدنى للحجز المسبق',
+    'min_advance_hours_help' => 'يجب على المرضى الحجز قبل هذه الساعات',
+    'max_advance_days' => 'الحد الأقصى للحجز المسبق',
+    'max_advance_days_help' => 'أقصى مدة يمكن للمرضى الحجز مسبقاً',
+    'allow_same_day_help' => 'السماح بحجز مواعيد في نفس اليوم',
+    'same_day_cutoff' => 'وقت إغلاق الحجز في نفس اليوم',
+    'same_day_cutoff_help' => 'آخر وقت للسماح بالحجز في نفس اليوم',
+
+    // Actions
+    'save_configuration' => 'حفظ الإعدادات',
+    'configuration_saved' => 'تم حفظ الإعدادات بنجاح',
+    'manage_blackouts' => 'إدارة تواريخ الحظر',
     'booking_rules' => 'قواعد الحجز',
     'blackout_dates' => 'تواريخ الحظر',
     'blackout_date' => 'تاريخ حظر',
@@ -321,4 +387,13 @@ return [
     'minutes' => 'دقيقة',
     'hours' => 'ساعة',
     'days' => 'يوم',
+
+    // Validation messages
+    'same_day_not_allowed' => 'الحجز في نفس اليوم غير مسموح',
+    'same_day_cutoff_passed' => 'انتهى وقت الحجز في نفس اليوم',
+    'exceeds_max_advance' => 'لا يمكن الحجز لأكثر من :days يوم مقدماً',
+    'break_time' => 'وقت الراحة',
+    'online_booking_disabled' => 'الحجز عبر الإنترنت غير متاح حالياً',
+    'capacity_exceeded' => 'تم الوصول لسعة الحجز القصوى',
+    'min_advance_not_met' => 'يجب حجز المواعيد قبل :hours ساعة على الأقل',
 ];

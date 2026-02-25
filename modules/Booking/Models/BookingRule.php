@@ -63,13 +63,10 @@ class BookingRule extends BaseModel
     // RULE TYPES - Comprehensive Categories
     // ==========================================
 
-    // Slot Generation Rules
+    // Time & Duration Configuration Rules
     public const TYPE_SLOT_DURATION = 'slot_duration';
     public const TYPE_SLOT_INTERVAL = 'slot_interval';
     public const TYPE_SLOT_BUFFER = 'slot_buffer';
-    public const TYPE_SLOT_BLOCK = 'slot_block';
-
-    // Time Configuration Rules
     public const TYPE_WORKING_HOURS = 'working_hours';
     public const TYPE_BREAK_TIME = 'break_time';
     public const TYPE_TIME_RESTRICTION = 'time_restriction';
@@ -99,11 +96,6 @@ class BookingRule extends BaseModel
     public const TYPE_PATIENT_AGE = 'patient_age';
     public const TYPE_PATIENT_GENDER = 'patient_gender';
 
-    // Pricing Rules
-    public const TYPE_PRICE_MODIFIER = 'price_modifier';
-    public const TYPE_PEAK_PRICING = 'peak_pricing';
-    public const TYPE_DISCOUNT = 'discount';
-
     // Resource Rules
     public const TYPE_ROOM_PREFERENCE = 'room_preference';
     public const TYPE_EQUIPMENT_REQUIRED = 'equipment_required';
@@ -114,29 +106,16 @@ class BookingRule extends BaseModel
     public const TYPE_REQUIRE_DEPOSIT = 'require_deposit';
     public const TYPE_REQUIRE_APPROVAL = 'require_approval';
 
-    // Cancellation Rules
-    public const TYPE_CANCELLATION_POLICY = 'cancellation_policy';
-    public const TYPE_RESCHEDULE_POLICY = 'reschedule_policy';
-    public const TYPE_NO_SHOW_POLICY = 'no_show_policy';
-
     // Rule type categories for UI organization
     public const RULE_CATEGORIES = [
-        'slot_generation' => [
-            'label' => 'Slot Generation',
+        'time_config' => [
+            'label' => 'Time & Duration',
             'icon' => 'heroicon-o-clock',
-            'color' => 'primary',
+            'color' => 'info',
             'types' => [
                 self::TYPE_SLOT_DURATION,
                 self::TYPE_SLOT_INTERVAL,
                 self::TYPE_SLOT_BUFFER,
-                self::TYPE_SLOT_BLOCK,
-            ],
-        ],
-        'time_config' => [
-            'label' => 'Time Configuration',
-            'icon' => 'heroicon-o-calendar',
-            'color' => 'info',
-            'types' => [
                 self::TYPE_WORKING_HOURS,
                 self::TYPE_BREAK_TIME,
                 self::TYPE_TIME_RESTRICTION,
@@ -187,16 +166,6 @@ class BookingRule extends BaseModel
                 self::TYPE_PATIENT_GENDER,
             ],
         ],
-        'pricing' => [
-            'label' => 'Pricing Rules',
-            'icon' => 'heroicon-o-currency-dollar',
-            'color' => 'emerald',
-            'types' => [
-                self::TYPE_PRICE_MODIFIER,
-                self::TYPE_PEAK_PRICING,
-                self::TYPE_DISCOUNT,
-            ],
-        ],
         'resources' => [
             'label' => 'Resource Allocation',
             'icon' => 'heroicon-o-cube',
@@ -217,26 +186,13 @@ class BookingRule extends BaseModel
                 self::TYPE_REQUIRE_APPROVAL,
             ],
         ],
-        'cancellation' => [
-            'label' => 'Cancellation & Policies',
-            'icon' => 'heroicon-o-x-circle',
-            'color' => 'danger',
-            'types' => [
-                self::TYPE_CANCELLATION_POLICY,
-                self::TYPE_RESCHEDULE_POLICY,
-                self::TYPE_NO_SHOW_POLICY,
-            ],
-        ],
     ];
 
     public const RULE_TYPES = [
-        // Slot Generation
-        self::TYPE_SLOT_DURATION => 'Slot Duration Override',
-        self::TYPE_SLOT_INTERVAL => 'Slot Interval Override',
-        self::TYPE_SLOT_BUFFER => 'Buffer Time Override',
-        self::TYPE_SLOT_BLOCK => 'Block Slots',
-
-        // Time Configuration
+        // Time & Duration
+        self::TYPE_SLOT_DURATION => 'Slot Duration',
+        self::TYPE_SLOT_INTERVAL => 'Slot Interval',
+        self::TYPE_SLOT_BUFFER => 'Buffer Time',
         self::TYPE_WORKING_HOURS => 'Working Hours',
         self::TYPE_BREAK_TIME => 'Break Time',
         self::TYPE_TIME_RESTRICTION => 'Time Restriction',
@@ -266,11 +222,6 @@ class BookingRule extends BaseModel
         self::TYPE_PATIENT_AGE => 'Patient Age Restriction',
         self::TYPE_PATIENT_GENDER => 'Patient Gender Restriction',
 
-        // Pricing
-        self::TYPE_PRICE_MODIFIER => 'Price Modifier',
-        self::TYPE_PEAK_PRICING => 'Peak Time Pricing',
-        self::TYPE_DISCOUNT => 'Automatic Discount',
-
         // Resources
         self::TYPE_ROOM_PREFERENCE => 'Room Preference',
         self::TYPE_EQUIPMENT_REQUIRED => 'Equipment Requirement',
@@ -280,21 +231,13 @@ class BookingRule extends BaseModel
         self::TYPE_AUTO_CONFIRM => 'Auto-Confirmation',
         self::TYPE_REQUIRE_DEPOSIT => 'Require Deposit',
         self::TYPE_REQUIRE_APPROVAL => 'Require Approval',
-
-        // Cancellation
-        self::TYPE_CANCELLATION_POLICY => 'Cancellation Policy',
-        self::TYPE_RESCHEDULE_POLICY => 'Reschedule Policy',
-        self::TYPE_NO_SHOW_POLICY => 'No-Show Policy',
     ];
 
     public const RULE_TYPE_DESCRIPTIONS = [
-        // Slot Generation
-        self::TYPE_SLOT_DURATION => 'Override the default slot duration for specific conditions',
-        self::TYPE_SLOT_INTERVAL => 'Override the interval between slot start times',
-        self::TYPE_SLOT_BUFFER => 'Override buffer time between appointments',
-        self::TYPE_SLOT_BLOCK => 'Completely block slots during specific times',
-
-        // Time Configuration
+        // Time & Duration
+        self::TYPE_SLOT_DURATION => 'Default duration for appointment slots',
+        self::TYPE_SLOT_INTERVAL => 'Interval between slot start times',
+        self::TYPE_SLOT_BUFFER => 'Buffer time between appointments',
         self::TYPE_WORKING_HOURS => 'Define available booking hours',
         self::TYPE_BREAK_TIME => 'Define break periods (e.g., lunch break)',
         self::TYPE_TIME_RESTRICTION => 'Restrict booking to specific time windows',
@@ -324,11 +267,6 @@ class BookingRule extends BaseModel
         self::TYPE_PATIENT_AGE => 'Age restrictions for services',
         self::TYPE_PATIENT_GENDER => 'Gender restrictions for services',
 
-        // Pricing
-        self::TYPE_PRICE_MODIFIER => 'Modify price based on conditions (time, day, etc.)',
-        self::TYPE_PEAK_PRICING => 'Higher pricing during peak hours',
-        self::TYPE_DISCOUNT => 'Automatic discounts for specific conditions',
-
         // Resources
         self::TYPE_ROOM_PREFERENCE => 'Preferred room assignment',
         self::TYPE_EQUIPMENT_REQUIRED => 'Required equipment for booking',
@@ -338,21 +276,13 @@ class BookingRule extends BaseModel
         self::TYPE_AUTO_CONFIRM => 'Automatically confirm appointments',
         self::TYPE_REQUIRE_DEPOSIT => 'Require deposit for booking',
         self::TYPE_REQUIRE_APPROVAL => 'Require manual approval before confirmation',
-
-        // Cancellation
-        self::TYPE_CANCELLATION_POLICY => 'Define cancellation time limits and fees',
-        self::TYPE_RESCHEDULE_POLICY => 'Define reschedule limits and conditions',
-        self::TYPE_NO_SHOW_POLICY => 'Define no-show penalties and restrictions',
     ];
 
     public const RULE_TYPE_COLORS = [
-        // Slot Generation - Primary
-        self::TYPE_SLOT_DURATION => 'primary',
-        self::TYPE_SLOT_INTERVAL => 'primary',
-        self::TYPE_SLOT_BUFFER => 'primary',
-        self::TYPE_SLOT_BLOCK => 'danger',
-
-        // Time Configuration - Info
+        // Time & Duration - Info
+        self::TYPE_SLOT_DURATION => 'info',
+        self::TYPE_SLOT_INTERVAL => 'info',
+        self::TYPE_SLOT_BUFFER => 'info',
         self::TYPE_WORKING_HOURS => 'info',
         self::TYPE_BREAK_TIME => 'info',
         self::TYPE_TIME_RESTRICTION => 'warning',
@@ -370,7 +300,7 @@ class BookingRule extends BaseModel
         self::TYPE_MAX_ADVANCE => 'success',
         self::TYPE_SAME_DAY => 'success',
 
-        // Online Booking - Cyan
+        // Online Booking - Gray
         self::TYPE_ONLINE_ENABLED => 'gray',
         self::TYPE_ONLINE_SERVICES => 'gray',
         self::TYPE_ONLINE_HOURS => 'gray',
@@ -382,11 +312,6 @@ class BookingRule extends BaseModel
         self::TYPE_PATIENT_AGE => 'violet',
         self::TYPE_PATIENT_GENDER => 'violet',
 
-        // Pricing - Emerald
-        self::TYPE_PRICE_MODIFIER => 'emerald',
-        self::TYPE_PEAK_PRICING => 'emerald',
-        self::TYPE_DISCOUNT => 'emerald',
-
         // Resources - Amber
         self::TYPE_ROOM_PREFERENCE => 'amber',
         self::TYPE_EQUIPMENT_REQUIRED => 'amber',
@@ -396,11 +321,6 @@ class BookingRule extends BaseModel
         self::TYPE_AUTO_CONFIRM => 'lime',
         self::TYPE_REQUIRE_DEPOSIT => 'lime',
         self::TYPE_REQUIRE_APPROVAL => 'lime',
-
-        // Cancellation - Danger
-        self::TYPE_CANCELLATION_POLICY => 'rose',
-        self::TYPE_RESCHEDULE_POLICY => 'rose',
-        self::TYPE_NO_SHOW_POLICY => 'rose',
     ];
 
     // Days of week for conditions
@@ -419,12 +339,6 @@ class BookingRule extends BaseModel
         'minutes' => 'Minutes',
         'hours' => 'Hours',
         'days' => 'Days',
-    ];
-
-    // Price modifier types
-    public const PRICE_MODIFIER_TYPES = [
-        'percentage' => 'Percentage',
-        'fixed' => 'Fixed Amount',
     ];
 
     // Booking sources for conditions
@@ -675,22 +589,6 @@ class BookingRule extends BaseModel
         return $this->actions['allow_practitioner_selection'] ?? null;
     }
 
-    // Pricing Actions
-    public function getPriceModifierType(): ?string
-    {
-        return $this->actions['modifier_type'] ?? null;
-    }
-
-    public function getPriceModifierValue(): ?float
-    {
-        return $this->actions['modifier_value'] ?? null;
-    }
-
-    public function getDiscountPercentage(): ?float
-    {
-        return $this->actions['discount_percentage'] ?? null;
-    }
-
     // Deposit Actions
     public function getDepositRequired(): ?bool
     {
@@ -705,27 +603,6 @@ class BookingRule extends BaseModel
     public function getDepositAmount(): ?int
     {
         return $this->actions['deposit_amount'] ?? null;
-    }
-
-    // Cancellation Actions
-    public function getCancellationHours(): ?int
-    {
-        return $this->actions['cancellation_hours'] ?? null;
-    }
-
-    public function getCancellationFeePercentage(): ?float
-    {
-        return $this->actions['cancellation_fee_percentage'] ?? null;
-    }
-
-    public function getRescheduleLimit(): ?int
-    {
-        return $this->actions['reschedule_limit'] ?? null;
-    }
-
-    public function getNoShowFeePercentage(): ?float
-    {
-        return $this->actions['no_show_fee_percentage'] ?? null;
     }
 
     // ==========================================
@@ -845,19 +722,12 @@ class BookingRule extends BaseModel
     // RULE TYPE CHECKERS
     // ==========================================
 
-    public function isSlotGenerationRule(): bool
+    public function isTimeConfigRule(): bool
     {
         return in_array($this->rule_type, [
             self::TYPE_SLOT_DURATION,
             self::TYPE_SLOT_INTERVAL,
             self::TYPE_SLOT_BUFFER,
-            self::TYPE_SLOT_BLOCK,
-        ]);
-    }
-
-    public function isTimeConfigRule(): bool
-    {
-        return in_array($this->rule_type, [
             self::TYPE_WORKING_HOURS,
             self::TYPE_BREAK_TIME,
             self::TYPE_TIME_RESTRICTION,
@@ -895,19 +765,9 @@ class BookingRule extends BaseModel
         ]);
     }
 
-    public function isPricingRule(): bool
-    {
-        return in_array($this->rule_type, [
-            self::TYPE_PRICE_MODIFIER,
-            self::TYPE_PEAK_PRICING,
-            self::TYPE_DISCOUNT,
-        ]);
-    }
-
     public function shouldBlockSlot(): bool
     {
-        return $this->rule_type === self::TYPE_SLOT_BLOCK ||
-               $this->rule_type === self::TYPE_BREAK_TIME;
+        return $this->rule_type === self::TYPE_BREAK_TIME;
     }
 
     public function restrictsOnlineBooking(): bool

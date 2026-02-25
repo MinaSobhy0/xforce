@@ -4,25 +4,22 @@ namespace Modules\Booking\Filament\Pages;
 
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
-use Filament\Tables;
-use Filament\Tables\Table;
-use Filament\Tables\Concerns\InteractsWithTable;
-use Filament\Tables\Contracts\HasTable;
 use Filament\Actions\Action;
-use Modules\Booking\Models\BookingRule;
+use Modules\Booking\Models\BookingConfig;
 use Modules\Booking\Models\BookingBlackoutDate;
 use Modules\Core\Models\Branch;
 use Modules\Services\Models\Service;
 use Modules\Booking\Services\SlotGenerationService;
 use Carbon\Carbon;
+use Illuminate\Support\Str;
 use App\Traits\ChecksResourcePermissions;
 
-class BookingSlotConfigPage extends Page implements Forms\Contracts\HasForms, HasTable
+class BookingSlotConfigPage extends Page implements Forms\Contracts\HasForms
 {
     use Forms\Concerns\InteractsWithForms;
-    use InteractsWithTable;
     use ChecksResourcePermissions;
 
     protected static ?string $moduleCode = 'booking';
@@ -33,6 +30,9 @@ class BookingSlotConfigPage extends Page implements Forms\Contracts\HasForms, Ha
     protected static ?string $navigationGroup = 'Settings';
     protected static ?int $navigationSort = 50;
     protected static ?string $slug = 'booking-configuration';
+
+    public ?array $data = [];
+    public ?string $selectedBranchId = null;
 
     // Preview properties
     public ?string $previewServiceId = null;
@@ -57,175 +57,301 @@ class BookingSlotConfigPage extends Page implements Forms\Contracts\HasForms, Ha
     public function mount(): void
     {
         $this->previewDate = now()->addDay()->format('Y-m-d');
-        $this->ensureDefaultRulesExist();
+        $this->loadConfiguration();
     }
 
-    /**
-     * Ensure default tenant-level rules exist for essential settings
-     */
-    protected function ensureDefaultRulesExist(): void
+    protected function loadConfiguration(): void
     {
-        $defaults = [
-            [
-                'code' => 'default-slot-duration',
-                'name' => __('booking::config.default_slot_duration'),
-                'rule_type' => BookingRule::TYPE_SLOT_DURATION,
-                'actions' => ['duration_minutes' => 30],
-                'priority' => 0,
-            ],
-            [
-                'code' => 'default-buffer',
-                'name' => __('booking::config.default_buffer'),
-                'rule_type' => BookingRule::TYPE_SLOT_BUFFER,
-                'actions' => ['buffer_minutes' => 5],
-                'priority' => 0,
-            ],
-            [
-                'code' => 'default-working-hours',
-                'name' => __('booking::config.default_working_hours'),
-                'rule_type' => BookingRule::TYPE_WORKING_HOURS,
-                'actions' => ['start_time' => '09:00', 'end_time' => '21:00'],
-                'priority' => 0,
-            ],
-            [
-                'code' => 'default-advance-booking',
-                'name' => __('booking::config.default_advance_booking'),
-                'rule_type' => BookingRule::TYPE_MIN_ADVANCE,
-                'actions' => ['min_hours' => 2],
-                'priority' => 0,
-            ],
-            [
-                'code' => 'default-max-advance',
-                'name' => __('booking::config.default_max_advance'),
-                'rule_type' => BookingRule::TYPE_MAX_ADVANCE,
-                'actions' => ['max_days' => 60],
-                'priority' => 0,
-            ],
-        ];
+        $this->loadConfigurationForBranch(null);
+    }
 
-        foreach ($defaults as $default) {
-            BookingRule::firstOrCreate(
-                ['code' => $default['code'], 'scope_level' => 'tenant'],
-                array_merge($default, [
-                    'scope_level' => 'tenant',
-                    'is_active' => true,
-                    'conditions' => [],
-                ])
-            );
-        }
+    protected function loadConfigurationForBranch(?string $branchId): void
+    {
+        $config = BookingConfig::getForBranch($branchId);
+
+        $this->form->fill([
+            'selectedBranchId' => $branchId,
+            'slot_duration' => $config->slot_duration,
+            'slot_interval' => $config->slot_interval,
+            'buffer_minutes' => $config->buffer_minutes,
+            'check_doctor_schedule' => $config->check_doctor_schedule,
+            'check_doctor_timeoff' => $config->check_doctor_timeoff,
+            'max_per_doctor_daily' => $config->max_per_doctor_daily,
+            'allow_doctor_overlap' => $config->allow_doctor_overlap,
+            'room_assignment' => $config->room_assignment,
+            'check_room_availability' => $config->check_room_availability,
+            'allow_room_overlap' => $config->allow_room_overlap,
+            'equipment_assignment' => $config->equipment_assignment,
+            'check_equipment_availability' => $config->check_equipment_availability,
+            'allow_equipment_overlap' => $config->allow_equipment_overlap,
+            'min_advance_hours' => $config->min_advance_hours,
+            'max_advance_days' => $config->max_advance_days,
+            'allow_same_day' => $config->allow_same_day,
+            'same_day_cutoff' => $config->same_day_cutoff,
+        ]);
+    }
+
+    public function form(Form $form): Form
+    {
+        return $form
+            ->schema([
+                // Branch Selector (for multi-branch override)
+                Forms\Components\Section::make()
+                    ->schema([
+                        Forms\Components\Select::make('selectedBranchId')
+                            ->label(__('booking::config.branch'))
+                            ->placeholder(__('booking::config.all_branches'))
+                            ->options(fn () => Branch::pluck('name', 'id'))
+                            ->live()
+                            ->afterStateUpdated(fn ($state) => $this->loadConfigurationForBranch($state))
+                            ->helperText(__('booking::config.branch_config_help')),
+                    ])
+                    ->columns(1),
+
+                // Step 1: Service & Time Configuration
+                Forms\Components\Section::make(__('booking::config.step1_title'))
+                    ->description(__('booking::config.step1_description'))
+                    ->icon('heroicon-o-clock')
+                    ->collapsible()
+                    ->schema([
+                        Forms\Components\Grid::make(3)
+                            ->schema([
+                                Forms\Components\TextInput::make('slot_duration')
+                                    ->label(__('booking::config.slot_duration'))
+                                    ->helperText(__('booking::config.slot_duration_help'))
+                                    ->numeric()
+                                    ->required()
+                                    ->suffix(__('booking::config.minutes'))
+                                    ->default(30),
+
+                                Forms\Components\TextInput::make('slot_interval')
+                                    ->label(__('booking::config.slot_interval'))
+                                    ->helperText(__('booking::config.slot_interval_help'))
+                                    ->numeric()
+                                    ->suffix(__('booking::config.minutes'))
+                                    ->placeholder(__('booking::config.use_slot_duration')),
+
+                                Forms\Components\TextInput::make('buffer_minutes')
+                                    ->label(__('booking::config.buffer_minutes'))
+                                    ->helperText(__('booking::config.buffer_help'))
+                                    ->numeric()
+                                    ->required()
+                                    ->suffix(__('booking::config.minutes'))
+                                    ->default(5),
+                            ]),
+
+                        Forms\Components\Placeholder::make('working_hours_info')
+                            ->label(__('booking::config.working_hours'))
+                            ->content(__('booking::config.working_hours_from_branch'))
+                            ->columnSpanFull(),
+                    ]),
+
+                // Step 2: Doctor/Practitioner Configuration
+                Forms\Components\Section::make(__('booking::config.step2_title'))
+                    ->description(__('booking::config.step2_description'))
+                    ->icon('heroicon-o-user')
+                    ->collapsible()
+                    ->schema([
+                        Forms\Components\Placeholder::make('doctor_schedule_info')
+                            ->label(__('booking::config.doctor_schedule'))
+                            ->content(__('booking::config.doctor_schedule_from_work_schedule'))
+                            ->columnSpanFull(),
+
+                        Forms\Components\Grid::make(2)
+                            ->schema([
+                                Forms\Components\Toggle::make('check_doctor_schedule')
+                                    ->label(__('booking::config.check_doctor_schedule'))
+                                    ->helperText(__('booking::config.check_doctor_schedule_help'))
+                                    ->default(true),
+
+                                Forms\Components\Toggle::make('check_doctor_timeoff')
+                                    ->label(__('booking::config.check_doctor_timeoff'))
+                                    ->helperText(__('booking::config.check_doctor_timeoff_help'))
+                                    ->default(true),
+                            ]),
+
+                        Forms\Components\Grid::make(2)
+                            ->schema([
+                                Forms\Components\TextInput::make('max_per_doctor_daily')
+                                    ->label(__('booking::config.max_per_doctor_daily'))
+                                    ->helperText(__('booking::config.max_per_doctor_daily_help'))
+                                    ->numeric()
+                                    ->placeholder(__('booking::config.unlimited')),
+
+                                Forms\Components\Toggle::make('allow_doctor_overlap')
+                                    ->label(__('booking::config.allow_doctor_overlap'))
+                                    ->helperText(__('booking::config.allow_doctor_overlap_help'))
+                                    ->default(false),
+                            ]),
+                    ]),
+
+                // Step 3: Room Configuration
+                Forms\Components\Section::make(__('booking::config.step3_title'))
+                    ->description(__('booking::config.step3_description'))
+                    ->icon('heroicon-o-building-office')
+                    ->collapsible()
+                    ->schema([
+                        Forms\Components\Grid::make(3)
+                            ->schema([
+                                Forms\Components\Select::make('room_assignment')
+                                    ->label(__('booking::config.room_assignment'))
+                                    ->options(BookingConfig::ROOM_ASSIGNMENT_OPTIONS)
+                                    ->required()
+                                    ->default(BookingConfig::ROOM_FROM_SERVICE),
+
+                                Forms\Components\Toggle::make('check_room_availability')
+                                    ->label(__('booking::config.check_room_availability'))
+                                    ->helperText(__('booking::config.check_room_availability_help'))
+                                    ->default(true),
+
+                                Forms\Components\Toggle::make('allow_room_overlap')
+                                    ->label(__('booking::config.allow_room_overlap'))
+                                    ->helperText(__('booking::config.allow_room_overlap_help'))
+                                    ->default(false),
+                            ]),
+                    ]),
+
+                // Step 4: Equipment Configuration
+                Forms\Components\Section::make(__('booking::config.step4_title'))
+                    ->description(__('booking::config.step4_description'))
+                    ->icon('heroicon-o-wrench-screwdriver')
+                    ->collapsible()
+                    ->schema([
+                        Forms\Components\Grid::make(3)
+                            ->schema([
+                                Forms\Components\Select::make('equipment_assignment')
+                                    ->label(__('booking::config.equipment_assignment'))
+                                    ->options(BookingConfig::EQUIPMENT_ASSIGNMENT_OPTIONS)
+                                    ->required()
+                                    ->default(BookingConfig::EQUIPMENT_FROM_SERVICE),
+
+                                Forms\Components\Toggle::make('check_equipment_availability')
+                                    ->label(__('booking::config.check_equipment_availability'))
+                                    ->helperText(__('booking::config.check_equipment_availability_help'))
+                                    ->default(true),
+
+                                Forms\Components\Toggle::make('allow_equipment_overlap')
+                                    ->label(__('booking::config.allow_equipment_overlap'))
+                                    ->helperText(__('booking::config.allow_equipment_overlap_help'))
+                                    ->default(false),
+                            ]),
+                    ]),
+
+                // Advance Booking Section
+                Forms\Components\Section::make(__('booking::config.advance_booking'))
+                    ->description(__('booking::config.advance_booking_description'))
+                    ->icon('heroicon-o-calendar-days')
+                    ->collapsible()
+                    ->schema([
+                        Forms\Components\Grid::make(3)
+                            ->schema([
+                                Forms\Components\TextInput::make('min_advance_hours')
+                                    ->label(__('booking::config.min_advance_hours'))
+                                    ->helperText(__('booking::config.min_advance_hours_help'))
+                                    ->numeric()
+                                    ->required()
+                                    ->suffix(__('booking::config.hours'))
+                                    ->default(2),
+
+                                Forms\Components\TextInput::make('max_advance_days')
+                                    ->label(__('booking::config.max_advance_days'))
+                                    ->helperText(__('booking::config.max_advance_days_help'))
+                                    ->numeric()
+                                    ->required()
+                                    ->suffix(__('booking::config.days'))
+                                    ->default(60),
+
+                                Forms\Components\Toggle::make('allow_same_day')
+                                    ->label(__('booking::config.allow_same_day'))
+                                    ->helperText(__('booking::config.allow_same_day_help'))
+                                    ->live()
+                                    ->default(true),
+                            ]),
+
+                        Forms\Components\TimePicker::make('same_day_cutoff')
+                            ->label(__('booking::config.same_day_cutoff'))
+                            ->helperText(__('booking::config.same_day_cutoff_help'))
+                            ->seconds(false)
+                            ->visible(fn (Get $get) => $get('allow_same_day'))
+                            ->columnSpan(1),
+                    ]),
+            ])
+            ->statePath('data');
     }
 
     protected function getHeaderActions(): array
     {
         return [
-            Action::make('create_rule')
-                ->label(__('booking::config.add_rule'))
-                ->icon('heroicon-o-plus')
-                ->url(route('filament.tenant.resources.booking-rules.create'))
-                ->color('primary'),
+            Action::make('save')
+                ->label(__('booking::config.save_configuration'))
+                ->icon('heroicon-o-check')
+                ->color('primary')
+                ->action('saveConfiguration'),
 
             Action::make('manage_blackouts')
-                ->label(__('booking::config.view_all_blackouts'))
+                ->label(__('booking::config.manage_blackouts'))
                 ->icon('heroicon-o-calendar-days')
                 ->url(route('filament.tenant.resources.booking-blackout-dates.index'))
                 ->color('gray'),
         ];
     }
 
-    public function table(Table $table): Table
+    public function saveConfiguration(): void
     {
-        return $table
-            ->query(BookingRule::query()->orderByDesc('priority'))
-            ->columns([
-                Tables\Columns\TextColumn::make('name')
-                    ->label(__('booking::config.rule_name'))
-                    ->searchable()
-                    ->description(fn (BookingRule $record) => $record->description),
+        $data = $this->form->getState();
 
-                Tables\Columns\TextColumn::make('rule_category_label')
-                    ->label(__('booking::config.category'))
-                    ->badge()
-                    ->color(fn (BookingRule $record) => $record->rule_category_color),
+        // Get branch ID from form data
+        $branchId = $data['selectedBranchId'] ?? null;
 
-                Tables\Columns\TextColumn::make('rule_type')
-                    ->label(__('booking::config.type'))
-                    ->formatStateUsing(fn (BookingRule $record) => $record->rule_type_label),
+        // Check if config exists for this branch
+        // Note: No tenant_id needed - in schema-per-tenant, data is isolated by schema
+        $existingQuery = \DB::table('booking_configs');
+        if ($branchId) {
+            $existingQuery->where('branch_id', $branchId);
+        } else {
+            $existingQuery->whereNull('branch_id');
+        }
+        $existing = $existingQuery->first();
 
-                Tables\Columns\TextColumn::make('scope_level')
-                    ->label(__('booking::config.scope'))
-                    ->formatStateUsing(fn (BookingRule $record) => $record->scope_description)
-                    ->icon(fn (BookingRule $record) => match($record->scope_level) {
-                        'tenant' => 'heroicon-o-building-office-2',
-                        'branch' => 'heroicon-o-building-storefront',
-                        'service' => 'heroicon-o-clipboard-document-list',
-                        'practitioner' => 'heroicon-o-user',
-                        default => 'heroicon-o-cog',
-                    }),
+        $configData = [
+            'slot_duration' => $data['slot_duration'],
+            'slot_interval' => $data['slot_interval'] ?: null,
+            'buffer_minutes' => $data['buffer_minutes'],
+            'check_doctor_schedule' => $data['check_doctor_schedule'] ? true : false,
+            'check_doctor_timeoff' => $data['check_doctor_timeoff'] ? true : false,
+            'max_per_doctor_daily' => $data['max_per_doctor_daily'] ?: null,
+            'allow_doctor_overlap' => $data['allow_doctor_overlap'] ? true : false,
+            'room_assignment' => $data['room_assignment'],
+            'check_room_availability' => $data['check_room_availability'] ? true : false,
+            'allow_room_overlap' => $data['allow_room_overlap'] ? true : false,
+            'equipment_assignment' => $data['equipment_assignment'],
+            'check_equipment_availability' => $data['check_equipment_availability'] ? true : false,
+            'allow_equipment_overlap' => $data['allow_equipment_overlap'] ? true : false,
+            'min_advance_hours' => $data['min_advance_hours'],
+            'max_advance_days' => $data['max_advance_days'],
+            'allow_same_day' => $data['allow_same_day'] ? true : false,
+            'same_day_cutoff' => $data['allow_same_day'] ? $data['same_day_cutoff'] : null,
+            'updated_at' => now(),
+        ];
 
-                Tables\Columns\TextColumn::make('priority')
-                    ->label(__('booking::config.priority'))
-                    ->sortable()
-                    ->badge()
-                    ->color(fn (int $state) => match(true) {
-                        $state >= 80 => 'danger',
-                        $state >= 50 => 'warning',
-                        $state >= 20 => 'info',
-                        default => 'gray',
-                    }),
+        if ($existing) {
+            // Update existing
+            \DB::table('booking_configs')
+                ->where('id', $existing->id)
+                ->update($configData);
+        } else {
+            // Insert new
+            \DB::table('booking_configs')->insert(array_merge($configData, [
+                'id' => Str::orderedUuid()->toString(),
+                'branch_id' => $branchId,
+                'created_at' => now(),
+            ]));
+        }
 
-                Tables\Columns\IconColumn::make('is_active')
-                    ->label(__('booking::config.active'))
-                    ->boolean(),
-
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->label(__('booking::config.updated'))
-                    ->since()
-                    ->sortable(),
-            ])
-            ->filters([
-                Tables\Filters\SelectFilter::make('rule_category')
-                    ->label(__('booking::config.category'))
-                    ->options(fn () => collect(BookingRule::RULE_CATEGORIES)->mapWithKeys(
-                        fn ($cat, $key) => [$key => $cat['label']]
-                    ))
-                    ->query(function ($query, array $data) {
-                        if (!$data['value']) {
-                            return $query;
-                        }
-                        $category = BookingRule::RULE_CATEGORIES[$data['value']] ?? null;
-                        if ($category) {
-                            return $query->whereIn('rule_type', $category['types']);
-                        }
-                        return $query;
-                    }),
-                Tables\Filters\SelectFilter::make('scope_level')
-                    ->label(__('booking::config.scope'))
-                    ->options(BookingRule::SCOPE_LEVELS),
-                Tables\Filters\TernaryFilter::make('is_active')
-                    ->label(__('booking::config.active')),
-            ])
-            ->actions([
-                Tables\Actions\Action::make('edit')
-                    ->icon('heroicon-o-pencil')
-                    ->url(fn (BookingRule $record) => route('filament.tenant.resources.booking-rules.edit', $record)),
-                Tables\Actions\Action::make('toggle')
-                    ->icon(fn (BookingRule $record) => $record->is_active ? 'heroicon-o-pause' : 'heroicon-o-play')
-                    ->label(fn (BookingRule $record) => $record->is_active ? __('booking::config.deactivate') : __('booking::config.activate'))
-                    ->color(fn (BookingRule $record) => $record->is_active ? 'warning' : 'success')
-                    ->requiresConfirmation()
-                    ->action(fn (BookingRule $record) => $record->update(['is_active' => !$record->is_active])),
-            ])
-            ->headerActions([
-                Tables\Actions\Action::make('create')
-                    ->label(__('booking::config.add_rule'))
-                    ->icon('heroicon-o-plus')
-                    ->url(route('filament.tenant.resources.booking-rules.create')),
-            ])
-            ->emptyStateHeading(__('booking::config.no_rules'))
-            ->emptyStateDescription(__('booking::config.no_rules_desc'))
-            ->emptyStateIcon('heroicon-o-document-text')
-            ->defaultSort('priority', 'desc')
-            ->paginated([10, 25, 50]);
+        Notification::make()
+            ->title(__('booking::config.configuration_saved'))
+            ->success()
+            ->send();
     }
 
     public function generatePreview(): void
@@ -245,8 +371,10 @@ class BookingSlotConfigPage extends Page implements Forms\Contracts\HasForms, Ha
                 return;
             }
 
-            // Get current tenant's first branch for preview
-            $branch = Branch::first();
+            $branch = $this->selectedBranchId
+                ? Branch::find($this->selectedBranchId)
+                : Branch::first();
+
             if (!$branch) {
                 $this->previewSlots = [];
                 return;
@@ -284,99 +412,6 @@ class BookingSlotConfigPage extends Page implements Forms\Contracts\HasForms, Ha
         }
     }
 
-    /**
-     * Get current configuration summary derived from active rules
-     */
-    public function getCurrentConfig(): array
-    {
-        $config = [
-            'slot_duration' => 30,
-            'buffer_minutes' => 5,
-            'working_hours' => ['start' => '09:00', 'end' => '21:00'],
-            'min_advance_hours' => 2,
-            'max_advance_days' => 60,
-            'allow_same_day' => true,
-            'online_booking' => true,
-            'auto_confirm' => false,
-            'practitioner_selection' => true,
-            'deposit_required' => false,
-            'deposit_percentage' => null,
-        ];
-
-        // Load tenant-level rules to determine current defaults
-        $tenantRules = BookingRule::where('scope_level', 'tenant')
-            ->where('is_active', true)
-            ->get();
-
-        foreach ($tenantRules as $rule) {
-            $actions = $rule->actions ?? [];
-
-            switch ($rule->rule_type) {
-                case BookingRule::TYPE_SLOT_DURATION:
-                    $config['slot_duration'] = $actions['duration_minutes'] ?? $config['slot_duration'];
-                    break;
-                case BookingRule::TYPE_SLOT_BUFFER:
-                    $config['buffer_minutes'] = $actions['buffer_minutes'] ?? $config['buffer_minutes'];
-                    break;
-                case BookingRule::TYPE_WORKING_HOURS:
-                    $config['working_hours'] = [
-                        'start' => $actions['start_time'] ?? $config['working_hours']['start'],
-                        'end' => $actions['end_time'] ?? $config['working_hours']['end'],
-                    ];
-                    break;
-                case BookingRule::TYPE_MIN_ADVANCE:
-                    $config['min_advance_hours'] = $actions['min_hours'] ?? $config['min_advance_hours'];
-                    break;
-                case BookingRule::TYPE_MAX_ADVANCE:
-                    $config['max_advance_days'] = $actions['max_days'] ?? $config['max_advance_days'];
-                    break;
-                case BookingRule::TYPE_SAME_DAY:
-                    $config['allow_same_day'] = $actions['allow_same_day'] ?? $config['allow_same_day'];
-                    break;
-                case BookingRule::TYPE_ONLINE_ENABLED:
-                    $config['online_booking'] = $actions['enabled'] ?? $config['online_booking'];
-                    break;
-                case BookingRule::TYPE_AUTO_CONFIRM:
-                    $config['auto_confirm'] = $actions['auto_confirm'] ?? $config['auto_confirm'];
-                    break;
-                case BookingRule::TYPE_ONLINE_PRACTITIONER:
-                    $config['practitioner_selection'] = $actions['allow_selection'] ?? $config['practitioner_selection'];
-                    break;
-                case BookingRule::TYPE_REQUIRE_DEPOSIT:
-                    $config['deposit_required'] = $actions['required'] ?? $config['deposit_required'];
-                    $config['deposit_percentage'] = $actions['percentage'] ?? $config['deposit_percentage'];
-                    break;
-            }
-        }
-
-        return $config;
-    }
-
-    /**
-     * Get rules grouped by category for display
-     */
-    public function getRulesByCategory(): array
-    {
-        $rules = BookingRule::where('is_active', true)
-            ->orderByDesc('priority')
-            ->get()
-            ->groupBy(fn ($rule) => $rule->rule_category);
-
-        $grouped = [];
-        foreach (BookingRule::RULE_CATEGORIES as $key => $category) {
-            $categoryRules = $rules->get($key, collect());
-            if ($categoryRules->isNotEmpty()) {
-                $grouped[$key] = [
-                    'label' => $category['label'],
-                    'color' => $category['color'] ?? 'gray',
-                    'rules' => $categoryRules,
-                ];
-            }
-        }
-
-        return $grouped;
-    }
-
     public function getUpcomingBlackouts(): \Illuminate\Support\Collection
     {
         return BookingBlackoutDate::active()
@@ -384,20 +419,6 @@ class BookingSlotConfigPage extends Page implements Forms\Contracts\HasForms, Ha
             ->orderByDate()
             ->limit(5)
             ->get();
-    }
-
-    public function getActiveRulesCount(): int
-    {
-        return BookingRule::active()->count();
-    }
-
-    public function getRulesCountByCategory(): array
-    {
-        return BookingRule::active()
-            ->get()
-            ->groupBy(fn ($rule) => $rule->rule_category)
-            ->map(fn ($rules) => $rules->count())
-            ->toArray();
     }
 
     public function getBlackoutDatesCount(): int
@@ -416,11 +437,7 @@ class BookingSlotConfigPage extends Page implements Forms\Contracts\HasForms, Ha
     protected function getViewData(): array
     {
         return [
-            'currentConfig' => $this->getCurrentConfig(),
-            'rulesByCategory' => $this->getRulesByCategory(),
-            'rulesCountByCategory' => $this->getRulesCountByCategory(),
             'upcomingBlackouts' => $this->getUpcomingBlackouts(),
-            'activeRulesCount' => $this->getActiveRulesCount(),
             'blackoutDatesCount' => $this->getBlackoutDatesCount(),
             'serviceOptions' => $this->getServiceOptions(),
         ];

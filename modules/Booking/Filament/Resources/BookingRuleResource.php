@@ -138,16 +138,6 @@ class BookingRuleResource extends Resource
                                 ->helperText(__('booking::config.buffer_override_help')),
                         ])->visible(fn (Get $get) => $get('rule_type') === BookingRule::TYPE_SLOT_BUFFER),
 
-                        // Block Slots
-                        Forms\Components\Group::make([
-                            Forms\Components\Toggle::make('actions.block')
-                                ->label(__('booking::config.block_slots'))
-                                ->default(true),
-                            Forms\Components\TextInput::make('actions.reason')
-                                ->label(__('booking::config.block_reason'))
-                                ->helperText(__('booking::config.block_reason_help')),
-                        ])->visible(fn (Get $get) => $get('rule_type') === BookingRule::TYPE_SLOT_BLOCK),
-
                         // =====================
                         // TIME CONFIGURATION
                         // =====================
@@ -353,44 +343,6 @@ class BookingRuleResource extends Resource
                         ])->visible(fn (Get $get) => $get('rule_type') === BookingRule::TYPE_PATIENT_GENDER),
 
                         // =====================
-                        // PRICING RULES
-                        // =====================
-
-                        // Price Modifier / Peak Pricing
-                        Forms\Components\Group::make([
-                            Forms\Components\Grid::make(2)
-                                ->schema([
-                                    Forms\Components\Select::make('actions.modifier_type')
-                                        ->label(__('booking::config.modifier_type'))
-                                        ->options(BookingRule::PRICE_MODIFIER_TYPES)
-                                        ->required(),
-                                    Forms\Components\TextInput::make('actions.modifier_value')
-                                        ->label(__('booking::config.modifier_value'))
-                                        ->numeric()
-                                        ->required()
-                                        ->suffix(fn (Get $get) => $get('actions.modifier_type') === 'percentage' ? '%' : ''),
-                                ]),
-                            Forms\Components\TextInput::make('actions.reason')
-                                ->label(__('booking::config.modifier_reason')),
-                        ])->visible(fn (Get $get) => in_array($get('rule_type'), [
-                            BookingRule::TYPE_PRICE_MODIFIER,
-                            BookingRule::TYPE_PEAK_PRICING,
-                        ])),
-
-                        // Discount
-                        Forms\Components\Group::make([
-                            Forms\Components\TextInput::make('actions.discount_percentage')
-                                ->label(__('booking::config.discount_percentage'))
-                                ->numeric()
-                                ->required()
-                                ->suffix('%'),
-                            Forms\Components\TextInput::make('actions.discount_code')
-                                ->label(__('booking::config.discount_code')),
-                            Forms\Components\TextInput::make('actions.discount_reason')
-                                ->label(__('booking::config.discount_reason')),
-                        ])->visible(fn (Get $get) => $get('rule_type') === BookingRule::TYPE_DISCOUNT),
-
-                        // =====================
                         // CONFIRMATION RULES
                         // =====================
 
@@ -434,52 +386,6 @@ class BookingRuleResource extends Resource
                                 ])
                                 ->multiple(),
                         ])->visible(fn (Get $get) => $get('rule_type') === BookingRule::TYPE_REQUIRE_APPROVAL),
-
-                        // =====================
-                        // CANCELLATION RULES
-                        // =====================
-
-                        // Cancellation Policy
-                        Forms\Components\Group::make([
-                            Forms\Components\TextInput::make('actions.cancellation_hours')
-                                ->label(__('booking::config.cancellation_hours'))
-                                ->numeric()
-                                ->required()
-                                ->suffix(__('booking::config.hours'))
-                                ->helperText(__('booking::config.cancellation_hours_help')),
-                            Forms\Components\TextInput::make('actions.cancellation_fee_percentage')
-                                ->label(__('booking::config.cancellation_fee'))
-                                ->numeric()
-                                ->suffix('%')
-                                ->helperText(__('booking::config.cancellation_fee_help')),
-                        ])->visible(fn (Get $get) => $get('rule_type') === BookingRule::TYPE_CANCELLATION_POLICY),
-
-                        // Reschedule Policy
-                        Forms\Components\Group::make([
-                            Forms\Components\TextInput::make('actions.reschedule_limit')
-                                ->label(__('booking::config.reschedule_limit'))
-                                ->numeric()
-                                ->helperText(__('booking::config.reschedule_limit_help')),
-                            Forms\Components\TextInput::make('actions.reschedule_hours')
-                                ->label(__('booking::config.reschedule_hours'))
-                                ->numeric()
-                                ->suffix(__('booking::config.hours'))
-                                ->helperText(__('booking::config.reschedule_hours_help')),
-                        ])->visible(fn (Get $get) => $get('rule_type') === BookingRule::TYPE_RESCHEDULE_POLICY),
-
-                        // No Show Policy
-                        Forms\Components\Group::make([
-                            Forms\Components\TextInput::make('actions.no_show_fee_percentage')
-                                ->label(__('booking::config.no_show_fee'))
-                                ->numeric()
-                                ->suffix('%'),
-                            Forms\Components\TextInput::make('actions.no_show_limit')
-                                ->label(__('booking::config.no_show_limit'))
-                                ->numeric()
-                                ->helperText(__('booking::config.no_show_limit_help')),
-                            Forms\Components\Toggle::make('actions.block_after_no_shows')
-                                ->label(__('booking::config.block_after_no_shows')),
-                        ])->visible(fn (Get $get) => $get('rule_type') === BookingRule::TYPE_NO_SHOW_POLICY),
 
                         // =====================
                         // RESOURCE RULES

@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\HtmlString;
 use Livewire\Attributes\On;
 use Modules\Booking\Models\Appointment;
+use Modules\Booking\Services\BookingRuleEvaluator;
 use Modules\Booking\Services\SlotGenerationService;
 use Modules\Core\Models\Branch;
 use Modules\Core\Models\Room;
@@ -182,11 +183,15 @@ class CreateBooking extends Page implements HasForms
                                                     ->required(),
                                             ]),
 
-                                        // Patient Info Card - shows packages and treatment plans
+                                        // Patient Info Card - shows clickable packages and treatment plans
                                         Forms\Components\Placeholder::make('patient_info')
                                             ->label('')
                                             ->content(function (Get $get) {
                                                 $patientId = $get('patient_id');
+                                                $currentBookingType = $get('booking_type');
+                                                $selectedSubscriptionId = $get('package_subscription_id');
+                                                $selectedPlanId = $get('treatment_plan_id');
+
                                                 if (!$patientId) {
                                                     return '';
                                                 }
@@ -201,7 +206,7 @@ class CreateBooking extends Page implements HasForms
                                                     $activePackages = PackageSubscription::query()
                                                         ->forPatient($patientId)
                                                         ->active()
-                                                        ->with('package')
+                                                        ->with(['package.items.service'])
                                                         ->get();
 
                                                     // Get active treatment plans
@@ -210,60 +215,170 @@ class CreateBooking extends Page implements HasForms
                                                         $activePlans = TreatmentPlan::query()
                                                             ->forPatient($patientId)
                                                             ->active()
+                                                            ->with(['items.service'])
                                                             ->get();
                                                     } catch (\Exception $e) {
                                                         // Treatment plans table may not exist
                                                     }
 
+                                                    // Hide section if no packages and no treatment plans
+                                                    if ($activePackages->isEmpty() && $activePlans->isEmpty()) {
+                                                        return '';
+                                                    }
+
                                                     $html = '<div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800">';
 
-                                                    // Packages section
-                                                    $html .= '<div class="mb-3">';
-                                                    $html .= '<div class="flex items-center gap-2 mb-2">';
-                                                    $html .= '<svg class="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"></path></svg>';
-                                                    $html .= '<span class="font-semibold text-gray-900 dark:text-white">' . __('booking::booking.labels.active_packages') . '</span>';
-                                                    $html .= '<span class="ml-auto px-2 py-0.5 text-xs font-medium rounded-full ' . ($activePackages->count() > 0 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500') . '">' . $activePackages->count() . '</span>';
-                                                    $html .= '</div>';
+                                                    // Two-column layout: Left = Packages & Plans list, Right = Selected details
+                                                    $html .= '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">';
 
-                                                    if ($activePackages->count() > 0) {
-                                                        $html .= '<div class="space-y-1 ml-7">';
-                                                        foreach ($activePackages->take(3) as $sub) {
-                                                            $html .= '<div class="text-sm text-gray-600 dark:text-gray-300">';
-                                                            $html .= '• ' . $sub->package->translated_name . ' <span class="text-green-600">(' . $sub->sessions_remaining . ' ' . __('booking::booking.labels.remaining') . ')</span>';
-                                                            $html .= '</div>';
-                                                        }
-                                                        if ($activePackages->count() > 3) {
-                                                            $html .= '<div class="text-xs text-gray-400">+' . ($activePackages->count() - 3) . ' more...</div>';
-                                                        }
-                                                        $html .= '</div>';
-                                                    } else {
-                                                        $html .= '<div class="text-sm text-gray-400 ml-7">' . __('booking::booking.labels.no_active_packages') . '</div>';
-                                                    }
-                                                    $html .= '</div>';
-
-                                                    // Treatment Plans section
+                                                    // LEFT COLUMN: Packages and Treatment Plans stacked (only show sections with content)
                                                     $html .= '<div>';
-                                                    $html .= '<div class="flex items-center gap-2 mb-2">';
-                                                    $html .= '<svg class="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>';
-                                                    $html .= '<span class="font-semibold text-gray-900 dark:text-white">' . __('booking::booking.labels.active_treatment_plans') . '</span>';
-                                                    $html .= '<span class="ml-auto px-2 py-0.5 text-xs font-medium rounded-full ' . ($activePlans->count() > 0 ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500') . '">' . $activePlans->count() . '</span>';
-                                                    $html .= '</div>';
 
-                                                    if ($activePlans->count() > 0) {
-                                                        $html .= '<div class="space-y-1 ml-7">';
-                                                        foreach ($activePlans->take(3) as $plan) {
-                                                            $html .= '<div class="text-sm text-gray-600 dark:text-gray-300">';
-                                                            $html .= '• ' . $plan->name . ' <span class="text-blue-600">(' . $plan->progress_percentage . '% ' . __('booking::booking.labels.complete') . ')</span>';
-                                                            $html .= '</div>';
-                                                        }
-                                                        if ($activePlans->count() > 3) {
-                                                            $html .= '<div class="text-xs text-gray-400">+' . ($activePlans->count() - 3) . ' more...</div>';
+                                                    // Packages section (only if there are packages)
+                                                    if ($activePackages->isNotEmpty()) {
+                                                        $html .= '<div class="mb-3">';
+                                                        $html .= '<div class="flex items-center gap-2 mb-2">';
+                                                        $html .= '<svg class="w-4 h-4 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"></path></svg>';
+                                                        $html .= '<span class="font-semibold text-sm text-gray-900 dark:text-white">' . __('booking::booking.labels.active_packages') . '</span>';
+                                                        $html .= '<span class="ml-auto px-2 py-0.5 text-xs font-medium rounded-full" style="background-color: #dcfce7; color: #15803d;">' . $activePackages->count() . '</span>';
+                                                        $html .= '</div>';
+                                                        $html .= '<div class="flex flex-wrap gap-1.5">';
+                                                        foreach ($activePackages as $sub) {
+                                                            $isSelected = $currentBookingType === 'package' && $selectedSubscriptionId === $sub->id;
+                                                            $pillStyle = $isSelected
+                                                                ? 'background-color: #22c55e; color: white; box-shadow: 0 0 0 2px #86efac;'
+                                                                : 'background-color: #f3f4f6; color: #374151; border: 1px solid #e5e7eb;';
+                                                            $badgeStyle = $isSelected
+                                                                ? 'background-color: #4ade80; color: white;'
+                                                                : 'background-color: #e5e7eb; color: #374151;';
+
+                                                            $html .= '<button type="button" wire:click="selectPackageForBooking(\'' . $sub->id . '\')" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all cursor-pointer" style="' . $pillStyle . '">';
+                                                            if ($isSelected) {
+                                                                $html .= '<svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>';
+                                                            }
+                                                            $html .= '<span class="truncate max-w-[100px]">' . e($sub->package->translated_name) . '</span>';
+                                                            $html .= '<span class="px-1.5 py-0.5 rounded-full text-[10px] font-semibold" style="' . $badgeStyle . '">' . $sub->sessions_remaining . '/' . $sub->package->total_sessions . '</span>';
+                                                            $html .= '</button>';
                                                         }
                                                         $html .= '</div>';
-                                                    } else {
-                                                        $html .= '<div class="text-sm text-gray-400 ml-7">' . __('booking::booking.labels.no_active_plans') . '</div>';
+                                                        $html .= '</div>';
                                                     }
-                                                    $html .= '</div>';
+
+                                                    // Treatment Plans section (only if there are plans)
+                                                    if ($activePlans->isNotEmpty()) {
+                                                        $html .= '<div>';
+                                                        $html .= '<div class="flex items-center gap-2 mb-2">';
+                                                        $html .= '<svg class="w-4 h-4 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>';
+                                                        $html .= '<span class="font-semibold text-sm text-gray-900 dark:text-white">' . __('booking::booking.labels.active_treatment_plans') . '</span>';
+                                                        $html .= '<span class="ml-auto px-2 py-0.5 text-xs font-medium rounded-full" style="background-color: #dbeafe; color: #1d4ed8;">' . $activePlans->count() . '</span>';
+                                                        $html .= '</div>';
+                                                        $html .= '<div class="flex flex-wrap gap-1.5">';
+                                                        foreach ($activePlans as $plan) {
+                                                            $isSelected = $currentBookingType === 'treatment_plan' && $selectedPlanId === $plan->id;
+                                                            $remainingSessions = $plan->total_recommended_sessions - $plan->total_completed_sessions;
+                                                            $progress = round($plan->progress_percentage);
+                                                            $pillStyle = $isSelected
+                                                                ? 'background-color: #22c55e; color: white; box-shadow: 0 0 0 2px #86efac;'
+                                                                : 'background-color: #f3f4f6; color: #374151; border: 1px solid #e5e7eb;';
+                                                            $badgeStyle = $isSelected
+                                                                ? 'background-color: #4ade80; color: white;'
+                                                                : 'background-color: #e5e7eb; color: #374151;';
+
+                                                            $html .= '<button type="button" wire:click="selectTreatmentPlanForBooking(\'' . $plan->id . '\')" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all cursor-pointer" style="' . $pillStyle . '">';
+                                                            if ($isSelected) {
+                                                                $html .= '<svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>';
+                                                            }
+                                                            $html .= '<span class="truncate max-w-[100px]">' . e($plan->translated_name) . '</span>';
+                                                            $html .= '<span class="px-1.5 py-0.5 rounded-full text-[10px] font-semibold" style="' . $badgeStyle . '">' . $remainingSessions . ' · ' . $progress . '%</span>';
+                                                            $html .= '</button>';
+                                                        }
+                                                        $html .= '</div>';
+                                                        $html .= '</div>';
+                                                    }
+
+                                                    $html .= '</div>'; // Close left column
+
+                                                    // RIGHT COLUMN: Selected package/plan services
+                                                    $html .= '<div style="border-left: 1px solid #e5e7eb; padding-left: 1rem;">';
+
+                                                    if ($currentBookingType === 'package' && $selectedSubscriptionId) {
+                                                        // Show selected package services
+                                                        $selectedSub = $activePackages->firstWhere('id', $selectedSubscriptionId);
+                                                        if ($selectedSub) {
+                                                            $html .= '<div class="flex items-center gap-2 mb-2">';
+                                                            $html .= '<span class="font-semibold text-sm text-gray-900 dark:text-white">' . __('booking::booking.labels.select_services_to_book') . '</span>';
+                                                            $html .= '</div>';
+                                                            $html .= '<div class="flex flex-wrap gap-1.5">';
+
+                                                            $selectedPackageServiceId = $this->data['package_service_id'] ?? null;
+                                                            foreach ($selectedSub->package->items as $item) {
+                                                                $remaining = $selectedSub->getSessionsRemainingByService($item->service_id);
+                                                                if ($remaining > 0) {
+                                                                    $isServiceSelected = $selectedPackageServiceId === $item->service_id;
+                                                                    $svcPillStyle = $isServiceSelected
+                                                                        ? 'background-color: #22c55e; color: white; box-shadow: 0 0 0 2px #86efac;'
+                                                                        : 'background-color: #f3f4f6; color: #374151; border: 1px solid #e5e7eb;';
+                                                                    $svcBadgeStyle = $isServiceSelected
+                                                                        ? 'background-color: #4ade80; color: white;'
+                                                                        : 'background-color: #e5e7eb; color: #374151;';
+
+                                                                    $html .= '<button type="button" wire:click="$set(\'data.package_service_id\', \'' . $item->service_id . '\')" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all cursor-pointer" style="' . $svcPillStyle . '">';
+                                                                    if ($isServiceSelected) {
+                                                                        $html .= '<svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>';
+                                                                    }
+                                                                    $html .= '<span class="truncate max-w-[120px]">' . e($item->service->translated_name) . '</span>';
+                                                                    $html .= '<span class="px-1.5 py-0.5 rounded-full text-[10px] font-semibold" style="' . $svcBadgeStyle . '">' . $remaining . '/' . $item->quantity . '</span>';
+                                                                    $html .= '</button>';
+                                                                }
+                                                            }
+                                                            $html .= '</div>';
+                                                        }
+                                                    } elseif ($currentBookingType === 'treatment_plan' && $selectedPlanId) {
+                                                        // Show selected treatment plan items
+                                                        $selectedPlan = $activePlans->firstWhere('id', $selectedPlanId);
+                                                        if ($selectedPlan) {
+                                                            $html .= '<div class="flex items-center gap-2 mb-2">';
+                                                            $html .= '<span class="font-semibold text-sm text-gray-900 dark:text-white">' . __('booking::booking.labels.select_services_to_book') . '</span>';
+                                                            $html .= '</div>';
+                                                            $html .= '<div class="flex flex-wrap gap-1.5">';
+
+                                                            $selectedItemId = $this->data['treatment_plan_item_id'] ?? null;
+                                                            foreach ($selectedPlan->items as $item) {
+                                                                if ($item->canBook()) {
+                                                                    $isItemSelected = $selectedItemId === $item->id;
+                                                                    $nextDate = $item->next_suggested_date ? $item->next_suggested_date->format('M d') : '-';
+                                                                    $itemPillStyle = $isItemSelected
+                                                                        ? 'background-color: #22c55e; color: white; box-shadow: 0 0 0 2px #86efac;'
+                                                                        : 'background-color: #f3f4f6; color: #374151; border: 1px solid #e5e7eb;';
+                                                                    $itemBadgeStyle = $isItemSelected
+                                                                        ? 'background-color: #4ade80; color: white;'
+                                                                        : 'background-color: #e5e7eb; color: #374151;';
+
+                                                                    $html .= '<button type="button" wire:click="selectTreatmentPlanItem(\'' . $item->id . '\')" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all cursor-pointer" style="' . $itemPillStyle . '">';
+                                                                    if ($isItemSelected) {
+                                                                        $html .= '<svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>';
+                                                                    }
+                                                                    $html .= '<span class="truncate max-w-[120px]">' . e($item->service->translated_name) . '</span>';
+                                                                    $html .= '<span class="px-1.5 py-0.5 rounded-full text-[10px] font-semibold" style="' . $itemBadgeStyle . '">' . $item->remaining_sessions . '/' . $item->recommended_sessions . '</span>';
+                                                                    $html .= '<span class="text-[10px] opacity-75">' . $nextDate . '</span>';
+                                                                    $html .= '</button>';
+                                                                }
+                                                            }
+                                                            $html .= '</div>';
+                                                        }
+                                                    } else {
+                                                        // No selection - show hint
+                                                        $html .= '<div class="flex items-center justify-center h-full text-sm text-gray-400">';
+                                                        $html .= '<div class="text-center">';
+                                                        $html .= '<svg class="w-8 h-8 mx-auto mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>';
+                                                        $html .= '<p>' . __('booking::booking.labels.click_to_book') . '</p>';
+                                                        $html .= '</div>';
+                                                        $html .= '</div>';
+                                                    }
+
+                                                    $html .= '</div>'; // Close right column
+
+                                                    $html .= '</div>'; // Close grid
 
                                                     $html .= '</div>';
 
@@ -410,61 +525,9 @@ class CreateBooking extends Page implements HasForms
                                                     ->live()
                                                     ->columnSpanFull(),
 
-                                                // Patient's Existing Packages as Cards
-                                                Forms\Components\Placeholder::make('existing_packages_cards')
-                                                    ->label('')
-                                                    ->content(function (Get $get) {
-                                                        $patientId = $get('patient_id');
-                                                        $selectedSubscriptionId = $get('package_subscription_id');
-
-                                                        if (!$patientId) {
-                                                            return new HtmlString('<div class="text-sm text-gray-500 text-center py-4">' . __('booking::booking.messages.select_patient_first') . '</div>');
-                                                        }
-
-                                                        try {
-                                                            $subscriptions = PackageSubscription::query()
-                                                                ->forPatient($patientId)
-                                                                ->active()
-                                                                ->with('package')
-                                                                ->get();
-
-                                                            if ($subscriptions->isEmpty()) {
-                                                                return new HtmlString('<div class="text-sm text-gray-500 text-center py-4 border-2 border-dashed border-gray-200 rounded-lg">' . __('booking::booking.messages.no_active_packages') . '</div>');
-                                                            }
-
-                                                            $html = '<div class="grid grid-cols-1 md:grid-cols-2 gap-3">';
-                                                            foreach ($subscriptions as $sub) {
-                                                                $isSelected = $selectedSubscriptionId === $sub->id;
-                                                                $borderColor = $isSelected ? 'border-primary-500 ring-2 ring-primary-200' : 'border-gray-200 hover:border-primary-300';
-                                                                $bgColor = $isSelected ? 'bg-primary-50' : 'bg-white';
-
-                                                                $html .= '<div wire:click="$set(\'data.package_subscription_id\', \'' . $sub->id . '\')" class="cursor-pointer rounded-lg border-2 ' . $borderColor . ' ' . $bgColor . ' p-4 transition-all">';
-                                                                $html .= '<div class="flex items-start justify-between">';
-                                                                $html .= '<div>';
-                                                                $html .= '<h4 class="font-semibold text-gray-900">' . e($sub->package->translated_name) . '</h4>';
-                                                                $html .= '<p class="text-sm text-gray-500">' . $sub->sessions_remaining . ' / ' . $sub->package->total_sessions . ' ' . __('booking::booking.labels.sessions') . ' ' . __('booking::booking.labels.remaining') . '</p>';
-                                                                $html .= '</div>';
-                                                                if ($isSelected) {
-                                                                    $html .= '<span class="flex h-6 w-6 items-center justify-center rounded-full" style="background-color: #22c55e;"><svg class="h-4 w-4 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg></span>';
-                                                                }
-                                                                $html .= '</div>';
-                                                                // Progress bar
-                                                                $progress = $sub->package->total_sessions > 0 ? (($sub->package->total_sessions - $sub->sessions_remaining) / $sub->package->total_sessions) * 100 : 0;
-                                                                $html .= '<div class="mt-3 h-2 w-full rounded-full bg-gray-200">';
-                                                                $html .= '<div class="h-2 rounded-full bg-primary-500" style="width: ' . $progress . '%"></div>';
-                                                                $html .= '</div>';
-                                                                $html .= '<p class="mt-1 text-xs text-gray-400">' . __('booking::booking.labels.expires') . ': ' . ($sub->expires_at ? $sub->expires_at->format('M d, Y') : 'N/A') . '</p>';
-                                                                $html .= '</div>';
-                                                            }
-                                                            $html .= '</div>';
-
-                                                            return new HtmlString($html);
-                                                        } catch (\Exception $e) {
-                                                            return new HtmlString('<div class="text-sm text-red-500">' . $e->getMessage() . '</div>');
-                                                        }
-                                                    })
-                                                    ->visible(fn (Get $get) => $get('package_mode') !== 'new')
-                                                    ->columnSpanFull(),
+                                                // Patient's Existing Packages - now shown in patient_info two-column layout
+                                                // Keeping Hidden fields for the selected package
+                                                // The visible package pills are rendered in patient_info placeholder
 
                                                 // Hidden field to store selected subscription
                                                 Forms\Components\Hidden::make('package_subscription_id'),
@@ -486,7 +549,7 @@ class CreateBooking extends Page implements HasForms
                                                     ->visible(fn (Get $get) => $get('package_mode') === 'new')
                                                     ->columnSpanFull(),
 
-                                                // Services from Selected Package as Cards
+                                                // Services from Selected Package - only show for NEW packages (existing packages services shown in patient_info)
                                                 Forms\Components\ViewField::make('package_services_cards')
                                                     ->view('booking::components.package-services-grid')
                                                     ->viewData(fn (Get $get, $livewire) => [
@@ -496,7 +559,7 @@ class CreateBooking extends Page implements HasForms
                                                         'selectedServiceId' => $get('package_service_id') ?? $get('new_package_service_id'),
                                                         'bookingItems' => $livewire->bookingItems ?? [],
                                                     ])
-                                                    ->visible(fn (Get $get) => $get('package_subscription_id') || $get('new_package_id'))
+                                                    ->visible(fn (Get $get) => $get('package_mode') === 'new' && $get('new_package_id'))
                                                     ->columnSpanFull(),
 
                                                 // Hidden fields to store selected service
@@ -508,32 +571,8 @@ class CreateBooking extends Page implements HasForms
                                         // Treatment Plan Selection (for treatment plan booking)
                                         Forms\Components\Fieldset::make(__('booking::booking.fields.treatment_plan'))
                                             ->schema([
-                                                Forms\Components\Select::make('treatment_plan_id')
-                                                    ->label(__('booking::booking.fields.select_treatment_plan'))
-                                                    ->options(function (Get $get) {
-                                                        $patientId = $get('patient_id');
-                                                        if (!$patientId) {
-                                                            return [];
-                                                        }
-                                                        try {
-                                                            return TreatmentPlan::query()
-                                                                ->forPatient($patientId)
-                                                                ->active()
-                                                                ->with('items.service')
-                                                                ->get()
-                                                                ->mapWithKeys(fn (TreatmentPlan $plan) => [
-                                                                    $plan->id => "{$plan->code}: {$plan->translated_name} ({$plan->progress_percentage}% complete)"
-                                                                ]);
-                                                        } catch (\Exception $e) {
-                                                            return [];
-                                                        }
-                                                    })
-                                                    ->searchable()
-                                                    ->live()
-                                                    ->required(fn (Get $get) => $get('booking_type') === 'treatment_plan')
-                                                    ->helperText(fn (Get $get) => !$get('patient_id')
-                                                        ? __('booking::booking.messages.select_patient_first')
-                                                        : null),
+                                                // Hidden field to store selected treatment plan (selection is done via pills in patient_info)
+                                                Forms\Components\Hidden::make('treatment_plan_id'),
 
                                                 Forms\Components\Placeholder::make('treatment_plan_progress')
                                                     ->label(__('booking::booking.fields.plan_progress'))
@@ -559,43 +598,9 @@ class CreateBooking extends Page implements HasForms
                                                     })
                                                     ->visible(fn (Get $get) => $get('treatment_plan_id')),
 
-                                                Forms\Components\Select::make('treatment_plan_item_id')
-                                                    ->label(__('booking::booking.fields.select_service_to_book'))
-                                                    ->options(function (Get $get) {
-                                                        $planId = $get('treatment_plan_id');
-                                                        if (!$planId) {
-                                                            return [];
-                                                        }
-                                                        try {
-                                                            $plan = TreatmentPlan::with('items.service')->find($planId);
-                                                            if (!$plan) {
-                                                                return [];
-                                                            }
-                                                            return $plan->items
-                                                                ->filter(fn ($item) => $item->canBook())
-                                                                ->mapWithKeys(fn ($item) => [
-                                                                    $item->id => "{$item->service->translated_name} ({$item->remaining_sessions} remaining, next: {$item->next_suggested_date->format('M d')})"
-                                                                ]);
-                                                        } catch (\Exception $e) {
-                                                            return [];
-                                                        }
-                                                    })
-                                                    ->required(fn (Get $get) => $get('booking_type') === 'treatment_plan')
-                                                    ->visible(fn (Get $get) => $get('treatment_plan_id'))
-                                                    ->live()
-                                                    ->afterStateUpdated(function ($state, Set $set, Get $get) {
-                                                        if ($state) {
-                                                            try {
-                                                                $item = TreatmentPlanItem::find($state);
-                                                                if ($item && $item->next_suggested_date) {
-                                                                    $set('date_from', $item->next_suggested_date->format('Y-m-d'));
-                                                                    $set('date_to', $item->next_suggested_date->addWeeks(2)->format('Y-m-d'));
-                                                                }
-                                                            } catch (\Exception $e) {
-                                                                // Table may not exist
-                                                            }
-                                                        }
-                                                    }),
+                                                // Treatment Plan Items - now shown in patient_info two-column layout
+                                                // Service selection is done via pills in the right column of patient_info
+                                                Forms\Components\Hidden::make('treatment_plan_item_id'),
 
                                                 Forms\Components\Placeholder::make('treatment_plan_item_info')
                                                     ->label(__('booking::booking.fields.scheduling_preferences'))
@@ -657,7 +662,14 @@ class CreateBooking extends Page implements HasForms
                                                     ->label(__('booking::booking.fields.date_from'))
                                                     ->native(false)
                                                     ->minDate(today())
-                                                    ->maxDate(today()->addDays(config('booking.max_advance_booking_days', 60)))
+                                                    ->maxDate(function (Get $get) {
+                                                        $branchId = $get('branch_id');
+                                                        if ($branchId) {
+                                                            $evaluator = app(BookingRuleEvaluator::class)->forContext($branchId);
+                                                            return today()->addDays($evaluator->getMaxAdvanceDays());
+                                                        }
+                                                        return today()->addDays(60);
+                                                    })
                                                     ->default(today())
                                                     ->required()
                                                     ->live()
@@ -672,7 +684,14 @@ class CreateBooking extends Page implements HasForms
                                                     ->label(__('booking::booking.fields.date_to'))
                                                     ->native(false)
                                                     ->minDate(fn (Get $get) => $get('date_from') ? Carbon::parse($get('date_from')) : today())
-                                                    ->maxDate(today()->addDays(config('booking.max_advance_booking_days', 60)))
+                                                    ->maxDate(function (Get $get) {
+                                                        $branchId = $get('branch_id');
+                                                        if ($branchId) {
+                                                            $evaluator = app(BookingRuleEvaluator::class)->forContext($branchId);
+                                                            return today()->addDays($evaluator->getMaxAdvanceDays());
+                                                        }
+                                                        return today()->addDays(60);
+                                                    })
                                                     ->default(today()->addWeek())
                                                     ->required()
                                                     ->live(),
@@ -1110,6 +1129,88 @@ class CreateBooking extends Page implements HasForms
     public function clearCart(): void
     {
         $this->bookingItems = [];
+    }
+
+    /**
+     * Select a package subscription for booking (called from patient info card)
+     */
+    public function selectPackageForBooking(string $subscriptionId): void
+    {
+        // Switch to package booking mode
+        $this->data['booking_type'] = 'package';
+        $this->data['package_mode'] = 'existing';
+        $this->data['package_subscription_id'] = $subscriptionId;
+
+        // Clear any previous slot selections
+        $this->availableSlots = [];
+
+        Notification::make()
+            ->title(__('booking::booking.messages.package_selected'))
+            ->body(__('booking::booking.messages.select_service_to_book'))
+            ->success()
+            ->duration(2000)
+            ->send();
+    }
+
+    /**
+     * Select a treatment plan for booking (called from patient info card)
+     */
+    public function selectTreatmentPlanForBooking(string $planId): void
+    {
+        // Switch to treatment plan booking mode
+        $this->data['booking_type'] = 'treatment_plan';
+        $this->data['treatment_plan_id'] = $planId;
+
+        // Clear any previous slot selections
+        $this->availableSlots = [];
+
+        // Try to auto-select the first bookable item
+        try {
+            $plan = TreatmentPlan::with('items.service')->find($planId);
+            if ($plan) {
+                $bookableItem = $plan->items->first(fn ($item) => $item->canBook());
+                if ($bookableItem) {
+                    $this->data['treatment_plan_item_id'] = $bookableItem->id;
+
+                    // Set suggested dates based on item's next suggested date
+                    if ($bookableItem->next_suggested_date) {
+                        $this->data['date_from'] = $bookableItem->next_suggested_date->format('Y-m-d');
+                        $this->data['date_to'] = $bookableItem->next_suggested_date->addWeeks(2)->format('Y-m-d');
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            // Silently fail if treatment plans not fully set up
+        }
+
+        Notification::make()
+            ->title(__('booking::booking.messages.treatment_plan_selected'))
+            ->body(__('booking::booking.messages.select_service_to_book'))
+            ->success()
+            ->duration(2000)
+            ->send();
+    }
+
+    /**
+     * Select a treatment plan item/service (called from treatment plan items pills)
+     */
+    public function selectTreatmentPlanItem(string $itemId): void
+    {
+        $this->data['treatment_plan_item_id'] = $itemId;
+
+        // Clear any previous slot selections
+        $this->availableSlots = [];
+
+        // Set suggested dates based on item's next suggested date
+        try {
+            $item = TreatmentPlanItem::find($itemId);
+            if ($item && $item->next_suggested_date) {
+                $this->data['date_from'] = $item->next_suggested_date->format('Y-m-d');
+                $this->data['date_to'] = $item->next_suggested_date->addWeeks(2)->format('Y-m-d');
+            }
+        } catch (\Exception $e) {
+            // Silently fail if treatment plans not fully set up
+        }
     }
 
     /**
