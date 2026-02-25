@@ -112,7 +112,7 @@ class ViewPurchaseOrder extends BaseViewRecord
                 ->label(__('inventory::inventory.actions.reverse_receiving'))
                 ->icon('heroicon-o-arrow-uturn-left')
                 ->color('danger')
-                ->visible(fn () => $this->record->canReverseReceiving() && !$this->record->vendor_bill_id)
+                ->visible(fn () => $this->record->canReverseReceiving())
                 ->modalHeading(__('inventory::inventory.actions.reverse_receiving'))
                 ->modalDescription(__('inventory::inventory.messages.reverse_confirmation'))
                 ->form(function () {
