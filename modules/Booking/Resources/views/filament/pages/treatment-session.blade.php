@@ -849,7 +849,13 @@
                     </div>
 
                     <div>
-                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('booking::session.plan.services') }}</label>
+                        {{-- Column Headers --}}
+                        <div class="flex gap-1 mb-2 text-xs font-medium text-gray-500 dark:text-gray-400">
+                            <div class="flex-1">{{ __('booking::session.plan.service') }}</div>
+                            <div class="w-12 text-center">{{ __('booking::session.plan.sessions_count') }}</div>
+                            <div class="w-12 text-center">{{ __('booking::session.plan.interval_days') }}</div>
+                            <div class="w-6"></div>
+                        </div>
                         @foreach($treatmentPlanData['services'] ?? [] as $index => $service)
                             <div class="flex gap-1 mb-1">
                                 <select wire:model="treatmentPlanData.services.{{ $index }}.service_id" class="flex-1 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-xs">
@@ -858,10 +864,12 @@
                                         <option value="{{ $id }}">{{ $name }}</option>
                                     @endforeach
                                 </select>
-                                <input type="number" wire:model="treatmentPlanData.services.{{ $index }}.sessions" class="w-12 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-xs text-center" min="1" placeholder="#" />
-                                <input type="number" wire:model="treatmentPlanData.services.{{ $index }}.interval" class="w-12 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-xs text-center" min="1" placeholder="d" />
+                                <input type="number" wire:model="treatmentPlanData.services.{{ $index }}.sessions" class="w-12 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-xs text-center" min="1" />
+                                <input type="number" wire:model="treatmentPlanData.services.{{ $index }}.interval" class="w-12 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-xs text-center" min="1" />
                                 @if(count($treatmentPlanData['services'] ?? []) > 1)
-                                    <button wire:click="removeServiceRow({{ $index }})" class="text-red-500 p-1"><x-heroicon-o-x-mark class="w-4 h-4" /></button>
+                                    <button type="button" wire:click="removeServiceRow({{ $index }})" class="text-red-500 p-1 w-6"><x-heroicon-o-x-mark class="w-4 h-4" /></button>
+                                @else
+                                    <div class="w-6"></div>
                                 @endif
                             </div>
                         @endforeach
