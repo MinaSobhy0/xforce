@@ -807,7 +807,7 @@
         {{-- Previous Visits & Create Plan Row --}}
         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem;">
             {{-- Previous Appointments --}}
-            <x-filament::section collapsible collapsed>
+            <x-filament::section collapsible>
                 <x-slot name="heading">
                     <div class="flex items-center gap-2">
                         <x-heroicon-o-clock class="w-5 h-5 text-gray-400" />
@@ -834,7 +834,7 @@
             </x-filament::section>
 
             {{-- Create Treatment Plan --}}
-            <x-filament::section collapsible collapsed>
+            <x-filament::section collapsible>
                 <x-slot name="heading">
                     <div class="flex items-center gap-2">
                         <x-heroicon-o-plus-circle class="w-5 h-5 text-green-500" />
