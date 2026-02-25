@@ -16,7 +16,7 @@ class ViewJournalEntry extends BaseViewRecord
     {
         return [
             Actions\Action::make('print')
-                ->label(__('accounting::accounting.actions.print'))
+                ->label(__('accounting::accounting.action_labels.print'))
                 ->icon('heroicon-o-printer')
                 ->color('gray')
                 ->url(fn () => route('accounting.journal-entry.print', $this->record), shouldOpenInNewTab: true),
@@ -48,11 +48,11 @@ class ViewJournalEntry extends BaseViewRecord
                 }),
 
             Actions\Action::make('reset_to_draft')
-                ->label(__('accounting::accounting.actions.reset_to_draft'))
+                ->label(__('accounting::accounting.action_labels.reset_to_draft'))
                 ->icon('heroicon-o-arrow-path')
                 ->color('warning')
                 ->requiresConfirmation()
-                ->modalHeading(__('accounting::accounting.actions.reset_to_draft'))
+                ->modalHeading(__('accounting::accounting.action_labels.reset_to_draft'))
                 ->modalDescription(__('accounting::accounting.messages.reset_to_draft_warning'))
                 ->visible(fn () => $this->record->isPosted() && !$this->record->isReversed())
                 ->action(function () {

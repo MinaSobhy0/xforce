@@ -168,7 +168,7 @@ return [
         'reopen_period' => 'Reopen Period',
     ],
 
-    'actions' => [
+    'action_labels' => [
         'print' => 'Print',
         'reset_to_draft' => 'Reset to Draft',
     ],

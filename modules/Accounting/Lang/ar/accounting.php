@@ -168,7 +168,7 @@ return [
         'reopen_period' => 'إعادة فتح الفترة',
     ],
 
-    'actions' => [
+    'action_labels' => [
         'print' => 'طباعة',
         'reset_to_draft' => 'إعادة إلى مسودة',
     ],

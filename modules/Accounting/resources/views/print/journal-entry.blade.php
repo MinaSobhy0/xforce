@@ -174,7 +174,7 @@
 </head>
 <body>
     <button class="print-btn no-print" onclick="window.print()">
-        {{ __('accounting::accounting.actions.print') }}
+        {{ __('accounting::accounting.action_labels.print') }}
     </button>
 
     <div class="container">
