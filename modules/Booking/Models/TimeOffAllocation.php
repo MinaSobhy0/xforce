@@ -106,7 +106,7 @@ class TimeOffAllocation extends BaseModel
 
         return static::firstOrCreate(
             [
-                'tenant_id' => tenant_id(),
+                'tenant_id' => current_tenant_id(),
                 'user_id' => $userId,
                 'time_off_type_id' => $typeId,
                 'year' => $year,
