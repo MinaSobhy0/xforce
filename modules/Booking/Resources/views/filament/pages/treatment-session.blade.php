@@ -39,8 +39,8 @@
         </div>
 
         {{-- Alert Cards --}}
-        @if(!empty($this->getAllergies()) || !empty($this->getContraindications()))
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        @if(!empty($this->getAllergies()) || !empty($this->getContraindications()) || $this->hasAmrAlerts())
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 @if(!empty($this->getAllergies()))
                     <div class="rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 p-4">
                         <div class="flex items-center gap-2 text-red-700 dark:text-red-400 font-semibold mb-2">
@@ -70,6 +70,67 @@
                                 </span>
                             @endforeach
                         </div>
+                    </div>
+                @endif
+
+                {{-- AMR (Antimicrobial Resistance) Alert --}}
+                @if($this->hasAmrAlerts())
+                    <div class="rounded-xl bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="flex items-center gap-2 text-purple-700 dark:text-purple-400 font-semibold">
+                                <x-heroicon-o-beaker class="w-5 h-5" />
+                                {{ __('booking::session.alerts.amr_resistance') }}
+                            </div>
+                            @if($amrSummary?->has_critical_resistance)
+                                <span class="px-2 py-0.5 bg-red-500 text-white text-xs font-bold rounded animate-pulse">
+                                    {{ __('booking::session.alerts.critical') }}
+                                </span>
+                            @endif
+                        </div>
+
+                        {{-- MDRO Flags --}}
+                        @php $mdroFlags = $this->getMdroFlags(); @endphp
+                        @if(!empty($mdroFlags))
+                            <div class="mb-2">
+                                <div class="text-xs text-purple-600 dark:text-purple-400 font-medium mb-1">{{ __('booking::session.alerts.mdro_flags') }}:</div>
+                                <div class="flex flex-wrap gap-1">
+                                    @foreach($mdroFlags as $flag)
+                                        <span class="px-2 py-0.5 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 rounded text-xs font-semibold">
+                                            {{ $flag }}
+                                        </span>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
+
+                        {{-- Known Resistances --}}
+                        @php $resistances = $this->getKnownResistances(); @endphp
+                        @if(!empty($resistances))
+                            <div class="mb-2">
+                                <div class="text-xs text-purple-600 dark:text-purple-400 font-medium mb-1">{{ __('booking::session.alerts.resistant_to') }}:</div>
+                                <div class="flex flex-wrap gap-1">
+                                    @foreach(array_slice($resistances, 0, 5) as $resistance)
+                                        <span class="px-2 py-0.5 bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded text-xs">
+                                            {{ \Modules\Patients\Models\PatientAmrTest::getAntibioticLabel($resistance) }}
+                                        </span>
+                                    @endforeach
+                                    @if(count($resistances) > 5)
+                                        <span class="px-2 py-0.5 bg-purple-200 dark:bg-purple-800 text-purple-700 dark:text-purple-300 rounded text-xs font-medium">
+                                            +{{ count($resistances) - 5 }} {{ __('booking::session.alerts.more') }}
+                                        </span>
+                                    @endif
+                                </div>
+                            </div>
+                        @endif
+
+                        {{-- View Full History Link --}}
+                        @if($patient)
+                            <a href="{{ route('filament.tenant.resources.patients.view', ['record' => $patient->id]) }}#amr-tests"
+                               class="inline-flex items-center gap-1 text-xs text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 mt-1">
+                                <x-heroicon-o-arrow-top-right-on-square class="w-3 h-3" />
+                                {{ __('booking::session.alerts.view_amr_history') }}
+                            </a>
+                        @endif
                     </div>
                 @endif
             </div>
@@ -650,103 +711,86 @@
                     @endif
 
                     @if(count($prescriptionMedications) > 0)
-                        <div class="space-y-4">
+                        <div class="space-y-2">
                             @foreach($prescriptionMedications as $index => $medication)
-                                <div class="p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800">
-                                    <div class="flex items-start justify-between mb-3">
-                                        <span class="inline-flex items-center justify-center w-6 h-6 bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300 text-xs font-bold rounded-full">
+                                <div class="p-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800" x-data="{ showNotes: {{ !empty($medication['special_instructions']) ? 'true' : 'false' }} }">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        {{-- Row Number --}}
+                                        <span class="inline-flex items-center justify-center w-5 h-5 bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300 text-xs font-bold rounded-full flex-shrink-0">
                                             {{ $index + 1 }}
                                         </span>
-                                        <button wire:click="removePrescriptionMedication({{ $index }})" class="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded">
-                                            <x-heroicon-o-trash class="w-4 h-4" />
+
+                                        {{-- Medication Name --}}
+                                        <input type="text" wire:model="prescriptionMedications.{{ $index }}.medication_name" class="w-36 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded shadow-sm text-xs py-1" placeholder="{{ __('prescriptions::prescription.fields.medication_name') }}" />
+
+                                        {{-- Form --}}
+                                        <select wire:model="prescriptionMedications.{{ $index }}.form" class="w-20 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded shadow-sm text-xs py-1">
+                                            @foreach($this->getPrescriptionForms() as $key => $label)
+                                                <option value="{{ $key }}">{{ $label }}</option>
+                                            @endforeach
+                                        </select>
+
+                                        {{-- Dosage --}}
+                                        <input type="text" wire:model="prescriptionMedications.{{ $index }}.dosage" class="w-12 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded shadow-sm text-xs py-1 text-center" placeholder="500" />
+                                        <select wire:model="prescriptionMedications.{{ $index }}.dosage_unit" class="w-14 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded shadow-sm text-xs py-1">
+                                            @foreach($this->getPrescriptionDosageUnits() as $key => $label)
+                                                <option value="{{ $key }}">{{ $label }}</option>
+                                            @endforeach
+                                        </select>
+
+                                        {{-- Frequency --}}
+                                        <select wire:model="prescriptionMedications.{{ $index }}.frequency" class="w-24 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded shadow-sm text-xs py-1">
+                                            @foreach($this->getPrescriptionFrequencies() as $key => $label)
+                                                <option value="{{ $key }}">{{ $label }}</option>
+                                            @endforeach
+                                        </select>
+
+                                        {{-- Duration --}}
+                                        <input type="number" wire:model="prescriptionMedications.{{ $index }}.duration" class="w-10 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded shadow-sm text-xs py-1 text-center" min="1" placeholder="7" />
+                                        <select wire:model="prescriptionMedications.{{ $index }}.duration_unit" class="w-16 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded shadow-sm text-xs py-1">
+                                            @foreach($this->getPrescriptionDurationUnits() as $key => $label)
+                                                <option value="{{ $key }}">{{ $label }}</option>
+                                            @endforeach
+                                        </select>
+
+                                        {{-- Route --}}
+                                        <select wire:model="prescriptionMedications.{{ $index }}.route" class="w-20 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded shadow-sm text-xs py-1">
+                                            @foreach($this->getPrescriptionRoutes() as $key => $label)
+                                                <option value="{{ $key }}">{{ $label }}</option>
+                                            @endforeach
+                                        </select>
+
+                                        {{-- Instructions --}}
+                                        <select wire:model="prescriptionMedications.{{ $index }}.instructions" class="w-24 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded shadow-sm text-xs py-1">
+                                            <option value="">-</option>
+                                            @foreach($this->getPrescriptionInstructions() as $key => $label)
+                                                <option value="{{ $key }}">{{ $label }}</option>
+                                            @endforeach
+                                        </select>
+
+                                        {{-- Quantity --}}
+                                        <input type="number" wire:model="prescriptionMedications.{{ $index }}.quantity" class="w-10 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded shadow-sm text-xs py-1 text-center" min="1" placeholder="#" />
+
+                                        {{-- Notes toggle --}}
+                                        <button
+                                            type="button"
+                                            @click="showNotes = !showNotes"
+                                            class="p-1 rounded flex-shrink-0"
+                                            :class="showNotes ? 'text-primary-500 bg-primary-50 dark:bg-primary-900/20' : 'text-gray-400 hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20'"
+                                            title="{{ __('prescriptions::prescription.fields.special_instructions') }}"
+                                        >
+                                            <x-heroicon-o-chat-bubble-bottom-center-text class="w-4 h-4" />
+                                        </button>
+
+                                        {{-- Remove Button --}}
+                                        <button wire:click="removePrescriptionMedication({{ $index }})" class="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded flex-shrink-0">
+                                            <x-heroicon-o-x-mark class="w-4 h-4" />
                                         </button>
                                     </div>
 
-                                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                        {{-- Medication Name --}}
-                                        <div class="col-span-2">
-                                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ __('prescriptions::prescription.fields.medication_name') }} *</label>
-                                            <input type="text" wire:model="prescriptionMedications.{{ $index }}.medication_name" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm" placeholder="e.g., Amoxicillin" />
-                                        </div>
-
-                                        {{-- Form --}}
-                                        <div>
-                                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ __('prescriptions::prescription.fields.form') }}</label>
-                                            <select wire:model="prescriptionMedications.{{ $index }}.form" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm">
-                                                @foreach($this->getPrescriptionForms() as $key => $label)
-                                                    <option value="{{ $key }}">{{ $label }}</option>
-                                                @endforeach
-                                            </select>
-                                        </div>
-
-                                        {{-- Dosage --}}
-                                        <div>
-                                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ __('prescriptions::prescription.fields.dosage') }}</label>
-                                            <div class="flex gap-1">
-                                                <input type="text" wire:model="prescriptionMedications.{{ $index }}.dosage" class="flex-1 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm" placeholder="500" />
-                                                <select wire:model="prescriptionMedications.{{ $index }}.dosage_unit" class="w-16 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm">
-                                                    @foreach($this->getPrescriptionDosageUnits() as $key => $label)
-                                                        <option value="{{ $key }}">{{ $label }}</option>
-                                                    @endforeach
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        {{-- Frequency --}}
-                                        <div>
-                                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ __('prescriptions::prescription.fields.frequency') }} *</label>
-                                            <select wire:model="prescriptionMedications.{{ $index }}.frequency" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm">
-                                                @foreach($this->getPrescriptionFrequencies() as $key => $label)
-                                                    <option value="{{ $key }}">{{ $label }}</option>
-                                                @endforeach
-                                            </select>
-                                        </div>
-
-                                        {{-- Duration --}}
-                                        <div>
-                                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ __('prescriptions::prescription.fields.duration') }}</label>
-                                            <div class="flex gap-1">
-                                                <input type="number" wire:model="prescriptionMedications.{{ $index }}.duration" class="flex-1 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm" min="1" placeholder="7" />
-                                                <select wire:model="prescriptionMedications.{{ $index }}.duration_unit" class="w-20 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm">
-                                                    @foreach($this->getPrescriptionDurationUnits() as $key => $label)
-                                                        <option value="{{ $key }}">{{ $label }}</option>
-                                                    @endforeach
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        {{-- Route --}}
-                                        <div>
-                                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ __('prescriptions::prescription.fields.route') }}</label>
-                                            <select wire:model="prescriptionMedications.{{ $index }}.route" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm">
-                                                @foreach($this->getPrescriptionRoutes() as $key => $label)
-                                                    <option value="{{ $key }}">{{ $label }}</option>
-                                                @endforeach
-                                            </select>
-                                        </div>
-
-                                        {{-- Quantity --}}
-                                        <div>
-                                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ __('prescriptions::prescription.fields.quantity') }}</label>
-                                            <input type="number" wire:model="prescriptionMedications.{{ $index }}.quantity" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm" min="1" />
-                                        </div>
-
-                                        {{-- Instructions --}}
-                                        <div class="col-span-2">
-                                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ __('prescriptions::prescription.fields.instructions') }}</label>
-                                            <select wire:model="prescriptionMedications.{{ $index }}.instructions" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm">
-                                                <option value="">{{ __('Select...') }}</option>
-                                                @foreach($this->getPrescriptionInstructions() as $key => $label)
-                                                    <option value="{{ $key }}">{{ $label }}</option>
-                                                @endforeach
-                                            </select>
-                                        </div>
-
-                                        {{-- Special Instructions --}}
-                                        <div class="col-span-2">
-                                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ __('prescriptions::prescription.fields.special_instructions') }}</label>
-                                            <input type="text" wire:model="prescriptionMedications.{{ $index }}.special_instructions" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm" placeholder="{{ __('prescriptions::prescription.placeholders.special_notes') }}" />
-                                        </div>
+                                    {{-- Special Instructions (expandable) --}}
+                                    <div x-show="showNotes" x-cloak x-transition class="mt-1 ml-7">
+                                        <input type="text" wire:model="prescriptionMedications.{{ $index }}.special_instructions" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded shadow-sm text-xs py-1" placeholder="{{ __('prescriptions::prescription.placeholders.special_notes') }}" />
                                     </div>
                                 </div>
                             @endforeach

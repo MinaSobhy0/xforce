@@ -35,6 +35,12 @@ return [
     'alerts' => [
         'allergies' => 'Allergies',
         'contraindications' => 'Contraindications',
+        'amr_resistance' => 'AMR Resistance',
+        'critical' => 'CRITICAL',
+        'mdro_flags' => 'MDRO Flags',
+        'resistant_to' => 'Resistant to',
+        'more' => 'more',
+        'view_amr_history' => 'View full AMR history',
     ],
 
     // Patient

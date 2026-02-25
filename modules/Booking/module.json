@@ -33,7 +33,9 @@
         "Modules\\Booking\\Models\\AppointmentServiceNote",
         "Modules\\Booking\\Models\\PractitionerSchedule",
         "Modules\\Booking\\Models\\PractitionerTimeOff",
-        "Modules\\Booking\\Models\\Waitlist"
+        "Modules\\Booking\\Models\\Waitlist",
+        "Modules\\Booking\\Models\\BookingRule",
+        "Modules\\Booking\\Models\\BookingBlackoutDate"
     ],
     "permissions": {
         "appointments.view_any": "View appointments list",
@@ -53,7 +55,17 @@
         "time_off.view_any": "View time off requests",
         "time_off.manage": "Manage time off",
         "waitlist.view_any": "View waitlist",
-        "waitlist.manage": "Manage waitlist"
+        "waitlist.manage": "Manage waitlist",
+        "booking_rules.view_any": "View booking rules",
+        "booking_rules.create": "Create booking rules",
+        "booking_rules.update": "Update booking rules",
+        "booking_rules.delete": "Delete booking rules",
+        "blackout_dates.view_any": "View blackout dates",
+        "blackout_dates.create": "Create blackout dates",
+        "blackout_dates.update": "Update blackout dates",
+        "blackout_dates.delete": "Delete blackout dates",
+        "slot_config.view": "View slot configuration",
+        "slot_config.manage": "Manage slot configuration"
     },
     "default_role_permissions": {
         "admin": [
@@ -61,14 +73,20 @@
             "calendar.*",
             "schedule.*",
             "time_off.*",
-            "waitlist.*"
+            "waitlist.*",
+            "booking_rules.*",
+            "blackout_dates.*",
+            "slot_config.*"
         ],
         "manager": [
             "appointments.*",
             "calendar.*",
             "schedule.*",
             "time_off.*",
-            "waitlist.*"
+            "waitlist.*",
+            "booking_rules.*",
+            "blackout_dates.*",
+            "slot_config.*"
         ],
         "doctor": [
             "appointments.view_any",
@@ -169,6 +187,42 @@
             "group": "operations",
             "order": 14,
             "permission": "waitlist.view_any"
+        },
+        {
+            "id": "slot_config",
+            "label": {
+                "en": "Slot Configuration",
+                "ar": "إعدادات المواعيد"
+            },
+            "icon": "heroicon-o-cog-6-tooth",
+            "route": "filament.tenant.pages.booking-slot-config",
+            "group": "settings",
+            "order": 50,
+            "permission": "slot_config.view"
+        },
+        {
+            "id": "booking_rules",
+            "label": {
+                "en": "Booking Rules",
+                "ar": "قواعد الحجز"
+            },
+            "icon": "heroicon-o-funnel",
+            "route": "filament.tenant.resources.booking-rules.index",
+            "group": "settings",
+            "order": 51,
+            "permission": "booking_rules.view_any"
+        },
+        {
+            "id": "blackout_dates",
+            "label": {
+                "en": "Blackout Dates",
+                "ar": "تواريخ الحظر"
+            },
+            "icon": "heroicon-o-calendar-days",
+            "route": "filament.tenant.resources.booking-blackout-dates.index",
+            "group": "settings",
+            "order": 52,
+            "permission": "blackout_dates.view_any"
         }
     ],
     "settings": {

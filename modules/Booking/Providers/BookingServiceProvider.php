@@ -9,6 +9,7 @@ use Modules\Booking\Livewire\BookingCart;
 use Modules\Booking\Livewire\PatientPackages;
 use Modules\Booking\Services\SlotGenerationService;
 use Modules\Booking\Services\ReceptionService;
+use Modules\Booking\Services\BookingRuleEvaluator;
 
 class BookingServiceProvider extends ServiceProvider
 {
@@ -28,6 +29,11 @@ class BookingServiceProvider extends ServiceProvider
         // Register ReceptionService as singleton
         $this->app->singleton(ReceptionService::class, function ($app) {
             return new ReceptionService();
+        });
+
+        // Register BookingRuleEvaluator (not singleton - context-specific)
+        $this->app->bind(BookingRuleEvaluator::class, function ($app) {
+            return new BookingRuleEvaluator();
         });
     }
 

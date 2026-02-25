@@ -35,6 +35,12 @@ return [
     'alerts' => [
         'allergies' => 'الحساسية',
         'contraindications' => 'موانع الاستعمال',
+        'amr_resistance' => 'مقاومة المضادات الحيوية',
+        'critical' => 'حرج',
+        'mdro_flags' => 'مقاومة متعددة الأدوية',
+        'resistant_to' => 'مقاوم لـ',
+        'more' => 'المزيد',
+        'view_amr_history' => 'عرض سجل المقاومة الكامل',
     ],
 
     // Patient

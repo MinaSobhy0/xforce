@@ -6,6 +6,7 @@ use Modules\Booking\Models\Appointment;
 use Modules\Booking\Models\PractitionerSchedule;
 use Modules\Booking\Models\PractitionerScheduleAssignment;
 use Modules\Booking\Models\PractitionerTimeOff;
+use Modules\Booking\Models\BookingBlackoutDate;
 use Modules\Services\Models\Service;
 use Modules\Equipment\Models\Equipment;
 use Modules\Core\Models\Room;
@@ -48,6 +49,11 @@ class SlotGenerationService
 
         // Check service time restrictions
         if (!$this->isDateAllowedForService($service, $date)) {
+            return collect();
+        }
+
+        // Check blackout dates
+        if ($this->isDateBlocked($date, $branchId)) {
             return collect();
         }
 
@@ -774,5 +780,81 @@ class SlotGenerationService
             ->wherePivot('is_primary', true)
             ->where('rooms.id', $roomId)
             ->exists();
+    }
+
+    /**
+     * Check if a date is blocked by blackout dates.
+     */
+    protected function isDateBlocked(Carbon $date, string $branchId, bool $isOnlineBooking = false): bool
+    {
+        return BookingBlackoutDate::isDateBlocked($date, $branchId, $isOnlineBooking, !$isOnlineBooking);
+    }
+
+    /**
+     * Get the booking rule evaluator instance.
+     */
+    public function getRuleEvaluator(
+        string $branchId,
+        ?string $serviceId = null,
+        bool $isOnlineBooking = false
+    ): BookingRuleEvaluator {
+        return app(BookingRuleEvaluator::class)
+            ->forContext($branchId, $serviceId, $isOnlineBooking);
+    }
+
+    /**
+     * Generate slots with rule evaluation.
+     * This is an enhanced version that applies booking rules.
+     */
+    public function generateAvailableSlotsWithRules(
+        string $serviceId,
+        string $branchId,
+        Carbon $date,
+        ?int $durationOverride = null,
+        bool $isOnlineBooking = false
+    ): Collection {
+        // Get base slots
+        $slots = $this->generateAvailableSlots($serviceId, $branchId, $date, $durationOverride);
+
+        if ($slots->isEmpty()) {
+            return $slots;
+        }
+
+        // Apply rule-based filtering
+        $evaluator = $this->getRuleEvaluator($branchId, $serviceId, $isOnlineBooking);
+
+        // Get time restrictions from rules
+        $timeRestrictions = $evaluator->getEffectiveTimeRestrictions($date);
+
+        // Filter slots based on rules
+        return $slots->filter(function ($slot) use ($date, $evaluator, $timeRestrictions) {
+            $startTime = $slot['start_time'] ?? null;
+            if (!$startTime) {
+                return true;
+            }
+
+            // Apply time restrictions from rules
+            if ($timeRestrictions) {
+                $slotTime = Carbon::parse($startTime);
+
+                if ($timeRestrictions['start']) {
+                    $restrictStart = Carbon::parse($timeRestrictions['start']);
+                    if ($slotTime->lt($restrictStart)) {
+                        return false;
+                    }
+                }
+
+                if ($timeRestrictions['end']) {
+                    $restrictEnd = Carbon::parse($timeRestrictions['end']);
+                    if ($slotTime->gte($restrictEnd)) {
+                        return false;
+                    }
+                }
+            }
+
+            // Check if slot is blocked by specific rules
+            $blocked = $evaluator->isSlotBlocked($date, $startTime);
+            return $blocked === false;
+        })->values();
     }
 }

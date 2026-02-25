@@ -25,6 +25,7 @@ use Modules\Patients\Models\PatientNote;
 use Modules\Patients\Models\PatientPhoto;
 use Modules\Patients\Models\PatientMedicalHistory;
 use Modules\Patients\Models\MedicalProfile;
+use Modules\Patients\Models\PatientAmrSummary;
 use Modules\TreatmentPlans\Models\TreatmentPlan;
 use Modules\TreatmentPlans\Models\TreatmentPlanItem;
 use Modules\Services\Models\Service;
@@ -64,6 +65,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
     public ?Patient $patient = null;
     public ?PatientMedicalHistory $medicalHistory = null;
     public ?MedicalProfile $medicalProfile = null;
+    public ?PatientAmrSummary $amrSummary = null;
     public ?TreatmentSessionData $sessionData = null;
 
     // Dynamic parameters
@@ -148,6 +150,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
         $this->appointment = Appointment::with([
             'patient.medicalHistory',
             'patient.medicalProfile',
+            'patient.amrSummary',
             'service',
             'practitioner',
             'room',
@@ -159,6 +162,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
             $this->patient = $this->appointment->patient;
             $this->medicalHistory = $this->patient?->medicalHistory;
             $this->medicalProfile = $this->patient?->medicalProfile;
+            $this->amrSummary = $this->patient?->amrSummary;
         }
     }
 
@@ -498,6 +502,66 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
         return !empty($this->medicalHistory->allergies) ||
                !empty($this->medicalHistory->contraindications) ||
                !empty($this->medicalHistory->current_medications);
+    }
+
+    /**
+     * Check if patient has AMR alerts (MDRO or resistances)
+     */
+    public function hasAmrAlerts(): bool
+    {
+        if (!$this->amrSummary) {
+            return false;
+        }
+
+        return $this->amrSummary->has_any_data;
+    }
+
+    /**
+     * Get AMR summary data for display
+     */
+    public function getAmrSummaryData(): array
+    {
+        if (!$this->amrSummary) {
+            return [];
+        }
+
+        return [
+            'has_mdro' => $this->amrSummary->has_mdro,
+            'has_critical_resistance' => $this->amrSummary->has_critical_resistance,
+            'mdro_flags' => $this->amrSummary->mdro_flags ?? [],
+            'known_organisms' => $this->amrSummary->known_organisms ?? [],
+            'known_resistances' => $this->amrSummary->getFormattedResistances(),
+            'known_sensitivities' => $this->amrSummary->getFormattedSensitivities(),
+            'last_test_date' => $this->amrSummary->last_test_date?->format('M d, Y'),
+            'alert_message' => $this->amrSummary->getAlertMessage(),
+            'alert_level' => $this->amrSummary->alert_level,
+        ];
+    }
+
+    /**
+     * Get MDRO flags for display
+     */
+    public function getMdroFlags(): array
+    {
+        if (!$this->amrSummary || empty($this->amrSummary->mdro_flags)) {
+            return [];
+        }
+
+        return collect($this->amrSummary->mdro_flags)
+            ->map(fn ($flag) => \Modules\Patients\Models\PatientAmrTest::MDRO_TYPES[$flag] ?? $flag)
+            ->toArray();
+    }
+
+    /**
+     * Get known resistances for display
+     */
+    public function getKnownResistances(): array
+    {
+        if (!$this->amrSummary || empty($this->amrSummary->known_resistances)) {
+            return [];
+        }
+
+        return $this->amrSummary->getFormattedResistances();
     }
 
     public function getPatientNotes(): Collection
