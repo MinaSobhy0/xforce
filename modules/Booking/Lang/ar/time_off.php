@@ -51,6 +51,12 @@ return [
         'cancel' => 'إلغاء',
     ],
 
+    'messages' => [
+        'approved' => 'تمت الموافقة على طلب الإجازة',
+        'rejected' => 'تم رفض طلب الإجازة',
+        'cancelled' => 'تم إلغاء طلب الإجازة',
+    ],
+
     'all_branches' => 'جميع الفروع',
 
     // Time Off Types

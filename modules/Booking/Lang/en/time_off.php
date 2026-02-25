@@ -51,6 +51,12 @@ return [
         'cancel' => 'Cancel',
     ],
 
+    'messages' => [
+        'approved' => 'Time off request approved',
+        'rejected' => 'Time off request rejected',
+        'cancelled' => 'Time off request cancelled',
+    ],
+
     'all_branches' => 'All Branches',
 
     // Time Off Types
