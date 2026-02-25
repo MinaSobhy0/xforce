@@ -26,7 +26,7 @@ class ProductCategoryResource extends Resource
 
     protected static ?string $navigationGroup = 'Inventory';
 
-    protected static ?int $navigationSort = 11;
+    protected static ?int $navigationSort = 31;
 
     protected static ?string $recordTitleAttribute = 'name';
 
