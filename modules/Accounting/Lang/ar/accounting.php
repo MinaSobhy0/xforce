@@ -280,11 +280,17 @@ return [
         'other' => 'حسابات أخرى',
         'other_description' => 'حسابات افتراضية متنوعة للمعاملات المختلفة',
 
-        // Fields
+        // Fields - Receivables
         'patient_receivable' => 'ذمم المرضى المدينة',
         'patient_receivable_help' => 'حساب لتتبع أرصدة المرضى والفواتير غير المدفوعة',
-        'insurance_receivable' => 'ذمم التأمين المدينة',
-        'insurance_receivable_help' => 'حساب لتتبع مطالبات التأمين المستحقة',
+        'supplier_receivable' => 'ذمم الموردين المدينة',
+        'supplier_receivable_help' => 'حساب لتتبع السلف المدفوعة للموردين',
+        'staff_receivable' => 'ذمم الموظفين المدينة',
+        'staff_receivable_help' => 'حساب لتتبع السلف والقروض للموظفين',
+
+        // Fields - Payables
+        'patient_payable' => 'ذمم المرضى الدائنة',
+        'patient_payable_help' => 'حساب لتتبع الأرصدة الدائنة والمبالغ المستردة للمرضى',
         'supplier_payable' => 'ذمم الموردين الدائنة',
         'supplier_payable_help' => 'حساب لتتبع المبالغ المستحقة للموردين',
         'staff_payable' => 'ذمم الموظفين الدائنة',

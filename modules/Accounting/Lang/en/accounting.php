@@ -280,11 +280,17 @@ return [
         'other' => 'Other Accounts',
         'other_description' => 'Miscellaneous default accounts for various transactions',
 
-        // Fields
+        // Fields - Receivables
         'patient_receivable' => 'Patient Receivable',
         'patient_receivable_help' => 'Account for tracking patient balances and unpaid invoices',
-        'insurance_receivable' => 'Insurance Receivable',
-        'insurance_receivable_help' => 'Account for tracking insurance claim receivables',
+        'supplier_receivable' => 'Supplier Receivable',
+        'supplier_receivable_help' => 'Account for tracking advances paid to suppliers',
+        'staff_receivable' => 'Staff Receivable',
+        'staff_receivable_help' => 'Account for tracking advances and loans to staff',
+
+        // Fields - Payables
+        'patient_payable' => 'Patient Payable',
+        'patient_payable_help' => 'Account for tracking credit balances and refunds owed to patients',
         'supplier_payable' => 'Supplier Payable',
         'supplier_payable_help' => 'Account for tracking amounts owed to suppliers',
         'staff_payable' => 'Staff Payable',

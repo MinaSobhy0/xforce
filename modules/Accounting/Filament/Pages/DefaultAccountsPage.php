@@ -59,19 +59,33 @@ class DefaultAccountsPage extends Page implements Forms\Contracts\HasForms
                             ->searchable()
                             ->preload(),
 
-                        Forms\Components\Select::make('default_insurance_receivable_account_id')
-                            ->label(__('accounting::accounting.default_accounts.insurance_receivable'))
-                            ->helperText(__('accounting::accounting.default_accounts.insurance_receivable_help'))
+                        Forms\Components\Select::make('default_supplier_receivable_account_id')
+                            ->label(__('accounting::accounting.default_accounts.supplier_receivable'))
+                            ->helperText(__('accounting::accounting.default_accounts.supplier_receivable_help'))
+                            ->options(fn () => $this->getAccountOptions(ChartOfAccount::TYPE_RECEIVABLE))
+                            ->searchable()
+                            ->preload(),
+
+                        Forms\Components\Select::make('default_staff_receivable_account_id')
+                            ->label(__('accounting::accounting.default_accounts.staff_receivable'))
+                            ->helperText(__('accounting::accounting.default_accounts.staff_receivable_help'))
                             ->options(fn () => $this->getAccountOptions(ChartOfAccount::TYPE_RECEIVABLE))
                             ->searchable()
                             ->preload(),
                     ])
-                    ->columns(2),
+                    ->columns(3),
 
                 Forms\Components\Section::make(__('accounting::accounting.default_accounts.payables'))
                     ->description(__('accounting::accounting.default_accounts.payables_description'))
                     ->icon('heroicon-o-arrow-up-on-square')
                     ->schema([
+                        Forms\Components\Select::make('default_patient_payable_account_id')
+                            ->label(__('accounting::accounting.default_accounts.patient_payable'))
+                            ->helperText(__('accounting::accounting.default_accounts.patient_payable_help'))
+                            ->options(fn () => $this->getAccountOptions(ChartOfAccount::TYPE_PAYABLE))
+                            ->searchable()
+                            ->preload(),
+
                         Forms\Components\Select::make('default_supplier_payable_account_id')
                             ->label(__('accounting::accounting.default_accounts.supplier_payable'))
                             ->helperText(__('accounting::accounting.default_accounts.supplier_payable_help'))
@@ -86,7 +100,7 @@ class DefaultAccountsPage extends Page implements Forms\Contracts\HasForms
                             ->searchable()
                             ->preload(),
                     ])
-                    ->columns(2),
+                    ->columns(3),
 
                 Forms\Components\Section::make(__('accounting::accounting.default_accounts.revenue'))
                     ->description(__('accounting::accounting.default_accounts.revenue_description'))
