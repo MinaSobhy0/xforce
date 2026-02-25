@@ -45,7 +45,7 @@
     {{-- Partner Ledger Data --}}
     <div class="mt-6 space-y-6">
         @forelse($partnerData as $partner)
-            <x-filament::section :collapsible="true">
+            <x-filament::section :collapsible="true" :collapsed="true">
                 <x-slot name="heading">
                     <div class="flex justify-between items-center w-full">
                         <div class="flex items-center gap-3">
@@ -56,10 +56,10 @@
                         </div>
                         <div class="flex items-center gap-4">
                             <span class="text-sm text-gray-500 dark:text-gray-400">
-                                {{ __('accounting::accounting.opening_balance') }}:
+                                {{ __('accounting::accounting.balance') }}:
                             </span>
-                            <span class="font-mono font-semibold {{ $partner['opening_balance'] >= 0 ? 'text-success-600 dark:text-success-400' : 'text-danger-600 dark:text-danger-400' }}">
-                                {{ $this->formatCurrency($partner['opening_balance']) }}
+                            <span class="font-mono font-semibold {{ $partner['closing_balance'] >= 0 ? 'text-success-600 dark:text-success-400' : 'text-danger-600 dark:text-danger-400' }}">
+                                {{ $this->formatCurrency($partner['closing_balance']) }}
                             </span>
                         </div>
                     </div>
