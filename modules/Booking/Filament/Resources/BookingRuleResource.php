@@ -604,7 +604,7 @@ class BookingRuleResource extends Resource
                         Forms\Components\Group::make([
                             Forms\Components\Select::make('actions.required_equipment')
                                 ->label(__('booking::config.required_equipment'))
-                                ->options(fn () => class_exists(Equipment::class) ? Equipment::where('is_active', true)->pluck('name', 'id') : [])
+                                ->options(fn () => class_exists(Equipment::class) ? Equipment::where('status', 'active')->pluck('name', 'id') : [])
                                 ->multiple()
                                 ->searchable(),
                         ])->visible(fn (Get $get) => $get('rule_type') === BookingRule::TYPE_EQUIPMENT_REQUIRED),
