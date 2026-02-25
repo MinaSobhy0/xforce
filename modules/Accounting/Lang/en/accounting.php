@@ -94,6 +94,26 @@ return [
     'no_account_activity' => 'No account activity in the selected period',
     'revenue' => 'Revenue',
 
+    // Partner Ledger
+    'partner_ledger' => 'Partner Ledger',
+    'partner_type' => 'Partner Type',
+    'partner' => 'Partner',
+    'customers' => 'Customers',
+    'suppliers' => 'Suppliers',
+    'all_partners' => 'All Partners',
+    'all' => 'All',
+    'show_zero_balances' => 'Show Zero Balances',
+    'total_partners' => 'Total Partners',
+    'total_debit' => 'Total Debit',
+    'total_credit' => 'Total Credit',
+    'net_balance' => 'Net Balance',
+    'reference' => 'Reference',
+    'running_balance' => 'Running Balance',
+    'no_partner_activity' => 'No partner activity in the selected period',
+    'customer' => 'Customer',
+    'supplier' => 'Supplier',
+    'unknown_partner' => 'Unknown Partner',
+
     // Cash Flow
     'operating_activities' => 'Operating Activities',
     'investing_activities' => 'Investing Activities',

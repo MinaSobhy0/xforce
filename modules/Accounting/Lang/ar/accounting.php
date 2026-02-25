@@ -94,6 +94,26 @@ return [
     'no_account_activity' => 'لا يوجد نشاط في الحسابات خلال الفترة المحددة',
     'revenue' => 'إيرادات',
 
+    // Partner Ledger
+    'partner_ledger' => 'دفتر أستاذ الشركاء',
+    'partner_type' => 'نوع الشريك',
+    'partner' => 'الشريك',
+    'customers' => 'العملاء',
+    'suppliers' => 'الموردين',
+    'all_partners' => 'جميع الشركاء',
+    'all' => 'الكل',
+    'show_zero_balances' => 'إظهار الأرصدة الصفرية',
+    'total_partners' => 'إجمالي الشركاء',
+    'total_debit' => 'إجمالي المدين',
+    'total_credit' => 'إجمالي الدائن',
+    'net_balance' => 'صافي الرصيد',
+    'reference' => 'المرجع',
+    'running_balance' => 'الرصيد الجاري',
+    'no_partner_activity' => 'لا يوجد نشاط للشركاء خلال الفترة المحددة',
+    'customer' => 'عميل',
+    'supplier' => 'مورد',
+    'unknown_partner' => 'شريك غير معروف',
+
     // Cash Flow
     'operating_activities' => 'الأنشطة التشغيلية',
     'investing_activities' => 'الأنشطة الاستثمارية',
