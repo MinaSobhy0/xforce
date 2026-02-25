@@ -71,11 +71,6 @@ class ChartOfAccountResource extends Resource
                             ->label(__('accounting::accounting.type'))
                             ->options(ChartOfAccount::TYPES)
                             ->required()
-                            ->reactive(),
-
-                        Forms\Components\Select::make('sub_type')
-                            ->label(__('accounting::accounting.account_type'))
-                            ->options(ChartOfAccount::SUB_TYPES)
                             ->searchable(),
 
                         Forms\Components\Select::make('parent_id')
@@ -119,7 +114,7 @@ class ChartOfAccountResource extends Resource
                 Tables\Columns\TextColumn::make('type')
                     ->label(__('accounting::accounting.type'))
                     ->badge()
-                    ->formatStateUsing(fn ($state) => ChartOfAccount::TYPES[$state] ?? $state)
+                    ->formatStateUsing(fn ($state) => ChartOfAccount::TYPES_FLAT[$state] ?? $state)
                     ->color(fn ($state) => ChartOfAccount::TYPE_COLORS[$state] ?? 'gray'),
 
                 Tables\Columns\TextColumn::make('parent.display_name')
@@ -139,7 +134,7 @@ class ChartOfAccountResource extends Resource
             ->filters([
                 Tables\Filters\SelectFilter::make('type')
                     ->label(__('accounting::accounting.type'))
-                    ->options(ChartOfAccount::TYPES),
+                    ->options(ChartOfAccount::TYPES_FLAT),
 
                 Tables\Filters\TernaryFilter::make('is_active')
                     ->label(__('accounting::accounting.statuses.open')),

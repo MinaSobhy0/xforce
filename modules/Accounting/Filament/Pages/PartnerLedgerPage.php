@@ -99,7 +99,10 @@ class PartnerLedgerPage extends Page implements HasForms
                             ->label(__('accounting::accounting.account'))
                             ->options(
                                 ChartOfAccount::where('is_active', true)
-                                    ->whereIn('sub_type', ['accounts_receivable', 'accounts_payable'])
+                                    ->whereIn('type', [
+                                        ChartOfAccount::TYPE_RECEIVABLE,
+                                        ChartOfAccount::TYPE_PAYABLE,
+                                    ])
                                     ->orderBy('code')
                                     ->get()
                                     ->mapWithKeys(fn($a) => [$a->id => "{$a->code} - {$a->translated_name}"])

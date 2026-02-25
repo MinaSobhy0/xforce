@@ -278,7 +278,10 @@ class PartnerLedgerService
     protected function applyReceivablePayableFilter($query)
     {
         return $query->whereHas('account', function ($q) {
-            $q->whereIn('sub_type', ['accounts_receivable', 'accounts_payable']);
+            $q->whereIn('type', [
+                ChartOfAccount::TYPE_RECEIVABLE,
+                ChartOfAccount::TYPE_PAYABLE,
+            ]);
         });
     }
 

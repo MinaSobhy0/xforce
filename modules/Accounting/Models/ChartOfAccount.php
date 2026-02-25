@@ -21,7 +21,6 @@ class ChartOfAccount extends BaseModel
         'name',
         'parent_id',
         'type',
-        'sub_type',
         'is_system',
         'balance_minor',
         'is_active',
@@ -36,74 +35,121 @@ class ChartOfAccount extends BaseModel
 
     public array $translatable = ['name', 'description'];
 
-    // Account type constants
-    public const TYPE_ASSET = 'asset';
-    public const TYPE_LIABILITY = 'liability';
+    // Account type constants (Odoo-compatible)
+    // Assets
+    public const TYPE_RECEIVABLE = 'receivable';
+    public const TYPE_BANK_CASH = 'bank_cash';
+    public const TYPE_CURRENT_ASSET = 'current_asset';
+    public const TYPE_NON_CURRENT_ASSET = 'non_current_asset';
+    public const TYPE_FIXED_ASSET = 'fixed_asset';
+    public const TYPE_PREPAYMENTS = 'prepayments';
+    // Liabilities
+    public const TYPE_PAYABLE = 'payable';
+    public const TYPE_CURRENT_LIABILITY = 'current_liability';
+    public const TYPE_NON_CURRENT_LIABILITY = 'non_current_liability';
+    public const TYPE_CREDIT_CARD = 'credit_card';
+    // Equity
     public const TYPE_EQUITY = 'equity';
-    public const TYPE_REVENUE = 'revenue';
+    public const TYPE_CURRENT_YEAR_EARNINGS = 'current_year_earnings';
+    // Revenue
+    public const TYPE_INCOME = 'income';
+    public const TYPE_OTHER_INCOME = 'other_income';
+    // Expenses
     public const TYPE_EXPENSE = 'expense';
+    public const TYPE_DEPRECIATION = 'depreciation';
+    public const TYPE_COST_OF_REVENUE = 'cost_of_revenue';
 
+    // All account types grouped by category (for grouped selects)
     public const TYPES = [
-        self::TYPE_ASSET => 'Asset',
-        self::TYPE_LIABILITY => 'Liability',
+        'Assets' => [
+            self::TYPE_RECEIVABLE => 'Receivable',
+            self::TYPE_BANK_CASH => 'Bank and Cash',
+            self::TYPE_CURRENT_ASSET => 'Current Assets',
+            self::TYPE_NON_CURRENT_ASSET => 'Non-current Assets',
+            self::TYPE_FIXED_ASSET => 'Fixed Assets',
+            self::TYPE_PREPAYMENTS => 'Prepayments',
+        ],
+        'Liabilities' => [
+            self::TYPE_PAYABLE => 'Payable',
+            self::TYPE_CREDIT_CARD => 'Credit Card',
+            self::TYPE_CURRENT_LIABILITY => 'Current Liabilities',
+            self::TYPE_NON_CURRENT_LIABILITY => 'Non-current Liabilities',
+        ],
+        'Equity' => [
+            self::TYPE_EQUITY => 'Equity',
+            self::TYPE_CURRENT_YEAR_EARNINGS => 'Current Year Earnings',
+        ],
+        'Income' => [
+            self::TYPE_INCOME => 'Income',
+            self::TYPE_OTHER_INCOME => 'Other Income',
+        ],
+        'Expenses' => [
+            self::TYPE_EXPENSE => 'Expenses',
+            self::TYPE_DEPRECIATION => 'Depreciation',
+            self::TYPE_COST_OF_REVENUE => 'Cost of Revenue',
+        ],
+    ];
+
+    // Flat list of all types for dropdowns
+    public const TYPES_FLAT = [
+        self::TYPE_RECEIVABLE => 'Receivable',
+        self::TYPE_BANK_CASH => 'Bank and Cash',
+        self::TYPE_CURRENT_ASSET => 'Current Assets',
+        self::TYPE_NON_CURRENT_ASSET => 'Non-current Assets',
+        self::TYPE_FIXED_ASSET => 'Fixed Assets',
+        self::TYPE_PREPAYMENTS => 'Prepayments',
+        self::TYPE_PAYABLE => 'Payable',
+        self::TYPE_CREDIT_CARD => 'Credit Card',
+        self::TYPE_CURRENT_LIABILITY => 'Current Liabilities',
+        self::TYPE_NON_CURRENT_LIABILITY => 'Non-current Liabilities',
         self::TYPE_EQUITY => 'Equity',
-        self::TYPE_REVENUE => 'Revenue',
-        self::TYPE_EXPENSE => 'Expense',
+        self::TYPE_CURRENT_YEAR_EARNINGS => 'Current Year Earnings',
+        self::TYPE_INCOME => 'Income',
+        self::TYPE_OTHER_INCOME => 'Other Income',
+        self::TYPE_EXPENSE => 'Expenses',
+        self::TYPE_DEPRECIATION => 'Depreciation',
+        self::TYPE_COST_OF_REVENUE => 'Cost of Revenue',
+    ];
+
+    // Map type to category
+    public const TYPE_CATEGORY = [
+        self::TYPE_RECEIVABLE => 'asset',
+        self::TYPE_BANK_CASH => 'asset',
+        self::TYPE_CURRENT_ASSET => 'asset',
+        self::TYPE_NON_CURRENT_ASSET => 'asset',
+        self::TYPE_FIXED_ASSET => 'asset',
+        self::TYPE_PREPAYMENTS => 'asset',
+        self::TYPE_PAYABLE => 'liability',
+        self::TYPE_CREDIT_CARD => 'liability',
+        self::TYPE_CURRENT_LIABILITY => 'liability',
+        self::TYPE_NON_CURRENT_LIABILITY => 'liability',
+        self::TYPE_EQUITY => 'equity',
+        self::TYPE_CURRENT_YEAR_EARNINGS => 'equity',
+        self::TYPE_INCOME => 'income',
+        self::TYPE_OTHER_INCOME => 'income',
+        self::TYPE_EXPENSE => 'expense',
+        self::TYPE_DEPRECIATION => 'expense',
+        self::TYPE_COST_OF_REVENUE => 'expense',
     ];
 
     public const TYPE_COLORS = [
-        self::TYPE_ASSET => 'primary',
-        self::TYPE_LIABILITY => 'danger',
+        self::TYPE_RECEIVABLE => 'info',
+        self::TYPE_BANK_CASH => 'primary',
+        self::TYPE_CURRENT_ASSET => 'primary',
+        self::TYPE_NON_CURRENT_ASSET => 'primary',
+        self::TYPE_FIXED_ASSET => 'primary',
+        self::TYPE_PREPAYMENTS => 'primary',
+        self::TYPE_PAYABLE => 'danger',
+        self::TYPE_CREDIT_CARD => 'danger',
+        self::TYPE_CURRENT_LIABILITY => 'danger',
+        self::TYPE_NON_CURRENT_LIABILITY => 'danger',
         self::TYPE_EQUITY => 'info',
-        self::TYPE_REVENUE => 'success',
+        self::TYPE_CURRENT_YEAR_EARNINGS => 'info',
+        self::TYPE_INCOME => 'success',
+        self::TYPE_OTHER_INCOME => 'success',
         self::TYPE_EXPENSE => 'warning',
-    ];
-
-    // Sub-types for better categorization (Odoo-compatible)
-    public const SUB_TYPES = [
-        // Assets
-        'accounts_receivable' => 'Receivable',
-        'bank_cash' => 'Bank and Cash',
-        'current_asset' => 'Current Assets',
-        'non_current_asset' => 'Non-current Assets',
-        'fixed_asset' => 'Fixed Assets',
-        'prepayments' => 'Prepayments',
-        // Liabilities
-        'accounts_payable' => 'Payable',
-        'current_liability' => 'Current Liabilities',
-        'non_current_liability' => 'Non-current Liabilities',
-        'credit_card' => 'Credit Card',
-        // Equity
-        'equity' => 'Equity',
-        'current_year_earnings' => 'Current Year Earnings',
-        // Revenue
-        'income' => 'Income',
-        'other_income' => 'Other Income',
-        // Expenses
-        'expense' => 'Expenses',
-        'depreciation' => 'Depreciation',
-        'cost_of_revenue' => 'Cost of Revenue',
-    ];
-
-    // Map sub_types to their parent types
-    public const SUB_TYPE_PARENT = [
-        'accounts_receivable' => self::TYPE_ASSET,
-        'bank_cash' => self::TYPE_ASSET,
-        'current_asset' => self::TYPE_ASSET,
-        'non_current_asset' => self::TYPE_ASSET,
-        'fixed_asset' => self::TYPE_ASSET,
-        'prepayments' => self::TYPE_ASSET,
-        'accounts_payable' => self::TYPE_LIABILITY,
-        'current_liability' => self::TYPE_LIABILITY,
-        'non_current_liability' => self::TYPE_LIABILITY,
-        'credit_card' => self::TYPE_LIABILITY,
-        'equity' => self::TYPE_EQUITY,
-        'current_year_earnings' => self::TYPE_EQUITY,
-        'income' => self::TYPE_REVENUE,
-        'other_income' => self::TYPE_REVENUE,
-        'expense' => self::TYPE_EXPENSE,
-        'depreciation' => self::TYPE_EXPENSE,
-        'cost_of_revenue' => self::TYPE_EXPENSE,
+        self::TYPE_DEPRECIATION => 'warning',
+        self::TYPE_COST_OF_REVENUE => 'warning',
     ];
 
     // Relationships
@@ -153,19 +199,27 @@ class ChartOfAccount extends BaseModel
     // Get type label
     public function getTypeLabelAttribute(): string
     {
-        return self::TYPES[$this->type] ?? $this->type;
+        return self::TYPES_FLAT[$this->type] ?? $this->type;
     }
 
-    // Check if account is debit-normal (Asset, Expense)
+    // Check if account is debit-normal (Asset, Expense categories)
     public function isDebitNormal(): bool
     {
-        return in_array($this->type, [self::TYPE_ASSET, self::TYPE_EXPENSE]);
+        $category = self::TYPE_CATEGORY[$this->type] ?? null;
+        return in_array($category, ['asset', 'expense']);
     }
 
-    // Check if account is credit-normal (Liability, Equity, Revenue)
+    // Check if account is credit-normal (Liability, Equity, Income categories)
     public function isCreditNormal(): bool
     {
-        return in_array($this->type, [self::TYPE_LIABILITY, self::TYPE_EQUITY, self::TYPE_REVENUE]);
+        $category = self::TYPE_CATEGORY[$this->type] ?? null;
+        return in_array($category, ['liability', 'equity', 'income']);
+    }
+
+    // Get the category for this account type
+    public function getCategoryAttribute(): ?string
+    {
+        return self::TYPE_CATEGORY[$this->type] ?? null;
     }
 
     // Calculate current balance from journal entries
