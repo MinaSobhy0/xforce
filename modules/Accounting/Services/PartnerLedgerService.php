@@ -5,6 +5,7 @@ namespace Modules\Accounting\Services;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Modules\Accounting\Models\ChartOfAccount;
 use Modules\Accounting\Models\JournalEntry;
 use Modules\Accounting\Models\JournalEntryLine;
 use Modules\Inventory\Models\Supplier;
@@ -103,6 +104,7 @@ class PartnerLedgerService
             ->whereNotNull('partner_type')
             ->whereNotNull('partner_id')
             ->when($accountId, fn($q) => $q->where('account_id', $accountId))
+            ->when(!$accountId, fn($q) => $this->applyReceivablePayableFilter($q))
             ->when($partnerId, fn($q) => $q->where('partner_id', $partnerId))
             ->when($partnerType, function ($q) use ($partnerType) {
                 $modelClass = $this->getPartnerModelClass($partnerType);
@@ -120,6 +122,7 @@ class PartnerLedgerService
             ->whereNotNull('partner_type')
             ->whereNotNull('partner_id')
             ->when($accountId, fn($q) => $q->where('account_id', $accountId))
+            ->when(!$accountId, fn($q) => $this->applyReceivablePayableFilter($q))
             ->when($partnerId, fn($q) => $q->where('partner_id', $partnerId))
             ->when($partnerType, function ($q) use ($partnerType) {
                 $modelClass = $this->getPartnerModelClass($partnerType);
@@ -163,6 +166,7 @@ class PartnerLedgerService
         return JournalEntryLine::where('partner_type', $partnerType)
             ->where('partner_id', $partnerId)
             ->when($accountId, fn($q) => $q->where('account_id', $accountId))
+            ->when(!$accountId, fn($q) => $this->applyReceivablePayableFilter($q))
             ->whereHas('journalEntry', function ($q) use ($asOfDate) {
                 $q->where('date', '<', $asOfDate)
                     ->where('status', 'posted');
@@ -183,6 +187,7 @@ class PartnerLedgerService
         return JournalEntryLine::where('partner_type', $partnerType)
             ->where('partner_id', $partnerId)
             ->when($accountId, fn($q) => $q->where('account_id', $accountId))
+            ->when(!$accountId, fn($q) => $this->applyReceivablePayableFilter($q))
             ->whereHas('journalEntry', function ($q) use ($startDate, $endDate) {
                 $q->whereBetween('date', [$startDate, $endDate])
                     ->where('status', 'posted');
@@ -264,6 +269,17 @@ class PartnerLedgerService
             'staff' => StaffProfile::class,
             default => $partnerType,
         };
+    }
+
+    /**
+     * Apply filter to only include receivable/payable accounts.
+     * This ensures we only show the partner-side of journal entries.
+     */
+    protected function applyReceivablePayableFilter($query)
+    {
+        return $query->whereHas('account', function ($q) {
+            $q->whereIn('sub_type', ['accounts_receivable', 'accounts_payable']);
+        });
     }
 
     /**
