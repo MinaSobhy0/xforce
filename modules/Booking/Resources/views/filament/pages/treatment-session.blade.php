@@ -392,13 +392,11 @@
             {{-- Consumables Section --}}
             <x-filament::section>
                 <x-slot name="heading">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                            <x-heroicon-o-beaker class="w-5 h-5 text-orange-500" />
-                            {{ __('booking::session.sections.consumables') }}
-                        </div>
+                    <div class="flex items-center gap-2">
+                        <x-heroicon-o-beaker class="w-5 h-5 text-orange-500" />
+                        {{ __('booking::session.sections.consumables') }}
                         @if(count($sessionConsumables) > 0)
-                            <span class="text-sm font-medium text-gray-500">{{ number_format($this->getTotalConsumablesCost(), 2) }}</span>
+                            <span class="text-xs text-gray-500">({{ count($sessionConsumables) }})</span>
                         @endif
                     </div>
                 </x-slot>
@@ -424,12 +422,9 @@
                                     <span class="font-medium text-gray-900 dark:text-white">{{ $consumable['product_name'] }}</span>
                                     <span class="text-xs text-gray-500 ml-1">{{ $consumable['quantity'] }} {{ $consumable['unit'] }}</span>
                                 </div>
-                                <div class="flex items-center gap-2">
-                                    <span class="text-gray-700 dark:text-gray-300">{{ number_format($consumable['total_cost'], 2) }}</span>
-                                    <button wire:click="removeConsumable('{{ $consumable['id'] }}')" class="text-red-500 hover:text-red-700">
-                                        <x-heroicon-o-x-mark class="w-4 h-4" />
-                                    </button>
-                                </div>
+                                <button type="button" wire:click="removeConsumable('{{ $consumable['id'] }}')" class="text-red-500 hover:text-red-700">
+                                    <x-heroicon-o-x-mark class="w-4 h-4" />
+                                </button>
                             </div>
                         @endforeach
                     </div>
