@@ -495,6 +495,12 @@ class BookingRule extends BaseModel
         return $category ? (self::RULE_CATEGORIES[$category]['label'] ?? $category) : 'Other';
     }
 
+    public function getRuleCategoryColorAttribute(): string
+    {
+        $category = $this->rule_category;
+        return $category ? (self::RULE_CATEGORIES[$category]['color'] ?? 'gray') : 'gray';
+    }
+
     public function getScopeLevelLabelAttribute(): string
     {
         return self::SCOPE_LEVELS[$this->scope_level] ?? $this->scope_level;

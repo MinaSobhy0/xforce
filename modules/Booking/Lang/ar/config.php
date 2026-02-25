@@ -269,13 +269,25 @@ return [
     'time' => 'الوقت',
     'room' => 'الغرفة',
 
+    // Current Configuration
+    'current_configuration' => 'الإعدادات الحالية',
+    'current_configuration_desc' => 'هذه القيم مستمدة من قواعد الحجز النشطة على مستوى المؤسسة',
+    'config_from_rules_note' => 'الإعدادات مستمدة من قواعد الحجز. قم بتعديل أو إنشاء قواعد لتغيير هذه الافتراضيات.',
+    'rules_by_category' => 'القواعد حسب الفئة',
+    'advance_booking' => 'الحجز المسبق',
+    'default_buffer' => 'الفاصل الافتراضي',
+    'default_working_hours' => 'ساعات العمل الافتراضية',
+    'default_advance_booking' => 'الحد الأدنى الافتراضي للحجز المسبق',
+    'default_max_advance' => 'الحد الأقصى الافتراضي للحجز المسبق',
+    'showing_first_20' => 'عرض أول 20 موعد',
+
     // Stats
     'active_rules' => 'القواعد النشطة',
     'upcoming_blackouts' => 'تواريخ الحظر القادمة',
     'no_upcoming_blackouts' => 'لا توجد تواريخ حظر قادمة',
     'no_rules' => 'لا توجد قواعد',
     'no_rules_desc' => 'أنشئ قواعد حجز لتخصيص توفر المواعيد',
-    'rules_description' => 'القواعد التي تؤثر على توفر المواعيد',
+    'rules_description' => 'القواعد التي تؤثر على توفر المواعيد وسلوك الحجز',
 
     // Actions
     'add_rule' => 'إضافة قاعدة',

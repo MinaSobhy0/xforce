@@ -1,7 +1,7 @@
 <x-filament-panels::page>
     {{-- Algorithm Visualization Panel --}}
     <div class="mb-6">
-        <x-filament::section>
+        <x-filament::section collapsible>
             <x-slot name="heading">
                 {{ __('booking::config.how_slots_generated') }}
             </x-slot>
@@ -81,8 +81,104 @@
         </x-filament::section>
     </div>
 
+    {{-- Current Configuration Summary (derived from rules) --}}
+    <div class="mb-6">
+        <x-filament::section>
+            <x-slot name="heading">
+                {{ __('booking::config.current_configuration') }}
+            </x-slot>
+            <x-slot name="description">
+                {{ __('booking::config.current_configuration_desc') }}
+            </x-slot>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {{-- Slot Duration --}}
+                <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 text-center">
+                    <div class="text-3xl font-bold text-primary-600 dark:text-primary-400">
+                        {{ $currentConfig['slot_duration'] }}
+                    </div>
+                    <div class="text-sm text-gray-500">{{ __('booking::config.minutes') }}</div>
+                    <div class="text-xs text-gray-400 mt-1">{{ __('booking::config.default_slot_duration') }}</div>
+                </div>
+
+                {{-- Buffer --}}
+                <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 text-center">
+                    <div class="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                        {{ $currentConfig['buffer_minutes'] }}
+                    </div>
+                    <div class="text-sm text-gray-500">{{ __('booking::config.minutes') }}</div>
+                    <div class="text-xs text-gray-400 mt-1">{{ __('booking::config.buffer_between_appointments') }}</div>
+                </div>
+
+                {{-- Working Hours --}}
+                <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 text-center">
+                    <div class="text-2xl font-bold text-green-600 dark:text-green-400">
+                        {{ $currentConfig['working_hours']['start'] }} - {{ $currentConfig['working_hours']['end'] }}
+                    </div>
+                    <div class="text-xs text-gray-400 mt-1">{{ __('booking::config.working_hours') }}</div>
+                </div>
+
+                {{-- Advance Booking --}}
+                <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 text-center">
+                    <div class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                        {{ $currentConfig['min_advance_hours'] }}h - {{ $currentConfig['max_advance_days'] }}d
+                    </div>
+                    <div class="text-xs text-gray-400 mt-1">{{ __('booking::config.advance_booking') }}</div>
+                </div>
+            </div>
+
+            {{-- Feature Flags --}}
+            <div class="mt-4 flex flex-wrap gap-2">
+                @if($currentConfig['online_booking'])
+                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+                        <x-heroicon-o-check-circle class="w-3 h-3" />
+                        {{ __('booking::config.enable_online_booking') }}
+                    </span>
+                @else
+                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300">
+                        <x-heroicon-o-x-circle class="w-3 h-3" />
+                        {{ __('booking::config.online_booking') }}
+                    </span>
+                @endif
+
+                @if($currentConfig['allow_same_day'])
+                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+                        <x-heroicon-o-check-circle class="w-3 h-3" />
+                        {{ __('booking::config.allow_same_day') }}
+                    </span>
+                @endif
+
+                @if($currentConfig['auto_confirm'])
+                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                        <x-heroicon-o-check-circle class="w-3 h-3" />
+                        {{ __('booking::config.auto_confirm') }}
+                    </span>
+                @endif
+
+                @if($currentConfig['practitioner_selection'])
+                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300">
+                        <x-heroicon-o-check-circle class="w-3 h-3" />
+                        {{ __('booking::config.show_practitioner_selection') }}
+                    </span>
+                @endif
+
+                @if($currentConfig['deposit_required'])
+                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300">
+                        <x-heroicon-o-banknotes class="w-3 h-3" />
+                        {{ __('booking::config.require_deposit') }}: {{ $currentConfig['deposit_percentage'] }}%
+                    </span>
+                @endif
+            </div>
+
+            <div class="mt-4 text-xs text-gray-500">
+                <x-heroicon-o-information-circle class="w-4 h-4 inline" />
+                {{ __('booking::config.config_from_rules_note') }}
+            </div>
+        </x-filament::section>
+    </div>
+
     {{-- Quick Stats --}}
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <x-filament::section>
             <div class="flex items-center gap-3">
                 <div class="p-2 rounded-lg bg-primary-100 dark:bg-primary-900">
@@ -107,32 +203,27 @@
             </div>
         </x-filament::section>
 
-        <x-filament::section>
-            <div class="flex items-center gap-3">
-                <div class="p-2 rounded-lg bg-success-100 dark:bg-success-900">
-                    <x-heroicon-o-clock class="w-6 h-6 text-success-600 dark:text-success-400" />
-                </div>
-                <div>
-                    <div class="text-2xl font-bold">{{ $this->data['default_slot_duration'] ?? 30 }}<span class="text-sm font-normal">min</span></div>
-                    <div class="text-sm text-gray-500">{{ __('booking::config.default_duration') }}</div>
-                </div>
+        {{-- Rules by Category --}}
+        <x-filament::section class="md:col-span-2">
+            <div class="text-sm font-medium mb-2">{{ __('booking::config.rules_by_category') }}</div>
+            <div class="flex flex-wrap gap-2">
+                @foreach(\Modules\Booking\Models\BookingRule::RULE_CATEGORIES as $key => $category)
+                    @php $count = $rulesCountByCategory[$key] ?? 0; @endphp
+                    @if($count > 0)
+                        <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-{{ $category['color'] ?? 'gray' }}-100 text-{{ $category['color'] ?? 'gray' }}-700 dark:bg-{{ $category['color'] ?? 'gray' }}-900 dark:text-{{ $category['color'] ?? 'gray' }}-300">
+                            {{ $category['label'] }}: {{ $count }}
+                        </span>
+                    @endif
+                @endforeach
+                @if(empty(array_filter($rulesCountByCategory)))
+                    <span class="text-gray-500 text-xs">{{ __('booking::config.no_rules') }}</span>
+                @endif
             </div>
         </x-filament::section>
     </div>
 
-    {{-- Settings Form --}}
-    <form wire:submit="save">
-        {{ $this->form }}
-
-        <div class="mt-6 flex justify-end">
-            <x-filament::button type="submit">
-                {{ __('booking::config.save_settings') }}
-            </x-filament::button>
-        </div>
-    </form>
-
-    {{-- Rules Overview --}}
-    <div class="mt-8">
+    {{-- Rules Table --}}
+    <div class="mb-8">
         <x-filament::section>
             <x-slot name="heading">
                 {{ __('booking::config.booking_rules') }}
@@ -146,7 +237,7 @@
     </div>
 
     {{-- Blackout Calendar Preview --}}
-    <div class="mt-8">
+    <div class="mb-8">
         <x-filament::section>
             <x-slot name="heading">
                 {{ __('booking::config.holiday_calendar') }}
@@ -209,7 +300,7 @@
     </div>
 
     {{-- Slot Preview --}}
-    <div class="mt-8">
+    <div>
         <x-filament::section collapsible collapsed>
             <x-slot name="heading">
                 {{ __('booking::config.slot_preview') }}
