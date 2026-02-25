@@ -590,11 +590,21 @@ class BookingRuleResource extends Resource
 
                         // Room Preference
                         Forms\Components\Group::make([
+                            Forms\Components\Select::make('actions.room_source')
+                                ->label(__('booking::config.room_source'))
+                                ->options([
+                                    'service' => __('booking::config.use_service_rooms'),
+                                    'manual' => __('booking::config.specify_manually'),
+                                ])
+                                ->default('service')
+                                ->live()
+                                ->helperText(__('booking::config.room_source_help')),
                             Forms\Components\Select::make('actions.preferred_rooms')
                                 ->label(__('booking::config.preferred_rooms'))
                                 ->options(fn () => class_exists(Room::class) ? Room::where('is_active', true)->pluck('name', 'id') : [])
                                 ->multiple()
-                                ->searchable(),
+                                ->searchable()
+                                ->visible(fn (Get $get) => $get('actions.room_source') === 'manual'),
                             Forms\Components\Toggle::make('actions.strict_room')
                                 ->label(__('booking::config.strict_room'))
                                 ->helperText(__('booking::config.strict_room_help')),
@@ -602,30 +612,57 @@ class BookingRuleResource extends Resource
 
                         // Equipment Required
                         Forms\Components\Group::make([
+                            Forms\Components\Select::make('actions.equipment_source')
+                                ->label(__('booking::config.equipment_source'))
+                                ->options([
+                                    'service' => __('booking::config.use_service_equipment'),
+                                    'manual' => __('booking::config.specify_manually'),
+                                ])
+                                ->default('service')
+                                ->live()
+                                ->helperText(__('booking::config.equipment_source_help')),
                             Forms\Components\Select::make('actions.required_equipment')
                                 ->label(__('booking::config.required_equipment'))
                                 ->options(fn () => class_exists(Equipment::class) ? Equipment::where('status', 'active')->pluck('name', 'id') : [])
                                 ->multiple()
-                                ->searchable(),
+                                ->searchable()
+                                ->visible(fn (Get $get) => $get('actions.equipment_source') === 'manual'),
+                            Forms\Components\Toggle::make('actions.strict_equipment')
+                                ->label(__('booking::config.strict_equipment'))
+                                ->helperText(__('booking::config.strict_equipment_help')),
                         ])->visible(fn (Get $get) => $get('rule_type') === BookingRule::TYPE_EQUIPMENT_REQUIRED),
 
                         // Required Practitioner
                         Forms\Components\Group::make([
+                            Forms\Components\Select::make('actions.practitioner_source')
+                                ->label(__('booking::config.practitioner_source'))
+                                ->options([
+                                    'service' => __('booking::config.use_service_practitioners'),
+                                    'manual' => __('booking::config.specify_manually'),
+                                ])
+                                ->default('service')
+                                ->live()
+                                ->helperText(__('booking::config.practitioner_source_help')),
                             Forms\Components\Select::make('actions.required_practitioners')
                                 ->label(__('booking::config.required_practitioners'))
                                 ->options(fn () => User::whereHas('roles', fn ($q) => $q->whereIn('name', ['doctor', 'practitioner', 'therapist']))
                                     ->get()
                                     ->pluck('full_name', 'id'))
                                 ->multiple()
-                                ->searchable(),
+                                ->searchable()
+                                ->visible(fn (Get $get) => $get('actions.practitioner_source') === 'manual'),
                             Forms\Components\Select::make('actions.required_qualifications')
                                 ->label(__('booking::config.required_qualifications'))
                                 ->options([
-                                    'licensed' => 'Licensed',
-                                    'certified' => 'Certified',
-                                    'senior' => 'Senior',
+                                    'licensed' => __('booking::config.qualification_licensed'),
+                                    'certified' => __('booking::config.qualification_certified'),
+                                    'senior' => __('booking::config.qualification_senior'),
                                 ])
-                                ->multiple(),
+                                ->multiple()
+                                ->helperText(__('booking::config.required_qualifications_help')),
+                            Forms\Components\Toggle::make('actions.strict_practitioner')
+                                ->label(__('booking::config.strict_practitioner'))
+                                ->helperText(__('booking::config.strict_practitioner_help')),
                         ])->visible(fn (Get $get) => $get('rule_type') === BookingRule::TYPE_PRACTITIONER_REQUIRED),
                     ]),
             ]);

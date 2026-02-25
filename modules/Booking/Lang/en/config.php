@@ -225,12 +225,32 @@ return [
     'block_after_no_shows' => 'Block Patient After Limit',
 
     // Rule actions - Resources
+    'room_source' => 'Room Source',
+    'room_source_help' => 'Choose where to get room requirements from',
+    'use_service_rooms' => 'Use service configured rooms',
     'preferred_rooms' => 'Preferred Rooms',
     'strict_room' => 'Strict Room Assignment',
     'strict_room_help' => 'Only book if preferred room is available',
+
+    'equipment_source' => 'Equipment Source',
+    'equipment_source_help' => 'Choose where to get equipment requirements from',
+    'use_service_equipment' => 'Use service configured equipment',
     'required_equipment' => 'Required Equipment',
+    'strict_equipment' => 'Strict Equipment Assignment',
+    'strict_equipment_help' => 'Only book if required equipment is available',
+
+    'practitioner_source' => 'Practitioner Source',
+    'practitioner_source_help' => 'Choose where to get practitioner requirements from',
+    'use_service_practitioners' => 'Use service qualified staff',
+    'specify_manually' => 'Specify manually',
     'required_practitioners' => 'Required Practitioners',
     'required_qualifications' => 'Required Qualifications',
+    'required_qualifications_help' => 'Additional qualification requirements',
+    'qualification_licensed' => 'Licensed',
+    'qualification_certified' => 'Certified',
+    'qualification_senior' => 'Senior',
+    'strict_practitioner' => 'Strict Practitioner Assignment',
+    'strict_practitioner_help' => 'Only book if required practitioner is available',
 
     // Rule types
     'booking_scope' => 'Booking Scope',

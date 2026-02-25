@@ -225,12 +225,32 @@ return [
     'block_after_no_shows' => 'حظر المريض بعد الحد',
 
     // Rule actions - Resources
+    'room_source' => 'مصدر الغرفة',
+    'room_source_help' => 'اختر من أين يتم الحصول على متطلبات الغرفة',
+    'use_service_rooms' => 'استخدام غرف الخدمة المحددة',
     'preferred_rooms' => 'الغرف المفضلة',
     'strict_room' => 'تعيين غرفة صارم',
     'strict_room_help' => 'الحجز فقط إذا كانت الغرفة المفضلة متاحة',
+
+    'equipment_source' => 'مصدر المعدات',
+    'equipment_source_help' => 'اختر من أين يتم الحصول على متطلبات المعدات',
+    'use_service_equipment' => 'استخدام معدات الخدمة المحددة',
     'required_equipment' => 'المعدات المطلوبة',
+    'strict_equipment' => 'تعيين معدات صارم',
+    'strict_equipment_help' => 'الحجز فقط إذا كانت المعدات المطلوبة متاحة',
+
+    'practitioner_source' => 'مصدر الممارس',
+    'practitioner_source_help' => 'اختر من أين يتم الحصول على متطلبات الممارس',
+    'use_service_practitioners' => 'استخدام طاقم الخدمة المؤهل',
+    'specify_manually' => 'تحديد يدوياً',
     'required_practitioners' => 'الممارسين المطلوبين',
     'required_qualifications' => 'المؤهلات المطلوبة',
+    'required_qualifications_help' => 'متطلبات مؤهلات إضافية',
+    'qualification_licensed' => 'مرخص',
+    'qualification_certified' => 'معتمد',
+    'qualification_senior' => 'كبير',
+    'strict_practitioner' => 'تعيين ممارس صارم',
+    'strict_practitioner_help' => 'الحجز فقط إذا كان الممارس المطلوب متاحاً',
 
     // Rule types
     'booking_scope' => 'نطاق الحجز',
