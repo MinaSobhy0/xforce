@@ -92,7 +92,7 @@ class PurchaseOrder extends BaseModel
     public const TRANSITIONS = [
         self::STATUS_DRAFT => [self::STATUS_SENT, self::STATUS_CANCELLED],
         self::STATUS_SENT => [self::STATUS_PARTIALLY_RECEIVED, self::STATUS_RECEIVED, self::STATUS_CANCELLED],
-        self::STATUS_PARTIALLY_RECEIVED => [self::STATUS_RECEIVED, self::STATUS_CANCELLED],
+        self::STATUS_PARTIALLY_RECEIVED => [self::STATUS_RECEIVED], // No cancel - stock already affected
         self::STATUS_RECEIVED => [self::STATUS_SENT], // Can reopen
         self::STATUS_CANCELLED => [self::STATUS_DRAFT],
     ];
@@ -237,8 +237,21 @@ class PurchaseOrder extends BaseModel
             return false;
         }
 
+        // Extra safety: cannot cancel if any items have been received
+        if ($this->hasReceivedItems()) {
+            return false;
+        }
+
         $this->status = self::STATUS_CANCELLED;
         return $this->save();
+    }
+
+    /**
+     * Check if order has any received items.
+     */
+    public function hasReceivedItems(): bool
+    {
+        return $this->lines()->where('quantity_received', '>', 0)->exists();
     }
 
     /**
@@ -349,7 +362,16 @@ class PurchaseOrder extends BaseModel
      */
     public function canReceive(): bool
     {
-        return in_array($this->status, [self::STATUS_SENT, self::STATUS_PARTIALLY_RECEIVED]);
+        // Must be in receivable status
+        if (!in_array($this->status, [self::STATUS_SENT, self::STATUS_PARTIALLY_RECEIVED])) {
+            return false;
+        }
+
+        // Must have items remaining to receive
+        $totalOrdered = $this->lines()->sum('quantity');
+        $totalReceived = $this->lines()->sum('quantity_received');
+
+        return $totalReceived < $totalOrdered;
     }
 
     /**

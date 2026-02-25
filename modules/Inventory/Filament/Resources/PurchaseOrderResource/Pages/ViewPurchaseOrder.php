@@ -47,7 +47,7 @@ class ViewPurchaseOrder extends BaseViewRecord
                 ->label(__('inventory::inventory.actions.cancel'))
                 ->icon('heroicon-o-x-mark')
                 ->color('danger')
-                ->visible(fn () => $this->record->canTransitionTo(PurchaseOrder::STATUS_CANCELLED))
+                ->visible(fn () => $this->record->canTransitionTo(PurchaseOrder::STATUS_CANCELLED) && !$this->record->hasReceivedItems())
                 ->requiresConfirmation()
                 ->action(function () {
                     if ($this->record->cancel()) {
