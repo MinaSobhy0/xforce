@@ -3,14 +3,14 @@
 namespace Modules\Booking\Filament\Resources\TimeOffAllocationResource\Pages;
 
 use Filament\Actions;
-use Filament\Resources\Pages\EditRecord;
+use App\Filament\Resources\Pages\BaseEditRecord;
 use Modules\Booking\Filament\Resources\TimeOffAllocationResource;
 
-class EditTimeOffAllocation extends EditRecord
+class EditTimeOffAllocation extends BaseEditRecord
 {
     protected static string $resource = TimeOffAllocationResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getEditHeaderActions(): array
     {
         return [
             Actions\DeleteAction::make(),
