@@ -691,7 +691,8 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
     {
         $photo = PatientPhoto::find($photoId);
 
-        if ($photo && $photo->patient_id === $this->patient?->id) {
+        // Only allow deleting photos from current appointment
+        if ($photo && $photo->appointment_id === $this->appointment?->id) {
             $photo->clearMediaCollection('photos');
             $photo->delete();
 
