@@ -169,6 +169,7 @@ class ChartOfAccountsSeeder extends Seeder
             ['code' => '4520', 'name' => ['en' => 'Cancellation Fees', 'ar' => 'رسوم الإلغاء'], 'type' => ChartOfAccount::TYPE_OTHER_INCOME, 'parent_code' => '4500'],
             ['code' => '4530', 'name' => ['en' => 'Interest Income', 'ar' => 'إيرادات الفوائد'], 'type' => ChartOfAccount::TYPE_OTHER_INCOME, 'parent_code' => '4500'],
             ['code' => '4540', 'name' => ['en' => 'Discounts Received', 'ar' => 'خصومات مكتسبة'], 'type' => ChartOfAccount::TYPE_OTHER_INCOME, 'parent_code' => '4500'],
+            ['code' => '4550', 'name' => ['en' => 'Gift Card Breakage Revenue', 'ar' => 'إيرادات انتهاء بطاقات الهدايا'], 'type' => ChartOfAccount::TYPE_OTHER_INCOME, 'parent_code' => '4500'],
 
             // ═══════════════════════════════════════════════════════════════
             // EXPENSES (5000-5999)

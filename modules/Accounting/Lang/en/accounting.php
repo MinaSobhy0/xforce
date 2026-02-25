@@ -327,6 +327,14 @@ return [
         'exchange_diff_help' => 'Account for foreign exchange gains/losses',
         'retained_earnings' => 'Retained Earnings',
         'retained_earnings_help' => 'Account for accumulated profits from previous years',
+
+        // Gift Cards
+        'gift_cards' => 'Gift Card Accounts',
+        'gift_cards_description' => 'Default accounts for gift card liability and breakage revenue',
+        'gift_card_liability' => 'Gift Card Liability',
+        'gift_card_liability_help' => 'Account for tracking unredeemed gift card balances (liability)',
+        'gift_card_breakage' => 'Gift Card Breakage Revenue',
+        'gift_card_breakage_help' => 'Account for recording revenue from expired/unused gift cards',
     ],
 
     'messages' => [

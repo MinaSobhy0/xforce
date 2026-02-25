@@ -223,6 +223,26 @@ class DefaultAccountsPage extends Page implements Forms\Contracts\HasForms
                     ])
                     ->columns(3),
 
+                Forms\Components\Section::make(__('accounting::accounting.default_accounts.gift_cards'))
+                    ->description(__('accounting::accounting.default_accounts.gift_cards_description'))
+                    ->icon('heroicon-o-gift')
+                    ->schema([
+                        Forms\Components\Select::make('default_gift_card_liability_account_id')
+                            ->label(__('accounting::accounting.default_accounts.gift_card_liability'))
+                            ->helperText(__('accounting::accounting.default_accounts.gift_card_liability_help'))
+                            ->options(fn () => $this->getAccountOptions(ChartOfAccount::TYPE_CURRENT_LIABILITY))
+                            ->searchable()
+                            ->preload(),
+
+                        Forms\Components\Select::make('default_gift_card_breakage_account_id')
+                            ->label(__('accounting::accounting.default_accounts.gift_card_breakage'))
+                            ->helperText(__('accounting::accounting.default_accounts.gift_card_breakage_help'))
+                            ->options(fn () => $this->getAccountOptions(ChartOfAccount::TYPE_INCOME))
+                            ->searchable()
+                            ->preload(),
+                    ])
+                    ->columns(2),
+
                 Forms\Components\Section::make(__('accounting::accounting.default_accounts.other'))
                     ->description(__('accounting::accounting.default_accounts.other_description'))
                     ->icon('heroicon-o-ellipsis-horizontal-circle')

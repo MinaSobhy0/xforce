@@ -48,6 +48,10 @@ class DefaultAccountsService
         'default_rounding_account_id' => ['5195', '5100'],
         'default_exchange_diff_account_id' => ['5196', '5100'],
         'default_retained_earnings_account_id' => ['3200', '3000'],
+
+        // Gift Cards
+        'default_gift_card_liability_account_id' => ['2220', '2200', '2100'],
+        'default_gift_card_breakage_account_id' => ['4550', '4500'],
     ];
 
     /**
@@ -210,6 +214,18 @@ class DefaultAccountsService
     public function getRetainedEarningsAccount(): ?ChartOfAccount
     {
         return $this->getAccount('default_retained_earnings_account_id');
+    }
+
+    // ===== Gift Card Accounts =====
+
+    public function getGiftCardLiabilityAccount(): ?ChartOfAccount
+    {
+        return $this->getAccount('default_gift_card_liability_account_id');
+    }
+
+    public function getGiftCardBreakageAccount(): ?ChartOfAccount
+    {
+        return $this->getAccount('default_gift_card_breakage_account_id');
     }
 
     // ===== Helper Methods =====

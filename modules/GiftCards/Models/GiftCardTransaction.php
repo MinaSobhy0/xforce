@@ -7,6 +7,7 @@ use XLinic\Framework\Core\Model\Traits\HasTenancy;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Modules\Billing\Models\Invoice;
 use Modules\Billing\Models\Payment;
+use Modules\Accounting\Models\JournalEntry;
 use Modules\Auth\Models\User;
 
 class GiftCardTransaction extends BaseModel
@@ -21,6 +22,7 @@ class GiftCardTransaction extends BaseModel
         'running_balance_minor',
         'invoice_id',
         'payment_id',
+        'journal_entry_id',
         'notes',
         'created_by_user_id',
     ];
@@ -67,6 +69,11 @@ class GiftCardTransaction extends BaseModel
     public function payment(): BelongsTo
     {
         return $this->belongsTo(Payment::class);
+    }
+
+    public function journalEntry(): BelongsTo
+    {
+        return $this->belongsTo(JournalEntry::class);
     }
 
     public function createdBy(): BelongsTo

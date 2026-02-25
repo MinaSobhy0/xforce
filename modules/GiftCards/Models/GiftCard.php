@@ -9,8 +9,11 @@ use XLinic\Framework\Core\Model\Traits\HasActivity;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Builder;
 use Modules\Patients\Models\Patient;
 use Modules\Billing\Models\Invoice;
+use Modules\Accounting\Models\JournalEntry;
+use Modules\Auth\Models\User;
 
 class GiftCard extends BaseModel
 {
@@ -21,13 +24,21 @@ class GiftCard extends BaseModel
 
     protected $fillable = [
         'tenant_id',
+        'template_id',
         'code',
+        'encrypted_code',
+        'code_hash',
+        'pin_code',
         'purchaser_patient_id',
         'recipient_patient_id',
+        'assigned_to_staff_id',
+        'assigned_at',
+        'sold_by_staff_id',
         'initial_value_minor',
         'remaining_value_minor',
         'status',
         'purchased_via_invoice_id',
+        'sale_journal_entry_id',
         'expires_at',
         'activated_at',
         'notes',
@@ -38,6 +49,7 @@ class GiftCard extends BaseModel
         'remaining_value_minor' => 'integer',
         'expires_at' => 'datetime',
         'activated_at' => 'datetime',
+        'assigned_at' => 'datetime',
     ];
 
     // Status constants
@@ -106,6 +118,31 @@ class GiftCard extends BaseModel
     public function transactions(): HasMany
     {
         return $this->hasMany(GiftCardTransaction::class)->orderBy('created_at', 'desc');
+    }
+
+    public function template(): BelongsTo
+    {
+        return $this->belongsTo(GiftCardTemplate::class, 'template_id');
+    }
+
+    public function assignedToStaff(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assigned_to_staff_id');
+    }
+
+    public function soldByStaff(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'sold_by_staff_id');
+    }
+
+    public function saleJournalEntry(): BelongsTo
+    {
+        return $this->belongsTo(JournalEntry::class, 'sale_journal_entry_id');
+    }
+
+    public function printHistory(): HasMany
+    {
+        return $this->hasMany(GiftCardPrintHistory::class)->orderBy('created_at', 'desc');
     }
 
     // Accessors
@@ -419,5 +456,26 @@ class GiftCard extends BaseModel
         return $query->where(function ($q) use ($term) {
             $q->where('code', 'ilike', "%{$term}%");
         });
+    }
+
+    public function scopeAssignedTo(Builder $query, string $staffId): Builder
+    {
+        return $query->where('assigned_to_staff_id', $staffId);
+    }
+
+    public function scopeUnassigned(Builder $query): Builder
+    {
+        return $query->whereNull('assigned_to_staff_id');
+    }
+
+    public function scopeByTemplate(Builder $query, string $templateId): Builder
+    {
+        return $query->where('template_id', $templateId);
+    }
+
+    public function scopeAvailableForSale(Builder $query): Builder
+    {
+        return $query->where('status', self::STATUS_DRAFT)
+            ->whereNotNull('assigned_to_staff_id');
     }
 }

@@ -2,17 +2,18 @@
     "name": "GiftCards",
     "alias": "giftcards",
     "description": {
-        "en": "Gift card system with transactions and balance tracking",
-        "ar": "بطاقات الهدايا الرقمية وتتبع الرصيد"
+        "en": "Gift card system with templates, batch generation, transactions and balance tracking",
+        "ar": "بطاقات الهدايا الرقمية مع قوالب وإنشاء دفعات وتتبع الرصيد"
     },
-    "version": "1.0.0",
+    "version": "2.0.0",
     "category": "finance",
     "icon": "heroicon-o-gift",
     "keywords": [
         "giftcards",
         "prepaid",
         "vouchers",
-        "credits"
+        "credits",
+        "templates"
     ],
     "priority": 51,
     "providers": [
@@ -25,11 +26,15 @@
         "Patients"
     ],
     "optional_dependencies": [
-        "Billing"
+        "Billing",
+        "Accounting"
     ],
     "models": [
         "Modules\\GiftCards\\Models\\GiftCard",
-        "Modules\\GiftCards\\Models\\GiftCardTransaction"
+        "Modules\\GiftCards\\Models\\GiftCardTransaction",
+        "Modules\\GiftCards\\Models\\GiftCardTemplate",
+        "Modules\\GiftCards\\Models\\GiftCardPrintHistory",
+        "Modules\\GiftCards\\Models\\GiftCardBatchExport"
     ],
     "permissions": {
         "gift_cards.view_any": "View gift cards list",
@@ -38,24 +43,47 @@
         "gift_cards.update": "Update gift cards",
         "gift_cards.delete": "Delete gift cards",
         "gift_cards.redeem": "Redeem gift cards",
-        "gift_cards.transactions": "View transactions"
+        "gift_cards.transactions": "View transactions",
+        "gift_cards.print": "Print gift cards",
+        "gift_cards.export": "Export gift cards",
+        "gift_cards.assign": "Assign cards to staff",
+        "gift_card_templates.view_any": "View gift card templates",
+        "gift_card_templates.view": "View template details",
+        "gift_card_templates.create": "Create templates",
+        "gift_card_templates.update": "Update templates",
+        "gift_card_templates.delete": "Delete templates",
+        "gift_card_templates.generate_batch": "Generate batch of cards"
     },
     "default_role_permissions": {
         "admin": [
-            "gift_cards.*"
+            "gift_cards.*",
+            "gift_card_templates.*"
         ],
         "manager": [
-            "gift_cards.*"
+            "gift_cards.*",
+            "gift_card_templates.view_any",
+            "gift_card_templates.view",
+            "gift_card_templates.generate_batch"
         ],
         "receptionist": [
             "gift_cards.view_any",
             "gift_cards.view",
-            "gift_cards.redeem"
+            "gift_cards.redeem",
+            "gift_cards.print"
         ],
         "accountant": [
             "gift_cards.view_any",
             "gift_cards.view",
-            "gift_cards.transactions"
+            "gift_cards.transactions",
+            "gift_cards.export",
+            "gift_card_templates.view_any",
+            "gift_card_templates.view"
+        ],
+        "staff": [
+            "gift_cards.view_any",
+            "gift_cards.view",
+            "gift_cards.redeem",
+            "gift_cards.print"
         ]
     },
     "navigation": [
@@ -70,6 +98,30 @@
             "group": "finance",
             "order": 30,
             "permission": "gift_cards.view_any"
+        },
+        {
+            "id": "gift_card_templates",
+            "label": {
+                "en": "Gift Card Templates",
+                "ar": "قوالب بطاقات الهدايا"
+            },
+            "icon": "heroicon-o-document-duplicate",
+            "route": "filament.tenant.resources.gift-card-templates.index",
+            "group": "finance",
+            "order": 31,
+            "permission": "gift_card_templates.view_any"
+        },
+        {
+            "id": "staff_gift_cards",
+            "label": {
+                "en": "My Gift Cards",
+                "ar": "بطاقات الهدايا الخاصة بي"
+            },
+            "icon": "heroicon-o-gift",
+            "route": "filament.tenant.pages.staff-gift-card-dashboard",
+            "group": "finance",
+            "order": 32,
+            "permission": "gift_cards.view"
         }
     ],
     "settings": {
@@ -88,6 +140,22 @@
                 "en": "Allow Partial Redemption",
                 "ar": "السماح بالاسترداد الجزئي"
             }
+        },
+        "giftcards.require_pin": {
+            "type": "boolean",
+            "default": false,
+            "label": {
+                "en": "Require PIN for Redemption",
+                "ar": "يتطلب رمز PIN للاسترداد"
+            }
+        },
+        "giftcards.code_format": {
+            "type": "string",
+            "default": "XXXX-XXXX-XXXX-XX",
+            "label": {
+                "en": "Code Format",
+                "ar": "صيغة الكود"
+            }
         }
     },
     "sequences": [
@@ -95,12 +163,26 @@
             "code": "gift_card",
             "prefix": "GC-",
             "padding": 8
+        },
+        {
+            "code": "gc_template",
+            "prefix": "GCT-",
+            "padding": 4
+        },
+        {
+            "code": "gc_batch_export",
+            "prefix": "GCE-",
+            "padding": 6
         }
     ],
     "events": [
         "GiftCardCreated",
+        "GiftCardActivated",
         "GiftCardRedeemed",
-        "GiftCardExpired"
+        "GiftCardExpired",
+        "GiftCardCancelled",
+        "GiftCardAssigned",
+        "BatchGenerated"
     ],
     "active": true,
     "display_name": {
