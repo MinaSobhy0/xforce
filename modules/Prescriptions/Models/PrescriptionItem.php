@@ -48,8 +48,11 @@ class PrescriptionItem extends BaseModel
             $integerFields = ['duration', 'quantity', 'refills_allowed', 'sort_order'];
 
             foreach ($integerFields as $field) {
-                if ($model->{$field} === '' || $model->{$field} === null) {
+                $value = $model->getAttributes()[$field] ?? null;
+                if ($value === '' || $value === null || (is_string($value) && trim($value) === '')) {
                     $model->{$field} = null;
+                } elseif (is_numeric($value)) {
+                    $model->{$field} = (int) $value;
                 }
             }
         });
