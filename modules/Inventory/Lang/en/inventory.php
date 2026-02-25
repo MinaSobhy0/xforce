@@ -196,6 +196,7 @@ return [
         'record_payment' => 'Record Payment',
         'add_line_item' => 'Add Line Item',
         'view_source' => 'View Source',
+        'reverse_movement' => 'Reverse Movement',
     ],
 
     'messages' => [
@@ -225,6 +226,10 @@ return [
         'bill_validation_failed' => 'Failed to validate bill',
         'validate_bill_confirmation' => 'This will validate the bill and create journal entries. This action cannot be undone.',
         'cancellation_reason' => 'Cancellation Reason',
+        'reverse_movement_confirmation' => 'This will create a reverse movement to undo the stock change. Continue?',
+        'reversal_of' => 'Reversal of movement #:id',
+        'movement_reversed' => 'Movement reversed successfully',
+        'stock_level_not_found' => 'Stock level not found',
     ],
 
     'help' => [

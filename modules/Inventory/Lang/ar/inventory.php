@@ -196,6 +196,7 @@ return [
         'record_payment' => 'تسجيل دفعة',
         'add_line_item' => 'إضافة بند',
         'view_source' => 'عرض المصدر',
+        'reverse_movement' => 'عكس الحركة',
     ],
 
     'messages' => [
@@ -225,6 +226,10 @@ return [
         'bill_validation_failed' => 'فشل في تصديق الفاتورة',
         'validate_bill_confirmation' => 'سيتم تصديق الفاتورة وإنشاء القيود المحاسبية. لا يمكن التراجع عن هذا الإجراء.',
         'cancellation_reason' => 'سبب الإلغاء',
+        'reverse_movement_confirmation' => 'سيتم إنشاء حركة عكسية للتراجع عن تغيير المخزون. هل تريد المتابعة؟',
+        'reversal_of' => 'عكس الحركة #:id',
+        'movement_reversed' => 'تم عكس الحركة بنجاح',
+        'stock_level_not_found' => 'مستوى المخزون غير موجود',
     ],
 
     'help' => [
