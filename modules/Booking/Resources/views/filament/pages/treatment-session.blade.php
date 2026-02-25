@@ -109,7 +109,7 @@
         @endif
 
         {{-- Main 2-Column Layout: Medical Info + Treatment Plan --}}
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem;">
             {{-- Medical Information --}}
             <x-filament::section>
                 <x-slot name="heading">
@@ -218,7 +218,7 @@
 
         {{-- Equipment & Parameters Section (if service has parameters) --}}
         @if($this->hasServiceParameters())
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem;">
                 {{-- Equipment --}}
                 <x-filament::section>
                     <x-slot name="heading">
@@ -388,7 +388,7 @@
         @endif
 
         {{-- Consumables & Products Row --}}
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem;">
             {{-- Consumables Section --}}
             <x-filament::section>
                 <x-slot name="heading">
@@ -805,7 +805,7 @@
         </x-filament::section>
 
         {{-- Previous Visits & Create Plan Row --}}
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem;">
             {{-- Previous Appointments --}}
             <x-filament::section collapsible collapsed>
                 <x-slot name="heading">
