@@ -55,13 +55,19 @@ class EditPractitionerTimeOff extends BaseEditRecord
                 ->icon('heroicon-o-x-circle')
                 ->color('warning')
                 ->requiresConfirmation()
-                ->visible(fn () => $this->record->isApproved())
+                ->visible(fn () => $this->record->isApproved() || $this->record->isPending())
                 ->action(function () {
-                    $this->record->cancel();
-                    Notification::make()
-                        ->title(__('booking::time_off.messages.cancelled'))
-                        ->success()
-                        ->send();
+                    if ($this->record->cancel()) {
+                        Notification::make()
+                            ->title(__('booking::time_off.messages.cancelled'))
+                            ->success()
+                            ->send();
+                    } else {
+                        Notification::make()
+                            ->title('Cannot cancel this request')
+                            ->danger()
+                            ->send();
+                    }
                     $this->redirect($this->getResource()::getUrl('index'));
                 }),
 

@@ -310,7 +310,7 @@ class PractitionerTimeOffResource extends Resource
                         ->icon('heroicon-o-x-circle')
                         ->color('gray')
                         ->requiresConfirmation()
-                        ->visible(fn (PractitionerTimeOff $record): bool => $record->isApproved())
+                        ->visible(fn (PractitionerTimeOff $record): bool => $record->isApproved() || $record->isPending())
                         ->action(fn (PractitionerTimeOff $record) => $record->cancel()),
 
                     Tables\Actions\DeleteAction::make(),
