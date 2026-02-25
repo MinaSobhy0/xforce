@@ -48,6 +48,7 @@ class TimeOffAllocationResource extends Resource
                             ->label(__('booking::time_off.allocations.fields.practitioner'))
                             ->options(fn () => User::query()
                                 ->whereHas('roles', fn ($q) => $q->where('name', 'practitioner'))
+                                ->get()
                                 ->pluck('full_name', 'id'))
                             ->searchable()
                             ->preload()
@@ -123,9 +124,10 @@ class TimeOffAllocationResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('user.full_name')
+                Tables\Columns\TextColumn::make('user.first_name')
                     ->label(__('booking::time_off.allocations.fields.practitioner'))
-                    ->searchable()
+                    ->formatStateUsing(fn ($record) => $record->user?->full_name)
+                    ->searchable(['first_name', 'last_name'])
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('timeOffType.name')
@@ -172,7 +174,10 @@ class TimeOffAllocationResource extends Resource
             ->filters([
                 Tables\Filters\SelectFilter::make('user_id')
                     ->label(__('booking::time_off.allocations.fields.practitioner'))
-                    ->relationship('user', 'full_name')
+                    ->options(fn () => User::query()
+                        ->whereHas('roles', fn ($q) => $q->where('name', 'practitioner'))
+                        ->get()
+                        ->pluck('full_name', 'id'))
                     ->searchable()
                     ->preload(),
 
