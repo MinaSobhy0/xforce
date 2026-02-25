@@ -6,6 +6,7 @@ use Modules\Accounting\Models\ChartOfAccount;
 use Modules\Accounting\Models\Journal;
 use Modules\Accounting\Models\JournalEntry;
 use Modules\Accounting\Services\AccountingIntegrationService;
+use Modules\Accounting\Services\DefaultAccountsService;
 use Modules\Billing\Models\TaxRate;
 use Modules\Inventory\Models\InventoryAdjustment;
 use Modules\Inventory\Models\Product;
@@ -16,13 +17,12 @@ use Modules\Inventory\Models\VendorBill;
 class InventoryAccountingService
 {
     protected AccountingIntegrationService $accountingService;
-
-    // Note: All accounts are now configured per-product
-    // Products must have stock_valuation_account_id, stock_input_account_id, stock_output_account_id set
+    protected DefaultAccountsService $defaultAccounts;
 
     public function __construct(AccountingIntegrationService $accountingService)
     {
         $this->accountingService = $accountingService;
+        $this->defaultAccounts = new DefaultAccountsService();
     }
 
     /**
@@ -115,7 +115,7 @@ class InventoryAccountingService
 
     /**
      * Create journal entry for inventory adjustment.
-     * Uses product-specific accounts for proper accounting.
+     * Uses product-specific accounts with fallback to defaults.
      */
     public function createAdjustmentJournalEntry(InventoryAdjustment $adjustment): ?JournalEntry
     {
@@ -244,15 +244,22 @@ class InventoryAccountingService
 
     /**
      * Get stock valuation account for a product.
-     * Uses product's configured account, no fallback - must be configured.
+     * Uses product's configured account with fallback to defaults.
      */
     protected function getStockValuationAccount(Product $product): ?ChartOfAccount
     {
+        // First try product-specific account
         if ($product->stock_valuation_account_id) {
             return $product->stockValuationAccount;
         }
 
-        \Log::warning('Product missing stock_valuation_account', [
+        // Fallback to system default
+        $defaultAccount = $this->defaultAccounts->getStockValuationAccount();
+        if ($defaultAccount) {
+            return $defaultAccount;
+        }
+
+        \Log::warning('Product missing stock_valuation_account and no default configured', [
             'product_id' => $product->id,
             'product_sku' => $product->sku,
         ]);
@@ -262,15 +269,22 @@ class InventoryAccountingService
 
     /**
      * Get stock input account for a product (Accounts Payable / Goods Received).
-     * Uses product's configured account, no fallback - must be configured.
+     * Uses product's configured account with fallback to defaults.
      */
     protected function getStockInputAccount(Product $product): ?ChartOfAccount
     {
+        // First try product-specific account
         if ($product->stock_input_account_id) {
             return $product->stockInputAccount;
         }
 
-        \Log::warning('Product missing stock_input_account', [
+        // Fallback to system default
+        $defaultAccount = $this->defaultAccounts->getStockInputAccount();
+        if ($defaultAccount) {
+            return $defaultAccount;
+        }
+
+        \Log::warning('Product missing stock_input_account and no default configured', [
             'product_id' => $product->id,
             'product_sku' => $product->sku,
         ]);
@@ -280,15 +294,22 @@ class InventoryAccountingService
 
     /**
      * Get stock output account for a product (Cost of Goods Sold).
-     * Uses product's configured account, no fallback - must be configured.
+     * Uses product's configured account with fallback to defaults.
      */
     protected function getStockOutputAccount(Product $product): ?ChartOfAccount
     {
+        // First try product-specific account
         if ($product->stock_output_account_id) {
             return $product->stockOutputAccount;
         }
 
-        \Log::warning('Product missing stock_output_account', [
+        // Fallback to system default
+        $defaultAccount = $this->defaultAccounts->getStockOutputAccount();
+        if ($defaultAccount) {
+            return $defaultAccount;
+        }
+
+        \Log::warning('Product missing stock_output_account and no default configured', [
             'product_id' => $product->id,
             'product_sku' => $product->sku,
         ]);
@@ -337,16 +358,8 @@ class InventoryAccountingService
     {
         $bill->load('lines.product.stockValuationAccount', 'supplier');
 
-        // Get Accounts Payable account (try multiple common codes)
-        $apAccount = ChartOfAccount::whereIn('code', ['2000', '2100', '2010'])
-            ->where('type', 'liability')
-            ->first()
-            ?? ChartOfAccount::where('type', 'liability')
-                ->where(function ($q) {
-                    $q->whereRaw("name->>'en' ILIKE '%payable%'")
-                      ->orWhereRaw("name->>'en' ILIKE '%accounts payable%'");
-                })
-                ->first();
+        // Get Accounts Payable account from defaults
+        $apAccount = $this->defaultAccounts->getSupplierPayableAccount();
 
         if (!$apAccount) {
             \Log::error('VendorBill: Accounts Payable account not found');
@@ -378,18 +391,14 @@ class InventoryAccountingService
                 $debitAccount = $this->getStockValuationAccount($product);
             }
 
-            // Fallback to line's account or general inventory account
+            // Fallback to line's account
             if (!$debitAccount && $line->account_id) {
                 $debitAccount = $line->account;
             }
 
+            // Fallback to default stock valuation
             if (!$debitAccount) {
-                $debitAccount = ChartOfAccount::whereIn('code', ['1200', '1210', '1300'])
-                    ->where('type', 'asset')
-                    ->first()
-                    ?? ChartOfAccount::where('type', 'asset')
-                        ->whereRaw("name->>'en' ILIKE '%inventory%'")
-                        ->first();
+                $debitAccount = $this->defaultAccounts->getStockValuationAccount();
             }
 
             if (!$debitAccount) {
@@ -415,7 +424,8 @@ class InventoryAccountingService
                     ->where('type', TaxRate::TYPE_PURCHASE)
                     ->first();
 
-                $taxAccountId = $taxRate?->account_id ?? $this->getDefaultTaxReceivableAccount()?->id;
+                $taxAccountId = $taxRate?->account_id
+                    ?? $this->defaultAccounts->getTaxReceivableAccount()?->id;
 
                 if ($taxAccountId) {
                     if (!isset($taxByAccount[$taxAccountId])) {
@@ -523,25 +533,6 @@ class InventoryAccountingService
     }
 
     /**
-     * Get default tax receivable account (Input VAT / Tax Receivable).
-     */
-    protected function getDefaultTaxReceivableAccount(): ?ChartOfAccount
-    {
-        return ChartOfAccount::whereIn('code', ['1140', '1150', '1160'])
-            ->where('type', 'asset')
-            ->where('is_active', true)
-            ->first()
-            ?? ChartOfAccount::where('type', 'asset')
-                ->where(function ($q) {
-                    $q->whereRaw("name->>'en' ILIKE '%input%tax%'")
-                      ->orWhereRaw("name->>'en' ILIKE '%tax%receivable%'")
-                      ->orWhereRaw("name->>'en' ILIKE '%vat%receivable%'");
-                })
-                ->where('is_active', true)
-                ->first();
-    }
-
-    /**
      * Create journal entry for vendor bill payment.
      * Debit: Accounts Payable
      * Credit: Cash/Bank
@@ -551,16 +542,16 @@ class InventoryAccountingService
         int $amountMinor,
         string $journalType = 'cash'
     ): ?JournalEntry {
-        // Get Accounts Payable account
-        $apAccount = ChartOfAccount::where('code', '2000')->first();
+        // Get Accounts Payable account from defaults
+        $apAccount = $this->defaultAccounts->getSupplierPayableAccount();
         if (!$apAccount) {
             return null;
         }
 
-        // Get Cash or Bank account based on journal type
+        // Get Cash or Bank account from defaults based on journal type
         $paymentAccount = $journalType === 'bank'
-            ? ChartOfAccount::where('code', '1020')->first()
-            : ChartOfAccount::where('code', '1000')->first();
+            ? $this->defaultAccounts->getBankAccount()
+            : $this->defaultAccounts->getCashAccount();
 
         if (!$paymentAccount) {
             return null;

@@ -69,9 +69,10 @@ class ChartOfAccountsSeeder extends Seeder
 
             // Receivable
             ['code' => '1100', 'name' => ['en' => 'Accounts Receivable', 'ar' => 'المدينون'], 'type' => ChartOfAccount::TYPE_RECEIVABLE, 'parent_code' => null],
-            ['code' => '1110', 'name' => ['en' => 'Patient Receivables', 'ar' => 'مستحقات المرضى'], 'type' => ChartOfAccount::TYPE_RECEIVABLE, 'parent_code' => '1100'],
-            ['code' => '1120', 'name' => ['en' => 'Insurance Receivables', 'ar' => 'مستحقات التأمين'], 'type' => ChartOfAccount::TYPE_RECEIVABLE, 'parent_code' => '1100'],
-            ['code' => '1130', 'name' => ['en' => 'Staff Receivables', 'ar' => 'مستحقات الموظفين'], 'type' => ChartOfAccount::TYPE_RECEIVABLE, 'parent_code' => '1100'],
+            ['code' => '1110', 'name' => ['en' => 'Patient Receivables', 'ar' => 'ذمم المرضى المدينة'], 'type' => ChartOfAccount::TYPE_RECEIVABLE, 'parent_code' => '1100'],
+            ['code' => '1120', 'name' => ['en' => 'Supplier Receivables', 'ar' => 'ذمم الموردين المدينة'], 'type' => ChartOfAccount::TYPE_RECEIVABLE, 'parent_code' => '1100'],
+            ['code' => '1130', 'name' => ['en' => 'Staff Receivables', 'ar' => 'ذمم الموظفين المدينة'], 'type' => ChartOfAccount::TYPE_RECEIVABLE, 'parent_code' => '1100'],
+            ['code' => '1140', 'name' => ['en' => 'Tax Receivable (Input VAT)', 'ar' => 'ضريبة مستردة (مدخلات)'], 'type' => ChartOfAccount::TYPE_RECEIVABLE, 'parent_code' => '1100'],
 
             // Bank and Cash
             ['code' => '1000', 'name' => ['en' => 'Cash and Bank', 'ar' => 'النقدية والبنوك'], 'type' => ChartOfAccount::TYPE_BANK_CASH, 'parent_code' => null],
@@ -113,8 +114,9 @@ class ChartOfAccountsSeeder extends Seeder
 
             // Payable
             ['code' => '2000', 'name' => ['en' => 'Accounts Payable', 'ar' => 'الدائنون'], 'type' => ChartOfAccount::TYPE_PAYABLE, 'parent_code' => null],
-            ['code' => '2010', 'name' => ['en' => 'Supplier Payables', 'ar' => 'مستحقات الموردين'], 'type' => ChartOfAccount::TYPE_PAYABLE, 'parent_code' => '2000'],
-            ['code' => '2020', 'name' => ['en' => 'Staff Payables', 'ar' => 'مستحقات الموظفين'], 'type' => ChartOfAccount::TYPE_PAYABLE, 'parent_code' => '2000'],
+            ['code' => '2010', 'name' => ['en' => 'Supplier Payables', 'ar' => 'ذمم الموردين الدائنة'], 'type' => ChartOfAccount::TYPE_PAYABLE, 'parent_code' => '2000'],
+            ['code' => '2020', 'name' => ['en' => 'Staff Payables', 'ar' => 'ذمم الموظفين الدائنة'], 'type' => ChartOfAccount::TYPE_PAYABLE, 'parent_code' => '2000'],
+            ['code' => '2030', 'name' => ['en' => 'Patient Payables (Credits)', 'ar' => 'ذمم المرضى الدائنة'], 'type' => ChartOfAccount::TYPE_PAYABLE, 'parent_code' => '2000'],
 
             // Credit Card
             ['code' => '2050', 'name' => ['en' => 'Credit Cards', 'ar' => 'بطاقات الائتمان'], 'type' => ChartOfAccount::TYPE_CREDIT_CARD, 'parent_code' => null],
@@ -206,6 +208,9 @@ class ChartOfAccountsSeeder extends Seeder
             ['code' => '5191', 'name' => ['en' => 'Travel & Transportation', 'ar' => 'السفر والمواصلات'], 'type' => ChartOfAccount::TYPE_EXPENSE, 'parent_code' => '5100'],
             ['code' => '5192', 'name' => ['en' => 'Training & Development', 'ar' => 'التدريب والتطوير'], 'type' => ChartOfAccount::TYPE_EXPENSE, 'parent_code' => '5100'],
             ['code' => '5193', 'name' => ['en' => 'Subscriptions & Licenses', 'ar' => 'الاشتراكات والتراخيص'], 'type' => ChartOfAccount::TYPE_EXPENSE, 'parent_code' => '5100'],
+            ['code' => '5194', 'name' => ['en' => 'Discounts Given', 'ar' => 'خصومات ممنوحة'], 'type' => ChartOfAccount::TYPE_EXPENSE, 'parent_code' => '5100'],
+            ['code' => '5195', 'name' => ['en' => 'Rounding Differences', 'ar' => 'فروقات التقريب'], 'type' => ChartOfAccount::TYPE_EXPENSE, 'parent_code' => '5100'],
+            ['code' => '5196', 'name' => ['en' => 'Exchange Rate Differences', 'ar' => 'فروقات سعر الصرف'], 'type' => ChartOfAccount::TYPE_EXPENSE, 'parent_code' => '5100'],
             ['code' => '5199', 'name' => ['en' => 'Miscellaneous Expenses', 'ar' => 'مصروفات متنوعة'], 'type' => ChartOfAccount::TYPE_EXPENSE, 'parent_code' => '5100'],
 
             // Depreciation

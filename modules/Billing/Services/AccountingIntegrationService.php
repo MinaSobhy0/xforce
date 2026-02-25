@@ -8,10 +8,18 @@ use Modules\Billing\Models\TaxRate;
 use Modules\Accounting\Models\Journal;
 use Modules\Accounting\Models\JournalEntry;
 use Modules\Accounting\Models\ChartOfAccount;
+use Modules\Accounting\Services\DefaultAccountsService;
 use Modules\Patients\Models\Patient;
 
 class AccountingIntegrationService
 {
+    protected DefaultAccountsService $defaultAccounts;
+
+    public function __construct()
+    {
+        $this->defaultAccounts = new DefaultAccountsService();
+    }
+
     /**
      * Create journal entry when invoice is issued.
      *
@@ -33,9 +41,8 @@ class AccountingIntegrationService
             return null;
         }
 
-        // Get Accounts Receivable account (try common codes)
-        $arAccount = $this->findAccountBySubType('accounts_receivable')
-            ?? ChartOfAccount::whereIn('code', ['1100', '1130', '1200'])->where('type', 'asset')->first();
+        // Get Accounts Receivable account from defaults
+        $arAccount = $this->defaultAccounts->getPatientReceivableAccount();
 
         if (!$arAccount) {
             \Log::warning('AccountingIntegrationService: AR account not found');
@@ -72,8 +79,11 @@ class AccountingIntegrationService
 
             $totalAmount += $lineRevenue;
 
-            // Revenue - use line account or default revenue account
-            $revenueAccountId = $line->account_id ?? $this->getDefaultRevenueAccount()?->id;
+            // Revenue - use line account, or product account, or default revenue account
+            $revenueAccountId = $line->account_id
+                ?? $line->product?->income_account_id
+                ?? $this->getDefaultRevenueAccountForLine($line)?->id;
+
             if ($revenueAccountId) {
                 if (!isset($revenueByAccount[$revenueAccountId])) {
                     $revenueByAccount[$revenueAccountId] = 0;
@@ -87,7 +97,9 @@ class AccountingIntegrationService
                     ->where('type', TaxRate::TYPE_SALES)
                     ->first();
 
-                $taxAccountId = $taxRate?->account_id ?? $this->getDefaultTaxPayableAccount()?->id;
+                $taxAccountId = $taxRate?->account_id
+                    ?? $this->defaultAccounts->getTaxPayableAccount()?->id;
+
                 if ($taxAccountId) {
                     if (!isset($taxByAccount[$taxAccountId])) {
                         $taxByAccount[$taxAccountId] = 0;
@@ -164,11 +176,10 @@ class AccountingIntegrationService
             return null;
         }
 
-        // Get Accounts Receivable account
-        $arAccount = $this->findAccountBySubType('accounts_receivable')
-            ?? ChartOfAccount::whereIn('code', ['1100', '1130', '1200'])->where('type', 'asset')->first();
+        // Get Accounts Receivable account from defaults
+        $arAccount = $this->defaultAccounts->getPatientReceivableAccount();
 
-        // Determine debit account based on journal type
+        // Determine debit account based on journal type or default
         $debitAccount = $paymentJournal->default_debit_account_id
             ? ChartOfAccount::find($paymentJournal->default_debit_account_id)
             : $this->getAccountByJournalType($paymentJournal->type);
@@ -222,50 +233,33 @@ class AccountingIntegrationService
     }
 
     /**
-     * Find account by sub_type.
+     * Get default revenue account based on line item type.
      */
-    protected function findAccountBySubType(string $subType): ?ChartOfAccount
+    protected function getDefaultRevenueAccountForLine($line): ?ChartOfAccount
     {
-        return ChartOfAccount::where('sub_type', $subType)
-            ->where('is_active', true)
-            ->first();
+        // If line has a product, use product revenue account
+        if ($line->product_id && $line->product?->income_account_id) {
+            return ChartOfAccount::find($line->product->income_account_id);
+        }
+
+        // If line has a service, use service revenue account
+        if ($line->service_id) {
+            return $this->defaultAccounts->getServiceRevenueAccount();
+        }
+
+        // Default to service revenue
+        return $this->defaultAccounts->getServiceRevenueAccount();
     }
 
     /**
-     * Get default revenue account.
-     */
-    protected function getDefaultRevenueAccount(): ?ChartOfAccount
-    {
-        return ChartOfAccount::whereIn('code', ['4100', '4110', '4000', '4010'])
-            ->where('type', 'revenue')
-            ->where('is_active', true)
-            ->first();
-    }
-
-    /**
-     * Get default tax payable account.
-     */
-    protected function getDefaultTaxPayableAccount(): ?ChartOfAccount
-    {
-        return $this->findAccountBySubType('tax_payable')
-            ?? ChartOfAccount::whereIn('code', ['2120', '2100', '2110'])
-                ->where('type', 'liability')
-                ->where('is_active', true)
-                ->first();
-    }
-
-    /**
-     * Get account based on journal type.
+     * Get account based on journal type using defaults.
      */
     protected function getAccountByJournalType(string $type): ?ChartOfAccount
     {
         return match ($type) {
-            'cash' => $this->findAccountBySubType('cash')
-                ?? ChartOfAccount::whereIn('code', ['1110', '1010'])->where('type', 'asset')->first(),
-            'bank' => $this->findAccountBySubType('bank')
-                ?? ChartOfAccount::whereIn('code', ['1120', '1020'])->where('type', 'asset')->first(),
-            default => $this->findAccountBySubType('cash')
-                ?? ChartOfAccount::whereIn('code', ['1110', '1010'])->where('type', 'asset')->first(),
+            'cash' => $this->defaultAccounts->getCashAccount(),
+            'bank' => $this->defaultAccounts->getBankAccount(),
+            default => $this->defaultAccounts->getCashAccount(),
         };
     }
 
