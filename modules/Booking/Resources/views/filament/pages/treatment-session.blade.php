@@ -772,12 +772,26 @@
                 @if($photos->isNotEmpty())
                     <div class="grid grid-cols-4 gap-2">
                         @foreach($photos as $photo)
-                            <div class="aspect-square rounded overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800">
+                            <div class="group relative aspect-square rounded overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800">
                                 @if($photo->getFirstMediaUrl('photos', 'thumb'))
-                                    <img src="{{ $photo->getFirstMediaUrl('photos', 'thumb') }}" alt="" class="w-full h-full object-cover" />
+                                    <a href="{{ $photo->getFirstMediaUrl('photos') }}" target="_blank">
+                                        <img src="{{ $photo->getFirstMediaUrl('photos', 'thumb') }}" alt="{{ $photo->description }}" class="w-full h-full object-cover cursor-pointer hover:opacity-90" />
+                                    </a>
                                 @else
                                     <div class="w-full h-full flex items-center justify-center"><x-heroicon-o-photo class="w-6 h-6 text-gray-400" /></div>
                                 @endif
+                                {{-- Delete button --}}
+                                <button
+                                    wire:click="deletePhoto('{{ $photo->id }}')"
+                                    wire:confirm="Are you sure you want to delete this photo?"
+                                    class="absolute top-1 right-1 p-1 bg-red-500 text-white rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                    <x-heroicon-o-trash class="w-3 h-3" />
+                                </button>
+                                {{-- Type badge --}}
+                                <div class="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs px-1 py-0.5 truncate">
+                                    {{ $photo->type_label }}
+                                </div>
                             </div>
                         @endforeach
                     </div>

@@ -687,6 +687,21 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
         return 'patient_' . ($this->patient?->id ?? 'unknown') . '_' . now()->format('Y-m-d_His');
     }
 
+    public function deletePhoto(string $photoId): void
+    {
+        $photo = PatientPhoto::find($photoId);
+
+        if ($photo && $photo->patient_id === $this->patient?->id) {
+            $photo->clearMediaCollection('photos');
+            $photo->delete();
+
+            Notification::make()
+                ->title(__('booking::session.messages.photo_deleted'))
+                ->success()
+                ->send();
+        }
+    }
+
     public function createTreatmentPlan(): void
     {
         $this->validate([

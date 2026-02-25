@@ -118,6 +118,7 @@ return [
         'note_added' => 'Note added successfully',
         'photo_required' => 'Please select a photo',
         'photo_uploaded' => 'Photo uploaded successfully',
+        'photo_deleted' => 'Photo deleted successfully',
         'plan_created' => 'Treatment plan created successfully',
         'plan_creation_failed' => 'Failed to create treatment plan',
         'preset_applied' => 'Preset applied successfully',

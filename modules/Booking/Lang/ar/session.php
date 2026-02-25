@@ -118,6 +118,7 @@ return [
         'note_added' => 'تمت إضافة الملاحظة بنجاح',
         'photo_required' => 'الرجاء اختيار صورة',
         'photo_uploaded' => 'تم رفع الصورة بنجاح',
+        'photo_deleted' => 'تم حذف الصورة بنجاح',
         'plan_created' => 'تم إنشاء خطة العلاج بنجاح',
         'plan_creation_failed' => 'فشل إنشاء خطة العلاج',
         'preset_applied' => 'تم تطبيق الإعداد المسبق بنجاح',
