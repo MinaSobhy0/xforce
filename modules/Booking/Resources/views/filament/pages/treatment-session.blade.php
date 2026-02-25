@@ -704,10 +704,8 @@
             </div>
         </x-filament::section>
 
-        {{-- Session Notes & Photos Row --}}
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {{-- Session Notes --}}
-            <x-filament::section collapsible>
+        {{-- Session Notes --}}
+        <x-filament::section collapsible>
                 <x-slot name="heading">
                     <div class="flex items-center gap-2">
                         <x-heroicon-o-pencil-square class="w-5 h-5 text-gray-400" />
@@ -747,69 +745,69 @@
                 @endif
             </x-filament::section>
 
-            {{-- Photos --}}
-            <x-filament::section collapsible collapsed>
-                <x-slot name="heading">
-                    <div class="flex items-center gap-2">
-                        <x-heroicon-o-camera class="w-5 h-5 text-gray-400" />
-                        {{ __('booking::session.sections.photos') }}
-                    </div>
-                </x-slot>
-
-                <div class="mb-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                    <div class="flex gap-2 flex-wrap">
-                        <input type="file" wire:model="photoUpload" accept="image/*" class="flex-1 min-w-[150px] text-xs border border-gray-300 dark:border-gray-600 rounded p-1 dark:bg-gray-700" />
-                        <select wire:model="photoType" class="border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-xs">
-                            @foreach(\Modules\Patients\Models\PatientPhoto::TYPES as $key => $label)
-                                <option value="{{ $key }}">{{ $label }}</option>
-                            @endforeach
-                        </select>
-                        <x-filament::button wire:click="uploadPhoto" size="sm">{{ __('booking::session.photos.upload') }}</x-filament::button>
-                    </div>
+        {{-- Photos --}}
+        <x-filament::section collapsible collapsed>
+            <x-slot name="heading">
+                <div class="flex items-center gap-2">
+                    <x-heroicon-o-camera class="w-5 h-5 text-gray-400" />
+                    {{ __('booking::session.sections.photos') }}
                 </div>
+            </x-slot>
 
-                @php $photos = $this->getPatientPhotos(); @endphp
-                @if($photos->isNotEmpty())
-                    <div class="grid grid-cols-2 gap-3">
-                        @foreach($photos as $photo)
-                            <div class="group relative rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm overflow-hidden">
-                                {{-- Image --}}
-                                <div class="aspect-square">
-                                    @if($photo->getFirstMediaUrl('photos', 'thumb'))
-                                        <a href="{{ $photo->getFirstMediaUrl('photos') }}" target="_blank">
-                                            <img src="{{ $photo->getFirstMediaUrl('photos', 'thumb') }}" alt="{{ $photo->description }}" class="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity" />
-                                        </a>
-                                    @else
-                                        <div class="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-700">
-                                            <x-heroicon-o-photo class="w-10 h-10 text-gray-400" />
-                                        </div>
-                                    @endif
-                                </div>
-                                {{-- Info footer --}}
-                                <div class="p-2 border-t border-gray-200 dark:border-gray-700">
-                                    <div class="flex items-center justify-between">
-                                        <span class="text-xs font-medium text-gray-700 dark:text-gray-300">{{ $photo->type_label }}</span>
-                                        <span class="text-xs text-gray-500">{{ $photo->taken_at?->format('M d') }}</span>
+            <div class="mb-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <div class="flex gap-2 flex-wrap">
+                    <input type="file" wire:model="photoUpload" accept="image/*" class="flex-1 min-w-[150px] text-xs border border-gray-300 dark:border-gray-600 rounded p-1 dark:bg-gray-700" />
+                    <select wire:model="photoType" class="border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-xs">
+                        @foreach(\Modules\Patients\Models\PatientPhoto::TYPES as $key => $label)
+                            <option value="{{ $key }}">{{ $label }}</option>
+                        @endforeach
+                    </select>
+                    <x-filament::button wire:click="uploadPhoto" size="sm">{{ __('booking::session.photos.upload') }}</x-filament::button>
+                </div>
+            </div>
+
+            @php $photos = $this->getPatientPhotos(); @endphp
+            @if($photos->isNotEmpty())
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+                    @foreach($photos as $photo)
+                        <div class="relative rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm overflow-hidden">
+                            {{-- Image --}}
+                            <div style="aspect-ratio: 1; position: relative;">
+                                @if($photo->getFirstMediaUrl('photos', 'thumb'))
+                                    <a href="{{ $photo->getFirstMediaUrl('photos') }}" target="_blank">
+                                        <img src="{{ $photo->getFirstMediaUrl('photos', 'thumb') }}" alt="{{ $photo->description }}" style="width: 100%; height: 100%; object-fit: cover;" />
+                                    </a>
+                                @else
+                                    <div class="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-700">
+                                        <x-heroicon-o-photo class="w-10 h-10 text-gray-400" />
                                     </div>
-                                </div>
+                                @endif
                                 {{-- Delete button - only for photos from current appointment --}}
                                 @if($photo->appointment_id === $this->appointment?->id)
                                     <button
+                                        type="button"
                                         wire:click="deletePhoto('{{ $photo->id }}')"
-                                        wire:confirm="Are you sure you want to delete this photo?"
-                                        class="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
+                                        onclick="return confirm('Are you sure you want to delete this photo?')"
+                                        style="position: absolute; top: 8px; right: 8px; padding: 6px; background: #ef4444; color: white; border-radius: 6px; z-index: 10;"
                                     >
                                         <x-heroicon-o-trash class="w-4 h-4" />
                                     </button>
                                 @endif
                             </div>
-                        @endforeach
-                    </div>
-                @else
-                    <div class="text-center py-3 text-gray-500 text-sm">{{ __('booking::session.photos.no_photos') }}</div>
-                @endif
-            </x-filament::section>
-        </div>
+                            {{-- Info footer --}}
+                            <div class="p-2 border-t border-gray-200 dark:border-gray-700">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-medium text-gray-700 dark:text-gray-300">{{ $photo->type_label }}</span>
+                                    <span class="text-xs text-gray-500">{{ $photo->taken_at?->format('M d') }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <div class="text-center py-3 text-gray-500 text-sm">{{ __('booking::session.photos.no_photos') }}</div>
+            @endif
+        </x-filament::section>
 
         {{-- Previous Visits & Create Plan Row --}}
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
