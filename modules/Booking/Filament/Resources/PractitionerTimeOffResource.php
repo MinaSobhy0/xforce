@@ -281,29 +281,29 @@ class PractitionerTimeOffResource extends Resource
                     ->toggle(),
             ])
             ->actions([
+                Tables\Actions\Action::make('approve')
+                    ->label(__('booking::time_off.actions.approve'))
+                    ->icon('heroicon-o-check')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->visible(fn (PractitionerTimeOff $record): bool => $record->isPending())
+                    ->action(fn (PractitionerTimeOff $record) => $record->approve(auth()->id())),
+
+                Tables\Actions\Action::make('reject')
+                    ->label(__('booking::time_off.actions.reject'))
+                    ->icon('heroicon-o-x-mark')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->form([
+                        Forms\Components\Textarea::make('notes')
+                            ->label(__('booking::time_off.fields.rejection_reason'))
+                            ->required(),
+                    ])
+                    ->visible(fn (PractitionerTimeOff $record): bool => $record->isPending())
+                    ->action(fn (PractitionerTimeOff $record, array $data) => $record->reject(auth()->id(), $data['notes'])),
+
                 Tables\Actions\ActionGroup::make([
                     Tables\Actions\EditAction::make(),
-
-                    Tables\Actions\Action::make('approve')
-                        ->label(__('booking::time_off.actions.approve'))
-                        ->icon('heroicon-o-check')
-                        ->color('success')
-                        ->requiresConfirmation()
-                        ->visible(fn (PractitionerTimeOff $record): bool => $record->isPending())
-                        ->action(fn (PractitionerTimeOff $record) => $record->approve(auth()->id())),
-
-                    Tables\Actions\Action::make('reject')
-                        ->label(__('booking::time_off.actions.reject'))
-                        ->icon('heroicon-o-x-mark')
-                        ->color('danger')
-                        ->requiresConfirmation()
-                        ->form([
-                            Forms\Components\Textarea::make('notes')
-                                ->label(__('booking::time_off.fields.rejection_reason'))
-                                ->required(),
-                        ])
-                        ->visible(fn (PractitionerTimeOff $record): bool => $record->isPending())
-                        ->action(fn (PractitionerTimeOff $record, array $data) => $record->reject(auth()->id(), $data['notes'])),
 
                     Tables\Actions\Action::make('cancel')
                         ->label(__('booking::time_off.actions.cancel'))
