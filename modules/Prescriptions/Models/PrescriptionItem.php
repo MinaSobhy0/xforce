@@ -37,6 +37,24 @@ class PrescriptionItem extends BaseModel
         'sort_order' => 'integer',
     ];
 
+    /**
+     * Boot the model - convert empty strings to null for integer fields.
+     */
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::saving(function ($model) {
+            $integerFields = ['duration', 'quantity', 'refills_allowed', 'sort_order'];
+
+            foreach ($integerFields as $field) {
+                if ($model->{$field} === '' || $model->{$field} === null) {
+                    $model->{$field} = null;
+                }
+            }
+        });
+    }
+
     // Frequency constants
     public const FREQUENCIES = [
         'once_daily' => 'Once daily',
