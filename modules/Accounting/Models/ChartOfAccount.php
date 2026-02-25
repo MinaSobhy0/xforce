@@ -59,32 +59,51 @@ class ChartOfAccount extends BaseModel
         self::TYPE_EXPENSE => 'warning',
     ];
 
-    // Sub-types for better categorization
+    // Sub-types for better categorization (Odoo-compatible)
     public const SUB_TYPES = [
         // Assets
-        'current_asset' => 'Current Asset',
-        'fixed_asset' => 'Fixed Asset',
-        'bank' => 'Bank',
-        'cash' => 'Cash',
-        'accounts_receivable' => 'Accounts Receivable',
-        'inventory' => 'Inventory',
-        'prepaid' => 'Prepaid Expenses',
+        'accounts_receivable' => 'Receivable',
+        'bank_cash' => 'Bank and Cash',
+        'current_asset' => 'Current Assets',
+        'non_current_asset' => 'Non-current Assets',
+        'fixed_asset' => 'Fixed Assets',
+        'prepayments' => 'Prepayments',
         // Liabilities
-        'current_liability' => 'Current Liability',
-        'long_term_liability' => 'Long Term Liability',
-        'accounts_payable' => 'Accounts Payable',
-        'tax_payable' => 'Tax Payable',
-        'deferred_revenue' => 'Deferred Revenue',
+        'accounts_payable' => 'Payable',
+        'current_liability' => 'Current Liabilities',
+        'non_current_liability' => 'Non-current Liabilities',
+        'credit_card' => 'Credit Card',
         // Equity
-        'owners_equity' => "Owner's Equity",
-        'retained_earnings' => 'Retained Earnings',
+        'equity' => 'Equity',
+        'current_year_earnings' => 'Current Year Earnings',
         // Revenue
-        'operating_revenue' => 'Operating Revenue',
+        'income' => 'Income',
         'other_income' => 'Other Income',
         // Expenses
-        'cost_of_goods' => 'Cost of Goods Sold',
-        'operating_expense' => 'Operating Expense',
-        'payroll_expense' => 'Payroll Expense',
+        'expense' => 'Expenses',
+        'depreciation' => 'Depreciation',
+        'cost_of_revenue' => 'Cost of Revenue',
+    ];
+
+    // Map sub_types to their parent types
+    public const SUB_TYPE_PARENT = [
+        'accounts_receivable' => self::TYPE_ASSET,
+        'bank_cash' => self::TYPE_ASSET,
+        'current_asset' => self::TYPE_ASSET,
+        'non_current_asset' => self::TYPE_ASSET,
+        'fixed_asset' => self::TYPE_ASSET,
+        'prepayments' => self::TYPE_ASSET,
+        'accounts_payable' => self::TYPE_LIABILITY,
+        'current_liability' => self::TYPE_LIABILITY,
+        'non_current_liability' => self::TYPE_LIABILITY,
+        'credit_card' => self::TYPE_LIABILITY,
+        'equity' => self::TYPE_EQUITY,
+        'current_year_earnings' => self::TYPE_EQUITY,
+        'income' => self::TYPE_REVENUE,
+        'other_income' => self::TYPE_REVENUE,
+        'expense' => self::TYPE_EXPENSE,
+        'depreciation' => self::TYPE_EXPENSE,
+        'cost_of_revenue' => self::TYPE_EXPENSE,
     ];
 
     // Relationships
