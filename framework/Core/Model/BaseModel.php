@@ -173,6 +173,11 @@ abstract class BaseModel extends Model
 
         // Auto-set branch_id if model has it and not set
         static::creating(function (self $model) {
+            // Skip if model opts out of auto branch assignment
+            if (property_exists($model, 'autoSetBranchId') && $model->autoSetBranchId === false) {
+                return;
+            }
+
             if ($model->hasBranchId() && !$model->branch_id) {
                 $branchIds = BranchContext::currentIds();
                 // Only auto-set if exactly one branch is selected

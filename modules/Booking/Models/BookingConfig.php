@@ -13,6 +13,9 @@ class BookingConfig extends BaseModel
 
     protected $table = 'booking_configs';
 
+    // Disable auto-setting branch_id - this model uses branch_id=null for tenant-wide defaults
+    protected bool $autoSetBranchId = false;
+
     protected $fillable = [
         'branch_id',
         // Step 1: Service & Time
