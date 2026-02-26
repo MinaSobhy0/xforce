@@ -15,9 +15,11 @@ class ImpersonateController extends Controller
         $token = $request->query('token');
         $userId = $request->query('user');
 
-        if (!$token || !$userId) {
+        if (!$token || !$userId || !is_numeric($userId)) {
             abort(403, 'Invalid impersonation link');
         }
+
+        $userId = (int) $userId;
 
         $hashedToken = hash('sha256', $token);
 

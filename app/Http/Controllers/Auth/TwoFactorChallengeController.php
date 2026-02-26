@@ -25,9 +25,19 @@ class TwoFactorChallengeController extends Controller
             'recovery_code' => 'nullable|string',
         ]);
 
-        $user = Auth::user() ?? \Modules\Auth\Models\User::find($request->session()->get('login.id'));
+        $user = Auth::user();
 
         if (!$user) {
+            $loginId = $request->session()->get('login.id');
+            // Only try to find user if ID is numeric (INT primary keys)
+            if ($loginId && is_numeric($loginId)) {
+                $user = \Modules\Auth\Models\User::find((int) $loginId);
+            }
+        }
+
+        if (!$user) {
+            // Clear any invalid session data
+            $request->session()->forget('login.id');
             return redirect()->route('filament.super-admin.auth.login');
         }
 

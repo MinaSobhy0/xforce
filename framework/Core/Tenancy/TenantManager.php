@@ -77,17 +77,18 @@ class TenantManager
             return null;
         }
 
-        // Try to find by ID first
-        $tenant = $model::find($identifier);
-
-        if (!$tenant) {
-            // Try to find by slug or code
-            $tenant = $model::where('slug', $identifier)
-                ->orWhere('code', $identifier)
-                ->first();
+        // Only try to find by ID if identifier is numeric (INT primary keys)
+        if (is_numeric($identifier)) {
+            $tenant = $model::find((int) $identifier);
+            if ($tenant) {
+                return $tenant;
+            }
         }
 
-        return $tenant;
+        // Try to find by slug or code
+        return $model::where('slug', $identifier)
+            ->orWhere('code', $identifier)
+            ->first();
     }
 
     /**
