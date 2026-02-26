@@ -7,14 +7,14 @@
 
     // Status colors and labels
     $statusConfig = [
-        'scheduled' => ['color' => 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300', 'icon' => 'heroicon-o-clock'],
-        'confirmed' => ['color' => 'bg-blue-100 text-blue-700 dark:bg-blue-800 dark:text-blue-300', 'icon' => 'heroicon-o-check'],
-        'checked_in' => ['color' => 'bg-amber-100 text-amber-700 dark:bg-amber-800 dark:text-amber-300', 'icon' => 'heroicon-o-user-plus'],
-        'in_progress' => ['color' => 'bg-purple-100 text-purple-700 dark:bg-purple-800 dark:text-purple-300', 'icon' => 'heroicon-o-play'],
-        'completed' => ['color' => 'bg-green-100 text-green-700 dark:bg-green-800 dark:text-green-300', 'icon' => 'heroicon-o-check-circle'],
-        'cancelled' => ['color' => 'bg-red-100 text-red-700 dark:bg-red-800 dark:text-red-300', 'icon' => 'heroicon-o-x-circle'],
-        'no_show' => ['color' => 'bg-red-100 text-red-700 dark:bg-red-800 dark:text-red-300', 'icon' => 'heroicon-o-user-minus'],
-        'rescheduled' => ['color' => 'bg-orange-100 text-orange-700 dark:bg-orange-800 dark:text-orange-300', 'icon' => 'heroicon-o-arrow-path'],
+        'scheduled' => ['color' => 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300', 'icon' => 'heroicon-o-clock', 'label' => __('booking::appointments.statuses.scheduled')],
+        'confirmed' => ['color' => 'bg-blue-100 text-blue-700 dark:bg-blue-800 dark:text-blue-300', 'icon' => 'heroicon-o-check', 'label' => __('booking::appointments.statuses.confirmed')],
+        'checked_in' => ['color' => 'bg-amber-100 text-amber-700 dark:bg-amber-800 dark:text-amber-300', 'icon' => 'heroicon-o-user-plus', 'label' => __('booking::appointments.statuses.checked_in')],
+        'in_progress' => ['color' => 'bg-purple-100 text-purple-700 dark:bg-purple-800 dark:text-purple-300', 'icon' => 'heroicon-o-play', 'label' => __('booking::appointments.statuses.in_progress')],
+        'completed' => ['color' => 'bg-green-100 text-green-700 dark:bg-green-800 dark:text-green-300', 'icon' => 'heroicon-o-check-circle', 'label' => __('booking::appointments.statuses.completed')],
+        'cancelled' => ['color' => 'bg-red-100 text-red-700 dark:bg-red-800 dark:text-red-300', 'icon' => 'heroicon-o-x-circle', 'label' => __('booking::appointments.statuses.cancelled')],
+        'no_show' => ['color' => 'bg-red-100 text-red-700 dark:bg-red-800 dark:text-red-300', 'icon' => 'heroicon-o-user-minus', 'label' => __('booking::appointments.statuses.no_show')],
+        'rescheduled' => ['color' => 'bg-orange-100 text-orange-700 dark:bg-orange-800 dark:text-orange-300', 'icon' => 'heroicon-o-arrow-path', 'label' => __('booking::appointments.statuses.rescheduled')],
     ];
 
     $status = $appointment->status ?? 'scheduled';
@@ -30,6 +30,7 @@
             </span>
             <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full {{ $statusInfo['color'] }}">
                 <x-dynamic-component :component="$statusInfo['icon']" class="w-3 h-3" />
+                {{ $statusInfo['label'] }}
             </span>
         </div>
         @if($waitTime)
