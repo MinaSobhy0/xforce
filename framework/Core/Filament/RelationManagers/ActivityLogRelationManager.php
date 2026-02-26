@@ -126,45 +126,7 @@ class ActivityLogRelationManager extends RelationManager
                         return $indicators;
                     }),
             ])
-            ->actions([
-                Tables\Actions\ViewAction::make()
-                    ->modalHeading(__('core::activity.view.title'))
-                    ->form([
-                        Forms\Components\Section::make(__('core::activity.view.event_info'))
-                            ->schema([
-                                Forms\Components\TextInput::make('event')
-                                    ->label(__('core::activity.columns.event'))
-                                    ->formatStateUsing(fn ($state) => __("core::activity.events.{$state}"))
-                                    ->disabled(),
-
-                                Forms\Components\TextInput::make('description')
-                                    ->label(__('core::activity.columns.description'))
-                                    ->disabled()
-                                    ->columnSpanFull(),
-
-                                Forms\Components\TextInput::make('causer_name')
-                                    ->label(__('core::activity.columns.changed_by'))
-                                    ->formatStateUsing(fn ($record) => $record->causer
-                                        ? trim($record->causer->first_name . ' ' . $record->causer->last_name) ?: $record->causer->email
-                                        : __('core::activity.system'))
-                                    ->disabled(),
-
-                                Forms\Components\TextInput::make('created_at')
-                                    ->label(__('core::activity.columns.when'))
-                                    ->formatStateUsing(fn ($state) => $state?->format('Y-m-d H:i:s'))
-                                    ->disabled(),
-                            ])
-                            ->columns(2),
-
-                        Forms\Components\Section::make(__('core::activity.view.changes'))
-                            ->schema([
-                                Forms\Components\ViewField::make('properties')
-                                    ->view('filament.tables.columns.activity-properties-detail')
-                                    ->columnSpanFull(),
-                            ])
-                            ->collapsed(fn ($record) => empty($record->properties['old']) && empty($record->properties['attributes'])),
-                    ]),
-            ])
+            ->actions([])
             ->defaultSort('created_at', 'desc')
             ->paginated([10, 25, 50, 100])
             ->emptyStateHeading(__('core::activity.empty.heading'))
