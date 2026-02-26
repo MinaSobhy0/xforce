@@ -25,7 +25,7 @@ class AssetTypeResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-cog-6-tooth';
 
-    protected static ?string $navigationGroup = 'Accounting';
+    protected static ?string $navigationGroup = 'Finance';
 
     protected static ?int $navigationSort = 40;
 

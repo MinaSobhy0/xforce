@@ -32,7 +32,7 @@ class AssetResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-building-office-2';
 
-    protected static ?string $navigationGroup = 'Accounting';
+    protected static ?string $navigationGroup = 'Finance';
 
     protected static ?int $navigationSort = 41;
 
