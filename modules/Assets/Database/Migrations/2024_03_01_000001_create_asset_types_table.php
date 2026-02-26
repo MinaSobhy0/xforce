@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('asset_types', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
             $table->string('code', 50)->index();
             $table->jsonb('name'); // Translatable
             $table->jsonb('description')->nullable(); // Translatable
@@ -23,16 +23,16 @@ return new class extends Migration
             $table->decimal('declining_balance_rate', 5, 2)->nullable(); // For declining balance method
 
             // GL Accounts (FK to chart_of_accounts)
-            $table->uuid('fixed_asset_account_id')->nullable(); // DR on acquisition
-            $table->uuid('accumulated_depreciation_account_id')->nullable(); // CR on depreciation
-            $table->uuid('depreciation_expense_account_id')->nullable(); // DR on depreciation
-            $table->uuid('gain_loss_account_id')->nullable(); // For disposal gain/loss
+            $table->foreignId('fixed_asset_account_id')->nullable(); // DR on acquisition
+            $table->foreignId('accumulated_depreciation_account_id')->nullable(); // CR on depreciation
+            $table->foreignId('depreciation_expense_account_id')->nullable(); // DR on depreciation
+            $table->foreignId('gain_loss_account_id')->nullable(); // For disposal gain/loss
 
             // Behavior
             $table->boolean('auto_create_on_purchase')->default(true);
             $table->boolean('is_active')->default(true);
 
-            $table->uuid('created_by_user_id')->nullable();
+            $table->foreignId('created_by_user_id')->nullable();
             $table->timestamps();
             $table->softDeletes();
 

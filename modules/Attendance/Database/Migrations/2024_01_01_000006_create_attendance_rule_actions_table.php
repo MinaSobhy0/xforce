@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('attendance_rule_actions', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('attendance_rule_id')->index();
+            $table->id();
+            $table->foreignId('attendance_rule_id')->index();
             $table->integer('occurrence_number')->nullable(); // 1st, 2nd, 3rd offense
             $table->string('action_type', 50); // deduction, warning, approval_required, notification, block_attendance
             $table->string('severity', 20)->default('moderate'); // minor, moderate, severe

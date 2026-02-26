@@ -9,12 +9,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('attendance_violations', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
-            $table->uuid('attendance_id')->index();
-            $table->uuid('staff_profile_id')->index();
-            $table->uuid('attendance_rule_id')->nullable()->index();
-            $table->uuid('attendance_rule_action_id')->nullable();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
+            $table->foreignId('attendance_id')->index();
+            $table->foreignId('staff_profile_id')->index();
+            $table->foreignId('attendance_rule_id')->nullable()->index();
+            $table->foreignId('attendance_rule_action_id')->nullable();
             $table->string('violation_type', 50); // late_checkin, early_checkout, etc.
             $table->date('violation_date');
             $table->time('scheduled_time')->nullable();
@@ -28,14 +28,14 @@ return new class extends Migration
             $table->text('reason')->nullable();
             $table->text('employee_notes')->nullable();
             $table->text('manager_notes')->nullable();
-            $table->uuid('approved_by')->nullable();
+            $table->foreignId('approved_by')->nullable();
             $table->timestamp('approved_at')->nullable();
-            $table->uuid('waived_by')->nullable();
+            $table->foreignId('waived_by')->nullable();
             $table->text('waived_reason')->nullable();
             $table->timestamp('waived_at')->nullable();
             $table->text('dispute_reason')->nullable();
             $table->timestamp('disputed_at')->nullable();
-            $table->uuid('payroll_line_id')->nullable(); // linked when applied to payroll
+            $table->foreignId('payroll_line_id')->nullable(); // linked when applied to payroll
             $table->timestamp('applied_at')->nullable();
             $table->timestamps();
             $table->softDeletes();

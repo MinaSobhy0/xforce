@@ -9,14 +9,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('installment_schedules', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
-            $table->uuid('installment_plan_id')->index();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
+            $table->foreignId('installment_plan_id')->index();
             $table->integer('installment_number');
             $table->integer('amount_minor');
             $table->date('due_date')->index();
             $table->timestamp('paid_at')->nullable();
-            $table->uuid('payment_id')->nullable();
+            $table->foreignId('payment_id')->nullable();
             $table->string('status')->default('pending')->index();
             $table->timestamps();
 

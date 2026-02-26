@@ -9,16 +9,16 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('journal_entry_lines', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
-            $table->uuid('journal_entry_id')->index();
-            $table->uuid('account_id')->index();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
+            $table->foreignId('journal_entry_id')->index();
+            $table->foreignId('account_id')->index();
             $table->integer('debit_minor')->default(0);
             $table->integer('credit_minor')->default(0);
             $table->text('description')->nullable();
-            $table->uuid('branch_id')->nullable()->index();
+            $table->foreignId('branch_id')->nullable()->index();
             $table->string('partner_type')->nullable();
-            $table->uuid('partner_id')->nullable();
+            $table->foreignId('partner_id')->nullable();
             $table->timestamps();
 
             $table->foreign('journal_entry_id')->references('id')->on('journal_entries')->cascadeOnDelete();

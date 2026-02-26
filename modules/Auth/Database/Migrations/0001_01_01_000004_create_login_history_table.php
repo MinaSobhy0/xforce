@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('login_history', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('user_id');
+            $table->id();
+            $table->foreignId('user_id');
             $table->ipAddress('ip_address');
             $table->text('user_agent')->nullable();
             $table->string('location')->nullable();

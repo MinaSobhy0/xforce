@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('password_history', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('user_id');
+            $table->id();
+            $table->foreignId('user_id');
             $table->string('password_hash');
             $table->timestamp('created_at');
 

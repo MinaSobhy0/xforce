@@ -9,11 +9,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('chart_of_accounts', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
             $table->string('code')->index();
             $table->jsonb('name');
-            $table->uuid('parent_id')->nullable()->index();
+            $table->foreignId('parent_id')->nullable()->index();
             $table->string('type')->index();
             $table->string('sub_type')->nullable();
             $table->boolean('is_system')->default(false);

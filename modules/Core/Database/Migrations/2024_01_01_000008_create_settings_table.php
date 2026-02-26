@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('settings', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->nullable()->index(); // Null for global settings
+            $table->id();
+            $table->foreignId('tenant_id')->nullable()->index(); // Null for global settings
 
             $table->string('group', 50)->default('general');
             $table->string('key', 100);

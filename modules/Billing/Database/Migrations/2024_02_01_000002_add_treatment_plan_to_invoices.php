@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::table('invoices', function (Blueprint $table) {
             // Treatment plan reference
-            $table->uuid('treatment_plan_id')->nullable()->after('appointment_id');
+            $table->foreignId('treatment_plan_id')->nullable()->after('appointment_id');
 
             // Track deposits (unassigned payments) applied to this invoice
             $table->integer('deposits_applied_minor')->default(0)->after('paid_minor');

@@ -10,14 +10,14 @@ return new class extends Migration
     {
         Schema::create('activities', function (Blueprint $table) {
             $table->id();
-            $table->uuid('tenant_id')->nullable()->index();
+            $table->foreignId('tenant_id')->nullable()->index();
             $table->string('log_name')->nullable()->index();
             $table->text('description');
-            $table->nullableUuidMorphs('subject');
+            $table->nullableMorphs('subject');
             $table->string('event')->nullable();
-            $table->nullableUuidMorphs('causer');
+            $table->nullableMorphs('causer');
             $table->json('properties')->nullable();
-            $table->uuid('batch_uuid')->nullable();
+            $table->uuid('batch_uuid')->nullable(); // Keep as UUID for grouping
             $table->timestamps();
 
             $table->index('created_at');

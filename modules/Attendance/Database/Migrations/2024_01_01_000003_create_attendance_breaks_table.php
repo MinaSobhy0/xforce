@@ -9,9 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('attendance_breaks', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
-            $table->uuid('attendance_id')->index();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
+            $table->foreignId('attendance_id')->index();
             $table->timestamp('start_time');
             $table->timestamp('end_time')->nullable();
             $table->integer('duration_minutes')->default(0);

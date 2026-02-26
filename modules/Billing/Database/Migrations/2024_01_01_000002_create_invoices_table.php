@@ -9,12 +9,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('invoices', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
             $table->string('code')->index();
-            $table->uuid('patient_id')->index();
-            $table->uuid('branch_id')->index();
-            $table->uuid('appointment_id')->nullable()->index();
+            $table->foreignId('patient_id')->index();
+            $table->foreignId('branch_id')->index();
+            $table->foreignId('appointment_id')->nullable()->index();
             $table->string('type')->default('standard');
             $table->string('status')->default('draft')->index();
             $table->integer('subtotal_minor')->default(0);
@@ -30,7 +30,7 @@ return new class extends Migration
             $table->timestamp('paid_at')->nullable();
             $table->timestamp('cancelled_at')->nullable();
             $table->text('cancellation_reason')->nullable();
-            $table->uuid('created_by_user_id')->nullable();
+            $table->foreignId('created_by_user_id')->nullable();
             $table->timestamps();
             $table->softDeletes();
 

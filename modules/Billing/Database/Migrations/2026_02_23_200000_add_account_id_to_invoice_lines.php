@@ -10,7 +10,7 @@ return new class extends Migration
     {
         if (!Schema::hasColumn('invoice_lines', 'account_id')) {
             Schema::table('invoice_lines', function (Blueprint $table) {
-                $table->uuid('account_id')->nullable()->after('service_id');
+                $table->foreignId('account_id')->nullable()->after('service_id');
             });
         }
     }

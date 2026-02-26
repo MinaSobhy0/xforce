@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('sequences', function (Blueprint $table) {
             $table->id();
             $table->string('code', 50);
-            $table->uuid('tenant_id')->nullable()->index();
+            $table->foreignId('tenant_id')->nullable()->index();
             $table->bigInteger('current_number')->default(0);
             $table->timestamps();
 

@@ -9,9 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('attendance_rules', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
-            $table->uuid('working_schedule_id')->nullable()->index();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
+            $table->foreignId('working_schedule_id')->nullable()->index();
             $table->string('name');
             $table->string('code', 50)->index();
             $table->text('description')->nullable();
@@ -23,8 +23,8 @@ return new class extends Migration
             $table->boolean('notify_manager')->default(false);
             $table->boolean('notify_hr')->default(false);
             $table->text('notes')->nullable();
-            $table->uuid('created_by')->nullable();
-            $table->uuid('updated_by')->nullable();
+            $table->foreignId('created_by')->nullable();
+            $table->foreignId('updated_by')->nullable();
             $table->timestamps();
             $table->softDeletes();
 

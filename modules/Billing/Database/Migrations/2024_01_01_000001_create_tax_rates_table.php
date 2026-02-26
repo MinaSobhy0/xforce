@@ -9,12 +9,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('tax_rates', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
             $table->jsonb('name');
             $table->decimal('rate', 5, 2)->default(0);
             $table->string('type')->default('sales'); // sales, purchase
-            $table->uuid('account_id')->nullable();
+            $table->foreignId('account_id')->nullable();
             $table->boolean('is_default')->default(false);
             $table->boolean('is_active')->default(true);
             $table->timestamps();

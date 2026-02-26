@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('user_profiles', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('user_id');
+            $table->id();
+            $table->foreignId('user_id');
             $table->string('bio')->nullable();
             $table->string('website')->nullable();
             $table->string('linkedin')->nullable();

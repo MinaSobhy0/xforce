@@ -9,14 +9,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('tenant_modules', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
 
             $table->string('module_code', 50);
             $table->boolean('is_active')->default(true);
             $table->timestamp('activated_at')->nullable();
             $table->timestamp('deactivated_at')->nullable();
-            $table->uuid('activated_by')->nullable();
+            $table->foreignId('activated_by')->nullable();
             $table->jsonb('settings')->nullable();
             $table->string('license_key')->nullable();
             $table->timestamp('expires_at')->nullable();

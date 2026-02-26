@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('user_sessions', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('user_id');
+            $table->id();
+            $table->foreignId('user_id');
             $table->string('session_id')->unique();
             $table->ipAddress('ip_address');
             $table->text('user_agent')->nullable();

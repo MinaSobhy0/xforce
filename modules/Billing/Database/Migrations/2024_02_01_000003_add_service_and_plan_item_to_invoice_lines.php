@@ -10,10 +10,10 @@ return new class extends Migration
     {
         Schema::table('invoice_lines', function (Blueprint $table) {
             // Treatment plan item reference for tracking
-            $table->uuid('treatment_plan_item_id')->nullable()->after('service_id');
+            $table->foreignId('treatment_plan_item_id')->nullable()->after('service_id');
 
             // Appointment reference
-            $table->uuid('appointment_id')->nullable()->after('treatment_plan_item_id');
+            $table->foreignId('appointment_id')->nullable()->after('treatment_plan_item_id');
 
             // Indexes
             $table->index(['tenant_id', 'treatment_plan_item_id']);

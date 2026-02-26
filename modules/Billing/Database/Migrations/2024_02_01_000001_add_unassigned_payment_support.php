@@ -10,19 +10,19 @@ return new class extends Migration
     {
         Schema::table('payments', function (Blueprint $table) {
             // Make invoice_id nullable to support unassigned payments (deposits)
-            $table->uuid('invoice_id')->nullable()->change();
+            $table->foreignId('invoice_id')->nullable()->change();
 
             // Add patient for unassigned payments
-            $table->uuid('patient_id')->nullable()->after('invoice_id');
+            $table->foreignId('patient_id')->nullable()->after('invoice_id');
 
             // Add branch for unassigned payments
-            $table->uuid('branch_id')->nullable()->after('patient_id');
+            $table->foreignId('branch_id')->nullable()->after('patient_id');
 
             // Add treatment plan reference
-            $table->uuid('treatment_plan_id')->nullable()->after('branch_id');
+            $table->foreignId('treatment_plan_id')->nullable()->after('branch_id');
 
             // Add appointment reference (deposit collected at booking)
-            $table->uuid('appointment_id')->nullable()->after('treatment_plan_id');
+            $table->foreignId('appointment_id')->nullable()->after('treatment_plan_id');
 
             // Status for tracking payment state
             $table->string('status')->default('completed')->after('appointment_id');
@@ -54,7 +54,7 @@ return new class extends Migration
                 'status',
             ]);
 
-            $table->uuid('invoice_id')->nullable(false)->change();
+            $table->foreignId('invoice_id')->nullable(false)->change();
             $table->foreign('invoice_id')->references('id')->on('invoices')->cascadeOnDelete();
         });
     }

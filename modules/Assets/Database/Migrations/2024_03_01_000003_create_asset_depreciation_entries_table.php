@@ -9,9 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('asset_depreciation_entries', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
-            $table->uuid('asset_id');
+            $table->id();
+            $table->foreignId('tenant_id')->index();
+            $table->foreignId('asset_id');
 
             // Period information
             $table->date('period_start');
@@ -24,13 +24,13 @@ return new class extends Migration
             $table->integer('book_value_minor'); // Book value after this entry
 
             // Journal entry reference
-            $table->uuid('journal_entry_id')->nullable();
+            $table->foreignId('journal_entry_id')->nullable();
 
             // Status
             $table->string('status', 50)->default('draft');
             // Values: draft, posted, reversed
 
-            $table->uuid('created_by_user_id')->nullable();
+            $table->foreignId('created_by_user_id')->nullable();
             $table->timestamps();
 
             $table->unique(['asset_id', 'period_label']);

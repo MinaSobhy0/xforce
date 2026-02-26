@@ -9,9 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('rooms', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
-            $table->uuid('branch_id')->index();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
+            $table->foreignId('branch_id')->index();
 
             $table->jsonb('name'); // Translatable
             $table->string('code', 20)->nullable()->index();

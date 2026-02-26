@@ -9,9 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('installment_plans', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
-            $table->uuid('invoice_id')->index();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
+            $table->foreignId('invoice_id')->index();
             $table->integer('total_installments');
             $table->integer('installment_amount_minor');
             $table->string('frequency')->default('monthly');

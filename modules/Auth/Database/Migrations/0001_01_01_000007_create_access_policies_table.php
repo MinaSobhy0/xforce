@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('access_policies', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
 
             $table->string('name', 100);
             $table->string('model_type'); // Full model class name

@@ -9,9 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('attendance_logs', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
-            $table->uuid('attendance_id')->index();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
+            $table->foreignId('attendance_id')->index();
             $table->string('type', 30); // check_in, check_out, break_start, break_end
             $table->decimal('latitude', 10, 8)->nullable();
             $table->decimal('longitude', 11, 8)->nullable();
@@ -23,7 +23,7 @@ return new class extends Migration
             $table->string('source', 30)->default('manual'); // manual, mobile, biometric, web
             $table->json('device_info')->nullable();
             $table->text('notes')->nullable();
-            $table->uuid('created_by')->nullable();
+            $table->foreignId('created_by')->nullable();
             $table->timestamps();
             $table->softDeletes();
 

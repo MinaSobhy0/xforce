@@ -70,7 +70,7 @@ When User IDs change to INT, these must also change.
 
 ---
 
-## Phase 0: Framework & Base Classes (MUST DO FIRST)
+## Phase 0: Framework & Base Classes ✅ COMPLETED
 
 ### 0.1 BaseModel - Core Foundation
 | # | Status | File | Changes Required |
@@ -93,7 +93,7 @@ When User IDs change to INT, these must also change.
 
 ---
 
-## Phase 1: App Models (HasUuids Trait)
+## Phase 1: App Models (HasUuids Trait) ✅ COMPLETED
 
 Remove `use HasUuids;` trait from all models.
 
@@ -122,7 +122,7 @@ Remove `use HasUuids;` trait from all models.
 
 ---
 
-## Phase 2: Module Models - Remove Explicit ID Casts
+## Phase 2: Module Models - Remove Explicit ID Casts ✅ COMPLETED
 
 **CRITICAL:** These 31 models have explicit `'id' => 'string'` in $casts that MUST be removed.
 
@@ -179,10 +179,11 @@ Remove `use HasUuids;` trait from all models.
 
 ---
 
-## Phase 3: Module Models - Verify BaseModel Changes (COMPLETED)
+## Phase 3: Module Models - Verify BaseModel Changes ✅ COMPLETED
 
 All these extend BaseModel - after fixing BaseModel, verify they work correctly.
 **NOTE:** Models that don't extend BaseModel needed explicit fixes (UUID generation removed).
+**COMPLETED:** All models verified, services fixed (TenantService, GiftCardService, BookingSlotConfigPage).
 
 ### 3.1 Core Module (9 models)
 | # | Status | File | Changes Required |
@@ -212,143 +213,143 @@ All these extend BaseModel - after fixing BaseModel, verify they work correctly.
 ### 3.3 Patients Module (14 models)
 | # | Status | File | Changes Required |
 |---|--------|------|------------------|
-| 76 | [ ] | `modules/Patients/Models/Patient.php` | Verify BaseModel changes work |
-| 77 | [ ] | `modules/Patients/Models/PatientMedicalHistory.php` | Verify BaseModel changes work |
-| 78 | [ ] | `modules/Patients/Models/PatientConsentForm.php` | Verify BaseModel changes work |
-| 79 | [ ] | `modules/Patients/Models/PatientPhoto.php` | Verify BaseModel changes work |
-| 80 | [ ] | `modules/Patients/Models/PatientNote.php` | Verify BaseModel changes work |
-| 81 | [ ] | `modules/Patients/Models/MedicalProfile.php` | Verify BaseModel changes work |
-| 82 | [ ] | `modules/Patients/Models/MedicalAllergy.php` | Verify BaseModel changes work |
-| 83 | [ ] | `modules/Patients/Models/MedicalMedication.php` | Verify BaseModel changes work |
-| 84 | [ ] | `modules/Patients/Models/MedicalContraindication.php` | Verify BaseModel changes work |
-| 85 | [ ] | `modules/Patients/Models/MedicalHistory.php` | Verify BaseModel changes work |
-| 86 | [ ] | `modules/Patients/Models/LifestyleInfo.php` | Verify BaseModel changes work |
-| 87 | [ ] | `modules/Patients/Models/SkinAssessment.php` | Verify BaseModel changes work |
-| 88 | [ ] | `modules/Patients/Models/PatientAmrTest.php` | Verify BaseModel changes work |
-| 89 | [ ] | `modules/Patients/Models/PatientAmrSummary.php` | Verify BaseModel changes work |
+| 76 | [x] | `modules/Patients/Models/Patient.php` | Extends BaseModel - auto-fixed |
+| 77 | [x] | `modules/Patients/Models/PatientMedicalHistory.php` | Extends BaseModel - auto-fixed |
+| 78 | [x] | `modules/Patients/Models/PatientConsentForm.php` | Extends BaseModel - auto-fixed |
+| 79 | [x] | `modules/Patients/Models/PatientPhoto.php` | Extends BaseModel - auto-fixed |
+| 80 | [x] | `modules/Patients/Models/PatientNote.php` | Extends BaseModel - auto-fixed |
+| 81 | [x] | `modules/Patients/Models/MedicalProfile.php` | Extends BaseModel - auto-fixed |
+| 82 | [x] | `modules/Patients/Models/MedicalAllergy.php` | Extends BaseModel - auto-fixed |
+| 83 | [x] | `modules/Patients/Models/MedicalMedication.php` | Extends BaseModel - auto-fixed |
+| 84 | [x] | `modules/Patients/Models/MedicalContraindication.php` | Extends BaseModel - auto-fixed |
+| 85 | [x] | `modules/Patients/Models/MedicalHistory.php` | Extends BaseModel - auto-fixed |
+| 86 | [x] | `modules/Patients/Models/LifestyleInfo.php` | Extends BaseModel - auto-fixed |
+| 87 | [x] | `modules/Patients/Models/SkinAssessment.php` | Extends BaseModel - auto-fixed |
+| 88 | [x] | `modules/Patients/Models/PatientAmrTest.php` | Extends BaseModel - auto-fixed |
+| 89 | [x] | `modules/Patients/Models/PatientAmrSummary.php` | Extends BaseModel - auto-fixed |
 
 ### 3.4 Services Module (7 models)
 | # | Status | File | Changes Required |
 |---|--------|------|------------------|
-| 90 | [ ] | `modules/Services/Models/Service.php` | Verify BaseModel changes work |
-| 91 | [ ] | `modules/Services/Models/ServiceCategory.php` | Verify BaseModel changes work |
-| 92 | [ ] | `modules/Services/Models/ServiceBranchPricing.php` | Verify BaseModel changes work |
-| 93 | [ ] | `modules/Services/Models/ConsentTemplate.php` | Verify BaseModel changes work |
-| 94 | [ ] | `modules/Services/Models/ParameterTemplate.php` | Verify BaseModel changes work |
-| 95 | [ ] | `modules/Services/Models/ServiceParameter.php` | Verify BaseModel changes work |
-| 96 | [ ] | `modules/Services/Models/ParameterPreset.php` | Verify BaseModel changes work |
+| 90 | [x] | `modules/Services/Models/Service.php` | Extends BaseModel - auto-fixed |
+| 91 | [x] | `modules/Services/Models/ServiceCategory.php` | Extends BaseModel - auto-fixed |
+| 92 | [x] | `modules/Services/Models/ServiceBranchPricing.php` | Extends BaseModel - auto-fixed |
+| 93 | [x] | `modules/Services/Models/ConsentTemplate.php` | Extends BaseModel - auto-fixed |
+| 94 | [x] | `modules/Services/Models/ParameterTemplate.php` | Extends BaseModel - auto-fixed |
+| 95 | [x] | `modules/Services/Models/ServiceParameter.php` | Extends BaseModel - auto-fixed |
+| 96 | [x] | `modules/Services/Models/ParameterPreset.php` | Extends BaseModel - auto-fixed |
 
 ### 3.5 Booking Module (13 models)
 | # | Status | File | Changes Required |
 |---|--------|------|------------------|
-| 97 | [ ] | `modules/Booking/Models/Appointment.php` | Verify BaseModel changes work |
-| 98 | [ ] | `modules/Booking/Models/AppointmentServiceNote.php` | Verify BaseModel changes work |
-| 99 | [ ] | `modules/Booking/Models/Waitlist.php` | Verify BaseModel changes work |
-| 100 | [ ] | `modules/Booking/Models/PractitionerSchedule.php` | Verify BaseModel changes work |
-| 101 | [ ] | `modules/Booking/Models/PractitionerScheduleAssignment.php` | Verify BaseModel changes work |
-| 102 | [ ] | `modules/Booking/Models/PractitionerTimeOff.php` | Verify BaseModel changes work |
-| 103 | [ ] | `modules/Booking/Models/TreatmentSessionData.php` | Verify BaseModel changes work |
-| 104 | [ ] | `modules/Booking/Models/SessionConsumable.php` | Verify BaseModel changes work |
-| 105 | [ ] | `modules/Booking/Models/SessionProduct.php` | Verify BaseModel changes work |
-| 106 | [ ] | `modules/Booking/Models/BookingRule.php` | Verify BaseModel changes work |
-| 107 | [ ] | `modules/Booking/Models/BookingBlackoutDate.php` | Verify BaseModel changes work |
-| 108 | [ ] | `modules/Booking/Models/BookingConfig.php` | Verify BaseModel changes work |
+| 97 | [x] | `modules/Booking/Models/Appointment.php` | Extends BaseModel - auto-fixed |
+| 98 | [x] | `modules/Booking/Models/AppointmentServiceNote.php` | Extends BaseModel - auto-fixed |
+| 99 | [x] | `modules/Booking/Models/Waitlist.php` | Extends BaseModel - auto-fixed |
+| 100 | [x] | `modules/Booking/Models/PractitionerSchedule.php` | Extends BaseModel - auto-fixed |
+| 101 | [x] | `modules/Booking/Models/PractitionerScheduleAssignment.php` | Extends BaseModel - auto-fixed |
+| 102 | [x] | `modules/Booking/Models/PractitionerTimeOff.php` | Extends BaseModel - auto-fixed |
+| 103 | [x] | `modules/Booking/Models/TreatmentSessionData.php` | Extends BaseModel - auto-fixed |
+| 104 | [x] | `modules/Booking/Models/SessionConsumable.php` | Extends BaseModel - auto-fixed |
+| 105 | [x] | `modules/Booking/Models/SessionProduct.php` | Extends BaseModel - auto-fixed |
+| 106 | [x] | `modules/Booking/Models/BookingRule.php` | Extends BaseModel - auto-fixed |
+| 107 | [x] | `modules/Booking/Models/BookingBlackoutDate.php` | Extends BaseModel - auto-fixed |
+| 108 | [x] | `modules/Booking/Models/BookingConfig.php` | Extends BaseModel - auto-fixed |
 
 ### 3.6 Billing Module (6 models)
 | # | Status | File | Changes Required |
 |---|--------|------|------------------|
-| 109 | [ ] | `modules/Billing/Models/Invoice.php` | Verify BaseModel changes work |
-| 110 | [ ] | `modules/Billing/Models/InvoiceLine.php` | Verify BaseModel changes work |
-| 111 | [ ] | `modules/Billing/Models/Payment.php` | Verify BaseModel changes work |
-| 112 | [ ] | `modules/Billing/Models/TaxRate.php` | Verify BaseModel changes work |
-| 113 | [ ] | `modules/Billing/Models/InstallmentPlan.php` | Verify BaseModel changes work |
-| 114 | [ ] | `modules/Billing/Models/InstallmentSchedule.php` | Verify BaseModel changes work |
+| 109 | [x] | `modules/Billing/Models/Invoice.php` | Extends BaseModel - auto-fixed |
+| 110 | [x] | `modules/Billing/Models/InvoiceLine.php` | Extends BaseModel - auto-fixed |
+| 111 | [x] | `modules/Billing/Models/Payment.php` | Extends BaseModel - auto-fixed |
+| 112 | [x] | `modules/Billing/Models/TaxRate.php` | Extends BaseModel - auto-fixed |
+| 113 | [x] | `modules/Billing/Models/InstallmentPlan.php` | Extends BaseModel - auto-fixed |
+| 114 | [x] | `modules/Billing/Models/InstallmentSchedule.php` | Extends BaseModel - auto-fixed |
 
 ### 3.7 Accounting Module (5 models)
 | # | Status | File | Changes Required |
 |---|--------|------|------------------|
-| 115 | [ ] | `modules/Accounting/Models/ChartOfAccount.php` | Verify BaseModel changes work |
-| 116 | [ ] | `modules/Accounting/Models/Journal.php` | Verify BaseModel changes work |
-| 117 | [ ] | `modules/Accounting/Models/JournalEntry.php` | Verify BaseModel changes work |
-| 118 | [ ] | `modules/Accounting/Models/JournalEntryLine.php` | Verify BaseModel changes work |
-| 119 | [ ] | `modules/Accounting/Models/FiscalPeriod.php` | Verify BaseModel changes work |
+| 115 | [x] | `modules/Accounting/Models/ChartOfAccount.php` | Extends BaseModel - auto-fixed |
+| 116 | [x] | `modules/Accounting/Models/Journal.php` | Extends BaseModel - auto-fixed |
+| 117 | [x] | `modules/Accounting/Models/JournalEntry.php` | Extends BaseModel - auto-fixed |
+| 118 | [x] | `modules/Accounting/Models/JournalEntryLine.php` | Extends BaseModel - auto-fixed |
+| 119 | [x] | `modules/Accounting/Models/FiscalPeriod.php` | Extends BaseModel - auto-fixed |
 
 ### 3.8 Staff Module (2 models - remaining after explicit casts)
 | # | Status | File | Changes Required |
 |---|--------|------|------------------|
-| 120 | [ ] | `modules/Staff/Models/CommissionPlan.php` | Verify BaseModel changes work |
-| 121 | [ ] | `modules/Staff/Models/CommissionPlanRule.php` | Verify BaseModel changes work |
+| 120 | [x] | `modules/Staff/Models/CommissionPlan.php` | Extends BaseModel - auto-fixed |
+| 121 | [x] | `modules/Staff/Models/CommissionPlanRule.php` | Extends BaseModel - auto-fixed |
 
 ### 3.9 Equipment Module (6 models)
 | # | Status | File | Changes Required |
 |---|--------|------|------------------|
-| 122 | [ ] | `modules/Equipment/Models/EquipmentType.php` | Verify BaseModel changes work |
-| 123 | [ ] | `modules/Equipment/Models/Equipment.php` | Verify BaseModel changes work |
-| 124 | [ ] | `modules/Equipment/Models/EquipmentMaintenanceLog.php` | Verify BaseModel changes work |
-| 125 | [ ] | `modules/Equipment/Models/EquipmentShotLog.php` | Verify BaseModel changes work |
-| 126 | [ ] | `modules/Equipment/Models/EquipmentTrackingParameter.php` | Verify BaseModel changes work |
-| 127 | [ ] | `modules/Equipment/Models/EquipmentParameterTemplate.php` | Verify BaseModel changes work |
+| 122 | [x] | `modules/Equipment/Models/EquipmentType.php` | Extends BaseModel - auto-fixed |
+| 123 | [x] | `modules/Equipment/Models/Equipment.php` | Extends BaseModel - auto-fixed |
+| 124 | [x] | `modules/Equipment/Models/EquipmentMaintenanceLog.php` | Extends BaseModel - auto-fixed |
+| 125 | [x] | `modules/Equipment/Models/EquipmentShotLog.php` | Extends BaseModel - auto-fixed |
+| 126 | [x] | `modules/Equipment/Models/EquipmentTrackingParameter.php` | Extends BaseModel - auto-fixed |
+| 127 | [x] | `modules/Equipment/Models/EquipmentParameterTemplate.php` | Extends BaseModel - auto-fixed |
 
 ### 3.10 GiftCards Module (5 models)
 | # | Status | File | Changes Required |
 |---|--------|------|------------------|
-| 128 | [ ] | `modules/GiftCards/Models/GiftCard.php` | Verify BaseModel changes work |
-| 129 | [ ] | `modules/GiftCards/Models/GiftCardTransaction.php` | Verify BaseModel changes work |
-| 130 | [ ] | `modules/GiftCards/Models/GiftCardTemplate.php` | Verify BaseModel changes work |
-| 131 | [ ] | `modules/GiftCards/Models/GiftCardPrintHistory.php` | Verify BaseModel changes work |
-| 132 | [ ] | `modules/GiftCards/Models/GiftCardBatchExport.php` | Verify BaseModel changes work |
+| 128 | [x] | `modules/GiftCards/Models/GiftCard.php` | Extends BaseModel - auto-fixed |
+| 129 | [x] | `modules/GiftCards/Models/GiftCardTransaction.php` | Extends BaseModel - auto-fixed |
+| 130 | [x] | `modules/GiftCards/Models/GiftCardTemplate.php` | Extends BaseModel - auto-fixed |
+| 131 | [x] | `modules/GiftCards/Models/GiftCardPrintHistory.php` | Extends BaseModel - auto-fixed |
+| 132 | [x] | `modules/GiftCards/Models/GiftCardBatchExport.php` | Extends BaseModel - auto-fixed |
 
 ### 3.11 Packages Module (4 models)
 | # | Status | File | Changes Required |
 |---|--------|------|------------------|
-| 133 | [ ] | `modules/Packages/Models/Package.php` | Verify BaseModel changes work |
-| 134 | [ ] | `modules/Packages/Models/PackageItem.php` | Verify BaseModel changes work |
-| 135 | [ ] | `modules/Packages/Models/PackageSubscription.php` | Verify BaseModel changes work |
-| 136 | [ ] | `modules/Packages/Models/PackageSessionUsage.php` | Verify BaseModel changes work |
+| 133 | [x] | `modules/Packages/Models/Package.php` | Extends BaseModel - auto-fixed |
+| 134 | [x] | `modules/Packages/Models/PackageItem.php` | Extends BaseModel - auto-fixed |
+| 135 | [x] | `modules/Packages/Models/PackageSubscription.php` | Extends BaseModel - auto-fixed |
+| 136 | [x] | `modules/Packages/Models/PackageSessionUsage.php` | Extends BaseModel - auto-fixed |
 
 ### 3.12 Memberships Module (2 models)
 | # | Status | File | Changes Required |
 |---|--------|------|------------------|
-| 137 | [ ] | `modules/Memberships/Models/Membership.php` | Verify BaseModel changes work |
-| 138 | [ ] | `modules/Memberships/Models/MembershipSubscription.php` | Verify BaseModel changes work |
+| 137 | [x] | `modules/Memberships/Models/Membership.php` | Extends BaseModel - auto-fixed |
+| 138 | [x] | `modules/Memberships/Models/MembershipSubscription.php` | Extends BaseModel - auto-fixed |
 
 ### 3.13 Loyalty Module (4 models)
 | # | Status | File | Changes Required |
 |---|--------|------|------------------|
-| 139 | [ ] | `modules/Loyalty/Models/LoyaltyRule.php` | Verify BaseModel changes work |
-| 140 | [ ] | `modules/Loyalty/Models/LoyaltyTransaction.php` | Verify BaseModel changes work |
-| 141 | [ ] | `modules/Loyalty/Models/ReferralProgram.php` | Verify BaseModel changes work |
-| 142 | [ ] | `modules/Loyalty/Models/Referral.php` | Verify BaseModel changes work |
+| 139 | [x] | `modules/Loyalty/Models/LoyaltyRule.php` | Extends BaseModel - auto-fixed |
+| 140 | [x] | `modules/Loyalty/Models/LoyaltyTransaction.php` | Extends BaseModel - auto-fixed |
+| 141 | [x] | `modules/Loyalty/Models/ReferralProgram.php` | Extends BaseModel - auto-fixed |
+| 142 | [x] | `modules/Loyalty/Models/Referral.php` | Extends BaseModel - auto-fixed |
 
 ### 3.14 Marketing Module (5 models)
 | # | Status | File | Changes Required |
 |---|--------|------|------------------|
-| 143 | [ ] | `modules/Marketing/Models/MessageTemplate.php` | Verify BaseModel changes work |
-| 144 | [ ] | `modules/Marketing/Models/Campaign.php` | Verify BaseModel changes work |
-| 145 | [ ] | `modules/Marketing/Models/CampaignRecipient.php` | Verify BaseModel changes work |
-| 146 | [ ] | `modules/Marketing/Models/NotificationLog.php` | Verify BaseModel changes work |
-| 147 | [ ] | `modules/Marketing/Models/AutomationRule.php` | Verify BaseModel changes work |
+| 143 | [x] | `modules/Marketing/Models/MessageTemplate.php` | Extends BaseModel - auto-fixed |
+| 144 | [x] | `modules/Marketing/Models/Campaign.php` | Extends BaseModel - auto-fixed |
+| 145 | [x] | `modules/Marketing/Models/CampaignRecipient.php` | Extends BaseModel - auto-fixed |
+| 146 | [x] | `modules/Marketing/Models/NotificationLog.php` | Extends BaseModel - auto-fixed |
+| 147 | [x] | `modules/Marketing/Models/AutomationRule.php` | Extends BaseModel - auto-fixed |
 
 ### 3.15 TreatmentPlans Module (3 models)
 | # | Status | File | Changes Required |
 |---|--------|------|------------------|
-| 148 | [ ] | `modules/TreatmentPlans/Models/TreatmentPlan.php` | Verify BaseModel changes work |
-| 149 | [ ] | `modules/TreatmentPlans/Models/TreatmentPlanItem.php` | Verify BaseModel changes work |
-| 150 | [ ] | `modules/TreatmentPlans/Models/TreatmentPlanAppointment.php` | Verify BaseModel changes work |
+| 148 | [x] | `modules/TreatmentPlans/Models/TreatmentPlan.php` | Extends BaseModel - auto-fixed |
+| 149 | [x] | `modules/TreatmentPlans/Models/TreatmentPlanItem.php` | Extends BaseModel - auto-fixed |
+| 150 | [x] | `modules/TreatmentPlans/Models/TreatmentPlanAppointment.php` | Extends BaseModel - auto-fixed |
 
 ### 3.16 Prescriptions Module (3 models)
 | # | Status | File | Changes Required |
 |---|--------|------|------------------|
-| 151 | [ ] | `modules/Prescriptions/Models/Prescription.php` | Verify BaseModel changes work |
-| 152 | [ ] | `modules/Prescriptions/Models/PrescriptionItem.php` | Verify BaseModel changes work |
-| 153 | [ ] | `modules/Prescriptions/Models/MedicineCatalog.php` | Verify BaseModel changes work |
+| 151 | [x] | `modules/Prescriptions/Models/Prescription.php` | Extends BaseModel - auto-fixed |
+| 152 | [x] | `modules/Prescriptions/Models/PrescriptionItem.php` | Extends BaseModel - auto-fixed |
+| 153 | [x] | `modules/Prescriptions/Models/MedicineCatalog.php` | Extends BaseModel - auto-fixed |
 
 ### 3.17 Assets Module (3 models)
 | # | Status | File | Changes Required |
 |---|--------|------|------------------|
-| 154 | [ ] | `modules/Assets/Models/AssetType.php` | Verify BaseModel changes work |
-| 155 | [ ] | `modules/Assets/Models/Asset.php` | Verify BaseModel changes work |
-| 156 | [ ] | `modules/Assets/Models/AssetDepreciationEntry.php` | Verify BaseModel changes work |
+| 154 | [x] | `modules/Assets/Models/AssetType.php` | Extends BaseModel - auto-fixed |
+| 155 | [x] | `modules/Assets/Models/Asset.php` | Extends BaseModel - auto-fixed |
+| 156 | [x] | `modules/Assets/Models/AssetDepreciationEntry.php` | Extends BaseModel - auto-fixed |
 
 ---
 
@@ -478,14 +479,14 @@ All these extend BaseModel - after fixing BaseModel, verify they work correctly.
 | 242 | [ ] | `modules/Billing/Database/Migrations/2024_01_01_000006_create_installment_schedules_table.php` | `uuid()` → `id()` |
 | 243 | [ ] | `modules/Billing/Database/Migrations/2024_02_01_000001_add_unassigned_payment_support.php` | Review |
 
-### 5.7 Accounting Module Migrations
+### 5.7 Accounting Module Migrations ✅ COMPLETED
 | # | Status | File | Changes |
 |---|--------|------|---------|
-| 244 | [ ] | `modules/Accounting/Database/Migrations/2024_01_01_000000_create_chart_of_accounts_table.php` | `uuid()` → `id()` |
-| 245 | [ ] | `modules/Accounting/Database/Migrations/2024_01_02_000002_create_fiscal_periods_table.php` | `uuid()` → `id()` |
-| 246 | [ ] | `modules/Accounting/Database/Migrations/2024_01_02_000003_create_journal_entries_table.php` | `uuid()` → `id()` |
-| 247 | [ ] | `modules/Accounting/Database/Migrations/2024_01_02_000004_create_journal_entry_lines_table.php` | `uuid()` → `id()` |
-| 248 | [ ] | `modules/Accounting/Database/Migrations/2024_01_02_000005_create_journals_table.php` | `uuid()` → `id()` |
+| 244 | [x] | `modules/Accounting/Database/Migrations/2024_01_01_000000_create_chart_of_accounts_table.php` | `uuid()` → `id()` |
+| 245 | [x] | `modules/Accounting/Database/Migrations/2024_01_02_000002_create_fiscal_periods_table.php` | `uuid()` → `id()` |
+| 246 | [x] | `modules/Accounting/Database/Migrations/2024_01_02_000003_create_journal_entries_table.php` | `uuid()` → `id()` |
+| 247 | [x] | `modules/Accounting/Database/Migrations/2024_01_02_000004_create_journal_entry_lines_table.php` | `uuid()` → `id()` |
+| 248 | [x] | `modules/Accounting/Database/Migrations/2024_01_02_000005_create_journals_table.php` | `uuid()` → `id()` |
 
 ### 5.8 Inventory Module Migrations
 | # | Status | File | Changes |

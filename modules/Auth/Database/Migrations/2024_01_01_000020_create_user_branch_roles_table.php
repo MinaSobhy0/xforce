@@ -16,16 +16,16 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('user_branch_roles', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
-            $table->uuid('user_id');
-            $table->uuid('branch_id');
+            $table->id();
+            $table->foreignId('tenant_id')->index();
+            $table->foreignId('user_id');
+            $table->foreignId('branch_id');
             $table->unsignedBigInteger('role_id'); // bigint to match Spatie roles
 
             $table->boolean('is_primary')->default(false); // Primary branch for this user
             $table->boolean('is_active')->default(true);
             $table->timestamp('assigned_at')->nullable();
-            $table->uuid('assigned_by')->nullable();
+            $table->foreignId('assigned_by')->nullable();
             $table->timestamp('expires_at')->nullable(); // For temporary assignments
 
             $table->timestamps();

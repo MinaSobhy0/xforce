@@ -9,11 +9,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('attendances', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
-            $table->uuid('staff_profile_id')->index();
-            $table->uuid('branch_id')->nullable()->index();
-            $table->uuid('working_schedule_id')->nullable()->index();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
+            $table->foreignId('staff_profile_id')->index();
+            $table->foreignId('branch_id')->nullable()->index();
+            $table->foreignId('working_schedule_id')->nullable()->index();
             $table->date('attendance_date');
             $table->time('check_in_time')->nullable();
             $table->time('check_out_time')->nullable();
@@ -26,10 +26,10 @@ return new class extends Migration
             $table->text('late_reason')->nullable();
             $table->text('early_checkout_reason')->nullable();
             $table->text('notes')->nullable();
-            $table->uuid('approved_by')->nullable();
+            $table->foreignId('approved_by')->nullable();
             $table->timestamp('approved_at')->nullable();
-            $table->uuid('created_by')->nullable();
-            $table->uuid('updated_by')->nullable();
+            $table->foreignId('created_by')->nullable();
+            $table->foreignId('updated_by')->nullable();
             $table->timestamps();
             $table->softDeletes();
 
