@@ -244,13 +244,13 @@ class AttendanceReportsPage extends Page implements HasForms, HasTable
     {
         $query = $this->getReportQuery();
 
-        // Basic counts
+        // Basic counts - use 'status' field with STATUS_* constants
         $totalRecords = (clone $query)->count();
-        $presentCount = (clone $query)->where('attendance_type', Attendance::TYPE_PRESENT)->count();
-        $absentCount = (clone $query)->where('attendance_type', Attendance::TYPE_ABSENT)->count();
-        $lateCount = (clone $query)->where('attendance_type', Attendance::TYPE_LATE)->count();
-        $leaveCount = (clone $query)->where('attendance_type', Attendance::TYPE_LEAVE)->count();
-        $halfDayCount = (clone $query)->where('attendance_type', Attendance::TYPE_HALF_DAY)->count();
+        $presentCount = (clone $query)->where('status', Attendance::STATUS_PRESENT)->count();
+        $absentCount = (clone $query)->where('status', Attendance::STATUS_ABSENT)->count();
+        $lateCount = (clone $query)->where('late_minutes', '>', 0)->count();
+        $leaveCount = (clone $query)->where('status', Attendance::STATUS_LEAVE)->count();
+        $halfDayCount = (clone $query)->where('status', Attendance::STATUS_HALF_DAY)->count();
 
         // Hours calculations
         $totalWorkingHours = (clone $query)->sum('working_hours');
