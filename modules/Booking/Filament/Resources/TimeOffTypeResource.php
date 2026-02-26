@@ -18,7 +18,7 @@ class TimeOffTypeResource extends Resource
 
     protected static ?string $navigationGroup = 'HR';
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 13;
 
     public static function getNavigationLabel(): string
     {
