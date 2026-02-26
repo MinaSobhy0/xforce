@@ -304,8 +304,9 @@ class TenantService
                 // Billing - tax rates
                 \Modules\Billing\Database\Seeders\TaxRateSeeder::class,
 
-                // Accounting - chart of accounts
+                // Accounting - chart of accounts and journals
                 \Modules\Accounting\Database\Seeders\ChartOfAccountsSeeder::class,
+                \Modules\Accounting\Database\Seeders\JournalSeeder::class,
 
                 // Payroll defaults
                 \Modules\Payroll\Database\Seeders\PayrollDefaultsSeeder::class,
