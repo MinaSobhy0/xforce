@@ -5,7 +5,6 @@ namespace XLinic\Framework\Core\Model;
 use App\Services\BranchContext;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Str;
 use XLinic\Framework\Core\Model\Traits\HasTenancy;
 use XLinic\Framework\Core\Model\Traits\HasAudit;
 
@@ -150,20 +149,9 @@ abstract class BaseModel extends Model
     }
 
     /**
-     * Indicates if the IDs are auto-incrementing.
-     */
-    public $incrementing = false;
-
-    /**
-     * The data type of the auto-incrementing ID.
-     */
-    protected $keyType = 'string';
-
-    /**
      * The attributes that should be cast.
      */
     protected $casts = [
-        'id' => 'string',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -175,13 +163,8 @@ abstract class BaseModel extends Model
     {
         parent::booted();
 
-        // Auto-generate UUID on creating
+        // Auto-set branch_id if model has it and not set
         static::creating(function (self $model) {
-            if (empty($model->{$model->getKeyName()})) {
-                $model->{$model->getKeyName()} = Str::orderedUuid()->toString();
-            }
-
-            // Auto-set branch_id if model has it and not set
             if ($model->hasBranchId() && !$model->branch_id) {
                 $branchIds = BranchContext::currentIds();
                 // Only auto-set if exactly one branch is selected

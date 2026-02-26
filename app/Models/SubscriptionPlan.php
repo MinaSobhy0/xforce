@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Traits\HasPostgresBoolean;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -12,7 +11,7 @@ use Spatie\Translatable\HasTranslations;
 
 class SubscriptionPlan extends Model
 {
-    use HasUuids, SoftDeletes, HasTranslations, HasPostgresBoolean;
+    use SoftDeletes, HasTranslations, HasPostgresBoolean;
 
     /**
      * The database connection that should be used by the model.

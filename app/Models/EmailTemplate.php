@@ -3,13 +3,12 @@
 namespace App\Models;
 
 use App\Traits\HasPostgresBoolean;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Translatable\HasTranslations;
 
 class EmailTemplate extends Model
 {
-    use HasUuids, HasTranslations, HasPostgresBoolean;
+    use HasTranslations, HasPostgresBoolean;
 
     protected $connection = 'central';
 

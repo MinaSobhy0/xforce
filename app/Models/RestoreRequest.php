@@ -3,13 +3,12 @@
 namespace App\Models;
 
 use App\Traits\HasPostgresBoolean;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class RestoreRequest extends Model
 {
-    use HasUuids, HasPostgresBoolean;
+    use HasPostgresBoolean;
 
     protected $connection = 'central';
 

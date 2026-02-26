@@ -3,13 +3,12 @@
 namespace App\Models;
 
 use App\Traits\HasPostgresBoolean;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class PromoCode extends Model
 {
-    use HasUuids, SoftDeletes, HasPostgresBoolean;
+    use SoftDeletes, HasPostgresBoolean;
 
     protected $connection = 'central';
 

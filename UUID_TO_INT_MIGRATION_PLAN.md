@@ -75,12 +75,12 @@ When User IDs change to INT, these must also change.
 ### 0.1 BaseModel - Core Foundation
 | # | Status | File | Changes Required |
 |---|--------|------|------------------|
-| 1 | [ ] | `framework/Core/Model/BaseModel.php` | Remove UUID generation in `booted()`, remove `$keyType = 'string'`, remove `$incrementing = false`, remove `'id' => 'string'` from $casts |
+| 1 | [x] | `framework/Core/Model/BaseModel.php` | Remove UUID generation in `booted()`, remove `$keyType = 'string'`, remove `$incrementing = false`, remove `'id' => 'string'` from $casts |
 
 ### 0.2 Audit Model
 | # | Status | File | Changes Required |
 |---|--------|------|------------------|
-| 2 | [ ] | `framework/Core/Model/Audit.php` | Remove UUID generation, remove `$keyType = 'string'`, remove `$incrementing = false` |
+| 2 | [x] | `framework/Core/Model/Audit.php` | Remove UUID generation, remove `$keyType = 'string'`, remove `$incrementing = false` |
 
 ### 0.3 Framework Traits
 | # | Status | File | Changes Required |
@@ -99,26 +99,26 @@ Remove `use HasUuids;` trait from all models.
 
 | # | Status | File | Changes Required |
 |---|--------|------|------------------|
-| 8 | [ ] | `app/Models/ImportMapping.php` | Remove `use HasUuids;` |
-| 9 | [ ] | `app/Models/TenantDomain.php` | Remove `use HasUuids;` |
-| 10 | [ ] | `app/Models/Module.php` | Remove `use HasUuids;` |
-| 11 | [ ] | `app/Models/SystemAlert.php` | Remove `use HasUuids;` |
-| 12 | [ ] | `app/Models/PromoCode.php` | Remove `use HasUuids;` |
-| 13 | [ ] | `app/Models/SubscriptionPlan.php` | Remove `use HasUuids;` |
-| 14 | [ ] | `app/Models/SupportTicketReply.php` | Remove `use HasUuids;` |
-| 15 | [ ] | `app/Models/ContactInquiry.php` | Remove `use HasUuids;` |
-| 16 | [ ] | `app/Models/TenantActivityLog.php` | Remove `use HasUuids;` |
-| 17 | [ ] | `app/Models/EmailTemplate.php` | Remove `use HasUuids;` |
-| 18 | [ ] | `app/Models/SupportTicket.php` | Remove `use HasUuids;` |
-| 19 | [ ] | `app/Models/PlatformSetting.php` | Remove `use HasUuids;` |
-| 20 | [ ] | `app/Models/AddOn.php` | Remove `use HasUuids;` |
-| 21 | [ ] | `app/Models/PlatformInvoice.php` | Remove `use HasUuids;` |
-| 22 | [ ] | `app/Models/RestoreRequest.php` | Remove `use HasUuids;` |
-| 23 | [ ] | `app/Models/OnboardingRequest.php` | Remove `use HasUuids;` |
-| 24 | [ ] | `app/Models/TenantAddonSubscription.php` | Remove `use HasUuids;` |
-| 25 | [ ] | `app/Models/Backup.php` | Remove `use HasUuids;` |
-| 26 | [ ] | `app/Models/Announcement.php` | Remove `use HasUuids;` |
-| 27 | [ ] | `app/Models/AuditLog.php` | Remove `use HasUuids;` |
+| 8 | [x] | `app/Models/ImportMapping.php` | Remove `use HasUuids;` |
+| 9 | [x] | `app/Models/TenantDomain.php` | Remove `use HasUuids;` |
+| 10 | [x] | `app/Models/Module.php` | Remove `use HasUuids;` |
+| 11 | [x] | `app/Models/SystemAlert.php` | Remove `use HasUuids;` |
+| 12 | [x] | `app/Models/PromoCode.php` | Remove `use HasUuids;` |
+| 13 | [x] | `app/Models/SubscriptionPlan.php` | Remove `use HasUuids;` |
+| 14 | [x] | `app/Models/SupportTicketReply.php` | Remove `use HasUuids;` |
+| 15 | [x] | `app/Models/ContactInquiry.php` | Remove `use HasUuids;` |
+| 16 | [x] | `app/Models/TenantActivityLog.php` | Remove `use HasUuids;` |
+| 17 | [x] | `app/Models/EmailTemplate.php` | Remove `use HasUuids;` |
+| 18 | [x] | `app/Models/SupportTicket.php` | Remove `use HasUuids;` |
+| 19 | [x] | `app/Models/PlatformSetting.php` | Remove `use HasUuids;` + fix raw SQL UUID insert |
+| 20 | [x] | `app/Models/AddOn.php` | Remove `use HasUuids;` |
+| 21 | [x] | `app/Models/PlatformInvoice.php` | Remove `use HasUuids;` |
+| 22 | [x] | `app/Models/RestoreRequest.php` | Remove `use HasUuids;` |
+| 23 | [x] | `app/Models/OnboardingRequest.php` | Remove `use HasUuids;` |
+| 24 | [x] | `app/Models/TenantAddonSubscription.php` | Remove `use HasUuids;` |
+| 25 | [x] | `app/Models/Backup.php` | Remove `use HasUuids;` |
+| 26 | [x] | `app/Models/Announcement.php` | Remove `use HasUuids;` |
+| 27 | [x] | `app/Models/AuditLog.php` | Remove `use HasUuids;` |
 
 ---
 

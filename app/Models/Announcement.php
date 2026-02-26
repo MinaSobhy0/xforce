@@ -2,14 +2,13 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Translatable\HasTranslations;
 
 class Announcement extends Model
 {
-    use HasUuids, SoftDeletes, HasTranslations;
+    use SoftDeletes, HasTranslations;
 
     protected $connection = 'central';
 

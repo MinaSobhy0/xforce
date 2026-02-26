@@ -5,7 +5,6 @@ namespace XLinic\Framework\Core\Model;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Str;
 
 /**
  * Audit model - extends Model directly to avoid infinite recursion
@@ -13,28 +12,6 @@ use Illuminate\Support\Str;
  */
 class Audit extends Model
 {
-    /**
-     * Indicates if the IDs are auto-incrementing.
-     */
-    public $incrementing = false;
-
-    /**
-     * The data type of the auto-incrementing ID.
-     */
-    protected $keyType = 'string';
-
-    /**
-     * Boot the model.
-     */
-    protected static function booted(): void
-    {
-        static::creating(function (self $model) {
-            if (empty($model->{$model->getKeyName()})) {
-                $model->{$model->getKeyName()} = Str::orderedUuid()->toString();
-            }
-        });
-    }
-
     /**
      * The attributes that are mass assignable.
      */

@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Traits\HasPostgresBoolean;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -12,7 +11,7 @@ use Modules\Core\Models\Tenant;
 
 class AddOn extends Model
 {
-    use HasFactory, HasUuids, SoftDeletes, HasPostgresBoolean;
+    use HasFactory, SoftDeletes, HasPostgresBoolean;
 
     protected $connection = 'central';
 

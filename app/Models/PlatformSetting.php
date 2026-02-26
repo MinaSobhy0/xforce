@@ -2,13 +2,11 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
 
 class PlatformSetting extends Model
 {
-    use HasUuids;
 
     protected $connection = 'central';
 
@@ -111,12 +109,11 @@ class PlatformSetting extends Model
             return $setting;
         }
 
-        // Insert without is_encrypted, then update it
+        // Insert without is_encrypted, then update it (let PostgreSQL handle auto-increment ID)
         \DB::statement("
-            INSERT INTO platform_settings (id, key, \"group\", value, type, is_encrypted, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, {$encryptedValue}, NOW(), NOW())
+            INSERT INTO platform_settings (key, \"group\", value, type, is_encrypted, created_at, updated_at)
+            VALUES (?, ?, ?, ?, {$encryptedValue}, NOW(), NOW())
         ", [
-            (string) \Illuminate\Support\Str::uuid(),
             $key,
             $group,
             $type === 'json' ? json_encode($value) : (string) $value,

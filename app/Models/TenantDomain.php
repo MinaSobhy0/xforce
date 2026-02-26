@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Traits\HasPostgresBoolean;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Log;
@@ -11,7 +10,7 @@ use Illuminate\Support\Facades\Process;
 
 class TenantDomain extends Model
 {
-    use HasUuids, HasPostgresBoolean;
+    use HasPostgresBoolean;
 
     /**
      * The database connection that should be used by the model.

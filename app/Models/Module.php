@@ -3,14 +3,13 @@
 namespace App\Models;
 
 use App\Traits\HasPostgresBoolean;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Translatable\HasTranslations;
 
 class Module extends Model
 {
-    use HasUuids, SoftDeletes, HasTranslations, HasPostgresBoolean;
+    use SoftDeletes, HasTranslations, HasPostgresBoolean;
 
     protected $connection = 'central';
 
