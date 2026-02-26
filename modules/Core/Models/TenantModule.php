@@ -10,6 +10,9 @@ class TenantModule extends BaseModel
 {
     use HasTenancy;
 
+    // This table exists in PUBLIC schema, not tenant schemas
+    protected $connection = 'central';
+
     protected $fillable = [
         'tenant_id',
         'module_code',
