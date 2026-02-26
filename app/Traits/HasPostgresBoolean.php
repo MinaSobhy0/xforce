@@ -31,9 +31,18 @@ trait HasPostgresBoolean
                     $value = filter_var($dirty[$field], FILTER_VALIDATE_BOOLEAN);
                     $sqlValue = $value ? 'true' : 'false';
 
+                    // Handle schema-qualified table names
+                    $table = $this->getTable();
+                    if (str_contains($table, '.')) {
+                        [$schema, $tableName] = explode('.', $table, 2);
+                        $quotedTable = '"' . $schema . '"."' . $tableName . '"';
+                    } else {
+                        $quotedTable = '"' . $table . '"';
+                    }
+
                     // Update using raw SQL for this field
                     \DB::statement(
-                        "UPDATE {$this->getTable()} SET {$field} = {$sqlValue} WHERE {$this->getKeyName()} = ?",
+                        "UPDATE {$quotedTable} SET {$field} = {$sqlValue} WHERE {$this->getKeyName()} = ?",
                         [$this->getKey()]
                     );
 
@@ -114,14 +123,31 @@ trait HasPostgresBoolean
             }
         }
 
+        // Handle schema-qualified table names (e.g., public.table_name)
+        $table = $this->getTable();
+        if (str_contains($table, '.')) {
+            [$schema, $tableName] = explode('.', $table, 2);
+            $quotedTable = '"' . $schema . '"."' . $tableName . '"';
+        } else {
+            $quotedTable = '"' . $table . '"';
+        }
+
+        // Use RETURNING to get the auto-generated ID
+        $keyName = $this->getKeyName();
         $sql = sprintf(
-            'INSERT INTO "%s" (%s) VALUES (%s)',
-            $this->getTable(),
+            'INSERT INTO %s (%s) VALUES (%s) RETURNING "%s"',
+            $quotedTable,
             implode(', ', $columns),
-            implode(', ', $placeholders)
+            implode(', ', $placeholders),
+            $keyName
         );
 
-        \DB::statement($sql, $values);
+        $result = \DB::select($sql, $values);
+
+        // Set the ID from the RETURNING clause
+        if (!empty($result)) {
+            $this->setAttribute($keyName, $result[0]->{$keyName});
+        }
 
         // Set exists to true and fire created event
         $this->exists = true;

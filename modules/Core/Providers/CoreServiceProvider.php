@@ -14,7 +14,6 @@ class CoreServiceProvider extends ServiceProvider
         $this->registerConfig();
         $this->registerViews();
         $this->registerTranslations();
-        $this->loadMigrationsFrom(module_path($this->moduleName, 'Migrations'));
         $this->loadMigrationsFrom(module_path($this->moduleName, 'Database/Migrations'));
         $this->registerCommands();
     }

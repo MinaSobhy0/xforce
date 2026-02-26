@@ -71,14 +71,22 @@ abstract class BaseModel extends Model
             }
         }
 
+        // Use RETURNING to get the auto-generated ID
+        $keyName = $this->getKeyName();
         $sql = sprintf(
-            'INSERT INTO "%s" (%s) VALUES (%s)',
+            'INSERT INTO "%s" (%s) VALUES (%s) RETURNING "%s"',
             $this->getTable(),
             implode(', ', $columns),
-            implode(', ', $placeholders)
+            implode(', ', $placeholders),
+            $keyName
         );
 
-        \DB::statement($sql, $values);
+        $result = \DB::select($sql, $values);
+
+        // Set the ID from the RETURNING clause
+        if (!empty($result)) {
+            $this->setAttribute($keyName, $result[0]->{$keyName});
+        }
 
         $this->exists = true;
         $this->wasRecentlyCreated = true;

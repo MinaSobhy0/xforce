@@ -86,11 +86,16 @@ class PlatformSetting extends Model
 
     public static function get(string $key, $default = null)
     {
-        $settings = Cache::remember('platform_settings', 3600, function () {
-            return self::all()->keyBy('key');
-        });
+        try {
+            $settings = Cache::remember('platform_settings', 3600, function () {
+                return self::all()->keyBy('key');
+            });
 
-        return $settings->get($key)?->value ?? $default;
+            return $settings->get($key)?->value ?? $default;
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Table doesn't exist yet (during migrations)
+            return $default;
+        }
     }
 
     public static function set(string $key, $value, string $group = 'general', string $type = 'string', bool $encrypted = false): self
