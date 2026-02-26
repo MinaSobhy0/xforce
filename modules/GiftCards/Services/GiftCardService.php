@@ -165,23 +165,44 @@ class GiftCardService
             return ['success' => false, 'error' => 'Card must be in draft status to sell'];
         }
 
-        $result = DB::transaction(function () use ($card, $journalId, $purchaserPatientIdOrData, $recipientPatientId, $notes) {
-            $purchaserPatientId = null;
+        // Handle patient resolution BEFORE the transaction to avoid FK issues
+        $purchaserPatientId = null;
 
-            // Handle new patient creation if array data is provided
-            if (is_array($purchaserPatientIdOrData)) {
-                $patient = Patient::create([
-                    'tenant_id' => $card->tenant_id,
-                    'first_name' => $purchaserPatientIdOrData['first_name'],
-                    'last_name' => $purchaserPatientIdOrData['last_name'] ?? '',
-                    'phone' => $purchaserPatientIdOrData['phone'] ?? null,
-                    'email' => $purchaserPatientIdOrData['email'] ?? null,
+        if (is_array($purchaserPatientIdOrData) && !empty($purchaserPatientIdOrData['first_name'])) {
+            // Create new patient using direct insert to ensure it's committed
+            $patientId = (string) \Illuminate\Support\Str::orderedUuid();
+
+            DB::table('patients')->insert([
+                'id' => $patientId,
+                'tenant_id' => $card->tenant_id,
+                'first_name' => $purchaserPatientIdOrData['first_name'],
+                'last_name' => $purchaserPatientIdOrData['last_name'] ?? '',
+                'phone' => $purchaserPatientIdOrData['phone'] ?? null,
+                'email' => $purchaserPatientIdOrData['email'] ?? null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            $purchaserPatientId = $patientId;
+
+            Log::info("Created new patient for gift card sale", [
+                'patient_id' => $patientId,
+                'card_id' => $card->id,
+            ]);
+        } elseif (is_string($purchaserPatientIdOrData) && !empty($purchaserPatientIdOrData)) {
+            // Verify existing patient exists
+            $exists = DB::table('patients')->where('id', $purchaserPatientIdOrData)->exists();
+            if (!$exists) {
+                Log::error("Patient not found for gift card sale", [
+                    'patient_id' => $purchaserPatientIdOrData,
+                    'card_id' => $card->id,
                 ]);
-                $purchaserPatientId = $patient->id;
-            } else {
-                $purchaserPatientId = $purchaserPatientIdOrData;
+                return ['success' => false, 'error' => 'Patient not found'];
             }
+            $purchaserPatientId = $purchaserPatientIdOrData;
+        }
 
+        DB::transaction(function () use ($card, $journalId, $purchaserPatientId, $recipientPatientId, $notes) {
             // Update card
             $card->update([
                 'purchaser_patient_id' => $purchaserPatientId,
@@ -210,13 +231,12 @@ class GiftCardService
                 'notes' => 'Card sold and activated',
                 'created_by_user_id' => auth()->id(),
             ]);
-
-            return $purchaserPatientId;
         });
 
         Log::info("Gift card sold: {$card->code}", [
             'card_id' => $card->id,
             'journal_id' => $journalId,
+            'purchaser_patient_id' => $purchaserPatientId,
             'amount' => $card->initial_value_minor,
         ]);
 
