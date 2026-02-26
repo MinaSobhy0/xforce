@@ -31,23 +31,38 @@ class ContactInquiryResource extends Resource
                 ->schema([
                     Forms\Components\TextInput::make('clinic_name')
                         ->label('Clinic Name')
-                        ->disabled(),
+                        ->required()
+                        ->disabled(fn ($operation) => $operation === 'edit'),
 
                     Forms\Components\TextInput::make('contact_name')
                         ->label('Contact Name')
-                        ->disabled(),
+                        ->required()
+                        ->disabled(fn ($operation) => $operation === 'edit'),
 
                     Forms\Components\TextInput::make('email')
                         ->label('Email')
-                        ->disabled(),
+                        ->email()
+                        ->required()
+                        ->disabled(fn ($operation) => $operation === 'edit'),
 
                     Forms\Components\TextInput::make('phone')
                         ->label('Phone')
-                        ->disabled(),
+                        ->disabled(fn ($operation) => $operation === 'edit'),
 
-                    Forms\Components\TextInput::make('country')
+                    Forms\Components\Select::make('country')
                         ->label('Country')
-                        ->disabled(),
+                        ->options([
+                            'EG' => 'Egypt',
+                            'SA' => 'Saudi Arabia',
+                            'AE' => 'UAE',
+                            'KW' => 'Kuwait',
+                            'QA' => 'Qatar',
+                            'BH' => 'Bahrain',
+                            'OM' => 'Oman',
+                            'JO' => 'Jordan',
+                            'LB' => 'Lebanon',
+                        ])
+                        ->disabled(fn ($operation) => $operation === 'edit'),
 
                     Forms\Components\Select::make('status')
                         ->options([
@@ -56,6 +71,7 @@ class ContactInquiryResource extends Resource
                             'converted' => 'Converted',
                             'closed' => 'Closed',
                         ])
+                        ->default('new')
                         ->required(),
                 ]),
 
@@ -63,7 +79,7 @@ class ContactInquiryResource extends Resource
                 ->schema([
                     Forms\Components\Textarea::make('message')
                         ->label('Message')
-                        ->disabled()
+                        ->disabled(fn ($operation) => $operation === 'edit')
                         ->rows(4),
                 ]),
 
@@ -186,6 +202,7 @@ class ContactInquiryResource extends Resource
     {
         return [
             'index' => Pages\ListContactInquiries::route('/'),
+            'create' => Pages\CreateContactInquiry::route('/create'),
             'edit' => Pages\EditContactInquiry::route('/{record}/edit'),
         ];
     }
