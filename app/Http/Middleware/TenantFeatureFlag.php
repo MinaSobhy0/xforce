@@ -78,10 +78,10 @@ class TenantFeatureFlag
             return $tenant;
         }
 
-        // Try getting from session
+        // Try getting from session (only if numeric ID - INT primary keys)
         $tenantId = session('tenant_id');
-        if ($tenantId) {
-            return Tenant::find($tenantId);
+        if ($tenantId && is_numeric($tenantId)) {
+            return Tenant::find((int) $tenantId);
         }
 
         // Try getting from authenticated user
