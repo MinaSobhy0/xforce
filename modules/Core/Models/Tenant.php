@@ -166,10 +166,9 @@ class Tenant extends Model
         static::created(function (self $tenant) {
             if ($tenant->slug) {
                 \DB::statement("
-                    INSERT INTO tenant_domains (id, tenant_id, domain, type, is_primary, is_verified, ssl_status, dns_verified_at, created_at, updated_at)
-                    VALUES (?, ?, ?, ?, true, true, ?, ?, ?, ?)
+                    INSERT INTO tenant_domains (tenant_id, domain, type, is_primary, is_verified, ssl_status, dns_verified_at, created_at, updated_at)
+                    VALUES (?, ?, ?, true, true, ?, ?, ?, ?)
                 ", [
-                    (string) Str::uuid(),
                     $tenant->id,
                     $tenant->slug . '.xlinic.com',
                     'subdomain',
@@ -183,10 +182,9 @@ class Tenant extends Model
             // Also create custom domain if provided
             if ($tenant->domain) {
                 \DB::statement("
-                    INSERT INTO tenant_domains (id, tenant_id, domain, type, is_primary, is_verified, ssl_status, created_at, updated_at)
-                    VALUES (?, ?, ?, ?, false, false, ?, ?, ?)
+                    INSERT INTO tenant_domains (tenant_id, domain, type, is_primary, is_verified, ssl_status, created_at, updated_at)
+                    VALUES (?, ?, ?, false, false, ?, ?, ?)
                 ", [
-                    (string) Str::uuid(),
                     $tenant->id,
                     $tenant->domain,
                     'custom',
@@ -219,10 +217,9 @@ class Tenant extends Model
                 // Add new custom domain if provided
                 if ($newDomain) {
                     \DB::statement("
-                        INSERT INTO tenant_domains (id, tenant_id, domain, type, is_primary, is_verified, ssl_status, created_at, updated_at)
-                        VALUES (?, ?, ?, ?, false, false, ?, ?, ?)
+                        INSERT INTO tenant_domains (tenant_id, domain, type, is_primary, is_verified, ssl_status, created_at, updated_at)
+                        VALUES (?, ?, ?, false, false, ?, ?, ?)
                     ", [
-                        (string) Str::uuid(),
                         $tenant->id,
                         $newDomain,
                         'custom',
