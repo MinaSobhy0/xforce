@@ -77,7 +77,8 @@ class GiftCardGLService
             $lines,
             GiftCard::class,
             $card->id,
-            true
+            true,
+            $card->tenant_id
         );
     }
 
@@ -141,7 +142,8 @@ class GiftCardGLService
             $lines,
             GiftCard::class,
             $card->id,
-            true
+            true,
+            $card->tenant_id
         );
     }
 
@@ -190,7 +192,8 @@ class GiftCardGLService
             $lines,
             GiftCard::class,
             $card->id,
-            true
+            true,
+            $card->tenant_id
         );
     }
 
@@ -238,7 +241,8 @@ class GiftCardGLService
             $lines,
             GiftCard::class,
             $card->id,
-            true
+            true,
+            $card->tenant_id
         );
     }
 }
