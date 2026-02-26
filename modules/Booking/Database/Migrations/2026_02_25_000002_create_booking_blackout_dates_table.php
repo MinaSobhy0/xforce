@@ -9,9 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('booking_blackout_dates', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id');
-            $table->uuid('branch_id')->nullable(); // NULL = all branches
+            $table->id();
+            $table->foreignId('tenant_id');
+            $table->foreignId('branch_id')->nullable(); // NULL = all branches
 
             $table->string('name', 100);
 
@@ -30,8 +30,8 @@ return new class extends Migration
             $table->text('reason')->nullable();
             $table->boolean('is_active')->default(true);
 
-            $table->uuid('created_by')->nullable();
-            $table->uuid('updated_by')->nullable();
+            $table->foreignId('created_by')->nullable();
+            $table->foreignId('updated_by')->nullable();
             $table->timestamps();
             $table->softDeletes();
 

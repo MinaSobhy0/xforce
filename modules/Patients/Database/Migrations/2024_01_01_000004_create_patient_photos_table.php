@@ -12,10 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('patient_photos', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('patient_id')->index();
-            $table->uuid('appointment_id')->nullable()->index();
-            $table->uuid('treatment_id')->nullable()->index();
+            $table->id();
+            $table->foreignId('patient_id')->index();
+            $table->foreignId('appointment_id')->nullable()->index();
+            $table->foreignId('treatment_id')->nullable()->index();
 
             // Photo classification
             $table->enum('type', ['before', 'after', 'during', 'consultation', 'progress', 'reaction'])->default('consultation');
@@ -26,7 +26,7 @@ return new class extends Migration
 
             // Capture details
             $table->timestamp('taken_at')->nullable();
-            $table->uuid('taken_by')->nullable();
+            $table->foreignId('taken_by')->nullable();
 
             // Privacy
             $table->boolean('is_private')->default(false);

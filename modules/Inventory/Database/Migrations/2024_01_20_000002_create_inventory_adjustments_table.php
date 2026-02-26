@@ -9,9 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('inventory_adjustments', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
-            $table->uuid('branch_id')->index();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
+            $table->foreignId('branch_id')->index();
 
             $table->string('reference', 30)->unique();
             $table->string('adjustment_type', 30)->default('count');
@@ -25,25 +25,25 @@ return new class extends Migration
             $table->text('notes')->nullable();
 
             // Accounting
-            $table->uuid('journal_entry_id')->nullable();
+            $table->foreignId('journal_entry_id')->nullable();
             $table->integer('total_value_adjustment_minor')->default(0);
 
             // Approval
-            $table->uuid('validated_by')->nullable();
+            $table->foreignId('validated_by')->nullable();
             $table->timestamp('validated_at')->nullable();
 
-            $table->uuid('created_by')->nullable();
-            $table->uuid('cancelled_by')->nullable();
+            $table->foreignId('created_by')->nullable();
+            $table->foreignId('cancelled_by')->nullable();
             $table->timestamp('cancelled_at')->nullable();
 
             $table->timestamps();
         });
 
         Schema::create('inventory_adjustment_lines', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
-            $table->uuid('inventory_adjustment_id')->index();
-            $table->uuid('product_id')->index();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
+            $table->foreignId('inventory_adjustment_id')->index();
+            $table->foreignId('product_id')->index();
 
             $table->integer('theoretical_qty')->default(0); // System quantity
             $table->integer('counted_qty')->default(0); // Physical count

@@ -9,18 +9,18 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('salary_rules', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
             $table->string('name');
             $table->string('code', 50)->index();
-            $table->uuid('category_id')->index();
+            $table->foreignId('category_id')->index();
             $table->string('amount_type', 30)->default('fixed'); // fixed, percentage, formula
             $table->integer('amount_fixed_minor')->default(0);
             $table->decimal('amount_percentage', 8, 4)->nullable();
             $table->text('amount_formula')->nullable();
             $table->string('condition_type', 30)->nullable(); // always, range, formula
             $table->text('condition_formula')->nullable();
-            $table->uuid('percentage_base_id')->nullable(); // self-reference for percentage calculations
+            $table->foreignId('percentage_base_id')->nullable(); // self-reference for percentage calculations
             $table->string('field_mapping')->nullable(); // e.g., contract.salary, employee.allowance
             $table->integer('sequence')->default(0);
             $table->boolean('is_active')->default(true);

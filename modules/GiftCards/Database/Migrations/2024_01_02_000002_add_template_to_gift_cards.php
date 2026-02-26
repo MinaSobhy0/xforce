@@ -9,14 +9,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('gift_cards', function (Blueprint $table) {
-            $table->uuid('template_id')->nullable()->after('tenant_id');
-            $table->uuid('assigned_to_staff_id')->nullable()->after('recipient_patient_id');
+            $table->foreignId('template_id')->nullable()->after('tenant_id');
+            $table->foreignId('assigned_to_staff_id')->nullable()->after('recipient_patient_id');
             $table->timestamp('assigned_at')->nullable()->after('assigned_to_staff_id');
-            $table->uuid('sold_by_staff_id')->nullable()->after('assigned_at');
+            $table->foreignId('sold_by_staff_id')->nullable()->after('assigned_at');
             $table->string('encrypted_code')->nullable()->after('code');
             $table->string('code_hash')->nullable()->after('encrypted_code');
             $table->string('pin_code')->nullable()->after('code_hash');
-            $table->uuid('sale_journal_entry_id')->nullable()->after('purchased_via_invoice_id');
+            $table->foreignId('sale_journal_entry_id')->nullable()->after('purchased_via_invoice_id');
 
             $table->index(['tenant_id', 'template_id']);
             $table->index(['tenant_id', 'assigned_to_staff_id']);

@@ -9,12 +9,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('vendor_bills', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id');
+            $table->id();
+            $table->foreignId('tenant_id');
             $table->string('code')->unique();
-            $table->foreignUuid('supplier_id')->constrained('suppliers');
-            $table->foreignUuid('branch_id')->constrained('branches');
-            $table->foreignUuid('purchase_order_id')->nullable()->constrained('purchase_orders');
+            $table->foreignId('supplier_id')->constrained('suppliers');
+            $table->foreignId('branch_id')->constrained('branches');
+            $table->foreignId('purchase_order_id')->nullable()->constrained('purchase_orders');
             $table->string('vendor_reference')->nullable();
             $table->string('status')->default('draft');
             $table->integer('subtotal_minor')->default(0);
@@ -31,9 +31,9 @@ return new class extends Migration
             $table->timestamp('paid_at')->nullable();
             $table->timestamp('cancelled_at')->nullable();
             $table->string('cancellation_reason')->nullable();
-            $table->foreignUuid('journal_entry_id')->nullable();
-            $table->foreignUuid('created_by')->nullable();
-            $table->foreignUuid('validated_by')->nullable();
+            $table->foreignId('journal_entry_id')->nullable();
+            $table->foreignId('created_by')->nullable();
+            $table->foreignId('validated_by')->nullable();
             $table->timestamps();
             $table->softDeletes();
 
@@ -43,12 +43,12 @@ return new class extends Migration
         });
 
         Schema::create('vendor_bill_lines', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id');
-            $table->foreignUuid('vendor_bill_id')->constrained('vendor_bills')->cascadeOnDelete();
-            $table->foreignUuid('product_id')->nullable()->constrained('products');
-            $table->uuid('account_id')->nullable();
-            $table->foreignUuid('purchase_order_line_id')->nullable();
+            $table->id();
+            $table->foreignId('tenant_id');
+            $table->foreignId('vendor_bill_id')->constrained('vendor_bills')->cascadeOnDelete();
+            $table->foreignId('product_id')->nullable()->constrained('products');
+            $table->foreignId('account_id')->nullable();
+            $table->foreignId('purchase_order_line_id')->nullable();
             $table->string('description');
             $table->decimal('quantity', 10, 2)->default(1);
             $table->integer('unit_price_minor')->default(0);
@@ -68,7 +68,7 @@ return new class extends Migration
         // Add vendor_bill_id to purchase_orders if not exists
         if (!Schema::hasColumn('purchase_orders', 'vendor_bill_id')) {
             Schema::table('purchase_orders', function (Blueprint $table) {
-                $table->foreignUuid('vendor_bill_id')->nullable()->after('status');
+                $table->foreignId('vendor_bill_id')->nullable()->after('status');
             });
         }
     }

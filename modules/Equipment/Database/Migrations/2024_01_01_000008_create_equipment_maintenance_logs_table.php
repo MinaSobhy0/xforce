@@ -9,9 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('equipment_maintenance_logs', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->nullable()->index();
-            $table->foreignUuid('equipment_id')->constrained('equipment')->cascadeOnDelete();
+            $table->id();
+            $table->foreignId('tenant_id')->nullable()->index();
+            $table->foreignId('equipment_id')->constrained('equipment')->cascadeOnDelete();
             $table->string('type'); // preventive, corrective, calibration
             $table->text('description')->nullable();
             $table->string('performed_by')->nullable();

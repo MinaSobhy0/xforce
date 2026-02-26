@@ -9,15 +9,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('appointments', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->nullable()->index();
+            $table->id();
+            $table->foreignId('tenant_id')->nullable()->index();
             $table->string('code')->unique();
-            $table->foreignUuid('patient_id')->constrained('patients')->cascadeOnDelete();
-            $table->foreignUuid('service_id')->constrained('services')->cascadeOnDelete();
-            $table->foreignUuid('branch_id')->constrained('branches')->cascadeOnDelete();
-            $table->foreignUuid('practitioner_id')->constrained('users')->cascadeOnDelete();
-            $table->foreignUuid('room_id')->nullable()->constrained('rooms')->nullOnDelete();
-            $table->uuid('equipment_id')->nullable(); // FK added when Equipment module exists
+            $table->foreignId('patient_id')->constrained('patients')->cascadeOnDelete();
+            $table->foreignId('service_id')->constrained('services')->cascadeOnDelete();
+            $table->foreignId('branch_id')->constrained('branches')->cascadeOnDelete();
+            $table->foreignId('practitioner_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignId('room_id')->nullable()->constrained('rooms')->nullOnDelete();
+            $table->foreignId('equipment_id')->nullable(); // FK added when Equipment module exists
             $table->date('date');
             $table->time('start_time');
             $table->time('end_time')->nullable();
@@ -28,7 +28,7 @@ return new class extends Migration
             $table->text('notes')->nullable();
             $table->text('internal_notes')->nullable();
             $table->text('cancellation_reason')->nullable();
-            $table->uuid('rescheduled_from_id')->nullable();
+            $table->foreignId('rescheduled_from_id')->nullable();
             $table->string('source')->default('phone');
             $table->timestamp('confirmed_at')->nullable();
             $table->timestamp('checked_in_at')->nullable();

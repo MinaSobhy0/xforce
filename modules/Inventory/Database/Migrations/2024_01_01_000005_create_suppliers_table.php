@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('suppliers', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
             $table->string('code', 20)->unique();
             $table->jsonb('name');
             $table->string('contact_person')->nullable();

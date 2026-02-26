@@ -9,10 +9,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('stock_levels', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
-            $table->uuid('product_id');
-            $table->uuid('branch_id');
+            $table->id();
+            $table->foreignId('tenant_id')->index();
+            $table->foreignId('product_id');
+            $table->foreignId('branch_id');
             $table->integer('quantity_on_hand')->default(0);
             $table->integer('quantity_reserved')->default(0);
             $table->integer('quantity_on_order')->default(0);

@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::table('salary_rules', function (Blueprint $table) {
             // Account fields for journal entries
-            $table->uuid('debit_account_id')->nullable()->after('condition');
-            $table->uuid('credit_account_id')->nullable()->after('debit_account_id');
+            $table->foreignId('debit_account_id')->nullable()->after('condition');
+            $table->foreignId('credit_account_id')->nullable()->after('debit_account_id');
 
             // Whether to create journal entry lines for this rule
             $table->boolean('creates_journal_entry')->default(false)->after('credit_account_id');

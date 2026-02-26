@@ -9,12 +9,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('waitlist', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->nullable()->index();
-            $table->foreignUuid('patient_id')->constrained('patients')->cascadeOnDelete();
-            $table->foreignUuid('service_id')->constrained('services')->cascadeOnDelete();
-            $table->foreignUuid('branch_id')->constrained('branches')->cascadeOnDelete();
-            $table->uuid('practitioner_id')->nullable(); // Nullable = any practitioner
+            $table->id();
+            $table->foreignId('tenant_id')->nullable()->index();
+            $table->foreignId('patient_id')->constrained('patients')->cascadeOnDelete();
+            $table->foreignId('service_id')->constrained('services')->cascadeOnDelete();
+            $table->foreignId('branch_id')->constrained('branches')->cascadeOnDelete();
+            $table->foreignId('practitioner_id')->nullable(); // Nullable = any practitioner
             $table->jsonb('preferred_days')->nullable(); // [0, 1, 2] for Sun, Mon, Tue
             $table->jsonb('preferred_times')->nullable(); // ['morning', 'afternoon', 'evening']
             $table->integer('priority')->default(2); // 1=low, 2=normal, 3=high, 4=urgent

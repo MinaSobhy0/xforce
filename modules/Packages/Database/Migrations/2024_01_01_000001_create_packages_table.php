@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('packages', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
             $table->jsonb('name');
             $table->jsonb('description')->nullable();
             $table->string('type')->default('session_bundle'); // session_bundle, value_bundle

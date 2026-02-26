@@ -10,9 +10,9 @@ return new class extends Migration
     {
         Schema::table('products', function (Blueprint $table) {
             // Accounting accounts for inventory valuation (like Odoo)
-            $table->uuid('stock_input_account_id')->nullable()->after('image_url');
-            $table->uuid('stock_output_account_id')->nullable()->after('stock_input_account_id');
-            $table->uuid('stock_valuation_account_id')->nullable()->after('stock_output_account_id');
+            $table->foreignId('stock_input_account_id')->nullable()->after('image_url');
+            $table->foreignId('stock_output_account_id')->nullable()->after('stock_input_account_id');
+            $table->foreignId('stock_valuation_account_id')->nullable()->after('stock_output_account_id');
 
             // Inventory valuation method
             $table->string('valuation_method', 20)->default('standard')->after('stock_valuation_account_id');

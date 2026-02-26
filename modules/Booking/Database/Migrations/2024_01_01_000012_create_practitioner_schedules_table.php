@@ -9,10 +9,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('practitioner_schedules', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->nullable()->index();
-            $table->foreignUuid('user_id')->constrained('users')->cascadeOnDelete();
-            $table->foreignUuid('branch_id')->constrained('branches')->cascadeOnDelete();
+            $table->id();
+            $table->foreignId('tenant_id')->nullable()->index();
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignId('branch_id')->constrained('branches')->cascadeOnDelete();
             $table->integer('day_of_week'); // 0 = Sunday, 6 = Saturday
             $table->time('start_time');
             $table->time('end_time');

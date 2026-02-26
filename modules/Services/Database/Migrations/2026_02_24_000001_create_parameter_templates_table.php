@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('parameter_templates', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->nullable(); // null = system template
+            $table->id();
+            $table->foreignId('tenant_id')->nullable(); // null = system template
             $table->string('template_name', 200);
             $table->string('template_code', 50)->unique();
             $table->text('description')->nullable();
@@ -18,8 +18,8 @@ return new class extends Migration
             $table->json('parameters'); // Array of parameter definitions
             $table->boolean('is_system')->default(false); // Read-only if true
             $table->boolean('is_active')->default(true);
-            $table->uuid('created_by')->nullable();
-            $table->uuid('updated_by')->nullable();
+            $table->foreignId('created_by')->nullable();
+            $table->foreignId('updated_by')->nullable();
             $table->timestamps();
 
             $table->foreign('tenant_id')

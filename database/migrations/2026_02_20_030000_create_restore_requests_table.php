@@ -9,11 +9,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('restore_requests', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id');
-            $table->uuid('backup_id');
-            $table->uuid('requested_by');
-            $table->uuid('approved_by')->nullable();
+            $table->id();
+            $table->foreignId('tenant_id');
+            $table->foreignId('backup_id');
+            $table->foreignId('requested_by');
+            $table->foreignId('approved_by')->nullable();
             $table->string('status')->default('pending');
             $table->text('reason')->nullable();
             $table->text('admin_notes')->nullable();

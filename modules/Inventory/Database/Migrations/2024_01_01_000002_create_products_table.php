@@ -9,9 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('products', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
-            $table->uuid('category_id')->nullable();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
+            $table->foreignId('category_id')->nullable();
             $table->string('sku', 50)->unique();
             $table->jsonb('name');
             $table->jsonb('description')->nullable();
@@ -27,11 +27,11 @@ return new class extends Migration
             $table->string('image_url')->nullable();
 
             // Accounting integration
-            $table->uuid('stock_input_account_id')->nullable();
-            $table->uuid('stock_output_account_id')->nullable();
-            $table->uuid('stock_valuation_account_id')->nullable();
-            $table->uuid('income_account_id')->nullable();
-            $table->uuid('expense_account_id')->nullable();
+            $table->foreignId('stock_input_account_id')->nullable();
+            $table->foreignId('stock_output_account_id')->nullable();
+            $table->foreignId('stock_valuation_account_id')->nullable();
+            $table->foreignId('income_account_id')->nullable();
+            $table->foreignId('expense_account_id')->nullable();
             $table->string('valuation_method', 50)->default('average'); // average, fifo, lifo
 
             $table->timestamps();

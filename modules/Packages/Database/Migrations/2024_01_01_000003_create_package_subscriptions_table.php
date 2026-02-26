@@ -9,11 +9,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('package_subscriptions', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
-            $table->uuid('patient_id')->index();
-            $table->uuid('package_id')->index();
-            $table->uuid('invoice_id')->nullable()->index();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
+            $table->foreignId('patient_id')->index();
+            $table->foreignId('package_id')->index();
+            $table->foreignId('invoice_id')->nullable()->index();
             $table->string('status')->default('active'); // active, completed, expired, cancelled, frozen
             $table->timestamp('purchased_at')->nullable();
             $table->timestamp('expires_at')->nullable()->index();

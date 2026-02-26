@@ -9,11 +9,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('loyalty_transactions', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
 
-            $table->uuid('patient_id')->index();
-            $table->uuid('loyalty_rule_id')->nullable();
+            $table->foreignId('patient_id')->index();
+            $table->foreignId('loyalty_rule_id')->nullable();
 
             $table->string('type'); // earn, redeem, expire, adjust, refund, bonus, referral
             $table->integer('points'); // Positive for credits, negative for debits
@@ -23,7 +23,7 @@ return new class extends Migration
 
             // Polymorphic reference (invoice, payment, appointment, etc.)
             $table->string('reference_type')->nullable();
-            $table->uuid('reference_id')->nullable();
+            $table->foreignId('reference_id')->nullable();
 
             // Additional metadata
             $table->jsonb('metadata')->nullable();
@@ -31,7 +31,7 @@ return new class extends Migration
             // Points expiry (for earned points)
             $table->timestamp('expires_at')->nullable();
 
-            $table->uuid('created_by_user_id')->nullable();
+            $table->foreignId('created_by_user_id')->nullable();
 
             $table->timestamps();
 

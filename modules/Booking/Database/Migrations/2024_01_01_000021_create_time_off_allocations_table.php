@@ -9,10 +9,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('time_off_allocations', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->nullable()->index();
-            $table->uuid('user_id')->index();
-            $table->uuid('time_off_type_id')->index();
+            $table->id();
+            $table->foreignId('tenant_id')->nullable()->index();
+            $table->foreignId('user_id')->index();
+            $table->foreignId('time_off_type_id')->index();
             $table->integer('year');
             $table->decimal('allocated_days', 5, 1)->default(0);
             $table->decimal('used_days', 5, 1)->default(0);

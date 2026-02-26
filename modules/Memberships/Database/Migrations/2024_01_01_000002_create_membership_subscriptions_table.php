@@ -9,16 +9,16 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('membership_subscriptions', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
-            $table->uuid('patient_id')->index();
-            $table->uuid('membership_id')->index();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
+            $table->foreignId('patient_id')->index();
+            $table->foreignId('membership_id')->index();
             $table->string('billing_cycle')->default('monthly'); // monthly, yearly
             $table->string('status')->default('active'); // active, expired, cancelled, frozen
             $table->timestamp('started_at')->nullable();
             $table->timestamp('expires_at')->nullable()->index();
             $table->boolean('auto_renew')->default(true);
-            $table->uuid('renewal_invoice_id')->nullable();
+            $table->foreignId('renewal_invoice_id')->nullable();
             $table->timestamp('frozen_at')->nullable();
             $table->timestamp('frozen_until')->nullable();
             $table->timestamp('cancelled_at')->nullable();

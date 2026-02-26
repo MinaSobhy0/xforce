@@ -9,10 +9,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('purchase_orders', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
-            $table->uuid('branch_id');
-            $table->uuid('supplier_id');
+            $table->id();
+            $table->foreignId('tenant_id')->index();
+            $table->foreignId('branch_id');
+            $table->foreignId('supplier_id');
             $table->string('order_number', 30)->unique();
             $table->string('status', 30)->default('draft');
             $table->date('order_date');
@@ -25,10 +25,10 @@ return new class extends Migration
             $table->integer('total_amount_minor')->default(0);
             $table->text('notes')->nullable();
             $table->text('internal_notes')->nullable();
-            $table->uuid('created_by')->nullable();
-            $table->uuid('approved_by')->nullable();
+            $table->foreignId('created_by')->nullable();
+            $table->foreignId('approved_by')->nullable();
             $table->timestamp('approved_at')->nullable();
-            $table->uuid('received_by')->nullable();
+            $table->foreignId('received_by')->nullable();
             $table->timestamps();
 
             $table->foreign('branch_id')

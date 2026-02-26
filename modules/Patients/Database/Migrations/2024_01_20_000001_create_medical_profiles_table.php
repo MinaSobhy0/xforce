@@ -9,9 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('medical_profiles', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id');
-            $table->uuid('patient_id')->unique();
+            $table->id();
+            $table->foreignId('tenant_id');
+            $table->foreignId('patient_id')->unique();
             $table->string('blood_type', 5)->nullable();
             $table->boolean('is_pregnant')->nullable();
             $table->boolean('is_breastfeeding')->nullable();
@@ -20,9 +20,9 @@ return new class extends Migration
             $table->enum('status', ['active', 'archived', 'transferred'])->default('active');
             $table->timestamp('profile_created_at')->nullable();
             $table->timestamp('last_reviewed_at')->nullable();
-            $table->uuid('reviewed_by')->nullable();
-            $table->uuid('created_by')->nullable();
-            $table->uuid('updated_by')->nullable();
+            $table->foreignId('reviewed_by')->nullable();
+            $table->foreignId('created_by')->nullable();
+            $table->foreignId('updated_by')->nullable();
             $table->timestamps();
             $table->softDeletes();
 

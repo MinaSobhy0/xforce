@@ -10,9 +10,9 @@ return new class extends Migration
     {
         // Create service categories table
         Schema::create('service_categories', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
-            $table->uuid('parent_id')->nullable()->index();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
+            $table->foreignId('parent_id')->nullable()->index();
             $table->jsonb('name');
             $table->jsonb('description')->nullable();
             $table->string('image_url')->nullable();
@@ -34,11 +34,11 @@ return new class extends Migration
 
         // Create services table
         Schema::create('services', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
-            $table->uuid('category_id')->nullable()->index();
-            $table->uuid('consent_template_id')->nullable()->index();
-            $table->uuid('parameter_template_id')->nullable();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
+            $table->foreignId('category_id')->nullable()->index();
+            $table->foreignId('consent_template_id')->nullable()->index();
+            $table->foreignId('parameter_template_id')->nullable();
             $table->string('parameter_mode', 20)->default('none'); // none, template, custom
             $table->boolean('has_dynamic_parameters')->default(false);
             $table->string('code', 30)->index();
@@ -79,10 +79,10 @@ return new class extends Migration
 
         // Create service branch pricing table
         Schema::create('service_branch_pricing', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
-            $table->uuid('service_id')->index();
-            $table->uuid('branch_id')->index();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
+            $table->foreignId('service_id')->index();
+            $table->foreignId('branch_id')->index();
             $table->integer('price_minor');
             $table->boolean('is_active')->default(true);
             $table->timestamps();
@@ -102,8 +102,8 @@ return new class extends Migration
 
         // Create consent templates table
         Schema::create('consent_templates', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
             $table->jsonb('name');
             $table->jsonb('content');
             $table->boolean('is_active')->default(true);

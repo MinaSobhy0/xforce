@@ -9,11 +9,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('product_categories', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
             $table->jsonb('name');
             $table->jsonb('description')->nullable();
-            $table->uuid('parent_id')->nullable()->index();
+            $table->foreignId('parent_id')->nullable()->index();
             $table->boolean('is_active')->default(true);
             $table->integer('sort_order')->default(0);
             $table->timestamps();

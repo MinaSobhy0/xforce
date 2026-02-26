@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('tenant_domains', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->foreignUuid('tenant_id')->constrained('tenants')->cascadeOnDelete();
+            $table->id();
+            $table->foreignId('tenant_id')->constrained('tenants')->cascadeOnDelete();
             $table->string('domain')->unique();
             $table->string('type')->default('subdomain'); // subdomain, custom
             $table->boolean('is_primary')->default(false);

@@ -9,9 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('service_parameters', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id');
-            $table->uuid('service_id');
+            $table->id();
+            $table->foreignId('tenant_id');
+            $table->foreignId('service_id');
             $table->string('parameter_key', 100);
             $table->json('parameter_config');
             /*

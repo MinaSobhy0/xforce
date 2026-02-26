@@ -12,9 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('patient_notes', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('patient_id')->index();
-            $table->uuid('appointment_id')->nullable()->index();
+            $table->id();
+            $table->foreignId('patient_id')->index();
+            $table->foreignId('appointment_id')->nullable()->index();
 
             // Note type
             $table->enum('type', [
@@ -39,7 +39,7 @@ return new class extends Migration
             $table->timestamp('alert_until')->nullable();
 
             // Creator
-            $table->uuid('created_by')->nullable();
+            $table->foreignId('created_by')->nullable();
 
             // Attachments
             $table->jsonb('attachments')->nullable();

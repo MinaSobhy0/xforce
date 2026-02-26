@@ -9,9 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('medical_histories', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id');
-            $table->uuid('medical_profile_id');
+            $table->id();
+            $table->foreignId('tenant_id');
+            $table->foreignId('medical_profile_id');
             $table->enum('history_type', ['medical_condition', 'surgery', 'hospitalization', 'family_history', 'social_history']);
             $table->string('name');
             $table->text('description')->nullable();
@@ -25,7 +25,7 @@ return new class extends Migration
             $table->boolean('affects_treatment')->default(false);
             $table->text('treatment_implications')->nullable();
             $table->boolean('verified_by_doctor')->default(false);
-            $table->uuid('verified_by')->nullable();
+            $table->foreignId('verified_by')->nullable();
             $table->timestamp('verified_at')->nullable();
             $table->timestamps();
             $table->softDeletes();

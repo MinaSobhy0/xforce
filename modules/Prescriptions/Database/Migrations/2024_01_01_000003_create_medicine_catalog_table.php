@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('medicine_catalog', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->nullable()->index(); // null = system default
+            $table->id();
+            $table->foreignId('tenant_id')->nullable()->index(); // null = system default
 
             // Basic info
             $table->string('brand_name');

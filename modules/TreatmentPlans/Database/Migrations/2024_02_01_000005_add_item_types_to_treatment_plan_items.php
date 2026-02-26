@@ -14,7 +14,7 @@ return new class extends Migration
 
             // Polymorphic columns for itemable (Service, Package, Product)
             $table->string('itemable_type')->nullable()->after('item_type');
-            $table->uuid('itemable_id')->nullable()->after('itemable_type');
+            $table->foreignId('itemable_id')->nullable()->after('itemable_type');
 
             // Pricing
             $table->integer('unit_price_minor')->default(0)->after('session_interval_days');

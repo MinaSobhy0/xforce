@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('modules', function (Blueprint $table) {
-            $table->uuid('id')->primary();
+            $table->id();
             $table->string('code', 50)->unique();
             $table->jsonb('name'); // Translatable
             $table->jsonb('description')->nullable(); // Translatable

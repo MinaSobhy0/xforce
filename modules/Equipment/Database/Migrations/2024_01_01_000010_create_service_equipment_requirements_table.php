@@ -9,9 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('service_equipment_requirements', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->foreignUuid('service_id')->constrained('services')->cascadeOnDelete();
-            $table->foreignUuid('equipment_type_id')->constrained('equipment_types')->cascadeOnDelete();
+            $table->id();
+            $table->foreignId('service_id')->constrained('services')->cascadeOnDelete();
+            $table->foreignId('equipment_type_id')->constrained('equipment_types')->cascadeOnDelete();
             $table->boolean('is_required')->default(true);
             $table->timestamps();
 

@@ -9,9 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('import_mappings', function (Blueprint $table) {
-            $table->uuid('id')->primary();
+            $table->id();
             $table->string('tenant_id')->nullable()->index();
-            $table->uuid('user_id');
+            $table->foreignId('user_id');
             $table->string('resource_class');
             $table->string('name');
             $table->json('column_map');

@@ -9,10 +9,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('staff_profiles', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
-            $table->uuid('user_id');
-            $table->uuid('branch_id')->nullable();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
+            $table->foreignId('user_id');
+            $table->foreignId('branch_id')->nullable();
             $table->string('employee_number', 30)->nullable();
             $table->string('job_title', 100)->nullable();
             $table->jsonb('bio')->nullable();

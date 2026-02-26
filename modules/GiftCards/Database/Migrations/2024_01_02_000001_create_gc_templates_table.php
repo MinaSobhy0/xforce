@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('gc_templates', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
             $table->string('code')->index();
             $table->string('name');
             $table->text('description')->nullable();
@@ -36,13 +36,13 @@ return new class extends Migration
             $table->boolean('is_active')->default(true);
 
             // GL Accounts (FK to chart_of_accounts)
-            $table->uuid('liability_account_id')->nullable();
-            $table->uuid('revenue_account_id')->nullable();
-            $table->uuid('expense_account_id')->nullable();
-            $table->uuid('breakage_account_id')->nullable();
-            $table->uuid('sales_journal_id')->nullable();
+            $table->foreignId('liability_account_id')->nullable();
+            $table->foreignId('revenue_account_id')->nullable();
+            $table->foreignId('expense_account_id')->nullable();
+            $table->foreignId('breakage_account_id')->nullable();
+            $table->foreignId('sales_journal_id')->nullable();
 
-            $table->uuid('created_by_user_id')->nullable();
+            $table->foreignId('created_by_user_id')->nullable();
             $table->timestamps();
             $table->softDeletes();
 

@@ -12,9 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('patients', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->nullable()->index();
-            $table->uuid('branch_id')->nullable()->index();
+            $table->id();
+            $table->foreignId('tenant_id')->nullable()->index();
+            $table->foreignId('branch_id')->nullable()->index();
 
             // Identification
             $table->string('code', 50)->unique();
@@ -47,7 +47,7 @@ return new class extends Migration
 
             // Referral
             $table->string('referral_source', 50)->nullable()->index();
-            $table->uuid('referred_by_patient_id')->nullable();
+            $table->foreignId('referred_by_patient_id')->nullable();
             $table->string('referred_by_name', 200)->nullable();
 
             // Preferences

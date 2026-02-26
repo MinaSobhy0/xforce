@@ -9,9 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('patient_amr_summaries', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id');
-            $table->uuid('patient_id')->unique(); // One summary per patient
+            $table->id();
+            $table->foreignId('tenant_id');
+            $table->foreignId('patient_id')->unique(); // One summary per patient
 
             // Aggregated data from all AMR tests
             $table->jsonb('known_organisms')->nullable(); // ['MRSA', 'E. coli', 'P. aeruginosa']
@@ -24,11 +24,11 @@ return new class extends Migration
             $table->text('alert_notes')->nullable();
 
             // Last test reference
-            $table->uuid('last_test_id')->nullable();
+            $table->foreignId('last_test_id')->nullable();
             $table->date('last_test_date')->nullable();
 
             // Audit
-            $table->uuid('last_updated_by')->nullable();
+            $table->foreignId('last_updated_by')->nullable();
             $table->timestamp('last_updated_at')->nullable();
 
             $table->timestamps();

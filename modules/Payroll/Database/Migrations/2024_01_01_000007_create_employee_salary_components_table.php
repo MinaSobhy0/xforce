@@ -9,10 +9,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('employee_salary_components', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
-            $table->uuid('staff_profile_id')->index();
-            $table->uuid('salary_rule_id')->nullable()->index();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
+            $table->foreignId('staff_profile_id')->index();
+            $table->foreignId('salary_rule_id')->nullable()->index();
             $table->string('name'); // Custom name if no salary rule
             $table->string('component_type', 30); // earning, deduction
             $table->string('calculation_type', 30)->default('fixed'); // fixed, percentage, formula
@@ -23,8 +23,8 @@ return new class extends Migration
             $table->date('end_date')->nullable();
             $table->boolean('is_taxable')->default(true);
             $table->boolean('is_active')->default(true);
-            $table->uuid('loan_id')->nullable(); // For loan repayment deductions
-            $table->uuid('created_by')->nullable();
+            $table->foreignId('loan_id')->nullable(); // For loan repayment deductions
+            $table->foreignId('created_by')->nullable();
             $table->timestamps();
 
             $table->foreign('staff_profile_id')

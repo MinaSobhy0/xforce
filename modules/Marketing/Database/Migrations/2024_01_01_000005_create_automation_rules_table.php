@@ -9,12 +9,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('automation_rules', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
             $table->jsonb('name'); // translatable
             $table->jsonb('description')->nullable(); // translatable
             $table->string('trigger_type', 50); // appointment_confirmed, invoice_paid, etc.
-            $table->uuid('template_id');
+            $table->foreignId('template_id');
             $table->string('channel', 20); // whatsapp, sms, email
             $table->string('timing_type', 20)->default('immediate'); // immediate, before, after
             $table->integer('timing_value')->default(0);

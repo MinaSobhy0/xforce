@@ -11,26 +11,26 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('commission_plans', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->nullable()->index();
+            $table->id();
+            $table->foreignId('tenant_id')->nullable()->index();
             $table->string('name');
             $table->text('description')->nullable();
             $table->string('commission_type')->default('percentage'); // percentage, flat, tiered
             $table->decimal('default_percentage', 5, 2)->nullable();
             $table->integer('default_flat_amount_minor')->default(0);
             $table->boolean('is_active')->default(true);
-            $table->uuid('created_by')->nullable();
+            $table->foreignId('created_by')->nullable();
             $table->timestamps();
 
             $table->index(['tenant_id', 'is_active']);
         });
 
         Schema::create('commission_plan_rules', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->nullable()->index();
-            $table->uuid('commission_plan_id');
-            $table->uuid('service_id')->nullable();
-            $table->uuid('service_category_id')->nullable();
+            $table->id();
+            $table->foreignId('tenant_id')->nullable()->index();
+            $table->foreignId('commission_plan_id');
+            $table->foreignId('service_id')->nullable();
+            $table->foreignId('service_category_id')->nullable();
             $table->string('commission_type')->default('percentage');
             $table->decimal('percentage', 5, 2)->nullable();
             $table->integer('flat_amount_minor')->default(0);
@@ -50,7 +50,7 @@ return new class extends Migration
 
         // Add commission_plan_id to staff_profiles
         Schema::table('staff_profiles', function (Blueprint $table) {
-            $table->uuid('commission_plan_id')->nullable()->after('branch_id');
+            $table->foreignId('commission_plan_id')->nullable()->after('branch_id');
 
             $table->foreign('commission_plan_id')
                 ->references('id')

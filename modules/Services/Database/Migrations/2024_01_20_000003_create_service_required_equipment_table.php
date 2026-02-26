@@ -9,10 +9,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('service_required_equipment', function (Blueprint $table) {
-            $table->uuid('id')->primary()->default(\Illuminate\Support\Facades\DB::raw('gen_random_uuid()'));
-            $table->uuid('tenant_id')->nullable();
-            $table->uuid('service_id');
-            $table->uuid('equipment_id');
+            $table->id();
+            $table->foreignId('tenant_id')->nullable();
+            $table->foreignId('service_id');
+            $table->foreignId('equipment_id');
             $table->boolean('is_mandatory')->default(true);
             $table->timestamps();
 

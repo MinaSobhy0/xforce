@@ -9,15 +9,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('salary_structures', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
             $table->string('name');
             $table->string('code', 50)->index();
             $table->text('description')->nullable();
             $table->string('pay_frequency', 30)->default('monthly'); // monthly, bi-weekly, weekly, daily, hourly
             $table->string('currency', 10)->default('EGP');
             $table->boolean('is_active')->default(true);
-            $table->uuid('created_by')->nullable();
+            $table->foreignId('created_by')->nullable();
             $table->timestamps();
 
             $table->foreign('created_by')
@@ -31,8 +31,8 @@ return new class extends Migration
 
         // Pivot table for salary structure rules
         Schema::create('salary_structure_rules', function (Blueprint $table) {
-            $table->uuid('salary_structure_id');
-            $table->uuid('salary_rule_id');
+            $table->foreignId('salary_structure_id');
+            $table->foreignId('salary_rule_id');
             $table->integer('sequence')->default(0);
             $table->timestamps();
 

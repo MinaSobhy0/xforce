@@ -9,9 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('patient_amr_tests', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id');
-            $table->uuid('patient_id');
+            $table->id();
+            $table->foreignId('tenant_id');
+            $table->foreignId('patient_id');
 
             // Lab reference
             $table->string('lab_accession_number')->nullable();
@@ -50,15 +50,15 @@ return new class extends Migration
 
             // Laboratory information
             $table->string('laboratory_name')->nullable();
-            $table->uuid('ordering_physician_id')->nullable();
+            $table->foreignId('ordering_physician_id')->nullable();
 
             // Clinical notes
             $table->text('clinical_notes')->nullable();
             $table->text('recommendations')->nullable();
 
             // Verification
-            $table->uuid('created_by')->nullable();
-            $table->uuid('verified_by')->nullable();
+            $table->foreignId('created_by')->nullable();
+            $table->foreignId('verified_by')->nullable();
             $table->timestamp('verified_at')->nullable();
 
             $table->timestamps();

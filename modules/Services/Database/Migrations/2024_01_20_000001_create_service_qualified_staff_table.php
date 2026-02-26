@@ -9,10 +9,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('service_qualified_staff', function (Blueprint $table) {
-            $table->uuid('id')->primary()->default(\Illuminate\Support\Facades\DB::raw('gen_random_uuid()'));
-            $table->uuid('tenant_id')->nullable();
-            $table->uuid('service_id');
-            $table->uuid('staff_profile_id');
+            $table->id();
+            $table->foreignId('tenant_id')->nullable();
+            $table->foreignId('service_id');
+            $table->foreignId('staff_profile_id');
             $table->timestamps();
 
             $table->foreign('service_id')->references('id')->on('services')->cascadeOnDelete();

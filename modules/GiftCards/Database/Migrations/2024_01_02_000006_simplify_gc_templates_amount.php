@@ -28,8 +28,8 @@ return new class extends Migration
         Schema::table('gc_templates', function (Blueprint $table) {
             $table->integer('max_amount_minor')->default(100000000)->after('min_amount_minor');
             $table->json('preset_amounts')->nullable()->after('max_amount_minor');
-            $table->uuid('revenue_account_id')->nullable()->after('liability_account_id');
-            $table->uuid('breakage_account_id')->nullable()->after('expense_account_id');
+            $table->foreignId('revenue_account_id')->nullable()->after('liability_account_id');
+            $table->foreignId('breakage_account_id')->nullable()->after('expense_account_id');
         });
     }
 };

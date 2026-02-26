@@ -9,17 +9,17 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('system_alerts', function (Blueprint $table) {
-            $table->uuid('id')->primary();
+            $table->id();
             $table->string('type');
             $table->string('severity'); // critical, warning, info
             $table->string('title');
             $table->text('message');
             $table->string('source')->default('system');
             $table->jsonb('metadata')->nullable();
-            $table->foreignUuid('tenant_id')->nullable()->constrained('tenants')->nullOnDelete();
+            $table->foreignId('tenant_id')->nullable()->constrained('tenants')->nullOnDelete();
             $table->boolean('is_resolved')->default(false);
             $table->timestamp('resolved_at')->nullable();
-            $table->foreignUuid('resolved_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('resolved_by')->nullable()->constrained('users')->nullOnDelete();
             $table->text('resolution_notes')->nullable();
             $table->timestamps();
 

@@ -20,7 +20,7 @@ return new class extends Migration
             $table->unsignedInteger('processed_rows')->default(0);
             $table->unsignedInteger('total_rows');
             $table->unsignedInteger('successful_rows')->default(0);
-            $table->uuid('user_id');
+            $table->foreignId('user_id');
             $table->timestamps();
 
             $table->foreign('user_id')

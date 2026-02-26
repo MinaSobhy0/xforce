@@ -9,9 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('equipment_tracking_parameters', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id');
-            $table->uuid('equipment_id');
+            $table->id();
+            $table->foreignId('tenant_id');
+            $table->foreignId('equipment_id');
 
             // Parameter identification
             $table->string('parameter_key', 50);

@@ -9,10 +9,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('campaign_recipients', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
-            $table->uuid('campaign_id');
-            $table->uuid('patient_id')->nullable();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
+            $table->foreignId('campaign_id');
+            $table->foreignId('patient_id')->nullable();
             $table->string('phone', 20)->nullable();
             $table->string('email')->nullable();
             $table->string('status', 20)->default('pending');

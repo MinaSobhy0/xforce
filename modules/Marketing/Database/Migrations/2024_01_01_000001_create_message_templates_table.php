@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('message_templates', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
             $table->string('code', 50)->index();
             $table->jsonb('name'); // translatable
             $table->string('channel', 20); // whatsapp, sms, email

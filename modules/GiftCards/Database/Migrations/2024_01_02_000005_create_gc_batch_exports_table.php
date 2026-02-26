@@ -9,15 +9,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('gc_batch_exports', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
             $table->string('batch_code')->index();
-            $table->uuid('template_id')->nullable();
+            $table->foreignId('template_id')->nullable();
             $table->integer('quantity');
             $table->string('export_format')->nullable();  // csv, pdf, excel
             $table->json('card_ids')->nullable();
             $table->json('metadata')->nullable();
-            $table->uuid('exported_by')->nullable();
+            $table->foreignId('exported_by')->nullable();
             $table->timestamp('exported_at')->nullable();
             $table->timestamps();
 

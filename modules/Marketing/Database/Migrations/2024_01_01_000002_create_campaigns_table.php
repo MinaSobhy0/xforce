@@ -9,11 +9,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('campaigns', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
             $table->jsonb('name'); // translatable
             $table->jsonb('description')->nullable(); // translatable
-            $table->uuid('template_id');
+            $table->foreignId('template_id');
             $table->string('channel', 20); // whatsapp, sms, email
             $table->jsonb('audience_filters_json')->nullable(); // filter criteria
             $table->string('status', 20)->default('draft');
@@ -26,7 +26,7 @@ return new class extends Migration
             $table->integer('delivered_count')->default(0);
             $table->integer('read_count')->default(0);
             $table->integer('failed_count')->default(0);
-            $table->uuid('created_by_user_id')->nullable();
+            $table->foreignId('created_by_user_id')->nullable();
             $table->timestamps();
 
             $table->foreign('template_id')

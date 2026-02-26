@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('salary_rule_categories', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
             $table->string('name');
             $table->string('code', 50)->index();
             $table->text('description')->nullable();

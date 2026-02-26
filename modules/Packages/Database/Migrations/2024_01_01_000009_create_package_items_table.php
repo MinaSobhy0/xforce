@@ -9,10 +9,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('package_items', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
-            $table->uuid('package_id')->index();
-            $table->uuid('service_id')->index();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
+            $table->foreignId('package_id')->index();
+            $table->foreignId('service_id')->index();
             $table->integer('quantity')->default(1);
             $table->integer('sort_order')->default(0);
             $table->timestamps();

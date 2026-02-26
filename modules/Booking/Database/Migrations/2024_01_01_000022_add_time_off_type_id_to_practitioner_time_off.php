@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('practitioner_time_off', function (Blueprint $table) {
-            $table->uuid('time_off_type_id')->nullable()->after('branch_id');
+            $table->foreignId('time_off_type_id')->nullable()->after('branch_id');
             $table->decimal('days_requested', 5, 1)->nullable()->after('is_full_day');
 
             $table->foreign('time_off_type_id')

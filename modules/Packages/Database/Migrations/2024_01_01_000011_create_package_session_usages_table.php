@@ -9,13 +9,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('package_session_usages', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
-            $table->uuid('subscription_id')->index();
-            $table->uuid('service_id')->index();
-            $table->uuid('appointment_id')->nullable()->index();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
+            $table->foreignId('subscription_id')->index();
+            $table->foreignId('service_id')->index();
+            $table->foreignId('appointment_id')->nullable()->index();
             $table->timestamp('used_at')->index();
-            $table->uuid('used_by_user_id')->nullable();
+            $table->foreignId('used_by_user_id')->nullable();
             $table->text('notes')->nullable();
             $table->timestamps();
 

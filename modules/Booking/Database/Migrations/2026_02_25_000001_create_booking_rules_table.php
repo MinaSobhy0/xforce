@@ -9,13 +9,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('booking_rules', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id');
+            $table->id();
+            $table->foreignId('tenant_id');
 
             // Scope (hierarchical: tenant → branch → service)
             $table->enum('scope_level', ['tenant', 'branch', 'service'])->default('tenant');
-            $table->uuid('branch_id')->nullable();
-            $table->uuid('service_id')->nullable();
+            $table->foreignId('branch_id')->nullable();
+            $table->foreignId('service_id')->nullable();
 
             // Rule identification
             $table->string('name', 100);
@@ -63,8 +63,8 @@ return new class extends Migration
             $table->integer('priority')->default(0); // Higher = evaluated first (100 = highest)
             $table->boolean('is_active')->default(true);
 
-            $table->uuid('created_by')->nullable();
-            $table->uuid('updated_by')->nullable();
+            $table->foreignId('created_by')->nullable();
+            $table->foreignId('updated_by')->nullable();
             $table->timestamps();
             $table->softDeletes();
 

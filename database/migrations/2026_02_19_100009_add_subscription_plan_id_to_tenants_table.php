@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('tenants', function (Blueprint $table) {
-            $table->uuid('subscription_plan_id')->nullable()->after('subscription_plan');
-            $table->uuid('owner_user_id')->nullable()->after('id');
+            $table->foreignId('subscription_plan_id')->nullable()->after('subscription_plan');
+            $table->foreignId('owner_user_id')->nullable()->after('id');
             $table->timestamp('trial_ends_at')->nullable()->after('subscription_expires_at');
             $table->string('subscription_status', 20)->default('pending')->after('status');
 

@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('platform_invoices', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id');
+            $table->id();
+            $table->foreignId('tenant_id');
             $table->string('number', 50)->unique();
             $table->date('period_start');
             $table->date('period_end');

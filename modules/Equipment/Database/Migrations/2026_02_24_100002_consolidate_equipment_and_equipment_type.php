@@ -54,7 +54,7 @@ return new class extends Migration
     {
         // Re-add equipment_type_id
         Schema::table('equipment', function (Blueprint $table) {
-            $table->uuid('equipment_type_id')->nullable()->after('name');
+            $table->foreignId('equipment_type_id')->nullable()->after('name');
             $table->foreign('equipment_type_id')
                 ->references('id')
                 ->on('equipment_types')

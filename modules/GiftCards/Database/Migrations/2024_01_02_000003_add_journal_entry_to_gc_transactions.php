@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('gift_card_transactions', function (Blueprint $table) {
-            $table->uuid('journal_entry_id')->nullable()->after('payment_id');
+            $table->foreignId('journal_entry_id')->nullable()->after('payment_id');
         });
     }
 

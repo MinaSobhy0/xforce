@@ -9,14 +9,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('audits', function (Blueprint $table) {
-            $table->uuid('id')->primary();
+            $table->id();
             $table->string('auditable_type');
-            $table->uuid('auditable_id');
+            $table->unsignedBigInteger('auditable_id');
             $table->string('event');
             $table->json('old_values')->nullable();
             $table->json('new_values')->nullable();
-            $table->uuid('user_id')->nullable();
-            $table->uuid('tenant_id')->nullable();
+            $table->foreignId('user_id')->nullable();
+            $table->foreignId('tenant_id')->nullable();
             $table->ipAddress('ip_address')->nullable();
             $table->text('user_agent')->nullable();
             $table->text('url')->nullable();

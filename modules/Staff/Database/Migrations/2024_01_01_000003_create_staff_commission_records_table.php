@@ -9,17 +9,17 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('staff_commission_records', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
-            $table->uuid('staff_profile_id');
-            $table->uuid('appointment_id')->nullable();
-            $table->uuid('payroll_line_id')->nullable();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
+            $table->foreignId('staff_profile_id');
+            $table->foreignId('appointment_id')->nullable();
+            $table->foreignId('payroll_line_id')->nullable();
             $table->integer('amount_minor');
             $table->integer('revenue_minor');
             $table->string('commission_type', 20);
             $table->decimal('commission_rate', 5, 2)->nullable();
             $table->string('status', 20)->default('pending');
-            $table->uuid('approved_by')->nullable();
+            $table->foreignId('approved_by')->nullable();
             $table->timestamp('approved_at')->nullable();
             $table->timestamp('paid_at')->nullable();
             $table->text('notes')->nullable();

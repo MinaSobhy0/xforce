@@ -12,9 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('patient_consent_forms', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('patient_id')->index();
-            $table->uuid('consent_template_id')->index();
+            $table->id();
+            $table->foreignId('patient_id')->index();
+            $table->foreignId('consent_template_id')->index();
 
             // Template version at time of signing
             $table->string('template_version', 20)->nullable();
@@ -45,7 +45,7 @@ return new class extends Migration
             $table->text('notes')->nullable();
 
             // Staff who collected consent
-            $table->uuid('staff_id')->nullable();
+            $table->foreignId('staff_id')->nullable();
 
             $table->timestamps();
 

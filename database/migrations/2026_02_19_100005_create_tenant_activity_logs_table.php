@@ -9,13 +9,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('tenant_activity_logs', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id');
+            $table->id();
+            $table->foreignId('tenant_id');
             $table->string('event_type', 50);
             $table->text('description');
             $table->jsonb('metadata')->nullable();
             $table->string('causer_type', 255)->nullable();
-            $table->uuid('causer_id')->nullable();
+            $table->foreignId('causer_id')->nullable();
             $table->timestamp('created_at');
 
             $table->foreign('tenant_id')->references('id')->on('tenants')->onDelete('cascade');

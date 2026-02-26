@@ -9,10 +9,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('treatment_plan_items', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
-            $table->uuid('treatment_plan_id')->index();
-            $table->uuid('service_id')->index();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
+            $table->foreignId('treatment_plan_id')->index();
+            $table->foreignId('service_id')->index();
 
             // Session tracking
             $table->integer('recommended_sessions')->default(1);
@@ -20,7 +20,7 @@ return new class extends Migration
 
             // Scheduling preferences
             $table->integer('session_interval_days')->nullable();
-            $table->uuid('preferred_practitioner_id')->nullable()->index();
+            $table->foreignId('preferred_practitioner_id')->nullable()->index();
             $table->jsonb('preferred_day_of_week')->nullable(); // Array of days [0-6]
             $table->string('preferred_time_slot')->nullable(); // morning, afternoon, evening
 

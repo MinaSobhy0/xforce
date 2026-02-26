@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('onboarding_requests', function (Blueprint $table) {
-            $table->uuid('id')->primary();
+            $table->id();
             $table->string('clinic_name');
             $table->string('slug')->unique();
             $table->string('owner_name');
@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('country')->default('EG');
             $table->string('city')->nullable();
             $table->string('timezone')->default('Africa/Cairo');
-            $table->foreignUuid('subscription_plan_id')->nullable()->constrained('subscription_plans')->nullOnDelete();
+            $table->foreignId('subscription_plan_id')->nullable()->constrained('subscription_plans')->nullOnDelete();
             $table->string('promo_code')->nullable();
             $table->string('source')->default('website');
             $table->string('status')->default('pending');
@@ -27,9 +27,9 @@ return new class extends Migration
             $table->timestamp('approved_at')->nullable();
             $table->timestamp('rejected_at')->nullable();
             $table->timestamp('provisioned_at')->nullable();
-            $table->foreignUuid('approved_by')->nullable()->constrained('users')->nullOnDelete();
-            $table->foreignUuid('rejected_by')->nullable()->constrained('users')->nullOnDelete();
-            $table->foreignUuid('tenant_id')->nullable()->constrained('tenants')->nullOnDelete();
+            $table->foreignId('approved_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('rejected_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('tenant_id')->nullable()->constrained('tenants')->nullOnDelete();
             $table->timestamps();
 
             $table->index('status');

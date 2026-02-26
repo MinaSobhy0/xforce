@@ -9,12 +9,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('treatment_session_data', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id');
-            $table->uuid('appointment_id');
-            $table->uuid('service_id');
-            $table->uuid('equipment_id')->nullable();
-            $table->uuid('practitioner_id');
+            $table->id();
+            $table->foreignId('tenant_id');
+            $table->foreignId('appointment_id');
+            $table->foreignId('service_id');
+            $table->foreignId('equipment_id')->nullable();
+            $table->foreignId('practitioner_id');
 
             // Parameter values recorded during session
             $table->json('parameter_values')->nullable();
@@ -110,12 +110,12 @@ return new class extends Migration
             $table->integer('actual_duration_minutes')->nullable();
 
             // Preset used (if any)
-            $table->uuid('preset_id')->nullable();
+            $table->foreignId('preset_id')->nullable();
 
             // Data validation status
             $table->boolean('is_complete')->default(false);
             $table->boolean('is_validated')->default(false);
-            $table->uuid('validated_by')->nullable();
+            $table->foreignId('validated_by')->nullable();
             $table->timestamp('validated_at')->nullable();
 
             $table->timestamps();

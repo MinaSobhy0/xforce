@@ -9,9 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('medical_allergies', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id');
-            $table->uuid('medical_profile_id');
+            $table->id();
+            $table->foreignId('tenant_id');
+            $table->foreignId('medical_profile_id');
             $table->enum('allergy_type', ['drug', 'food', 'environmental', 'topical', 'metal', 'latex', 'other']);
             $table->string('allergen');
             $table->enum('severity', ['mild', 'moderate', 'severe', 'life_threatening']);

@@ -12,8 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('patient_medical_histories', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('patient_id')->unique();
+            $table->id();
+            $table->foreignId('patient_id')->unique();
 
             // Skin Type
             $table->enum('fitzpatrick_type', ['I', 'II', 'III', 'IV', 'V', 'VI'])->nullable();
@@ -52,7 +52,7 @@ return new class extends Migration
             $table->text('notes')->nullable();
 
             // Tracking
-            $table->uuid('last_updated_by')->nullable();
+            $table->foreignId('last_updated_by')->nullable();
             $table->timestamp('last_updated_at')->nullable();
 
             $table->timestamps();

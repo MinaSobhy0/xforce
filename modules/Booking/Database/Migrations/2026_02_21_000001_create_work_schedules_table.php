@@ -11,9 +11,9 @@ return new class extends Migration
         // Create work_schedules table - weekly schedule templates
         if (!Schema::hasTable('work_schedules')) {
             Schema::create('work_schedules', function (Blueprint $table) {
-                $table->uuid('id')->primary();
-                $table->uuid('tenant_id')->index();
-                $table->uuid('branch_id')->nullable()->index();
+                $table->id();
+                $table->foreignId('tenant_id')->index();
+                $table->foreignId('branch_id')->nullable()->index();
                 $table->string('name'); // e.g., "Morning Shift", "Evening Shift", "Full Day"
                 $table->string('code')->nullable(); // e.g., "morning", "evening", "full"
                 $table->text('description')->nullable();
@@ -42,11 +42,11 @@ return new class extends Migration
         }
 
         Schema::create('practitioner_schedule_assignments', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
-            $table->uuid('user_id')->index(); // practitioner
-            $table->uuid('work_schedule_id')->index();
-            $table->uuid('branch_id')->nullable()->index(); // override branch if different from schedule
+            $table->id();
+            $table->foreignId('tenant_id')->index();
+            $table->foreignId('user_id')->index(); // practitioner
+            $table->foreignId('work_schedule_id')->index();
+            $table->foreignId('branch_id')->nullable()->index(); // override branch if different from schedule
 
             $table->date('effective_from')->nullable(); // null = immediately
             $table->date('effective_until')->nullable(); // null = indefinitely

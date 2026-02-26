@@ -9,10 +9,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('service_rooms', function (Blueprint $table) {
-            $table->uuid('id')->primary()->default(\Illuminate\Support\Facades\DB::raw('gen_random_uuid()'));
-            $table->uuid('tenant_id')->nullable();
-            $table->uuid('service_id');
-            $table->uuid('room_id');
+            $table->id();
+            $table->foreignId('tenant_id')->nullable();
+            $table->foreignId('service_id');
+            $table->foreignId('room_id');
             $table->boolean('is_primary')->default(false);
             $table->integer('priority')->default(0);
             $table->timestamps();

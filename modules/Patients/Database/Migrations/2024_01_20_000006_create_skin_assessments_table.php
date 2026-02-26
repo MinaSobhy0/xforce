@@ -9,11 +9,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('skin_assessments', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id');
-            $table->uuid('medical_profile_id');
-            $table->uuid('appointment_id')->nullable();
-            $table->uuid('assessed_by');
+            $table->id();
+            $table->foreignId('tenant_id');
+            $table->foreignId('medical_profile_id');
+            $table->foreignId('appointment_id')->nullable();
+            $table->foreignId('assessed_by');
 
             // Fitzpatrick Assessment
             $table->tinyInteger('fitzpatrick_type')->nullable()->comment('I-VI');

@@ -9,12 +9,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('treatment_plans', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
             $table->string('code')->index();
-            $table->uuid('patient_id')->index();
-            $table->uuid('branch_id')->index();
-            $table->uuid('created_by_user_id')->nullable()->index();
+            $table->foreignId('patient_id')->index();
+            $table->foreignId('branch_id')->index();
+            $table->foreignId('created_by_user_id')->nullable()->index();
 
             // Basic info
             $table->jsonb('name');
@@ -34,9 +34,9 @@ return new class extends Migration
 
             // Package reference (optional)
             // recommended_package_id: The Package template suggested for this plan
-            $table->uuid('recommended_package_id')->nullable()->index();
+            $table->foreignId('recommended_package_id')->nullable()->index();
             // package_subscription_id: Set when patient purchases the package
-            $table->uuid('package_subscription_id')->nullable()->index();
+            $table->foreignId('package_subscription_id')->nullable()->index();
 
             // Notes
             $table->text('notes')->nullable();

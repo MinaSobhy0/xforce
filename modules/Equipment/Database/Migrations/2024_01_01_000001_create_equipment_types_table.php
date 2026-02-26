@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('equipment_types', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->nullable()->index();
+            $table->id();
+            $table->foreignId('tenant_id')->nullable()->index();
             $table->jsonb('name'); // Translatable
             $table->string('manufacturer')->nullable();
             $table->string('model')->nullable();

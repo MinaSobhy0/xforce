@@ -9,13 +9,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('equipment', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->nullable()->index();
+            $table->id();
+            $table->foreignId('tenant_id')->nullable()->index();
             $table->string('code')->unique();
             $table->string('name');
-            $table->foreignUuid('equipment_type_id')->constrained('equipment_types')->cascadeOnDelete();
-            $table->foreignUuid('branch_id')->constrained('branches')->cascadeOnDelete();
-            $table->foreignUuid('room_id')->nullable()->constrained('rooms')->nullOnDelete();
+            $table->foreignId('equipment_type_id')->constrained('equipment_types')->cascadeOnDelete();
+            $table->foreignId('branch_id')->constrained('branches')->cascadeOnDelete();
+            $table->foreignId('room_id')->nullable()->constrained('rooms')->nullOnDelete();
             $table->string('serial_number')->nullable();
             $table->date('purchase_date')->nullable();
             $table->integer('purchase_price_minor')->nullable();

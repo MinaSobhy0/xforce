@@ -9,11 +9,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('session_products', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id');
-            $table->uuid('appointment_id');
-            $table->uuid('product_id');
-            $table->uuid('branch_id')->nullable();
+            $table->id();
+            $table->foreignId('tenant_id');
+            $table->foreignId('appointment_id');
+            $table->foreignId('product_id');
+            $table->foreignId('branch_id')->nullable();
             $table->decimal('quantity', 10, 2)->default(1);
             $table->string('unit', 20)->default('pcs');
             $table->integer('unit_price_minor')->default(0); // Sell price per unit
@@ -22,10 +22,10 @@ return new class extends Migration
             $table->string('usage_type', 20)->default('applied'); // 'applied' = used on patient, 'sold' = sold to patient
             $table->text('notes')->nullable();
             $table->boolean('is_invoiced')->default(false); // Whether added to invoice
-            $table->uuid('invoice_line_id')->nullable();
+            $table->foreignId('invoice_line_id')->nullable();
             $table->boolean('is_deducted')->default(false); // Whether deducted from inventory
             $table->timestamp('deducted_at')->nullable();
-            $table->uuid('created_by')->nullable();
+            $table->foreignId('created_by')->nullable();
             $table->timestamps();
 
             $table->foreign('tenant_id')

@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('backups', function (Blueprint $table) {
-            $table->uuid('id')->primary();
+            $table->id();
             $table->string('name');
             $table->string('type')->default('full'); // full, database, files, tenant
             $table->string('disk')->default('local'); // local, s3
@@ -17,8 +17,8 @@ return new class extends Migration
             $table->string('filename');
             $table->unsignedBigInteger('size')->default(0);
             $table->string('status')->default('pending'); // pending, running, completed, failed
-            $table->uuid('tenant_id')->nullable();
-            $table->uuid('created_by')->nullable();
+            $table->foreignId('tenant_id')->nullable();
+            $table->foreignId('created_by')->nullable();
             $table->text('notes')->nullable();
             $table->text('error_message')->nullable();
             $table->timestamp('started_at')->nullable();

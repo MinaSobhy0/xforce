@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('equipment_parameter_templates', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id');
+            $table->id();
+            $table->foreignId('tenant_id');
             $table->string('template_name', 200);
             $table->string('template_code', 50)->unique();
             $table->text('description')->nullable();
@@ -18,8 +18,8 @@ return new class extends Migration
             $table->jsonb('parameters')->default('[]');
             $table->boolean('is_system')->default(false);
             $table->boolean('is_active')->default(true);
-            $table->uuid('created_by')->nullable();
-            $table->uuid('updated_by')->nullable();
+            $table->foreignId('created_by')->nullable();
+            $table->foreignId('updated_by')->nullable();
             $table->timestamps();
             $table->softDeletes();
 
@@ -30,7 +30,7 @@ return new class extends Migration
 
         // Add parameter_template_id to equipment table
         Schema::table('equipment', function (Blueprint $table) {
-            $table->uuid('parameter_template_id')->nullable()->after('tracking_enabled');
+            $table->foreignId('parameter_template_id')->nullable()->after('tracking_enabled');
 
             $table->foreign('parameter_template_id')
                 ->references('id')

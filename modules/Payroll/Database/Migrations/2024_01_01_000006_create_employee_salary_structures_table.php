@@ -9,15 +9,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('employee_salary_structures', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
-            $table->uuid('staff_profile_id')->index();
-            $table->uuid('salary_structure_id')->index();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
+            $table->foreignId('staff_profile_id')->index();
+            $table->foreignId('salary_structure_id')->index();
             $table->integer('base_salary_minor')->default(0);
             $table->date('effective_date');
             $table->date('end_date')->nullable();
             $table->boolean('is_current')->default(false);
-            $table->uuid('assigned_by')->nullable();
+            $table->foreignId('assigned_by')->nullable();
             $table->text('notes')->nullable();
             $table->timestamps();
 

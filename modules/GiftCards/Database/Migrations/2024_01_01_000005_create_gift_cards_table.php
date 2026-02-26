@@ -9,15 +9,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('gift_cards', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
             $table->string('code')->unique();
-            $table->uuid('purchaser_patient_id')->nullable()->index();
-            $table->uuid('recipient_patient_id')->nullable()->index();
+            $table->foreignId('purchaser_patient_id')->nullable()->index();
+            $table->foreignId('recipient_patient_id')->nullable()->index();
             $table->integer('initial_value_minor');
             $table->integer('remaining_value_minor');
             $table->string('status')->default('draft'); // draft, active, partially_used, fully_used, expired, cancelled
-            $table->uuid('purchased_via_invoice_id')->nullable()->index();
+            $table->foreignId('purchased_via_invoice_id')->nullable()->index();
             $table->timestamp('expires_at')->nullable()->index();
             $table->timestamp('activated_at')->nullable();
             $table->text('notes')->nullable();

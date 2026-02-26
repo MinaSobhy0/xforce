@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('support_tickets', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id');
+            $table->id();
+            $table->foreignId('tenant_id');
             $table->string('ticket_number', 20)->unique();
             $table->string('subject', 255);
             $table->text('description');
@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('status', 20)->default('open'); // open, in_progress, waiting_customer, resolved, closed
             $table->string('category', 50)->default('other'); // billing, technical, feature_request, bug, account, other
             $table->unsignedBigInteger('assigned_to')->nullable();
-            $table->uuid('reporter_user_id')->nullable();
+            $table->foreignId('reporter_user_id')->nullable();
             $table->string('reporter_name', 255)->nullable();
             $table->string('reporter_email', 255)->nullable();
             $table->timestamp('resolved_at')->nullable();
@@ -36,8 +36,8 @@ return new class extends Migration
         });
 
         Schema::create('support_ticket_replies', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('ticket_id');
+            $table->id();
+            $table->foreignId('ticket_id');
             $table->unsignedBigInteger('user_id')->nullable();
             $table->string('user_name', 255);
             $table->text('message');

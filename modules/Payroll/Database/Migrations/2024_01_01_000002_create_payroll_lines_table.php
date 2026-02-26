@@ -9,10 +9,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('payroll_lines', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
-            $table->uuid('payroll_run_id');
-            $table->uuid('staff_profile_id');
+            $table->id();
+            $table->foreignId('tenant_id')->index();
+            $table->foreignId('payroll_run_id');
+            $table->foreignId('staff_profile_id');
             $table->integer('base_salary_minor')->default(0);
             $table->integer('commissions_minor')->default(0);
             $table->integer('bonuses_minor')->default(0);

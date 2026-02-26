@@ -10,7 +10,7 @@ Converting all UUID primary keys to auto-increment INT (like Odoo) for better pe
 - Native PostgreSQL optimization
 
 **Started:** 2026-02-26
-**Status:** In Progress
+**Status:** In Progress - Phase 0-5 COMPLETED (320/357 items)
 **Estimated Scope:** ~380 items
 
 ---
@@ -29,8 +29,8 @@ When User IDs change to INT, these must also change.
 
 | # | Status | Task |
 |---|--------|------|
-| D1 | [ ] | Update model_has_permissions.model_id from uuid() to unsignedBigInteger() |
-| D2 | [ ] | Update model_has_roles.model_id from uuid() to unsignedBigInteger() |
+| D1 | [x] | Update model_has_permissions.model_id from uuid() to unsignedBigInteger() |
+| D2 | [x] | Update model_has_roles.model_id from uuid() to unsignedBigInteger() |
 
 ### Decision 2: Activity Log Morphs
 **Issue:** Activity log tables use `nullableUuidMorphs()` for subject and causer.
@@ -43,9 +43,9 @@ When User IDs change to INT, these must also change.
 
 | # | Status | Task |
 |---|--------|------|
-| D3 | [ ] | Update activity_log table morphs from nullableUuidMorphs to nullableMorphs |
-| D4 | [ ] | Update activities table morphs from nullableUuidMorphs to nullableMorphs |
-| D5 | [ ] | Delete modules/Core/Database/Migrations/2026_02_21_000001_alter_activities_table_uuid_morphs.php |
+| D3 | [x] | Update activity_log table morphs from nullableUuidMorphs to nullableMorphs |
+| D4 | [x] | Update activities table morphs from nullableUuidMorphs to nullableMorphs |
+| D5 | [x] | Delete modules/Core/Database/Migrations/2026_02_21_000001_alter_activities_table_uuid_morphs.php |
 
 ### Decision 3: Keep batch_uuid as UUID
 **Rationale:** batch_uuid is used for grouping related activity log entries, not as a primary/foreign key.
@@ -353,131 +353,131 @@ All these extend BaseModel - after fixing BaseModel, verify they work correctly.
 
 ---
 
-## Phase 4: Migrations - Central Database (database/migrations/)
+## Phase 4: Migrations - Central Database (database/migrations/) ✅ COMPLETED
 
 **Connection:** Central/Platform database
 **Order:** Run these BEFORE tenant migrations
 
 | # | Status | File | Primary Key | Foreign Keys |
 |---|--------|------|-------------|--------------|
-| 157 | [ ] | `2025_02_19_000001_create_onboarding_requests_table.php` | `uuid()` → `id()` | tenant_id |
-| 158 | [ ] | `2025_02_19_000002_create_tenant_domains_table.php` | `uuid()` → `id()` | tenant_id |
-| 159 | [ ] | `2025_02_19_000003_create_email_templates_table.php` | `uuid()` → `id()` | - |
-| 160 | [ ] | `2025_02_19_000004_create_system_alerts_table.php` | `uuid()` → `id()` | - |
-| 161 | [ ] | `2025_02_19_000005_create_platform_settings_table.php` | `uuid()` → `id()` | - |
-| 162 | [ ] | `2026_02_18_180200_create_audits_table.php` | `uuid()` → `id()` | user_id, morphs → nullableMorphs |
-| 163 | [ ] | `2026_02_19_023928_create_activity_log_table.php` | Keep id() | nullableUuidMorphs → nullableMorphs |
-| 164 | [ ] | `2026_02_19_023930_add_batch_uuid_column_to_activity_log_table.php` | - | Keep batch_uuid as UUID |
-| 165 | [ ] | `2026_02_19_100001_create_subscription_plans_table.php` | `uuid()` → `id()` | - |
-| 166 | [ ] | `2026_02_19_100002_create_modules_table.php` | `uuid()` → `id()` | - |
-| 167 | [ ] | `2026_02_19_100003_create_platform_invoices_table.php` | `uuid()` → `id()` | tenant_id, subscription_plan_id |
-| 168 | [ ] | `2026_02_19_100004_create_tenant_addon_subscriptions_table.php` | `uuid()` → `id()` | tenant_id, add_on_id |
-| 169 | [ ] | `2026_02_19_100005_create_tenant_activity_logs_table.php` | `uuid()` → `id()` | tenant_id, user_id |
-| 170 | [ ] | `2026_02_19_100006_create_support_tickets_table.php` | `uuid()` → `id()` | tenant_id, user_id |
-| 171 | [ ] | `2026_02_19_100007_create_promo_codes_table.php` | `uuid()` → `id()` | - |
-| 172 | [ ] | `2026_02_19_100008_create_announcements_table.php` | `uuid()` → `id()` | - |
-| 173 | [ ] | `2026_02_19_140934_create_notifications_table.php` | `uuid()` → `id()` | morphs → nullableMorphs |
-| 174 | [ ] | `2026_02_19_152557_create_backups_table.php` | `uuid()` → `id()` | tenant_id |
-| 175 | [ ] | `2026_02_19_163357_create_add_ons_table.php` | `uuid()` → `id()` | - |
-| 176 | [ ] | `2026_02_20_030000_create_restore_requests_table.php` | `uuid()` → `id()` | tenant_id, backup_id |
-| 177 | [ ] | `2026_02_20_153459_create_contact_inquiries_table.php` | `uuid()` → `id()` | - |
-| 178 | [ ] | `2026_02_26_081005_create_import_mappings_table.php` | `uuid()` → `id()` | - |
-| 179 | [ ] | `2026_02_26_110156_create_imports_table.php` | Keep as-is | user_id |
+| 157 | [x] | `2025_02_19_000001_create_onboarding_requests_table.php` | `uuid()` → `id()` | tenant_id |
+| 158 | [x] | `2025_02_19_000002_create_tenant_domains_table.php` | `uuid()` → `id()` | tenant_id |
+| 159 | [x] | `2025_02_19_000003_create_email_templates_table.php` | `uuid()` → `id()` | - |
+| 160 | [x] | `2025_02_19_000004_create_system_alerts_table.php` | `uuid()` → `id()` | - |
+| 161 | [x] | `2025_02_19_000005_create_platform_settings_table.php` | `uuid()` → `id()` | - |
+| 162 | [x] | `2026_02_18_180200_create_audits_table.php` | `uuid()` → `id()` | user_id, morphs → nullableMorphs |
+| 163 | [x] | `2026_02_19_023928_create_activity_log_table.php` | Keep id() | nullableUuidMorphs → nullableMorphs |
+| 164 | [x] | `2026_02_19_023930_add_batch_uuid_column_to_activity_log_table.php` | - | Keep batch_uuid as UUID |
+| 165 | [x] | `2026_02_19_100001_create_subscription_plans_table.php` | `uuid()` → `id()` | - |
+| 166 | [x] | `2026_02_19_100002_create_modules_table.php` | `uuid()` → `id()` | - |
+| 167 | [x] | `2026_02_19_100003_create_platform_invoices_table.php` | `uuid()` → `id()` | tenant_id, subscription_plan_id |
+| 168 | [x] | `2026_02_19_100004_create_tenant_addon_subscriptions_table.php` | `uuid()` → `id()` | tenant_id, add_on_id |
+| 169 | [x] | `2026_02_19_100005_create_tenant_activity_logs_table.php` | `uuid()` → `id()` | tenant_id, user_id |
+| 170 | [x] | `2026_02_19_100006_create_support_tickets_table.php` | `uuid()` → `id()` | tenant_id, user_id |
+| 171 | [x] | `2026_02_19_100007_create_promo_codes_table.php` | `uuid()` → `id()` | - |
+| 172 | [x] | `2026_02_19_100008_create_announcements_table.php` | `uuid()` → `id()` | - |
+| 173 | [x] | `2026_02_19_140934_create_notifications_table.php` | `uuid()` → `id()` | morphs → nullableMorphs |
+| 174 | [x] | `2026_02_19_152557_create_backups_table.php` | `uuid()` → `id()` | tenant_id |
+| 175 | [x] | `2026_02_19_163357_create_add_ons_table.php` | `uuid()` → `id()` | - |
+| 176 | [x] | `2026_02_20_030000_create_restore_requests_table.php` | `uuid()` → `id()` | tenant_id, backup_id |
+| 177 | [x] | `2026_02_20_153459_create_contact_inquiries_table.php` | `uuid()` → `id()` | - |
+| 178 | [x] | `2026_02_26_081005_create_import_mappings_table.php` | `uuid()` → `id()` | - |
+| 179 | [x] | `2026_02_26_110156_create_imports_table.php` | Keep as-is | user_id |
 
 ---
 
-## Phase 5: Migrations - Tenant Database (modules/*/Database/Migrations/)
+## Phase 5: Migrations - Tenant Database (modules/*/Database/Migrations/) ✅ COMPLETED
 
 **Connection:** Tenant schemas
 **Order:** Run in dependency order within each module
 
-### 5.1 Core Module Migrations
+### 5.1 Core Module Migrations ✅ COMPLETED
 | # | Status | File | Changes |
 |---|--------|------|---------|
-| 180 | [ ] | `modules/Core/Database/Migrations/2024_01_01_000000_create_branches_table.php` | `uuid()` → `id()`, tenant_id to INT |
-| 181 | [ ] | `modules/Core/Database/Migrations/2024_01_01_000001_create_tenants_table.php` | `uuid()` → `id()` |
-| 182 | [ ] | `modules/Core/Database/Migrations/2024_01_01_000001_create_sequences_table.php` | `uuid()` → `id()` |
-| 183 | [ ] | `modules/Core/Database/Migrations/2024_01_01_000002_create_tenant_subscriptions_table.php` | `uuid()` → `id()` |
-| 184 | [ ] | `modules/Core/Database/Migrations/2024_01_01_000003_create_tenant_usage_table.php` | `uuid()` → `id()` |
-| 185 | [ ] | `modules/Core/Database/Migrations/2024_01_01_000006_create_rooms_table.php` | `uuid()` → `id()` |
-| 186 | [ ] | `modules/Core/Database/Migrations/2024_01_01_000008_create_settings_table.php` | `uuid()` → `id()` |
-| 187 | [ ] | `modules/Core/Database/Migrations/2024_01_01_000009_create_activities_table.php` | `uuid()` → `id()`, nullableUuidMorphs → nullableMorphs |
-| 188 | [ ] | `modules/Core/Database/Migrations/2024_01_01_000010_create_audit_logs_table.php` | `uuid()` → `id()` |
-| 189 | [ ] | `modules/Core/Database/Migrations/2024_01_01_000011_create_audits_table.php` | `uuid()` → `id()` |
-| 190 | [ ] | `modules/Core/Database/Migrations/2024_01_01_000020_create_user_branch_roles_table.php` | `uuid()` → `id()` |
-| 191 | [ ] | `modules/Core/Database/Migrations/2026_02_21_000001_alter_activities_table_uuid_morphs.php` | **DELETE** this file |
+| 180 | [x] | `modules/Core/Database/Migrations/2024_01_01_000000_create_branches_table.php` | `uuid()` → `id()`, tenant_id to INT |
+| 181 | [x] | `modules/Core/Database/Migrations/2024_01_01_000001_create_tenants_table.php` | `uuid()` → `id()` |
+| 182 | [x] | `modules/Core/Database/Migrations/2024_01_01_000001_create_sequences_table.php` | `uuid()` → `id()` |
+| 183 | [x] | `modules/Core/Database/Migrations/2024_01_01_000002_create_tenant_subscriptions_table.php` | `uuid()` → `id()` |
+| 184 | [x] | `modules/Core/Database/Migrations/2024_01_01_000003_create_tenant_usage_table.php` | `uuid()` → `id()` |
+| 185 | [x] | `modules/Core/Database/Migrations/2024_01_01_000006_create_rooms_table.php` | `uuid()` → `id()` |
+| 186 | [x] | `modules/Core/Database/Migrations/2024_01_01_000008_create_settings_table.php` | `uuid()` → `id()` |
+| 187 | [x] | `modules/Core/Database/Migrations/2024_01_01_000009_create_activities_table.php` | `uuid()` → `id()`, nullableUuidMorphs → nullableMorphs |
+| 188 | [x] | `modules/Core/Database/Migrations/2024_01_01_000010_create_audit_logs_table.php` | `uuid()` → `id()` |
+| 189 | [x] | `modules/Core/Database/Migrations/2024_01_01_000011_create_audits_table.php` | `uuid()` → `id()` |
+| 190 | [x] | `modules/Core/Database/Migrations/2024_01_01_000020_create_user_branch_roles_table.php` | `uuid()` → `id()` |
+| 191 | [x] | `modules/Core/Database/Migrations/2026_02_21_000001_alter_activities_table_uuid_morphs.php` | **DELETE** this file |
 
-### 5.2 Auth Module Migrations
+### 5.2 Auth Module Migrations ✅ COMPLETED
 | # | Status | File | Changes |
 |---|--------|------|---------|
-| 192 | [ ] | `modules/Auth/Database/Migrations/0001_01_01_000001_create_permission_tables.php` | model_morph_key: uuid() → unsignedBigInteger() |
-| 193 | [ ] | `modules/Auth/Database/Migrations/0001_01_01_000002_create_users_table.php` | `uuid()` → `id()` |
-| 194 | [ ] | `modules/Auth/Database/Migrations/0001_01_01_000003_create_user_sessions_table.php` | `uuid()` → `id()` |
-| 195 | [ ] | `modules/Auth/Database/Migrations/0001_01_01_000004_create_login_history_table.php` | `uuid()` → `id()` |
-| 196 | [ ] | `modules/Auth/Database/Migrations/0001_01_01_000005_create_password_history_table.php` | `uuid()` → `id()` |
-| 197 | [ ] | `modules/Auth/Database/Migrations/0001_01_01_000006_create_user_profiles_table.php` | `uuid()` → `id()` |
-| 198 | [ ] | `modules/Auth/Database/Migrations/0001_01_01_000007_create_access_policies_table.php` | `uuid()` → `id()` |
-| 199 | [ ] | `modules/Auth/Database/Migrations/0001_01_01_000008_add_impersonation_to_users_table.php` | user_id to INT |
+| 192 | [x] | `modules/Auth/Database/Migrations/0001_01_01_000001_create_permission_tables.php` | model_morph_key: uuid() → unsignedBigInteger() |
+| 193 | [x] | `modules/Auth/Database/Migrations/0001_01_01_000002_create_users_table.php` | `uuid()` → `id()` |
+| 194 | [x] | `modules/Auth/Database/Migrations/0001_01_01_000003_create_user_sessions_table.php` | `uuid()` → `id()` |
+| 195 | [x] | `modules/Auth/Database/Migrations/0001_01_01_000004_create_login_history_table.php` | `uuid()` → `id()` |
+| 196 | [x] | `modules/Auth/Database/Migrations/0001_01_01_000005_create_password_history_table.php` | `uuid()` → `id()` |
+| 197 | [x] | `modules/Auth/Database/Migrations/0001_01_01_000006_create_user_profiles_table.php` | `uuid()` → `id()` |
+| 198 | [x] | `modules/Auth/Database/Migrations/0001_01_01_000007_create_access_policies_table.php` | `uuid()` → `id()` |
+| 199 | [x] | `modules/Auth/Database/Migrations/0001_01_01_000008_add_impersonation_to_users_table.php` | user_id to INT |
 
-### 5.3 Patients Module Migrations
+### 5.3 Patients Module Migrations ✅ COMPLETED
 | # | Status | File | Changes |
 |---|--------|------|---------|
-| 200 | [ ] | `modules/Patients/Database/Migrations/2024_01_01_000001_create_patients_table.php` | `uuid()` → `id()` |
-| 201 | [ ] | `modules/Patients/Database/Migrations/2024_01_01_000002_create_patient_medical_histories_table.php` | `uuid()` → `id()` |
-| 202 | [ ] | `modules/Patients/Database/Migrations/2024_01_01_000003_create_patient_consent_forms_table.php` | `uuid()` → `id()` |
-| 203 | [ ] | `modules/Patients/Database/Migrations/2024_01_01_000004_create_patient_photos_table.php` | `uuid()` → `id()` |
-| 204 | [ ] | `modules/Patients/Database/Migrations/2024_01_01_000005_create_media_table.php` | `uuid()` → `id()`, morphs |
-| 205 | [ ] | `modules/Patients/Database/Migrations/2024_01_01_000005_create_patient_notes_table.php` | `uuid()` → `id()` |
-| 206 | [ ] | `modules/Patients/Database/Migrations/2024_01_01_000010_add_patient_auth_fields.php` | Review |
-| 207 | [ ] | `modules/Patients/Database/Migrations/2024_01_20_000001_create_medical_profiles_table.php` | `uuid()` → `id()` |
-| 208 | [ ] | `modules/Patients/Database/Migrations/2024_01_20_000002_create_medical_allergies_table.php` | `uuid()` → `id()` |
-| 209 | [ ] | `modules/Patients/Database/Migrations/2024_01_20_000003_create_medical_medications_table.php` | `uuid()` → `id()` |
-| 210 | [ ] | `modules/Patients/Database/Migrations/2024_01_20_000004_create_medical_contraindications_table.php` | `uuid()` → `id()` |
-| 211 | [ ] | `modules/Patients/Database/Migrations/2024_01_20_000005_create_medical_histories_table.php` | `uuid()` → `id()` |
-| 212 | [ ] | `modules/Patients/Database/Migrations/2024_01_20_000006_create_skin_assessments_table.php` | `uuid()` → `id()` |
-| 213 | [ ] | `modules/Patients/Database/Migrations/2024_01_20_000007_create_lifestyle_info_table.php` | `uuid()` → `id()` |
-| 214 | [ ] | `modules/Patients/Database/Migrations/2026_02_25_000001_create_patient_amr_tests_table.php` | `uuid()` → `id()` |
-| 215 | [ ] | `modules/Patients/Database/Migrations/2026_02_25_000002_create_patient_amr_summaries_table.php` | `uuid()` → `id()` |
+| 200 | [x] | `modules/Patients/Database/Migrations/2024_01_01_000001_create_patients_table.php` | `uuid()` → `id()` |
+| 201 | [x] | `modules/Patients/Database/Migrations/2024_01_01_000002_create_patient_medical_histories_table.php` | `uuid()` → `id()` |
+| 202 | [x] | `modules/Patients/Database/Migrations/2024_01_01_000003_create_patient_consent_forms_table.php` | `uuid()` → `id()` |
+| 203 | [x] | `modules/Patients/Database/Migrations/2024_01_01_000004_create_patient_photos_table.php` | `uuid()` → `id()` |
+| 204 | [x] | `modules/Patients/Database/Migrations/2024_01_01_000005_create_media_table.php` | `uuid()` → `id()`, morphs |
+| 205 | [x] | `modules/Patients/Database/Migrations/2024_01_01_000005_create_patient_notes_table.php` | `uuid()` → `id()` |
+| 206 | [x] | `modules/Patients/Database/Migrations/2024_01_01_000010_add_patient_auth_fields.php` | Review |
+| 207 | [x] | `modules/Patients/Database/Migrations/2024_01_20_000001_create_medical_profiles_table.php` | `uuid()` → `id()` |
+| 208 | [x] | `modules/Patients/Database/Migrations/2024_01_20_000002_create_medical_allergies_table.php` | `uuid()` → `id()` |
+| 209 | [x] | `modules/Patients/Database/Migrations/2024_01_20_000003_create_medical_medications_table.php` | `uuid()` → `id()` |
+| 210 | [x] | `modules/Patients/Database/Migrations/2024_01_20_000004_create_medical_contraindications_table.php` | `uuid()` → `id()` |
+| 211 | [x] | `modules/Patients/Database/Migrations/2024_01_20_000005_create_medical_histories_table.php` | `uuid()` → `id()` |
+| 212 | [x] | `modules/Patients/Database/Migrations/2024_01_20_000006_create_skin_assessments_table.php` | `uuid()` → `id()` |
+| 213 | [x] | `modules/Patients/Database/Migrations/2024_01_20_000007_create_lifestyle_info_table.php` | `uuid()` → `id()` |
+| 214 | [x] | `modules/Patients/Database/Migrations/2026_02_25_000001_create_patient_amr_tests_table.php` | `uuid()` → `id()` |
+| 215 | [x] | `modules/Patients/Database/Migrations/2026_02_25_000002_create_patient_amr_summaries_table.php` | `uuid()` → `id()` |
 
-### 5.4 Services Module Migrations
+### 5.4 Services Module Migrations ✅ COMPLETED
 | # | Status | File | Changes |
 |---|--------|------|---------|
-| 216 | [ ] | `modules/Services/Database/Migrations/2024_01_01_000001_create_services_tables.php` | `uuid()` → `id()` |
-| 217 | [ ] | `modules/Services/Database/Migrations/2024_01_15_000001_rename_treatments_to_services.php` | Review/update |
-| 218 | [ ] | `modules/Services/Database/Migrations/2024_01_20_000001_create_service_qualified_staff_table.php` | `uuid()` → `id()` |
-| 219 | [ ] | `modules/Services/Database/Migrations/2024_01_20_000002_create_service_rooms_table.php` | `uuid()` → `id()` |
-| 220 | [ ] | `modules/Services/Database/Migrations/2024_01_20_000003_create_service_required_equipment_table.php` | `uuid()` → `id()` |
-| 221 | [ ] | `modules/Services/Database/Migrations/2026_02_24_000001_create_parameter_templates_table.php` | `uuid()` → `id()` |
-| 222 | [ ] | `modules/Services/Database/Migrations/2026_02_24_000002_create_service_parameters_table.php` | `uuid()` → `id()` |
-| 223 | [ ] | `modules/Services/Database/Migrations/2026_02_24_000003_create_parameter_presets_table.php` | `uuid()` → `id()` |
+| 216 | [x] | `modules/Services/Database/Migrations/2024_01_01_000001_create_services_tables.php` | `uuid()` → `id()` |
+| 217 | [x] | `modules/Services/Database/Migrations/2024_01_15_000001_rename_treatments_to_services.php` | Review/update |
+| 218 | [x] | `modules/Services/Database/Migrations/2024_01_20_000001_create_service_qualified_staff_table.php` | `uuid()` → `id()` |
+| 219 | [x] | `modules/Services/Database/Migrations/2024_01_20_000002_create_service_rooms_table.php` | `uuid()` → `id()` |
+| 220 | [x] | `modules/Services/Database/Migrations/2024_01_20_000003_create_service_required_equipment_table.php` | `uuid()` → `id()` |
+| 221 | [x] | `modules/Services/Database/Migrations/2026_02_24_000001_create_parameter_templates_table.php` | `uuid()` → `id()` |
+| 222 | [x] | `modules/Services/Database/Migrations/2026_02_24_000002_create_service_parameters_table.php` | `uuid()` → `id()` |
+| 223 | [x] | `modules/Services/Database/Migrations/2026_02_24_000003_create_parameter_presets_table.php` | `uuid()` → `id()` |
 
-### 5.5 Booking Module Migrations
+### 5.5 Booking Module Migrations ✅ COMPLETED
 | # | Status | File | Changes |
 |---|--------|------|---------|
-| 224 | [ ] | `modules/Booking/Database/Migrations/2024_01_01_000010_create_appointments_table.php` | `uuid()` → `id()` |
-| 225 | [ ] | `modules/Booking/Database/Migrations/2024_01_01_000011_create_appointment_treatment_notes_table.php` | `uuid()` → `id()` |
-| 226 | [ ] | `modules/Booking/Database/Migrations/2024_01_01_000012_create_practitioner_schedules_table.php` | `uuid()` → `id()` |
-| 227 | [ ] | `modules/Booking/Database/Migrations/2024_01_01_000013_create_practitioner_time_off_table.php` | `uuid()` → `id()` |
-| 228 | [ ] | `modules/Booking/Database/Migrations/2024_01_01_000014_create_waitlist_table.php` | `uuid()` → `id()` |
-| 229 | [ ] | `modules/Booking/Database/Migrations/2024_01_01_000020_create_time_off_types_table.php` | `uuid()` → `id()` |
-| 230 | [ ] | `modules/Booking/Database/Migrations/2024_01_01_000021_create_time_off_allocations_table.php` | `uuid()` → `id()` |
-| 231 | [ ] | `modules/Booking/Database/Migrations/2026_02_24_000001_create_treatment_session_data_table.php` | `uuid()` → `id()` |
-| 232 | [ ] | `modules/Booking/Database/Migrations/2026_02_24_000002_create_session_consumables_table.php` | `uuid()` → `id()` |
-| 233 | [ ] | `modules/Booking/Database/Migrations/2026_02_24_000003_create_session_products_table.php` | `uuid()` → `id()` |
-| 234 | [ ] | `modules/Booking/Database/Migrations/2026_02_25_000001_create_booking_rules_table.php` | `uuid()` → `id()` |
-| 235 | [ ] | `modules/Booking/Database/Migrations/2026_02_25_000002_create_booking_blackout_dates_table.php` | `uuid()` → `id()` |
-| 236 | [ ] | `modules/Booking/Database/Migrations/2026_02_25_000010_create_booking_configs_table.php` | `uuid()` → `id()` |
+| 224 | [x] | `modules/Booking/Database/Migrations/2024_01_01_000010_create_appointments_table.php` | `uuid()` → `id()` |
+| 225 | [x] | `modules/Booking/Database/Migrations/2024_01_01_000011_create_appointment_treatment_notes_table.php` | `uuid()` → `id()` |
+| 226 | [x] | `modules/Booking/Database/Migrations/2024_01_01_000012_create_practitioner_schedules_table.php` | `uuid()` → `id()` |
+| 227 | [x] | `modules/Booking/Database/Migrations/2024_01_01_000013_create_practitioner_time_off_table.php` | `uuid()` → `id()` |
+| 228 | [x] | `modules/Booking/Database/Migrations/2024_01_01_000014_create_waitlist_table.php` | `uuid()` → `id()` |
+| 229 | [x] | `modules/Booking/Database/Migrations/2024_01_01_000020_create_time_off_types_table.php` | `uuid()` → `id()` |
+| 230 | [x] | `modules/Booking/Database/Migrations/2024_01_01_000021_create_time_off_allocations_table.php` | `uuid()` → `id()` |
+| 231 | [x] | `modules/Booking/Database/Migrations/2026_02_24_000001_create_treatment_session_data_table.php` | `uuid()` → `id()` |
+| 232 | [x] | `modules/Booking/Database/Migrations/2026_02_24_000002_create_session_consumables_table.php` | `uuid()` → `id()` |
+| 233 | [x] | `modules/Booking/Database/Migrations/2026_02_24_000003_create_session_products_table.php` | `uuid()` → `id()` |
+| 234 | [x] | `modules/Booking/Database/Migrations/2026_02_25_000001_create_booking_rules_table.php` | `uuid()` → `id()` |
+| 235 | [x] | `modules/Booking/Database/Migrations/2026_02_25_000002_create_booking_blackout_dates_table.php` | `uuid()` → `id()` |
+| 236 | [x] | `modules/Booking/Database/Migrations/2026_02_25_000010_create_booking_configs_table.php` | `uuid()` → `id()` |
 
-### 5.6 Billing Module Migrations
+### 5.6 Billing Module Migrations ✅ COMPLETED
 | # | Status | File | Changes |
 |---|--------|------|---------|
-| 237 | [ ] | `modules/Billing/Database/Migrations/2024_01_01_000001_create_tax_rates_table.php` | `uuid()` → `id()` |
-| 238 | [ ] | `modules/Billing/Database/Migrations/2024_01_01_000002_create_invoices_table.php` | `uuid()` → `id()` |
-| 239 | [ ] | `modules/Billing/Database/Migrations/2024_01_01_000003_create_invoice_lines_table.php` | `uuid()` → `id()` |
-| 240 | [ ] | `modules/Billing/Database/Migrations/2024_01_01_000004_create_payments_table.php` | `uuid()` → `id()` |
-| 241 | [ ] | `modules/Billing/Database/Migrations/2024_01_01_000005_create_installment_plans_table.php` | `uuid()` → `id()` |
-| 242 | [ ] | `modules/Billing/Database/Migrations/2024_01_01_000006_create_installment_schedules_table.php` | `uuid()` → `id()` |
-| 243 | [ ] | `modules/Billing/Database/Migrations/2024_02_01_000001_add_unassigned_payment_support.php` | Review |
+| 237 | [x] | `modules/Billing/Database/Migrations/2024_01_01_000001_create_tax_rates_table.php` | `uuid()` → `id()` |
+| 238 | [x] | `modules/Billing/Database/Migrations/2024_01_01_000002_create_invoices_table.php` | `uuid()` → `id()` |
+| 239 | [x] | `modules/Billing/Database/Migrations/2024_01_01_000003_create_invoice_lines_table.php` | `uuid()` → `id()` |
+| 240 | [x] | `modules/Billing/Database/Migrations/2024_01_01_000004_create_payments_table.php` | `uuid()` → `id()` |
+| 241 | [x] | `modules/Billing/Database/Migrations/2024_01_01_000005_create_installment_plans_table.php` | `uuid()` → `id()` |
+| 242 | [x] | `modules/Billing/Database/Migrations/2024_01_01_000006_create_installment_schedules_table.php` | `uuid()` → `id()` |
+| 243 | [x] | `modules/Billing/Database/Migrations/2024_02_01_000001_add_unassigned_payment_support.php` | Review |
 
 ### 5.7 Accounting Module Migrations ✅ COMPLETED
 | # | Status | File | Changes |
@@ -488,127 +488,127 @@ All these extend BaseModel - after fixing BaseModel, verify they work correctly.
 | 247 | [x] | `modules/Accounting/Database/Migrations/2024_01_02_000004_create_journal_entry_lines_table.php` | `uuid()` → `id()` |
 | 248 | [x] | `modules/Accounting/Database/Migrations/2024_01_02_000005_create_journals_table.php` | `uuid()` → `id()` |
 
-### 5.8 Inventory Module Migrations
+### 5.8 Inventory Module Migrations ✅ COMPLETED
 | # | Status | File | Changes |
 |---|--------|------|---------|
-| 249 | [ ] | `modules/Inventory/Database/Migrations/2024_01_01_000001_create_product_categories_table.php` | `uuid()` → `id()` |
-| 250 | [ ] | `modules/Inventory/Database/Migrations/2024_01_01_000002_create_products_table.php` | `uuid()` → `id()` |
-| 251 | [ ] | `modules/Inventory/Database/Migrations/2024_01_01_000003_create_stock_levels_table.php` | `uuid()` → `id()` |
-| 252 | [ ] | `modules/Inventory/Database/Migrations/2024_01_01_000004_create_stock_movements_table.php` | `uuid()` → `id()` |
-| 253 | [ ] | `modules/Inventory/Database/Migrations/2024_01_01_000005_create_suppliers_table.php` | `uuid()` → `id()` |
-| 254 | [ ] | `modules/Inventory/Database/Migrations/2024_01_01_000006_create_purchase_orders_table.php` | `uuid()` → `id()` |
-| 255 | [ ] | `modules/Inventory/Database/Migrations/2024_01_01_000007_create_purchase_order_lines_table.php` | `uuid()` → `id()` |
-| 256 | [ ] | `modules/Inventory/Database/Migrations/2024_01_20_000002_create_inventory_adjustments_table.php` | `uuid()` → `id()` |
-| 257 | [ ] | `modules/Inventory/Database/Migrations/2026_02_23_220000_create_vendor_bills_tables.php` | `uuid()` → `id()` |
+| 249 | [x] | `modules/Inventory/Database/Migrations/2024_01_01_000001_create_product_categories_table.php` | `uuid()` → `id()` |
+| 250 | [x] | `modules/Inventory/Database/Migrations/2024_01_01_000002_create_products_table.php` | `uuid()` → `id()` |
+| 251 | [x] | `modules/Inventory/Database/Migrations/2024_01_01_000003_create_stock_levels_table.php` | `uuid()` → `id()` |
+| 252 | [x] | `modules/Inventory/Database/Migrations/2024_01_01_000004_create_stock_movements_table.php` | `uuid()` → `id()` |
+| 253 | [x] | `modules/Inventory/Database/Migrations/2024_01_01_000005_create_suppliers_table.php` | `uuid()` → `id()` |
+| 254 | [x] | `modules/Inventory/Database/Migrations/2024_01_01_000006_create_purchase_orders_table.php` | `uuid()` → `id()` |
+| 255 | [x] | `modules/Inventory/Database/Migrations/2024_01_01_000007_create_purchase_order_lines_table.php` | `uuid()` → `id()` |
+| 256 | [x] | `modules/Inventory/Database/Migrations/2024_01_20_000002_create_inventory_adjustments_table.php` | `uuid()` → `id()` |
+| 257 | [x] | `modules/Inventory/Database/Migrations/2026_02_23_220000_create_vendor_bills_tables.php` | `uuid()` → `id()` |
 
-### 5.9 Staff Module Migrations
+### 5.9 Staff Module Migrations ✅ COMPLETED
 | # | Status | File | Changes |
 |---|--------|------|---------|
-| 258 | [ ] | `modules/Staff/Database/Migrations/2024_01_01_000000_create_staff_profiles_table.php` | `uuid()` → `id()` |
-| 259 | [ ] | `modules/Staff/Database/Migrations/2024_01_01_000003_create_staff_commission_records_table.php` | `uuid()` → `id()` |
-| 260 | [ ] | `modules/Staff/Database/Migrations/2024_01_01_000004_create_working_schedules_table.php` | `uuid()` → `id()` |
-| 261 | [ ] | `modules/Staff/Database/Migrations/2024_01_01_000009_create_staff_commissions_table.php` | `uuid()` → `id()` |
-| 262 | [ ] | `modules/Staff/Database/Migrations/2024_01_15_000001_create_commission_plans_table.php` | `uuid()` → `id()` |
+| 258 | [x] | `modules/Staff/Database/Migrations/2024_01_01_000000_create_staff_profiles_table.php` | `uuid()` → `id()` |
+| 259 | [x] | `modules/Staff/Database/Migrations/2024_01_01_000003_create_staff_commission_records_table.php` | `uuid()` → `id()` |
+| 260 | [x] | `modules/Staff/Database/Migrations/2024_01_01_000004_create_working_schedules_table.php` | `uuid()` → `id()` |
+| 261 | [x] | `modules/Staff/Database/Migrations/2024_01_01_000009_create_staff_commissions_table.php` | `uuid()` → `id()` |
+| 262 | [x] | `modules/Staff/Database/Migrations/2024_01_15_000001_create_commission_plans_table.php` | `uuid()` → `id()` |
 
-### 5.10 Attendance Module Migrations
+### 5.10 Attendance Module Migrations ✅ COMPLETED
 | # | Status | File | Changes |
 |---|--------|------|---------|
-| 263 | [ ] | `modules/Attendance/Database/Migrations/2024_01_01_000001_create_attendances_table.php` | `uuid()` → `id()` |
-| 264 | [ ] | `modules/Attendance/Database/Migrations/2024_01_01_000002_create_attendance_logs_table.php` | `uuid()` → `id()` |
-| 265 | [ ] | `modules/Attendance/Database/Migrations/2024_01_01_000003_create_attendance_breaks_table.php` | `uuid()` → `id()` |
-| 266 | [ ] | `modules/Attendance/Database/Migrations/2024_01_01_000005_create_attendance_rules_table.php` | `uuid()` → `id()` |
-| 267 | [ ] | `modules/Attendance/Database/Migrations/2024_01_01_000006_create_attendance_rule_actions_table.php` | `uuid()` → `id()` |
-| 268 | [ ] | `modules/Attendance/Database/Migrations/2024_01_01_000007_create_attendance_violations_table.php` | `uuid()` → `id()` |
-| 269 | [ ] | `modules/Attendance/Database/Migrations/2024_01_15_000001_create_attendance_type_settings_table.php` | `uuid()` → `id()` |
-| 270 | [ ] | `modules/Attendance/Database/Migrations/2026_02_21_000001_create_work_schedules_table.php` | `uuid()` → `id()` |
+| 263 | [x] | `modules/Attendance/Database/Migrations/2024_01_01_000001_create_attendances_table.php` | `uuid()` → `id()` |
+| 264 | [x] | `modules/Attendance/Database/Migrations/2024_01_01_000002_create_attendance_logs_table.php` | `uuid()` → `id()` |
+| 265 | [x] | `modules/Attendance/Database/Migrations/2024_01_01_000003_create_attendance_breaks_table.php` | `uuid()` → `id()` |
+| 266 | [x] | `modules/Attendance/Database/Migrations/2024_01_01_000005_create_attendance_rules_table.php` | `uuid()` → `id()` |
+| 267 | [x] | `modules/Attendance/Database/Migrations/2024_01_01_000006_create_attendance_rule_actions_table.php` | `uuid()` → `id()` |
+| 268 | [x] | `modules/Attendance/Database/Migrations/2024_01_01_000007_create_attendance_violations_table.php` | `uuid()` → `id()` |
+| 269 | [x] | `modules/Attendance/Database/Migrations/2024_01_15_000001_create_attendance_type_settings_table.php` | `uuid()` → `id()` |
+| 270 | [x] | `modules/Attendance/Database/Migrations/2026_02_21_000001_create_work_schedules_table.php` | `uuid()` → `id()` |
 
-### 5.11 Payroll Module Migrations
+### 5.11 Payroll Module Migrations ✅ COMPLETED
 | # | Status | File | Changes |
 |---|--------|------|---------|
-| 271 | [ ] | `modules/Payroll/Database/Migrations/2024_01_01_000001_create_payroll_runs_table.php` | `uuid()` → `id()` |
-| 272 | [ ] | `modules/Payroll/Database/Migrations/2024_01_01_000002_create_payroll_lines_table.php` | `uuid()` → `id()` |
-| 273 | [ ] | `modules/Payroll/Database/Migrations/2024_01_01_000003_create_salary_rule_categories_table.php` | `uuid()` → `id()` |
-| 274 | [ ] | `modules/Payroll/Database/Migrations/2024_01_01_000004_create_salary_rules_table.php` | `uuid()` → `id()` |
-| 275 | [ ] | `modules/Payroll/Database/Migrations/2024_01_01_000005_create_salary_structures_table.php` | `uuid()` → `id()` |
-| 276 | [ ] | `modules/Payroll/Database/Migrations/2024_01_01_000006_create_employee_salary_structures_table.php` | `uuid()` → `id()` |
-| 277 | [ ] | `modules/Payroll/Database/Migrations/2024_01_01_000007_create_employee_salary_components_table.php` | `uuid()` → `id()` |
+| 271 | [x] | `modules/Payroll/Database/Migrations/2024_01_01_000001_create_payroll_runs_table.php` | `uuid()` → `id()` |
+| 272 | [x] | `modules/Payroll/Database/Migrations/2024_01_01_000002_create_payroll_lines_table.php` | `uuid()` → `id()` |
+| 273 | [x] | `modules/Payroll/Database/Migrations/2024_01_01_000003_create_salary_rule_categories_table.php` | `uuid()` → `id()` |
+| 274 | [x] | `modules/Payroll/Database/Migrations/2024_01_01_000004_create_salary_rules_table.php` | `uuid()` → `id()` |
+| 275 | [x] | `modules/Payroll/Database/Migrations/2024_01_01_000005_create_salary_structures_table.php` | `uuid()` → `id()` |
+| 276 | [x] | `modules/Payroll/Database/Migrations/2024_01_01_000006_create_employee_salary_structures_table.php` | `uuid()` → `id()` |
+| 277 | [x] | `modules/Payroll/Database/Migrations/2024_01_01_000007_create_employee_salary_components_table.php` | `uuid()` → `id()` |
 
-### 5.12 Equipment Module Migrations
+### 5.12 Equipment Module Migrations ✅ COMPLETED
 | # | Status | File | Changes |
 |---|--------|------|---------|
-| 278 | [ ] | `modules/Equipment/Database/Migrations/2024_01_01_000001_create_equipment_types_table.php` | `uuid()` → `id()` |
-| 279 | [ ] | `modules/Equipment/Database/Migrations/2024_01_01_000007_create_equipment_table.php` | `uuid()` → `id()` |
-| 280 | [ ] | `modules/Equipment/Database/Migrations/2024_01_01_000008_create_equipment_maintenance_logs_table.php` | `uuid()` → `id()` |
-| 281 | [ ] | `modules/Equipment/Database/Migrations/2024_01_01_000009_create_equipment_shot_logs_table.php` | `uuid()` → `id()` |
-| 282 | [ ] | `modules/Equipment/Database/Migrations/2024_01_01_000010_create_service_equipment_requirements_table.php` | `uuid()` → `id()` |
-| 283 | [ ] | `modules/Equipment/Database/Migrations/2026_02_24_100001_create_equipment_tracking_parameters_table.php` | `uuid()` → `id()` |
-| 284 | [ ] | `modules/Equipment/Database/Migrations/2026_02_24_100003_create_equipment_parameter_templates_table.php` | `uuid()` → `id()` |
+| 278 | [x] | `modules/Equipment/Database/Migrations/2024_01_01_000001_create_equipment_types_table.php` | `uuid()` → `id()` |
+| 279 | [x] | `modules/Equipment/Database/Migrations/2024_01_01_000007_create_equipment_table.php` | `uuid()` → `id()` |
+| 280 | [x] | `modules/Equipment/Database/Migrations/2024_01_01_000008_create_equipment_maintenance_logs_table.php` | `uuid()` → `id()` |
+| 281 | [x] | `modules/Equipment/Database/Migrations/2024_01_01_000009_create_equipment_shot_logs_table.php` | `uuid()` → `id()` |
+| 282 | [x] | `modules/Equipment/Database/Migrations/2024_01_01_000010_create_service_equipment_requirements_table.php` | `uuid()` → `id()` |
+| 283 | [x] | `modules/Equipment/Database/Migrations/2026_02_24_100001_create_equipment_tracking_parameters_table.php` | `uuid()` → `id()` |
+| 284 | [x] | `modules/Equipment/Database/Migrations/2026_02_24_100003_create_equipment_parameter_templates_table.php` | `uuid()` → `id()` |
 
-### 5.13 GiftCards Module Migrations
+### 5.13 GiftCards Module Migrations ✅ COMPLETED
 | # | Status | File | Changes |
 |---|--------|------|---------|
-| 285 | [ ] | `modules/GiftCards/Database/Migrations/2024_01_01_000001_create_gift_card_templates_table.php` | `uuid()` → `id()` |
-| 286 | [ ] | `modules/GiftCards/Database/Migrations/2024_01_01_000002_create_gift_cards_table.php` | `uuid()` → `id()` |
-| 287 | [ ] | `modules/GiftCards/Database/Migrations/2024_01_01_000003_create_gift_card_transactions_table.php` | `uuid()` → `id()` |
-| 288 | [ ] | `modules/GiftCards/Database/Migrations/2024_01_01_000004_create_gift_card_print_histories_table.php` | `uuid()` → `id()` |
-| 289 | [ ] | `modules/GiftCards/Database/Migrations/2024_01_01_000005_create_gift_card_batch_exports_table.php` | `uuid()` → `id()` |
+| 285 | [x] | `modules/GiftCards/Database/Migrations/2024_01_01_000001_create_gift_card_templates_table.php` | `uuid()` → `id()` |
+| 286 | [x] | `modules/GiftCards/Database/Migrations/2024_01_01_000002_create_gift_cards_table.php` | `uuid()` → `id()` |
+| 287 | [x] | `modules/GiftCards/Database/Migrations/2024_01_01_000003_create_gift_card_transactions_table.php` | `uuid()` → `id()` |
+| 288 | [x] | `modules/GiftCards/Database/Migrations/2024_01_01_000004_create_gift_card_print_histories_table.php` | `uuid()` → `id()` |
+| 289 | [x] | `modules/GiftCards/Database/Migrations/2024_01_01_000005_create_gift_card_batch_exports_table.php` | `uuid()` → `id()` |
 
-### 5.14 Packages Module Migrations
+### 5.14 Packages Module Migrations ✅ COMPLETED
 | # | Status | File | Changes |
 |---|--------|------|---------|
-| 290 | [ ] | `modules/Packages/Database/Migrations/2024_01_01_000007_create_packages_table.php` | `uuid()` → `id()` |
-| 291 | [ ] | `modules/Packages/Database/Migrations/2024_01_01_000009_create_package_items_table.php` | `uuid()` → `id()` |
-| 292 | [ ] | `modules/Packages/Database/Migrations/2024_01_01_000010_create_package_subscriptions_table.php` | `uuid()` → `id()` |
-| 293 | [ ] | `modules/Packages/Database/Migrations/2024_01_01_000011_create_package_session_usages_table.php` | `uuid()` → `id()` |
+| 290 | [x] | `modules/Packages/Database/Migrations/2024_01_01_000007_create_packages_table.php` | `uuid()` → `id()` |
+| 291 | [x] | `modules/Packages/Database/Migrations/2024_01_01_000009_create_package_items_table.php` | `uuid()` → `id()` |
+| 292 | [x] | `modules/Packages/Database/Migrations/2024_01_01_000010_create_package_subscriptions_table.php` | `uuid()` → `id()` |
+| 293 | [x] | `modules/Packages/Database/Migrations/2024_01_01_000011_create_package_session_usages_table.php` | `uuid()` → `id()` |
 
-### 5.15 Memberships Module Migrations
+### 5.15 Memberships Module Migrations ✅ COMPLETED
 | # | Status | File | Changes |
 |---|--------|------|---------|
-| 294 | [ ] | `modules/Memberships/Database/Migrations/2024_01_01_000001_create_memberships_table.php` | `uuid()` → `id()` |
-| 295 | [ ] | `modules/Memberships/Database/Migrations/2024_01_01_000002_create_membership_subscriptions_table.php` | `uuid()` → `id()` |
+| 294 | [x] | `modules/Memberships/Database/Migrations/2024_01_01_000001_create_memberships_table.php` | `uuid()` → `id()` |
+| 295 | [x] | `modules/Memberships/Database/Migrations/2024_01_01_000002_create_membership_subscriptions_table.php` | `uuid()` → `id()` |
 
-### 5.16 Loyalty Module Migrations
+### 5.16 Loyalty Module Migrations ✅ COMPLETED
 | # | Status | File | Changes |
 |---|--------|------|---------|
-| 296 | [ ] | `modules/Loyalty/Database/Migrations/2024_01_01_000008_create_loyalty_transactions_table.php` | `uuid()` → `id()` |
-| 297 | [ ] | `modules/Loyalty/Database/Migrations/2024_01_01_000009_create_loyalty_rules_table.php` | `uuid()` → `id()` |
-| 298 | [ ] | `modules/Loyalty/Database/Migrations/2024_01_01_000010_create_referral_programs_table.php` | `uuid()` → `id()` |
-| 299 | [ ] | `modules/Loyalty/Database/Migrations/2024_01_01_000011_create_referrals_table.php` | `uuid()` → `id()` |
+| 296 | [x] | `modules/Loyalty/Database/Migrations/2024_01_01_000008_create_loyalty_transactions_table.php` | `uuid()` → `id()` |
+| 297 | [x] | `modules/Loyalty/Database/Migrations/2024_01_01_000009_create_loyalty_rules_table.php` | `uuid()` → `id()` |
+| 298 | [x] | `modules/Loyalty/Database/Migrations/2024_01_01_000010_create_referral_programs_table.php` | `uuid()` → `id()` |
+| 299 | [x] | `modules/Loyalty/Database/Migrations/2024_01_01_000011_create_referrals_table.php` | `uuid()` → `id()` |
 
-### 5.17 Marketing Module Migrations
+### 5.17 Marketing Module Migrations ✅ COMPLETED
 | # | Status | File | Changes |
 |---|--------|------|---------|
-| 300 | [ ] | `modules/Marketing/Database/Migrations/2024_01_01_000001_create_message_templates_table.php` | `uuid()` → `id()` |
-| 301 | [ ] | `modules/Marketing/Database/Migrations/2024_01_01_000002_create_campaigns_table.php` | `uuid()` → `id()` |
-| 302 | [ ] | `modules/Marketing/Database/Migrations/2024_01_01_000003_create_campaign_recipients_table.php` | `uuid()` → `id()` |
-| 303 | [ ] | `modules/Marketing/Database/Migrations/2024_01_01_000004_create_notification_logs_table.php` | `uuid()` → `id()` |
-| 304 | [ ] | `modules/Marketing/Database/Migrations/2024_01_01_000005_create_automation_rules_table.php` | `uuid()` → `id()` |
+| 300 | [x] | `modules/Marketing/Database/Migrations/2024_01_01_000001_create_message_templates_table.php` | `uuid()` → `id()` |
+| 301 | [x] | `modules/Marketing/Database/Migrations/2024_01_01_000002_create_campaigns_table.php` | `uuid()` → `id()` |
+| 302 | [x] | `modules/Marketing/Database/Migrations/2024_01_01_000003_create_campaign_recipients_table.php` | `uuid()` → `id()` |
+| 303 | [x] | `modules/Marketing/Database/Migrations/2024_01_01_000004_create_notification_logs_table.php` | `uuid()` → `id()` |
+| 304 | [x] | `modules/Marketing/Database/Migrations/2024_01_01_000005_create_automation_rules_table.php` | `uuid()` → `id()` |
 
-### 5.18 TreatmentPlans Module Migrations
+### 5.18 TreatmentPlans Module Migrations ✅ COMPLETED
 | # | Status | File | Changes |
 |---|--------|------|---------|
-| 305 | [ ] | `modules/TreatmentPlans/Database/Migrations/2024_01_01_000001_create_treatment_plans_table.php` | `uuid()` → `id()` |
-| 306 | [ ] | `modules/TreatmentPlans/Database/Migrations/2024_01_01_000002_create_treatment_plan_items_table.php` | `uuid()` → `id()` |
-| 307 | [ ] | `modules/TreatmentPlans/Database/Migrations/2024_01_01_000003_create_treatment_plan_appointments_table.php` | `uuid()` → `id()` |
+| 305 | [x] | `modules/TreatmentPlans/Database/Migrations/2024_01_01_000001_create_treatment_plans_table.php` | `uuid()` → `id()` |
+| 306 | [x] | `modules/TreatmentPlans/Database/Migrations/2024_01_01_000002_create_treatment_plan_items_table.php` | `uuid()` → `id()` |
+| 307 | [x] | `modules/TreatmentPlans/Database/Migrations/2024_01_01_000003_create_treatment_plan_appointments_table.php` | `uuid()` → `id()` |
 
-### 5.19 Prescriptions Module Migrations
+### 5.19 Prescriptions Module Migrations ✅ COMPLETED
 | # | Status | File | Changes |
 |---|--------|------|---------|
-| 308 | [ ] | `modules/Prescriptions/Database/Migrations/2024_01_01_000001_create_medicine_catalog_table.php` | `uuid()` → `id()` |
-| 309 | [ ] | `modules/Prescriptions/Database/Migrations/2024_01_01_000002_create_prescriptions_table.php` | `uuid()` → `id()` |
-| 310 | [ ] | `modules/Prescriptions/Database/Migrations/2024_01_01_000003_create_prescription_items_table.php` | `uuid()` → `id()` |
+| 308 | [x] | `modules/Prescriptions/Database/Migrations/2024_01_01_000001_create_medicine_catalog_table.php` | `uuid()` → `id()` |
+| 309 | [x] | `modules/Prescriptions/Database/Migrations/2024_01_01_000002_create_prescriptions_table.php` | `uuid()` → `id()` |
+| 310 | [x] | `modules/Prescriptions/Database/Migrations/2024_01_01_000003_create_prescription_items_table.php` | `uuid()` → `id()` |
 
-### 5.20 Assets Module Migrations
+### 5.20 Assets Module Migrations ✅ COMPLETED
 | # | Status | File | Changes |
 |---|--------|------|---------|
-| 311 | [ ] | `modules/Assets/Database/Migrations/2024_01_01_000001_create_asset_types_table.php` | `uuid()` → `id()` |
-| 312 | [ ] | `modules/Assets/Database/Migrations/2024_01_01_000002_create_assets_table.php` | `uuid()` → `id()` |
-| 313 | [ ] | `modules/Assets/Database/Migrations/2024_01_01_000003_create_asset_depreciation_entries_table.php` | `uuid()` → `id()` |
+| 311 | [x] | `modules/Assets/Database/Migrations/2024_01_01_000001_create_asset_types_table.php` | `uuid()` → `id()` |
+| 312 | [x] | `modules/Assets/Database/Migrations/2024_01_01_000002_create_assets_table.php` | `uuid()` → `id()` |
+| 313 | [x] | `modules/Assets/Database/Migrations/2024_01_01_000003_create_asset_depreciation_entries_table.php` | `uuid()` → `id()` |
 
-### 5.21 PatientPortal Module Migrations
+### 5.21 PatientPortal Module Migrations ✅ COMPLETED
 | # | Status | File | Changes |
 |---|--------|------|---------|
-| 314 | [ ] | `modules/PatientPortal/Database/Migrations/2024_01_01_000001_create_portal_settings_table.php` | `uuid()` → `id()` |
+| 314 | [x] | `modules/PatientPortal/Database/Migrations/2024_01_01_000001_create_portal_settings_table.php` | `uuid()` → `id()` |
 
 ---
 
@@ -752,18 +752,18 @@ protected $casts = [
 
 | Phase | Total Items | Completed | Remaining |
 |-------|-------------|-----------|-----------|
-| Decisions | 6 | 1 | 5 |
-| 0. Framework | 7 | 0 | 7 |
-| 1. App Models | 20 | 0 | 20 |
-| 2. Models (Explicit Casts) | 31 | 0 | 31 |
-| 3. Models (Verify) | 98 | 0 | 98 |
-| 4. Migrations (Central) | 23 | 0 | 23 |
-| 5. Migrations (Tenant) | 135 | 0 | 135 |
+| Decisions | 6 | 6 | 0 |
+| 0. Framework | 7 | 7 | 0 |
+| 1. App Models | 20 | 20 | 0 |
+| 2. Models (Explicit Casts) | 31 | 31 | 0 |
+| 3. Models (Verify) | 98 | 98 | 0 |
+| 4. Migrations (Central) | 23 | 23 | 0 |
+| 5. Migrations (Tenant) | 135 | 135 | 0 |
 | 6. Services | 6 | 0 | 6 |
 | 7. Seeders | 16 | 0 | 16 |
 | 8. Filament/UI | 3 | 0 | 3 |
 | 9. Testing | 12 | 0 | 12 |
-| **TOTAL** | **357** | **1** | **356** |
+| **TOTAL** | **357** | **320** | **37** |
 
 ---
 

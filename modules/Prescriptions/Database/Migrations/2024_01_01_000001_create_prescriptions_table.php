@@ -9,13 +9,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('prescriptions', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
             $table->string('prescription_number')->index();
-            $table->uuid('patient_id')->index();
-            $table->uuid('prescriber_id')->index();
-            $table->uuid('appointment_id')->nullable()->index();
-            $table->uuid('branch_id')->index();
+            $table->foreignId('patient_id')->index();
+            $table->foreignId('prescriber_id')->index();
+            $table->foreignId('appointment_id')->nullable()->index();
+            $table->foreignId('branch_id')->index();
 
             // Clinical info
             $table->text('diagnosis')->nullable();
@@ -34,11 +34,11 @@ return new class extends Migration
             $table->datetime('last_printed_at')->nullable();
 
             // Finalization
-            $table->uuid('finalized_by')->nullable();
+            $table->foreignId('finalized_by')->nullable();
             $table->datetime('finalized_at')->nullable();
 
             // Cancellation
-            $table->uuid('cancelled_by')->nullable();
+            $table->foreignId('cancelled_by')->nullable();
             $table->datetime('cancelled_at')->nullable();
             $table->text('cancellation_reason')->nullable();
 

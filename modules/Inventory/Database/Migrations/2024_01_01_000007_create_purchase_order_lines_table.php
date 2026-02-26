@@ -9,10 +9,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('purchase_order_lines', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
-            $table->uuid('purchase_order_id');
-            $table->uuid('product_id');
+            $table->id();
+            $table->foreignId('tenant_id')->index();
+            $table->foreignId('purchase_order_id');
+            $table->foreignId('product_id');
             $table->integer('quantity');
             $table->integer('quantity_received')->default(0);
             $table->integer('unit_price_minor')->default(0);

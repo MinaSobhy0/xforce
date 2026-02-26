@@ -9,10 +9,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('treatment_plan_appointments', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
-            $table->uuid('treatment_plan_item_id')->index();
-            $table->uuid('appointment_id')->index();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
+            $table->foreignId('treatment_plan_item_id')->index();
+            $table->foreignId('appointment_id')->index();
 
             // Session tracking (e.g., "Session 3 of 6")
             $table->integer('session_number')->default(1);

@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('payroll_runs', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
             $table->string('run_number', 30)->unique();
             $table->integer('period_year');
             $table->integer('period_month');
@@ -21,9 +21,9 @@ return new class extends Migration
             $table->integer('total_deductions_minor')->default(0);
             $table->integer('total_net_salary_minor')->default(0);
             $table->integer('employee_count')->default(0);
-            $table->uuid('approved_by')->nullable();
+            $table->foreignId('approved_by')->nullable();
             $table->timestamp('approved_at')->nullable();
-            $table->uuid('paid_by')->nullable();
+            $table->foreignId('paid_by')->nullable();
             $table->timestamp('paid_at')->nullable();
             $table->text('notes')->nullable();
             $table->timestamps();

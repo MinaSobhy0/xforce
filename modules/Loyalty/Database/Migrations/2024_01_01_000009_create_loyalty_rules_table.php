@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('loyalty_rules', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
 
             $table->jsonb('name');
             $table->jsonb('description')->nullable();
@@ -23,8 +23,8 @@ return new class extends Migration
             $table->integer('max_points_per_transaction')->nullable(); // Cap points per transaction
 
             // Treatment/Category specific rules
-            $table->uuid('service_id')->nullable();
-            $table->uuid('service_category_id')->nullable();
+            $table->foreignId('service_id')->nullable();
+            $table->foreignId('service_category_id')->nullable();
 
             // Multiplier (for tiers or promotions)
             $table->decimal('multiplier', 5, 2)->default(1.0);

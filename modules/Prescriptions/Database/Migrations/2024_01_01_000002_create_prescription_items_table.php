@@ -9,9 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('prescription_items', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
-            $table->uuid('prescription_id')->index();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
+            $table->foreignId('prescription_id')->index();
 
             // Medication details
             $table->string('medication_name');

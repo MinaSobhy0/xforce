@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('add_ons', function (Blueprint $table) {
-            $table->uuid('id')->primary();
+            $table->id();
             $table->string('code')->unique();
             $table->string('name');
             $table->string('name_ar')->nullable();
@@ -29,9 +29,9 @@ return new class extends Migration
         });
 
         Schema::create('tenant_add_ons', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->foreignUuid('tenant_id')->constrained()->onDelete('cascade');
-            $table->foreignUuid('add_on_id')->constrained()->onDelete('cascade');
+            $table->id();
+            $table->foreignId('tenant_id')->constrained()->onDelete('cascade');
+            $table->foreignId('add_on_id')->constrained()->onDelete('cascade');
             $table->timestamp('activated_at')->nullable();
             $table->timestamp('expires_at')->nullable();
             $table->string('billing_interval')->default('monthly');

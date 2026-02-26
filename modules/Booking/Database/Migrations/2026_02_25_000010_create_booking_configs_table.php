@@ -9,9 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('booking_configs', function (Blueprint $table) {
-            $table->uuid('id')->primary();
+            $table->id();
             // Note: tenant_id omitted - in schema-per-tenant, data is isolated by schema
-            $table->uuid('branch_id')->nullable(); // null = tenant-wide default
+            $table->foreignId('branch_id')->nullable(); // null = tenant-wide default
 
             // Step 1: Service & Time Configuration
             $table->integer('slot_duration')->default(30); // minutes

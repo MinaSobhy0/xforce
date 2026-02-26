@@ -9,9 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('lifestyle_info', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id');
-            $table->uuid('medical_profile_id')->unique();
+            $table->id();
+            $table->foreignId('tenant_id');
+            $table->foreignId('medical_profile_id')->unique();
 
             // Smoking
             $table->enum('smoking_status', ['never', 'former', 'current'])->nullable();

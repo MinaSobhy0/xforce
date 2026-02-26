@@ -9,14 +9,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('referrals', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('tenant_id')->index();
+            $table->id();
+            $table->foreignId('tenant_id')->index();
 
             $table->string('code')->unique(); // REF-2024-000001
 
-            $table->uuid('referral_program_id')->nullable();
-            $table->uuid('referrer_patient_id')->index();
-            $table->uuid('referred_patient_id')->nullable()->index();
+            $table->foreignId('referral_program_id')->nullable();
+            $table->foreignId('referrer_patient_id')->index();
+            $table->foreignId('referred_patient_id')->nullable()->index();
 
             $table->string('status')->default('pending'); // pending, completed, rewarded, expired, cancelled
 
@@ -27,7 +27,7 @@ return new class extends Migration
             $table->boolean('referred_discount_used')->default(false);
 
             // First purchase reference
-            $table->uuid('first_purchase_invoice_id')->nullable();
+            $table->foreignId('first_purchase_invoice_id')->nullable();
 
             // Timestamps for status transitions
             $table->timestamp('completed_at')->nullable();

@@ -19,7 +19,7 @@ return new class extends Migration
 
         Schema::table('practitioner_schedule_assignments', function (Blueprint $table) {
             // Add staff_profile_id column
-            $table->uuid('staff_profile_id')->nullable()->after('tenant_id');
+            $table->foreignId('staff_profile_id')->nullable()->after('tenant_id');
             $table->foreign('staff_profile_id')
                 ->references('id')
                 ->on('staff_profiles')
@@ -44,7 +44,7 @@ return new class extends Migration
 
         // Make staff_profile_id required after migration
         Schema::table('practitioner_schedule_assignments', function (Blueprint $table) {
-            $table->uuid('staff_profile_id')->nullable(false)->change();
+            $table->foreignId('staff_profile_id')->nullable(false)->change();
         });
     }
 
@@ -55,7 +55,7 @@ return new class extends Migration
     {
         Schema::table('practitioner_schedule_assignments', function (Blueprint $table) {
             // Add user_id back
-            $table->uuid('user_id')->nullable()->after('tenant_id');
+            $table->foreignId('user_id')->nullable()->after('tenant_id');
         });
 
         // Migrate data back: convert staff_profile_id to user_id
@@ -69,7 +69,7 @@ return new class extends Migration
         Schema::table('practitioner_schedule_assignments', function (Blueprint $table) {
             $table->dropForeign(['staff_profile_id']);
             $table->dropColumn('staff_profile_id');
-            $table->uuid('user_id')->nullable(false)->change();
+            $table->foreignId('user_id')->nullable(false)->change();
         });
     }
 };
