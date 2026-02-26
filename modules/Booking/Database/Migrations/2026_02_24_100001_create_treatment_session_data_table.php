@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('treatment_session_data', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('tenant_id');
+            $table->unsignedBigInteger('tenant_id'); // No FK - tenants table is in public schema
             $table->foreignId('appointment_id');
             $table->foreignId('service_id');
             $table->foreignId('equipment_id')->nullable();
@@ -120,10 +120,7 @@ return new class extends Migration
 
             $table->timestamps();
 
-            $table->foreign('tenant_id')
-                ->references('id')
-                ->on('tenants')
-                ->onDelete('cascade');
+            // No FK for tenant_id - tenants table is in public schema
 
             $table->foreign('appointment_id')
                 ->references('id')

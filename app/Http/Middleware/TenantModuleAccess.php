@@ -69,9 +69,14 @@ class TenantModuleAccess
         }
 
         // Try getting from authenticated user
-        $user = auth()->user();
-        if ($user && method_exists($user, 'tenant')) {
-            return $user->tenant;
+        try {
+            $user = auth()->user();
+            if ($user && method_exists($user, 'tenant')) {
+                return $user->tenant;
+            }
+        } catch (\Exception $e) {
+            // Session may contain stale user ID (e.g., UUID from before migration)
+            // Just continue without user context
         }
 
         return null;

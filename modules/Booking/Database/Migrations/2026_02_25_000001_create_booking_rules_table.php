@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('booking_rules', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('tenant_id');
+            $table->unsignedBigInteger('tenant_id'); // No FK - tenants table is in public schema
 
             // Scope (hierarchical: tenant → branch → service)
             $table->enum('scope_level', ['tenant', 'branch', 'service'])->default('tenant');
@@ -68,8 +68,7 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            // Foreign keys
-            $table->foreign('tenant_id')->references('id')->on('tenants')->cascadeOnDelete();
+            // Foreign keys (no FK for tenant_id - tenants table is in public schema)
             $table->foreign('branch_id')->references('id')->on('branches')->nullOnDelete();
             $table->foreign('service_id')->references('id')->on('services')->nullOnDelete();
             $table->foreign('created_by')->references('id')->on('users')->nullOnDelete();

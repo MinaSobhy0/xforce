@@ -245,8 +245,11 @@ class PractitionerScheduleAssignment extends BaseModel
         });
     }
 
-    public function scopeForBranch($query, string $branchId)
+    public function scopeForBranch($query, ?string $branchId)
     {
+        if ($branchId === null) {
+            return $query;
+        }
         return $query->where(function ($q) use ($branchId) {
             $q->where('branch_id', $branchId)
                 ->orWhereHas('workSchedule', function ($ws) use ($branchId) {

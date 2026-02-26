@@ -112,8 +112,11 @@ class UserBranchRole extends BaseModel
     /**
      * Scope to assignments for a specific branch.
      */
-    public function scopeForBranch($query, string $branchId)
+    public function scopeForBranch($query, ?string $branchId)
     {
+        if ($branchId === null) {
+            return $query;
+        }
         return $query->where('branch_id', $branchId);
     }
 

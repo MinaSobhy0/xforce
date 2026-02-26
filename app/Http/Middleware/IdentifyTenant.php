@@ -149,18 +149,22 @@ class IdentifyTenant
     {
         $schemaName = $tenant->database_name;
 
-        // Switching to tenant schema
-
         // Configure the default pgsql connection to use tenant's schema
-        // This persists across the request even with PgBouncer
+        // Using 'options' parameter which is passed to PostgreSQL as connection string options
+        // Format: -c search_path=schema_name (this sets the search_path at connection time)
         Config::set('database.connections.pgsql.search_path', $schemaName);
+        Config::set('database.connections.pgsql.options', [
+            \PDO::ATTR_PERSISTENT => env('DB_PERSISTENT', false),
+            \PDO::ATTR_EMULATE_PREPARES => env('DB_PGBOUNCER', true),
+        ]);
 
         // Purge and reconnect the default connection with new search_path
         DB::purge('pgsql');
         DB::reconnect('pgsql');
 
-        // Verify the search_path is set correctly (silent verification)
-        DB::select('SHOW search_path');
+        // With PgBouncer in transaction mode, we must SET search_path in each transaction
+        // Use SET LOCAL to ensure it applies to the current transaction
+        DB::statement("SET search_path TO \"{$schemaName}\"");
 
         // Also configure a named tenant connection for explicit use
         Config::set('database.connections.tenant', [
@@ -175,9 +179,17 @@ class IdentifyTenant
             'prefix_indexes' => true,
             'search_path' => $schemaName,
             'sslmode' => 'prefer',
+            // PgBouncer compatibility: emulate prepares to avoid "prepared statement does not exist" errors
+            'options' => [
+                \PDO::ATTR_PERSISTENT => env('DB_PERSISTENT', false),
+                \PDO::ATTR_EMULATE_PREPARES => env('DB_PGBOUNCER', true),
+            ],
         ]);
 
         // Purge any cached tenant connection
         DB::purge('tenant');
+
+        // Store schema name in a global for use by callbacks and other code
+        app()->instance('tenant_schema', $schemaName);
     }
 }

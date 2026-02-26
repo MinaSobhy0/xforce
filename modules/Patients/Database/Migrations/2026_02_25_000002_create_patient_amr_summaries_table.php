@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('patient_amr_summaries', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('tenant_id');
+            $table->unsignedBigInteger('tenant_id'); // No FK - tenants table is in public schema
             $table->foreignId('patient_id')->unique(); // One summary per patient
 
             // Aggregated data from all AMR tests
@@ -34,7 +34,7 @@ return new class extends Migration
             $table->timestamps();
 
             // Foreign keys
-            $table->foreign('tenant_id')->references('id')->on('tenants')->cascadeOnDelete();
+            // No FK for tenant_id - tenants table is in public schema
             $table->foreign('patient_id')->references('id')->on('patients')->cascadeOnDelete();
             $table->foreign('last_test_id')->references('id')->on('patient_amr_tests')->nullOnDelete();
             $table->foreign('last_updated_by')->references('id')->on('users')->nullOnDelete();

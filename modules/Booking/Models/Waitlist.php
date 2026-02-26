@@ -275,8 +275,11 @@ class Waitlist extends BaseModel
         return $query->where('service_id', $serviceId);
     }
 
-    public function scopeForBranch($query, string $branchId)
+    public function scopeForBranch($query, ?string $branchId)
     {
+        if ($branchId === null) {
+            return $query;
+        }
         return $query->where('branch_id', $branchId);
     }
 

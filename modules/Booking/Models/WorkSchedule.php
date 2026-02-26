@@ -421,8 +421,11 @@ class WorkSchedule extends BaseModel
         return $query->where('is_active', true);
     }
 
-    public function scopeForBranch($query, string $branchId)
+    public function scopeForBranch($query, ?string $branchId)
     {
+        if ($branchId === null) {
+            return $query;
+        }
         return $query->where(function ($q) use ($branchId) {
             $q->where('work_schedules.branch_id', $branchId)
                 ->orWhereNull('work_schedules.branch_id');

@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('medical_medications', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('tenant_id');
+            $table->unsignedBigInteger('tenant_id'); // No FK - tenants table is in public schema
             $table->foreignId('medical_profile_id');
             $table->string('medication_name');
             $table->string('generic_name')->nullable();
@@ -28,7 +28,7 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            $table->foreign('tenant_id')->references('id')->on('tenants')->cascadeOnDelete();
+            // No FK for tenant_id - tenants table is in public schema
             $table->foreign('medical_profile_id')->references('id')->on('medical_profiles')->cascadeOnDelete();
 
             $table->index(['medical_profile_id', 'is_ongoing']);

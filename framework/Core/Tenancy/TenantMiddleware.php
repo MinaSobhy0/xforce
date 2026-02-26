@@ -324,6 +324,11 @@ class TenantMiddleware
 
         return array_merge($baseConfig, [
             'database' => $databaseName,
+            // PgBouncer compatibility: emulate prepares to avoid "prepared statement does not exist" errors
+            'options' => [
+                \PDO::ATTR_PERSISTENT => env('DB_PERSISTENT', false),
+                \PDO::ATTR_EMULATE_PREPARES => env('DB_PGBOUNCER', true),
+            ],
         ]);
     }
 

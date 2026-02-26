@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('booking_blackout_dates', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('tenant_id');
+            $table->unsignedBigInteger('tenant_id'); // No FK - tenants table is in public schema
             $table->foreignId('branch_id')->nullable(); // NULL = all branches
 
             $table->string('name', 100);
@@ -35,8 +35,7 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            // Foreign keys
-            $table->foreign('tenant_id')->references('id')->on('tenants')->cascadeOnDelete();
+            // Foreign keys (no FK for tenant_id - tenants table is in public schema)
             $table->foreign('branch_id')->references('id')->on('branches')->nullOnDelete();
             $table->foreign('created_by')->references('id')->on('users')->nullOnDelete();
             $table->foreign('updated_by')->references('id')->on('users')->nullOnDelete();

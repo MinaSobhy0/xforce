@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('skin_assessments', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('tenant_id');
+            $table->unsignedBigInteger('tenant_id'); // No FK - tenants table is in public schema
             $table->foreignId('medical_profile_id');
             $table->foreignId('appointment_id')->nullable();
             $table->foreignId('assessed_by');
@@ -57,7 +57,7 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            $table->foreign('tenant_id')->references('id')->on('tenants')->cascadeOnDelete();
+            // No FK for tenant_id - tenants table is in public schema
             $table->foreign('medical_profile_id')->references('id')->on('medical_profiles')->cascadeOnDelete();
             $table->foreign('appointment_id')->references('id')->on('appointments')->nullOnDelete();
             $table->foreign('assessed_by')->references('id')->on('users')->restrictOnDelete();

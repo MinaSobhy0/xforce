@@ -172,6 +172,11 @@ class TenantService
                 'prefix_indexes' => true,
                 'search_path' => $schemaName,
                 'sslmode' => 'prefer',
+                // PgBouncer compatibility: emulate prepares to avoid "prepared statement does not exist" errors
+                'options' => [
+                    \PDO::ATTR_PERSISTENT => env('DB_PERSISTENT', false),
+                    \PDO::ATTR_EMULATE_PREPARES => env('DB_PGBOUNCER', true),
+                ],
             ]
         ]);
 
@@ -180,7 +185,7 @@ class TenantService
 
         // Run migrations for tenant using the tenant connection
         $this->tenantManager->runForTenant($tenant, function () use ($connectionName, $schemaName) {
-            // Get tenant-specific migration files (excludes platform-only)
+            // Get all tenant migration files sorted by timestamp
             $migrationFiles = $this->getTenantMigrationFiles();
 
             Log::info('Running tenant migrations', [
@@ -189,22 +194,43 @@ class TenantService
                 'file_count' => count($migrationFiles),
             ]);
 
+            // Run each migration file in timestamp order
+            $successCount = 0;
+            $errorCount = 0;
+
             foreach ($migrationFiles as $file) {
                 $relativePath = str_replace(base_path() . '/', '', $file);
 
-                Log::info('Running migration', ['file' => basename($file)]);
+                try {
+                    $exitCode = Artisan::call('migrate', [
+                        '--database' => $connectionName,
+                        '--path' => $relativePath,
+                        '--force' => true,
+                    ]);
 
-                Artisan::call('migrate', [
-                    '--database' => $connectionName,
-                    '--path' => $relativePath,
-                    '--force' => true,
-                ]);
-
-                $output = trim(Artisan::output());
-                if ($output) {
-                    Log::info('Migration output', ['output' => $output]);
+                    if ($exitCode === 0) {
+                        $successCount++;
+                    } else {
+                        $errorCount++;
+                        Log::error('Migration failed', [
+                            'file' => basename($file),
+                            'output' => Artisan::output(),
+                        ]);
+                    }
+                } catch (\Exception $e) {
+                    $errorCount++;
+                    Log::error('Migration exception', [
+                        'file' => basename($file),
+                        'error' => $e->getMessage(),
+                    ]);
+                    throw $e; // Re-throw to stop provisioning
                 }
             }
+
+            Log::info('Migrations completed', [
+                'success' => $successCount,
+                'errors' => $errorCount,
+            ]);
         });
 
         Log::info('Tenant database provisioning completed', [
@@ -212,8 +238,8 @@ class TenantService
             'schema_name' => $schemaName,
         ]);
 
-        // Seed default roles and permissions
-        $this->seedDefaultRolesAndPermissions($tenant);
+        // Run tenant seeders
+        $this->runTenantSeeders($tenant);
 
         // Create default branch for the tenant
         $this->createDefaultBranch($tenant);
@@ -221,6 +247,145 @@ class TenantService
         // Create owner user if contact_email is set
         if ($tenant->contact_email) {
             $this->createOwnerUser($tenant);
+        }
+    }
+
+    /**
+     * Run all tenant seeders in the correct order.
+     */
+    protected function runTenantSeeders(Tenant $tenant): void
+    {
+        $schemaName = $tenant->database_name;
+
+        Log::info('Running tenant seeders', [
+            'tenant_id' => $tenant->id,
+            'schema_name' => $schemaName,
+        ]);
+
+        try {
+            // Switch to tenant schema
+            DB::statement("SET search_path TO \"{$schemaName}\"");
+
+            // Set current tenant in manager for seeders that need it
+            $this->tenantManager->setCurrentTenant($tenant);
+            app()->instance('currentTenant', $tenant);
+
+            // First, create super_admin role with all permissions
+            $this->createSuperAdminRole($tenant);
+
+            // Define seeders to run in order
+            $seeders = [
+                // Roles and permissions (tenant-level roles)
+                \Database\Seeders\TenantRoleSeeder::class,
+
+                // Core settings and sequences
+                \Modules\Core\Database\Seeders\DefaultSettingsSeeder::class,
+                \Modules\Core\Database\Seeders\DefaultSequenceSeeder::class,
+
+                // Billing - tax rates
+                \Modules\Billing\Database\Seeders\TaxRateSeeder::class,
+
+                // Accounting - chart of accounts
+                \Modules\Accounting\Database\Seeders\ChartOfAccountsSeeder::class,
+
+                // Payroll defaults
+                \Modules\Payroll\Database\Seeders\PayrollDefaultsSeeder::class,
+
+                // Service parameter templates
+                \Modules\Services\Database\Seeders\ParameterTemplatesSeeder::class,
+
+                // Default medicines catalog
+                \Modules\Prescriptions\Database\Seeders\DefaultMedicinesSeeder::class,
+
+                // Asset types
+                \Modules\Assets\Database\Seeders\AssetTypeSeeder::class,
+            ];
+
+            foreach ($seeders as $seederClass) {
+                if (class_exists($seederClass)) {
+                    try {
+                        $seeder = new $seederClass();
+                        $seeder->run();
+                        Log::info('Seeder completed', ['seeder' => class_basename($seederClass)]);
+                    } catch (\Exception $e) {
+                        Log::warning('Seeder failed', [
+                            'seeder' => class_basename($seederClass),
+                            'error' => $e->getMessage(),
+                        ]);
+                        // Continue with other seeders even if one fails
+                    }
+                }
+            }
+
+            Log::info('All tenant seeders completed', ['tenant_id' => $tenant->id]);
+
+            // Reset search_path to public
+            DB::statement("SET search_path TO public");
+
+        } catch (\Exception $e) {
+            DB::statement("SET search_path TO public");
+            Log::error('Failed to run tenant seeders', [
+                'tenant_id' => $tenant->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Create super_admin role with all permissions.
+     */
+    protected function createSuperAdminRole(Tenant $tenant): void
+    {
+        // Define base permissions
+        $permissionNames = [
+            'system.view', 'system.manage',
+            'users.view', 'users.create', 'users.edit', 'users.delete',
+            'roles.view', 'roles.create', 'roles.edit', 'roles.manage',
+            'permissions.view', 'permissions.manage',
+            'patients.view', 'patients.create', 'patients.edit', 'patients.delete',
+            'appointments.view', 'appointments.create', 'appointments.edit', 'appointments.delete',
+            'services.view', 'services.create', 'services.edit', 'services.delete',
+            'billing.view', 'billing.create', 'billing.edit', 'billing.delete',
+            'reports.view', 'reports.export',
+            'profile.view', 'profile.edit',
+            'settings.view', 'settings.edit',
+        ];
+
+        // Create permissions
+        foreach ($permissionNames as $permName) {
+            $existing = DB::table('permissions')->where('name', $permName)->where('guard_name', 'web')->first();
+            if (!$existing) {
+                DB::table('permissions')->insert([
+                    'name' => $permName,
+                    'guard_name' => 'web',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        }
+
+        // Get all permission IDs
+        $allPermissionIds = DB::table('permissions')->pluck('id')->toArray();
+
+        // Create super_admin role if not exists
+        $existing = DB::table('roles')->where('name', 'super_admin')->where('guard_name', 'web')->first();
+        if (!$existing) {
+            $roleId = DB::table('roles')->insertGetId([
+                'name' => 'super_admin',
+                'guard_name' => 'web',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            // Assign all permissions to super_admin
+            foreach ($allPermissionIds as $permId) {
+                DB::table('role_has_permissions')->insert([
+                    'permission_id' => $permId,
+                    'role_id' => $roleId,
+                ]);
+            }
+
+            Log::info('super_admin role created with all permissions', ['tenant_id' => $tenant->id]);
         }
     }
 
@@ -699,6 +864,67 @@ class TenantService
         });
 
         return $files;
+    }
+
+    /**
+     * Get tenant migration paths in the correct order.
+     * Returns relative paths to migration directories.
+     */
+    protected function getTenantMigrationPaths(): array
+    {
+        // Define module order to ensure dependencies are met
+        // Auth first (creates users table), then Core, then other modules
+        $moduleOrder = [
+            'Auth',
+            'Core',
+            'Staff',
+            'Patients',
+            'Services',
+            'Equipment',
+            'Inventory',
+            'Booking',
+            'Billing',
+            'Packages',
+            'GiftCards',
+            'Memberships',
+            'Payroll',
+            'Accounting',
+            'Marketing',
+            'Loyalty',
+            'TreatmentPlans',
+            'PatientPortal',
+            'Attendance',
+            'Assets',
+            'Prescriptions',
+        ];
+
+        $paths = [];
+
+        foreach ($moduleOrder as $module) {
+            $path = "modules/{$module}/Database/Migrations";
+            if (is_dir(base_path($path))) {
+                $paths[] = $path;
+            }
+        }
+
+        // Add any modules not in the predefined order
+        $modulesPath = base_path('modules');
+        if (is_dir($modulesPath)) {
+            $allModules = scandir($modulesPath);
+            foreach ($allModules as $module) {
+                if ($module === '.' || $module === '..') {
+                    continue;
+                }
+                if (!in_array($module, $moduleOrder)) {
+                    $path = "modules/{$module}/Database/Migrations";
+                    if (is_dir(base_path($path))) {
+                        $paths[] = $path;
+                    }
+                }
+            }
+        }
+
+        return $paths;
     }
 
     public function dropTenantDatabase(Tenant $tenant): void

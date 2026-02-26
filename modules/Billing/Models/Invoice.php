@@ -395,8 +395,11 @@ class Invoice extends BaseModel
         return $query->where('patient_id', $patientId);
     }
 
-    public function scopeForBranch($query, string $branchId)
+    public function scopeForBranch($query, ?string $branchId)
     {
+        if ($branchId === null) {
+            return $query;
+        }
         return $query->where('branch_id', $branchId);
     }
 

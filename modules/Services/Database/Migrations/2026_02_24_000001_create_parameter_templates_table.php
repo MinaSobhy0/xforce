@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('parameter_templates', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('tenant_id')->nullable(); // null = system template
+            $table->unsignedBigInteger('tenant_id')->nullable(); // null = system template, No FK - tenants in public schema
             $table->string('template_name', 200);
             $table->string('template_code', 50)->unique();
             $table->text('description')->nullable();
@@ -21,11 +21,6 @@ return new class extends Migration
             $table->foreignId('created_by')->nullable();
             $table->foreignId('updated_by')->nullable();
             $table->timestamps();
-
-            $table->foreign('tenant_id')
-                ->references('id')
-                ->on('tenants')
-                ->onDelete('cascade');
 
             $table->index(['tenant_id', 'is_active']);
             $table->index(['service_category', 'is_active']);

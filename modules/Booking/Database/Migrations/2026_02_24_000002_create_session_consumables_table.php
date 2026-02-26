@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('session_consumables', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('tenant_id');
+            $table->unsignedBigInteger('tenant_id')->index(); // No FK - tenants table is in public schema
             $table->foreignId('appointment_id');
             $table->foreignId('product_id');
             $table->foreignId('branch_id')->nullable(); // Branch from which stock is deducted
@@ -24,11 +24,6 @@ return new class extends Migration
             $table->foreignId('deducted_by')->nullable();
             $table->foreignId('created_by')->nullable();
             $table->timestamps();
-
-            $table->foreign('tenant_id')
-                ->references('id')
-                ->on('tenants')
-                ->onDelete('cascade');
 
             $table->foreign('appointment_id')
                 ->references('id')

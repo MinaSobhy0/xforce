@@ -43,8 +43,11 @@ class ServiceBranchPricing extends BaseModel
         return $query->where('is_active', true);
     }
 
-    public function scopeForBranch($query, string $branchId)
+    public function scopeForBranch($query, ?string $branchId)
     {
+        if ($branchId === null) {
+            return $query;
+        }
         return $query->where('branch_id', $branchId);
     }
 }

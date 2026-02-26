@@ -467,8 +467,11 @@ class Appointment extends BaseModel
         return $query->whereBetween('date', [$start, $end]);
     }
 
-    public function scopeForBranch($query, string $branchId)
+    public function scopeForBranch($query, ?string $branchId)
     {
+        if ($branchId === null) {
+            return $query;
+        }
         return $query->where('branch_id', $branchId);
     }
 

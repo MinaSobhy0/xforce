@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('service_parameters', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('tenant_id');
+            $table->unsignedBigInteger('tenant_id'); // No FK - tenants table is in public schema
             $table->foreignId('service_id');
             $table->string('parameter_key', 100);
             $table->json('parameter_config');
@@ -37,10 +37,7 @@ return new class extends Migration
             $table->boolean('is_active')->default(true);
             $table->timestamps();
 
-            $table->foreign('tenant_id')
-                ->references('id')
-                ->on('tenants')
-                ->onDelete('cascade');
+            // No FK for tenant_id - tenants table is in public schema
 
             $table->foreign('service_id')
                 ->references('id')

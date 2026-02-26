@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('parameter_presets', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('tenant_id');
+            $table->unsignedBigInteger('tenant_id'); // No FK - tenants table is in public schema
             $table->foreignId('service_id');
             $table->string('preset_name', 200);
             $table->text('description')->nullable();
@@ -21,10 +21,7 @@ return new class extends Migration
             $table->foreignId('updated_by')->nullable();
             $table->timestamps();
 
-            $table->foreign('tenant_id')
-                ->references('id')
-                ->on('tenants')
-                ->onDelete('cascade');
+            // No FK for tenant_id - tenants table is in public schema
 
             $table->foreign('service_id')
                 ->references('id')

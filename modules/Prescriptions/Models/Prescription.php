@@ -287,8 +287,11 @@ class Prescription extends BaseModel
         return $query->where('prescriber_id', $prescriberId);
     }
 
-    public function scopeForBranch($query, string $branchId)
+    public function scopeForBranch($query, ?string $branchId)
     {
+        if ($branchId === null) {
+            return $query;
+        }
         return $query->where('branch_id', $branchId);
     }
 

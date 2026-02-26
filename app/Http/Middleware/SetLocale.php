@@ -19,8 +19,18 @@ class SetLocale
         // Priority: Session > User preference > Browser > Default
         $locale = session('locale');
 
-        if (!$locale && auth()->check()) {
-            $locale = auth()->user()->language;
+        if (!$locale) {
+            try {
+                if (auth()->check()) {
+                    $locale = auth()->user()->language;
+                }
+            } catch (\Exception $e) {
+                // Session may contain stale user ID (e.g., UUID from before migration)
+                // Clear the auth session and continue
+                auth()->logout();
+                session()->invalidate();
+                session()->regenerateToken();
+            }
         }
 
         if (!$locale) {
