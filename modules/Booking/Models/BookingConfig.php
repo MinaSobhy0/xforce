@@ -146,14 +146,14 @@ class BookingConfig extends BaseModel
     }
 
     /**
-     * Create default tenant-wide configuration.
+     * Get or create default configuration for a branch.
      */
     public static function createDefault(?string $branchId = null): self
     {
-        return static::create(array_merge(
-            self::DEFAULTS,
-            ['branch_id' => $branchId]
-        ));
+        return static::firstOrCreate(
+            ['branch_id' => $branchId],
+            self::DEFAULTS
+        );
     }
 
     /**
