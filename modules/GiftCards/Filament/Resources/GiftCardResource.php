@@ -150,7 +150,7 @@ class GiftCardResource extends Resource
                             ->label(__('giftcards::giftcards.fields.purchaser'))
                             ->placeholder('-')
                             ->url(fn (GiftCard $record) => $record->purchaser_patient_id
-                                ? route('filament.admin.resources.patients.view', $record->purchaser_patient_id)
+                                ? route('filament.tenant.resources.patients.view', $record->purchaser_patient_id)
                                 : null),
 
                         Infolists\Components\TextEntry::make('recipient.full_name')
@@ -158,7 +158,7 @@ class GiftCardResource extends Resource
                             ->placeholder('-')
                             ->helperText(__('giftcards::giftcards.staff_dashboard.recipient_hint'))
                             ->url(fn (GiftCard $record) => $record->recipient_patient_id
-                                ? route('filament.admin.resources.patients.view', $record->recipient_patient_id)
+                                ? route('filament.tenant.resources.patients.view', $record->recipient_patient_id)
                                 : null),
 
                         Infolists\Components\TextEntry::make('owner.full_name')
