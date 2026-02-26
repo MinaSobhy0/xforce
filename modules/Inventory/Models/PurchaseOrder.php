@@ -93,7 +93,7 @@ class PurchaseOrder extends BaseModel
         self::STATUS_DRAFT => [self::STATUS_SENT, self::STATUS_CANCELLED],
         self::STATUS_SENT => [self::STATUS_PARTIALLY_RECEIVED, self::STATUS_RECEIVED, self::STATUS_CANCELLED],
         self::STATUS_PARTIALLY_RECEIVED => [self::STATUS_RECEIVED], // No cancel - stock already affected
-        self::STATUS_RECEIVED => [self::STATUS_SENT], // Can reopen
+        self::STATUS_RECEIVED => [], // Final state - no transitions
         self::STATUS_CANCELLED => [self::STATUS_DRAFT],
     ];
 
