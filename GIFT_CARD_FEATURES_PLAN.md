@@ -112,8 +112,8 @@ class XxxResource extends Resource
 
 ```php
 Schema::create('gc_templates', function (Blueprint $table) {
-    $table->uuid('id')->primary();
-    $table->uuid('tenant_id')->index();
+    $table->id();
+    $table->unsignedBigInteger('tenant_id')->index();
     $table->string('code')->index();
     $table->string('name');
     $table->text('description')->nullable();
@@ -139,13 +139,13 @@ Schema::create('gc_templates', function (Blueprint $table) {
     $table->boolean('is_active')->default(true);
 
     // GL Accounts (FK to chart_of_accounts)
-    $table->uuid('liability_account_id')->nullable();
-    $table->uuid('revenue_account_id')->nullable();
-    $table->uuid('expense_account_id')->nullable();
-    $table->uuid('breakage_account_id')->nullable();
-    $table->uuid('sales_journal_id')->nullable();
+    $table->foreignId('liability_account_id')->nullable()->constrained('chart_of_accounts')->nullOnDelete();
+    $table->foreignId('revenue_account_id')->nullable()->constrained('chart_of_accounts')->nullOnDelete();
+    $table->foreignId('expense_account_id')->nullable()->constrained('chart_of_accounts')->nullOnDelete();
+    $table->foreignId('breakage_account_id')->nullable()->constrained('chart_of_accounts')->nullOnDelete();
+    $table->foreignId('sales_journal_id')->nullable()->constrained('journals')->nullOnDelete();
 
-    $table->uuid('created_by_user_id')->nullable();
+    $table->foreignId('created_by_user_id')->nullable()->constrained('users')->nullOnDelete();
     $table->timestamps();
     $table->softDeletes();
 
@@ -221,14 +221,14 @@ class GiftCardTemplate extends BaseModel
 **Add to migration:** `add_template_to_gift_cards.php`
 
 ```php
-$table->uuid('template_id')->nullable()->after('tenant_id');
-$table->uuid('assigned_to_staff_id')->nullable();
+$table->foreignId('template_id')->nullable()->after('tenant_id')->constrained('gc_templates')->nullOnDelete();
+$table->foreignId('assigned_to_staff_id')->nullable()->constrained('staff_profiles')->nullOnDelete();
 $table->timestamp('assigned_at')->nullable();
-$table->uuid('sold_by_staff_id')->nullable();
+$table->foreignId('sold_by_staff_id')->nullable()->constrained('staff_profiles')->nullOnDelete();
 $table->string('encrypted_code')->nullable();
 $table->string('code_hash')->nullable()->index();
 $table->string('pin_code')->nullable();
-$table->uuid('journal_entry_id')->nullable();
+$table->foreignId('journal_entry_id')->nullable()->constrained('journal_entries')->nullOnDelete();
 
 $table->index(['tenant_id', 'template_id']);
 $table->index(['tenant_id', 'assigned_to_staff_id']);
@@ -605,7 +605,7 @@ class GiftCardGLService
 **Migration:** `add_journal_entry_to_gc_transactions.php`
 
 ```php
-$table->uuid('journal_entry_id')->nullable()->after('payment_id');
+$table->foreignId('journal_entry_id')->nullable()->after('payment_id')->constrained('journal_entries')->nullOnDelete();
 ```
 
 **Add relationship:**
@@ -1141,20 +1141,15 @@ class GiftCardExportService
 
 ```php
 Schema::create('gc_print_history', function (Blueprint $table) {
-    $table->uuid('id')->primary();
-    $table->uuid('tenant_id')->index();
-    $table->uuid('gift_card_id')->index();
+    $table->id();
+    $table->unsignedBigInteger('tenant_id')->index();
+    $table->foreignId('gift_card_id')->constrained('gift_cards')->cascadeOnDelete();
     $table->string('print_format');  // pdf, physical, email
     $table->string('printer_name')->nullable();
     $table->string('ip_address')->nullable();
     $table->text('user_agent')->nullable();
-    $table->uuid('printed_by')->nullable();
+    $table->foreignId('printed_by')->nullable()->constrained('users')->nullOnDelete();
     $table->timestamps();
-
-    $table->foreign('gift_card_id')
-        ->references('id')
-        ->on('gift_cards')
-        ->cascadeOnDelete();
 });
 ```
 

@@ -1,0 +1,775 @@
+# UUID to INT Migration Plan
+
+## Overview
+Converting all UUID primary keys to auto-increment INT (like Odoo) for better performance and smaller storage.
+
+**Benefits:**
+- 75% smaller ID storage (4 bytes vs 16 bytes)
+- 7x faster range queries
+- Simpler debugging (id=123 vs id=a1b2c3d4-...)
+- Native PostgreSQL optimization
+
+**Started:** 2026-02-26
+**Status:** In Progress
+**Estimated Scope:** ~380 items
+
+---
+
+## CRITICAL: Pre-Migration Decisions
+
+### Decision 1: Spatie Permission Model Morph Key
+**Issue:** Spatie Permission tables use `uuid()` for `model_morph_key` (User ID in pivot tables).
+When User IDs change to INT, these must also change.
+
+**File:** `modules/Auth/Database/Migrations/0001_01_01_000001_create_permission_tables.php`
+- Line 69: `$table->uuid($columnNames['model_morph_key']);`
+- Line 93: `$table->uuid($columnNames['model_morph_key']);`
+
+**Action:** Change to `$table->unsignedBigInteger($columnNames['model_morph_key']);`
+
+| # | Status | Task |
+|---|--------|------|
+| D1 | [ ] | Update model_has_permissions.model_id from uuid() to unsignedBigInteger() |
+| D2 | [ ] | Update model_has_roles.model_id from uuid() to unsignedBigInteger() |
+
+### Decision 2: Activity Log Morphs
+**Issue:** Activity log tables use `nullableUuidMorphs()` for subject and causer.
+
+**Files:**
+- `database/migrations/2026_02_19_023928_create_activity_log_table.php`
+- `modules/Core/Database/Migrations/2024_01_01_000009_create_activities_table.php`
+
+**Action:** Change to `nullableMorphs()` (uses BIGINT for morph IDs)
+
+| # | Status | Task |
+|---|--------|------|
+| D3 | [ ] | Update activity_log table morphs from nullableUuidMorphs to nullableMorphs |
+| D4 | [ ] | Update activities table morphs from nullableUuidMorphs to nullableMorphs |
+| D5 | [ ] | Delete modules/Core/Database/Migrations/2026_02_21_000001_alter_activities_table_uuid_morphs.php |
+
+### Decision 3: Keep batch_uuid as UUID
+**Rationale:** batch_uuid is used for grouping related activity log entries, not as a primary/foreign key.
+
+| # | Status | Task |
+|---|--------|------|
+| D6 | [x] | Keep batch_uuid column as UUID in activity_log table (no change needed) |
+
+---
+
+## Rollback Strategy
+
+**Before starting:**
+1. Create full database backup
+2. Create git branch: `feature/uuid-to-int-migration`
+3. Test on development database first
+
+**If issues arise:**
+1. Restore from backup
+2. Revert to previous git commit
+3. Document what failed for retry
+
+---
+
+## Phase 0: Framework & Base Classes (MUST DO FIRST)
+
+### 0.1 BaseModel - Core Foundation
+| # | Status | File | Changes Required |
+|---|--------|------|------------------|
+| 1 | [ ] | `framework/Core/Model/BaseModel.php` | Remove UUID generation in `booted()`, remove `$keyType = 'string'`, remove `$incrementing = false`, remove `'id' => 'string'` from $casts |
+
+### 0.2 Audit Model
+| # | Status | File | Changes Required |
+|---|--------|------|------------------|
+| 2 | [ ] | `framework/Core/Model/Audit.php` | Remove UUID generation, remove `$keyType = 'string'`, remove `$incrementing = false` |
+
+### 0.3 Framework Traits
+| # | Status | File | Changes Required |
+|---|--------|------|------------------|
+| 3 | [ ] | `framework/Core/Model/Traits/HasAudit.php` | Update morph columns from UUID to INT |
+| 4 | [ ] | `framework/Core/Model/Traits/HasTenancy.php` | Update tenant_id from UUID to INT |
+| 5 | [ ] | `framework/Core/Model/Traits/HasSequence.php` | Review for UUID references |
+| 6 | [ ] | `framework/Core/Model/Traits/HasStateMachine.php` | Review for UUID references |
+| 7 | [ ] | `framework/Core/Model/Traits/HasPortalAccess.php` | Review for UUID references |
+
+---
+
+## Phase 1: App Models (HasUuids Trait)
+
+Remove `use HasUuids;` trait from all models.
+
+| # | Status | File | Changes Required |
+|---|--------|------|------------------|
+| 8 | [ ] | `app/Models/ImportMapping.php` | Remove `use HasUuids;` |
+| 9 | [ ] | `app/Models/TenantDomain.php` | Remove `use HasUuids;` |
+| 10 | [ ] | `app/Models/Module.php` | Remove `use HasUuids;` |
+| 11 | [ ] | `app/Models/SystemAlert.php` | Remove `use HasUuids;` |
+| 12 | [ ] | `app/Models/PromoCode.php` | Remove `use HasUuids;` |
+| 13 | [ ] | `app/Models/SubscriptionPlan.php` | Remove `use HasUuids;` |
+| 14 | [ ] | `app/Models/SupportTicketReply.php` | Remove `use HasUuids;` |
+| 15 | [ ] | `app/Models/ContactInquiry.php` | Remove `use HasUuids;` |
+| 16 | [ ] | `app/Models/TenantActivityLog.php` | Remove `use HasUuids;` |
+| 17 | [ ] | `app/Models/EmailTemplate.php` | Remove `use HasUuids;` |
+| 18 | [ ] | `app/Models/SupportTicket.php` | Remove `use HasUuids;` |
+| 19 | [ ] | `app/Models/PlatformSetting.php` | Remove `use HasUuids;` |
+| 20 | [ ] | `app/Models/AddOn.php` | Remove `use HasUuids;` |
+| 21 | [ ] | `app/Models/PlatformInvoice.php` | Remove `use HasUuids;` |
+| 22 | [ ] | `app/Models/RestoreRequest.php` | Remove `use HasUuids;` |
+| 23 | [ ] | `app/Models/OnboardingRequest.php` | Remove `use HasUuids;` |
+| 24 | [ ] | `app/Models/TenantAddonSubscription.php` | Remove `use HasUuids;` |
+| 25 | [ ] | `app/Models/Backup.php` | Remove `use HasUuids;` |
+| 26 | [ ] | `app/Models/Announcement.php` | Remove `use HasUuids;` |
+| 27 | [ ] | `app/Models/AuditLog.php` | Remove `use HasUuids;` |
+
+---
+
+## Phase 2: Module Models - Remove Explicit ID Casts
+
+**CRITICAL:** These 31 models have explicit `'id' => 'string'` in $casts that MUST be removed.
+
+### 2.1 Attendance Module (8 models with explicit casts)
+| # | Status | File | Changes Required |
+|---|--------|------|------------------|
+| 28 | [ ] | `modules/Attendance/Models/Attendance.php` | Remove `'id' => 'string'` from $casts |
+| 29 | [ ] | `modules/Attendance/Models/AttendanceLog.php` | Remove `'id' => 'string'` from $casts |
+| 30 | [ ] | `modules/Attendance/Models/AttendanceBreak.php` | Remove `'id' => 'string'` from $casts |
+| 31 | [ ] | `modules/Attendance/Models/AttendanceRule.php` | Remove `'id' => 'string'` from $casts |
+| 32 | [ ] | `modules/Attendance/Models/AttendanceRuleAction.php` | Remove `'id' => 'string'` from $casts |
+| 33 | [ ] | `modules/Attendance/Models/AttendanceViolation.php` | Remove `'id' => 'string'` from $casts |
+| 34 | [ ] | `modules/Attendance/Models/AttendanceTypeSetting.php` | Remove `'id' => 'string'` from $casts |
+| 35 | [ ] | `modules/Attendance/Models/WorkSchedule.php` | Verify BaseModel changes work |
+
+### 2.2 Booking Module (2 models with explicit casts)
+| # | Status | File | Changes Required |
+|---|--------|------|------------------|
+| 36 | [ ] | `modules/Booking/Models/TimeOffType.php` | Remove `'id' => 'string'` from $casts |
+| 37 | [ ] | `modules/Booking/Models/TimeOffAllocation.php` | Remove `'id' => 'string'` from $casts |
+
+### 2.3 Staff Module (3 models with explicit casts)
+| # | Status | File | Changes Required |
+|---|--------|------|------------------|
+| 38 | [ ] | `modules/Staff/Models/StaffProfile.php` | Remove `'id' => 'string'` from $casts |
+| 39 | [ ] | `modules/Staff/Models/StaffCommission.php` | Remove `'id' => 'string'` from $casts |
+| 40 | [ ] | `modules/Staff/Models/StaffCommissionRecord.php` | Remove `'id' => 'string'` from $casts |
+
+### 2.4 Payroll Module (7 models with explicit casts)
+| # | Status | File | Changes Required |
+|---|--------|------|------------------|
+| 41 | [ ] | `modules/Payroll/Models/PayrollRun.php` | Remove `'id' => 'string'` from $casts |
+| 42 | [ ] | `modules/Payroll/Models/PayrollLine.php` | Remove `'id' => 'string'` from $casts |
+| 43 | [ ] | `modules/Payroll/Models/SalaryStructure.php` | Remove `'id' => 'string'` from $casts |
+| 44 | [ ] | `modules/Payroll/Models/SalaryRule.php` | Remove `'id' => 'string'` from $casts |
+| 45 | [ ] | `modules/Payroll/Models/SalaryRuleCategory.php` | Remove `'id' => 'string'` from $casts |
+| 46 | [ ] | `modules/Payroll/Models/EmployeeSalaryStructure.php` | Remove `'id' => 'string'` from $casts |
+| 47 | [ ] | `modules/Payroll/Models/EmployeeSalaryComponent.php` | Remove `'id' => 'string'` from $casts |
+
+### 2.5 Inventory Module (11 models with explicit casts)
+| # | Status | File | Changes Required |
+|---|--------|------|------------------|
+| 48 | [ ] | `modules/Inventory/Models/ProductCategory.php` | Remove `'id' => 'string'` from $casts |
+| 49 | [ ] | `modules/Inventory/Models/Product.php` | Remove `'id' => 'string'` from $casts |
+| 50 | [ ] | `modules/Inventory/Models/StockLevel.php` | Remove `'id' => 'string'` from $casts |
+| 51 | [ ] | `modules/Inventory/Models/StockMovement.php` | Remove `'id' => 'string'` from $casts |
+| 52 | [ ] | `modules/Inventory/Models/Supplier.php` | Remove `'id' => 'string'` from $casts |
+| 53 | [ ] | `modules/Inventory/Models/PurchaseOrder.php` | Remove `'id' => 'string'` from $casts |
+| 54 | [ ] | `modules/Inventory/Models/PurchaseOrderLine.php` | Remove `'id' => 'string'` from $casts |
+| 55 | [ ] | `modules/Inventory/Models/InventoryAdjustment.php` | Remove `'id' => 'string'` from $casts |
+| 56 | [ ] | `modules/Inventory/Models/InventoryAdjustmentLine.php` | Remove `'id' => 'string'` from $casts |
+| 57 | [ ] | `modules/Inventory/Models/VendorBill.php` | Remove `'id' => 'string'` from $casts |
+| 58 | [ ] | `modules/Inventory/Models/VendorBillLine.php` | Remove `'id' => 'string'` from $casts |
+
+---
+
+## Phase 3: Module Models - Verify BaseModel Changes
+
+All these extend BaseModel - after fixing BaseModel, verify they work correctly.
+
+### 3.1 Core Module (9 models)
+| # | Status | File | Changes Required |
+|---|--------|------|------------------|
+| 59 | [ ] | `modules/Core/Models/Tenant.php` | Verify BaseModel changes work |
+| 60 | [ ] | `modules/Core/Models/TenantSubscription.php` | Verify BaseModel changes work |
+| 61 | [ ] | `modules/Core/Models/TenantUsage.php` | Verify BaseModel changes work |
+| 62 | [ ] | `modules/Core/Models/TenantModule.php` | Verify BaseModel changes work |
+| 63 | [ ] | `modules/Core/Models/TenantStatus.php` | Verify BaseModel changes work |
+| 64 | [ ] | `modules/Core/Models/Branch.php` | Verify BaseModel changes work |
+| 65 | [ ] | `modules/Core/Models/Room.php` | Verify BaseModel changes work |
+| 66 | [ ] | `modules/Core/Models/Setting.php` | Verify BaseModel changes work |
+| 67 | [ ] | `modules/Core/Models/Sequence.php` | Verify BaseModel changes work |
+
+### 3.2 Auth Module (8 models)
+| # | Status | File | Changes Required |
+|---|--------|------|------------------|
+| 68 | [ ] | `modules/Auth/Models/User.php` | Verify BaseModel changes work |
+| 69 | [ ] | `modules/Auth/Models/UserProfile.php` | Verify BaseModel changes work |
+| 70 | [ ] | `modules/Auth/Models/UserSession.php` | Verify BaseModel changes work |
+| 71 | [ ] | `modules/Auth/Models/LoginHistory.php` | Verify BaseModel changes work |
+| 72 | [ ] | `modules/Auth/Models/PasswordHistory.php` | Verify BaseModel changes work |
+| 73 | [ ] | `modules/Auth/Models/AccessPolicy.php` | Verify BaseModel changes work |
+| 74 | [ ] | `modules/Auth/Models/Role.php` | Keep as-is (extends Spatie, uses BIGINT) |
+| 75 | [ ] | `modules/Auth/Models/Permission.php` | Keep as-is (extends Spatie, uses BIGINT) |
+
+### 3.3 Patients Module (14 models)
+| # | Status | File | Changes Required |
+|---|--------|------|------------------|
+| 76 | [ ] | `modules/Patients/Models/Patient.php` | Verify BaseModel changes work |
+| 77 | [ ] | `modules/Patients/Models/PatientMedicalHistory.php` | Verify BaseModel changes work |
+| 78 | [ ] | `modules/Patients/Models/PatientConsentForm.php` | Verify BaseModel changes work |
+| 79 | [ ] | `modules/Patients/Models/PatientPhoto.php` | Verify BaseModel changes work |
+| 80 | [ ] | `modules/Patients/Models/PatientNote.php` | Verify BaseModel changes work |
+| 81 | [ ] | `modules/Patients/Models/MedicalProfile.php` | Verify BaseModel changes work |
+| 82 | [ ] | `modules/Patients/Models/MedicalAllergy.php` | Verify BaseModel changes work |
+| 83 | [ ] | `modules/Patients/Models/MedicalMedication.php` | Verify BaseModel changes work |
+| 84 | [ ] | `modules/Patients/Models/MedicalContraindication.php` | Verify BaseModel changes work |
+| 85 | [ ] | `modules/Patients/Models/MedicalHistory.php` | Verify BaseModel changes work |
+| 86 | [ ] | `modules/Patients/Models/LifestyleInfo.php` | Verify BaseModel changes work |
+| 87 | [ ] | `modules/Patients/Models/SkinAssessment.php` | Verify BaseModel changes work |
+| 88 | [ ] | `modules/Patients/Models/PatientAmrTest.php` | Verify BaseModel changes work |
+| 89 | [ ] | `modules/Patients/Models/PatientAmrSummary.php` | Verify BaseModel changes work |
+
+### 3.4 Services Module (7 models)
+| # | Status | File | Changes Required |
+|---|--------|------|------------------|
+| 90 | [ ] | `modules/Services/Models/Service.php` | Verify BaseModel changes work |
+| 91 | [ ] | `modules/Services/Models/ServiceCategory.php` | Verify BaseModel changes work |
+| 92 | [ ] | `modules/Services/Models/ServiceBranchPricing.php` | Verify BaseModel changes work |
+| 93 | [ ] | `modules/Services/Models/ConsentTemplate.php` | Verify BaseModel changes work |
+| 94 | [ ] | `modules/Services/Models/ParameterTemplate.php` | Verify BaseModel changes work |
+| 95 | [ ] | `modules/Services/Models/ServiceParameter.php` | Verify BaseModel changes work |
+| 96 | [ ] | `modules/Services/Models/ParameterPreset.php` | Verify BaseModel changes work |
+
+### 3.5 Booking Module (13 models)
+| # | Status | File | Changes Required |
+|---|--------|------|------------------|
+| 97 | [ ] | `modules/Booking/Models/Appointment.php` | Verify BaseModel changes work |
+| 98 | [ ] | `modules/Booking/Models/AppointmentServiceNote.php` | Verify BaseModel changes work |
+| 99 | [ ] | `modules/Booking/Models/Waitlist.php` | Verify BaseModel changes work |
+| 100 | [ ] | `modules/Booking/Models/PractitionerSchedule.php` | Verify BaseModel changes work |
+| 101 | [ ] | `modules/Booking/Models/PractitionerScheduleAssignment.php` | Verify BaseModel changes work |
+| 102 | [ ] | `modules/Booking/Models/PractitionerTimeOff.php` | Verify BaseModel changes work |
+| 103 | [ ] | `modules/Booking/Models/TreatmentSessionData.php` | Verify BaseModel changes work |
+| 104 | [ ] | `modules/Booking/Models/SessionConsumable.php` | Verify BaseModel changes work |
+| 105 | [ ] | `modules/Booking/Models/SessionProduct.php` | Verify BaseModel changes work |
+| 106 | [ ] | `modules/Booking/Models/BookingRule.php` | Verify BaseModel changes work |
+| 107 | [ ] | `modules/Booking/Models/BookingBlackoutDate.php` | Verify BaseModel changes work |
+| 108 | [ ] | `modules/Booking/Models/BookingConfig.php` | Verify BaseModel changes work |
+
+### 3.6 Billing Module (6 models)
+| # | Status | File | Changes Required |
+|---|--------|------|------------------|
+| 109 | [ ] | `modules/Billing/Models/Invoice.php` | Verify BaseModel changes work |
+| 110 | [ ] | `modules/Billing/Models/InvoiceLine.php` | Verify BaseModel changes work |
+| 111 | [ ] | `modules/Billing/Models/Payment.php` | Verify BaseModel changes work |
+| 112 | [ ] | `modules/Billing/Models/TaxRate.php` | Verify BaseModel changes work |
+| 113 | [ ] | `modules/Billing/Models/InstallmentPlan.php` | Verify BaseModel changes work |
+| 114 | [ ] | `modules/Billing/Models/InstallmentSchedule.php` | Verify BaseModel changes work |
+
+### 3.7 Accounting Module (5 models)
+| # | Status | File | Changes Required |
+|---|--------|------|------------------|
+| 115 | [ ] | `modules/Accounting/Models/ChartOfAccount.php` | Verify BaseModel changes work |
+| 116 | [ ] | `modules/Accounting/Models/Journal.php` | Verify BaseModel changes work |
+| 117 | [ ] | `modules/Accounting/Models/JournalEntry.php` | Verify BaseModel changes work |
+| 118 | [ ] | `modules/Accounting/Models/JournalEntryLine.php` | Verify BaseModel changes work |
+| 119 | [ ] | `modules/Accounting/Models/FiscalPeriod.php` | Verify BaseModel changes work |
+
+### 3.8 Staff Module (2 models - remaining after explicit casts)
+| # | Status | File | Changes Required |
+|---|--------|------|------------------|
+| 120 | [ ] | `modules/Staff/Models/CommissionPlan.php` | Verify BaseModel changes work |
+| 121 | [ ] | `modules/Staff/Models/CommissionPlanRule.php` | Verify BaseModel changes work |
+
+### 3.9 Equipment Module (6 models)
+| # | Status | File | Changes Required |
+|---|--------|------|------------------|
+| 122 | [ ] | `modules/Equipment/Models/EquipmentType.php` | Verify BaseModel changes work |
+| 123 | [ ] | `modules/Equipment/Models/Equipment.php` | Verify BaseModel changes work |
+| 124 | [ ] | `modules/Equipment/Models/EquipmentMaintenanceLog.php` | Verify BaseModel changes work |
+| 125 | [ ] | `modules/Equipment/Models/EquipmentShotLog.php` | Verify BaseModel changes work |
+| 126 | [ ] | `modules/Equipment/Models/EquipmentTrackingParameter.php` | Verify BaseModel changes work |
+| 127 | [ ] | `modules/Equipment/Models/EquipmentParameterTemplate.php` | Verify BaseModel changes work |
+
+### 3.10 GiftCards Module (5 models)
+| # | Status | File | Changes Required |
+|---|--------|------|------------------|
+| 128 | [ ] | `modules/GiftCards/Models/GiftCard.php` | Verify BaseModel changes work |
+| 129 | [ ] | `modules/GiftCards/Models/GiftCardTransaction.php` | Verify BaseModel changes work |
+| 130 | [ ] | `modules/GiftCards/Models/GiftCardTemplate.php` | Verify BaseModel changes work |
+| 131 | [ ] | `modules/GiftCards/Models/GiftCardPrintHistory.php` | Verify BaseModel changes work |
+| 132 | [ ] | `modules/GiftCards/Models/GiftCardBatchExport.php` | Verify BaseModel changes work |
+
+### 3.11 Packages Module (4 models)
+| # | Status | File | Changes Required |
+|---|--------|------|------------------|
+| 133 | [ ] | `modules/Packages/Models/Package.php` | Verify BaseModel changes work |
+| 134 | [ ] | `modules/Packages/Models/PackageItem.php` | Verify BaseModel changes work |
+| 135 | [ ] | `modules/Packages/Models/PackageSubscription.php` | Verify BaseModel changes work |
+| 136 | [ ] | `modules/Packages/Models/PackageSessionUsage.php` | Verify BaseModel changes work |
+
+### 3.12 Memberships Module (2 models)
+| # | Status | File | Changes Required |
+|---|--------|------|------------------|
+| 137 | [ ] | `modules/Memberships/Models/Membership.php` | Verify BaseModel changes work |
+| 138 | [ ] | `modules/Memberships/Models/MembershipSubscription.php` | Verify BaseModel changes work |
+
+### 3.13 Loyalty Module (4 models)
+| # | Status | File | Changes Required |
+|---|--------|------|------------------|
+| 139 | [ ] | `modules/Loyalty/Models/LoyaltyRule.php` | Verify BaseModel changes work |
+| 140 | [ ] | `modules/Loyalty/Models/LoyaltyTransaction.php` | Verify BaseModel changes work |
+| 141 | [ ] | `modules/Loyalty/Models/ReferralProgram.php` | Verify BaseModel changes work |
+| 142 | [ ] | `modules/Loyalty/Models/Referral.php` | Verify BaseModel changes work |
+
+### 3.14 Marketing Module (5 models)
+| # | Status | File | Changes Required |
+|---|--------|------|------------------|
+| 143 | [ ] | `modules/Marketing/Models/MessageTemplate.php` | Verify BaseModel changes work |
+| 144 | [ ] | `modules/Marketing/Models/Campaign.php` | Verify BaseModel changes work |
+| 145 | [ ] | `modules/Marketing/Models/CampaignRecipient.php` | Verify BaseModel changes work |
+| 146 | [ ] | `modules/Marketing/Models/NotificationLog.php` | Verify BaseModel changes work |
+| 147 | [ ] | `modules/Marketing/Models/AutomationRule.php` | Verify BaseModel changes work |
+
+### 3.15 TreatmentPlans Module (3 models)
+| # | Status | File | Changes Required |
+|---|--------|------|------------------|
+| 148 | [ ] | `modules/TreatmentPlans/Models/TreatmentPlan.php` | Verify BaseModel changes work |
+| 149 | [ ] | `modules/TreatmentPlans/Models/TreatmentPlanItem.php` | Verify BaseModel changes work |
+| 150 | [ ] | `modules/TreatmentPlans/Models/TreatmentPlanAppointment.php` | Verify BaseModel changes work |
+
+### 3.16 Prescriptions Module (3 models)
+| # | Status | File | Changes Required |
+|---|--------|------|------------------|
+| 151 | [ ] | `modules/Prescriptions/Models/Prescription.php` | Verify BaseModel changes work |
+| 152 | [ ] | `modules/Prescriptions/Models/PrescriptionItem.php` | Verify BaseModel changes work |
+| 153 | [ ] | `modules/Prescriptions/Models/MedicineCatalog.php` | Verify BaseModel changes work |
+
+### 3.17 Assets Module (3 models)
+| # | Status | File | Changes Required |
+|---|--------|------|------------------|
+| 154 | [ ] | `modules/Assets/Models/AssetType.php` | Verify BaseModel changes work |
+| 155 | [ ] | `modules/Assets/Models/Asset.php` | Verify BaseModel changes work |
+| 156 | [ ] | `modules/Assets/Models/AssetDepreciationEntry.php` | Verify BaseModel changes work |
+
+---
+
+## Phase 4: Migrations - Central Database (database/migrations/)
+
+**Connection:** Central/Platform database
+**Order:** Run these BEFORE tenant migrations
+
+| # | Status | File | Primary Key | Foreign Keys |
+|---|--------|------|-------------|--------------|
+| 157 | [ ] | `2025_02_19_000001_create_onboarding_requests_table.php` | `uuid()` → `id()` | tenant_id |
+| 158 | [ ] | `2025_02_19_000002_create_tenant_domains_table.php` | `uuid()` → `id()` | tenant_id |
+| 159 | [ ] | `2025_02_19_000003_create_email_templates_table.php` | `uuid()` → `id()` | - |
+| 160 | [ ] | `2025_02_19_000004_create_system_alerts_table.php` | `uuid()` → `id()` | - |
+| 161 | [ ] | `2025_02_19_000005_create_platform_settings_table.php` | `uuid()` → `id()` | - |
+| 162 | [ ] | `2026_02_18_180200_create_audits_table.php` | `uuid()` → `id()` | user_id, morphs → nullableMorphs |
+| 163 | [ ] | `2026_02_19_023928_create_activity_log_table.php` | Keep id() | nullableUuidMorphs → nullableMorphs |
+| 164 | [ ] | `2026_02_19_023930_add_batch_uuid_column_to_activity_log_table.php` | - | Keep batch_uuid as UUID |
+| 165 | [ ] | `2026_02_19_100001_create_subscription_plans_table.php` | `uuid()` → `id()` | - |
+| 166 | [ ] | `2026_02_19_100002_create_modules_table.php` | `uuid()` → `id()` | - |
+| 167 | [ ] | `2026_02_19_100003_create_platform_invoices_table.php` | `uuid()` → `id()` | tenant_id, subscription_plan_id |
+| 168 | [ ] | `2026_02_19_100004_create_tenant_addon_subscriptions_table.php` | `uuid()` → `id()` | tenant_id, add_on_id |
+| 169 | [ ] | `2026_02_19_100005_create_tenant_activity_logs_table.php` | `uuid()` → `id()` | tenant_id, user_id |
+| 170 | [ ] | `2026_02_19_100006_create_support_tickets_table.php` | `uuid()` → `id()` | tenant_id, user_id |
+| 171 | [ ] | `2026_02_19_100007_create_promo_codes_table.php` | `uuid()` → `id()` | - |
+| 172 | [ ] | `2026_02_19_100008_create_announcements_table.php` | `uuid()` → `id()` | - |
+| 173 | [ ] | `2026_02_19_140934_create_notifications_table.php` | `uuid()` → `id()` | morphs → nullableMorphs |
+| 174 | [ ] | `2026_02_19_152557_create_backups_table.php` | `uuid()` → `id()` | tenant_id |
+| 175 | [ ] | `2026_02_19_163357_create_add_ons_table.php` | `uuid()` → `id()` | - |
+| 176 | [ ] | `2026_02_20_030000_create_restore_requests_table.php` | `uuid()` → `id()` | tenant_id, backup_id |
+| 177 | [ ] | `2026_02_20_153459_create_contact_inquiries_table.php` | `uuid()` → `id()` | - |
+| 178 | [ ] | `2026_02_26_081005_create_import_mappings_table.php` | `uuid()` → `id()` | - |
+| 179 | [ ] | `2026_02_26_110156_create_imports_table.php` | Keep as-is | user_id |
+
+---
+
+## Phase 5: Migrations - Tenant Database (modules/*/Database/Migrations/)
+
+**Connection:** Tenant schemas
+**Order:** Run in dependency order within each module
+
+### 5.1 Core Module Migrations
+| # | Status | File | Changes |
+|---|--------|------|---------|
+| 180 | [ ] | `modules/Core/Database/Migrations/2024_01_01_000000_create_branches_table.php` | `uuid()` → `id()`, tenant_id to INT |
+| 181 | [ ] | `modules/Core/Database/Migrations/2024_01_01_000001_create_tenants_table.php` | `uuid()` → `id()` |
+| 182 | [ ] | `modules/Core/Database/Migrations/2024_01_01_000001_create_sequences_table.php` | `uuid()` → `id()` |
+| 183 | [ ] | `modules/Core/Database/Migrations/2024_01_01_000002_create_tenant_subscriptions_table.php` | `uuid()` → `id()` |
+| 184 | [ ] | `modules/Core/Database/Migrations/2024_01_01_000003_create_tenant_usage_table.php` | `uuid()` → `id()` |
+| 185 | [ ] | `modules/Core/Database/Migrations/2024_01_01_000006_create_rooms_table.php` | `uuid()` → `id()` |
+| 186 | [ ] | `modules/Core/Database/Migrations/2024_01_01_000008_create_settings_table.php` | `uuid()` → `id()` |
+| 187 | [ ] | `modules/Core/Database/Migrations/2024_01_01_000009_create_activities_table.php` | `uuid()` → `id()`, nullableUuidMorphs → nullableMorphs |
+| 188 | [ ] | `modules/Core/Database/Migrations/2024_01_01_000010_create_audit_logs_table.php` | `uuid()` → `id()` |
+| 189 | [ ] | `modules/Core/Database/Migrations/2024_01_01_000011_create_audits_table.php` | `uuid()` → `id()` |
+| 190 | [ ] | `modules/Core/Database/Migrations/2024_01_01_000020_create_user_branch_roles_table.php` | `uuid()` → `id()` |
+| 191 | [ ] | `modules/Core/Database/Migrations/2026_02_21_000001_alter_activities_table_uuid_morphs.php` | **DELETE** this file |
+
+### 5.2 Auth Module Migrations
+| # | Status | File | Changes |
+|---|--------|------|---------|
+| 192 | [ ] | `modules/Auth/Database/Migrations/0001_01_01_000001_create_permission_tables.php` | model_morph_key: uuid() → unsignedBigInteger() |
+| 193 | [ ] | `modules/Auth/Database/Migrations/0001_01_01_000002_create_users_table.php` | `uuid()` → `id()` |
+| 194 | [ ] | `modules/Auth/Database/Migrations/0001_01_01_000003_create_user_sessions_table.php` | `uuid()` → `id()` |
+| 195 | [ ] | `modules/Auth/Database/Migrations/0001_01_01_000004_create_login_history_table.php` | `uuid()` → `id()` |
+| 196 | [ ] | `modules/Auth/Database/Migrations/0001_01_01_000005_create_password_history_table.php` | `uuid()` → `id()` |
+| 197 | [ ] | `modules/Auth/Database/Migrations/0001_01_01_000006_create_user_profiles_table.php` | `uuid()` → `id()` |
+| 198 | [ ] | `modules/Auth/Database/Migrations/0001_01_01_000007_create_access_policies_table.php` | `uuid()` → `id()` |
+| 199 | [ ] | `modules/Auth/Database/Migrations/0001_01_01_000008_add_impersonation_to_users_table.php` | user_id to INT |
+
+### 5.3 Patients Module Migrations
+| # | Status | File | Changes |
+|---|--------|------|---------|
+| 200 | [ ] | `modules/Patients/Database/Migrations/2024_01_01_000001_create_patients_table.php` | `uuid()` → `id()` |
+| 201 | [ ] | `modules/Patients/Database/Migrations/2024_01_01_000002_create_patient_medical_histories_table.php` | `uuid()` → `id()` |
+| 202 | [ ] | `modules/Patients/Database/Migrations/2024_01_01_000003_create_patient_consent_forms_table.php` | `uuid()` → `id()` |
+| 203 | [ ] | `modules/Patients/Database/Migrations/2024_01_01_000004_create_patient_photos_table.php` | `uuid()` → `id()` |
+| 204 | [ ] | `modules/Patients/Database/Migrations/2024_01_01_000005_create_media_table.php` | `uuid()` → `id()`, morphs |
+| 205 | [ ] | `modules/Patients/Database/Migrations/2024_01_01_000005_create_patient_notes_table.php` | `uuid()` → `id()` |
+| 206 | [ ] | `modules/Patients/Database/Migrations/2024_01_01_000010_add_patient_auth_fields.php` | Review |
+| 207 | [ ] | `modules/Patients/Database/Migrations/2024_01_20_000001_create_medical_profiles_table.php` | `uuid()` → `id()` |
+| 208 | [ ] | `modules/Patients/Database/Migrations/2024_01_20_000002_create_medical_allergies_table.php` | `uuid()` → `id()` |
+| 209 | [ ] | `modules/Patients/Database/Migrations/2024_01_20_000003_create_medical_medications_table.php` | `uuid()` → `id()` |
+| 210 | [ ] | `modules/Patients/Database/Migrations/2024_01_20_000004_create_medical_contraindications_table.php` | `uuid()` → `id()` |
+| 211 | [ ] | `modules/Patients/Database/Migrations/2024_01_20_000005_create_medical_histories_table.php` | `uuid()` → `id()` |
+| 212 | [ ] | `modules/Patients/Database/Migrations/2024_01_20_000006_create_skin_assessments_table.php` | `uuid()` → `id()` |
+| 213 | [ ] | `modules/Patients/Database/Migrations/2024_01_20_000007_create_lifestyle_info_table.php` | `uuid()` → `id()` |
+| 214 | [ ] | `modules/Patients/Database/Migrations/2026_02_25_000001_create_patient_amr_tests_table.php` | `uuid()` → `id()` |
+| 215 | [ ] | `modules/Patients/Database/Migrations/2026_02_25_000002_create_patient_amr_summaries_table.php` | `uuid()` → `id()` |
+
+### 5.4 Services Module Migrations
+| # | Status | File | Changes |
+|---|--------|------|---------|
+| 216 | [ ] | `modules/Services/Database/Migrations/2024_01_01_000001_create_services_tables.php` | `uuid()` → `id()` |
+| 217 | [ ] | `modules/Services/Database/Migrations/2024_01_15_000001_rename_treatments_to_services.php` | Review/update |
+| 218 | [ ] | `modules/Services/Database/Migrations/2024_01_20_000001_create_service_qualified_staff_table.php` | `uuid()` → `id()` |
+| 219 | [ ] | `modules/Services/Database/Migrations/2024_01_20_000002_create_service_rooms_table.php` | `uuid()` → `id()` |
+| 220 | [ ] | `modules/Services/Database/Migrations/2024_01_20_000003_create_service_required_equipment_table.php` | `uuid()` → `id()` |
+| 221 | [ ] | `modules/Services/Database/Migrations/2026_02_24_000001_create_parameter_templates_table.php` | `uuid()` → `id()` |
+| 222 | [ ] | `modules/Services/Database/Migrations/2026_02_24_000002_create_service_parameters_table.php` | `uuid()` → `id()` |
+| 223 | [ ] | `modules/Services/Database/Migrations/2026_02_24_000003_create_parameter_presets_table.php` | `uuid()` → `id()` |
+
+### 5.5 Booking Module Migrations
+| # | Status | File | Changes |
+|---|--------|------|---------|
+| 224 | [ ] | `modules/Booking/Database/Migrations/2024_01_01_000010_create_appointments_table.php` | `uuid()` → `id()` |
+| 225 | [ ] | `modules/Booking/Database/Migrations/2024_01_01_000011_create_appointment_treatment_notes_table.php` | `uuid()` → `id()` |
+| 226 | [ ] | `modules/Booking/Database/Migrations/2024_01_01_000012_create_practitioner_schedules_table.php` | `uuid()` → `id()` |
+| 227 | [ ] | `modules/Booking/Database/Migrations/2024_01_01_000013_create_practitioner_time_off_table.php` | `uuid()` → `id()` |
+| 228 | [ ] | `modules/Booking/Database/Migrations/2024_01_01_000014_create_waitlist_table.php` | `uuid()` → `id()` |
+| 229 | [ ] | `modules/Booking/Database/Migrations/2024_01_01_000020_create_time_off_types_table.php` | `uuid()` → `id()` |
+| 230 | [ ] | `modules/Booking/Database/Migrations/2024_01_01_000021_create_time_off_allocations_table.php` | `uuid()` → `id()` |
+| 231 | [ ] | `modules/Booking/Database/Migrations/2026_02_24_000001_create_treatment_session_data_table.php` | `uuid()` → `id()` |
+| 232 | [ ] | `modules/Booking/Database/Migrations/2026_02_24_000002_create_session_consumables_table.php` | `uuid()` → `id()` |
+| 233 | [ ] | `modules/Booking/Database/Migrations/2026_02_24_000003_create_session_products_table.php` | `uuid()` → `id()` |
+| 234 | [ ] | `modules/Booking/Database/Migrations/2026_02_25_000001_create_booking_rules_table.php` | `uuid()` → `id()` |
+| 235 | [ ] | `modules/Booking/Database/Migrations/2026_02_25_000002_create_booking_blackout_dates_table.php` | `uuid()` → `id()` |
+| 236 | [ ] | `modules/Booking/Database/Migrations/2026_02_25_000010_create_booking_configs_table.php` | `uuid()` → `id()` |
+
+### 5.6 Billing Module Migrations
+| # | Status | File | Changes |
+|---|--------|------|---------|
+| 237 | [ ] | `modules/Billing/Database/Migrations/2024_01_01_000001_create_tax_rates_table.php` | `uuid()` → `id()` |
+| 238 | [ ] | `modules/Billing/Database/Migrations/2024_01_01_000002_create_invoices_table.php` | `uuid()` → `id()` |
+| 239 | [ ] | `modules/Billing/Database/Migrations/2024_01_01_000003_create_invoice_lines_table.php` | `uuid()` → `id()` |
+| 240 | [ ] | `modules/Billing/Database/Migrations/2024_01_01_000004_create_payments_table.php` | `uuid()` → `id()` |
+| 241 | [ ] | `modules/Billing/Database/Migrations/2024_01_01_000005_create_installment_plans_table.php` | `uuid()` → `id()` |
+| 242 | [ ] | `modules/Billing/Database/Migrations/2024_01_01_000006_create_installment_schedules_table.php` | `uuid()` → `id()` |
+| 243 | [ ] | `modules/Billing/Database/Migrations/2024_02_01_000001_add_unassigned_payment_support.php` | Review |
+
+### 5.7 Accounting Module Migrations
+| # | Status | File | Changes |
+|---|--------|------|---------|
+| 244 | [ ] | `modules/Accounting/Database/Migrations/2024_01_01_000000_create_chart_of_accounts_table.php` | `uuid()` → `id()` |
+| 245 | [ ] | `modules/Accounting/Database/Migrations/2024_01_02_000002_create_fiscal_periods_table.php` | `uuid()` → `id()` |
+| 246 | [ ] | `modules/Accounting/Database/Migrations/2024_01_02_000003_create_journal_entries_table.php` | `uuid()` → `id()` |
+| 247 | [ ] | `modules/Accounting/Database/Migrations/2024_01_02_000004_create_journal_entry_lines_table.php` | `uuid()` → `id()` |
+| 248 | [ ] | `modules/Accounting/Database/Migrations/2024_01_02_000005_create_journals_table.php` | `uuid()` → `id()` |
+
+### 5.8 Inventory Module Migrations
+| # | Status | File | Changes |
+|---|--------|------|---------|
+| 249 | [ ] | `modules/Inventory/Database/Migrations/2024_01_01_000001_create_product_categories_table.php` | `uuid()` → `id()` |
+| 250 | [ ] | `modules/Inventory/Database/Migrations/2024_01_01_000002_create_products_table.php` | `uuid()` → `id()` |
+| 251 | [ ] | `modules/Inventory/Database/Migrations/2024_01_01_000003_create_stock_levels_table.php` | `uuid()` → `id()` |
+| 252 | [ ] | `modules/Inventory/Database/Migrations/2024_01_01_000004_create_stock_movements_table.php` | `uuid()` → `id()` |
+| 253 | [ ] | `modules/Inventory/Database/Migrations/2024_01_01_000005_create_suppliers_table.php` | `uuid()` → `id()` |
+| 254 | [ ] | `modules/Inventory/Database/Migrations/2024_01_01_000006_create_purchase_orders_table.php` | `uuid()` → `id()` |
+| 255 | [ ] | `modules/Inventory/Database/Migrations/2024_01_01_000007_create_purchase_order_lines_table.php` | `uuid()` → `id()` |
+| 256 | [ ] | `modules/Inventory/Database/Migrations/2024_01_20_000002_create_inventory_adjustments_table.php` | `uuid()` → `id()` |
+| 257 | [ ] | `modules/Inventory/Database/Migrations/2026_02_23_220000_create_vendor_bills_tables.php` | `uuid()` → `id()` |
+
+### 5.9 Staff Module Migrations
+| # | Status | File | Changes |
+|---|--------|------|---------|
+| 258 | [ ] | `modules/Staff/Database/Migrations/2024_01_01_000000_create_staff_profiles_table.php` | `uuid()` → `id()` |
+| 259 | [ ] | `modules/Staff/Database/Migrations/2024_01_01_000003_create_staff_commission_records_table.php` | `uuid()` → `id()` |
+| 260 | [ ] | `modules/Staff/Database/Migrations/2024_01_01_000004_create_working_schedules_table.php` | `uuid()` → `id()` |
+| 261 | [ ] | `modules/Staff/Database/Migrations/2024_01_01_000009_create_staff_commissions_table.php` | `uuid()` → `id()` |
+| 262 | [ ] | `modules/Staff/Database/Migrations/2024_01_15_000001_create_commission_plans_table.php` | `uuid()` → `id()` |
+
+### 5.10 Attendance Module Migrations
+| # | Status | File | Changes |
+|---|--------|------|---------|
+| 263 | [ ] | `modules/Attendance/Database/Migrations/2024_01_01_000001_create_attendances_table.php` | `uuid()` → `id()` |
+| 264 | [ ] | `modules/Attendance/Database/Migrations/2024_01_01_000002_create_attendance_logs_table.php` | `uuid()` → `id()` |
+| 265 | [ ] | `modules/Attendance/Database/Migrations/2024_01_01_000003_create_attendance_breaks_table.php` | `uuid()` → `id()` |
+| 266 | [ ] | `modules/Attendance/Database/Migrations/2024_01_01_000005_create_attendance_rules_table.php` | `uuid()` → `id()` |
+| 267 | [ ] | `modules/Attendance/Database/Migrations/2024_01_01_000006_create_attendance_rule_actions_table.php` | `uuid()` → `id()` |
+| 268 | [ ] | `modules/Attendance/Database/Migrations/2024_01_01_000007_create_attendance_violations_table.php` | `uuid()` → `id()` |
+| 269 | [ ] | `modules/Attendance/Database/Migrations/2024_01_15_000001_create_attendance_type_settings_table.php` | `uuid()` → `id()` |
+| 270 | [ ] | `modules/Attendance/Database/Migrations/2026_02_21_000001_create_work_schedules_table.php` | `uuid()` → `id()` |
+
+### 5.11 Payroll Module Migrations
+| # | Status | File | Changes |
+|---|--------|------|---------|
+| 271 | [ ] | `modules/Payroll/Database/Migrations/2024_01_01_000001_create_payroll_runs_table.php` | `uuid()` → `id()` |
+| 272 | [ ] | `modules/Payroll/Database/Migrations/2024_01_01_000002_create_payroll_lines_table.php` | `uuid()` → `id()` |
+| 273 | [ ] | `modules/Payroll/Database/Migrations/2024_01_01_000003_create_salary_rule_categories_table.php` | `uuid()` → `id()` |
+| 274 | [ ] | `modules/Payroll/Database/Migrations/2024_01_01_000004_create_salary_rules_table.php` | `uuid()` → `id()` |
+| 275 | [ ] | `modules/Payroll/Database/Migrations/2024_01_01_000005_create_salary_structures_table.php` | `uuid()` → `id()` |
+| 276 | [ ] | `modules/Payroll/Database/Migrations/2024_01_01_000006_create_employee_salary_structures_table.php` | `uuid()` → `id()` |
+| 277 | [ ] | `modules/Payroll/Database/Migrations/2024_01_01_000007_create_employee_salary_components_table.php` | `uuid()` → `id()` |
+
+### 5.12 Equipment Module Migrations
+| # | Status | File | Changes |
+|---|--------|------|---------|
+| 278 | [ ] | `modules/Equipment/Database/Migrations/2024_01_01_000001_create_equipment_types_table.php` | `uuid()` → `id()` |
+| 279 | [ ] | `modules/Equipment/Database/Migrations/2024_01_01_000007_create_equipment_table.php` | `uuid()` → `id()` |
+| 280 | [ ] | `modules/Equipment/Database/Migrations/2024_01_01_000008_create_equipment_maintenance_logs_table.php` | `uuid()` → `id()` |
+| 281 | [ ] | `modules/Equipment/Database/Migrations/2024_01_01_000009_create_equipment_shot_logs_table.php` | `uuid()` → `id()` |
+| 282 | [ ] | `modules/Equipment/Database/Migrations/2024_01_01_000010_create_service_equipment_requirements_table.php` | `uuid()` → `id()` |
+| 283 | [ ] | `modules/Equipment/Database/Migrations/2026_02_24_100001_create_equipment_tracking_parameters_table.php` | `uuid()` → `id()` |
+| 284 | [ ] | `modules/Equipment/Database/Migrations/2026_02_24_100003_create_equipment_parameter_templates_table.php` | `uuid()` → `id()` |
+
+### 5.13 GiftCards Module Migrations
+| # | Status | File | Changes |
+|---|--------|------|---------|
+| 285 | [ ] | `modules/GiftCards/Database/Migrations/2024_01_01_000001_create_gift_card_templates_table.php` | `uuid()` → `id()` |
+| 286 | [ ] | `modules/GiftCards/Database/Migrations/2024_01_01_000002_create_gift_cards_table.php` | `uuid()` → `id()` |
+| 287 | [ ] | `modules/GiftCards/Database/Migrations/2024_01_01_000003_create_gift_card_transactions_table.php` | `uuid()` → `id()` |
+| 288 | [ ] | `modules/GiftCards/Database/Migrations/2024_01_01_000004_create_gift_card_print_histories_table.php` | `uuid()` → `id()` |
+| 289 | [ ] | `modules/GiftCards/Database/Migrations/2024_01_01_000005_create_gift_card_batch_exports_table.php` | `uuid()` → `id()` |
+
+### 5.14 Packages Module Migrations
+| # | Status | File | Changes |
+|---|--------|------|---------|
+| 290 | [ ] | `modules/Packages/Database/Migrations/2024_01_01_000007_create_packages_table.php` | `uuid()` → `id()` |
+| 291 | [ ] | `modules/Packages/Database/Migrations/2024_01_01_000009_create_package_items_table.php` | `uuid()` → `id()` |
+| 292 | [ ] | `modules/Packages/Database/Migrations/2024_01_01_000010_create_package_subscriptions_table.php` | `uuid()` → `id()` |
+| 293 | [ ] | `modules/Packages/Database/Migrations/2024_01_01_000011_create_package_session_usages_table.php` | `uuid()` → `id()` |
+
+### 5.15 Memberships Module Migrations
+| # | Status | File | Changes |
+|---|--------|------|---------|
+| 294 | [ ] | `modules/Memberships/Database/Migrations/2024_01_01_000001_create_memberships_table.php` | `uuid()` → `id()` |
+| 295 | [ ] | `modules/Memberships/Database/Migrations/2024_01_01_000002_create_membership_subscriptions_table.php` | `uuid()` → `id()` |
+
+### 5.16 Loyalty Module Migrations
+| # | Status | File | Changes |
+|---|--------|------|---------|
+| 296 | [ ] | `modules/Loyalty/Database/Migrations/2024_01_01_000008_create_loyalty_transactions_table.php` | `uuid()` → `id()` |
+| 297 | [ ] | `modules/Loyalty/Database/Migrations/2024_01_01_000009_create_loyalty_rules_table.php` | `uuid()` → `id()` |
+| 298 | [ ] | `modules/Loyalty/Database/Migrations/2024_01_01_000010_create_referral_programs_table.php` | `uuid()` → `id()` |
+| 299 | [ ] | `modules/Loyalty/Database/Migrations/2024_01_01_000011_create_referrals_table.php` | `uuid()` → `id()` |
+
+### 5.17 Marketing Module Migrations
+| # | Status | File | Changes |
+|---|--------|------|---------|
+| 300 | [ ] | `modules/Marketing/Database/Migrations/2024_01_01_000001_create_message_templates_table.php` | `uuid()` → `id()` |
+| 301 | [ ] | `modules/Marketing/Database/Migrations/2024_01_01_000002_create_campaigns_table.php` | `uuid()` → `id()` |
+| 302 | [ ] | `modules/Marketing/Database/Migrations/2024_01_01_000003_create_campaign_recipients_table.php` | `uuid()` → `id()` |
+| 303 | [ ] | `modules/Marketing/Database/Migrations/2024_01_01_000004_create_notification_logs_table.php` | `uuid()` → `id()` |
+| 304 | [ ] | `modules/Marketing/Database/Migrations/2024_01_01_000005_create_automation_rules_table.php` | `uuid()` → `id()` |
+
+### 5.18 TreatmentPlans Module Migrations
+| # | Status | File | Changes |
+|---|--------|------|---------|
+| 305 | [ ] | `modules/TreatmentPlans/Database/Migrations/2024_01_01_000001_create_treatment_plans_table.php` | `uuid()` → `id()` |
+| 306 | [ ] | `modules/TreatmentPlans/Database/Migrations/2024_01_01_000002_create_treatment_plan_items_table.php` | `uuid()` → `id()` |
+| 307 | [ ] | `modules/TreatmentPlans/Database/Migrations/2024_01_01_000003_create_treatment_plan_appointments_table.php` | `uuid()` → `id()` |
+
+### 5.19 Prescriptions Module Migrations
+| # | Status | File | Changes |
+|---|--------|------|---------|
+| 308 | [ ] | `modules/Prescriptions/Database/Migrations/2024_01_01_000001_create_medicine_catalog_table.php` | `uuid()` → `id()` |
+| 309 | [ ] | `modules/Prescriptions/Database/Migrations/2024_01_01_000002_create_prescriptions_table.php` | `uuid()` → `id()` |
+| 310 | [ ] | `modules/Prescriptions/Database/Migrations/2024_01_01_000003_create_prescription_items_table.php` | `uuid()` → `id()` |
+
+### 5.20 Assets Module Migrations
+| # | Status | File | Changes |
+|---|--------|------|---------|
+| 311 | [ ] | `modules/Assets/Database/Migrations/2024_01_01_000001_create_asset_types_table.php` | `uuid()` → `id()` |
+| 312 | [ ] | `modules/Assets/Database/Migrations/2024_01_01_000002_create_assets_table.php` | `uuid()` → `id()` |
+| 313 | [ ] | `modules/Assets/Database/Migrations/2024_01_01_000003_create_asset_depreciation_entries_table.php` | `uuid()` → `id()` |
+
+### 5.21 PatientPortal Module Migrations
+| # | Status | File | Changes |
+|---|--------|------|---------|
+| 314 | [ ] | `modules/PatientPortal/Database/Migrations/2024_01_01_000001_create_portal_settings_table.php` | `uuid()` → `id()` |
+
+---
+
+## Phase 6: Services & Actions
+
+| # | Status | File | Changes |
+|---|--------|------|---------|
+| 315 | [ ] | `modules/Core/Services/TenantService.php` | Remove `Str::uuid()` calls, let DB auto-generate IDs |
+| 316 | [ ] | `modules/GiftCards/Services/GiftCardService.php` | Remove UUID generation |
+| 317 | [ ] | `app/Services/ExportService.php` | Review UUID usage |
+| 318 | [ ] | `app/Filament/Actions/ImportTableAction.php` | Review UUID usage |
+| 319 | [ ] | `app/Filament/Actions/ExportTableAction.php` | Review UUID usage |
+| 320 | [ ] | `app/Console/Commands/TenantCreate.php` | Remove `Str::uuid()` |
+
+---
+
+## Phase 7: Seeders
+
+Update all seeders to remove manual UUID generation.
+
+| # | Status | File | Changes |
+|---|--------|------|---------|
+| 321 | [ ] | `modules/Core/Database/Seeders/DefaultBranchSeeder.php` | Remove UUID generation |
+| 322 | [ ] | `modules/Core/Database/Seeders/DefaultSettingsSeeder.php` | Remove UUID generation |
+| 323 | [ ] | `modules/Core/Database/Seeders/DefaultSequenceSeeder.php` | Remove UUID generation |
+| 324 | [ ] | `modules/Core/Database/Seeders/DemoDataSeeder.php` | Remove UUID generation |
+| 325 | [ ] | `modules/Core/Database/Seeders/DemoPatientSeeder.php` | Remove UUID generation |
+| 326 | [ ] | `modules/Core/Database/Seeders/DemoAppointmentSeeder.php` | Remove UUID generation |
+| 327 | [ ] | `modules/Core/Database/Seeders/DemoInvoiceSeeder.php` | Remove UUID generation |
+| 328 | [ ] | `modules/Core/Database/Seeders/DemoServiceSeeder.php` | Remove UUID generation |
+| 329 | [ ] | `modules/Auth/Database/Seeders/AuthModuleSeeder.php` | Remove UUID generation |
+| 330 | [ ] | `modules/Accounting/Database/Seeders/ChartOfAccountsSeeder.php` | Remove UUID generation |
+| 331 | [ ] | `modules/Services/Database/Seeders/ServicesModuleSeeder.php` | Remove UUID generation |
+| 332 | [ ] | `modules/Services/Database/Seeders/ParameterTemplatesSeeder.php` | Remove UUID generation |
+| 333 | [ ] | `modules/Staff/Database/Seeders/CommissionPlanSeeder.php` | Remove UUID generation |
+| 334 | [ ] | `modules/Payroll/Database/Seeders/PayrollDefaultsSeeder.php` | Remove UUID generation |
+| 335 | [ ] | `modules/Loyalty/Database/Seeders/LoyaltySeeder.php` | Remove UUID generation |
+| 336 | [ ] | `modules/Assets/Database/Seeders/AssetTypeSeeder.php` | Remove UUID generation |
+
+---
+
+## Phase 8: Filament & UI Components
+
+| # | Status | File | Changes |
+|---|--------|------|---------|
+| 337 | [ ] | `app/Filament/SuperAdmin/Resources/TenantResource/Pages/ViewTenant.php` | Review UUID usage |
+| 338 | [ ] | `modules/Booking/Filament/Pages/BookingSlotConfigPage.php` | Review UUID usage |
+| 339 | [ ] | All Filament Resources | Verify ID handling works with INT |
+
+---
+
+## Phase 9: Testing & Verification
+
+| # | Status | Task |
+|---|--------|------|
+| 340 | [ ] | Create git branch: `feature/uuid-to-int-migration` |
+| 341 | [ ] | Create full database backup |
+| 342 | [ ] | Run `php artisan migrate:fresh` on test database |
+| 343 | [ ] | Verify all platform migrations pass |
+| 344 | [ ] | Verify all 158+ tenant migrations pass |
+| 345 | [ ] | Run all seeders successfully |
+| 346 | [ ] | Test tenant creation with TenantService |
+| 347 | [ ] | Test CRUD operations on main models |
+| 348 | [ ] | Test foreign key relationships |
+| 349 | [ ] | Test Spatie Permission role/permission assignment |
+| 350 | [ ] | Verify Filament admin panels work |
+| 351 | [ ] | Run performance benchmark comparison |
+
+---
+
+## Quick Reference: Column Type Changes
+
+### Primary Keys
+```php
+// OLD
+$table->uuid('id')->primary();
+
+// NEW
+$table->id();  // Creates BIGINT auto-increment
+```
+
+### Foreign Keys
+```php
+// OLD
+$table->uuid('tenant_id');
+$table->foreignUuid('patient_id')->constrained();
+
+// NEW
+$table->unsignedBigInteger('tenant_id');
+$table->foreignId('patient_id')->constrained();
+```
+
+### Morphs (Polymorphic Relations)
+```php
+// OLD
+$table->uuidMorphs('taggable');
+$table->nullableUuidMorphs('subject');
+
+// NEW
+$table->morphs('taggable');
+$table->nullableMorphs('subject');
+```
+
+### In Models - BaseModel
+```php
+// OLD (BaseModel)
+protected $keyType = 'string';
+public $incrementing = false;
+protected $casts = ['id' => 'string', ...];
+protected static function booted() {
+    static::creating(fn($model) => $model->id = Str::orderedUuid()->toString());
+}
+
+// NEW (BaseModel)
+// Remove ALL of the above - let Laravel use defaults
+// $keyType defaults to 'int'
+// $incrementing defaults to true
+// No need to cast 'id'
+// No need to generate ID in booted()
+```
+
+### In Models - Explicit Casts Removal
+```php
+// OLD
+protected $casts = [
+    'id' => 'string',  // REMOVE THIS LINE
+    'is_active' => 'boolean',
+    // ... other casts
+];
+
+// NEW
+protected $casts = [
+    'is_active' => 'boolean',
+    // ... other casts (NO 'id' => 'string')
+];
+```
+
+---
+
+## Progress Summary
+
+| Phase | Total Items | Completed | Remaining |
+|-------|-------------|-----------|-----------|
+| Decisions | 6 | 1 | 5 |
+| 0. Framework | 7 | 0 | 7 |
+| 1. App Models | 20 | 0 | 20 |
+| 2. Models (Explicit Casts) | 31 | 0 | 31 |
+| 3. Models (Verify) | 98 | 0 | 98 |
+| 4. Migrations (Central) | 23 | 0 | 23 |
+| 5. Migrations (Tenant) | 135 | 0 | 135 |
+| 6. Services | 6 | 0 | 6 |
+| 7. Seeders | 16 | 0 | 16 |
+| 8. Filament/UI | 3 | 0 | 3 |
+| 9. Testing | 12 | 0 | 12 |
+| **TOTAL** | **357** | **1** | **356** |
+
+---
+
+## Notes
+
+- Keep `batch_uuid` in activity log (used for grouping, not as PK)
+- Spatie Permission tables use BIGINT by default for role_id/permission_id - keep as-is
+- Spatie Permission model_morph_key MUST change from uuid() to unsignedBigInteger()
+- Run migrations in order: Central → Tenant
+- After completion, run benchmark to verify performance improvement
+- 31 models have explicit `'id' => 'string'` casts that MUST be removed

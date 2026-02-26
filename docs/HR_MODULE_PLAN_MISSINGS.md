@@ -42,7 +42,7 @@ This document compares the Payroll/HR functionality between the backup project a
 **SalaryRule** (`modules/Payroll/Models/SalaryRule.php`)
 ```
 Fields:
-- id, tenant_id, odoo_id
+- id (auto-increment BIGINT), tenant_id
 - name, code, category_code
 - amount_type: fixed | percentage | formula
 - amount_fixed, amount_percentage, amount_formula
@@ -56,7 +56,7 @@ Fields:
 **SalaryRuleCategory** (`modules/Payroll/Models/SalaryRuleCategory.php`)
 ```
 Fields:
-- id, tenant_id
+- id (auto-increment BIGINT), tenant_id
 - name, code, description
 - type: earning | deduction | allowance | benefit | gross | net
 - is_active
@@ -66,7 +66,7 @@ Fields:
 **SalaryStructure** (`modules/Payroll/Models/SalaryStructure.php`)
 ```
 Fields:
-- id, tenant_id
+- id (auto-increment BIGINT), tenant_id
 - name, code, description
 - pay_frequency: monthly | bi-weekly | weekly | daily | hourly
 - currency (default: EGP)
@@ -78,13 +78,13 @@ Fields:
 **EmployeeSalaryStructure** (`modules/Payroll/Models/EmployeeSalaryStructure.php`)
 ```
 Fields:
-- id, tenant_id
-- staff_profile_id
-- salary_structure_id
+- id (auto-increment BIGINT), tenant_id
+- staff_profile_id (FK)
+- salary_structure_id (FK)
 - base_salary_minor
 - effective_date, end_date
 - is_current (only one per employee)
-- assigned_by
+- assigned_by (FK)
 - notes
 - created_at, updated_at
 ```
@@ -92,16 +92,16 @@ Fields:
 **EmployeeSalaryComponent** (`modules/Payroll/Models/EmployeeSalaryComponent.php`)
 ```
 Fields:
-- id, tenant_id
-- staff_profile_id
-- salary_rule_id
+- id (auto-increment BIGINT), tenant_id
+- staff_profile_id (FK)
+- salary_rule_id (FK, nullable)
 - component_type: earning | deduction
 - calculation_type: fixed | percentage | formula
 - amount_minor, percentage, formula
 - effective_date, end_date
 - is_taxable, is_active
-- loan_id (nullable, for loan repayment deductions)
-- created_by
+- loan_id (FK, nullable, for loan repayment deductions)
+- created_by (FK)
 - created_at, updated_at
 ```
 
@@ -278,8 +278,8 @@ Filters:
 **Attendance** (`app/Models/Attendance.php`)
 ```
 Fields:
-- id, tenant_id
-- staff_profile_id
+- id (auto-increment BIGINT), tenant_id
+- staff_profile_id (FK)
 - date
 - check_in, check_out
 - worked_hours, overtime_hours
@@ -292,7 +292,7 @@ Fields:
 **AttendanceLog** (`app/Models/AttendanceLog.php`)
 ```
 Fields:
-- id, attendance_id
+- id (auto-increment BIGINT), attendance_id (FK)
 - type: check_in | check_out | break_start | break_end
 - timestamp
 - source: manual | biometric | mobile
@@ -332,8 +332,8 @@ Fields:
 **EmployeeLoan** (`modules/Payroll/Models/EmployeeLoan.php`)
 ```
 Fields:
-- id, tenant_id
-- staff_profile_id
+- id (auto-increment BIGINT), tenant_id
+- staff_profile_id (FK)
 - loan_number
 - loan_type: personal | advance | housing
 - principal_amount_minor
@@ -343,7 +343,7 @@ Fields:
 - remaining_balance_minor
 - start_date, end_date
 - status: active | completed | cancelled
-- approved_by, approved_at
+- approved_by (FK), approved_at
 - notes
 - created_at, updated_at
 ```
@@ -351,9 +351,9 @@ Fields:
 **LoanRepayment** (`modules/Payroll/Models/LoanRepayment.php`)
 ```
 Fields:
-- id, tenant_id
-- employee_loan_id
-- payroll_line_id
+- id (auto-increment BIGINT), tenant_id
+- employee_loan_id (FK)
+- payroll_line_id (FK)
 - amount_minor
 - repayment_date
 - notes
@@ -493,8 +493,8 @@ Following X-Linic implementation standards (Filament-based, BaseModel traits, mi
 
 **Migration**
 - [x] Create `2024_01_01_000003_create_salary_rule_categories_table.php`
-  - [x] `uuid('id')->primary()`
-  - [x] `uuid('tenant_id')->index()`
+  - [x] `$table->id()`
+  - [x] `unsignedBigInteger('tenant_id')->index()`
   - [x] `string('name')`
   - [x] `string('code')->index()`
   - [x] `text('description')->nullable()`
@@ -507,7 +507,7 @@ Following X-Linic implementation standards (Filament-based, BaseModel traits, mi
 - [x] Extend `BaseModel`
 - [x] Use traits: `HasTenancy`
 - [x] Define `$fillable` array
-- [x] Define `$casts` (id as string)
+- [x] Define `$casts`
 - [x] Add constants: `TYPE_EARNING`, `TYPE_DEDUCTION`, `TYPES`, `TYPE_COLORS`
 - [x] Add relationship: `hasMany(SalaryRule::class)`
 - [x] Add scope: `scopeActive($query)`
@@ -539,24 +539,24 @@ Following X-Linic implementation standards (Filament-based, BaseModel traits, mi
 
 **Migration**
 - [x] Create `2024_01_01_000004_create_salary_rules_table.php`
-  - [x] `uuid('id')->primary()`
-  - [x] `uuid('tenant_id')->index()`
+  - [x] `$table->id()`
+  - [x] `unsignedBigInteger('tenant_id')->index()`
   - [x] `string('name')`
   - [x] `string('code')->index()`
-  - [x] `uuid('category_id')->index()`
+  - [x] `foreignId('category_id')->constrained('salary_rule_categories')`
   - [x] `string('amount_type')` (fixed, percentage, formula)
   - [x] `integer('amount_fixed_minor')->default(0)`
   - [x] `decimal('amount_percentage', 8, 4)->nullable()`
   - [x] `text('amount_formula')->nullable()`
   - [x] `string('condition_type')->nullable()`
   - [x] `text('condition_formula')->nullable()`
-  - [x] `uuid('percentage_base_id')->nullable()` (self-reference)
+  - [x] `foreignId('percentage_base_id')->nullable()->constrained('salary_rules')` (self-reference)
   - [x] `string('field_mapping')->nullable()`
   - [x] `integer('sequence')->default(0)`
   - [x] `boolean('is_active')->default(true)`
   - [x] `timestamps()`
   - [x] `softDeletes()`
-  - [x] Foreign keys with cascade/set null
+  - [x] Foreign keys with cascade/nullOnDelete
 
 **Model** (`modules/Payroll/Models/SalaryRule.php`)
 - [x] Extend `BaseModel`
@@ -606,15 +606,15 @@ Following X-Linic implementation standards (Filament-based, BaseModel traits, mi
 
 **Migration**
 - [x] Create `2024_01_01_000005_create_salary_structures_table.php`
-  - [x] `uuid('id')->primary()`
-  - [x] `uuid('tenant_id')->index()`
+  - [x] `$table->id()`
+  - [x] `unsignedBigInteger('tenant_id')->index()`
   - [x] `string('name')`
   - [x] `string('code')->index()`
   - [x] `text('description')->nullable()`
   - [x] `string('pay_frequency')->default('monthly')`
   - [x] `string('currency')->default('EGP')`
   - [x] `boolean('is_active')->default(true)`
-  - [x] `uuid('created_by')->nullable()`
+  - [x] `foreignId('created_by')->nullable()->constrained('users')`
   - [x] `timestamps()`
   - [x] Unique: `(tenant_id, code)`
 
@@ -635,12 +635,11 @@ Following X-Linic implementation standards (Filament-based, BaseModel traits, mi
 
 **Pivot Migration** (included in salary_structures migration)
 - [x] Create `salary_structure_rules` table
-  - [x] `uuid('salary_structure_id')`
-  - [x] `uuid('salary_rule_id')`
+  - [x] `foreignId('salary_structure_id')->constrained()->cascadeOnDelete()`
+  - [x] `foreignId('salary_rule_id')->constrained()->cascadeOnDelete()`
   - [x] `integer('sequence')->default(0)`
   - [x] `timestamps()`
   - [x] Primary key on both columns
-  - [x] Foreign keys with cascade
 
 **Filament Resource** (`modules/Payroll/Filament/Resources/SalaryStructureResource.php`)
 - [x] Create form with sections:
@@ -667,15 +666,15 @@ Following X-Linic implementation standards (Filament-based, BaseModel traits, mi
 
 **Migration**
 - [x] Create `2024_01_01_000006_create_employee_salary_structures_table.php`
-  - [x] `uuid('id')->primary()`
-  - [x] `uuid('tenant_id')->index()`
-  - [x] `uuid('staff_profile_id')->index()`
-  - [x] `uuid('salary_structure_id')->index()`
+  - [x] `$table->id()`
+  - [x] `unsignedBigInteger('tenant_id')->index()`
+  - [x] `foreignId('staff_profile_id')->constrained()`
+  - [x] `foreignId('salary_structure_id')->constrained()`
   - [x] `integer('base_salary_minor')->default(0)`
   - [x] `date('effective_date')`
   - [x] `date('end_date')->nullable()`
   - [x] `boolean('is_current')->default(false)`
-  - [x] `uuid('assigned_by')->nullable()`
+  - [x] `foreignId('assigned_by')->nullable()->constrained('users')`
   - [x] `text('notes')->nullable()`
   - [x] `timestamps()`
   - [x] Index: `(tenant_id, staff_profile_id, is_current)`
@@ -707,10 +706,10 @@ Following X-Linic implementation standards (Filament-based, BaseModel traits, mi
 
 **Migration**
 - [x] Create `2024_01_01_000007_create_employee_salary_components_table.php`
-  - [x] `uuid('id')->primary()`
-  - [x] `uuid('tenant_id')->index()`
-  - [x] `uuid('staff_profile_id')->index()`
-  - [x] `uuid('salary_rule_id')->nullable()->index()`
+  - [x] `$table->id()`
+  - [x] `unsignedBigInteger('tenant_id')->index()`
+  - [x] `foreignId('staff_profile_id')->constrained()`
+  - [x] `foreignId('salary_rule_id')->nullable()->constrained()`
   - [x] `string('name')` - custom name if no salary rule
   - [x] `string('component_type')` (earning, deduction)
   - [x] `string('calculation_type')` (fixed, percentage, formula)
@@ -721,8 +720,8 @@ Following X-Linic implementation standards (Filament-based, BaseModel traits, mi
   - [x] `date('end_date')->nullable()`
   - [x] `boolean('is_taxable')->default(true)`
   - [x] `boolean('is_active')->default(true)`
-  - [x] `uuid('loan_id')->nullable()`
-  - [x] `uuid('created_by')->nullable()`
+  - [x] `foreignId('loan_id')->nullable()->constrained('employee_loans')`
+  - [x] `foreignId('created_by')->nullable()->constrained('users')`
   - [x] `timestamps()`
 
 **Model** (`modules/Payroll/Models/EmployeeSalaryComponent.php`)
@@ -829,11 +828,11 @@ Following X-Linic implementation standards (Filament-based, BaseModel traits, mi
 
 **Migration**
 - [ ] Create `YYYY_MM_DD_create_compensation_history_table.php`
-  - [ ] UUID primary key
-  - [ ] `uuid('staff_profile_id')->index()`
+  - [ ] `$table->id()`
+  - [ ] `foreignId('staff_profile_id')->constrained()`
   - [ ] `string('change_type')` (increment, promotion, adjustment, new_hire, transfer)
-  - [ ] `uuid('previous_structure_id')->nullable()`
-  - [ ] `uuid('new_structure_id')->nullable()`
+  - [ ] `foreignId('previous_structure_id')->nullable()->constrained('salary_structures')`
+  - [ ] `foreignId('new_structure_id')->nullable()->constrained('salary_structures')`
   - [ ] `integer('previous_base_salary_minor')->default(0)`
   - [ ] `integer('new_base_salary_minor')->default(0)`
   - [ ] `decimal('change_percentage', 5, 2)->nullable()`
@@ -841,9 +840,9 @@ Following X-Linic implementation standards (Filament-based, BaseModel traits, mi
   - [ ] `text('reason')->nullable()`
   - [ ] `text('notes')->nullable()`
   - [ ] `string('status')->default('pending')`
-  - [ ] `uuid('requested_by')->nullable()`
-  - [ ] `uuid('approved_by')->nullable()`
-  - [ ] `uuid('applied_by')->nullable()`
+  - [ ] `foreignId('requested_by')->nullable()->constrained('users')`
+  - [ ] `foreignId('approved_by')->nullable()->constrained('users')`
+  - [ ] `foreignId('applied_by')->nullable()->constrained('users')`
   - [ ] `timestamp('approved_at')->nullable()`
   - [ ] `timestamp('applied_at')->nullable()`
   - [ ] `timestamp('rejected_at')->nullable()`

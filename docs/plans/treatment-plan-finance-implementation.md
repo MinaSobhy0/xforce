@@ -115,11 +115,11 @@ Instead of creating separate deposits tables, we:
 
 ```php
 Schema::create('invoices', function (Blueprint $table) {
-    $table->uuid('id')->primary();
-    $table->uuid('tenant_id');
-    $table->uuid('treatment_plan_id')->nullable();
-    $table->uuid('patient_id');
-    $table->uuid('branch_id');
+    $table->id();
+    $table->unsignedBigInteger('tenant_id');
+    $table->foreignId('treatment_plan_id')->nullable()->constrained()->nullOnDelete();
+    $table->foreignId('patient_id')->constrained()->cascadeOnDelete();
+    $table->foreignId('branch_id')->constrained()->cascadeOnDelete();
 
     $table->string('code')->unique(); // INV-00001
 
@@ -143,19 +143,14 @@ Schema::create('invoices', function (Blueprint $table) {
     $table->timestamp('paid_at')->nullable();
     $table->timestamp('cancelled_at')->nullable();
 
-    $table->uuid('created_by_user_id')->nullable();
-    $table->uuid('cancelled_by_user_id')->nullable();
+    $table->foreignId('created_by_user_id')->nullable()->constrained('users')->nullOnDelete();
+    $table->foreignId('cancelled_by_user_id')->nullable()->constrained('users')->nullOnDelete();
 
     $table->text('notes')->nullable();
     $table->text('terms')->nullable();
 
     $table->timestamps();
     $table->softDeletes();
-
-    $table->foreign('tenant_id')->references('id')->on('tenants')->onDelete('cascade');
-    $table->foreign('treatment_plan_id')->references('id')->on('treatment_plans')->onDelete('set null');
-    $table->foreign('patient_id')->references('id')->on('patients')->onDelete('cascade');
-    $table->foreign('branch_id')->references('id')->on('branches')->onDelete('cascade');
 });
 ```
 
@@ -163,15 +158,14 @@ Schema::create('invoices', function (Blueprint $table) {
 
 ```php
 Schema::create('invoice_items', function (Blueprint $table) {
-    $table->uuid('id')->primary();
-    $table->uuid('tenant_id');
-    $table->uuid('invoice_id');
-    $table->uuid('treatment_plan_item_id')->nullable();
-    $table->uuid('appointment_id')->nullable();
+    $table->id();
+    $table->unsignedBigInteger('tenant_id');
+    $table->foreignId('invoice_id')->constrained()->cascadeOnDelete();
+    $table->foreignId('treatment_plan_item_id')->nullable()->constrained()->nullOnDelete();
+    $table->foreignId('appointment_id')->nullable()->constrained()->nullOnDelete();
 
     // Polymorphic reference to actual item
-    $table->string('itemable_type'); // Service, Package, Product
-    $table->uuid('itemable_id');
+    $table->morphs('itemable'); // Creates itemable_type and itemable_id
 
     $table->string('item_type'); // service, package, product
     $table->string('description');
@@ -182,17 +176,12 @@ Schema::create('invoice_items', function (Blueprint $table) {
     $table->integer('tax_minor')->default(0);
     $table->integer('total_minor')->default(0);
 
-    $table->uuid('package_subscription_id')->nullable(); // If from package
+    $table->foreignId('package_subscription_id')->nullable()->constrained()->nullOnDelete();
 
     $table->integer('sort_order')->default(0);
     $table->text('notes')->nullable();
 
     $table->timestamps();
-
-    $table->foreign('tenant_id')->references('id')->on('tenants')->onDelete('cascade');
-    $table->foreign('invoice_id')->references('id')->on('invoices')->onDelete('cascade');
-    $table->foreign('treatment_plan_item_id')->references('id')->on('treatment_plan_items')->onDelete('set null');
-    $table->foreign('appointment_id')->references('id')->on('appointments')->onDelete('set null');
 });
 ```
 
@@ -200,12 +189,12 @@ Schema::create('invoice_items', function (Blueprint $table) {
 
 ```php
 Schema::create('deposits', function (Blueprint $table) {
-    $table->uuid('id')->primary();
-    $table->uuid('tenant_id');
-    $table->uuid('patient_id');
-    $table->uuid('branch_id');
-    $table->uuid('treatment_plan_id')->nullable();
-    $table->uuid('appointment_id')->nullable();
+    $table->id();
+    $table->unsignedBigInteger('tenant_id');
+    $table->foreignId('patient_id')->constrained()->cascadeOnDelete();
+    $table->foreignId('branch_id')->constrained()->cascadeOnDelete();
+    $table->foreignId('treatment_plan_id')->nullable()->constrained()->nullOnDelete();
+    $table->foreignId('appointment_id')->nullable()->constrained()->nullOnDelete();
 
     $table->string('code')->unique(); // DEP-00001
 
@@ -219,19 +208,13 @@ Schema::create('deposits', function (Blueprint $table) {
     $table->integer('applied_amount_minor')->default(0);
     $table->integer('remaining_amount_minor')->default(0);
 
-    $table->uuid('collected_by_user_id')->nullable();
+    $table->foreignId('collected_by_user_id')->nullable()->constrained('users')->nullOnDelete();
     $table->timestamp('collected_at')->nullable();
 
     $table->text('notes')->nullable();
 
     $table->timestamps();
     $table->softDeletes();
-
-    $table->foreign('tenant_id')->references('id')->on('tenants')->onDelete('cascade');
-    $table->foreign('patient_id')->references('id')->on('patients')->onDelete('cascade');
-    $table->foreign('branch_id')->references('id')->on('branches')->onDelete('cascade');
-    $table->foreign('treatment_plan_id')->references('id')->on('treatment_plans')->onDelete('set null');
-    $table->foreign('appointment_id')->references('id')->on('appointments')->onDelete('set null');
 });
 ```
 
@@ -239,21 +222,17 @@ Schema::create('deposits', function (Blueprint $table) {
 
 ```php
 Schema::create('deposit_applications', function (Blueprint $table) {
-    $table->uuid('id')->primary();
-    $table->uuid('tenant_id');
-    $table->uuid('deposit_id');
-    $table->uuid('invoice_id');
+    $table->id();
+    $table->unsignedBigInteger('tenant_id');
+    $table->foreignId('deposit_id')->constrained()->cascadeOnDelete();
+    $table->foreignId('invoice_id')->constrained()->cascadeOnDelete();
 
     $table->integer('amount_minor');
 
-    $table->uuid('applied_by_user_id')->nullable();
+    $table->foreignId('applied_by_user_id')->nullable()->constrained('users')->nullOnDelete();
     $table->timestamp('applied_at');
 
     $table->timestamps();
-
-    $table->foreign('tenant_id')->references('id')->on('tenants')->onDelete('cascade');
-    $table->foreign('deposit_id')->references('id')->on('deposits')->onDelete('cascade');
-    $table->foreign('invoice_id')->references('id')->on('invoices')->onDelete('cascade');
 });
 ```
 
@@ -261,11 +240,11 @@ Schema::create('deposit_applications', function (Blueprint $table) {
 
 ```php
 Schema::create('payments', function (Blueprint $table) {
-    $table->uuid('id')->primary();
-    $table->uuid('tenant_id');
-    $table->uuid('invoice_id');
-    $table->uuid('patient_id');
-    $table->uuid('branch_id');
+    $table->id();
+    $table->unsignedBigInteger('tenant_id');
+    $table->foreignId('invoice_id')->constrained()->cascadeOnDelete();
+    $table->foreignId('patient_id')->constrained()->cascadeOnDelete();
+    $table->foreignId('branch_id')->constrained()->cascadeOnDelete();
 
     $table->string('code')->unique(); // PAY-00001
 
@@ -276,18 +255,13 @@ Schema::create('payments', function (Blueprint $table) {
     $table->string('status')->default('completed');
     // pending, completed, failed, refunded
 
-    $table->uuid('received_by_user_id')->nullable();
+    $table->foreignId('received_by_user_id')->nullable()->constrained('users')->nullOnDelete();
     $table->timestamp('paid_at');
 
     $table->text('notes')->nullable();
 
     $table->timestamps();
     $table->softDeletes();
-
-    $table->foreign('tenant_id')->references('id')->on('tenants')->onDelete('cascade');
-    $table->foreign('invoice_id')->references('id')->on('invoices')->onDelete('cascade');
-    $table->foreign('patient_id')->references('id')->on('patients')->onDelete('cascade');
-    $table->foreign('branch_id')->references('id')->on('branches')->onDelete('cascade');
 });
 ```
 
@@ -300,16 +274,15 @@ Schema::table('treatment_plan_items', function (Blueprint $table) {
     // service, package, product
 
     // Polymorphic columns
-    $table->string('itemable_type')->nullable()->after('item_type');
-    $table->uuid('itemable_id')->nullable()->after('itemable_type');
+    $table->nullableMorphs('itemable'); // Creates itemable_type (string) and itemable_id (bigint)
 
     // Quantity tracking
-    $table->integer('quantity')->default(1)->after('itemable_id');
+    $table->integer('quantity')->default(1);
     $table->integer('completed_quantity')->default(0);
     $table->integer('invoiced_quantity')->default(0);
 
     // For packages
-    $table->uuid('package_subscription_id')->nullable();
+    $table->foreignId('package_subscription_id')->nullable()->constrained()->nullOnDelete();
 
     // For products
     $table->boolean('is_delivered')->default(false);
@@ -334,13 +307,11 @@ Schema::table('treatment_plans', function (Blueprint $table) {
 
 ```php
 Schema::table('appointments', function (Blueprint $table) {
-    $table->uuid('deposit_id')->nullable();
+    $table->foreignId('deposit_id')->nullable()->constrained()->nullOnDelete();
     $table->integer('deposit_amount_minor')->default(0);
 
     $table->string('payment_status')->default('unpaid');
     // unpaid, deposit_paid, invoiced, paid, package
-
-    $table->foreign('deposit_id')->references('id')->on('deposits')->onDelete('set null');
 });
 ```
 
