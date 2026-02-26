@@ -182,11 +182,6 @@ class DynamicImporterFactory
                 ->rules(['nullable', 'string'])
                 ->guess(static::getColumnGuesses($field, $lang));
 
-            // Make EN required for name fields
-            if ($lang === 'en' && in_array($field, ['name', 'title'])) {
-                $column->requiredMapping();
-            }
-
             $columns[] = $column;
         }
 
@@ -409,10 +404,8 @@ class DynamicImporterFactory
                 break;
         }
 
-        // Mark certain fields as required
-        if (in_array($field, ['name', 'code', 'sku', 'first_name', 'last_name'])) {
-            $column->requiredMapping();
-        }
+        // Don't mark fields as required here - let the model validation handle it
+        // The generic importer should be flexible and allow partial imports
 
         return $column;
     }

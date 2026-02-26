@@ -15,7 +15,6 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use League\Csv\Reader as CsvReader;
@@ -67,58 +66,6 @@ class ImportTableAction extends Action
                 ->link()
                 ->action(fn() => $this->downloadTemplate()),
         ]);
-
-        // Add before validation to check required mappings
-        $this->beforeFormValidated(function (array $data) {
-            $this->validateColumnMappings($data);
-        });
-
-        // Add error handling for the import process
-        $this->failureNotification(
-            Notification::make()
-                ->danger()
-                ->title(__('core::import.notifications.failed_title'))
-                ->body(__('core::import.notifications.failed_body'))
-        );
-
-        $this->successNotification(
-            Notification::make()
-                ->success()
-                ->title(__('core::import.notifications.success_title'))
-        );
-    }
-
-    /**
-     * Validate that required column mappings are filled.
-     */
-    protected function validateColumnMappings(array $data): void
-    {
-        $columnMap = $data['columnMap'] ?? [];
-        $errors = [];
-
-        foreach ($this->getImporter()::getColumns() as $column) {
-            if ($column->isMappingRequired()) {
-                $columnName = $column->getName();
-                if (empty($columnMap[$columnName])) {
-                    $errors[] = __('core::import.validation.required_mapping', [
-                        'column' => $column->getLabel(),
-                    ]);
-                }
-            }
-        }
-
-        if (!empty($errors)) {
-            Notification::make()
-                ->danger()
-                ->title(__('core::import.validation.missing_mappings'))
-                ->body(implode("\n", $errors))
-                ->persistent()
-                ->send();
-
-            throw ValidationException::withMessages([
-                'columnMap' => $errors,
-            ]);
-        }
     }
 
     /**
