@@ -6,8 +6,10 @@ use Filament\Actions\Imports\ImportColumn;
 use Filament\Actions\Imports\Importer;
 use Filament\Actions\Imports\Models\Import;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Str;
 use ReflectionClass;
+use ReflectionMethod;
 
 /**
  * Factory that creates dynamic importer configurations for any model.
@@ -43,6 +45,7 @@ class DynamicImporterFactory
             'casts' => method_exists($model, 'getCasts') ? $model->getCasts() : [],
             'translatable' => [],
             'relationships' => [],
+            'belongsToMany' => [],
             'constants' => [],
             'hidden' => method_exists($model, 'getHidden') ? $model->getHidden() : [],
             'uniqueFields' => [],
@@ -63,6 +66,38 @@ class DynamicImporterFactory
                         'model' => get_class($model->{$relationName}()->getRelated()),
                     ];
                 }
+            }
+        }
+
+        // Detect BelongsToMany relationships
+        foreach ($reflection->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
+            // Skip magic methods and common non-relationship methods
+            if (Str::startsWith($method->getName(), '__') ||
+                in_array($method->getName(), ['getKey', 'getTable', 'getFillable', 'getCasts', 'getHidden', 'toArray', 'toJson'])) {
+                continue;
+            }
+
+            // Check if method returns BelongsToMany
+            try {
+                if ($method->getNumberOfParameters() === 0) {
+                    $returnType = $method->getReturnType();
+                    if ($returnType && $returnType->getName() === BelongsToMany::class) {
+                        $relation = $model->{$method->getName()}();
+                        if ($relation instanceof BelongsToMany) {
+                            $relatedModel = $relation->getRelated();
+                            $config['belongsToMany'][$method->getName()] = [
+                                'name' => $method->getName(),
+                                'model' => get_class($relatedModel),
+                                'table' => $relation->getTable(),
+                                'foreignPivotKey' => $relation->getForeignPivotKeyName(),
+                                'relatedPivotKey' => $relation->getRelatedPivotKeyName(),
+                            ];
+                        }
+                    }
+                }
+            } catch (\Throwable $e) {
+                // Skip methods that throw errors
+                continue;
             }
         }
 
@@ -152,7 +187,94 @@ class DynamicImporterFactory
             $columns[] = static::createColumn($field, $config);
         }
 
+        // Add BelongsToMany relationship columns
+        foreach ($config['belongsToMany'] as $relationName => $relationConfig) {
+            $columns[] = static::createBelongsToManyColumn($relationName, $relationConfig, $config);
+        }
+
         return $columns;
+    }
+
+    /**
+     * Create a BelongsToMany relationship column.
+     * Accepts comma-separated values that will be resolved to IDs.
+     */
+    protected static function createBelongsToManyColumn(string $relationName, array $relationConfig, array $config): ImportColumn
+    {
+        $label = static::getFieldLabel($relationName);
+
+        return ImportColumn::make($relationName)
+            ->label($label)
+            ->fillRecordUsing(function ($record, $state) use ($relationName, $relationConfig) {
+                // Don't fill - BelongsToMany is handled after save via sync
+                // Store the raw value for later processing
+                if ($state !== null && $state !== '') {
+                    $record->_importBelongsToMany[$relationName] = [
+                        'value' => $state,
+                        'config' => $relationConfig,
+                    ];
+                }
+            })
+            ->rules(['nullable', 'string'])
+            ->guess(static::getBelongsToManyGuesses($relationName))
+            ->example('Value1, Value2, Value3');
+    }
+
+    /**
+     * Get guesses for BelongsToMany column headers.
+     */
+    protected static function getBelongsToManyGuesses(string $relationName): array
+    {
+        $guesses = [];
+
+        // Add variations of the relation name
+        $guesses[] = $relationName;
+        $guesses[] = Str::headline($relationName);
+        $guesses[] = Str::snake($relationName);
+        $guesses[] = Str::kebab($relationName);
+        $guesses[] = strtolower($relationName);
+        $guesses[] = strtoupper($relationName);
+
+        // Add singular/plural variations
+        $singular = Str::singular($relationName);
+        $plural = Str::plural($relationName);
+        $guesses[] = $singular;
+        $guesses[] = $plural;
+        $guesses[] = Str::headline($singular);
+        $guesses[] = Str::headline($plural);
+
+        // Common naming patterns
+        $guesses[] = Str::headline($relationName) . 's';
+        $guesses[] = Str::snake($relationName) . '_list';
+        $guesses[] = Str::snake($relationName) . '_names';
+
+        return array_unique(array_filter($guesses));
+    }
+
+    /**
+     * Resolve multiple values for a BelongsToMany relationship.
+     * Returns an array of IDs.
+     */
+    public static function resolveBelongsToManyValues(string $relatedModelClass, mixed $value): array
+    {
+        if ($value === null || $value === '') {
+            return [];
+        }
+
+        // Parse comma-separated or pipe-separated values
+        $values = is_array($value)
+            ? $value
+            : array_filter(array_map('trim', preg_split('/[,|;]/', (string) $value)));
+
+        $ids = [];
+        foreach ($values as $singleValue) {
+            $resolved = static::resolveRelationship($relatedModelClass, $singleValue);
+            if ($resolved) {
+                $ids[] = $resolved;
+            }
+        }
+
+        return array_unique($ids);
     }
 
     /**
@@ -300,6 +422,7 @@ class DynamicImporterFactory
             return null;
         }
 
+        $value = trim((string) $value);
         $relatedModel = new $relatedModelClass;
         $tenantId = tenant()?->id ?? session('tenant_id');
 
@@ -323,10 +446,30 @@ class DynamicImporterFactory
             ? $relatedModel->translatable
             : [];
 
-        // Try to find by common fields
-        $searchFields = ['code', 'name', 'title', 'email', 'sku'];
+        // Extended list of search fields for identifying records
+        $searchFields = [
+            'code', 'sku', 'email', 'employee_number', 'national_id',
+            'name', 'title', 'full_name', 'display_name',
+            'first_name', 'last_name', 'username',
+        ];
 
-        foreach ($searchFields as $searchField) {
+        // First, try exact match on identifier fields (code, sku, email, employee_number)
+        $identifierFields = ['code', 'sku', 'email', 'employee_number', 'national_id', 'username'];
+        foreach ($identifierFields as $searchField) {
+            if (!in_array($searchField, $relatedModel->getFillable())) {
+                continue;
+            }
+
+            $searchQuery = clone $query;
+            $found = $searchQuery->where($searchField, 'ILIKE', $value)->first();
+            if ($found) {
+                return $found->id;
+            }
+        }
+
+        // Try to find by name fields (translatable or regular)
+        $nameFields = ['name', 'title', 'full_name', 'display_name'];
+        foreach ($nameFields as $searchField) {
             if (!in_array($searchField, $relatedModel->getFillable()) && !in_array($searchField, $translatableFields)) {
                 continue;
             }
@@ -334,17 +477,49 @@ class DynamicImporterFactory
             $searchQuery = clone $query;
 
             if (in_array($searchField, $translatableFields)) {
+                // Exact match first
                 $found = $searchQuery->where(function ($q) use ($searchField, $value) {
-                    $q->whereRaw("{$searchField}->>'en' ILIKE ?", ["%{$value}%"])
-                      ->orWhereRaw("{$searchField}->>'ar' ILIKE ?", ["%{$value}%"]);
+                    $q->whereRaw("{$searchField}->>'en' ILIKE ?", [$value])
+                      ->orWhereRaw("{$searchField}->>'ar' ILIKE ?", [$value]);
                 })->first();
+
+                if (!$found) {
+                    // Then partial match
+                    $searchQuery = clone $query;
+                    $found = $searchQuery->where(function ($q) use ($searchField, $value) {
+                        $q->whereRaw("{$searchField}->>'en' ILIKE ?", ["%{$value}%"])
+                          ->orWhereRaw("{$searchField}->>'ar' ILIKE ?", ["%{$value}%"]);
+                    })->first();
+                }
             } else {
                 $found = $searchQuery->where($searchField, 'ILIKE', $value)->first();
                 if (!$found) {
+                    $searchQuery = clone $query;
                     $found = $searchQuery->where($searchField, 'ILIKE', "%{$value}%")->first();
                 }
             }
 
+            if ($found) {
+                return $found->id;
+            }
+        }
+
+        // For staff/user models, try to find by combining first_name + last_name
+        if (in_array('first_name', $relatedModel->getFillable()) && in_array('last_name', $relatedModel->getFillable())) {
+            $searchQuery = clone $query;
+            $found = $searchQuery->whereRaw("CONCAT(first_name, ' ', last_name) ILIKE ?", ["%{$value}%"])->first();
+            if ($found) {
+                return $found->id;
+            }
+        }
+
+        // For models with user relation (like StaffProfile), try to search through the user
+        if (in_array('user_id', $relatedModel->getFillable()) && method_exists($relatedModel, 'user')) {
+            $searchQuery = clone $query;
+            $found = $searchQuery->whereHas('user', function ($q) use ($value) {
+                $q->where('email', 'ILIKE', $value)
+                  ->orWhereRaw("CONCAT(first_name, ' ', last_name) ILIKE ?", ["%{$value}%"]);
+            })->first();
             if ($found) {
                 return $found->id;
             }

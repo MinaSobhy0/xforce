@@ -151,6 +151,16 @@ return [
         'session_interval_days' => 'Session Interval (Days)',
         'requires_consent' => 'Requires Consent',
         'is_bookable_online' => 'Bookable Online',
+        // BelongsToMany relationships
+        'qualifiedStaff' => 'Qualified Staff',
+        'qualified_staff' => 'Qualified Staff',
+        'rooms' => 'Rooms',
+        'requiredEquipment' => 'Required Equipment',
+        'required_equipment' => 'Required Equipment',
+        'tags' => 'Tags',
+        'categories' => 'Categories',
+        'permissions' => 'Permissions',
+        'roles' => 'Roles',
     ],
 
     // Preview & Validation

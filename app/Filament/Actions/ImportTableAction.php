@@ -305,9 +305,37 @@ class ImportTableAction extends Action
         // Validate and save
         try {
             $record->save();
+
+            // Sync BelongsToMany relationships after save
+            $this->syncBelongsToManyRelationships($record, $processedData, $config);
+
             return ['success' => true, 'error' => null];
         } catch (\Illuminate\Database\QueryException $e) {
             return ['success' => false, 'error' => $this->parseQueryException($e)];
+        }
+    }
+
+    /**
+     * Sync BelongsToMany relationships for a record.
+     */
+    protected function syncBelongsToManyRelationships(Model $record, array $data, array $config): void
+    {
+        foreach ($config['belongsToMany'] as $relationName => $relationConfig) {
+            // Check if we have data for this relationship
+            if (!isset($data[$relationName]) || $data[$relationName] === null || $data[$relationName] === '') {
+                continue;
+            }
+
+            // Resolve the values to IDs
+            $ids = DynamicImporterFactory::resolveBelongsToManyValues(
+                $relationConfig['model'],
+                $data[$relationName]
+            );
+
+            // Sync the relationship (this will add new ones without removing existing)
+            if (!empty($ids) && method_exists($record, $relationName)) {
+                $record->{$relationName}()->syncWithoutDetaching($ids);
+            }
         }
     }
 
@@ -333,7 +361,13 @@ class ImportTableAction extends Action
                 }
             }
 
-            // Handle relationship fields
+            // Handle BelongsToMany relationships - keep raw value for later sync
+            if (isset($config['belongsToMany'][$field])) {
+                $processed[$field] = $value; // Keep raw value, will be resolved during sync
+                continue;
+            }
+
+            // Handle BelongsTo relationship fields
             if (isset($config['relationships'][$field])) {
                 $resolved = DynamicImporterFactory::resolveRelationship(
                     $config['relationships'][$field]['model'],

@@ -151,6 +151,16 @@ return [
         'session_interval_days' => 'الفترة بين الجلسات (أيام)',
         'requires_consent' => 'يتطلب موافقة',
         'is_bookable_online' => 'قابل للحجز عبر الإنترنت',
+        // BelongsToMany relationships
+        'qualifiedStaff' => 'الموظفين المؤهلين',
+        'qualified_staff' => 'الموظفين المؤهلين',
+        'rooms' => 'الغرف',
+        'requiredEquipment' => 'المعدات المطلوبة',
+        'required_equipment' => 'المعدات المطلوبة',
+        'tags' => 'الوسوم',
+        'categories' => 'الفئات',
+        'permissions' => 'الصلاحيات',
+        'roles' => 'الأدوار',
     ],
 
     // Preview & Validation
