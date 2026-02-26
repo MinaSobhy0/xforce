@@ -158,30 +158,49 @@ class TenantService
 
         Log::info('Schema created successfully', ['schema_name' => $schemaName]);
 
-        // Configure tenant connection dynamically
+        // Build the tenant connection config
+        $tenantConnectionConfig = [
+            'driver' => 'pgsql',
+            'host' => $tenant->database_host ?? config('database.connections.pgsql.host'),
+            'port' => $tenant->database_port ?? config('database.connections.pgsql.port'),
+            'database' => config('database.connections.pgsql.database'),
+            'username' => $tenant->database_username ?? config('database.connections.pgsql.username'),
+            'password' => $tenant->database_password ?? config('database.connections.pgsql.password'),
+            'charset' => 'utf8',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'search_path' => $schemaName,
+            'sslmode' => 'prefer',
+            // PgBouncer compatibility: emulate prepares to avoid "prepared statement does not exist" errors
+            'options' => [
+                \PDO::ATTR_PERSISTENT => env('DB_PERSISTENT', false),
+                \PDO::ATTR_EMULATE_PREPARES => env('DB_PGBOUNCER', true),
+            ],
+        ];
+
+        // Configure BOTH the dynamic tenant_X connection AND the generic 'tenant' connection
+        // Some migrations use protected $connection = 'tenant' which would override --database
         config([
-            "database.connections.{$connectionName}" => [
-                'driver' => 'pgsql',
-                'host' => $tenant->database_host ?? config('database.connections.pgsql.host'),
-                'port' => $tenant->database_port ?? config('database.connections.pgsql.port'),
-                'database' => config('database.connections.pgsql.database'),
-                'username' => $tenant->database_username ?? config('database.connections.pgsql.username'),
-                'password' => $tenant->database_password ?? config('database.connections.pgsql.password'),
-                'charset' => 'utf8',
-                'prefix' => '',
-                'prefix_indexes' => true,
-                'search_path' => $schemaName,
-                'sslmode' => 'prefer',
-                // PgBouncer compatibility: emulate prepares to avoid "prepared statement does not exist" errors
-                'options' => [
-                    \PDO::ATTR_PERSISTENT => env('DB_PERSISTENT', false),
-                    \PDO::ATTR_EMULATE_PREPARES => env('DB_PGBOUNCER', true),
-                ],
-            ]
+            "database.connections.{$connectionName}" => $tenantConnectionConfig,
+            "database.connections.tenant" => $tenantConnectionConfig,
         ]);
 
-        // Purge the connection to force Laravel to use new config
+        // Purge both connections to force Laravel to use new config
         DB::purge($connectionName);
+        DB::purge('tenant');
+        DB::reconnect($connectionName);
+        DB::reconnect('tenant');
+
+        // Explicitly set search_path for PgBouncer compatibility on both connections
+        DB::connection($connectionName)->statement("SET search_path TO \"{$schemaName}\"");
+        DB::connection('tenant')->statement("SET search_path TO \"{$schemaName}\"");
+
+        // Verify search_path is set correctly
+        $result = DB::connection($connectionName)->select('SHOW search_path');
+        Log::info('Search path set for tenant connection', [
+            'connection' => $connectionName,
+            'search_path' => $result[0]->search_path ?? 'unknown',
+        ]);
 
         // Run migrations for tenant using the tenant connection
         $this->tenantManager->runForTenant($tenant, function () use ($connectionName, $schemaName) {
@@ -814,12 +833,14 @@ class TenantService
         $files = [];
         $modulesPath = base_path('modules');
 
-        // Migrations that should NOT run in tenant schemas (platform-only)
+        // Migrations that should NOT run in tenant schemas (platform-only or data migrations)
         $platformOnlyPatterns = [
             'create_tenants_table',
             'create_tenant_subscriptions_table',
             'create_tenant_usage_table',
             'create_tenant_modules_table',
+            // Data migration that iterates over existing schemas - breaks new tenant provisioning
+            'create_gift_card_journal',
         ];
 
         if (is_dir($modulesPath)) {
