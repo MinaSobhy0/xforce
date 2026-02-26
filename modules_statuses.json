@@ -20,5 +20,6 @@
     "Api": true,
     "Attendance": true,
     "TreatmentPlans": true,
-    "Prescriptions": true
+    "Prescriptions": true,
+    "Assets": true
 }

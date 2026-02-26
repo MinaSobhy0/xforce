@@ -11,6 +11,7 @@ use Filament\Tables\Table;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
 use Modules\Accounting\Models\ChartOfAccount;
+use Modules\Assets\Models\AssetType;
 use Modules\Inventory\Models\Product;
 use Modules\Inventory\Models\ProductCategory;
 use Modules\Inventory\Filament\Resources\ProductResource\Pages;
@@ -181,6 +182,25 @@ class ProductResource extends Resource
                                             ->label(__('inventory::inventory.fields.is_active'))
                                             ->default(true),
                                     ]),
+
+                                Forms\Components\Section::make(__('assets::assets.module_name'))
+                                    ->description('Configure asset management for this product')
+                                    ->schema([
+                                        Forms\Components\Toggle::make('is_asset')
+                                            ->label(__('assets::assets.asset_type.fields.is_active'))
+                                            ->helperText('Mark this product as a fixed asset')
+                                            ->live(),
+
+                                        Forms\Components\Select::make('asset_type_id')
+                                            ->label(__('assets::assets.asset.fields.asset_type'))
+                                            ->options(fn () => AssetType::active()->pluck('name', 'id'))
+                                            ->searchable()
+                                            ->preload()
+                                            ->visible(fn (Forms\Get $get) => $get('is_asset'))
+                                            ->required(fn (Forms\Get $get) => $get('is_asset'))
+                                            ->helperText('When purchased, assets of this type will be created automatically'),
+                                    ])
+                                    ->columns(2),
                             ]),
 
                         Forms\Components\Tabs\Tab::make(__('inventory::inventory.sections.accounting'))

@@ -39,3 +39,9 @@ Schedule::command('tenants:backup')
     })
     ->withoutOverlapping()
     ->runInBackground();
+
+// Asset Depreciation - Run on the first day of each month
+Schedule::command('assets:depreciate')
+    ->monthlyOn(1, '03:00')
+    ->withoutOverlapping()
+    ->runInBackground();

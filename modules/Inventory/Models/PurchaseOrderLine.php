@@ -3,6 +3,7 @@
 namespace Modules\Inventory\Models;
 
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Modules\Inventory\Events\PurchaseOrderReceived;
 use XLinic\Framework\Core\Model\BaseModel;
 
 class PurchaseOrderLine extends BaseModel
@@ -138,6 +139,9 @@ class PurchaseOrderLine extends BaseModel
 
         // Create journal entry for stock receipt
         $this->createReceiptJournalEntry($movement, $quantity);
+
+        // Dispatch event for asset creation
+        PurchaseOrderReceived::dispatch($this, $quantity);
 
         // Update the order status
         $this->purchaseOrder->receive();

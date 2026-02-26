@@ -1,0 +1,122 @@
+{
+    "name": "Assets",
+    "alias": "assets",
+    "description": {
+        "en": "Fixed asset management with depreciation tracking and automatic journal entries",
+        "ar": "إدارة الأصول الثابتة مع تتبع الإهلاك وقيود اليومية التلقائية"
+    },
+    "version": "1.0.0",
+    "category": "accounting",
+    "icon": "heroicon-o-building-office-2",
+    "keywords": [
+        "assets",
+        "fixed assets",
+        "depreciation",
+        "accounting",
+        "inventory"
+    ],
+    "priority": 55,
+    "providers": [
+        "Modules\\Assets\\Providers\\AssetsServiceProvider",
+        "Modules\\Assets\\Providers\\EventServiceProvider"
+    ],
+    "dependencies": [
+        "Core",
+        "Auth",
+        "Accounting"
+    ],
+    "optional_dependencies": [
+        "Inventory"
+    ],
+    "models": [
+        "Modules\\Assets\\Models\\AssetType",
+        "Modules\\Assets\\Models\\Asset",
+        "Modules\\Assets\\Models\\AssetDepreciationEntry"
+    ],
+    "permissions": {
+        "asset_types.view_any": "View asset types list",
+        "asset_types.view": "View asset type details",
+        "asset_types.create": "Create asset types",
+        "asset_types.update": "Update asset types",
+        "asset_types.delete": "Delete asset types",
+        "assets.view_any": "View assets list",
+        "assets.view": "View asset details",
+        "assets.create": "Create assets",
+        "assets.update": "Update assets",
+        "assets.delete": "Delete assets",
+        "assets.activate": "Activate assets",
+        "assets.dispose": "Dispose assets",
+        "assets.depreciate": "Run depreciation"
+    },
+    "default_role_permissions": {
+        "admin": [
+            "asset_types.*",
+            "assets.*"
+        ],
+        "manager": [
+            "asset_types.view_any",
+            "asset_types.view",
+            "assets.*"
+        ],
+        "accountant": [
+            "asset_types.view_any",
+            "asset_types.view",
+            "assets.view_any",
+            "assets.view",
+            "assets.depreciate"
+        ],
+        "staff": [
+            "assets.view_any",
+            "assets.view"
+        ]
+    },
+    "navigation": [
+        {
+            "id": "asset_types",
+            "label": {
+                "en": "Asset Types",
+                "ar": "أنواع الأصول"
+            },
+            "icon": "heroicon-o-cog-6-tooth",
+            "route": "filament.tenant.resources.asset-types.index",
+            "group": "accounting",
+            "order": 40,
+            "permission": "asset_types.view_any"
+        },
+        {
+            "id": "assets",
+            "label": {
+                "en": "Assets",
+                "ar": "الأصول"
+            },
+            "icon": "heroicon-o-building-office-2",
+            "route": "filament.tenant.resources.assets.index",
+            "group": "accounting",
+            "order": 41,
+            "permission": "assets.view_any"
+        }
+    ],
+    "sequences": [
+        {
+            "code": "asset_type",
+            "prefix": "AT-",
+            "padding": 4
+        },
+        {
+            "code": "asset",
+            "prefix": "AST-",
+            "padding": 6
+        }
+    ],
+    "events": [
+        "AssetCreated",
+        "AssetActivated",
+        "AssetDepreciated",
+        "AssetDisposed"
+    ],
+    "active": true,
+    "display_name": {
+        "en": "Assets",
+        "ar": "الأصول"
+    }
+}

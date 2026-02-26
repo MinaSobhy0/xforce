@@ -5,6 +5,7 @@ namespace Modules\Inventory\Models;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Modules\Accounting\Models\ChartOfAccount;
+use Modules\Assets\Models\AssetType;
 use Spatie\Translatable\HasTranslations;
 use XLinic\Framework\Core\Model\BaseModel;
 use XLinic\Framework\Core\Model\Traits\HasSequence;
@@ -24,6 +25,7 @@ class Product extends BaseModel
     protected $fillable = [
         'tenant_id',
         'category_id',
+        'asset_type_id',
         'sku',
         'name',
         'description',
@@ -34,6 +36,7 @@ class Product extends BaseModel
         'reorder_quantity',
         'lead_time_days',
         'is_consumable',
+        'is_asset',
         'is_active',
         'barcode',
         'image_url',
@@ -56,6 +59,7 @@ class Product extends BaseModel
         'reorder_quantity' => 'integer',
         'lead_time_days' => 'integer',
         'is_consumable' => 'boolean',
+        'is_asset' => 'boolean',
         'is_active' => 'boolean',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
@@ -69,6 +73,7 @@ class Product extends BaseModel
         'reorder_quantity' => 50,
         'lead_time_days' => 7,
         'is_consumable' => true,
+        'is_asset' => false,
         'is_active' => true,
         'valuation_method' => 'average',
     ];
@@ -107,6 +112,14 @@ class Product extends BaseModel
     public function category(): BelongsTo
     {
         return $this->belongsTo(ProductCategory::class, 'category_id');
+    }
+
+    /**
+     * Get the asset type for this product.
+     */
+    public function assetType(): BelongsTo
+    {
+        return $this->belongsTo(AssetType::class, 'asset_type_id');
     }
 
     /**
