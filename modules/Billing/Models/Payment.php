@@ -97,7 +97,7 @@ class Payment extends BaseModel
                 $payment->type = $payment->vendor_bill_id ? self::TYPE_SEND : self::TYPE_RECEIVE;
             }
             // Generate code from journal's sequence
-            if (empty($payment->code) && $payment->journal_id) {
+            if (empty($payment->code) && $payment->journal_id && $payment->journal) {
                 $payment->code = $payment->journal->getNextSequence();
             }
             // For invoice payments, ensure patient_id is set from invoice
