@@ -167,14 +167,6 @@ class ViewAppointment extends BaseViewRecord
                 ->visible(fn (): bool => $this->record->canTransitionTo(Appointment::STATUS_CHECKED_IN))
                 ->action(fn () => $this->record->checkIn()),
 
-            Actions\Action::make('start')
-                ->label(__('booking::appointments.actions.start'))
-                ->icon('heroicon-o-play')
-                ->color('info')
-                ->requiresConfirmation()
-                ->visible(fn (): bool => $this->record->canTransitionTo(Appointment::STATUS_IN_PROGRESS))
-                ->action(fn () => $this->record->start()),
-
             Actions\Action::make('complete')
                 ->label(__('booking::appointments.actions.complete'))
                 ->icon('heroicon-o-check-circle')
