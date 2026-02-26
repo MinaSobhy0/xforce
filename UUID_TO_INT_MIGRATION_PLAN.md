@@ -10,7 +10,8 @@ Converting all UUID primary keys to auto-increment INT (like Odoo) for better pe
 - Native PostgreSQL optimization
 
 **Started:** 2026-02-26
-**Status:** In Progress - Phase 0-5 COMPLETED (320/357 items)
+**Status:** In Progress - Phase 0-8 COMPLETED (347/359 items - 97%)
+**Remaining:** Phase 9 Testing only
 **Estimated Scope:** ~380 items
 
 ---
@@ -612,51 +613,53 @@ All these extend BaseModel - after fixing BaseModel, verify they work correctly.
 
 ---
 
-## Phase 6: Services & Actions
+## Phase 6: Services & Actions ✅ COMPLETED
 
 | # | Status | File | Changes |
 |---|--------|------|---------|
-| 315 | [ ] | `modules/Core/Services/TenantService.php` | Remove `Str::uuid()` calls, let DB auto-generate IDs |
-| 316 | [ ] | `modules/GiftCards/Services/GiftCardService.php` | Remove UUID generation |
-| 317 | [ ] | `app/Services/ExportService.php` | Review UUID usage |
-| 318 | [ ] | `app/Filament/Actions/ImportTableAction.php` | Review UUID usage |
-| 319 | [ ] | `app/Filament/Actions/ExportTableAction.php` | Review UUID usage |
-| 320 | [ ] | `app/Console/Commands/TenantCreate.php` | Remove `Str::uuid()` |
+| 315 | [x] | `modules/Core/Services/TenantService.php` | No UUID found - already clean |
+| 316 | [x] | `modules/GiftCards/Services/GiftCardService.php` | No UUID found - already clean |
+| 317 | [x] | `app/Services/ExportService.php` | No UUID found - already clean |
+| 318 | [x] | `app/Filament/Actions/ImportTableAction.php` | No UUID found - already clean |
+| 319 | [x] | `app/Filament/Actions/ExportTableAction.php` | No UUID found - already clean |
+| 320 | [x] | `app/Console/Commands/TenantCreate.php` | Removed UUID, using insertGetId |
 
 ---
 
-## Phase 7: Seeders
+## Phase 7: Seeders ✅ COMPLETED
 
-Update all seeders to remove manual UUID generation.
+All seeders reviewed and fixed where UUID generation was found.
 
 | # | Status | File | Changes |
 |---|--------|------|---------|
-| 321 | [ ] | `modules/Core/Database/Seeders/DefaultBranchSeeder.php` | Remove UUID generation |
-| 322 | [ ] | `modules/Core/Database/Seeders/DefaultSettingsSeeder.php` | Remove UUID generation |
-| 323 | [ ] | `modules/Core/Database/Seeders/DefaultSequenceSeeder.php` | Remove UUID generation |
-| 324 | [ ] | `modules/Core/Database/Seeders/DemoDataSeeder.php` | Remove UUID generation |
-| 325 | [ ] | `modules/Core/Database/Seeders/DemoPatientSeeder.php` | Remove UUID generation |
-| 326 | [ ] | `modules/Core/Database/Seeders/DemoAppointmentSeeder.php` | Remove UUID generation |
-| 327 | [ ] | `modules/Core/Database/Seeders/DemoInvoiceSeeder.php` | Remove UUID generation |
-| 328 | [ ] | `modules/Core/Database/Seeders/DemoServiceSeeder.php` | Remove UUID generation |
-| 329 | [ ] | `modules/Auth/Database/Seeders/AuthModuleSeeder.php` | Remove UUID generation |
-| 330 | [ ] | `modules/Accounting/Database/Seeders/ChartOfAccountsSeeder.php` | Remove UUID generation |
-| 331 | [ ] | `modules/Services/Database/Seeders/ServicesModuleSeeder.php` | Remove UUID generation |
-| 332 | [ ] | `modules/Services/Database/Seeders/ParameterTemplatesSeeder.php` | Remove UUID generation |
-| 333 | [ ] | `modules/Staff/Database/Seeders/CommissionPlanSeeder.php` | Remove UUID generation |
-| 334 | [ ] | `modules/Payroll/Database/Seeders/PayrollDefaultsSeeder.php` | Remove UUID generation |
-| 335 | [ ] | `modules/Loyalty/Database/Seeders/LoyaltySeeder.php` | Remove UUID generation |
-| 336 | [ ] | `modules/Assets/Database/Seeders/AssetTypeSeeder.php` | Remove UUID generation |
+| 321 | [x] | `modules/Core/Database/Seeders/DefaultBranchSeeder.php` | No UUID found - uses model create |
+| 322 | [x] | `modules/Core/Database/Seeders/DefaultSettingsSeeder.php` | No UUID found - uses model create |
+| 323 | [x] | `modules/Core/Database/Seeders/DefaultSequenceSeeder.php` | No UUID found - uses model create |
+| 324 | [x] | `modules/Core/Database/Seeders/DemoDataSeeder.php` | No UUID found - uses model create |
+| 325 | [x] | `modules/Core/Database/Seeders/DemoPatientSeeder.php` | No UUID found - uses model create |
+| 326 | [x] | `modules/Core/Database/Seeders/DemoAppointmentSeeder.php` | No UUID found - uses model create |
+| 327 | [x] | `modules/Core/Database/Seeders/DemoInvoiceSeeder.php` | No UUID found - uses model create |
+| 328 | [x] | `modules/Core/Database/Seeders/DemoServiceSeeder.php` | No UUID found - uses model create |
+| 329 | [x] | `modules/Auth/Database/Seeders/AuthModuleSeeder.php` | No UUID found - uses model create |
+| 330 | [x] | `modules/Accounting/Database/Seeders/ChartOfAccountsSeeder.php` | Fixed - removed UUID from create() |
+| 331 | [x] | `modules/Services/Database/Seeders/ServicesModuleSeeder.php` | No UUID found - uses model create |
+| 332 | [x] | `modules/Services/Database/Seeders/ParameterTemplatesSeeder.php` | No UUID found - uses model create |
+| 333 | [x] | `modules/Staff/Database/Seeders/CommissionPlanSeeder.php` | Fixed - removed UUID from insert |
+| 334 | [x] | `modules/Payroll/Database/Seeders/PayrollDefaultsSeeder.php` | Fixed - using insertGetId |
+| 335 | [x] | `modules/Loyalty/Database/Seeders/LoyaltySeeder.php` | No UUID found - uses model create |
+| 336 | [x] | `modules/Assets/Database/Seeders/AssetTypeSeeder.php` | No UUID found - uses model create |
+| 337 | [x] | `modules/Billing/Database/Seeders/TaxRateSeeder.php` | Fixed - removed UUID from insert |
 
 ---
 
-## Phase 8: Filament & UI Components
+## Phase 8: Filament & UI Components ✅ COMPLETED
 
 | # | Status | File | Changes |
 |---|--------|------|---------|
-| 337 | [ ] | `app/Filament/SuperAdmin/Resources/TenantResource/Pages/ViewTenant.php` | Review UUID usage |
-| 338 | [ ] | `modules/Booking/Filament/Pages/BookingSlotConfigPage.php` | Review UUID usage |
-| 339 | [ ] | All Filament Resources | Verify ID handling works with INT |
+| 338 | [x] | `app/Filament/SuperAdmin/Resources/TenantResource/Pages/ViewTenant.php` | Fixed - removed UUID from pivot attach |
+| 339 | [x] | `app/Filament/SuperAdmin/Resources/ModuleResource/Pages/ListModules.php` | Fixed - removed UUID from raw inserts |
+| 340 | [x] | `modules/Booking/Filament/Pages/BookingSlotConfigPage.php` | No UUID found - already clean |
+| 341 | [x] | All Filament Resources | BaseModel auto-increment handles ID correctly |
 
 ---
 
@@ -759,11 +762,11 @@ protected $casts = [
 | 3. Models (Verify) | 98 | 98 | 0 |
 | 4. Migrations (Central) | 23 | 23 | 0 |
 | 5. Migrations (Tenant) | 135 | 135 | 0 |
-| 6. Services | 6 | 0 | 6 |
-| 7. Seeders | 16 | 0 | 16 |
-| 8. Filament/UI | 3 | 0 | 3 |
+| 6. Services | 6 | 6 | 0 |
+| 7. Seeders | 17 | 17 | 0 |
+| 8. Filament/UI | 4 | 4 | 0 |
 | 9. Testing | 12 | 0 | 12 |
-| **TOTAL** | **357** | **320** | **37** |
+| **TOTAL** | **359** | **347** | **12** |
 
 ---
 
