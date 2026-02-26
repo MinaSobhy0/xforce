@@ -54,7 +54,6 @@ return new class extends Migration
                     ->first();
 
                 DB::table('journals')->insert([
-                    'id' => Str::orderedUuid(),
                     'tenant_id' => $tenantId,
                     'code' => 'GC',
                     'name' => json_encode(['en' => 'Gift Card', 'ar' => 'بطاقة هدية']),

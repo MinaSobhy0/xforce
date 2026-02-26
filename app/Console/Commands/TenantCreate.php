@@ -51,7 +51,6 @@ class TenantCreate extends Command
 
             // Create tenant record
             $tenant = Tenant::create([
-                'id' => Str::uuid(),
                 'name' => $name,
                 'slug' => $slug,
                 'domain' => $slug . '.x-linic.com',
@@ -143,19 +142,17 @@ class TenantCreate extends Command
     /**
      * Create the owner user in the tenant schema.
      */
-    protected function createOwnerUser(Tenant $tenant, string $schemaName, string $email, string $password): ?string
+    protected function createOwnerUser(Tenant $tenant, string $schemaName, string $email, string $password): ?int
     {
         try {
             // Switch to tenant schema
             DB::statement("SET search_path TO \"{$schemaName}\"");
 
-            $userId = Str::uuid()->toString();
             $nameParts = explode('@', $email);
             $name = ucfirst($nameParts[0]);
 
             // Insert user directly using raw SQL to avoid model complications
-            DB::table('users')->insert([
-                'id' => $userId,
+            $userId = DB::table('users')->insertGetId([
                 'tenant_id' => $tenant->id,
                 'first_name' => $name,
                 'last_name' => 'Admin',

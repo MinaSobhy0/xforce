@@ -483,7 +483,6 @@ class ViewTenant extends BaseViewRecord
                             : $addOn->monthly_price;
 
                         $this->record->addOns()->attach($data['add_on_id'], [
-                            'id' => \Illuminate\Support\Str::uuid(),
                             'activated_at' => now(),
                             'billing_interval' => $data['billing_interval'],
                             'price' => $price,

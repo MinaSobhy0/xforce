@@ -132,7 +132,6 @@ class ListModules extends BaseListRecords
                 } else {
                     // Create new using DB facade to avoid model issues
                     \DB::connection('central')->table('public.modules')->insert([
-                        'id' => (string) \Illuminate\Support\Str::uuid(),
                         'code' => $data['code'],
                         'name' => json_encode($data['name']),
                         'description' => json_encode($data['description']),
@@ -252,7 +251,6 @@ class ListModules extends BaseListRecords
                             DB::connection($tenantConnection)
                                 ->table('tenant_modules')
                                 ->insert([
-                                    'id' => (string) \Illuminate\Support\Str::uuid(),
                                     'tenant_id' => $tenant->id,
                                     'module_code' => $moduleCode,
                                     'is_active' => true,

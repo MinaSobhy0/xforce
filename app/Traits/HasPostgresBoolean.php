@@ -82,14 +82,6 @@ trait HasPostgresBoolean
             return false;
         }
 
-        // Generate UUID if id is not set (handles both HasUuids trait and manual UUID generation)
-        // This is a fallback in case the creating event didn't set it
-        if (empty($this->attributes[$this->getKeyName()])) {
-            if (!$this->getIncrementing()) {
-                $this->attributes[$this->getKeyName()] = (string) \Illuminate\Support\Str::orderedUuid();
-            }
-        }
-
         // Set timestamps if the model uses them
         if ($this->usesTimestamps()) {
             $time = $this->freshTimestamp();

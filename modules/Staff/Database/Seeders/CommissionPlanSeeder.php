@@ -52,7 +52,6 @@ class CommissionPlanSeeder extends Seeder
             }
 
             $this->connection->table('commission_plans')->insert([
-                'id' => Str::orderedUuid()->toString(),
                 'tenant_id' => $this->tenantId,
                 'name' => $plan['name'],
                 'description' => $plan['description'],

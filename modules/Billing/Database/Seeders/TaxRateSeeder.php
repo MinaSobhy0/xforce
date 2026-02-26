@@ -52,7 +52,6 @@ class TaxRateSeeder extends Seeder
                 ['tenant_id' => $tenantId, 'rate' => $taxRate['rate']],
                 array_merge($taxRate, [
                     'name' => json_encode($taxRate['name']),
-                    'id' => $taxRate['id'] ?? \Illuminate\Support\Str::orderedUuid()->toString(),
                     'created_at' => now(),
                     'updated_at' => now(),
                 ])

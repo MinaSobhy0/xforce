@@ -274,7 +274,7 @@ abstract class BaseModel extends Model
     /**
      * Get the tenant ID for this model.
      */
-    public function getTenantId(): ?string
+    public function getTenantId(): ?int
     {
         return $this->tenant_id ?? null;
     }

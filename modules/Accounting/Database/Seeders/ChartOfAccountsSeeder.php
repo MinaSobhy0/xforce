@@ -232,7 +232,6 @@ class ChartOfAccountsSeeder extends Seeder
 
             if (!$existing) {
                 $createdAccounts[$account['code']] = ChartOfAccount::create([
-                    'id' => Str::orderedUuid()->toString(),
                     'tenant_id' => $tenantId,
                     'code' => $account['code'],
                     'name' => $account['name'],

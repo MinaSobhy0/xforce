@@ -149,9 +149,7 @@ class PayrollDefaultsSeeder extends Seeder
                 continue;
             }
 
-            $id = Str::orderedUuid()->toString();
-            $this->connection->table('salary_rule_categories')->insert([
-                'id' => $id,
+            $id = $this->connection->table('salary_rule_categories')->insertGetId([
                 'tenant_id' => $this->tenantId,
                 'code' => $cat['code'],
                 'name' => $cat['name'],
@@ -215,16 +213,13 @@ class PayrollDefaultsSeeder extends Seeder
                 continue;
             }
 
-            $id = Str::orderedUuid()->toString();
-
             // Get percentage base ID if specified
             $percentageBaseId = null;
             if (!empty($rule['percentage_base_code']) && isset($ruleIds[$rule['percentage_base_code']])) {
                 $percentageBaseId = $ruleIds[$rule['percentage_base_code']];
             }
 
-            $this->connection->table('salary_rules')->insert([
-                'id' => $id,
+            $id = $this->connection->table('salary_rules')->insertGetId([
                 'tenant_id' => $this->tenantId,
                 'code' => $rule['code'],
                 'name' => $rule['name'],
@@ -280,9 +275,7 @@ class PayrollDefaultsSeeder extends Seeder
             if ($existing) {
                 $structureId = $existing->id;
             } else {
-                $structureId = Str::orderedUuid()->toString();
-                $this->connection->table('salary_structures')->insert([
-                    'id' => $structureId,
+                $structureId = $this->connection->table('salary_structures')->insertGetId([
                     'tenant_id' => $this->tenantId,
                     'code' => $structure['code'],
                     'name' => $structure['name'],
