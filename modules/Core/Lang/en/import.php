@@ -55,6 +55,33 @@ return [
         'completed' => [
             'title' => 'Import Completed',
         ],
+        'failed_title' => 'Import Failed',
+        'failed_body' => 'The import could not be completed. Please check your file and try again.',
+        'success_title' => 'Import Successful',
+        'no_data' => 'No data found in the uploaded file.',
+        'invalid_file' => 'The uploaded file could not be read. Please check the file format.',
+    ],
+
+    // Validation messages
+    'validation' => [
+        'missing_mappings' => 'Required Mappings Missing',
+        'required_mapping' => 'The ":column" field is required and must be mapped to a column.',
+        'field_required' => 'This field is required.',
+        'field_string' => 'This field must be a string.',
+        'field_max' => 'This field may not exceed :max characters.',
+        'no_file' => 'Please upload a file to import.',
+        'invalid_format' => 'The file format is not supported. Please use CSV or Excel files.',
+    ],
+
+    // Error messages
+    'errors' => [
+        'row_failed' => 'Row :row: :message',
+        'column_not_found' => 'Column ":column" not found in file.',
+        'invalid_value' => 'Invalid value for ":field".',
+        'relationship_not_found' => 'Could not find :model with value ":value".',
+        'duplicate_entry' => 'Duplicate entry found for ":field".',
+        'database_error' => 'Database error: :message',
+        'unknown_error' => 'An unknown error occurred while processing row :row.',
     ],
 
     // Field labels

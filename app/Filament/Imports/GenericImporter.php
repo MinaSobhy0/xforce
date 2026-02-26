@@ -5,6 +5,9 @@ namespace App\Filament\Imports;
 use Filament\Actions\Imports\Importer;
 use Filament\Actions\Imports\Models\Import;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Generic importer that works with any model by auto-detecting fields.
@@ -37,6 +40,47 @@ class GenericImporter extends Importer
     public static function getColumns(): array
     {
         return DynamicImporterFactory::getColumns(static::$model);
+    }
+
+    /**
+     * Get validation rules for the import data.
+     */
+    public function getValidationRules(): array
+    {
+        $config = DynamicImporterFactory::getConfig(static::getModel());
+        $rules = [];
+
+        // Add basic validation for required translatable fields
+        foreach (['name', 'title'] as $field) {
+            if (in_array($field, $config['translatable'])) {
+                $rules["{$field}_en"] = ['nullable', 'string', 'max:255'];
+            }
+        }
+
+        return $rules;
+    }
+
+    /**
+     * Get validation messages.
+     */
+    public function getValidationMessages(): array
+    {
+        return [
+            'required' => __('core::import.validation.field_required'),
+            'string' => __('core::import.validation.field_string'),
+            'max' => __('core::import.validation.field_max'),
+        ];
+    }
+
+    /**
+     * Handle a failed row with proper error reporting.
+     */
+    public function getFailedRowMessage(string $errorMessage, int $rowNumber): string
+    {
+        return __('core::import.errors.row_failed', [
+            'row' => $rowNumber,
+            'message' => $errorMessage,
+        ]);
     }
 
     /**

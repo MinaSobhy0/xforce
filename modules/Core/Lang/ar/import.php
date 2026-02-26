@@ -55,6 +55,33 @@ return [
         'completed' => [
             'title' => 'اكتمل الاستيراد',
         ],
+        'failed_title' => 'فشل الاستيراد',
+        'failed_body' => 'تعذر إكمال الاستيراد. يرجى التحقق من الملف والمحاولة مرة أخرى.',
+        'success_title' => 'تم الاستيراد بنجاح',
+        'no_data' => 'لم يتم العثور على بيانات في الملف المرفوع.',
+        'invalid_file' => 'تعذر قراءة الملف المرفوع. يرجى التحقق من تنسيق الملف.',
+    ],
+
+    // Validation messages
+    'validation' => [
+        'missing_mappings' => 'تعيينات مطلوبة مفقودة',
+        'required_mapping' => 'الحقل ":column" مطلوب ويجب تعيينه إلى عمود.',
+        'field_required' => 'هذا الحقل مطلوب.',
+        'field_string' => 'يجب أن يكون هذا الحقل نصاً.',
+        'field_max' => 'يجب ألا يتجاوز هذا الحقل :max حرفاً.',
+        'no_file' => 'يرجى رفع ملف للاستيراد.',
+        'invalid_format' => 'تنسيق الملف غير مدعوم. يرجى استخدام ملفات CSV أو Excel.',
+    ],
+
+    // Error messages
+    'errors' => [
+        'row_failed' => 'صف :row: :message',
+        'column_not_found' => 'العمود ":column" غير موجود في الملف.',
+        'invalid_value' => 'قيمة غير صالحة للحقل ":field".',
+        'relationship_not_found' => 'تعذر العثور على :model بالقيمة ":value".',
+        'duplicate_entry' => 'تم العثور على إدخال مكرر للحقل ":field".',
+        'database_error' => 'خطأ في قاعدة البيانات: :message',
+        'unknown_error' => 'حدث خطأ غير معروف أثناء معالجة الصف :row.',
     ],
 
     // Field labels
