@@ -3,9 +3,17 @@
 namespace App\Filament\SuperAdmin\Resources\ContactInquiryResource\Pages;
 
 use App\Filament\SuperAdmin\Resources\ContactInquiryResource;
-use App\Filament\Resources\Pages\BaseListRecords;
+use Filament\Actions;
+use Filament\Resources\Pages\ListRecords;
 
-class ListContactInquiries extends BaseListRecords
+class ListContactInquiries extends ListRecords
 {
     protected static string $resource = ContactInquiryResource::class;
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Actions\CreateAction::make(),
+        ];
+    }
 }
