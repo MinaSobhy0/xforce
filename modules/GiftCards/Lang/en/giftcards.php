@@ -36,6 +36,7 @@ return [
         'template' => 'Template',
         'assigned_to' => 'Assigned To',
         'sold_by' => 'Sold By',
+        'owner' => 'Owner',
     ],
 
     'statuses' => [

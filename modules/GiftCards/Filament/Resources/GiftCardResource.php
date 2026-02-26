@@ -11,6 +11,8 @@ use Modules\Patients\Models\Patient;
 use Modules\Accounting\Models\Journal;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Infolists;
+use Filament\Infolists\Infolist;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -98,6 +100,107 @@ class GiftCardResource extends Resource
             ]);
     }
 
+    public static function infolist(Infolist $infolist): Infolist
+    {
+        return $infolist
+            ->schema([
+                Infolists\Components\Section::make(__('giftcards::giftcards.sections.basic_info'))
+                    ->schema([
+                        Infolists\Components\TextEntry::make('code')
+                            ->label(__('giftcards::giftcards.fields.code'))
+                            ->copyable()
+                            ->weight('bold'),
+
+                        Infolists\Components\TextEntry::make('template.name')
+                            ->label(__('giftcards::giftcards.fields.template'))
+                            ->placeholder('-'),
+
+                        Infolists\Components\TextEntry::make('status')
+                            ->label(__('giftcards::giftcards.fields.status'))
+                            ->badge()
+                            ->formatStateUsing(fn ($state) => GiftCard::STATUSES[$state] ?? $state)
+                            ->color(fn ($state) => GiftCard::STATUS_COLORS[$state] ?? 'gray'),
+
+                        Infolists\Components\TextEntry::make('formatted_initial_value')
+                            ->label(__('giftcards::giftcards.fields.initial_value')),
+
+                        Infolists\Components\TextEntry::make('formatted_remaining_value')
+                            ->label(__('giftcards::giftcards.fields.remaining_value'))
+                            ->color(fn (GiftCard $record) => $record->remaining_value_minor > 0 ? 'success' : 'gray'),
+
+                        Infolists\Components\TextEntry::make('usage_percentage')
+                            ->label(__('giftcards::giftcards.fields.usage'))
+                            ->suffix('%'),
+
+                        Infolists\Components\TextEntry::make('expires_at')
+                            ->label(__('giftcards::giftcards.fields.expires_at'))
+                            ->dateTime()
+                            ->color(fn (GiftCard $record) => $record->isExpiringSoon() ? 'danger' : null),
+
+                        Infolists\Components\TextEntry::make('activated_at')
+                            ->label(__('giftcards::giftcards.fields.activated_at'))
+                            ->dateTime()
+                            ->placeholder('-'),
+                    ])
+                    ->columns(3),
+
+                Infolists\Components\Section::make(__('giftcards::giftcards.fields.owner'))
+                    ->schema([
+                        Infolists\Components\TextEntry::make('purchaser.full_name')
+                            ->label(__('giftcards::giftcards.fields.purchaser'))
+                            ->placeholder('-')
+                            ->url(fn (GiftCard $record) => $record->purchaser_patient_id
+                                ? route('filament.admin.resources.patients.view', $record->purchaser_patient_id)
+                                : null),
+
+                        Infolists\Components\TextEntry::make('recipient.full_name')
+                            ->label(__('giftcards::giftcards.fields.recipient'))
+                            ->placeholder('-')
+                            ->helperText(__('giftcards::giftcards.staff_dashboard.recipient_hint'))
+                            ->url(fn (GiftCard $record) => $record->recipient_patient_id
+                                ? route('filament.admin.resources.patients.view', $record->recipient_patient_id)
+                                : null),
+
+                        Infolists\Components\TextEntry::make('owner.full_name')
+                            ->label(__('giftcards::giftcards.fields.owner'))
+                            ->placeholder('-')
+                            ->weight('bold')
+                            ->helperText(fn (GiftCard $record) => $record->recipient_patient_id
+                                ? __('giftcards::giftcards.fields.recipient')
+                                : __('giftcards::giftcards.fields.purchaser')),
+                    ])
+                    ->columns(3),
+
+                Infolists\Components\Section::make(__('giftcards::giftcards.fields.assigned_to'))
+                    ->schema([
+                        Infolists\Components\TextEntry::make('assignedToStaff.full_name')
+                            ->label(__('giftcards::giftcards.fields.assigned_to'))
+                            ->placeholder('-'),
+
+                        Infolists\Components\TextEntry::make('soldByStaff.full_name')
+                            ->label(__('giftcards::giftcards.fields.sold_by'))
+                            ->placeholder('-'),
+
+                        Infolists\Components\TextEntry::make('assigned_at')
+                            ->label(__('giftcards::giftcards.fields.date'))
+                            ->dateTime()
+                            ->placeholder('-'),
+                    ])
+                    ->columns(3)
+                    ->collapsible(),
+
+                Infolists\Components\Section::make(__('giftcards::giftcards.fields.notes'))
+                    ->schema([
+                        Infolists\Components\TextEntry::make('notes')
+                            ->label('')
+                            ->placeholder('-')
+                            ->columnSpanFull(),
+                    ])
+                    ->collapsible()
+                    ->collapsed(),
+            ]);
+    }
+
     public static function table(Table $table): Table
     {
         return $table
@@ -140,6 +243,12 @@ class GiftCardResource extends Resource
                     ->label(__('giftcards::giftcards.fields.sold_by'))
                     ->placeholder('-')
                     ->toggleable(isToggledHiddenByDefault: true),
+
+                Tables\Columns\TextColumn::make('owner.full_name')
+                    ->label(__('giftcards::giftcards.fields.owner'))
+                    ->placeholder('-')
+                    ->description(fn (GiftCard $record) => $record->recipient_patient_id ? __('giftcards::giftcards.fields.recipient') : __('giftcards::giftcards.fields.purchaser'))
+                    ->toggleable(),
 
                 Tables\Columns\TextColumn::make('purchaser.full_name')
                     ->label(__('giftcards::giftcards.fields.purchaser'))

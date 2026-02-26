@@ -36,6 +36,7 @@ return [
         'template' => 'القالب',
         'assigned_to' => 'مسند إلى',
         'sold_by' => 'باع بواسطة',
+        'owner' => 'المالك',
     ],
 
     'statuses' => [
