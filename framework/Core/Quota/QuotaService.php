@@ -71,7 +71,7 @@ class QuotaService
     /**
      * Check if quota allows operation
      */
-    public function allows(string $quotaType, int $amount = 1, ?string $tenantId = null): bool
+    public function allows(string $quotaType, int $amount = 1, ?int $tenantId = null): bool
     {
         $tenantId = $tenantId ?: $this->getCurrentTenantId();
         $quota = $this->getQuota($quotaType, $tenantId);
@@ -89,7 +89,7 @@ class QuotaService
     /**
      * Check remaining quota
      */
-    public function remaining(string $quotaType, ?string $tenantId = null): int
+    public function remaining(string $quotaType, ?int $tenantId = null): int
     {
         $tenantId = $tenantId ?: $this->getCurrentTenantId();
         $quota = $this->getQuota($quotaType, $tenantId);
@@ -105,7 +105,7 @@ class QuotaService
     /**
      * Consume quota
      */
-    public function consume(string $quotaType, int $amount = 1, ?string $tenantId = null): bool
+    public function consume(string $quotaType, int $amount = 1, ?int $tenantId = null): bool
     {
         $tenantId = $tenantId ?: $this->getCurrentTenantId();
 
@@ -120,7 +120,7 @@ class QuotaService
     /**
      * Force consume quota (bypass limits)
      */
-    public function forceConsume(string $quotaType, int $amount = 1, ?string $tenantId = null): void
+    public function forceConsume(string $quotaType, int $amount = 1, ?int $tenantId = null): void
     {
         $tenantId = $tenantId ?: $this->getCurrentTenantId();
         $this->incrementUsage($quotaType, $amount, $tenantId);
@@ -129,7 +129,7 @@ class QuotaService
     /**
      * Get current usage
      */
-    public function getUsage(string $quotaType, ?string $tenantId = null): array
+    public function getUsage(string $quotaType, ?int $tenantId = null): array
     {
         $tenantId = $tenantId ?: $this->getCurrentTenantId();
         $quota = $this->getQuota($quotaType, $tenantId);
@@ -160,7 +160,7 @@ class QuotaService
     /**
      * Set quota for tenant
      */
-    public function setQuota(string $quotaType, int $limit, string $period, ?string $tenantId = null, array $options = []): void
+    public function setQuota(string $quotaType, int $limit, string $period, ?int $tenantId = null, array $options = []): void
     {
         $tenantId = $tenantId ?: $this->getCurrentTenantId();
 
@@ -188,7 +188,7 @@ class QuotaService
     /**
      * Remove quota
      */
-    public function removeQuota(string $quotaType, ?string $tenantId = null): void
+    public function removeQuota(string $quotaType, ?int $tenantId = null): void
     {
         $tenantId = $tenantId ?: $this->getCurrentTenantId();
 
@@ -203,7 +203,7 @@ class QuotaService
     /**
      * Get all quotas for tenant
      */
-    public function getAllQuotas(?string $tenantId = null): array
+    public function getAllQuotas(?int $tenantId = null): array
     {
         $tenantId = $tenantId ?: $this->getCurrentTenantId();
         $quotas = [];
@@ -224,7 +224,7 @@ class QuotaService
     /**
      * Get quota statistics
      */
-    public function getStatistics(?string $tenantId = null): array
+    public function getStatistics(?int $tenantId = null): array
     {
         $tenantId = $tenantId ?: $this->getCurrentTenantId();
         $quotas = $this->getAllQuotas($tenantId);
@@ -258,7 +258,7 @@ class QuotaService
     /**
      * Reset usage for a quota
      */
-    public function resetUsage(string $quotaType, ?string $tenantId = null): void
+    public function resetUsage(string $quotaType, ?int $tenantId = null): void
     {
         $tenantId = $tenantId ?: $this->getCurrentTenantId();
         $quota = $this->getQuota($quotaType, $tenantId);
@@ -281,7 +281,7 @@ class QuotaService
     /**
      * Bulk set quotas
      */
-    public function bulkSetQuotas(array $quotas, ?string $tenantId = null): void
+    public function bulkSetQuotas(array $quotas, ?int $tenantId = null): void
     {
         $tenantId = $tenantId ?: $this->getCurrentTenantId();
 
@@ -299,7 +299,7 @@ class QuotaService
     /**
      * Check quota health
      */
-    public function checkHealth(?string $tenantId = null): array
+    public function checkHealth(?int $tenantId = null): array
     {
         $tenantId = $tenantId ?: $this->getCurrentTenantId();
         $stats = $this->getStatistics($tenantId);
@@ -316,7 +316,7 @@ class QuotaService
     /**
      * Get quota recommendations
      */
-    public function getRecommendations(?string $tenantId = null): array
+    public function getRecommendations(?int $tenantId = null): array
     {
         $tenantId = $tenantId ?: $this->getCurrentTenantId();
         $stats = $this->getStatistics($tenantId);
@@ -348,7 +348,7 @@ class QuotaService
     /**
      * Get quota for type and tenant
      */
-    protected function getQuota(string $quotaType, string $tenantId): ?array
+    protected function getQuota(string $quotaType, int $tenantId): ?array
     {
         $key = $this->getQuotaKey($quotaType, $tenantId);
 
@@ -382,7 +382,7 @@ class QuotaService
     /**
      * Increment usage
      */
-    protected function incrementUsage(string $quotaType, int $amount, string $tenantId): void
+    protected function incrementUsage(string $quotaType, int $amount, int $tenantId): void
     {
         $quota = $this->getQuota($quotaType, $tenantId);
 
@@ -411,7 +411,7 @@ class QuotaService
     /**
      * Get quota cache key
      */
-    protected function getQuotaKey(string $quotaType, string $tenantId): string
+    protected function getQuotaKey(string $quotaType, int $tenantId): string
     {
         return "quota:{$tenantId}:{$quotaType}";
     }
@@ -480,7 +480,7 @@ class QuotaService
     /**
      * Get current tenant ID
      */
-    protected function getCurrentTenantId(): ?string
+    protected function getCurrentTenantId(): ?int
     {
         $tenant = $this->tenantManager->getCurrentTenant();
         return $tenant?->id;

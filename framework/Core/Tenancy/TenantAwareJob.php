@@ -32,7 +32,7 @@ abstract class TenantAwareJob implements ShouldQueue
     /**
      * The tenant ID for serialization
      */
-    protected ?string $tenantId = null;
+    protected ?int $tenantId = null;
 
     /**
      * The original database connection
@@ -92,7 +92,7 @@ abstract class TenantAwareJob implements ShouldQueue
     /**
      * Get the tenant ID
      */
-    public function getTenantId(): ?string
+    public function getTenantId(): ?int
     {
         return $this->tenantId;
     }

@@ -155,7 +155,7 @@ class TenantManager
     /**
      * Get the current tenant ID.
      */
-    public function getCurrentTenantId(): ?string
+    public function getCurrentTenantId(): ?int
     {
         return $this->currentTenant?->id;
     }
