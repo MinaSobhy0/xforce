@@ -34,7 +34,7 @@ class AssetResource extends Resource
 
     protected static ?string $navigationGroup = 'Finance';
 
-    protected static ?int $navigationSort = 41;
+    protected static ?int $navigationSort = 7;
 
     protected static ?string $recordTitleAttribute = 'name';
 
@@ -76,6 +76,8 @@ class AssetResource extends Resource
                         Forms\Components\Select::make('branch_id')
                             ->label(__('assets::assets.asset.fields.branch'))
                             ->relationship('branch', 'name')
+                            ->default(fn () => current_branch_id())
+                            ->disabled(fn () => current_branch_id() !== null)
                             ->searchable()
                             ->preload(),
 
@@ -164,7 +166,7 @@ class AssetResource extends Resource
 
                         Forms\Components\Select::make('assigned_to_user_id')
                             ->label(__('assets::assets.asset.fields.assigned_to'))
-                            ->options(fn () => User::pluck('name', 'id'))
+                            ->options(fn () => User::all()->pluck('name', 'id'))
                             ->searchable()
                             ->preload(),
 
