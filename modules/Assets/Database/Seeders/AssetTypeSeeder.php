@@ -3,17 +3,69 @@
 namespace Modules\Assets\Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 use Modules\Assets\Models\AssetType;
 use Modules\Accounting\Models\ChartOfAccount;
 
 class AssetTypeSeeder extends Seeder
 {
+    /**
+     * Resolve the tenant ID from various sources.
+     */
+    protected function resolveTenantId(): ?string
+    {
+        // Try TenantManager first
+        try {
+            $tenantManager = app(\XLinic\Framework\Core\Tenancy\TenantManager::class);
+            if ($tenantManager->current()) {
+                return $tenantManager->current()->id;
+            }
+        } catch (\Exception $e) {
+            // Ignore
+        }
+
+        // Try app('currentTenant')
+        try {
+            if ($tenant = app('currentTenant')) {
+                return $tenant->id;
+            }
+        } catch (\Exception $e) {
+            // Ignore
+        }
+
+        // Try to resolve from database search_path (for CLI seeding)
+        foreach (['pgsql', 'tenant'] as $conn) {
+            try {
+                $result = DB::connection($conn)->select('SHOW search_path');
+                $searchPath = $result[0]->search_path ?? 'public';
+
+                if (preg_match('/tenant[_-]([^,\s"]+)/', $searchPath, $matches)) {
+                    $slug = str_replace('_', '-', $matches[1]);
+
+                    $tenant = DB::connection('pgsql')
+                        ->table('tenants')
+                        ->where('slug', $slug)
+                        ->orWhere('slug', $matches[1])
+                        ->first();
+
+                    if ($tenant) {
+                        return $tenant->id;
+                    }
+                }
+            } catch (\Exception $e) {
+                // Ignore errors
+            }
+        }
+
+        return null;
+    }
+
     public function run(): void
     {
-        $tenantId = tenant('id');
+        $tenantId = $this->resolveTenantId();
 
         if (!$tenantId) {
-            $this->command->warn('No tenant context. Skipping asset type seeder.');
+            $this->command?->warn('No tenant context. Skipping asset type seeder.');
             return;
         }
 
@@ -99,6 +151,7 @@ class AssetTypeSeeder extends Seeder
             ],
         ];
 
+        $created = 0;
         foreach ($assetTypes as $data) {
             $existing = AssetType::where('tenant_id', $tenantId)
                 ->whereRaw("name->>'en' = ?", [$data['name']['en']])
@@ -123,8 +176,9 @@ class AssetTypeSeeder extends Seeder
                 'auto_create_on_purchase' => true,
                 'is_active' => true,
             ]);
+            $created++;
         }
 
-        $this->command->info('Asset types seeded successfully.');
+        $this->command?->info("Asset types seeded successfully. Created: {$created}");
     }
 }
