@@ -398,12 +398,12 @@ class AssetResource extends Resource
                         Infolists\Components\TextEntry::make('depreciation_start_date')
                             ->label(__('assets::assets.asset.fields.depreciation_start_date'))
                             ->date()
-                            ->default('-'),
+                            ->placeholder('-'),
 
                         Infolists\Components\TextEntry::make('last_depreciation_date')
                             ->label(__('assets::assets.asset.fields.last_depreciation_date'))
                             ->date()
-                            ->default('-'),
+                            ->placeholder('-'),
                     ])
                     ->columns(3),
 
