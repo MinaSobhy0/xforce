@@ -85,11 +85,11 @@ When User IDs change to INT, these must also change.
 ### 0.3 Framework Traits
 | # | Status | File | Changes Required |
 |---|--------|------|------------------|
-| 3 | [ ] | `framework/Core/Model/Traits/HasAudit.php` | Update morph columns from UUID to INT |
-| 4 | [ ] | `framework/Core/Model/Traits/HasTenancy.php` | Update tenant_id from UUID to INT |
-| 5 | [ ] | `framework/Core/Model/Traits/HasSequence.php` | Review for UUID references |
-| 6 | [ ] | `framework/Core/Model/Traits/HasStateMachine.php` | Review for UUID references |
-| 7 | [ ] | `framework/Core/Model/Traits/HasPortalAccess.php` | Review for UUID references |
+| 3 | [x] | `framework/Core/Model/Traits/HasAudit.php` | No changes needed - uses Laravel morphMany |
+| 4 | [x] | `framework/Core/Model/Traits/HasTenancy.php` | Updated type hints: string $tenantId → int $tenantId |
+| 5 | [x] | `framework/Core/Model/Traits/HasSequence.php` | No UUID references found |
+| 6 | [x] | `framework/Core/Model/Traits/HasStateMachine.php` | No UUID references found |
+| 7 | [x] | `framework/Core/Model/Traits/HasPortalAccess.php` | No UUID references found |
 
 ---
 

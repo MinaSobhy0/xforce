@@ -82,7 +82,7 @@ trait HasTenancy
     /**
      * Scope to specific tenant.
      */
-    public function scopeForTenant(Builder $query, string $tenantId): Builder
+    public function scopeForTenant(Builder $query, int $tenantId): Builder
     {
         $table = $this->getTable();
         return $query->where("{$table}.tenant_id", $tenantId);
@@ -91,7 +91,7 @@ trait HasTenancy
     /**
      * Check if this model belongs to the given tenant.
      */
-    public function belongsToTenant(string $tenantId): bool
+    public function belongsToTenant(int $tenantId): bool
     {
         return $this->tenant_id === $tenantId;
     }
