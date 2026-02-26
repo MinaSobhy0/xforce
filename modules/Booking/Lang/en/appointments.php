@@ -60,6 +60,17 @@ return [
         'upcoming' => 'Upcoming',
     ],
 
+    'statuses' => [
+        'scheduled' => 'Scheduled',
+        'confirmed' => 'Confirmed',
+        'checked_in' => 'Checked In',
+        'in_progress' => 'In Progress',
+        'completed' => 'Completed',
+        'cancelled' => 'Cancelled',
+        'no_show' => 'No Show',
+        'rescheduled' => 'Rescheduled',
+    ],
+
     'actions' => [
         'new' => 'New Appointment',
         'confirm' => 'Confirm',

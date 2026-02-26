@@ -60,6 +60,17 @@ return [
         'upcoming' => 'القادمة',
     ],
 
+    'statuses' => [
+        'scheduled' => 'مجدول',
+        'confirmed' => 'مؤكد',
+        'checked_in' => 'وصل',
+        'in_progress' => 'جاري',
+        'completed' => 'مكتمل',
+        'cancelled' => 'ملغي',
+        'no_show' => 'لم يحضر',
+        'rescheduled' => 'أعيدت جدولته',
+    ],
+
     'actions' => [
         'new' => 'موعد جديد',
         'confirm' => 'تأكيد',
