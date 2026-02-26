@@ -31,7 +31,6 @@ class PayrollLine extends BaseModel
     ];
 
     protected $casts = [
-        'id' => 'string',
         'base_salary_minor' => 'integer',
         'allowances_minor' => 'integer',
         'commissions_minor' => 'integer',

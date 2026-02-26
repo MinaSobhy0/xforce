@@ -22,7 +22,6 @@ class InventoryAdjustmentLine extends BaseModel
     ];
 
     protected $casts = [
-        'id' => 'string',
         'theoretical_qty' => 'integer',
         'counted_qty' => 'integer',
         'difference_qty' => 'integer',

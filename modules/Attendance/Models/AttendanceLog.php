@@ -31,7 +31,6 @@ class AttendanceLog extends BaseModel
     ];
 
     protected $casts = [
-        'id' => 'string',
         'latitude' => 'decimal:8',
         'longitude' => 'decimal:8',
         'altitude' => 'decimal:2',

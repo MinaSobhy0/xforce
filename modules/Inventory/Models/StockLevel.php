@@ -22,7 +22,6 @@ class StockLevel extends BaseModel
     ];
 
     protected $casts = [
-        'id' => 'string',
         'quantity_on_hand' => 'integer',
         'quantity_reserved' => 'integer',
         'quantity_on_order' => 'integer',

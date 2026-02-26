@@ -22,7 +22,6 @@ class SalaryRuleCategory extends BaseModel
     ];
 
     protected $casts = [
-        'id' => 'string',
         'is_active' => 'boolean',
     ];
 

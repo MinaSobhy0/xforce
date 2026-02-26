@@ -32,7 +32,6 @@ class TimeOffType extends BaseModel
     ];
 
     protected $casts = [
-        'id' => 'string',
         'is_paid' => 'boolean',
         'requires_approval' => 'boolean',
         'default_days_per_year' => 'integer',

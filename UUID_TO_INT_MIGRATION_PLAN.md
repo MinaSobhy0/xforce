@@ -129,53 +129,53 @@ Remove `use HasUuids;` trait from all models.
 ### 2.1 Attendance Module (8 models with explicit casts)
 | # | Status | File | Changes Required |
 |---|--------|------|------------------|
-| 28 | [ ] | `modules/Attendance/Models/Attendance.php` | Remove `'id' => 'string'` from $casts |
-| 29 | [ ] | `modules/Attendance/Models/AttendanceLog.php` | Remove `'id' => 'string'` from $casts |
-| 30 | [ ] | `modules/Attendance/Models/AttendanceBreak.php` | Remove `'id' => 'string'` from $casts |
-| 31 | [ ] | `modules/Attendance/Models/AttendanceRule.php` | Remove `'id' => 'string'` from $casts |
-| 32 | [ ] | `modules/Attendance/Models/AttendanceRuleAction.php` | Remove `'id' => 'string'` from $casts |
-| 33 | [ ] | `modules/Attendance/Models/AttendanceViolation.php` | Remove `'id' => 'string'` from $casts |
-| 34 | [ ] | `modules/Attendance/Models/AttendanceTypeSetting.php` | Remove `'id' => 'string'` from $casts |
-| 35 | [ ] | `modules/Attendance/Models/WorkSchedule.php` | Verify BaseModel changes work |
+| 28 | [x] | `modules/Attendance/Models/Attendance.php` | Remove `'id' => 'string'` from $casts |
+| 29 | [x] | `modules/Attendance/Models/AttendanceLog.php` | Remove `'id' => 'string'` from $casts |
+| 30 | [x] | `modules/Attendance/Models/AttendanceBreak.php` | Remove `'id' => 'string'` from $casts |
+| 31 | [x] | `modules/Attendance/Models/AttendanceRule.php` | Remove `'id' => 'string'` from $casts |
+| 32 | [x] | `modules/Attendance/Models/AttendanceRuleAction.php` | Remove `'id' => 'string'` from $casts + keyType + incrementing |
+| 33 | [x] | `modules/Attendance/Models/AttendanceViolation.php` | Remove `'id' => 'string'` from $casts |
+| 34 | [x] | `modules/Attendance/Models/AttendanceTypeSetting.php` | Remove `'id' => 'string'` from $casts |
+| 35 | [x] | `modules/Attendance/Models/WorkSchedule.php` | Verify BaseModel changes work |
 
 ### 2.2 Booking Module (2 models with explicit casts)
 | # | Status | File | Changes Required |
 |---|--------|------|------------------|
-| 36 | [ ] | `modules/Booking/Models/TimeOffType.php` | Remove `'id' => 'string'` from $casts |
-| 37 | [ ] | `modules/Booking/Models/TimeOffAllocation.php` | Remove `'id' => 'string'` from $casts |
+| 36 | [x] | `modules/Booking/Models/TimeOffType.php` | Remove `'id' => 'string'` from $casts |
+| 37 | [x] | `modules/Booking/Models/TimeOffAllocation.php` | Remove `'id' => 'string'` from $casts |
 
 ### 2.3 Staff Module (3 models with explicit casts)
 | # | Status | File | Changes Required |
 |---|--------|------|------------------|
-| 38 | [ ] | `modules/Staff/Models/StaffProfile.php` | Remove `'id' => 'string'` from $casts |
-| 39 | [ ] | `modules/Staff/Models/StaffCommission.php` | Remove `'id' => 'string'` from $casts |
-| 40 | [ ] | `modules/Staff/Models/StaffCommissionRecord.php` | Remove `'id' => 'string'` from $casts |
+| 38 | [x] | `modules/Staff/Models/StaffProfile.php` | Remove `'id' => 'string'` from $casts |
+| 39 | [x] | `modules/Staff/Models/StaffCommission.php` | Remove `'id' => 'string'` from $casts |
+| 40 | [x] | `modules/Staff/Models/StaffCommissionRecord.php` | Remove `'id' => 'string'` from $casts |
 
 ### 2.4 Payroll Module (7 models with explicit casts)
 | # | Status | File | Changes Required |
 |---|--------|------|------------------|
-| 41 | [ ] | `modules/Payroll/Models/PayrollRun.php` | Remove `'id' => 'string'` from $casts |
-| 42 | [ ] | `modules/Payroll/Models/PayrollLine.php` | Remove `'id' => 'string'` from $casts |
-| 43 | [ ] | `modules/Payroll/Models/SalaryStructure.php` | Remove `'id' => 'string'` from $casts |
-| 44 | [ ] | `modules/Payroll/Models/SalaryRule.php` | Remove `'id' => 'string'` from $casts |
-| 45 | [ ] | `modules/Payroll/Models/SalaryRuleCategory.php` | Remove `'id' => 'string'` from $casts |
-| 46 | [ ] | `modules/Payroll/Models/EmployeeSalaryStructure.php` | Remove `'id' => 'string'` from $casts |
-| 47 | [ ] | `modules/Payroll/Models/EmployeeSalaryComponent.php` | Remove `'id' => 'string'` from $casts |
+| 41 | [x] | `modules/Payroll/Models/PayrollRun.php` | Remove `'id' => 'string'` from $casts |
+| 42 | [x] | `modules/Payroll/Models/PayrollLine.php` | Remove `'id' => 'string'` from $casts |
+| 43 | [x] | `modules/Payroll/Models/SalaryStructure.php` | Remove `'id' => 'string'` from $casts |
+| 44 | [x] | `modules/Payroll/Models/SalaryRule.php` | Remove `'id' => 'string'` from $casts |
+| 45 | [x] | `modules/Payroll/Models/SalaryRuleCategory.php` | Remove `'id' => 'string'` from $casts |
+| 46 | [x] | `modules/Payroll/Models/EmployeeSalaryStructure.php` | Remove `'id' => 'string'` from $casts |
+| 47 | [x] | `modules/Payroll/Models/EmployeeSalaryComponent.php` | Remove `'id' => 'string'` from $casts |
 
 ### 2.5 Inventory Module (11 models with explicit casts)
 | # | Status | File | Changes Required |
 |---|--------|------|------------------|
-| 48 | [ ] | `modules/Inventory/Models/ProductCategory.php` | Remove `'id' => 'string'` from $casts |
-| 49 | [ ] | `modules/Inventory/Models/Product.php` | Remove `'id' => 'string'` from $casts |
-| 50 | [ ] | `modules/Inventory/Models/StockLevel.php` | Remove `'id' => 'string'` from $casts |
-| 51 | [ ] | `modules/Inventory/Models/StockMovement.php` | Remove `'id' => 'string'` from $casts |
-| 52 | [ ] | `modules/Inventory/Models/Supplier.php` | Remove `'id' => 'string'` from $casts |
-| 53 | [ ] | `modules/Inventory/Models/PurchaseOrder.php` | Remove `'id' => 'string'` from $casts |
-| 54 | [ ] | `modules/Inventory/Models/PurchaseOrderLine.php` | Remove `'id' => 'string'` from $casts |
-| 55 | [ ] | `modules/Inventory/Models/InventoryAdjustment.php` | Remove `'id' => 'string'` from $casts |
-| 56 | [ ] | `modules/Inventory/Models/InventoryAdjustmentLine.php` | Remove `'id' => 'string'` from $casts |
-| 57 | [ ] | `modules/Inventory/Models/VendorBill.php` | Remove `'id' => 'string'` from $casts |
-| 58 | [ ] | `modules/Inventory/Models/VendorBillLine.php` | Remove `'id' => 'string'` from $casts |
+| 48 | [x] | `modules/Inventory/Models/ProductCategory.php` | Remove `'id' => 'string'` from $casts |
+| 49 | [x] | `modules/Inventory/Models/Product.php` | Remove `'id' => 'string'` from $casts |
+| 50 | [x] | `modules/Inventory/Models/StockLevel.php` | Remove `'id' => 'string'` from $casts |
+| 51 | [x] | `modules/Inventory/Models/StockMovement.php` | Remove `'id' => 'string'` from $casts |
+| 52 | [x] | `modules/Inventory/Models/Supplier.php` | Remove `'id' => 'string'` from $casts |
+| 53 | [x] | `modules/Inventory/Models/PurchaseOrder.php` | Remove `'id' => 'string'` from $casts |
+| 54 | [x] | `modules/Inventory/Models/PurchaseOrderLine.php` | Remove `'id' => 'string'` from $casts |
+| 55 | [x] | `modules/Inventory/Models/InventoryAdjustment.php` | Remove `'id' => 'string'` from $casts |
+| 56 | [x] | `modules/Inventory/Models/InventoryAdjustmentLine.php` | Remove `'id' => 'string'` from $casts |
+| 57 | [x] | `modules/Inventory/Models/VendorBill.php` | Remove `'id' => 'string'` from $casts |
+| 58 | [x] | `modules/Inventory/Models/VendorBillLine.php` | Remove `'id' => 'string'` from $casts |
 
 ---
 

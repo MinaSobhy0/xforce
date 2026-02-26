@@ -24,7 +24,6 @@ class ProductCategory extends BaseModel
     ];
 
     protected $casts = [
-        'id' => 'string',
         'name' => 'array',
         'description' => 'array',
         'is_active' => 'boolean',

@@ -35,7 +35,6 @@ class AttendanceRule extends BaseModel
     ];
 
     protected $casts = [
-        'id' => 'string',
         'is_active' => 'boolean',
         'sequence' => 'integer',
         'auto_apply' => 'boolean',

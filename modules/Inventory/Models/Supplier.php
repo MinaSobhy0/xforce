@@ -39,7 +39,6 @@ class Supplier extends BaseModel
     ];
 
     protected $casts = [
-        'id' => 'string',
         'name' => 'array',
         'payment_terms_days' => 'integer',
         'is_active' => 'boolean',

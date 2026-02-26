@@ -23,7 +23,6 @@ class AttendanceBreak extends BaseModel
     ];
 
     protected $casts = [
-        'id' => 'string',
         'start_time' => 'datetime',
         'end_time' => 'datetime',
         'duration_minutes' => 'integer',

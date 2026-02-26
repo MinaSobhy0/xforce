@@ -19,7 +19,6 @@ class AttendanceTypeSetting extends BaseModel
     ];
 
     protected $casts = [
-        'id' => 'string',
         'is_enabled' => 'boolean',
         'settings' => 'array',
         'created_at' => 'datetime',

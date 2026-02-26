@@ -26,7 +26,6 @@ class SalaryStructure extends BaseModel
     ];
 
     protected $casts = [
-        'id' => 'string',
         'is_active' => 'boolean',
     ];
 

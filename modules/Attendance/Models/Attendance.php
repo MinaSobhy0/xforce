@@ -41,7 +41,6 @@ class Attendance extends BaseModel
     ];
 
     protected $casts = [
-        'id' => 'string',
         'attendance_date' => 'date',
         'check_in_time' => 'datetime:H:i:s',
         'check_out_time' => 'datetime:H:i:s',

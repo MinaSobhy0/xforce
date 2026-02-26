@@ -28,7 +28,6 @@ class VendorBillLine extends BaseModel
     ];
 
     protected $casts = [
-        'id' => 'string',
         'quantity' => 'decimal:2',
         'unit_price_minor' => 'integer',
         'discount_minor' => 'integer',

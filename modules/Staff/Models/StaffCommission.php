@@ -25,7 +25,6 @@ class StaffCommission extends BaseModel
     ];
 
     protected $casts = [
-        'id' => 'string',
         'flat_amount_minor' => 'integer',
         'percentage' => 'decimal:2',
         'tier_from_minor' => 'integer',

@@ -58,7 +58,6 @@ class EmployeeSalaryComponent extends BaseModel
     ];
 
     protected $casts = [
-        'id' => 'string',
         'amount_minor' => 'integer',
         'percentage' => 'decimal:4',
         'effective_date' => 'date',

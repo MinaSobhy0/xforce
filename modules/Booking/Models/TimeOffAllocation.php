@@ -22,7 +22,6 @@ class TimeOffAllocation extends BaseModel
     ];
 
     protected $casts = [
-        'id' => 'string',
         'year' => 'integer',
         'allocated_days' => 'decimal:1',
         'used_days' => 'decimal:1',

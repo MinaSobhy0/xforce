@@ -22,7 +22,6 @@ class PurchaseOrderLine extends BaseModel
     ];
 
     protected $casts = [
-        'id' => 'string',
         'quantity' => 'integer',
         'quantity_received' => 'integer',
         'unit_price_minor' => 'integer',

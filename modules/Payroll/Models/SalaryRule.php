@@ -40,7 +40,6 @@ class SalaryRule extends BaseModel
     ];
 
     protected $casts = [
-        'id' => 'string',
         'amount_fixed_minor' => 'integer',
         'amount_percentage' => 'decimal:4',
         'sequence' => 'integer',

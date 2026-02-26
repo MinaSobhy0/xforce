@@ -27,7 +27,6 @@ class StaffCommissionRecord extends BaseModel
     ];
 
     protected $casts = [
-        'id' => 'string',
         'amount_minor' => 'integer',
         'revenue_minor' => 'integer',
         'commission_rate' => 'decimal:2',

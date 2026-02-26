@@ -27,7 +27,6 @@ class StockMovement extends BaseModel
     ];
 
     protected $casts = [
-        'id' => 'string',
         'quantity' => 'integer',
         'quantity_before' => 'integer',
         'quantity_after' => 'integer',

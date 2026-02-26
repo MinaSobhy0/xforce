@@ -51,7 +51,6 @@ class Product extends BaseModel
     ];
 
     protected $casts = [
-        'id' => 'string',
         'name' => 'array',
         'description' => 'array',
         'cost_price_minor' => 'integer',

@@ -37,7 +37,6 @@ class PayrollRun extends BaseModel
     ];
 
     protected $casts = [
-        'id' => 'string',
         'period_year' => 'integer',
         'period_month' => 'integer',
         'total_base_salary_minor' => 'integer',

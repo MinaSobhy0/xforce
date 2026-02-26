@@ -25,7 +25,6 @@ class EmployeeSalaryStructure extends BaseModel
     ];
 
     protected $casts = [
-        'id' => 'string',
         'base_salary_minor' => 'integer',
         'effective_date' => 'date',
         'end_date' => 'date',

@@ -44,7 +44,6 @@ class StaffProfile extends BaseModel
     ];
 
     protected $casts = [
-        'id' => 'string',
         'bio' => 'array',
         'specializations' => 'array',
         'commission_percentage' => 'decimal:2',

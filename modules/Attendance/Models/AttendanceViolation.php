@@ -46,7 +46,6 @@ class AttendanceViolation extends BaseModel
     ];
 
     protected $casts = [
-        'id' => 'string',
         'violation_date' => 'date',
         'scheduled_time' => 'datetime:H:i:s',
         'actual_time' => 'datetime:H:i:s',

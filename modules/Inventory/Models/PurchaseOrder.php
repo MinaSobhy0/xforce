@@ -43,7 +43,6 @@ class PurchaseOrder extends BaseModel
     ];
 
     protected $casts = [
-        'id' => 'string',
         'order_date' => 'date',
         'expected_date' => 'date',
         'received_date' => 'date',

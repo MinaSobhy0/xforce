@@ -45,7 +45,6 @@ class VendorBill extends BaseModel
     ];
 
     protected $casts = [
-        'id' => 'string',
         'subtotal_minor' => 'integer',
         'discount_minor' => 'integer',
         'tax_minor' => 'integer',

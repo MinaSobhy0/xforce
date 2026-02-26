@@ -32,7 +32,6 @@ class InventoryAdjustment extends BaseModel
     ];
 
     protected $casts = [
-        'id' => 'string',
         'adjustment_date' => 'date',
         'validated_at' => 'datetime',
         'cancelled_at' => 'datetime',

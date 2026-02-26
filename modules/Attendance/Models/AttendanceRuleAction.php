@@ -5,16 +5,11 @@ namespace Modules\Attendance\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Str;
 use Modules\Staff\Models\StaffProfile;
 
 class AttendanceRuleAction extends Model
 {
     protected $table = 'attendance_rule_actions';
-
-    protected $keyType = 'string';
-
-    public $incrementing = false;
 
     protected $fillable = [
         'attendance_rule_id',
@@ -38,7 +33,6 @@ class AttendanceRuleAction extends Model
     ];
 
     protected $casts = [
-        'id' => 'string',
         'occurrence_number' => 'integer',
         'threshold_value' => 'integer',
         'penalty_amount_minor' => 'integer',
