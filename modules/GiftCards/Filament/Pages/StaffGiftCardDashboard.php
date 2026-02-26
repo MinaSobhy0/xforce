@@ -111,16 +111,27 @@ class StaffGiftCardDashboard extends Page implements HasForms
                         'new' => __('giftcards::giftcards.staff_dashboard.new_patient'),
                     ])
                     ->default('existing')
-                    ->reactive()
-                    ->required(),
+                    ->live()
+                    ->required()
+                    ->afterStateUpdated(function (Forms\Set $set, $state) {
+                        if ($state === 'new') {
+                            $set('purchaser_patient_id', null);
+                        } else {
+                            $set('new_patient_first_name', null);
+                            $set('new_patient_last_name', null);
+                            $set('new_patient_phone', null);
+                            $set('new_patient_email', null);
+                        }
+                    }),
 
                 // Existing patient select
                 Forms\Components\Select::make('purchaser_patient_id')
                     ->label(__('giftcards::giftcards.fields.purchaser'))
                     ->options(fn () => Patient::orderBy('first_name')->get()->pluck('full_name', 'id'))
                     ->searchable()
-                    ->required()
-                    ->visible(fn (Forms\Get $get) => $get('patient_type') === 'existing'),
+                    ->required(fn (Forms\Get $get) => $get('patient_type') === 'existing')
+                    ->visible(fn (Forms\Get $get) => $get('patient_type') === 'existing')
+                    ->dehydratedWhenHidden(false),
 
                 // New patient fields
                 Forms\Components\Section::make(__('giftcards::giftcards.staff_dashboard.new_patient'))
@@ -129,7 +140,7 @@ class StaffGiftCardDashboard extends Page implements HasForms
                             ->schema([
                                 Forms\Components\TextInput::make('new_patient_first_name')
                                     ->label(__('patients::patients.fields.first_name'))
-                                    ->required(),
+                                    ->required(fn (Forms\Get $get) => $get('patient_type') === 'new'),
 
                                 Forms\Components\TextInput::make('new_patient_last_name')
                                     ->label(__('patients::patients.fields.last_name')),
@@ -138,7 +149,7 @@ class StaffGiftCardDashboard extends Page implements HasForms
                         Forms\Components\TextInput::make('new_patient_phone')
                             ->label(__('patients::patients.fields.phone'))
                             ->tel()
-                            ->required(),
+                            ->required(fn (Forms\Get $get) => $get('patient_type') === 'new'),
 
                         Forms\Components\TextInput::make('new_patient_email')
                             ->label(__('patients::patients.fields.email'))
@@ -192,9 +203,24 @@ class StaffGiftCardDashboard extends Page implements HasForms
             return;
         }
 
+        \Log::info('Staff gift card sell form data', [
+            'card_id' => $card->id,
+            'patient_type' => $data['patient_type'] ?? 'not set',
+            'purchaser_patient_id' => $data['purchaser_patient_id'] ?? 'not set',
+            'new_patient_first_name' => $data['new_patient_first_name'] ?? 'not set',
+        ]);
+
         $purchaserData = null;
 
-        if ($data['patient_type'] === 'new') {
+        if (($data['patient_type'] ?? '') === 'new') {
+            if (empty($data['new_patient_first_name'])) {
+                Notification::make()
+                    ->title('First name is required for new patient')
+                    ->danger()
+                    ->send();
+                return;
+            }
+
             $purchaserData = [
                 'first_name' => $data['new_patient_first_name'],
                 'last_name' => $data['new_patient_last_name'] ?? '',
@@ -202,17 +228,33 @@ class StaffGiftCardDashboard extends Page implements HasForms
                 'email' => $data['new_patient_email'] ?? null,
             ];
         } else {
+            if (empty($data['purchaser_patient_id'])) {
+                Notification::make()
+                    ->title('Please select a patient')
+                    ->danger()
+                    ->send();
+                return;
+            }
+
             $purchaserData = $data['purchaser_patient_id'];
         }
 
         // Process the sale with payment and GL entry
-        app(GiftCardService::class)->processSale(
+        $result = app(GiftCardService::class)->processSale(
             $card,
             $data['journal_id'],
             $purchaserData,
             $data['recipient_patient_id'] ?? null,
             $data['notes'] ?? null
         );
+
+        if (!$result['success']) {
+            Notification::make()
+                ->title($result['error'] ?? 'Failed to activate card')
+                ->danger()
+                ->send();
+            return;
+        }
 
         Notification::make()
             ->title(__('giftcards::giftcards.messages.activated'))

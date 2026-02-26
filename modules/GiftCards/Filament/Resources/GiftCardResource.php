@@ -207,14 +207,26 @@ class GiftCardResource extends Resource
                             ])
                             ->default('existing')
                             ->live()
-                            ->required(),
+                            ->required()
+                            ->afterStateUpdated(function (Forms\Set $set, $state) {
+                                // Clear the other fields when switching
+                                if ($state === 'new') {
+                                    $set('purchaser_patient_id', null);
+                                } else {
+                                    $set('new_patient_first_name', null);
+                                    $set('new_patient_last_name', null);
+                                    $set('new_patient_phone', null);
+                                    $set('new_patient_email', null);
+                                }
+                            }),
 
                         Forms\Components\Select::make('purchaser_patient_id')
                             ->label(__('giftcards::giftcards.fields.purchaser'))
                             ->options(fn () => Patient::orderBy('first_name')->get()->pluck('full_name', 'id'))
                             ->searchable()
-                            ->required()
-                            ->visible(fn (Forms\Get $get) => $get('patient_type') === 'existing'),
+                            ->required(fn (Forms\Get $get) => $get('patient_type') === 'existing')
+                            ->visible(fn (Forms\Get $get) => $get('patient_type') === 'existing')
+                            ->dehydratedWhenHidden(false),
 
                         Forms\Components\Section::make(__('giftcards::giftcards.staff_dashboard.new_patient'))
                             ->schema([
@@ -222,7 +234,7 @@ class GiftCardResource extends Resource
                                     ->schema([
                                         Forms\Components\TextInput::make('new_patient_first_name')
                                             ->label(__('patients::patients.fields.first_name'))
-                                            ->required(),
+                                            ->required(fn (Forms\Get $get) => $get('patient_type') === 'new'),
 
                                         Forms\Components\TextInput::make('new_patient_last_name')
                                             ->label(__('patients::patients.fields.last_name')),
@@ -231,7 +243,7 @@ class GiftCardResource extends Resource
                                 Forms\Components\TextInput::make('new_patient_phone')
                                     ->label(__('patients::patients.fields.phone'))
                                     ->tel()
-                                    ->required(),
+                                    ->required(fn (Forms\Get $get) => $get('patient_type') === 'new'),
 
                                 Forms\Components\TextInput::make('new_patient_email')
                                     ->label(__('patients::patients.fields.email'))
@@ -260,9 +272,25 @@ class GiftCardResource extends Resource
                             ->rows(2),
                     ])
                     ->action(function (GiftCard $record, array $data) {
+                        \Log::info('Gift card activation form data', [
+                            'card_id' => $record->id,
+                            'patient_type' => $data['patient_type'] ?? 'not set',
+                            'purchaser_patient_id' => $data['purchaser_patient_id'] ?? 'not set',
+                            'new_patient_first_name' => $data['new_patient_first_name'] ?? 'not set',
+                        ]);
+
                         $purchaserData = null;
 
-                        if ($data['patient_type'] === 'new') {
+                        if (($data['patient_type'] ?? '') === 'new') {
+                            // Validate new patient data
+                            if (empty($data['new_patient_first_name'])) {
+                                Notification::make()
+                                    ->title('First name is required for new patient')
+                                    ->danger()
+                                    ->send();
+                                return;
+                            }
+
                             $purchaserData = [
                                 'first_name' => $data['new_patient_first_name'],
                                 'last_name' => $data['new_patient_last_name'] ?? '',
@@ -270,16 +298,33 @@ class GiftCardResource extends Resource
                                 'email' => $data['new_patient_email'] ?? null,
                             ];
                         } else {
+                            // Validate existing patient selection
+                            if (empty($data['purchaser_patient_id'])) {
+                                Notification::make()
+                                    ->title('Please select a patient')
+                                    ->danger()
+                                    ->send();
+                                return;
+                            }
+
                             $purchaserData = $data['purchaser_patient_id'];
                         }
 
-                        app(GiftCardService::class)->processSale(
+                        $result = app(GiftCardService::class)->processSale(
                             $record,
                             $data['journal_id'],
                             $purchaserData,
                             $data['recipient_patient_id'] ?? null,
                             $data['notes'] ?? null
                         );
+
+                        if (!$result['success']) {
+                            Notification::make()
+                                ->title($result['error'] ?? 'Failed to activate card')
+                                ->danger()
+                                ->send();
+                            return;
+                        }
 
                         Notification::make()
                             ->title(__('giftcards::giftcards.messages.activated'))
