@@ -60,6 +60,16 @@ return [
         'success_title' => 'Import Successful',
         'no_data' => 'No data found in the uploaded file.',
         'invalid_file' => 'The uploaded file could not be read. Please check the file format.',
+        'no_file' => 'Please upload a file to import.',
+        'empty_file' => 'The uploaded file is empty or has no data rows.',
+        'success' => 'Import Successful',
+        'success_body' => ':count records imported successfully.',
+        'partial_success' => 'Import Completed with Errors',
+        'partial_success_body' => ':success records imported successfully, :failed records failed.',
+        'failed' => 'Import Failed',
+        'failed_body' => 'All :count records failed to import.',
+        'row_error' => 'Row :row Error',
+        'more_errors' => ':count more errors not shown',
     ],
 
     // Validation messages
@@ -80,8 +90,15 @@ return [
         'invalid_value' => 'Invalid value for ":field".',
         'relationship_not_found' => 'Could not find :model with value ":value".',
         'duplicate_entry' => 'Duplicate entry found for ":field".',
-        'database_error' => 'Database error: :message',
+        'database_error' => 'A database error occurred. Please check your data.',
         'unknown_error' => 'An unknown error occurred while processing row :row.',
+        'empty_row' => 'Row has no data after applying column mappings.',
+        'cannot_resolve_record' => 'Cannot create or find record for this data.',
+        'record_not_found_for_update' => 'No existing record found to update.',
+        'record_already_exists' => 'A record with this data already exists.',
+        'duplicate_value' => 'Duplicate value for field: :field',
+        'invalid_relationship' => 'Invalid relationship reference. The related record does not exist.',
+        'required_field' => 'The field :field is required.',
     ],
 
     // Field labels

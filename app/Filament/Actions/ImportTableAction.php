@@ -2,10 +2,13 @@
 
 namespace App\Filament\Actions;
 
+use App\Filament\Imports\DynamicImporterFactory;
 use App\Models\ImportMapping;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\CanImportRecords;
 use Filament\Actions\Imports\ImportColumn;
+use Filament\Actions\Imports\Models\FailedImportRow;
+use Filament\Actions\Imports\Models\Import;
 use Filament\Forms;
 use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\Fieldset;
@@ -14,7 +17,10 @@ use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use League\Csv\Reader as CsvReader;
@@ -66,6 +72,538 @@ class ImportTableAction extends Action
                 ->link()
                 ->action(fn() => $this->downloadTemplate()),
         ]);
+
+        // Define the actual import action
+        $this->action(function (array $data): void {
+            $this->processImport($data);
+        });
+    }
+
+    /**
+     * Process the import with the uploaded file and column mappings.
+     */
+    protected function processImport(array $data): void
+    {
+        // Handle different file data structures from Livewire
+        $file = $data['file'] ?? null;
+
+        // If file is an array (from Livewire file upload), get the first element
+        if (is_array($file)) {
+            $file = Arr::first($file);
+        }
+
+        // If file is a string path, convert it to TemporaryUploadedFile
+        if (is_string($file) && !empty($file)) {
+            if (str_contains($file, 'livewire-tmp')) {
+                $file = TemporaryUploadedFile::createFromLivewire($file);
+            }
+        }
+
+        if (!$file instanceof TemporaryUploadedFile) {
+            Notification::make()
+                ->title(__('core::import.notifications.no_file'))
+                ->danger()
+                ->send();
+            return;
+        }
+
+        $columnMap = $data['columnMap'] ?? [];
+        $importMode = $data['import_mode'] ?? 'create_and_update';
+
+        // Read data from file
+        $rows = $this->readFileData($file);
+
+        if (empty($rows)) {
+            Notification::make()
+                ->title(__('core::import.notifications.empty_file'))
+                ->warning()
+                ->send();
+            return;
+        }
+
+        // Get the importer
+        $importerClass = $this->getImporter();
+        $modelClass = $importerClass::getModel();
+        $config = DynamicImporterFactory::getConfig($modelClass);
+
+        // Create import record
+        $import = Import::create([
+            'file_name' => $file->getClientOriginalName(),
+            'file_path' => $file->getRealPath(),
+            'importer' => $importerClass,
+            'total_rows' => count($rows),
+            'processed_rows' => 0,
+            'successful_rows' => 0,
+            'user_id' => auth()->id(),
+        ]);
+
+        $successCount = 0;
+        $failedCount = 0;
+        $errors = [];
+
+        // Process each row
+        foreach ($rows as $rowIndex => $row) {
+            try {
+                $result = $this->processRow($row, $columnMap, $importMode, $config, $modelClass);
+
+                if ($result['success']) {
+                    $successCount++;
+                } else {
+                    $failedCount++;
+                    if ($result['error']) {
+                        $errors[] = [
+                            'row' => $rowIndex + 2, // +2 because row 1 is header and index starts at 0
+                            'error' => $result['error'],
+                        ];
+
+                        // Save failed row
+                        FailedImportRow::create([
+                            'import_id' => $import->id,
+                            'data' => $row,
+                            'validation_error' => $result['error'],
+                        ]);
+                    }
+                }
+            } catch (\Exception $e) {
+                $failedCount++;
+                $errors[] = [
+                    'row' => $rowIndex + 2,
+                    'error' => $e->getMessage(),
+                ];
+
+                Log::error('Import row failed', [
+                    'row' => $rowIndex + 2,
+                    'error' => $e->getMessage(),
+                    'data' => $row,
+                ]);
+
+                FailedImportRow::create([
+                    'import_id' => $import->id,
+                    'data' => $row,
+                    'validation_error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        // Update import record
+        $import->update([
+            'processed_rows' => count($rows),
+            'successful_rows' => $successCount,
+            'completed_at' => now(),
+        ]);
+
+        // Save mapping if requested
+        $this->callAfterAction($data);
+
+        // Show notification with results
+        if ($failedCount === 0) {
+            Notification::make()
+                ->title(__('core::import.notifications.success'))
+                ->body(__('core::import.notifications.success_body', [
+                    'count' => $successCount,
+                ]))
+                ->success()
+                ->send();
+        } elseif ($successCount > 0) {
+            Notification::make()
+                ->title(__('core::import.notifications.partial_success'))
+                ->body(__('core::import.notifications.partial_success_body', [
+                    'success' => $successCount,
+                    'failed' => $failedCount,
+                ]))
+                ->warning()
+                ->persistent()
+                ->send();
+
+            // Show first few errors
+            $this->showErrors($errors);
+        } else {
+            Notification::make()
+                ->title(__('core::import.notifications.failed'))
+                ->body(__('core::import.notifications.failed_body', [
+                    'count' => $failedCount,
+                ]))
+                ->danger()
+                ->persistent()
+                ->send();
+
+            $this->showErrors($errors);
+        }
+    }
+
+    /**
+     * Show error notifications for failed rows.
+     */
+    protected function showErrors(array $errors): void
+    {
+        $maxErrorsToShow = 5;
+        $errorsToShow = array_slice($errors, 0, $maxErrorsToShow);
+
+        foreach ($errorsToShow as $error) {
+            Notification::make()
+                ->title(__('core::import.notifications.row_error', ['row' => $error['row']]))
+                ->body(Str::limit($error['error'], 200))
+                ->danger()
+                ->send();
+        }
+
+        if (count($errors) > $maxErrorsToShow) {
+            Notification::make()
+                ->title(__('core::import.notifications.more_errors', [
+                    'count' => count($errors) - $maxErrorsToShow,
+                ]))
+                ->warning()
+                ->send();
+        }
+    }
+
+    /**
+     * Process a single row of data.
+     */
+    protected function processRow(array $row, array $columnMap, string $importMode, array $config, string $modelClass): array
+    {
+        // Map the row data using column mappings
+        $mappedData = [];
+
+        foreach ($columnMap as $fieldName => $fileColumn) {
+            if (empty($fileColumn)) {
+                continue;
+            }
+
+            $value = $row[$fileColumn] ?? null;
+            if ($value !== null && $value !== '') {
+                $mappedData[$fieldName] = $value;
+            }
+        }
+
+        if (empty($mappedData)) {
+            return ['success' => false, 'error' => __('core::import.errors.empty_row')];
+        }
+
+        // Process the data using DynamicImporterFactory transformations
+        $processedData = $this->processData($mappedData, $config);
+
+        // Find or create record based on import mode
+        $record = $this->resolveRecord($processedData, $config, $modelClass, $importMode);
+
+        if ($record === null) {
+            return ['success' => false, 'error' => __('core::import.errors.cannot_resolve_record')];
+        }
+
+        // Check import mode restrictions
+        $isNew = !$record->exists;
+        if ($isNew && $importMode === 'update_only') {
+            return ['success' => false, 'error' => __('core::import.errors.record_not_found_for_update')];
+        }
+        if (!$isNew && $importMode === 'create_only') {
+            return ['success' => false, 'error' => __('core::import.errors.record_already_exists')];
+        }
+
+        // Fill the record with processed data
+        $this->fillRecord($record, $processedData, $config);
+
+        // Validate and save
+        try {
+            $record->save();
+            return ['success' => true, 'error' => null];
+        } catch (\Illuminate\Database\QueryException $e) {
+            return ['success' => false, 'error' => $this->parseQueryException($e)];
+        }
+    }
+
+    /**
+     * Process data using DynamicImporterFactory transformations.
+     */
+    protected function processData(array $data, array $config): array
+    {
+        $processed = [];
+
+        foreach ($data as $field => $value) {
+            // Handle translatable fields (e.g., name_en, name_ar)
+            if (preg_match('/^(.+)_(en|ar)$/', $field, $matches)) {
+                $baseField = $matches[1];
+                $lang = $matches[2];
+
+                if (in_array($baseField, $config['translatable'])) {
+                    if (!isset($processed[$baseField])) {
+                        $processed[$baseField] = [];
+                    }
+                    $processed[$baseField][$lang] = $value;
+                    continue;
+                }
+            }
+
+            // Handle relationship fields
+            if (isset($config['relationships'][$field])) {
+                $resolved = DynamicImporterFactory::resolveRelationship(
+                    $config['relationships'][$field]['model'],
+                    $value
+                );
+                if ($resolved) {
+                    $processed[$field] = $resolved;
+                }
+                continue;
+            }
+
+            // Handle casts
+            $cast = $config['casts'][$field] ?? 'string';
+
+            switch (true) {
+                case $cast === 'boolean':
+                    $processed[$field] = DynamicImporterFactory::parseBoolean($value);
+                    break;
+
+                case $cast === 'integer':
+                    if (Str::endsWith($field, '_minor')) {
+                        $processed[$field] = DynamicImporterFactory::parseMonetary($value);
+                    } else {
+                        $processed[$field] = (int) $value;
+                    }
+                    break;
+
+                case Str::startsWith($cast, 'decimal'):
+                    $processed[$field] = (float) $value;
+                    break;
+
+                case $cast === 'date':
+                case $cast === 'datetime':
+                    $processed[$field] = DynamicImporterFactory::parseDate($value);
+                    break;
+
+                case $cast === 'array':
+                case $cast === 'json':
+                    $processed[$field] = DynamicImporterFactory::parseArray($value);
+                    break;
+
+                default:
+                    // Check for constants
+                    if (isset($config['constants'][$field])) {
+                        $processed[$field] = DynamicImporterFactory::resolveConstant($value, $config['constants'][$field]);
+                    } else {
+                        $processed[$field] = $value;
+                    }
+                    break;
+            }
+        }
+
+        return $processed;
+    }
+
+    /**
+     * Resolve or create a record based on processed data.
+     */
+    protected function resolveRecord(array $data, array $config, string $modelClass, string $importMode): ?Model
+    {
+        $tenantId = tenant()?->id ?? session('tenant_id');
+
+        // Try to find existing record by unique fields
+        $uniqueFields = $config['uniqueFields'] ?? [];
+
+        foreach ($uniqueFields as $field) {
+            if (isset($data[$field]) && !empty($data[$field])) {
+                $query = $modelClass::query();
+
+                if (in_array('tenant_id', $config['fillable'])) {
+                    $query->where('tenant_id', $tenantId);
+                }
+
+                $existing = $query->where($field, $data[$field])->first();
+                if ($existing) {
+                    return $existing;
+                }
+            }
+        }
+
+        // Try translatable name/title fields
+        foreach (['name', 'title'] as $translatableField) {
+            if (in_array($translatableField, $config['translatable']) && isset($data[$translatableField])) {
+                $translations = $data[$translatableField];
+
+                if (!is_array($translations)) {
+                    continue;
+                }
+
+                $query = $modelClass::query();
+
+                if (in_array('tenant_id', $config['fillable'])) {
+                    $query->where('tenant_id', $tenantId);
+                }
+
+                $query->where(function ($q) use ($translatableField, $translations) {
+                    foreach ($translations as $lang => $value) {
+                        if (!empty($value)) {
+                            $q->orWhereRaw("{$translatableField}->>'$lang' ILIKE ?", [$value]);
+                        }
+                    }
+                });
+
+                $existing = $query->first();
+                if ($existing) {
+                    return $existing;
+                }
+            }
+        }
+
+        // Create new model instance
+        $model = new $modelClass();
+
+        if (in_array('tenant_id', $config['fillable'])) {
+            $model->tenant_id = $tenantId;
+        }
+
+        return $model;
+    }
+
+    /**
+     * Fill record with processed data.
+     */
+    protected function fillRecord(Model $record, array $data, array $config): void
+    {
+        foreach ($data as $field => $value) {
+            // Skip non-fillable fields
+            if (!in_array($field, $config['fillable']) && !in_array($field, $config['translatable'])) {
+                continue;
+            }
+
+            // Handle translatable fields
+            if (in_array($field, $config['translatable']) && is_array($value)) {
+                $existing = $record->{$field} ?? [];
+                if (!is_array($existing)) {
+                    $existing = [];
+                }
+                $record->{$field} = array_merge($existing, $value);
+                continue;
+            }
+
+            $record->{$field} = $value;
+        }
+    }
+
+    /**
+     * Parse query exception for user-friendly error message.
+     */
+    protected function parseQueryException(\Illuminate\Database\QueryException $e): string
+    {
+        $message = $e->getMessage();
+
+        // Check for unique constraint violation
+        if (Str::contains($message, ['UNIQUE constraint', 'Duplicate entry', 'unique_violation', 'violates unique constraint'])) {
+            preg_match('/Key \(([^)]+)\)/', $message, $matches);
+            $field = $matches[1] ?? 'field';
+            return __('core::import.errors.duplicate_value', ['field' => $field]);
+        }
+
+        // Check for foreign key violation
+        if (Str::contains($message, ['FOREIGN KEY constraint', 'foreign key constraint', 'violates foreign key constraint'])) {
+            return __('core::import.errors.invalid_relationship');
+        }
+
+        // Check for null constraint violation
+        if (Str::contains($message, ['NOT NULL constraint', 'null value in column', 'violates not-null constraint'])) {
+            preg_match('/column "([^"]+)"/', $message, $matches);
+            $field = $matches[1] ?? 'field';
+            return __('core::import.errors.required_field', ['field' => Str::headline($field)]);
+        }
+
+        Log::error('Import query exception', ['message' => $message]);
+        return __('core::import.errors.database_error');
+    }
+
+    /**
+     * Read data from uploaded file (CSV or Excel).
+     */
+    protected function readFileData(TemporaryUploadedFile $file): array
+    {
+        $extension = strtolower($file->getClientOriginalExtension());
+        $filePath = $file->getRealPath();
+
+        if (in_array($extension, ['xlsx', 'xls'])) {
+            return $this->readExcelData($filePath);
+        }
+
+        return $this->readCsvData($file);
+    }
+
+    /**
+     * Read data from Excel file.
+     */
+    protected function readExcelData(string $filePath): array
+    {
+        try {
+            $spreadsheet = IOFactory::load($filePath);
+            $worksheet = $spreadsheet->getActiveSheet();
+
+            $rows = [];
+            $headers = [];
+            $rowIterator = $worksheet->getRowIterator();
+
+            foreach ($rowIterator as $rowIndex => $row) {
+                $cellIterator = $row->getCellIterator();
+                $cellIterator->setIterateOnlyExistingCells(false);
+
+                $rowData = [];
+                foreach ($cellIterator as $cell) {
+                    $rowData[] = $cell->getValue();
+                }
+
+                // First row is headers
+                if ($rowIndex === 1) {
+                    $headers = array_filter($rowData, fn($v) => $v !== null && $v !== '');
+                    continue;
+                }
+
+                // Skip empty rows
+                $nonEmpty = array_filter($rowData, fn($v) => $v !== null && $v !== '');
+                if (empty($nonEmpty)) {
+                    continue;
+                }
+
+                // Map data to headers
+                $mapped = [];
+                foreach ($headers as $i => $header) {
+                    $mapped[$header] = $rowData[$i] ?? null;
+                }
+
+                $rows[] = $mapped;
+            }
+
+            return $rows;
+        } catch (\Exception $e) {
+            Log::error('Excel read error', ['error' => $e->getMessage()]);
+            return [];
+        }
+    }
+
+    /**
+     * Read data from CSV file.
+     */
+    protected function readCsvData(TemporaryUploadedFile $file): array
+    {
+        try {
+            $csvStream = $this->getUploadedFileStream($file);
+
+            if (!$csvStream) {
+                return [];
+            }
+
+            $csvReader = CsvReader::createFromStream($csvStream);
+
+            if (filled($csvDelimiter = $this->getCsvDelimiter($csvReader))) {
+                $csvReader->setDelimiter($csvDelimiter);
+            }
+
+            $csvReader->setHeaderOffset($this->getHeaderOffset() ?? 0);
+
+            $records = [];
+            foreach ($csvReader->getRecords() as $record) {
+                $records[] = $record;
+            }
+
+            return $records;
+        } catch (\Exception $e) {
+            Log::error('CSV read error', ['error' => $e->getMessage()]);
+            return [];
+        }
     }
 
     /**

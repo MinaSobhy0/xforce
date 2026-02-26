@@ -60,6 +60,16 @@ return [
         'success_title' => 'تم الاستيراد بنجاح',
         'no_data' => 'لم يتم العثور على بيانات في الملف المرفوع.',
         'invalid_file' => 'تعذر قراءة الملف المرفوع. يرجى التحقق من تنسيق الملف.',
+        'no_file' => 'يرجى رفع ملف للاستيراد.',
+        'empty_file' => 'الملف المرفوع فارغ أو لا يحتوي على بيانات.',
+        'success' => 'تم الاستيراد بنجاح',
+        'success_body' => 'تم استيراد :count سجل بنجاح.',
+        'partial_success' => 'اكتمل الاستيراد مع وجود أخطاء',
+        'partial_success_body' => 'تم استيراد :success سجل بنجاح، فشل :failed سجل.',
+        'failed' => 'فشل الاستيراد',
+        'failed_body' => 'فشل استيراد جميع السجلات (:count سجل).',
+        'row_error' => 'خطأ في الصف :row',
+        'more_errors' => ':count خطأ إضافي غير معروض',
     ],
 
     // Validation messages
@@ -80,8 +90,15 @@ return [
         'invalid_value' => 'قيمة غير صالحة للحقل ":field".',
         'relationship_not_found' => 'تعذر العثور على :model بالقيمة ":value".',
         'duplicate_entry' => 'تم العثور على إدخال مكرر للحقل ":field".',
-        'database_error' => 'خطأ في قاعدة البيانات: :message',
+        'database_error' => 'حدث خطأ في قاعدة البيانات. يرجى التحقق من البيانات.',
         'unknown_error' => 'حدث خطأ غير معروف أثناء معالجة الصف :row.',
+        'empty_row' => 'الصف لا يحتوي على بيانات بعد تطبيق تعيين الأعمدة.',
+        'cannot_resolve_record' => 'لا يمكن إنشاء أو العثور على سجل لهذه البيانات.',
+        'record_not_found_for_update' => 'لم يتم العثور على سجل موجود للتحديث.',
+        'record_already_exists' => 'يوجد سجل بهذه البيانات بالفعل.',
+        'duplicate_value' => 'قيمة مكررة للحقل: :field',
+        'invalid_relationship' => 'مرجع علاقة غير صالح. السجل المرتبط غير موجود.',
+        'required_field' => 'الحقل :field مطلوب.',
     ],
 
     // Field labels
