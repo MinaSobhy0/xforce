@@ -9,9 +9,20 @@ return new class extends Migration
 {
     /**
      * Rename all treatment-related tables and columns to service-related names.
+     * For fresh installs where services tables already exist, this migration is skipped.
      */
     public function up(): void
     {
+        // If services table already exists (fresh install), skip this migration
+        if (Schema::hasTable('services')) {
+            return;
+        }
+
+        // If treatments table doesn't exist either, nothing to do
+        if (!Schema::hasTable('treatments')) {
+            return;
+        }
+
         // Step 1: Drop all foreign key constraints that reference the tables we're renaming
         $this->dropForeignKeys();
 

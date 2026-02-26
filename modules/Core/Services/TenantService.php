@@ -662,11 +662,6 @@ class TenantService
             'create_tenant_subscriptions_table',
             'create_tenant_usage_table',
             'create_tenant_modules_table',
-            'add_max_branches_to_tenants_table',
-            'add_branches_to_tenant_usage_table',
-            'add_whatsapp_sent_to_tenant_usage',
-            '_to_tenants_table',
-            '_to_tenant_usage',
         ];
 
         if (is_dir($modulesPath)) {

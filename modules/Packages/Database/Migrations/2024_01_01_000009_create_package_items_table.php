@@ -12,15 +12,15 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->uuid('tenant_id')->index();
             $table->uuid('package_id')->index();
-            $table->uuid('treatment_id')->index();
+            $table->uuid('service_id')->index();
             $table->integer('quantity')->default(1);
             $table->integer('sort_order')->default(0);
             $table->timestamps();
 
             $table->foreign('package_id')->references('id')->on('packages')->cascadeOnDelete();
-            $table->foreign('treatment_id')->references('id')->on('treatments')->cascadeOnDelete();
+            $table->foreign('service_id')->references('id')->on('services')->cascadeOnDelete();
 
-            $table->unique(['package_id', 'treatment_id']);
+            $table->unique(['package_id', 'service_id']);
         });
     }
 

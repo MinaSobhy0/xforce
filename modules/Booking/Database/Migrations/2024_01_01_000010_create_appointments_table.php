@@ -13,7 +13,7 @@ return new class extends Migration
             $table->uuid('tenant_id')->nullable()->index();
             $table->string('code')->unique();
             $table->foreignUuid('patient_id')->constrained('patients')->cascadeOnDelete();
-            $table->foreignUuid('treatment_id')->constrained('treatments')->cascadeOnDelete();
+            $table->foreignUuid('service_id')->constrained('services')->cascadeOnDelete();
             $table->foreignUuid('branch_id')->constrained('branches')->cascadeOnDelete();
             $table->foreignUuid('practitioner_id')->constrained('users')->cascadeOnDelete();
             $table->foreignUuid('room_id')->nullable()->constrained('rooms')->nullOnDelete();
@@ -40,7 +40,7 @@ return new class extends Migration
 
             // Indexes
             $table->index('patient_id');
-            $table->index('treatment_id');
+            $table->index('service_id');
             $table->index('branch_id');
             $table->index('practitioner_id');
             $table->index('date');

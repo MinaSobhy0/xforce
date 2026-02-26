@@ -15,7 +15,7 @@ return new class extends Migration
             $table->integer('branches')->default(0);
             $table->integer('patients')->default(0);
             $table->integer('appointments')->default(0);
-            $table->integer('treatments')->default(0);
+            $table->integer('services')->default(0);
             $table->integer('storage_mb')->default(0);
             $table->integer('api_requests')->default(0);
             $table->integer('email_sent')->default(0);

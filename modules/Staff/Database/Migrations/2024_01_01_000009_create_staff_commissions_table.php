@@ -12,8 +12,8 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->uuid('tenant_id')->index();
             $table->uuid('staff_profile_id');
-            $table->uuid('treatment_id')->nullable();
-            $table->uuid('treatment_category_id')->nullable();
+            $table->uuid('service_id')->nullable();
+            $table->uuid('service_category_id')->nullable();
             $table->string('commission_type', 20)->default('percentage');
             $table->integer('flat_amount_minor')->default(0);
             $table->decimal('percentage', 5, 2)->default(10.00);
@@ -27,14 +27,14 @@ return new class extends Migration
                 ->on('staff_profiles')
                 ->onDelete('cascade');
 
-            $table->foreign('treatment_id')
+            $table->foreign('service_id')
                 ->references('id')
-                ->on('treatments')
+                ->on('services')
                 ->onDelete('cascade');
 
-            $table->foreign('treatment_category_id')
+            $table->foreign('service_category_id')
                 ->references('id')
-                ->on('treatment_categories')
+                ->on('service_categories')
                 ->onDelete('cascade');
 
             $table->index(['tenant_id', 'staff_profile_id']);

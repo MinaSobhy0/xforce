@@ -23,8 +23,8 @@ return new class extends Migration
             $table->integer('max_points_per_transaction')->nullable(); // Cap points per transaction
 
             // Treatment/Category specific rules
-            $table->uuid('treatment_id')->nullable();
-            $table->uuid('treatment_category_id')->nullable();
+            $table->uuid('service_id')->nullable();
+            $table->uuid('service_category_id')->nullable();
 
             // Multiplier (for tiers or promotions)
             $table->decimal('multiplier', 5, 2)->default(1.0);
@@ -43,11 +43,11 @@ return new class extends Migration
             $table->softDeletes();
 
             // Foreign keys
-            $table->foreign('treatment_id')
-                ->references('id')->on('treatments')
+            $table->foreign('service_id')
+                ->references('id')->on('services')
                 ->nullOnDelete();
-            $table->foreign('treatment_category_id')
-                ->references('id')->on('treatment_categories')
+            $table->foreign('service_category_id')
+                ->references('id')->on('service_categories')
                 ->nullOnDelete();
 
             // Indexes
