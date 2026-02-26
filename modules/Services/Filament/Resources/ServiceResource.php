@@ -19,6 +19,7 @@ use Modules\Staff\Models\StaffProfile;
 use Modules\Services\Filament\Resources\ServiceResource\Pages;
 use Modules\Services\Filament\Resources\ServiceResource\RelationManagers;
 use Illuminate\Database\Eloquent\Builder;
+use XLinic\Framework\Core\Filament\RelationManagers\ActivityLogRelationManager;
 
 class ServiceResource extends Resource
 {
@@ -570,6 +571,7 @@ class ServiceResource extends Resource
             RelationManagers\ParameterPresetsRelationManager::class,
             RelationManagers\AppointmentsRelationManager::class,
             RelationManagers\PackageItemsRelationManager::class,
+            ActivityLogRelationManager::class,
         ];
     }
 

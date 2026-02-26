@@ -5,11 +5,12 @@ namespace Modules\Inventory\Models;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\Translatable\HasTranslations;
 use XLinic\Framework\Core\Model\BaseModel;
+use XLinic\Framework\Core\Model\Traits\HasActivity;
 use XLinic\Framework\Core\Model\Traits\HasSequence;
 
 class Supplier extends BaseModel
 {
-    use HasTranslations, HasSequence;
+    use HasTranslations, HasSequence, HasActivity;
 
     protected $table = 'suppliers';
 

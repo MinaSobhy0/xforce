@@ -6,11 +6,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Modules\Core\Models\Branch;
 use XLinic\Framework\Core\Model\BaseModel;
+use XLinic\Framework\Core\Model\Traits\HasActivity;
 use XLinic\Framework\Core\Model\Traits\HasSequence;
 
 class PurchaseOrder extends BaseModel
 {
-    use HasSequence;
+    use HasSequence, HasActivity;
 
     protected $table = 'purchase_orders';
 

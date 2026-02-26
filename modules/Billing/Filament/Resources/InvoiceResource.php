@@ -22,6 +22,7 @@ use Filament\Infolists\Infolist;
 use Filament\Support\Enums\FontWeight;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use XLinic\Framework\Core\Filament\RelationManagers\ActivityLogRelationManager;
 
 class InvoiceResource extends Resource
 {
@@ -623,6 +624,7 @@ class InvoiceResource extends Resource
         return [
             RelationManagers\LinesRelationManager::class,
             RelationManagers\PaymentsRelationManager::class,
+            ActivityLogRelationManager::class,
         ];
     }
 

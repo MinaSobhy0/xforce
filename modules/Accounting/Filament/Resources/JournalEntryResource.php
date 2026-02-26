@@ -16,6 +16,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Support\Enums\FontWeight;
 use Illuminate\Database\Eloquent\Builder;
+use XLinic\Framework\Core\Filament\RelationManagers\ActivityLogRelationManager;
 
 class JournalEntryResource extends Resource
 {
@@ -319,7 +320,9 @@ class JournalEntryResource extends Resource
 
     public static function getRelations(): array
     {
-        return [];
+        return [
+            ActivityLogRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

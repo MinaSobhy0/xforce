@@ -16,6 +16,7 @@ use Modules\Inventory\Models\Product;
 use Modules\Inventory\Models\ProductCategory;
 use Modules\Inventory\Filament\Resources\ProductResource\Pages;
 use Modules\Inventory\Filament\Resources\ProductResource\RelationManagers;
+use XLinic\Framework\Core\Filament\RelationManagers\ActivityLogRelationManager;
 
 class ProductResource extends Resource
 {
@@ -405,6 +406,7 @@ class ProductResource extends Resource
         return [
             RelationManagers\StockLevelsRelationManager::class,
             RelationManagers\StockMovementsRelationManager::class,
+            ActivityLogRelationManager::class,
         ];
     }
 

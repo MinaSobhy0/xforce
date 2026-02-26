@@ -15,10 +15,12 @@ use Modules\Payroll\Models\EmployeeSalaryComponent;
 use Modules\Payroll\Models\EmployeeSalaryStructure;
 use Spatie\Translatable\HasTranslations;
 use XLinic\Framework\Core\Model\BaseModel;
+use XLinic\Framework\Core\Model\Traits\HasActivity;
 
 class StaffProfile extends BaseModel
 {
     use HasTranslations;
+    use HasActivity;
 
     protected $table = 'staff_profiles';
 

@@ -8,11 +8,12 @@ use Modules\Accounting\Models\ChartOfAccount;
 use Modules\Assets\Models\AssetType;
 use Spatie\Translatable\HasTranslations;
 use XLinic\Framework\Core\Model\BaseModel;
+use XLinic\Framework\Core\Model\Traits\HasActivity;
 use XLinic\Framework\Core\Model\Traits\HasSequence;
 
 class Product extends BaseModel
 {
-    use HasTranslations, HasSequence;
+    use HasTranslations, HasSequence, HasActivity;
 
     protected $table = 'products';
 

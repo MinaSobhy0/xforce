@@ -19,6 +19,7 @@ use Filament\Tables\Table;
 use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
+use XLinic\Framework\Core\Filament\RelationManagers\ActivityLogRelationManager;
 
 class GiftCardResource extends Resource
 {
@@ -519,6 +520,7 @@ class GiftCardResource extends Resource
     {
         return [
             \Modules\GiftCards\Filament\Resources\GiftCardResource\RelationManagers\TransactionsRelationManager::class,
+            ActivityLogRelationManager::class,
         ];
     }
 

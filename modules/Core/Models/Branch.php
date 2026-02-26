@@ -3,6 +3,7 @@
 namespace Modules\Core\Models;
 
 use XLinic\Framework\Core\Model\BaseModel;
+use XLinic\Framework\Core\Model\Traits\HasActivity;
 use XLinic\Framework\Core\Model\Traits\HasTenancy;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -10,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Branch extends BaseModel
 {
     use HasTenancy;
+    use HasActivity;
 
     protected $fillable = [
         'tenant_id',

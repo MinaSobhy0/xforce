@@ -10,6 +10,7 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use XLinic\Framework\Core\Filament\RelationManagers\ActivityLogRelationManager;
 
 class MembershipResource extends Resource
 {
@@ -228,6 +229,7 @@ class MembershipResource extends Resource
     {
         return [
             \Modules\Memberships\Filament\Resources\MembershipResource\RelationManagers\SubscriptionsRelationManager::class,
+            ActivityLogRelationManager::class,
         ];
     }
 

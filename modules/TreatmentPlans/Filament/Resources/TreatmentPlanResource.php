@@ -19,6 +19,7 @@ use Filament\Infolists;
 use Filament\Infolists\Infolist;
 use Filament\Support\Enums\FontWeight;
 use Illuminate\Database\Eloquent\Builder;
+use XLinic\Framework\Core\Filament\RelationManagers\ActivityLogRelationManager;
 
 class TreatmentPlanResource extends Resource
 {
@@ -543,6 +544,7 @@ class TreatmentPlanResource extends Resource
             \Modules\TreatmentPlans\Filament\Resources\TreatmentPlanResource\RelationManagers\AppointmentsRelationManager::class,
             \Modules\TreatmentPlans\Filament\Resources\TreatmentPlanResource\RelationManagers\PaymentsRelationManager::class,
             \Modules\TreatmentPlans\Filament\Resources\TreatmentPlanResource\RelationManagers\InvoicesRelationManager::class,
+            ActivityLogRelationManager::class,
         ];
     }
 

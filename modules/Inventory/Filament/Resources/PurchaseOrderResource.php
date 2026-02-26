@@ -15,6 +15,7 @@ use Modules\Inventory\Models\Product;
 use Modules\Inventory\Models\Supplier;
 use Modules\Inventory\Filament\Resources\PurchaseOrderResource\Pages;
 use Modules\Inventory\Filament\Resources\PurchaseOrderResource\RelationManagers;
+use XLinic\Framework\Core\Filament\RelationManagers\ActivityLogRelationManager;
 
 class PurchaseOrderResource extends Resource
 {
@@ -537,6 +538,7 @@ class PurchaseOrderResource extends Resource
     {
         return [
             RelationManagers\LinesRelationManager::class,
+            ActivityLogRelationManager::class,
         ];
     }
 

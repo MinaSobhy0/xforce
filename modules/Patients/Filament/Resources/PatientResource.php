@@ -17,6 +17,7 @@ use Filament\Infolists;
 use Filament\Infolists\Infolist;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use XLinic\Framework\Core\Filament\RelationManagers\ActivityLogRelationManager;
 
 class PatientResource extends Resource
 {
@@ -479,6 +480,7 @@ class PatientResource extends Resource
             RelationManagers\PackagesRelationManager::class,
             RelationManagers\LoyaltyRelationManager::class,
             RelationManagers\AmrTestsRelationManager::class,
+            ActivityLogRelationManager::class,
         ];
     }
 

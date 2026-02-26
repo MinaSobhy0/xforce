@@ -3,6 +3,7 @@
 namespace Modules\Marketing\Models;
 
 use XLinic\Framework\Core\Model\BaseModel;
+use XLinic\Framework\Core\Model\Traits\HasActivity;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Modules\Auth\Models\User;
@@ -11,6 +12,7 @@ use Spatie\Translatable\HasTranslations;
 class Campaign extends BaseModel
 {
     use HasTranslations;
+    use HasActivity;
 
     protected $table = 'campaigns';
 

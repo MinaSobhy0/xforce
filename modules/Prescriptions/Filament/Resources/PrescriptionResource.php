@@ -21,6 +21,7 @@ use Filament\Infolists\Infolist;
 use Filament\Support\Enums\FontWeight;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use XLinic\Framework\Core\Filament\RelationManagers\ActivityLogRelationManager;
 
 class PrescriptionResource extends Resource
 {
@@ -610,6 +611,7 @@ class PrescriptionResource extends Resource
     {
         return [
             RelationManagers\ItemsRelationManager::class,
+            ActivityLogRelationManager::class,
         ];
     }
 

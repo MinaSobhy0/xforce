@@ -11,6 +11,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use XLinic\Framework\Core\Filament\RelationManagers\ActivityLogRelationManager;
 use Modules\Core\Models\Branch;
 use Modules\Core\Models\Room;
 use Modules\Equipment\Filament\Resources\EquipmentResource\Pages;
@@ -372,6 +373,7 @@ class EquipmentResource extends Resource
         return [
             RelationManagers\TrackingParametersRelationManager::class,
             RelationManagers\MaintenanceLogsRelationManager::class,
+            ActivityLogRelationManager::class,
         ];
     }
 

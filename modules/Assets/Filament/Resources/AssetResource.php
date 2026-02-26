@@ -19,6 +19,7 @@ use Filament\Notifications\Notification;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
 use Illuminate\Database\Eloquent\Builder;
+use XLinic\Framework\Core\Filament\RelationManagers\ActivityLogRelationManager;
 
 class AssetResource extends Resource
 {
@@ -455,6 +456,7 @@ class AssetResource extends Resource
     {
         return [
             RelationManagers\DepreciationEntriesRelationManager::class,
+            ActivityLogRelationManager::class,
         ];
     }
 

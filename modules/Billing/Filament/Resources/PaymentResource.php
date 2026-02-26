@@ -19,6 +19,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Support\Enums\FontWeight;
 use Illuminate\Database\Eloquent\Builder;
+use XLinic\Framework\Core\Filament\RelationManagers\ActivityLogRelationManager;
 
 class PaymentResource extends Resource
 {
@@ -311,7 +312,9 @@ class PaymentResource extends Resource
 
     public static function getRelations(): array
     {
-        return [];
+        return [
+            ActivityLogRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

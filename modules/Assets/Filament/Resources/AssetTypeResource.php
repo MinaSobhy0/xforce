@@ -12,6 +12,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use XLinic\Framework\Core\Filament\RelationManagers\ActivityLogRelationManager;
 
 class AssetTypeResource extends Resource
 {
@@ -227,7 +228,9 @@ class AssetTypeResource extends Resource
 
     public static function getRelations(): array
     {
-        return [];
+        return [
+            ActivityLogRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

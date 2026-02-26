@@ -11,6 +11,7 @@ use Filament\Tables\Table;
 use Modules\Inventory\Models\Supplier;
 use Modules\Inventory\Filament\Resources\SupplierResource\Pages;
 use Modules\Inventory\Filament\Resources\SupplierResource\RelationManagers;
+use XLinic\Framework\Core\Filament\RelationManagers\ActivityLogRelationManager;
 
 class SupplierResource extends Resource
 {
@@ -224,6 +225,7 @@ class SupplierResource extends Resource
     {
         return [
             RelationManagers\PurchaseOrdersRelationManager::class,
+            ActivityLogRelationManager::class,
         ];
     }
 

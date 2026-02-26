@@ -14,6 +14,7 @@ use Modules\Staff\Models\CommissionPlan;
 use Modules\Staff\Models\StaffProfile;
 use Modules\Staff\Filament\Resources\StaffProfileResource\Pages;
 use Modules\Staff\Filament\Resources\StaffProfileResource\RelationManagers;
+use XLinic\Framework\Core\Filament\RelationManagers\ActivityLogRelationManager;
 
 class StaffProfileResource extends Resource
 {
@@ -261,6 +262,7 @@ class StaffProfileResource extends Resource
             RelationManagers\CommissionRecordsRelationManager::class,
             RelationManagers\SalaryStructuresRelationManager::class,
             RelationManagers\SalaryComponentsRelationManager::class,
+            ActivityLogRelationManager::class,
         ];
     }
 

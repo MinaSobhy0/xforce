@@ -10,6 +10,7 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use XLinic\Framework\Core\Filament\RelationManagers\ActivityLogRelationManager;
 
 class PackageResource extends Resource
 {
@@ -234,6 +235,7 @@ class PackageResource extends Resource
     {
         return [
             \Modules\Packages\Filament\Resources\PackageResource\RelationManagers\SubscriptionsRelationManager::class,
+            ActivityLogRelationManager::class,
         ];
     }
 

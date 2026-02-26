@@ -11,6 +11,7 @@ use Filament\Tables\Table;
 use Modules\Marketing\Filament\Resources\CampaignResource\Pages;
 use Modules\Marketing\Filament\Resources\CampaignResource\RelationManagers;
 use Modules\Marketing\Models\Campaign;
+use XLinic\Framework\Core\Filament\RelationManagers\ActivityLogRelationManager;
 use Modules\Marketing\Models\MessageTemplate;
 
 class CampaignResource extends Resource
@@ -277,6 +278,7 @@ class CampaignResource extends Resource
     {
         return [
             RelationManagers\RecipientsRelationManager::class,
+            ActivityLogRelationManager::class,
         ];
     }
 

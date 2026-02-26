@@ -19,6 +19,7 @@ use Filament\Tables\Table;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
 use Illuminate\Database\Eloquent\Builder;
+use XLinic\Framework\Core\Filament\RelationManagers\ActivityLogRelationManager;
 
 class AppointmentResource extends Resource
 {
@@ -563,6 +564,7 @@ class AppointmentResource extends Resource
         return [
             RelationManagers\ServiceNoteRelationManager::class,
             RelationManagers\PaymentsRelationManager::class,
+            ActivityLogRelationManager::class,
         ];
     }
 
