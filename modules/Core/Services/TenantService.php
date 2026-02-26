@@ -314,6 +314,9 @@ class TenantService
                 // Service parameter templates
                 \Modules\Services\Database\Seeders\ParameterTemplatesSeeder::class,
 
+                // Time off types
+                \Modules\Booking\Database\Seeders\TimeOffTypeSeeder::class,
+
                 // Default medicines catalog
                 \Modules\Prescriptions\Database\Seeders\DefaultMedicinesSeeder::class,
 
