@@ -168,7 +168,7 @@
                     </div>
                     <div class="flex-1 p-2 space-y-2 overflow-y-auto {{ $doneColors['bg'] }}">
                         @forelse($doneAppointments as $appointment)
-                            @include('booking::filament.widgets.partials.patient-card', ['appointment' => $appointment, 'waitTimeClasses' => $waitTimeClasses])
+                            @include('booking::filament.widgets.partials.patient-card', ['appointment' => $appointment, 'waitTimeClasses' => $waitTimeClasses, 'showPayment' => false])
                         @empty
                             <div class="flex flex-col items-center justify-center py-6 text-gray-400 dark:text-gray-500">
                                 <x-dynamic-component :component="$doneLane['icon']" class="w-6 h-6 mb-1 opacity-50" />

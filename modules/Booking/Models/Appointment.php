@@ -247,6 +247,16 @@ class Appointment extends BaseModel
         return max(0, ($this->price_minor ?? 0) - ($this->discount_minor ?? 0));
     }
 
+    public function getPaidAmountAttribute(): int
+    {
+        return (int) $this->payments()->sum('amount_minor');
+    }
+
+    public function getRemainingBalanceAttribute(): int
+    {
+        return max(0, $this->net_price - $this->paid_amount);
+    }
+
     public function getStatusLabelAttribute(): string
     {
         return self::STATUSES[$this->status] ?? $this->status;

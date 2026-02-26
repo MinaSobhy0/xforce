@@ -74,6 +74,7 @@ return [
         'start' => 'بدء الجلسة',
         'no_show' => 'تحديد كغائب',
         'view' => 'عرض',
+        'record_payment' => 'تسجيل دفعة',
     ],
 
     // Forms

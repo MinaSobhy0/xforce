@@ -3,7 +3,10 @@
     $waitClass = $waitTime ? ($waitTimeClasses[$waitTime['severity']] ?? $waitTimeClasses['success']) : '';
     $showRoom = $showRoom ?? true;
     $showCheckIn = $showCheckIn ?? false;
+    $showPayment = $showPayment ?? true;
     $canCheckIn = $this->canCheckIn($appointment);
+    $hasBalance = $appointment->remaining_balance > 0;
+    $canRecordPayment = in_array($appointment->status, ['checked_in', 'in_progress']) && $hasBalance;
 
     // Status colors and labels
     $statusConfig = [
@@ -85,24 +88,41 @@
         </div>
     </div>
 
-    {{-- Check-in Button --}}
-    @if($showCheckIn && $canCheckIn)
-        <div class="px-3 pb-3">
-            <button
-                type="button"
-                wire:click="checkInAppointment('{{ $appointment->id }}')"
-                wire:loading.attr="disabled"
-                wire:loading.class="opacity-50 cursor-not-allowed"
-                class="w-full inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white transition-colors shadow-sm"
-            >
-                <x-heroicon-o-check-circle class="w-4 h-4" />
-                <span wire:loading.remove wire:target="checkInAppointment('{{ $appointment->id }}')">
-                    {{ __('booking::reception.actions.check_in') }}
-                </span>
-                <span wire:loading wire:target="checkInAppointment('{{ $appointment->id }}')">
-                    {{ __('booking::reception.actions.checking_in') }}...
-                </span>
-            </button>
+    {{-- Action Buttons --}}
+    @if(($showCheckIn && $canCheckIn) || ($showPayment && $canRecordPayment))
+        <div class="px-3 pb-4 space-y-2">
+            {{-- Check-in Button --}}
+            @if($showCheckIn && $canCheckIn)
+                <x-filament::button
+                    wire:click="checkInAppointment('{{ $appointment->id }}')"
+                    wire:loading.attr="disabled"
+                    color="warning"
+                    size="sm"
+                    class="w-full"
+                    icon="heroicon-o-check-circle"
+                >
+                    <span wire:loading.remove wire:target="checkInAppointment('{{ $appointment->id }}')">
+                        {{ __('booking::reception.actions.check_in') }}
+                    </span>
+                    <span wire:loading wire:target="checkInAppointment('{{ $appointment->id }}')">
+                        {{ __('booking::reception.actions.checking_in') }}...
+                    </span>
+                </x-filament::button>
+            @endif
+
+            {{-- Record Payment Button (shows for checked_in and in_progress) --}}
+            @if($showPayment && $canRecordPayment)
+                <x-filament::button
+                    :href="route('filament.tenant.resources.appointments.view', ['record' => $appointment->id])"
+                    tag="a"
+                    color="success"
+                    size="sm"
+                    class="w-full"
+                    icon="heroicon-o-banknotes"
+                >
+                    {{ __('booking::reception.actions.record_payment') }}
+                </x-filament::button>
+            @endif
         </div>
     @endif
 </div>

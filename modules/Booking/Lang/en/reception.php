@@ -74,6 +74,7 @@ return [
         'start' => 'Start Session',
         'no_show' => 'Mark No-show',
         'view' => 'View',
+        'record_payment' => 'Record Payment',
     ],
 
     // Forms
