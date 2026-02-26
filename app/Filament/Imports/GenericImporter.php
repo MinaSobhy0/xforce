@@ -5,8 +5,8 @@ namespace App\Filament\Imports;
 use Filament\Actions\Imports\Importer;
 use Filament\Actions\Imports\Models\Import;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -43,43 +43,35 @@ class GenericImporter extends Importer
     }
 
     /**
-     * Get validation rules for the import data.
+     * Called before filling the record - log the incoming data.
      */
-    public function getValidationRules(): array
+    protected function beforeFill(): void
     {
-        $config = DynamicImporterFactory::getConfig(static::getModel());
-        $rules = [];
-
-        // Add basic validation for required translatable fields
-        foreach (['name', 'title'] as $field) {
-            if (in_array($field, $config['translatable'])) {
-                $rules["{$field}_en"] = ['nullable', 'string', 'max:255'];
-            }
-        }
-
-        return $rules;
+        Log::debug('Import: beforeFill called', [
+            'model' => static::$model,
+            'data' => $this->data,
+        ]);
     }
 
     /**
-     * Get validation messages.
+     * Called before saving the record - validate and log.
      */
-    public function getValidationMessages(): array
+    protected function beforeSave(): void
     {
-        return [
-            'required' => __('core::import.validation.field_required'),
-            'string' => __('core::import.validation.field_string'),
-            'max' => __('core::import.validation.field_max'),
-        ];
+        Log::debug('Import: beforeSave called', [
+            'model' => static::$model,
+            'record_attributes' => $this->record?->getAttributes(),
+        ]);
     }
 
     /**
-     * Handle a failed row with proper error reporting.
+     * Called after saving - log success.
      */
-    public function getFailedRowMessage(string $errorMessage, int $rowNumber): string
+    protected function afterSave(): void
     {
-        return __('core::import.errors.row_failed', [
-            'row' => $rowNumber,
-            'message' => $errorMessage,
+        Log::info('Import: Record saved successfully', [
+            'model' => static::$model,
+            'id' => $this->record?->id,
         ]);
     }
 
