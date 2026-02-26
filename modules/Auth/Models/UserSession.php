@@ -4,13 +4,9 @@ namespace Modules\Auth\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Str;
 
 class UserSession extends Model
 {
-    public $incrementing = false;
-    protected $keyType = 'string';
-
     protected $fillable = [
         'user_id',
         'session_id',
@@ -27,17 +23,6 @@ class UserSession extends Model
         'expires_at' => 'datetime',
         'is_active' => 'boolean',
     ];
-
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(function (self $model) {
-            if (empty($model->{$model->getKeyName()})) {
-                $model->{$model->getKeyName()} = Str::orderedUuid()->toString();
-            }
-        });
-    }
 
     public function user(): BelongsTo
     {

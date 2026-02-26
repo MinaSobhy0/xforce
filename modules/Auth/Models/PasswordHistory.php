@@ -4,13 +4,10 @@ namespace Modules\Auth\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Hash;
 
 class PasswordHistory extends Model
 {
-    public $incrementing = false;
-    protected $keyType = 'string';
     protected $table = 'password_history';
 
     public $timestamps = false;
@@ -34,10 +31,6 @@ class PasswordHistory extends Model
         parent::boot();
 
         static::creating(function (self $model) {
-            if (empty($model->{$model->getKeyName()})) {
-                $model->{$model->getKeyName()} = Str::orderedUuid()->toString();
-            }
-
             if (empty($model->created_at)) {
                 $model->created_at = now();
             }

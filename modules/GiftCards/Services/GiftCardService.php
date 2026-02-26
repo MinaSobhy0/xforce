@@ -170,10 +170,7 @@ class GiftCardService
 
         if (is_array($purchaserPatientIdOrData) && !empty($purchaserPatientIdOrData['first_name'])) {
             // Create new patient using direct insert to ensure it's committed
-            $patientId = (string) \Illuminate\Support\Str::orderedUuid();
-
-            DB::table('patients')->insert([
-                'id' => $patientId,
+            $patientId = DB::table('patients')->insertGetId([
                 'tenant_id' => $card->tenant_id,
                 'first_name' => $purchaserPatientIdOrData['first_name'],
                 'last_name' => $purchaserPatientIdOrData['last_name'] ?? '',

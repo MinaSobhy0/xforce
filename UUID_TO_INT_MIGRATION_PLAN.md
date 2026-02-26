@@ -179,34 +179,35 @@ Remove `use HasUuids;` trait from all models.
 
 ---
 
-## Phase 3: Module Models - Verify BaseModel Changes
+## Phase 3: Module Models - Verify BaseModel Changes (COMPLETED)
 
 All these extend BaseModel - after fixing BaseModel, verify they work correctly.
+**NOTE:** Models that don't extend BaseModel needed explicit fixes (UUID generation removed).
 
 ### 3.1 Core Module (9 models)
 | # | Status | File | Changes Required |
 |---|--------|------|------------------|
-| 59 | [ ] | `modules/Core/Models/Tenant.php` | Verify BaseModel changes work |
-| 60 | [ ] | `modules/Core/Models/TenantSubscription.php` | Verify BaseModel changes work |
-| 61 | [ ] | `modules/Core/Models/TenantUsage.php` | Verify BaseModel changes work |
-| 62 | [ ] | `modules/Core/Models/TenantModule.php` | Verify BaseModel changes work |
-| 63 | [ ] | `modules/Core/Models/TenantStatus.php` | Verify BaseModel changes work |
-| 64 | [ ] | `modules/Core/Models/Branch.php` | Verify BaseModel changes work |
-| 65 | [ ] | `modules/Core/Models/Room.php` | Verify BaseModel changes work |
-| 66 | [ ] | `modules/Core/Models/Setting.php` | Verify BaseModel changes work |
-| 67 | [ ] | `modules/Core/Models/Sequence.php` | Verify BaseModel changes work |
+| 59 | [x] | `modules/Core/Models/Tenant.php` | Removed $keyType, $incrementing, UUID generation |
+| 60 | [x] | `modules/Core/Models/TenantSubscription.php` | Removed $keyType, $incrementing, UUID generation |
+| 61 | [x] | `modules/Core/Models/TenantUsage.php` | Removed $keyType, $incrementing, UUID generation |
+| 62 | [x] | `modules/Core/Models/TenantModule.php` | Extends BaseModel - auto-fixed |
+| 63 | [x] | `modules/Core/Models/TenantStatus.php` | State enum - no changes needed |
+| 64 | [x] | `modules/Core/Models/Branch.php` | Extends BaseModel - auto-fixed |
+| 65 | [x] | `modules/Core/Models/Room.php` | Extends BaseModel - auto-fixed |
+| 66 | [x] | `modules/Core/Models/Setting.php` | Extends BaseModel - auto-fixed |
+| 67 | [x] | `modules/Core/Models/Sequence.php` | Extends BaseModel - auto-fixed |
 
 ### 3.2 Auth Module (8 models)
 | # | Status | File | Changes Required |
 |---|--------|------|------------------|
-| 68 | [ ] | `modules/Auth/Models/User.php` | Verify BaseModel changes work |
-| 69 | [ ] | `modules/Auth/Models/UserProfile.php` | Verify BaseModel changes work |
-| 70 | [ ] | `modules/Auth/Models/UserSession.php` | Verify BaseModel changes work |
-| 71 | [ ] | `modules/Auth/Models/LoginHistory.php` | Verify BaseModel changes work |
-| 72 | [ ] | `modules/Auth/Models/PasswordHistory.php` | Verify BaseModel changes work |
-| 73 | [ ] | `modules/Auth/Models/AccessPolicy.php` | Verify BaseModel changes work |
-| 74 | [ ] | `modules/Auth/Models/Role.php` | Keep as-is (extends Spatie, uses BIGINT) |
-| 75 | [ ] | `modules/Auth/Models/Permission.php` | Keep as-is (extends Spatie, uses BIGINT) |
+| 68 | [x] | `modules/Auth/Models/User.php` | Extends BaseModel - auto-fixed |
+| 69 | [x] | `modules/Auth/Models/UserProfile.php` | Removed $keyType, $incrementing, UUID generation |
+| 70 | [x] | `modules/Auth/Models/UserSession.php` | Removed $keyType, $incrementing, UUID generation |
+| 71 | [x] | `modules/Auth/Models/LoginHistory.php` | Removed $keyType, $incrementing, UUID generation |
+| 72 | [x] | `modules/Auth/Models/PasswordHistory.php` | Removed $keyType, $incrementing, UUID generation |
+| 73 | [x] | `modules/Auth/Models/AccessPolicy.php` | Extends BaseModel - auto-fixed |
+| 74 | [x] | `modules/Auth/Models/Role.php` | Keep as-is (extends Spatie, uses BIGINT) |
+| 75 | [x] | `modules/Auth/Models/Permission.php` | Keep as-is (extends Spatie, uses BIGINT) |
 
 ### 3.3 Patients Module (14 models)
 | # | Status | File | Changes Required |

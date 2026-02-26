@@ -4,12 +4,9 @@ namespace Modules\Auth\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Str;
 
 class LoginHistory extends Model
 {
-    public $incrementing = false;
-    protected $keyType = 'string';
     protected $table = 'login_history';
 
     protected $fillable = [
@@ -35,17 +32,6 @@ class LoginHistory extends Model
     public const STATUS_SUCCESS = 'success';
     public const STATUS_FAILED = 'failed';
     public const STATUS_BLOCKED = 'blocked';
-
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(function (self $model) {
-            if (empty($model->{$model->getKeyName()})) {
-                $model->{$model->getKeyName()} = Str::orderedUuid()->toString();
-            }
-        });
-    }
 
     public function user(): BelongsTo
     {

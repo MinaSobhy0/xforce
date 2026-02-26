@@ -318,11 +318,8 @@ class TenantService
                 return $existingBranch->id;
             }
 
-            $branchId = Str::uuid()->toString();
-
             // Create the default main branch
-            DB::table('branches')->insert([
-                'id' => $branchId,
+            $branchId = DB::table('branches')->insertGetId([
                 'tenant_id' => $tenant->id,
                 'name' => $tenant->name . ' - Main Branch',
                 'code' => 'MAIN',
@@ -407,7 +404,6 @@ class TenantService
                 return ['user_id' => $existing->id, 'password' => $password];
             }
 
-            $userId = Str::uuid()->toString();
             $nameParts = explode('@', $tenant->contact_email);
             $firstName = $tenant->contact_name ? explode(' ', $tenant->contact_name)[0] : ucfirst($nameParts[0]);
             $lastName = $tenant->contact_name && str_contains($tenant->contact_name, ' ')
@@ -415,8 +411,7 @@ class TenantService
                 : 'Admin';
 
             // Insert user
-            DB::table('users')->insert([
-                'id' => $userId,
+            $userId = DB::table('users')->insertGetId([
                 'tenant_id' => $tenant->id,
                 'first_name' => $firstName,
                 'last_name' => $lastName,
@@ -452,7 +447,6 @@ class TenantService
                 $mainBranch = DB::table('branches')->where('is_main', true)->first();
                 if ($mainBranch && $superAdminRole) {
                     DB::table('user_branch_roles')->insert([
-                        'id' => Str::uuid()->toString(),
                         'tenant_id' => $tenant->id,
                         'user_id' => $userId,
                         'branch_id' => $mainBranch->id,
@@ -626,7 +620,6 @@ class TenantService
             }
 
             DB::table('user_branch_roles')->insert([
-                'id' => Str::uuid()->toString(),
                 'tenant_id' => $tenant->id,
                 'user_id' => $userId,
                 'branch_id' => $mainBranch->id,

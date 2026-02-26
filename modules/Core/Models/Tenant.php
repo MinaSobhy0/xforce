@@ -28,16 +28,6 @@ class Tenant extends Model
      */
     protected $connection = 'central';
 
-    /**
-     * Indicates if the IDs are auto-incrementing.
-     */
-    public $incrementing = false;
-
-    /**
-     * The data type of the auto-incrementing ID.
-     */
-    protected $keyType = 'string';
-
     protected $fillable = [
         'name',
         'slug',
@@ -115,12 +105,7 @@ class Tenant extends Model
     {
         parent::boot();
 
-        // Auto-generate UUID on creating (since we're not using BaseModel)
         static::creating(function (self $tenant) {
-            if (empty($tenant->id)) {
-                $tenant->id = Str::orderedUuid()->toString();
-            }
-
             if (empty($tenant->slug)) {
                 $tenant->slug = Str::slug($tenant->name);
             }

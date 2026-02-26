@@ -4,13 +4,9 @@ namespace Modules\Auth\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Str;
 
 class UserProfile extends Model
 {
-    public $incrementing = false;
-    protected $keyType = 'string';
-
     protected $fillable = [
         'user_id',
         'bio',
@@ -31,17 +27,6 @@ class UserProfile extends Model
         'languages' => 'array',
         'custom_fields' => 'array',
     ];
-
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(function (self $model) {
-            if (empty($model->{$model->getKeyName()})) {
-                $model->{$model->getKeyName()} = Str::orderedUuid()->toString();
-            }
-        });
-    }
 
     public function user(): BelongsTo
     {

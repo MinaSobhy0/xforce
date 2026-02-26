@@ -14,7 +14,6 @@ use Modules\Core\Models\Branch;
 use Modules\Services\Models\Service;
 use Modules\Booking\Services\SlotGenerationService;
 use Carbon\Carbon;
-use Illuminate\Support\Str;
 use App\Traits\ChecksResourcePermissions;
 
 class BookingSlotConfigPage extends Page implements Forms\Contracts\HasForms
@@ -342,7 +341,6 @@ class BookingSlotConfigPage extends Page implements Forms\Contracts\HasForms
         } else {
             // Insert new
             \DB::table('booking_configs')->insert(array_merge($configData, [
-                'id' => Str::orderedUuid()->toString(),
                 'branch_id' => $branchId,
                 'created_at' => now(),
             ]));

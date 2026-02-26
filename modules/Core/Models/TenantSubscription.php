@@ -5,7 +5,6 @@ namespace Modules\Core\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Str;
 
 /**
  * TenantSubscription model - lives in public schema, not subject to tenant scoping.
@@ -17,19 +16,6 @@ class TenantSubscription extends Model
 
     protected $connection = 'central';
     protected $table = 'public.tenant_subscriptions';
-    public $incrementing = false;
-    protected $keyType = 'string';
-
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(function (self $model) {
-            if (empty($model->id)) {
-                $model->id = Str::orderedUuid()->toString();
-            }
-        });
-    }
 
     protected $fillable = [
         'tenant_id',
