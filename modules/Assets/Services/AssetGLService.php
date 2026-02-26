@@ -39,7 +39,7 @@ class AssetGLService
         }
 
         $fixedAssetAccount = $type->fixedAssetAccount;
-        $payableAccount = $this->defaultAccounts->getAccountsPayableAccount();
+        $payableAccount = $this->defaultAccounts->getSupplierPayableAccount();
 
         if (!$fixedAssetAccount || !$payableAccount) {
             Log::warning('Asset acquisition GL accounts not found', [
