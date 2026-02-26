@@ -3,11 +3,9 @@
 namespace App\Filament\Actions;
 
 use App\Models\ImportMapping;
-use Closure;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\CanImportRecords;
 use Filament\Actions\Imports\ImportColumn;
-use Filament\Actions\Imports\Importer;
 use Filament\Forms;
 use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\Fieldset;
@@ -22,6 +20,7 @@ use Illuminate\Validation\ValidationException;
 use League\Csv\Reader as CsvReader;
 use Livewire\Component;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class ImportTableAction extends Action
 {
@@ -69,6 +68,73 @@ class ImportTableAction extends Action
         ]);
     }
 
+    /**
+     * Extract column headers from uploaded file (CSV or Excel).
+     */
+    protected function getFileHeaders(TemporaryUploadedFile $file): array
+    {
+        $extension = strtolower($file->getClientOriginalExtension());
+        $filePath = $file->getRealPath();
+
+        if (in_array($extension, ['xlsx', 'xls'])) {
+            return $this->getExcelHeaders($filePath);
+        }
+
+        return $this->getCsvHeaders($file);
+    }
+
+    /**
+     * Get headers from Excel file.
+     */
+    protected function getExcelHeaders(string $filePath): array
+    {
+        try {
+            $spreadsheet = IOFactory::load($filePath);
+            $worksheet = $spreadsheet->getActiveSheet();
+            $headerRow = $worksheet->getRowIterator(1, 1)->current();
+            $cellIterator = $headerRow->getCellIterator();
+            $cellIterator->setIterateOnlyExistingCells(false);
+
+            $headers = [];
+            foreach ($cellIterator as $cell) {
+                $value = $cell->getValue();
+                if ($value !== null && $value !== '') {
+                    $headers[] = (string) $value;
+                }
+            }
+
+            return $headers;
+        } catch (\Exception $e) {
+            return [];
+        }
+    }
+
+    /**
+     * Get headers from CSV file.
+     */
+    protected function getCsvHeaders(TemporaryUploadedFile $file): array
+    {
+        try {
+            $csvStream = $this->getUploadedFileStream($file);
+
+            if (!$csvStream) {
+                return [];
+            }
+
+            $csvReader = CsvReader::createFromStream($csvStream);
+
+            if (filled($csvDelimiter = $this->getCsvDelimiter($csvReader))) {
+                $csvReader->setDelimiter($csvDelimiter);
+            }
+
+            $csvReader->setHeaderOffset($this->getHeaderOffset() ?? 0);
+
+            return $csvReader->getHeader();
+        } catch (\Exception $e) {
+            return [];
+        }
+    }
+
     protected function getImportForm(): array
     {
         return [
@@ -87,7 +153,7 @@ class ImportTableAction extends Action
                     'application/vnd.ms-excel',
                     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                 ])
-                ->rules(['required', 'extensions:csv,txt,xlsx'])
+                ->rules(['required', 'extensions:csv,txt,xlsx,xls'])
                 ->afterStateUpdated(function (FileUpload $component, Component $livewire, Forms\Set $set, ?TemporaryUploadedFile $state) {
                     if (!$state instanceof TemporaryUploadedFile) {
                         return;
@@ -100,36 +166,26 @@ class ImportTableAction extends Action
                         throw $exception;
                     }
 
-                    $csvStream = $this->getUploadedFileStream($state);
+                    $fileColumns = $this->getFileHeaders($state);
 
-                    if (!$csvStream) {
+                    if (empty($fileColumns)) {
                         return;
                     }
 
-                    $csvReader = CsvReader::createFromStream($csvStream);
-
-                    if (filled($csvDelimiter = $this->getCsvDelimiter($csvReader))) {
-                        $csvReader->setDelimiter($csvDelimiter);
-                    }
-
-                    $csvReader->setHeaderOffset($this->getHeaderOffset() ?? 0);
-
-                    $csvColumns = $csvReader->getHeader();
-
-                    $lowercaseCsvColumnValues = array_map(Str::lower(...), $csvColumns);
-                    $lowercaseCsvColumnKeys = array_combine(
-                        $lowercaseCsvColumnValues,
-                        $csvColumns,
+                    $lowercaseColumnValues = array_map(Str::lower(...), $fileColumns);
+                    $lowercaseColumnKeys = array_combine(
+                        $lowercaseColumnValues,
+                        $fileColumns,
                     );
 
                     // Auto-map columns based on name similarity
                     $set('columnMap', array_reduce(
                         $this->getImporter()::getColumns(),
-                        function (array $carry, ImportColumn $column) use ($lowercaseCsvColumnKeys, $lowercaseCsvColumnValues) {
-                            $carry[$column->getName()] = $lowercaseCsvColumnKeys[
+                        function (array $carry, ImportColumn $column) use ($lowercaseColumnKeys, $lowercaseColumnValues) {
+                            $carry[$column->getName()] = $lowercaseColumnKeys[
                                 Arr::first(
                                     array_intersect(
-                                        $lowercaseCsvColumnValues,
+                                        $lowercaseColumnValues,
                                         $column->getGuesses(),
                                     ),
                                 )
@@ -180,32 +236,23 @@ class ImportTableAction extends Action
                 ->columns(1)
                 ->inlineLabel()
                 ->schema(function (Forms\Get $get): array {
-                    $csvFile = Arr::first((array)($get('file') ?? []));
+                    $file = Arr::first((array)($get('file') ?? []));
 
-                    if (!$csvFile instanceof TemporaryUploadedFile) {
+                    if (!$file instanceof TemporaryUploadedFile) {
                         return [];
                     }
 
-                    $csvStream = $this->getUploadedFileStream($csvFile);
+                    $fileColumns = $this->getFileHeaders($file);
 
-                    if (!$csvStream) {
+                    if (empty($fileColumns)) {
                         return [];
                     }
 
-                    $csvReader = CsvReader::createFromStream($csvStream);
-
-                    if (filled($csvDelimiter = $this->getCsvDelimiter($csvReader))) {
-                        $csvReader->setDelimiter($csvDelimiter);
-                    }
-
-                    $csvReader->setHeaderOffset($this->getHeaderOffset() ?? 0);
-
-                    $csvColumns = $csvReader->getHeader();
-                    $csvColumnOptions = array_combine($csvColumns, $csvColumns);
+                    $columnOptions = array_combine($fileColumns, $fileColumns);
 
                     return array_map(
                         fn(ImportColumn $column): Select => $column->getSelect()
-                            ->options(['' => __('core::import.modal.form.skip_column')] + $csvColumnOptions)
+                            ->options(['' => __('core::import.modal.form.skip_column')] + $columnOptions)
                             ->label($column->getLabel() . ($column->isMappingRequired() ? ' *' : '')),
                         $this->getImporter()::getColumns(),
                     );
