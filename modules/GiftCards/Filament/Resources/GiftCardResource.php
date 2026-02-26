@@ -8,6 +8,7 @@ use Modules\GiftCards\Models\GiftCardTemplate;
 use Modules\GiftCards\Services\GiftCardService;
 use Modules\Auth\Models\User;
 use Modules\Patients\Models\Patient;
+use Modules\Accounting\Models\Journal;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -16,6 +17,7 @@ use Filament\Tables\Table;
 use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class GiftCardResource extends Resource
 {
@@ -56,23 +58,20 @@ class GiftCardResource extends Resource
             ->schema([
                 Forms\Components\Section::make(__('giftcards::giftcards.sections.basic_info'))
                     ->schema([
-                        Forms\Components\TextInput::make('code')
-                            ->label(__('giftcards::giftcards.fields.code'))
-                            ->disabled()
-                            ->dehydrated(false)
-                            ->visibleOn('edit'),
-
                         Forms\Components\Select::make('template_id')
                             ->label(__('giftcards::giftcards.fields.template'))
                             ->options(fn () => GiftCardTemplate::where('is_active', true)->pluck('name', 'id'))
                             ->searchable()
                             ->nullable()
-                            ->reactive()
+                            ->live()
                             ->afterStateUpdated(function (Forms\Set $set, $state) {
                                 if ($state) {
                                     $template = GiftCardTemplate::find($state);
-                                    if ($template && $template->validity_days) {
-                                        $set('expires_at', now()->addDays($template->validity_days));
+                                    if ($template) {
+                                        $set('initial_value_minor', $template->amount_minor / 100);
+                                        if ($template->validity_days) {
+                                            $set('expires_at', now()->addDays($template->validity_days));
+                                        }
                                     }
                                 }
                             }),
@@ -85,22 +84,7 @@ class GiftCardResource extends Resource
                                     ->numeric()
                                     ->prefix(current_currency())
                                     ->formatStateUsing(fn ($state) => $state ? $state / 100 : null)
-                                    ->dehydrateStateUsing(fn ($state) => $state ? (int) ($state * 100) : 0)
-                                    ->disabled(fn ($record) => $record && !$record->isDraft())
-                                    ->rules([
-                                        fn (Forms\Get $get) => function (string $attribute, $value, \Closure $fail) use ($get) {
-                                            $templateId = $get('template_id');
-                                            if ($templateId) {
-                                                $template = GiftCardTemplate::find($templateId);
-                                                if ($template) {
-                                                    $valueMinor = (int) ($value * 100);
-                                                    if ($valueMinor < $template->min_amount_minor || $valueMinor > $template->max_amount_minor) {
-                                                        $fail(__('giftcards::giftcards.messages.invalid_amount'));
-                                                    }
-                                                }
-                                            }
-                                        },
-                                    ]),
+                                    ->dehydrateStateUsing(fn ($state) => $state ? (int) ($state * 100) : 0),
 
                                 Forms\Components\DateTimePicker::make('expires_at')
                                     ->label(__('giftcards::giftcards.fields.expires_at'))
@@ -108,42 +92,10 @@ class GiftCardResource extends Resource
                                     ->default(now()->addDays(config('giftcards.default_expiry_days', 365))),
                             ]),
 
-                        Forms\Components\Grid::make(2)
-                            ->schema([
-                                Forms\Components\Select::make('purchaser_patient_id')
-                                    ->label(__('giftcards::giftcards.fields.purchaser'))
-                                    ->options(fn () => Patient::all()->pluck('full_name', 'id'))
-                                    ->searchable()
-                                    ->nullable(),
-
-                                Forms\Components\Select::make('recipient_patient_id')
-                                    ->label(__('giftcards::giftcards.fields.recipient'))
-                                    ->options(fn () => Patient::all()->pluck('full_name', 'id'))
-                                    ->searchable()
-                                    ->nullable(),
-                            ]),
-
                         Forms\Components\Textarea::make('notes')
                             ->label(__('giftcards::giftcards.fields.notes'))
                             ->rows(2),
                     ]),
-
-                Forms\Components\Section::make(__('giftcards::giftcards.sections.status'))
-                    ->schema([
-                        Forms\Components\Placeholder::make('status_display')
-                            ->label(__('giftcards::giftcards.fields.status'))
-                            ->content(fn (GiftCard $record): string => $record->status_label),
-
-                        Forms\Components\Placeholder::make('remaining_display')
-                            ->label(__('giftcards::giftcards.fields.remaining_value'))
-                            ->content(fn (GiftCard $record): string => $record->formatted_remaining_value),
-
-                        Forms\Components\Placeholder::make('usage_display')
-                            ->label(__('giftcards::giftcards.fields.usage'))
-                            ->content(fn (GiftCard $record): string => $record->usage_percentage . '% used'),
-                    ])
-                    ->columns(3)
-                    ->visibleOn('edit'),
             ]);
     }
 
@@ -239,49 +191,108 @@ class GiftCardResource extends Resource
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make()
-                    ->visible(fn (GiftCard $record) => $record->isDraft()),
 
                 Tables\Actions\Action::make('activate')
                     ->label(__('giftcards::giftcards.actions.activate'))
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     ->visible(fn (GiftCard $record) => $record->isDraft())
-                    ->requiresConfirmation()
-                    ->action(function (GiftCard $record) {
-                        if ($record->activate()) {
-                            Notification::make()
-                                ->title(__('giftcards::giftcards.messages.activated'))
-                                ->success()
-                                ->send();
-                        }
-                    }),
-
-                Tables\Actions\Action::make('redeem')
-                    ->label(__('giftcards::giftcards.actions.redeem'))
-                    ->icon('heroicon-o-currency-dollar')
-                    ->color('warning')
-                    ->visible(fn (GiftCard $record) => $record->canRedeem())
+                    ->modalHeading(__('giftcards::giftcards.staff_dashboard.sell_card'))
+                    ->modalWidth('lg')
                     ->form([
-                        Forms\Components\TextInput::make('amount')
-                            ->label(__('giftcards::giftcards.fields.amount'))
+                        Forms\Components\Radio::make('patient_type')
+                            ->label(__('giftcards::giftcards.staff_dashboard.patient_type'))
+                            ->options([
+                                'existing' => __('giftcards::giftcards.staff_dashboard.existing_patient'),
+                                'new' => __('giftcards::giftcards.staff_dashboard.new_patient'),
+                            ])
+                            ->default('existing')
+                            ->live()
+                            ->required(),
+
+                        Forms\Components\Select::make('purchaser_patient_id')
+                            ->label(__('giftcards::giftcards.fields.purchaser'))
+                            ->options(fn () => Patient::orderBy('first_name')->get()->pluck('full_name', 'id'))
+                            ->searchable()
                             ->required()
-                            ->numeric()
-                            ->prefix(current_currency())
-                            ->default(fn (GiftCard $record) => $record->remaining_value_minor / 100),
+                            ->visible(fn (Forms\Get $get) => $get('patient_type') === 'existing'),
+
+                        Forms\Components\Section::make(__('giftcards::giftcards.staff_dashboard.new_patient'))
+                            ->schema([
+                                Forms\Components\Grid::make(2)
+                                    ->schema([
+                                        Forms\Components\TextInput::make('new_patient_first_name')
+                                            ->label(__('patients::patients.fields.first_name'))
+                                            ->required(),
+
+                                        Forms\Components\TextInput::make('new_patient_last_name')
+                                            ->label(__('patients::patients.fields.last_name')),
+                                    ]),
+
+                                Forms\Components\TextInput::make('new_patient_phone')
+                                    ->label(__('patients::patients.fields.phone'))
+                                    ->tel()
+                                    ->required(),
+
+                                Forms\Components\TextInput::make('new_patient_email')
+                                    ->label(__('patients::patients.fields.email'))
+                                    ->email(),
+                            ])
+                            ->visible(fn (Forms\Get $get) => $get('patient_type') === 'new'),
+
+                        Forms\Components\Select::make('journal_id')
+                            ->label(__('giftcards::giftcards.staff_dashboard.payment_method'))
+                            ->options(fn () => Journal::where('is_active', true)
+                                ->whereIn('type', [Journal::TYPE_CASH, Journal::TYPE_BANK])
+                                ->get()
+                                ->pluck('name', 'id'))
+                            ->required()
+                            ->searchable(),
+
+                        Forms\Components\Select::make('recipient_patient_id')
+                            ->label(__('giftcards::giftcards.fields.recipient'))
+                            ->helperText(__('giftcards::giftcards.staff_dashboard.recipient_hint'))
+                            ->options(fn () => Patient::orderBy('first_name')->get()->pluck('full_name', 'id'))
+                            ->searchable()
+                            ->nullable(),
 
                         Forms\Components\Textarea::make('notes')
                             ->label(__('giftcards::giftcards.fields.notes'))
                             ->rows(2),
                     ])
                     ->action(function (GiftCard $record, array $data) {
-                        $amountMinor = (int) ($data['amount'] * 100);
-                        if ($record->redeem($amountMinor, null, null, $data['notes'])) {
-                            Notification::make()
-                                ->title(__('giftcards::giftcards.messages.redeemed'))
-                                ->success()
-                                ->send();
-                        }
+                        DB::transaction(function () use ($record, $data) {
+                            $purchaserId = null;
+
+                            if ($data['patient_type'] === 'new') {
+                                $patient = Patient::create([
+                                    'tenant_id' => tenant_id(),
+                                    'first_name' => $data['new_patient_first_name'],
+                                    'last_name' => $data['new_patient_last_name'] ?? '',
+                                    'phone' => $data['new_patient_phone'],
+                                    'email' => $data['new_patient_email'] ?? null,
+                                ]);
+                                $purchaserId = $patient->id;
+                            } else {
+                                $purchaserId = $data['purchaser_patient_id'];
+                            }
+
+                            if (!empty($data['notes'])) {
+                                $record->update(['notes' => $data['notes']]);
+                            }
+
+                            app(GiftCardService::class)->processSale(
+                                $record,
+                                $data['journal_id'],
+                                $purchaserId,
+                                $data['recipient_patient_id'] ?? null
+                            );
+                        });
+
+                        Notification::make()
+                            ->title(__('giftcards::giftcards.messages.activated'))
+                            ->success()
+                            ->send();
                     }),
 
                 Tables\Actions\Action::make('cancel')
@@ -371,7 +382,6 @@ class GiftCardResource extends Resource
             'index' => \Modules\GiftCards\Filament\Resources\GiftCardResource\Pages\ListGiftCards::route('/'),
             'create' => \Modules\GiftCards\Filament\Resources\GiftCardResource\Pages\CreateGiftCard::route('/create'),
             'view' => \Modules\GiftCards\Filament\Resources\GiftCardResource\Pages\ViewGiftCard::route('/{record}'),
-            'edit' => \Modules\GiftCards\Filament\Resources\GiftCardResource\Pages\EditGiftCard::route('/{record}/edit'),
         ];
     }
 }
