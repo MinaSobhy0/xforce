@@ -8,27 +8,28 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Get all tenants
-        $tenants = DB::connection('pgsql')
-            ->table('tenants')
-            ->where('status', 'active')
-            ->get();
+        // Get all tenant schemas directly from information_schema
+        $schemas = DB::select(
+            "SELECT schema_name FROM information_schema.schemata WHERE schema_name LIKE 'tenant%'"
+        );
 
-        foreach ($tenants as $tenant) {
-            $schema = 'tenant_' . str_replace('-', '_', $tenant->slug);
+        foreach ($schemas as $schemaRow) {
+            $schema = $schemaRow->schema_name;
 
-            // Check if schema exists
-            $schemaExists = DB::select(
-                "SELECT schema_name FROM information_schema.schemata WHERE schema_name = ?",
+            // Set search path to tenant schema (quote if contains hyphen)
+            $quotedSchema = strpos($schema, '-') !== false ? "\"{$schema}\"" : $schema;
+            DB::statement("SET search_path TO {$quotedSchema}");
+
+            // Check if journals table exists in this schema
+            $tableExists = DB::select(
+                "SELECT table_name FROM information_schema.tables WHERE table_schema = ? AND table_name = 'journals'",
                 [$schema]
             );
 
-            if (empty($schemaExists)) {
+            if (empty($tableExists)) {
+                DB::statement("SET search_path TO public");
                 continue;
             }
-
-            // Set search path to tenant schema
-            DB::statement("SET search_path TO {$schema}");
 
             // Check if gift_card journal already exists
             $exists = DB::table('journals')
@@ -36,6 +37,15 @@ return new class extends Migration
                 ->exists();
 
             if (!$exists) {
+                // Get tenant_id from an existing journal record
+                $existingJournal = DB::table('journals')->first();
+                $tenantId = $existingJournal?->tenant_id;
+
+                if (!$tenantId) {
+                    DB::statement("SET search_path TO public");
+                    continue;
+                }
+
                 // Get the gift card liability account for default_debit_account_id
                 $liabilityAccount = DB::table('chart_of_accounts')
                     ->whereIn('code', ['2220', '2200', '2100'])
@@ -45,7 +55,7 @@ return new class extends Migration
 
                 DB::table('journals')->insert([
                     'id' => Str::orderedUuid(),
-                    'tenant_id' => $tenant->id,
+                    'tenant_id' => $tenantId,
                     'code' => 'GC',
                     'name' => json_encode(['en' => 'Gift Card', 'ar' => 'بطاقة هدية']),
                     'type' => 'gift_card',
@@ -66,27 +76,28 @@ return new class extends Migration
 
     public function down(): void
     {
-        $tenants = DB::connection('pgsql')
-            ->table('tenants')
-            ->get();
+        // Get all tenant schemas directly from information_schema
+        $schemas = DB::select(
+            "SELECT schema_name FROM information_schema.schemata WHERE schema_name LIKE 'tenant%'"
+        );
 
-        foreach ($tenants as $tenant) {
-            $schema = 'tenant_' . str_replace('-', '_', $tenant->slug);
+        foreach ($schemas as $schemaRow) {
+            $schema = $schemaRow->schema_name;
+            $quotedSchema = strpos($schema, '-') !== false ? "\"{$schema}\"" : $schema;
 
-            $schemaExists = DB::select(
-                "SELECT schema_name FROM information_schema.schemata WHERE schema_name = ?",
+            DB::statement("SET search_path TO {$quotedSchema}");
+
+            // Check if journals table exists
+            $tableExists = DB::select(
+                "SELECT table_name FROM information_schema.tables WHERE table_schema = ? AND table_name = 'journals'",
                 [$schema]
             );
 
-            if (empty($schemaExists)) {
-                continue;
+            if (!empty($tableExists)) {
+                DB::table('journals')
+                    ->where('type', 'gift_card')
+                    ->delete();
             }
-
-            DB::statement("SET search_path TO {$schema}");
-
-            DB::table('journals')
-                ->where('type', 'gift_card')
-                ->delete();
 
             DB::statement("SET search_path TO public");
         }
