@@ -32,7 +32,7 @@ class TodayAttendanceWidget extends BaseWidget
             ->count();
 
         $lateCount = (clone $todayAttendance)
-            ->where('late_minutes', '>', 0)
+            ->where('late_hours', '>', 0)
             ->count();
 
         $onLeaveCount = (clone $todayAttendance)

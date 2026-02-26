@@ -122,10 +122,10 @@
             <x-filament::section class="col-span-1">
                 <div class="text-center">
                     <div class="text-2xl font-semibold text-gray-700 dark:text-gray-300">
-                        {{ $stats['total_late_minutes'] ?? 0 }} min
+                        {{ $stats['total_late_hours'] ?? 0 }} min
                     </div>
                     <div class="text-sm text-gray-500 dark:text-gray-400">
-                        {{ __('attendance::attendance.reports.stats.total_late_minutes') }}
+                        {{ __('attendance::attendance.reports.stats.total_late_hours') }}
                     </div>
                 </div>
             </x-filament::section>

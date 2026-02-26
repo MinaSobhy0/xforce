@@ -166,8 +166,8 @@ class AttendanceReportsPage extends Page implements HasForms, HasTable
                     ->suffix(' hrs')
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('late_minutes')
-                    ->label(__('attendance::attendance.late_minutes'))
+                Tables\Columns\TextColumn::make('late_hours')
+                    ->label(__('attendance::attendance.late_hours'))
                     ->suffix(' min')
                     ->sortable(),
 
@@ -248,7 +248,7 @@ class AttendanceReportsPage extends Page implements HasForms, HasTable
         $totalRecords = (clone $query)->count();
         $presentCount = (clone $query)->where('status', Attendance::STATUS_PRESENT)->count();
         $absentCount = (clone $query)->where('status', Attendance::STATUS_ABSENT)->count();
-        $lateCount = (clone $query)->where('late_minutes', '>', 0)->count();
+        $lateCount = (clone $query)->where('late_hours', '>', 0)->count();
         $leaveCount = (clone $query)->where('status', Attendance::STATUS_LEAVE)->count();
         $halfDayCount = (clone $query)->where('status', Attendance::STATUS_HALF_DAY)->count();
 
@@ -258,7 +258,7 @@ class AttendanceReportsPage extends Page implements HasForms, HasTable
         $avgWorkingHours = $totalRecords > 0 ? round($totalWorkingHours / $totalRecords, 2) : 0;
 
         // Late minutes
-        $totalLateMinutes = (clone $query)->sum('late_minutes');
+        $totalLateMinutes = (clone $query)->sum('late_hours');
 
         // Violations
         $violationsQuery = AttendanceViolation::query()
@@ -291,7 +291,7 @@ class AttendanceReportsPage extends Page implements HasForms, HasTable
             'total_working_hours' => round($totalWorkingHours, 2),
             'total_overtime_hours' => round($totalOvertimeHours, 2),
             'avg_working_hours' => $avgWorkingHours,
-            'total_late_minutes' => $totalLateMinutes,
+            'total_late_hours' => $totalLateMinutes,
             'violations_count' => $violationsCount,
             'pending_violations' => $pendingViolations,
             'total_penalties' => number_format($totalPenalties / 100, 2),
@@ -375,7 +375,7 @@ class AttendanceReportsPage extends Page implements HasForms, HasTable
                     $row->check_out_time?->format('H:i') ?? '-',
                     $row->working_hours ?? 0,
                     $row->overtime_hours ?? 0,
-                    $row->late_minutes ?? 0,
+                    $row->late_hours ?? 0,
                     $row->attendance_type ?? '-',
                     $row->status ?? '-',
                 ]);
