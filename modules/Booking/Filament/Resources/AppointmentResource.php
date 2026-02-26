@@ -372,22 +372,6 @@ class AppointmentResource extends Resource
                         ->visible(fn (Appointment $record): bool => $record->canTransitionTo(Appointment::STATUS_CHECKED_IN))
                         ->action(fn (Appointment $record) => $record->checkIn()),
 
-                    Tables\Actions\Action::make('start')
-                        ->label(__('booking::appointments.actions.start'))
-                        ->icon('heroicon-o-play')
-                        ->color('info')
-                        ->requiresConfirmation()
-                        ->visible(fn (Appointment $record): bool => $record->canTransitionTo(Appointment::STATUS_IN_PROGRESS))
-                        ->action(fn (Appointment $record) => $record->start()),
-
-                    Tables\Actions\Action::make('complete')
-                        ->label(__('booking::appointments.actions.complete'))
-                        ->icon('heroicon-o-check-circle')
-                        ->color('success')
-                        ->requiresConfirmation()
-                        ->visible(fn (Appointment $record): bool => $record->canTransitionTo(Appointment::STATUS_COMPLETED))
-                        ->action(fn (Appointment $record) => $record->complete()),
-
                     Tables\Actions\Action::make('cancel')
                         ->label(__('booking::appointments.actions.cancel'))
                         ->icon('heroicon-o-x-circle')
