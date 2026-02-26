@@ -24,6 +24,7 @@ return new class extends Migration
             $table->string('subscription_plan')->nullable();
             $table->timestamp('subscription_expires_at')->nullable();
             $table->integer('max_users')->default(10);
+            $table->integer('max_branches')->default(1);
             $table->integer('max_patients')->default(1000);
             $table->integer('max_storage_mb')->default(1024);
             $table->string('timezone')->default('UTC');

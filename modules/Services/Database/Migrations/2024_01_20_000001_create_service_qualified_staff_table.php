@@ -12,12 +12,12 @@ return new class extends Migration
             $table->uuid('id')->primary()->default(\Illuminate\Support\Facades\DB::raw('gen_random_uuid()'));
             $table->uuid('tenant_id')->nullable();
             $table->uuid('service_id');
-            $table->uuid('user_id');
+            $table->uuid('staff_profile_id');
             $table->timestamps();
 
             $table->foreign('service_id')->references('id')->on('services')->cascadeOnDelete();
-            $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
-            $table->unique(['service_id', 'user_id']);
+            $table->foreign('staff_profile_id')->references('id')->on('staff_profiles')->cascadeOnDelete();
+            $table->unique(['service_id', 'staff_profile_id']);
             $table->index('tenant_id');
         });
     }

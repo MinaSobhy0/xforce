@@ -43,6 +43,35 @@ return new class extends Migration
              * }
              */
 
+            // Session equipment array - stores multiple equipment used during session
+            $table->json('session_equipment')->nullable();
+            /*
+             * session_equipment structure:
+             * [
+             *   {
+             *     "equipment_id": "uuid",
+             *     "name": "Candela GentleMax Pro",
+             *     "code": "EQ-001",
+             *     "is_preset": true,
+             *     "shots_used": 150,
+             *     "energy_delivered": 2500
+             *   }
+             * ]
+             */
+
+            // Equipment parameter values - stores values for equipment tracking parameters
+            $table->json('equipment_parameter_values')->nullable();
+            /*
+             * equipment_parameter_values structure:
+             * {
+             *   "equipment_uuid_1": {
+             *     "fluence": 15.5,
+             *     "pulse_width": 20,
+             *     "cooling_level": "high"
+             *   }
+             * }
+             */
+
             // Treatment area documentation
             $table->json('treatment_areas')->nullable();
             /*

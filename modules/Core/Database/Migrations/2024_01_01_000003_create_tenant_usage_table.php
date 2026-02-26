@@ -12,6 +12,7 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->uuid('tenant_id');
             $table->integer('users')->default(0);
+            $table->integer('branches')->default(0);
             $table->integer('patients')->default(0);
             $table->integer('appointments')->default(0);
             $table->integer('treatments')->default(0);
@@ -19,6 +20,7 @@ return new class extends Migration
             $table->integer('api_requests')->default(0);
             $table->integer('email_sent')->default(0);
             $table->integer('sms_sent')->default(0);
+            $table->integer('whatsapp_sent')->default(0);
             $table->integer('reports_generated')->default(0);
             $table->timestamp('last_login_at')->nullable();
             $table->timestamp('last_activity_at')->nullable();
