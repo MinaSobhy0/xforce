@@ -8,6 +8,7 @@ use Modules\GiftCards\Models\GiftCardTransaction;
 use Modules\GiftCards\Models\GiftCardBatchExport;
 use Modules\Billing\Models\Invoice;
 use Modules\Billing\Models\Payment;
+use Modules\Patients\Models\Patient;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -145,18 +146,42 @@ class GiftCardService
 
     /**
      * Process gift card sale with GL entry
+     *
+     * @param GiftCard $card
+     * @param string $journalId
+     * @param string|array|null $purchaserPatientIdOrData - Patient ID string or array with new patient data
+     * @param string|null $recipientPatientId
+     * @param string|null $notes
+     * @return array
      */
     public function processSale(
         GiftCard $card,
         string $journalId,
-        ?string $purchaserPatientId = null,
-        ?string $recipientPatientId = null
+        string|array|null $purchaserPatientIdOrData = null,
+        ?string $recipientPatientId = null,
+        ?string $notes = null
     ): array {
         if (!$card->isDraft()) {
             return ['success' => false, 'error' => 'Card must be in draft status to sell'];
         }
 
-        DB::transaction(function () use ($card, $journalId, $purchaserPatientId, $recipientPatientId) {
+        $result = DB::transaction(function () use ($card, $journalId, $purchaserPatientIdOrData, $recipientPatientId, $notes) {
+            $purchaserPatientId = null;
+
+            // Handle new patient creation if array data is provided
+            if (is_array($purchaserPatientIdOrData)) {
+                $patient = Patient::create([
+                    'tenant_id' => $card->tenant_id,
+                    'first_name' => $purchaserPatientIdOrData['first_name'],
+                    'last_name' => $purchaserPatientIdOrData['last_name'] ?? '',
+                    'phone' => $purchaserPatientIdOrData['phone'] ?? null,
+                    'email' => $purchaserPatientIdOrData['email'] ?? null,
+                ]);
+                $purchaserPatientId = $patient->id;
+            } else {
+                $purchaserPatientId = $purchaserPatientIdOrData;
+            }
+
             // Update card
             $card->update([
                 'purchaser_patient_id' => $purchaserPatientId,
@@ -164,6 +189,7 @@ class GiftCardService
                 'sold_by_staff_id' => auth()->id(),
                 'status' => GiftCard::STATUS_ACTIVE,
                 'activated_at' => now(),
+                'notes' => $notes,
             ]);
 
             // Create GL entry
@@ -184,6 +210,8 @@ class GiftCardService
                 'notes' => 'Card sold and activated',
                 'created_by_user_id' => auth()->id(),
             ]);
+
+            return $purchaserPatientId;
         });
 
         Log::info("Gift card sold: {$card->code}", [

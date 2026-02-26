@@ -10,7 +10,6 @@ use Filament\Forms\Contracts\HasForms;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Modules\GiftCards\Models\GiftCard;
 use Modules\GiftCards\Models\GiftCardTemplate;
 use Modules\GiftCards\Services\GiftCardService;
@@ -193,36 +192,27 @@ class StaffGiftCardDashboard extends Page implements HasForms
             return;
         }
 
-        DB::transaction(function () use ($card, $data) {
-            $purchaserId = null;
+        $purchaserData = null;
 
-            // Create new patient if needed
-            if ($data['patient_type'] === 'new') {
-                $patient = Patient::create([
-                    'tenant_id' => tenant_id(),
-                    'first_name' => $data['new_patient_first_name'],
-                    'last_name' => $data['new_patient_last_name'] ?? '',
-                    'phone' => $data['new_patient_phone'],
-                    'email' => $data['new_patient_email'] ?? null,
-                ]);
-                $purchaserId = $patient->id;
-            } else {
-                $purchaserId = $data['purchaser_patient_id'];
-            }
+        if ($data['patient_type'] === 'new') {
+            $purchaserData = [
+                'first_name' => $data['new_patient_first_name'],
+                'last_name' => $data['new_patient_last_name'] ?? '',
+                'phone' => $data['new_patient_phone'] ?? null,
+                'email' => $data['new_patient_email'] ?? null,
+            ];
+        } else {
+            $purchaserData = $data['purchaser_patient_id'];
+        }
 
-            // Update notes on the card
-            if (!empty($data['notes'])) {
-                $card->update(['notes' => $data['notes']]);
-            }
-
-            // Process the sale with payment and GL entry
-            app(GiftCardService::class)->processSale(
-                $card,
-                $data['journal_id'],
-                $purchaserId,
-                $data['recipient_patient_id'] ?? null
-            );
-        });
+        // Process the sale with payment and GL entry
+        app(GiftCardService::class)->processSale(
+            $card,
+            $data['journal_id'],
+            $purchaserData,
+            $data['recipient_patient_id'] ?? null,
+            $data['notes'] ?? null
+        );
 
         Notification::make()
             ->title(__('giftcards::giftcards.messages.activated'))

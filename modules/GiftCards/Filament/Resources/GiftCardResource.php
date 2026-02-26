@@ -17,7 +17,6 @@ use Filament\Tables\Table;
 use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 
 class GiftCardResource extends Resource
 {
@@ -261,33 +260,26 @@ class GiftCardResource extends Resource
                             ->rows(2),
                     ])
                     ->action(function (GiftCard $record, array $data) {
-                        DB::transaction(function () use ($record, $data) {
-                            $purchaserId = null;
+                        $purchaserData = null;
 
-                            if ($data['patient_type'] === 'new') {
-                                $patient = Patient::create([
-                                    'tenant_id' => tenant_id(),
-                                    'first_name' => $data['new_patient_first_name'],
-                                    'last_name' => $data['new_patient_last_name'] ?? '',
-                                    'phone' => $data['new_patient_phone'],
-                                    'email' => $data['new_patient_email'] ?? null,
-                                ]);
-                                $purchaserId = $patient->id;
-                            } else {
-                                $purchaserId = $data['purchaser_patient_id'];
-                            }
+                        if ($data['patient_type'] === 'new') {
+                            $purchaserData = [
+                                'first_name' => $data['new_patient_first_name'],
+                                'last_name' => $data['new_patient_last_name'] ?? '',
+                                'phone' => $data['new_patient_phone'] ?? null,
+                                'email' => $data['new_patient_email'] ?? null,
+                            ];
+                        } else {
+                            $purchaserData = $data['purchaser_patient_id'];
+                        }
 
-                            if (!empty($data['notes'])) {
-                                $record->update(['notes' => $data['notes']]);
-                            }
-
-                            app(GiftCardService::class)->processSale(
-                                $record,
-                                $data['journal_id'],
-                                $purchaserId,
-                                $data['recipient_patient_id'] ?? null
-                            );
-                        });
+                        app(GiftCardService::class)->processSale(
+                            $record,
+                            $data['journal_id'],
+                            $purchaserData,
+                            $data['recipient_patient_id'] ?? null,
+                            $data['notes'] ?? null
+                        );
 
                         Notification::make()
                             ->title(__('giftcards::giftcards.messages.activated'))
