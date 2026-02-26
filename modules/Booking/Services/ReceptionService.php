@@ -130,26 +130,13 @@ class ReceptionService
 
         $appointments = $query->get();
 
-        $now = now();
         $isToday = $date->isToday();
-        $thirtyMinutesFromNow = $now->copy()->addMinutes(30);
-        $twoHoursAgo = $now->copy()->subHours(2);
+        $twoHoursAgo = now()->subHours(2);
 
         return [
-            'arriving' => $appointments->filter(function ($a) use ($now, $thirtyMinutesFromNow, $isToday, $date) {
-                if (!in_array($a->status, [Appointment::STATUS_SCHEDULED, Appointment::STATUS_CONFIRMED])) {
-                    return false;
-                }
-                $startTime = $a->start_date_time;
-                if (!$startTime) {
-                    return false;
-                }
-                // For today, show next 30 minutes
-                // For other days, show all scheduled/confirmed as "arriving"
-                if ($isToday) {
-                    return $startTime->between($now, $thirtyMinutesFromNow);
-                }
-                return true; // Show all upcoming for other days
+            'arriving' => $appointments->filter(function ($a) {
+                // Show all scheduled/confirmed appointments that can be checked in
+                return in_array($a->status, [Appointment::STATUS_SCHEDULED, Appointment::STATUS_CONFIRMED]);
             })->values(),
 
             'waiting' => $appointments->filter(function ($a) {
