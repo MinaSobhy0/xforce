@@ -487,7 +487,7 @@ class AppointmentResource extends Resource
 
                 Infolists\Components\Section::make(__('booking::appointments.sections.pricing'))
                     ->schema([
-                        Infolists\Components\Grid::make(3)
+                        Infolists\Components\Grid::make(5)
                             ->schema([
                                 Infolists\Components\TextEntry::make('price_minor')
                                     ->label(__('booking::appointments.fields.price'))
@@ -500,6 +500,21 @@ class AppointmentResource extends Resource
                                 Infolists\Components\TextEntry::make('net_price')
                                     ->label(__('booking::appointments.fields.net_price'))
                                     ->money(current_currency(), divideBy: 100),
+
+                                Infolists\Components\TextEntry::make('paid_amount')
+                                    ->label(__('billing::billing.fields.paid'))
+                                    ->state(fn (Appointment $record) => \Modules\Billing\Models\Payment::forAppointment($record->id)->completed()->sum('amount_minor'))
+                                    ->money(current_currency(), divideBy: 100)
+                                    ->color('success'),
+
+                                Infolists\Components\TextEntry::make('remaining_amount')
+                                    ->label(__('billing::billing.fields.remaining'))
+                                    ->state(function (Appointment $record) {
+                                        $paid = \Modules\Billing\Models\Payment::forAppointment($record->id)->completed()->sum('amount_minor');
+                                        return max(0, ($record->net_price ?? 0) - $paid);
+                                    })
+                                    ->money(current_currency(), divideBy: 100)
+                                    ->color(fn ($state) => $state > 0 ? 'danger' : 'success'),
                             ]),
                     ]),
 
@@ -563,6 +578,7 @@ class AppointmentResource extends Resource
     {
         return [
             RelationManagers\ServiceNoteRelationManager::class,
+            RelationManagers\PaymentsRelationManager::class,
         ];
     }
 

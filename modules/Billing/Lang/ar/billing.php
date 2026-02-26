@@ -152,9 +152,17 @@ return [
         'already_paid' => 'المدفوع مسبقاً',
         'payment_amount' => 'مبلغ الدفعة',
         'max_amount' => 'الحد الأقصى: :amount',
+        'max_from_gift_card' => 'الحد الأقصى من بطاقة الهدية: :amount',
         'reference_help' => 'آخر 4 أرقام من البطاقة، رقم التحويل، إلخ.',
         'payment_recorded' => 'تم تسجيل الدفعة بنجاح',
         'amount_label' => 'المبلغ: :amount',
+        'gift_card_code' => 'كود بطاقة الهدية',
+        'enter_gift_card_code' => 'أدخل كود بطاقة الهدية...',
+        'gift_card_balance' => 'رصيد بطاقة الهدية',
+        'select_gift_card' => 'يرجى إدخال كود بطاقة هدية صالح',
+        'invalid_gift_card' => 'بطاقة الهدية غير صالحة أو لا يمكن استردادها',
+        'amount_exceeds_balance' => 'المبلغ يتجاوز رصيد بطاقة الهدية',
+        'gift_card_redeemed' => 'تم استرداد بطاقة الهدية: :amount. الرصيد المتبقي: :remaining',
     ],
 
     // Payment Resource

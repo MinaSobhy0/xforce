@@ -165,14 +165,23 @@ class AccountingIntegrationService
     /**
      * Create journal entry when payment is received.
      *
-     * Debit: Cash/Bank (based on payment journal)
-     * Credit: Accounts Receivable
+     * For Cash/Bank:
+     *   Debit: Cash/Bank (based on payment journal)
+     *   Credit: Accounts Receivable
+     *
+     * For Gift Card: Skip - the GiftCardService handles GL entries
      */
     public function createPaymentJournalEntry(Payment $payment): ?JournalEntry
     {
         // Get payment journal (Cash, Bank, Card, etc.)
         $paymentJournal = $payment->journal;
         if (!$paymentJournal) {
+            return null;
+        }
+
+        // For gift card payments, the GL entry is handled by GiftCardService::redeem()
+        // which creates: DR Gift Card Liability, CR Accounts Receivable
+        if ($paymentJournal->type === 'gift_card') {
             return null;
         }
 
@@ -259,6 +268,7 @@ class AccountingIntegrationService
         return match ($type) {
             'cash' => $this->defaultAccounts->getCashAccount(),
             'bank' => $this->defaultAccounts->getBankAccount(),
+            'gift_card' => $this->defaultAccounts->getGiftCardLiabilityAccount(),
             default => $this->defaultAccounts->getCashAccount(),
         };
     }

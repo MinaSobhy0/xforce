@@ -73,6 +73,7 @@ return [
 
     'minutes' => 'min',
     'days' => 'days',
+    'payment_for_appointment' => 'Payment for appointment :code',
 
     'widgets' => [
         'todays_appointments' => "Today's Appointments",

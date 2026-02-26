@@ -194,6 +194,11 @@ class Appointment extends BaseModel
         return $this->hasMany(\Modules\Prescriptions\Models\Prescription::class);
     }
 
+    public function payments(): HasMany
+    {
+        return $this->hasMany(\Modules\Billing\Models\Payment::class);
+    }
+
     /**
      * Get total consumables cost for this appointment.
      */

@@ -152,9 +152,17 @@ return [
         'already_paid' => 'Already Paid',
         'payment_amount' => 'Payment Amount',
         'max_amount' => 'Maximum: :amount',
+        'max_from_gift_card' => 'Maximum from gift card: :amount',
         'reference_help' => 'Card last 4 digits, transfer reference, etc.',
         'payment_recorded' => 'Payment recorded successfully',
         'amount_label' => 'Amount: :amount',
+        'gift_card_code' => 'Gift Card Code',
+        'enter_gift_card_code' => 'Enter gift card code...',
+        'gift_card_balance' => 'Gift Card Balance',
+        'select_gift_card' => 'Please enter a valid gift card code',
+        'invalid_gift_card' => 'Gift card is invalid or cannot be redeemed',
+        'amount_exceeds_balance' => 'Amount exceeds gift card balance',
+        'gift_card_redeemed' => 'Gift card redeemed: :amount. Remaining balance: :remaining',
     ],
 
     // Payment Resource

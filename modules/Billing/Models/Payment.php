@@ -280,9 +280,15 @@ class Payment extends BaseModel
             'sales' => 'heroicon-o-credit-card',
             'purchase' => 'heroicon-o-shopping-cart',
             'general' => 'heroicon-o-currency-dollar',
+            'gift_card' => 'heroicon-o-gift',
         ];
 
         return $icons[$this->journal?->type] ?? 'heroicon-o-currency-dollar';
+    }
+
+    public function giftCard(): BelongsTo
+    {
+        return $this->belongsTo(\Modules\GiftCards\Models\GiftCard::class);
     }
 
     // Scopes

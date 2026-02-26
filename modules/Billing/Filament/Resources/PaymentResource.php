@@ -177,7 +177,7 @@ class PaymentResource extends Resource
                                 Forms\Components\Select::make('journal_id')
                                     ->label(__('billing::billing.fields.payment_method'))
                                     ->options(fn () => Journal::active()
-                                        ->whereIn('type', ['cash', 'bank'])
+                                        ->whereIn('type', [Journal::TYPE_CASH, Journal::TYPE_BANK, Journal::TYPE_GIFT_CARD])
                                         ->get()
                                         ->pluck('display_name', 'id'))
                                     ->required()

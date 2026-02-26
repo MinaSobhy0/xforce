@@ -73,6 +73,7 @@ return [
 
     'minutes' => 'دقيقة',
     'days' => 'أيام',
+    'payment_for_appointment' => 'دفعة للموعد :code',
 
     'widgets' => [
         'todays_appointments' => 'مواعيد اليوم',

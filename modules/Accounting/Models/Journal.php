@@ -40,6 +40,7 @@ class Journal extends BaseModel
     public const TYPE_CASH = 'cash';
     public const TYPE_BANK = 'bank';
     public const TYPE_GENERAL = 'general';
+    public const TYPE_GIFT_CARD = 'gift_card';
 
     public const TYPES = [
         self::TYPE_SALES => 'Sales',
@@ -47,6 +48,7 @@ class Journal extends BaseModel
         self::TYPE_CASH => 'Cash',
         self::TYPE_BANK => 'Bank',
         self::TYPE_GENERAL => 'Miscellaneous',
+        self::TYPE_GIFT_CARD => 'Gift Card',
     ];
 
     public const TYPE_COLORS = [
@@ -55,6 +57,7 @@ class Journal extends BaseModel
         self::TYPE_CASH => 'info',
         self::TYPE_BANK => 'primary',
         self::TYPE_GENERAL => 'gray',
+        self::TYPE_GIFT_CARD => 'danger',
     ];
 
     // Relationships
@@ -141,5 +144,20 @@ class Journal extends BaseModel
     public static function getMiscJournal(): ?self
     {
         return static::getByType(self::TYPE_GENERAL);
+    }
+
+    public static function getGiftCardJournal(): ?self
+    {
+        return static::getByType(self::TYPE_GIFT_CARD);
+    }
+
+    /**
+     * Get journals that can be used for payments (receiving money).
+     */
+    public static function getPaymentJournals()
+    {
+        return static::active()
+            ->whereIn('type', [self::TYPE_CASH, self::TYPE_BANK, self::TYPE_GIFT_CARD])
+            ->get();
     }
 }

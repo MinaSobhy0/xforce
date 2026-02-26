@@ -83,8 +83,14 @@ class GiftCardGLService
 
     /**
      * Post gift card redemption journal entry
-     * DR: Gift Card Liability
-     * CR: Service Revenue
+     *
+     * For invoice payments:
+     *   DR: Gift Card Liability
+     *   CR: Accounts Receivable (reduces patient balance)
+     *
+     * For direct redemption (no invoice):
+     *   DR: Gift Card Liability
+     *   CR: Service Revenue
      */
     public function postGiftCardRedemption(
         GiftCard $card,
@@ -95,11 +101,19 @@ class GiftCardGLService
 
         $liabilityAccount = $template?->liabilityAccount
             ?? $this->defaultAccounts->getGiftCardLiabilityAccount();
-        $revenueAccount = $this->defaultAccounts->getServiceRevenueAccount();
 
-        if (!$liabilityAccount || !$revenueAccount) {
+        // For invoice payments, credit AR; for direct redemption, credit revenue
+        if ($invoice) {
+            $creditAccount = $this->defaultAccounts->getPatientReceivableAccount();
+        } else {
+            $creditAccount = $this->defaultAccounts->getServiceRevenueAccount();
+        }
+
+        if (!$liabilityAccount || !$creditAccount) {
             Log::warning('Gift card redemption GL accounts not configured', [
                 'card_id' => $card->id,
+                'has_liability' => (bool) $liabilityAccount,
+                'has_credit_account' => (bool) $creditAccount,
             ]);
             return null;
         }
@@ -112,11 +126,11 @@ class GiftCardGLService
                 'description' => "Redemption: {$card->code}",
             ],
             [
-                'account_code' => $revenueAccount->code,
+                'account_code' => $creditAccount->code,
                 'debit' => 0,
                 'credit' => $amountMinor,
                 'description' => $invoice
-                    ? "Invoice {$invoice->code}"
+                    ? "Payment for Invoice {$invoice->code}"
                     : "Gift card redemption",
             ],
         ];
