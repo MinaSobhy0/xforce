@@ -148,7 +148,7 @@ abstract class BaseImporter extends Importer
             $result[$column->getName()] = [
                 'name' => $column->getName(),
                 'label' => $column->getLabel(),
-                'required' => $column->isRequired(),
+                'required' => $column->isMappingRequired(),
             ];
         }
 

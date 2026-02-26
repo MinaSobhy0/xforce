@@ -3,40 +3,44 @@
 namespace App\Filament\Traits;
 
 use App\Filament\Actions\ImportTableAction;
-use App\Filament\Imports\BaseImporter;
-use App\Filament\Imports\PatientImporter;
-use App\Filament\Imports\ProductImporter;
-use App\Filament\Imports\ServiceImporter;
-use App\Filament\Imports\SupplierImporter;
-use Filament\Actions\ImportAction;
+use App\Filament\Imports\GenericImporter;
 
 trait HasImportAction
 {
     /**
-     * Get the importer class for this resource.
-     */
-    protected function getImporterClass(): ?string
-    {
-        $resource = static::getResource();
-        $model = $resource::getModel();
-
-        // Map models to their importers
-        $importerMap = [
-            \Modules\Inventory\Models\Product::class => ProductImporter::class,
-            \Modules\Patients\Models\Patient::class => PatientImporter::class,
-            \Modules\Inventory\Models\Supplier::class => SupplierImporter::class,
-            \Modules\Services\Models\Service::class => ServiceImporter::class,
-        ];
-
-        return $importerMap[$model] ?? null;
-    }
-
-    /**
      * Check if import is enabled for this resource.
+     * Override in specific list pages to disable import.
      */
     protected function hasImportAction(): bool
     {
-        return $this->getImporterClass() !== null;
+        return true;
+    }
+
+    /**
+     * Get the model class for import.
+     */
+    protected function getImportModelClass(): string
+    {
+        return static::getResource()::getModel();
+    }
+
+    /**
+     * Get the specific importer class for this resource if it exists.
+     * Returns null to use GenericImporter.
+     */
+    protected function getSpecificImporterClass(): ?string
+    {
+        $modelClass = $this->getImportModelClass();
+        $modelName = class_basename($modelClass);
+
+        // Check for specific importer in App\Filament\Imports namespace
+        $specificImporter = "App\\Filament\\Imports\\{$modelName}Importer";
+
+        if (class_exists($specificImporter)) {
+            return $specificImporter;
+        }
+
+        return null;
     }
 
     /**
@@ -44,30 +48,25 @@ trait HasImportAction
      */
     protected function getImportHeaderAction(): ?ImportTableAction
     {
-        $importerClass = $this->getImporterClass();
-
-        if (!$importerClass) {
+        if (!$this->hasImportAction()) {
             return null;
         }
 
-        return ImportTableAction::make()
-            ->importer($importerClass)
-            ->resourceClass(static::getResource());
-    }
+        $modelClass = $this->getImportModelClass();
+        $importerClass = $this->getSpecificImporterClass();
 
-    /**
-     * Override getHeaderActions to add import action.
-     */
-    protected function getHeaderActionsWithImport(): array
-    {
-        $actions = [];
-
-        // Add import action if available
-        $importAction = $this->getImportHeaderAction();
-        if ($importAction) {
-            $actions[] = $importAction;
+        if ($importerClass) {
+            // Use specific importer if available
+            return ImportTableAction::make()
+                ->importer($importerClass)
+                ->resourceClass(static::getResource());
         }
 
-        return $actions;
+        // Use generic importer
+        GenericImporter::setModel($modelClass);
+
+        return ImportTableAction::make()
+            ->importer(GenericImporter::class)
+            ->resourceClass(static::getResource());
     }
 }
