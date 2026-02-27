@@ -227,21 +227,16 @@ class VendorBill extends BaseModel
 
     public function recalculateTotals(): void
     {
-        $subtotal = $this->lines()->sum('total_minor');
-        $tax = $this->lines()->sum('tax_minor');
+        // Sum line totals and taxes
+        $lineTotals = $this->lines()->sum('total_minor');
+        $lineTax = $this->lines()->sum('tax_minor');
 
-        $discountAmount = 0;
-        if ($this->discount_minor > 0) {
-            if ($this->discount_type === self::DISCOUNT_PERCENT) {
-                $discountAmount = (int) round($subtotal * $this->discount_minor / 100);
-            } else {
-                $discountAmount = $this->discount_minor;
-            }
-        }
+        // Subtotal is line totals minus line taxes (discounted subtotal before tax)
+        $subtotal = $lineTotals - $lineTax;
 
         $this->subtotal_minor = $subtotal;
-        $this->tax_minor = $tax;
-        $this->total_minor = max(0, $subtotal + $tax - $discountAmount);
+        $this->tax_minor = $lineTax;
+        $this->total_minor = $lineTotals; // total_minor already includes tax
         $this->save();
     }
 
