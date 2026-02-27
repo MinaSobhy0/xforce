@@ -133,6 +133,13 @@ return [
         'quantity' => 'Qty',
         'interval' => 'Interval',
         'price' => 'Price',
+        'original_price' => 'Original Price',
+        'discount_type' => 'Discount',
+        'no_discount' => 'No Discount',
+        'percentage' => 'Percentage',
+        'fixed_amount' => 'Fixed Amount',
+        'discount_value' => 'Discount Value',
+        'final_price' => 'Final Price',
     ],
 
     // Discount

@@ -385,13 +385,52 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
                                 ->minValue(1)
                                 ->suffix(__('booking::session.plan.days'))
                                 ->visible(fn (Forms\Get $get) => $get('item_type') === 'service'),
-                            Forms\Components\TextInput::make('unit_price')
-                                ->label(__('booking::session.plan_modal.price'))
+                            Forms\Components\Hidden::make('unit_price'),
+                            Forms\Components\Placeholder::make('original_price_display')
+                                ->label(__('booking::session.plan_modal.original_price'))
+                                ->content(fn (Forms\Get $get) => $get('unit_price')
+                                    ? current_currency() . ' ' . number_format((float) $get('unit_price'), 2)
+                                    : '-'),
+                            Forms\Components\Select::make('discount_type')
+                                ->label(__('booking::session.plan_modal.discount_type'))
+                                ->options([
+                                    'none' => __('booking::session.plan_modal.no_discount'),
+                                    'percent' => __('booking::session.plan_modal.percentage'),
+                                    'fixed' => __('booking::session.plan_modal.fixed_amount'),
+                                ])
+                                ->default('none')
+                                ->live(),
+                            Forms\Components\TextInput::make('discount_value')
+                                ->label(__('booking::session.plan_modal.discount_value'))
                                 ->numeric()
-                                ->prefix(current_currency())
-                                ->required(),
+                                ->default(0)
+                                ->minValue(0)
+                                ->maxValue(fn (Forms\Get $get) => $get('discount_type') === 'percent' ? 100 : ($get('unit_price') ?? 999999))
+                                ->suffix(fn (Forms\Get $get) => $get('discount_type') === 'percent' ? '%' : null)
+                                ->prefix(fn (Forms\Get $get) => $get('discount_type') === 'fixed' ? current_currency() : null)
+                                ->visible(fn (Forms\Get $get) => in_array($get('discount_type'), ['percent', 'fixed'])),
+                            Forms\Components\Placeholder::make('final_price_display')
+                                ->label(__('booking::session.plan_modal.final_price'))
+                                ->content(function (Forms\Get $get) {
+                                    $unitPrice = (float) ($get('unit_price') ?? 0);
+                                    $discountType = $get('discount_type') ?? 'none';
+                                    $discountValue = (float) ($get('discount_value') ?? 0);
+
+                                    if ($discountType === 'percent') {
+                                        $finalPrice = $unitPrice * (1 - $discountValue / 100);
+                                    } elseif ($discountType === 'fixed') {
+                                        $finalPrice = max(0, $unitPrice - $discountValue);
+                                    } else {
+                                        $finalPrice = $unitPrice;
+                                    }
+
+                                    return new \Illuminate\Support\HtmlString(
+                                        '<span class="font-semibold text-success-600">' . current_currency() . ' ' . number_format($finalPrice, 2) . '</span>'
+                                    );
+                                })
+                                ->visible(fn (Forms\Get $get) => $get('unit_price') > 0),
                         ])
-                        ->columns(3)
+                        ->columns(4)
                         ->minItems(1)
                         ->maxItems(10)
                         ->defaultItems(1)
@@ -1920,7 +1959,20 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
                 // Add items to plan
                 foreach ($data['items'] as $index => $item) {
                     $itemType = $item['item_type'] ?? 'service';
-                    $unitPriceMinor = (int) (($item['unit_price'] ?? 0) * 100);
+                    $originalPrice = (float) ($item['unit_price'] ?? 0);
+                    $discountType = $item['discount_type'] ?? 'none';
+                    $discountValue = (float) ($item['discount_value'] ?? 0);
+
+                    // Calculate final price with discount
+                    if ($discountType === 'percent') {
+                        $finalPrice = $originalPrice * (1 - $discountValue / 100);
+                    } elseif ($discountType === 'fixed') {
+                        $finalPrice = max(0, $originalPrice - $discountValue);
+                    } else {
+                        $finalPrice = $originalPrice;
+                    }
+
+                    $unitPriceMinor = (int) round($finalPrice * 100);
 
                     $itemData = [
                         'tenant_id' => $plan->tenant_id,

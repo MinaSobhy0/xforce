@@ -133,6 +133,13 @@ return [
         'quantity' => 'الكمية',
         'interval' => 'الفاصل',
         'price' => 'السعر',
+        'original_price' => 'السعر الأصلي',
+        'discount_type' => 'الخصم',
+        'no_discount' => 'بدون خصم',
+        'percentage' => 'نسبة مئوية',
+        'fixed_amount' => 'مبلغ ثابت',
+        'discount_value' => 'قيمة الخصم',
+        'final_price' => 'السعر النهائي',
     ],
 
     // Discount
