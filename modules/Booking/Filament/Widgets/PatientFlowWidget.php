@@ -407,7 +407,7 @@ class PatientFlowWidget extends Widget implements HasForms
     }
 
     /**
-     * Navigate to checkout page for a specific appointment.
+     * Navigate to invoice page for checkout.
      */
     public function goToCheckout(string $appointmentId): void
     {
@@ -422,7 +422,7 @@ class PatientFlowWidget extends Widget implements HasForms
         }
 
         $this->redirect(
-            route('filament.tenant.pages.session-checkout', ['invoice_id' => $appointment->invoice->id])
+            route('filament.tenant.resources.invoices.view', ['record' => $appointment->invoice->id])
         );
     }
 }
