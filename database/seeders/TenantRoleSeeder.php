@@ -3,13 +3,19 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
+use Modules\Core\Database\Seeders\Concerns\ResolveTenantId;
 
 class TenantRoleSeeder extends Seeder
 {
+    use ResolveTenantId;
+
     public function run(): void
     {
+        // Ensure tenant context is set
+        $this->resolveTenantId();
         // Tenant-level roles (for clinic users)
         $tenantRoles = [
             'owner' => [
