@@ -257,7 +257,18 @@ class PurchaseOrderResource extends Resource
                                                     $price = (float) ($line['unit_price_minor'] ?? 0);
                                                     $subtotal += $qty * $price;
                                                 }
-                                                return number_format($subtotal, 2) . ' ' . current_currency();
+
+                                                // Apply discount to subtotal
+                                                $discountType = $get('discount_type') ?? 'percentage';
+                                                $discountValue = (float) ($get('discount_value') ?? 0);
+                                                if ($discountType === 'percentage') {
+                                                    $discountAmount = $subtotal * ($discountValue / 100);
+                                                } else {
+                                                    $discountAmount = $discountValue;
+                                                }
+                                                $discountedSubtotal = $subtotal - $discountAmount;
+
+                                                return number_format($discountedSubtotal, 2) . ' ' . current_currency();
                                             }),
 
                                         // VAT (positive tax rates - Odoo logic: discount first, then tax)
