@@ -16,6 +16,8 @@ return new class extends Migration
             $table->integer('quantity');
             $table->integer('quantity_received')->default(0);
             $table->integer('unit_price_minor')->default(0);
+            $table->integer('discount_minor')->default(0);
+            $table->string('discount_type')->default('fixed');
             $table->json('tax_rates')->nullable(); // Array of tax rate percentages e.g. [14, -3]
             $table->integer('tax_amount_minor')->default(0);
             $table->integer('line_total_minor')->default(0);

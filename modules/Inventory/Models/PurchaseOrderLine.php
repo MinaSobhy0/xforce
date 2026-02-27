@@ -17,6 +17,8 @@ class PurchaseOrderLine extends BaseModel
         'quantity',
         'quantity_received',
         'unit_price_minor',
+        'discount_minor',
+        'discount_type',
         'tax_rates',
         'tax_amount_minor',
         'line_total_minor',
@@ -27,6 +29,7 @@ class PurchaseOrderLine extends BaseModel
         'quantity' => 'integer',
         'quantity_received' => 'integer',
         'unit_price_minor' => 'integer',
+        'discount_minor' => 'integer',
         'tax_rates' => 'array',
         'tax_amount_minor' => 'integer',
         'line_total_minor' => 'integer',
@@ -38,9 +41,15 @@ class PurchaseOrderLine extends BaseModel
         'quantity' => 1,
         'quantity_received' => 0,
         'unit_price_minor' => 0,
+        'discount_minor' => 0,
+        'discount_type' => 'fixed',
         'tax_amount_minor' => 0,
         'line_total_minor' => 0,
     ];
+
+    // Discount type constants
+    public const DISCOUNT_FIXED = 'fixed';
+    public const DISCOUNT_PERCENT = 'percent';
 
     /**
      * Get the purchase order.
@@ -65,16 +74,27 @@ class PurchaseOrderLine extends BaseModel
     {
         parent::booted();
 
-        // Calculate line total on save (including multiple taxes)
+        // Calculate line total on save (including discount and multiple taxes)
         static::saving(function (self $line) {
             $subtotal = $line->quantity * $line->unit_price_minor;
+
+            // Apply discount first (Odoo-like)
+            $discountAmount = 0;
+            if ($line->discount_minor > 0) {
+                if ($line->discount_type === self::DISCOUNT_PERCENT) {
+                    $discountAmount = (int) round($subtotal * $line->discount_minor / 100);
+                } else {
+                    $discountAmount = $line->discount_minor;
+                }
+            }
+            $afterDiscount = max(0, $subtotal - $discountAmount);
 
             // Sum all tax rates (positive VAT and negative withholding)
             $taxRates = $line->tax_rates ?? [];
             $totalTaxPercent = array_sum(array_map('floatval', $taxRates));
 
-            $line->tax_amount_minor = (int) ($subtotal * $totalTaxPercent / 100);
-            $line->line_total_minor = $subtotal + $line->tax_amount_minor;
+            $line->tax_amount_minor = (int) round($afterDiscount * $totalTaxPercent / 100);
+            $line->line_total_minor = $afterDiscount + $line->tax_amount_minor;
         });
 
         // Recalculate order totals after line changes

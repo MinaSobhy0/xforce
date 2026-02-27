@@ -327,9 +327,6 @@ class VendorBill extends BaseModel
             'status' => self::STATUS_DRAFT,
             'bill_date' => now(),
             'created_by' => auth()->id(),
-            // Copy discount from PO
-            'discount_minor' => $po->discount_amount_minor,
-            'discount_type' => 'fixed',
         ]);
 
         foreach ($po->lines as $poLine) {
@@ -341,6 +338,8 @@ class VendorBill extends BaseModel
                 'description' => $poLine->product?->getTranslation('name', app()->getLocale()) ?? 'Product',
                 'quantity' => $poLine->quantity_received ?: $poLine->quantity,
                 'unit_price_minor' => $poLine->unit_price_minor,
+                'discount_minor' => $poLine->discount_minor ?? 0,
+                'discount_type' => $poLine->discount_type ?? 'fixed',
                 'tax_rates' => $poLine->tax_rates ?? [],
             ]);
         }
