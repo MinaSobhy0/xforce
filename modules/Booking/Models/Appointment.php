@@ -211,6 +211,14 @@ class Appointment extends BaseModel
     }
 
     /**
+     * Get the invoice for this appointment.
+     */
+    public function invoice(): HasOne
+    {
+        return $this->hasOne(\Modules\Billing\Models\Invoice::class);
+    }
+
+    /**
      * Get total consumables cost for this appointment.
      */
     public function getTotalConsumablesCostAttribute(): int

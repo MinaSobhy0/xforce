@@ -6,6 +6,8 @@ use XLinic\Framework\Core\Model\BaseModel;
 use XLinic\Framework\Core\Model\Traits\HasTenancy;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Modules\Inventory\Models\Product;
+use Modules\Inventory\Models\StockLevel;
+use Modules\Inventory\Models\StockMovement;
 use Modules\Core\Models\Branch;
 use Modules\Auth\Models\User;
 
@@ -199,6 +201,40 @@ class SessionProduct extends BaseModel
         $this->update([
             'is_invoiced' => true,
             'invoice_line_id' => $invoiceLineId,
+        ]);
+    }
+
+    /**
+     * Return product to inventory.
+     * Used when a sold product is cancelled at checkout.
+     */
+    public function returnToInventory(): void
+    {
+        // Only return if it was deducted
+        if (!$this->is_deducted) {
+            return;
+        }
+
+        // Get stock level for product and branch
+        $stockLevel = StockLevel::getOrCreate(
+            $this->product_id,
+            $this->branch_id,
+            $this->tenant_id
+        );
+
+        // Increase stock
+        $stockLevel->increase(
+            (int) $this->quantity,
+            StockMovement::TYPE_IN,
+            'session_product_return',
+            (string) $this->id,
+            'Product returned from cancelled checkout - Appointment #' . $this->appointment_id
+        );
+
+        // Mark as not deducted
+        $this->update([
+            'is_deducted' => false,
+            'deducted_at' => null,
         ]);
     }
 }

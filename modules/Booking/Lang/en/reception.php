@@ -75,6 +75,8 @@ return [
         'no_show' => 'Mark No-show',
         'view' => 'View',
         'record_payment' => 'Record Payment',
+        'checkout' => 'Checkout',
+        'loading' => 'Loading',
     ],
 
     // Forms
@@ -101,6 +103,7 @@ return [
         'cannot_mark_no_show' => 'Cannot mark as no-show',
         'marked_no_show' => 'Marked as No-show',
         'marked_no_show_body' => ':patient marked as no-show',
+        'no_invoice' => 'No invoice found for this appointment',
     ],
 
     // Patient Flow
@@ -119,6 +122,7 @@ return [
         'empty' => 'No patients',
         'room_available' => 'Available',
         'room_empty' => 'Room is available',
+        'ready_for_checkout' => 'Ready for Checkout',
     ],
 
     // Modal

@@ -75,6 +75,8 @@ return [
         'no_show' => 'تحديد كغائب',
         'view' => 'عرض',
         'record_payment' => 'تسجيل دفعة',
+        'checkout' => 'الدفع',
+        'loading' => 'جاري التحميل',
     ],
 
     // Forms
@@ -101,6 +103,7 @@ return [
         'cannot_mark_no_show' => 'لا يمكن التحديد كغائب',
         'marked_no_show' => 'تم التحديد كغائب',
         'marked_no_show_body' => 'تم تحديد :patient كغائب',
+        'no_invoice' => 'لا توجد فاتورة لهذا الموعد',
     ],
 
     // Patient Flow
@@ -119,6 +122,7 @@ return [
         'empty' => 'لا يوجد مرضى',
         'room_available' => 'متاحة',
         'room_empty' => 'الغرفة متاحة',
+        'ready_for_checkout' => 'جاهز للدفع',
     ],
 
     // Modal
