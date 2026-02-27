@@ -74,21 +74,54 @@ class CreateBooking extends Page implements HasForms
 
     public function mount(): void
     {
-        // Get date from query parameter (from calendar click)
+        // Get query parameters
         $dateFromQuery = request()->query('date');
         $startTimeFromQuery = request()->query('start_time');
+        $bookingTypeFromQuery = request()->query('booking_type');
+        $treatmentPlanIdFromQuery = request()->query('treatment_plan_id');
+        $treatmentPlanItemIdFromQuery = request()->query('treatment_plan_item_id');
 
         $dateFrom = $dateFromQuery ? Carbon::parse($dateFromQuery) : today();
+        $bookingType = in_array($bookingTypeFromQuery, ['service', 'package', 'treatment_plan']) ? $bookingTypeFromQuery : 'service';
 
-        $this->form->fill([
+        $formData = [
             'branch_id' => current_branch_id(),
             'date_from' => $dateFrom->format('Y-m-d'),
             'date_to' => $dateFrom->copy()->addWeek()->format('Y-m-d'),
-            'booking_type' => 'service',
+            'booking_type' => $bookingType,
             'services' => [['service_id' => null, 'duration_override' => null, 'price_minor' => null]],
             'source' => Appointment::SOURCE_PHONE,
             'preferred_start_time' => $startTimeFromQuery,
-        ]);
+        ];
+
+        // Handle treatment plan booking
+        if ($bookingType === 'treatment_plan' && $treatmentPlanIdFromQuery) {
+            $treatmentPlan = TreatmentPlan::with(['patient', 'items.service'])->find($treatmentPlanIdFromQuery);
+
+            if ($treatmentPlan) {
+                $formData['patient_id'] = $treatmentPlan->patient_id;
+                $formData['treatment_plan_id'] = $treatmentPlan->id;
+
+                // If specific item is selected, use it; otherwise find first bookable
+                if ($treatmentPlanItemIdFromQuery) {
+                    $item = $treatmentPlan->items->firstWhere('id', $treatmentPlanItemIdFromQuery);
+                } else {
+                    $item = $treatmentPlan->items->first(fn ($i) => $i->canBook());
+                }
+
+                if ($item) {
+                    $formData['treatment_plan_item_id'] = $item->id;
+
+                    // Set suggested dates based on item's next suggested date
+                    if ($item->next_suggested_date) {
+                        $formData['date_from'] = $item->next_suggested_date->format('Y-m-d');
+                        $formData['date_to'] = $item->next_suggested_date->copy()->addWeeks(2)->format('Y-m-d');
+                    }
+                }
+            }
+        }
+
+        $this->form->fill($formData);
     }
 
     public function form(Form $form): Form
