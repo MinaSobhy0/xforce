@@ -318,10 +318,11 @@ class PatientFlowWidget extends Widget implements HasForms
             ->where('user_branch_roles.is_active', true)
             ->where('users.status', 'active')
             ->whereIn('roles.name', ['doctor', 'nurse', 'technician'])
-            ->select('users.id', DB::raw("CONCAT(users.first_name, ' ', users.last_name) as full_name"))
+            ->select('users.id', 'users.first_name', 'users.last_name')
             ->distinct()
             ->orderBy('users.first_name')
-            ->pluck('full_name', 'users.id')
+            ->get()
+            ->mapWithKeys(fn ($user) => [$user->id => trim($user->first_name . ' ' . $user->last_name)])
             ->toArray();
     }
 
