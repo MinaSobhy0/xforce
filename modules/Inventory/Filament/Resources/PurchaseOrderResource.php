@@ -125,6 +125,7 @@ class PurchaseOrderResource extends Resource
                         Forms\Components\Repeater::make('lines')
                             ->relationship()
                             ->schema([
+                                // Row 1: Product, Qty, Price, Discount, Taxes
                                 Forms\Components\Select::make('product_id')
                                     ->label(__('inventory::inventory.fields.product'))
                                     ->relationship('product', 'id')
@@ -138,13 +139,12 @@ class PurchaseOrderResource extends Resource
                                             $product = Product::find($state);
                                             if ($product) {
                                                 $set('unit_price_minor', $product->cost_price_minor / 100);
-                                                // Set default tax rates (multi-select)
                                                 $defaultTax = \Modules\Billing\Models\TaxRate::getDefault(\Modules\Billing\Models\TaxRate::TYPE_PURCHASE);
                                                 $set('tax_rates', $defaultTax ? [(string) $defaultTax->rate] : ['14']);
                                             }
                                         }
                                     })
-                                    ->columnSpan(['default' => 12, 'md' => 4]),
+                                    ->columnSpan(['default' => 12, 'md' => 3]),
 
                                 Forms\Components\TextInput::make('quantity')
                                     ->label(__('inventory::inventory.fields.qty'))
@@ -153,7 +153,7 @@ class PurchaseOrderResource extends Resource
                                     ->default(1)
                                     ->minValue(1)
                                     ->live(onBlur: true)
-                                    ->columnSpan(['default' => 4, 'md' => 1]),
+                                    ->columnSpan(['default' => 3, 'md' => 1]),
 
                                 Forms\Components\TextInput::make('unit_price_minor')
                                     ->label(__('inventory::inventory.fields.unit_price'))
@@ -163,7 +163,7 @@ class PurchaseOrderResource extends Resource
                                     ->live(onBlur: true)
                                     ->formatStateUsing(fn ($state) => $state ? $state / 100 : null)
                                     ->dehydrateStateUsing(fn ($state) => $state ? (int) ($state * 100) : 0)
-                                    ->columnSpan(['default' => 4, 'md' => 2]),
+                                    ->columnSpan(['default' => 5, 'md' => 2]),
 
                                 Forms\Components\Select::make('discount_type')
                                     ->label(__('inventory::inventory.fields.disc_type'))
@@ -192,7 +192,7 @@ class PurchaseOrderResource extends Resource
                                         }
                                         return $state ? (int) ($state * 100) : 0;
                                     })
-                                    ->columnSpan(['default' => 4, 'md' => 1]),
+                                    ->columnSpan(['default' => 4, 'md' => 2]),
 
                                 Forms\Components\Select::make('tax_rates')
                                     ->label(__('inventory::inventory.fields.taxes'))
@@ -219,17 +219,19 @@ class PurchaseOrderResource extends Resource
                                     ->disabled()
                                     ->dehydrated(false)
                                     ->default(0)
-                                    ->columnSpan(['default' => 4, 'md' => 1]),
+                                    ->columnSpan(['default' => 3, 'md' => 1]),
 
+                                // Row 2: Notes (optional)
                                 Forms\Components\Textarea::make('notes')
                                     ->label(__('inventory::inventory.fields.notes'))
                                     ->rows(1)
-                                    ->columnSpan(['default' => 12, 'md' => 4]),
+                                    ->columnSpanFull(),
                             ])
                             ->columns(12)
                             ->defaultItems(1)
                             ->addActionLabel(__('inventory::inventory.actions.add_item'))
                             ->reorderable(false)
+                            ->itemLabel(fn (array $state): ?string => isset($state['product_id']) ? Product::find($state['product_id'])?->sku : null)
                             ->live(),
                     ]),
 
