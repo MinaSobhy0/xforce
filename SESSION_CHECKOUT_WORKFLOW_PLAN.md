@@ -23,6 +23,7 @@ Enhance the treatment session completion flow to automatically generate invoices
 2. **Enhanced invoice generation** - Include sold products
 3. **Session charges tracking** - Unified view of all billable items
 4. **Reception checkout enhancements** - Partial payment by category
+5. **Doctor discount on services** - Allow doctor to apply discount during session
 
 ---
 
@@ -107,6 +108,56 @@ Modal:
 
 ---
 
+### Phase 1B: Doctor Discount on Services (During Session)
+
+**Files to Modify:**
+- [ ] `modules/Booking/Filament/Pages/TreatmentSession.php`
+- [ ] `modules/Booking/Models/Appointment.php`
+- [ ] `modules/Booking/Database/Migrations/xxxx_add_discount_fields_to_appointments.php` (if needed)
+
+**New Fields on Appointment (if not exist):**
+```php
+$table->integer('discount_minor')->default(0);        // Discount amount
+$table->string('discount_type')->default('fixed');    // 'fixed' or 'percent'
+$table->string('discount_reason')->nullable();        // Doctor's reason for discount
+$table->foreignId('discount_approved_by')->nullable(); // Manager approval (optional)
+```
+
+**Tasks:**
+- [ ] Add "Apply Discount" action in treatment session page
+- [ ] Form fields: discount type (fixed/percent), amount, reason
+- [ ] Calculate and display discounted price in session summary
+- [ ] Store discount on appointment record
+- [ ] Pass discount to invoice generation
+
+**UI in Treatment Session:**
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ SERVICE DETAILS                                                 │
+├─────────────────────────────────────────────────────────────────┤
+│ Service: Laser Hair Removal - Full Leg                          │
+│ Original Price:                               1,500 EGP         │
+│                                                                 │
+│ [Apply Discount]                                                │
+│ ┌─────────────────────────────────────────────────────────────┐ │
+│ │ Discount Type: ○ Fixed Amount  ● Percentage                 │ │
+│ │ Discount:      [10] %                                       │ │
+│ │ Reason:        [First-time patient promotion______]         │ │
+│ └─────────────────────────────────────────────────────────────┘ │
+│                                                                 │
+│ Discount:                                      -150 EGP         │
+│ Final Price:                                  1,350 EGP         │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Business Rules:**
+- [ ] Doctor can apply discount up to configurable max (e.g., 50%)
+- [ ] Discount reason is required
+- [ ] Optional: Discounts above threshold require manager approval
+- [ ] Discount flows through to invoice automatically
+
+---
+
 ### Phase 2: Enhanced Invoice Generation on Session Complete
 
 **Files to Modify:**
@@ -123,13 +174,15 @@ Modal:
 
 **Invoice Line Structure:**
 ```php
-// Service line
+// Service line (with doctor discount applied)
 [
     'description' => 'Laser Hair Removal - Full Leg (Session 3 of 6)',
     'service_id' => $appointment->service_id,
     'appointment_id' => $appointment->id,
     'quantity' => 1,
     'unit_price_minor' => $appointment->price_minor,
+    'discount_minor' => $appointment->discount_minor,      // From doctor discount
+    'discount_type' => $appointment->discount_type,        // 'fixed' or 'percent'
     'line_type' => 'service', // NEW FIELD
 ]
 
@@ -296,7 +349,8 @@ Schema::table('invoice_lines', function (Blueprint $table) {
 ### Modify:
 | File | Changes |
 |------|---------|
-| `modules/Booking/Filament/Pages/TreatmentSession.php` | Add to existing treatment plan action |
+| `modules/Booking/Filament/Pages/TreatmentSession.php` | Add to existing treatment plan action, Apply discount action |
+| `modules/Booking/Models/Appointment.php` | Add discount fields if not exist, discount calculation methods |
 | `modules/Billing/Listeners/CreateInvoiceOnAppointmentComplete.php` | Include sold products |
 | `modules/Billing/Services/InvoiceCalculationService.php` | New method for session invoice |
 | `modules/Billing/Models/InvoiceLine.php` | New fields, relationships, scopes |
@@ -308,7 +362,16 @@ Schema::table('invoice_lines', function (Blueprint $table) {
 
 ## Verification Steps
 
-1. **Test Add to Treatment Plan:**
+1. **Test Doctor Discount:**
+   - Start treatment session
+   - Click "Apply Discount" on service
+   - Apply 10% discount with reason
+   - Verify discounted price shows in session summary
+   - Complete session
+   - Verify invoice has discount applied to service line
+   - Verify discount reason is stored
+
+2. **Test Add to Treatment Plan:**
    - Start session for patient with existing treatment plan
    - Click "Add to Treatment Plan"
    - Select existing plan, add service
@@ -346,8 +409,9 @@ Schema::table('invoice_lines', function (Blueprint $table) {
 
 ## Implementation Order
 
-1. **Phase 3** - Database migration (foundation)
-2. **Phase 2** - Invoice generation enhancement
-3. **Phase 1** - Add to treatment plan
-4. **Phase 4** - Reception checkout page
-5. **Phase 5** - Split payment & product cancellation
+1. **Phase 3** - Database migration (foundation - invoice_lines)
+2. **Phase 1B** - Doctor discount on services
+3. **Phase 2** - Invoice generation enhancement (includes discount)
+4. **Phase 1** - Add to treatment plan
+5. **Phase 4** - Reception checkout page
+6. **Phase 5** - Split payment & product cancellation
