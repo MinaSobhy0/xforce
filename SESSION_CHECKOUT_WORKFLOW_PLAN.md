@@ -180,7 +180,7 @@ $table->foreignId('discount_approved_by')->nullable(); // Manager approval (opti
 
 **Business Rules:**
 - [ ] Doctor can apply discount up to configurable max (e.g., 50%)
-- [ ] Discount reason is required
+- [ ] Discount reason is optional
 - [ ] Optional: Discounts above threshold require manager approval
 - [ ] Discount flows through to invoice automatically
 
@@ -436,11 +436,10 @@ Schema::table('treatment_plan_items', function (Blueprint $table) {
 1. **Test Doctor Discount:**
    - Start treatment session
    - Click "Apply Discount" on service
-   - Apply 10% discount with reason
+   - Apply 10% discount (reason optional)
    - Verify discounted price shows in session summary
    - Complete session
    - Verify invoice has discount applied to service line
-   - Verify discount reason is stored
 
 2. **Test Add Service to Treatment Plan:**
    - Start session for patient with existing treatment plan
