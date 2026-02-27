@@ -3,7 +3,7 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Spatie\Permission\Models\Role;
+use Modules\Auth\Models\Role;
 use Spatie\Permission\Models\Permission;
 
 class PlatformRoleSeeder extends Seeder
@@ -51,12 +51,26 @@ class PlatformRoleSeeder extends Seeder
 
         // Create roles and assign permissions
         foreach ($platformRoles as $roleName => $permissions) {
-            $role = Role::firstOrCreate(['name' => $roleName, 'guard_name' => 'web']);
+            $role = Role::firstOrCreate(
+                ['name' => $roleName, 'guard_name' => 'web'],
+                [
+                    'display_name' => ucwords(str_replace('_', ' ', $roleName)),
+                    'is_active' => true,
+                    'is_system' => true,
+                ]
+            );
             $role->syncPermissions($permissions);
         }
 
         // Ensure super_admin has all permissions
-        $superAdmin = Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
+        $superAdmin = Role::firstOrCreate(
+            ['name' => 'super_admin', 'guard_name' => 'web'],
+            [
+                'display_name' => 'Super Admin',
+                'is_active' => true,
+                'is_system' => true,
+            ]
+        );
         $superAdmin->syncPermissions(Permission::where('guard_name', 'web')->get());
     }
 }

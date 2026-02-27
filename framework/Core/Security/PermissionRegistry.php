@@ -7,7 +7,7 @@ use Illuminate\Support\Collection;
 use XLinic\Framework\Core\Module\ModuleManifest;
 use XLinic\Framework\Core\Tenancy\TenantManager;
 use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
+use Modules\Auth\Models\Role;
 
 class PermissionRegistry
 {
@@ -68,6 +68,7 @@ class PermissionRegistry
                 'display_name' => $role['display_name'] ?? $role['name'],
                 'description' => $role['description'] ?? null,
                 'is_system' => $role['is_system'] ?? false,
+                'is_active' => $role['is_active'] ?? true,
             ]
         );
 
@@ -279,6 +280,7 @@ class PermissionRegistry
             'guard_name' => 'web',
             'display_name' => $data['name'],
             'is_system' => false,
+            'is_active' => true,
         ], $data));
 
         if (isset($data['permissions'])) {

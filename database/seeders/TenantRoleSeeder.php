@@ -4,7 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use Spatie\Permission\Models\Role;
+use Modules\Auth\Models\Role;
 use Spatie\Permission\Models\Permission;
 use Modules\Core\Database\Seeders\Concerns\ResolveTenantId;
 
@@ -74,7 +74,11 @@ class TenantRoleSeeder extends Seeder
         foreach ($tenantRoles as $roleName => $roleData) {
             $role = Role::firstOrCreate(
                 ['name' => $roleName, 'guard_name' => 'web'],
-                ['display_name' => $roleData['display_name']]
+                [
+                    'display_name' => $roleData['display_name'],
+                    'is_active' => true,
+                    'is_system' => in_array($roleName, ['owner', 'admin']),
+                ]
             );
 
             $permissions = Permission::whereIn('name', $roleData['permissions'])->get();
