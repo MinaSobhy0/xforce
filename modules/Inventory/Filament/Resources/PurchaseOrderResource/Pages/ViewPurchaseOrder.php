@@ -88,9 +88,9 @@ class ViewPurchaseOrder extends BaseViewRecord
                     if (!$this->record->vendor_bill_id) {
                         return true;
                     }
-                    // Or linked bill is cancelled
+                    // Bill was deleted or cancelled - allow creating new one
                     $bill = $this->record->vendorBill;
-                    return $bill && $bill->status === VendorBill::STATUS_CANCELLED;
+                    return !$bill || $bill->status === VendorBill::STATUS_CANCELLED;
                 })
                 ->requiresConfirmation()
                 ->modalDescription('This will create a vendor bill from this purchase order.')
