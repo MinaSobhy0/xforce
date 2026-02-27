@@ -339,6 +339,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                         ->label(__('booking::session.plan_modal.select_plan'))
                         ->options(fn () => $this->getActiveTreatmentPlans()
                             ->mapWithKeys(fn ($plan) => [$plan->id => $plan->name]))
+                        ->default(fn () => $this->getCurrentTreatmentPlan()?->id)
                         ->visible(fn (Forms\Get $get) => $get('plan_mode') === 'existing')
                         ->required(fn (Forms\Get $get) => $get('plan_mode') === 'existing'),
                     Forms\Components\TextInput::make('new_plan_name')
