@@ -10,7 +10,6 @@ use Filament\Forms\Contracts\HasForms;
 use Filament\Widgets\Widget;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\On;
-use Modules\Billing\Models\Invoice;
 use Modules\Booking\Models\Appointment;
 use Modules\Booking\Services\ReceptionService;
 
@@ -381,29 +380,6 @@ class PatientFlowWidget extends Widget implements HasForms
         }
 
         return Appointment::with(['patient', 'room', 'practitioner'])->find($this->editingAppointmentId);
-    }
-
-    /**
-     * Get completed appointments ready for checkout.
-     * These are appointments with completed status that have unpaid/partially paid invoices.
-     */
-    public function getReadyForCheckoutAppointments(): \Illuminate\Support\Collection
-    {
-        $branchId = BranchContext::currentId();
-        $date = Carbon::parse($this->selectedDate);
-
-        return Appointment::with(['patient', 'service', 'practitioner', 'invoice'])
-            ->where('branch_id', $branchId)
-            ->whereDate('date', $date)
-            ->where('status', Appointment::STATUS_COMPLETED)
-            ->whereHas('invoice', function ($query) {
-                $query->whereIn('status', [
-                    Invoice::STATUS_ISSUED,
-                    Invoice::STATUS_PARTIALLY_PAID,
-                ]);
-            })
-            ->orderBy('end_time', 'desc')
-            ->get();
     }
 
     /**
