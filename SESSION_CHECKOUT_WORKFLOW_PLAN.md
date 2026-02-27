@@ -77,12 +77,31 @@ Enhance the treatment session completion flow to automatically generate invoices
 
 **Files to Modify:**
 - [ ] `modules/Booking/Filament/Pages/TreatmentSession.php`
+- [ ] `modules/TreatmentPlans/Models/TreatmentPlanItem.php`
+- [ ] `modules/TreatmentPlans/Database/Migrations/2024_02_01_000002_create_treatment_plan_items_table.php`
+
+**Database Changes for TreatmentPlanItem:**
+```php
+// Ensure these fields exist (add migration if needed)
+$table->string('item_type')->default('service');  // 'service', 'product', 'package'
+$table->foreignId('service_id')->nullable();      // For services
+$table->foreignId('product_id')->nullable();      // For products (NEW)
+$table->foreignId('package_id')->nullable();      // For packages (NEW)
+$table->integer('quantity')->default(1);          // For products
+$table->integer('recommended_sessions')->default(1); // For services
+$table->integer('completed_sessions')->default(0);
+$table->integer('session_interval_days')->nullable(); // For services
+$table->integer('unit_price_minor');
+$table->integer('discount_minor')->default(0);
+$table->integer('total_minor');
+```
 
 **Tasks:**
 - [ ] Add "Add to Treatment Plan" action in session page
 - [ ] Show patient's existing treatment plans (if any)
 - [ ] Allow selecting existing plan OR creating new
-- [ ] Form to add services: service, sessions count, interval, price
+- [ ] Support three item types: Service, Product, Package
+- [ ] Dynamic form based on item type selected
 - [ ] On save: create `TreatmentPlanItem` records
 - [ ] Recalculate plan financials after adding
 
@@ -95,16 +114,25 @@ Modal:
   ● Add to Existing Plan
       └─ Select: [Plan A (Active)] [Plan B (Active)]
 
-  Services to Add:
-  ┌────────────────┬──────────┬──────────┬─────────┐
-  │ Service        │ Sessions │ Interval │ Price   │
-  ├────────────────┼──────────┼──────────┼─────────┤
-  │ Laser Full Leg │ 6        │ 30 days  │ 1,500   │
-  │ [+ Add Row]    │          │          │         │
-  └────────────────┴──────────┴──────────┴─────────┘
+  Items to Add:
+  ┌──────────┬────────────────┬──────────┬──────────┬─────────┐
+  │ Type     │ Item           │ Qty/Sess │ Interval │ Price   │
+  ├──────────┼────────────────┼──────────┼──────────┼─────────┤
+  │ Service  │ Laser Full Leg │ 6 sess   │ 30 days  │ 1,500   │
+  │ Product  │ Sunscreen SPF50│ 2 qty    │ -        │ 350     │
+  │ Package  │ Glow Package   │ 1 qty    │ -        │ 5,000   │
+  │ [+ Add Row]               │          │          │         │
+  └──────────┴────────────────┴──────────┴──────────┴─────────┘
 
   [Cancel] [Add to Plan]
 ```
+
+**Item Type Behavior:**
+| Type | Fields | Booking | Invoicing |
+|------|--------|---------|-----------|
+| Service | sessions, interval, price | Can book appointments | Invoice per session |
+| Product | quantity, price | No booking | Invoice on delivery |
+| Package | quantity, price | Includes multiple services | Invoice package price |
 
 ---
 
@@ -324,7 +352,7 @@ PAYMENT METHODS
 
 ## Database Changes Summary
 
-### New Migration: `add_line_type_to_invoice_lines_table.php`
+### Migration 1: `add_line_type_to_invoice_lines_table.php`
 ```php
 Schema::table('invoice_lines', function (Blueprint $table) {
     $table->string('line_type', 20)->default('service')->after('description');
@@ -332,6 +360,46 @@ Schema::table('invoice_lines', function (Blueprint $table) {
     $table->foreignId('session_product_id')->nullable()->after('product_id');
 
     $table->index('line_type');
+});
+```
+
+### Migration 2: `add_product_package_to_treatment_plan_items_table.php`
+```php
+Schema::table('treatment_plan_items', function (Blueprint $table) {
+    // Add item_type if not exists
+    if (!Schema::hasColumn('treatment_plan_items', 'item_type')) {
+        $table->string('item_type', 20)->default('service')->after('treatment_plan_id');
+    }
+
+    // Add product_id for product items
+    if (!Schema::hasColumn('treatment_plan_items', 'product_id')) {
+        $table->foreignId('product_id')->nullable()->after('service_id');
+        $table->foreign('product_id')->references('id')->on('products')->nullOnDelete();
+    }
+
+    // Add package_id for package items
+    if (!Schema::hasColumn('treatment_plan_items', 'package_id')) {
+        $table->foreignId('package_id')->nullable()->after('product_id');
+        $table->foreign('package_id')->references('id')->on('packages')->nullOnDelete();
+    }
+
+    // Add quantity for products (services use recommended_sessions)
+    if (!Schema::hasColumn('treatment_plan_items', 'quantity')) {
+        $table->integer('quantity')->default(1)->after('recommended_sessions');
+    }
+
+    // Add completed_quantity for products
+    if (!Schema::hasColumn('treatment_plan_items', 'completed_quantity')) {
+        $table->integer('completed_quantity')->default(0)->after('completed_sessions');
+    }
+
+    // Add is_delivered for products
+    if (!Schema::hasColumn('treatment_plan_items', 'is_delivered')) {
+        $table->boolean('is_delivered')->default(false);
+        $table->timestamp('delivered_at')->nullable();
+    }
+
+    $table->index('item_type');
 });
 ```
 
@@ -344,7 +412,8 @@ Schema::table('invoice_lines', function (Blueprint $table) {
 |------|---------|
 | `modules/Billing/Filament/Pages/SessionCheckout.php` | Reception checkout page |
 | `modules/Billing/Services/CheckoutService.php` | Split payment & product cancellation logic |
-| `modules/Billing/Database/Migrations/xxxx_add_line_type_to_invoice_lines.php` | New columns |
+| `modules/Billing/Database/Migrations/xxxx_add_line_type_to_invoice_lines.php` | Invoice line type columns |
+| `modules/TreatmentPlans/Database/Migrations/xxxx_add_product_package_to_treatment_plan_items.php` | Product/package support |
 
 ### Modify:
 | File | Changes |
@@ -357,6 +426,8 @@ Schema::table('invoice_lines', function (Blueprint $table) {
 | `modules/Billing/Models/Invoice.php` | Add getServicesTotalAttribute, getProductsTotalAttribute |
 | `modules/Booking/Filament/Pages/ReceptionDashboard.php` | Ready for checkout section |
 | `modules/Booking/Models/SessionProduct.php` | Add returnToInventory() method |
+| `modules/TreatmentPlans/Models/TreatmentPlanItem.php` | Add product/package relationships, item_type handling |
+| `modules/TreatmentPlans/Models/TreatmentPlan.php` | Update financial calculations for products/packages |
 
 ---
 
@@ -371,26 +442,39 @@ Schema::table('invoice_lines', function (Blueprint $table) {
    - Verify invoice has discount applied to service line
    - Verify discount reason is stored
 
-2. **Test Add to Treatment Plan:**
+2. **Test Add Service to Treatment Plan:**
    - Start session for patient with existing treatment plan
    - Click "Add to Treatment Plan"
-   - Select existing plan, add service
+   - Select existing plan, add service (6 sessions, 30 day interval)
    - Verify item appears in plan with correct sessions/price
 
-2. **Test Invoice Generation:**
+3. **Test Add Product to Treatment Plan:**
+   - In treatment session, click "Add to Treatment Plan"
+   - Select item type "Product"
+   - Add product with quantity 2
+   - Verify product item appears in plan
+   - Verify product has no booking option (products don't create appointments)
+
+4. **Test Add Package to Treatment Plan:**
+   - In treatment session, click "Add to Treatment Plan"
+   - Select item type "Package"
+   - Add package
+   - Verify package item appears in plan with included services
+
+5. **Test Invoice Generation:**
    - Complete session with upsold products
    - Verify invoice created with service line AND product lines
    - Verify products marked as invoiced
    - Verify line_type is correct for each line
 
-3. **Test Reception Checkout:**
+6. **Test Reception Checkout:**
    - Complete session
    - Go to reception dashboard
    - Verify patient appears in "Ready for Checkout"
    - Open checkout, verify services/products separated
    - Test "Pay All" - verify full payment, invoice marked PAID
 
-4. **Test Product Cancellation:**
+7. **Test Product Cancellation:**
    - Complete session with 2 products upsold
    - At checkout, uncheck 1 product
    - Pay for services + 1 product only
@@ -398,7 +482,7 @@ Schema::table('invoice_lines', function (Blueprint $table) {
    - Verify product returned to inventory (stock increased)
    - Verify SessionProduct.is_invoiced reset to false
 
-5. **Test Split Payment:**
+8. **Test Split Payment:**
    - At checkout, add two payment methods
    - Pay 1,000 EGP cash + 700 EGP card
    - Verify two Payment records created
@@ -409,9 +493,11 @@ Schema::table('invoice_lines', function (Blueprint $table) {
 
 ## Implementation Order
 
-1. **Phase 3** - Database migration (foundation - invoice_lines)
+1. **Phase 3** - Database migrations (foundation)
+   - Invoice lines: add line_type, product_id, session_product_id
+   - Treatment plan items: add product_id, package_id, item_type, quantity
 2. **Phase 1B** - Doctor discount on services
 3. **Phase 2** - Invoice generation enhancement (includes discount)
-4. **Phase 1** - Add to treatment plan
+4. **Phase 1** - Add to treatment plan (services, products, packages)
 5. **Phase 4** - Reception checkout page
 6. **Phase 5** - Split payment & product cancellation
