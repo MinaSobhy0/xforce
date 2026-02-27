@@ -158,14 +158,22 @@ class LinesRelationManager extends RelationManager
 
                 Tables\Columns\TextColumn::make('tax_rates')
                     ->label(__('inventory::inventory.fields.taxes'))
-                    ->formatStateUsing(function ($state) {
-                        if (empty($state)) {
-                            return '-';
+                    ->formatStateUsing(function ($state, $record) {
+                        // Use record's accessor to get properly casted array
+                        $rates = $record->tax_rates ?? [];
+
+                        // Fallback to state parsing if record accessor fails
+                        if (empty($rates)) {
+                            if (empty($state)) {
+                                return '-';
+                            }
+                            $rates = is_array($state) ? $state : json_decode($state, true);
                         }
-                        $rates = is_array($state) ? $state : json_decode($state, true);
+
                         if (empty($rates) || !is_array($rates)) {
                             return '-';
                         }
+
                         $vatRates = array_filter($rates, fn ($r) => floatval($r) >= 0);
                         $whRates = array_filter($rates, fn ($r) => floatval($r) < 0);
 
