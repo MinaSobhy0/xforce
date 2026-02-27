@@ -705,15 +705,20 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
         }
 
         // Create a new appointment for this service
+        $now = now();
+        $duration = $item->service?->duration_minutes ?? 30;
+
         $newAppointment = Appointment::create([
             'tenant_id' => $this->appointment->tenant_id,
             'branch_id' => $this->appointment->branch_id,
             'patient_id' => $this->appointment->patient_id,
             'service_id' => $item->service_id,
-            'practitioner_id' => $this->appointment->practitioner_id, // Use current practitioner
+            'practitioner_id' => $this->appointment->practitioner_id,
             'room_id' => $this->appointment->room_id,
-            'scheduled_at' => now(),
-            'duration_minutes' => $item->service?->duration_minutes ?? 30,
+            'date' => $now->toDateString(),
+            'start_time' => $now->format('H:i:s'),
+            'end_time' => $now->copy()->addMinutes($duration)->format('H:i:s'),
+            'duration_minutes' => $duration,
             'price_minor' => $item->unit_price_minor,
             'status' => Appointment::STATUS_SCHEDULED,
             'notes' => $item->notes,
