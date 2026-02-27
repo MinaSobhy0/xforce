@@ -402,6 +402,29 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                                 ->minValue(1)
                                 ->suffix(__('booking::session.plan.days'))
                                 ->visible(fn (Forms\Get $get) => $get('item_type') === 'service'),
+                            Forms\Components\Select::make('preferred_practitioner_id')
+                                ->label(__('booking::session.plan_modal.assign_to_doctor'))
+                                ->options(function (Forms\Get $get) {
+                                    $serviceId = $get('service_id');
+                                    if (!$serviceId) {
+                                        return [];
+                                    }
+                                    $service = Service::find($serviceId);
+                                    if (!$service) {
+                                        return [];
+                                    }
+                                    $qualified = $service->qualifiedStaff()->with('user')->get();
+                                    if ($qualified->isEmpty()) {
+                                        return [];
+                                    }
+                                    return $qualified
+                                        ->filter(fn ($staff) => $staff->user)
+                                        ->mapWithKeys(fn ($staff) => [$staff->user->id => $staff->user->full_name])
+                                        ->toArray();
+                                })
+                                ->placeholder(__('booking::session.plan_modal.current_doctor'))
+                                ->visible(fn (Forms\Get $get) => $get('item_type') === 'service')
+                                ->searchable(),
                             Forms\Components\Hidden::make('unit_price'),
                             Forms\Components\Placeholder::make('original_price_display')
                                 ->label(__('booking::session.plan_modal.original_price'))
@@ -2214,6 +2237,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                             $itemData['service_id'] = $item['service_id'];
                             $itemData['recommended_sessions'] = (int) ($item['sessions'] ?? 1);
                             $itemData['session_interval_days'] = (int) ($item['interval_days'] ?? 7);
+                            $itemData['preferred_practitioner_id'] = $item['preferred_practitioner_id'] ?? null;
                             $itemData['itemable_type'] = Service::class;
                             $itemData['itemable_id'] = $item['service_id'];
                             break;

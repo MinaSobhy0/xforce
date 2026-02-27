@@ -157,6 +157,8 @@ return [
         'fixed_amount' => 'مبلغ ثابت',
         'discount_value' => 'قيمة الخصم',
         'final_price' => 'السعر النهائي',
+        'assign_to_doctor' => 'تعيين لطبيب',
+        'current_doctor' => 'الطبيب الحالي',
     ],
 
     // Discount

@@ -138,19 +138,22 @@ class PurchaseOrderResource extends Resource
                                             $product = Product::find($state);
                                             if ($product) {
                                                 $set('unit_price_minor', $product->cost_price_minor / 100);
+                                                // Set default tax rate
+                                                $defaultTax = \Modules\Billing\Models\TaxRate::getDefault(\Modules\Billing\Models\TaxRate::TYPE_PURCHASE);
+                                                $set('tax_rate', $defaultTax ? (string) $defaultTax->rate : '14');
                                             }
                                         }
                                     })
-                                    ->columnSpan(3),
+                                    ->columnSpan(['default' => 12, 'md' => 4]),
 
                                 Forms\Components\TextInput::make('quantity')
-                                    ->label(__('inventory::inventory.fields.quantity'))
+                                    ->label(__('inventory::inventory.fields.qty'))
                                     ->numeric()
                                     ->required()
                                     ->default(1)
                                     ->minValue(1)
                                     ->live(onBlur: true)
-                                    ->columnSpan(1),
+                                    ->columnSpan(['default' => 4, 'md' => 1]),
 
                                 Forms\Components\TextInput::make('unit_price_minor')
                                     ->label(__('inventory::inventory.fields.unit_price'))
@@ -160,7 +163,25 @@ class PurchaseOrderResource extends Resource
                                     ->live(onBlur: true)
                                     ->formatStateUsing(fn ($state) => $state ? $state / 100 : null)
                                     ->dehydrateStateUsing(fn ($state) => $state ? (int) ($state * 100) : 0)
-                                    ->columnSpan(2),
+                                    ->columnSpan(['default' => 4, 'md' => 2]),
+
+                                Forms\Components\Select::make('tax_rate')
+                                    ->label(__('inventory::inventory.fields.tax'))
+                                    ->options(function () {
+                                        return \Modules\Billing\Models\TaxRate::where('is_active', true)
+                                            ->where('type', \Modules\Billing\Models\TaxRate::TYPE_PURCHASE)
+                                            ->orderBy('rate')
+                                            ->get()
+                                            ->mapWithKeys(fn ($t) => [
+                                                (string) $t->rate => $t->getTranslation('name', app()->getLocale()) . " ({$t->rate}%)"
+                                            ]);
+                                    })
+                                    ->default(function () {
+                                        $default = \Modules\Billing\Models\TaxRate::getDefault(\Modules\Billing\Models\TaxRate::TYPE_PURCHASE);
+                                        return $default ? (string) $default->rate : '14';
+                                    })
+                                    ->live(onBlur: true)
+                                    ->columnSpan(['default' => 4, 'md' => 2]),
 
                                 Forms\Components\TextInput::make('quantity_received')
                                     ->label(__('inventory::inventory.fields.received'))
@@ -168,14 +189,14 @@ class PurchaseOrderResource extends Resource
                                     ->disabled()
                                     ->dehydrated(false)
                                     ->default(0)
-                                    ->columnSpan(1),
+                                    ->columnSpan(['default' => 4, 'md' => 1]),
 
                                 Forms\Components\Textarea::make('notes')
                                     ->label(__('inventory::inventory.fields.notes'))
                                     ->rows(1)
-                                    ->columnSpan(5),
+                                    ->columnSpan(['default' => 12, 'md' => 2]),
                             ])
-                            ->columns(7)
+                            ->columns(12)
                             ->defaultItems(1)
                             ->addActionLabel(__('inventory::inventory.actions.add_item'))
                             ->reorderable(false)

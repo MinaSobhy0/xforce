@@ -157,6 +157,8 @@ return [
         'fixed_amount' => 'Fixed Amount',
         'discount_value' => 'Discount Value',
         'final_price' => 'Final Price',
+        'assign_to_doctor' => 'Assign to Doctor',
+        'current_doctor' => 'Current Doctor',
     ],
 
     // Discount
