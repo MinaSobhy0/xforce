@@ -5,9 +5,12 @@ namespace Modules\Staff\Database\Seeders;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Modules\Core\Database\Seeders\Concerns\ResolveTenantId;
 
 class CommissionPlanSeeder extends Seeder
 {
+    use ResolveTenantId;
+
     protected $connection;
     protected ?string $tenantId = null;
 
@@ -87,38 +90,4 @@ class CommissionPlanSeeder extends Seeder
     /**
      * Resolve the tenant ID from various sources.
      */
-    protected function resolveTenantId(): ?string
-    {
-        try {
-            $tenantManager = app(\XLinic\Framework\Core\Tenancy\TenantManager::class);
-            if ($tenantManager->current()) {
-                return $tenantManager->current()->id;
-            }
-        } catch (\Exception $e) {
-            // Ignore
-        }
-
-        try {
-            $result = DB::connection('tenant')->select('SHOW search_path');
-            $searchPath = $result[0]->search_path ?? 'public';
-
-            if (preg_match('/tenant[_-]([^,\s"]+)/', $searchPath, $matches)) {
-                $slug = str_replace('_', '-', $matches[1]);
-
-                $tenant = DB::connection('pgsql')
-                    ->table('tenants')
-                    ->where('slug', $slug)
-                    ->orWhere('slug', $matches[1])
-                    ->first();
-
-                if ($tenant) {
-                    return $tenant->id;
-                }
-            }
-        } catch (\Exception $e) {
-            // Ignore
-        }
-
-        return null;
-    }
 }

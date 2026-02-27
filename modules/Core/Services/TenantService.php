@@ -314,8 +314,20 @@ class TenantService
                 // Service parameter templates
                 \Modules\Services\Database\Seeders\ParameterTemplatesSeeder::class,
 
+                // Work schedules (default shift patterns)
+                \Modules\Booking\Database\Seeders\WorkScheduleSeeder::class,
+
                 // Time off types
                 \Modules\Booking\Database\Seeders\TimeOffTypeSeeder::class,
+
+                // Attendance rules
+                \Modules\Attendance\Database\Seeders\AttendanceRuleSeeder::class,
+
+                // Marketing - message templates (must be before automation rules)
+                \Modules\Marketing\Database\Seeders\MessageTemplateSeeder::class,
+
+                // Marketing - automation rules
+                \Modules\Marketing\Database\Seeders\AutomationRuleSeeder::class,
 
                 // Default medicines catalog
                 \Modules\Prescriptions\Database\Seeders\DefaultMedicinesSeeder::class,

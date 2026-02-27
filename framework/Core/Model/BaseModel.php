@@ -81,7 +81,7 @@ abstract class BaseModel extends Model
             $keyName
         );
 
-        $result = \DB::select($sql, $values);
+        $result = $this->getConnection()->select($sql, $values);
 
         // Set the ID from the RETURNING clause
         if (!empty($result)) {
@@ -148,7 +148,7 @@ abstract class BaseModel extends Model
             $this->getKeyName()
         );
 
-        \DB::statement($sql, $values);
+        $this->getConnection()->statement($sql, $values);
 
         $this->syncChanges();
         $this->fireModelEvent('updated', false);

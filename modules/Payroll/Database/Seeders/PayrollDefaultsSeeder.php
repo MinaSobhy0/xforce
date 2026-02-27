@@ -8,9 +8,12 @@ use Illuminate\Support\Str;
 use Modules\Accounting\Models\ChartOfAccount;
 use Modules\Payroll\Models\SalaryRule;
 use Modules\Payroll\Models\SalaryRuleCategory;
+use Modules\Core\Database\Seeders\Concerns\ResolveTenantId;
 
 class PayrollDefaultsSeeder extends Seeder
 {
+    use ResolveTenantId;
+
     protected $connection;
     protected ?string $tenantId = null;
 
@@ -81,48 +84,6 @@ class PayrollDefaultsSeeder extends Seeder
         }
 
         return config('app.currency', 'USD');
-    }
-
-    /**
-     * Resolve the tenant ID from various sources.
-     */
-    protected function resolveTenantId(): ?string
-    {
-        // Try TenantManager first
-        try {
-            $tenantManager = app(\XLinic\Framework\Core\Tenancy\TenantManager::class);
-            if ($tenantManager->current()) {
-                return $tenantManager->current()->id;
-            }
-        } catch (\Exception $e) {
-            // Ignore
-        }
-
-        // Try to resolve from database search_path (for CLI seeding)
-        try {
-            $result = DB::connection('tenant')->select('SHOW search_path');
-            $searchPath = $result[0]->search_path ?? 'public';
-
-            // Extract tenant slug from search path (e.g., "tenant_clinic" -> "clinic")
-            if (preg_match('/tenant[_-]([^,\s"]+)/', $searchPath, $matches)) {
-                $slug = str_replace('_', '-', $matches[1]);
-
-                // Find tenant by slug using central connection
-                $tenant = DB::connection('pgsql')
-                    ->table('tenants')
-                    ->where('slug', $slug)
-                    ->orWhere('slug', $matches[1])
-                    ->first();
-
-                if ($tenant) {
-                    return $tenant->id;
-                }
-            }
-        } catch (\Exception $e) {
-            // Ignore errors
-        }
-
-        return null;
     }
 
     protected function seedCategories(): array

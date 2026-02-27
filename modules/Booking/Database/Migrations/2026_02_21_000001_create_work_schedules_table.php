@@ -19,7 +19,8 @@ return new class extends Migration
                 $table->text('description')->nullable();
 
                 // Weekly schedule as JSON: { "0": {"is_working": true, "start": "09:00", "end": "17:00", "break_start": "13:00", "break_end": "14:00"}, ... }
-                $table->json('weekly_hours');
+                // Nullable for flexible schedules that use working_days + required_hours instead
+                $table->json('weekly_hours')->nullable();
 
                 $table->integer('slot_duration')->default(30); // minutes per slot
                 $table->integer('buffer_time')->default(0); // minutes between appointments
