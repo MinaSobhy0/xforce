@@ -15,13 +15,19 @@ class InvoiceCalculationService
     /**
      * Calculate line item totals.
      * All calculations use integer minor units (cents/piasters).
+     *
+     * @param int $unitPriceMinor
+     * @param float $quantity
+     * @param int $discountMinor
+     * @param string $discountType
+     * @param array|float $taxRates Array of tax rates or single rate for backward compatibility
      */
     public function calculateLine(
         int $unitPriceMinor,
         float $quantity,
         int $discountMinor = 0,
         string $discountType = 'fixed',
-        float $taxRate = 0
+        array|float $taxRates = []
     ): array {
         // Calculate subtotal
         $subtotal = (int) round($unitPriceMinor * $quantity);
@@ -39,8 +45,10 @@ class InvoiceCalculationService
         // After discount
         $afterDiscount = max(0, $subtotal - $discountAmount);
 
-        // Calculate tax
-        $taxAmount = (int) round($afterDiscount * $taxRate / 100);
+        // Calculate tax - handle both array and single value for backward compatibility
+        $ratesArray = is_array($taxRates) ? $taxRates : [$taxRates];
+        $totalTaxPercent = array_sum(array_map('floatval', $ratesArray));
+        $taxAmount = (int) round($afterDiscount * $totalTaxPercent / 100);
 
         // Total
         $total = $afterDiscount + $taxAmount;
@@ -99,6 +107,15 @@ class InvoiceCalculationService
     }
 
     /**
+     * Get the default tax rates as array.
+     */
+    public function getDefaultTaxRates(): array
+    {
+        $taxRate = TaxRate::getDefault();
+        return $taxRate ? [(string) $taxRate->rate] : ['14'];
+    }
+
+    /**
      * Create invoice line from service.
      */
     public function createLineFromService(
@@ -110,9 +127,9 @@ class InvoiceCalculationService
             ? $service->getEffectivePrice($branchId)
             : $service->base_price_minor;
 
-        $taxRate = $this->getDefaultTaxRate();
+        $taxRates = $this->getDefaultTaxRates();
 
-        $calculated = $this->calculateLine($price, $quantity, 0, 'fixed', $taxRate);
+        $calculated = $this->calculateLine($price, $quantity, 0, 'fixed', $taxRates);
 
         return [
             'service_id' => $service->id,
@@ -121,7 +138,7 @@ class InvoiceCalculationService
             'unit_price_minor' => $price,
             'discount_minor' => 0,
             'discount_type' => 'fixed',
-            'tax_rate' => $taxRate,
+            'tax_rates' => $taxRates,
             'tax_minor' => $calculated['tax_minor'],
             'total_minor' => $calculated['total_minor'],
         ];
@@ -141,14 +158,14 @@ class InvoiceCalculationService
         int $discountMinor = 0,
         ?string $createdByUserId = null
     ): Invoice {
-        $taxRate = $this->getDefaultTaxRate();
+        $taxRates = $this->getDefaultTaxRates();
 
         $lineCalculation = $this->calculateLine(
             $priceMinor,
             1,
             $discountMinor,
             'fixed',
-            $taxRate
+            $taxRates
         );
 
         $invoice = Invoice::create([
@@ -170,7 +187,7 @@ class InvoiceCalculationService
             'unit_price_minor' => $priceMinor,
             'discount_minor' => $discountMinor,
             'discount_type' => 'fixed',
-            'tax_rate' => $taxRate,
+            'tax_rates' => $taxRates,
             'tax_minor' => $lineCalculation['tax_minor'],
             'total_minor' => $lineCalculation['total_minor'],
         ]);
@@ -185,7 +202,7 @@ class InvoiceCalculationService
     public function createInvoiceForSession(Appointment $appointment, ?string $createdByUserId = null): Invoice
     {
         return DB::transaction(function () use ($appointment, $createdByUserId) {
-            $taxRate = $this->getDefaultTaxRate();
+            $taxRates = $this->getDefaultTaxRates();
             $sortOrder = 0;
 
             // Create the invoice
@@ -203,7 +220,7 @@ class InvoiceCalculationService
             ]);
 
             // Create service line
-            $this->createServiceLine($invoice, $appointment, $taxRate, $sortOrder++);
+            $this->createServiceLine($invoice, $appointment, $taxRates, $sortOrder++);
 
             // Create product lines from sold session products
             $soldProducts = SessionProduct::where('appointment_id', $appointment->id)
@@ -212,7 +229,7 @@ class InvoiceCalculationService
                 ->get();
 
             foreach ($soldProducts as $sessionProduct) {
-                $this->createProductLine($invoice, $sessionProduct, $taxRate, $sortOrder++);
+                $this->createProductLine($invoice, $sessionProduct, $taxRates, $sortOrder++);
             }
 
             // Recalculate invoice totals
@@ -228,7 +245,7 @@ class InvoiceCalculationService
     protected function createServiceLine(
         Invoice $invoice,
         Appointment $appointment,
-        float $taxRate,
+        array $taxRates,
         int $sortOrder
     ): InvoiceLine {
         $service = $appointment->service;
@@ -246,7 +263,7 @@ class InvoiceCalculationService
             1,
             $discountMinor,
             $discountType,
-            $taxRate
+            $taxRates
         );
 
         return $invoice->lines()->create([
@@ -260,7 +277,7 @@ class InvoiceCalculationService
             'unit_price_minor' => $appointment->price_minor,
             'discount_minor' => $discountMinor,
             'discount_type' => $discountType,
-            'tax_rate' => $taxRate,
+            'tax_rates' => $taxRates,
             'tax_minor' => $lineCalculation['tax_minor'],
             'total_minor' => $lineCalculation['total_minor'],
             'sort_order' => $sortOrder,
@@ -273,7 +290,7 @@ class InvoiceCalculationService
     protected function createProductLine(
         Invoice $invoice,
         SessionProduct $sessionProduct,
-        float $taxRate,
+        array $taxRates,
         int $sortOrder
     ): InvoiceLine {
         $product = $sessionProduct->product;
@@ -283,7 +300,7 @@ class InvoiceCalculationService
             $sessionProduct->quantity,
             0, // No line-level discount on products
             'fixed',
-            $taxRate
+            $taxRates
         );
 
         $invoiceLine = $invoice->lines()->create([
@@ -296,7 +313,7 @@ class InvoiceCalculationService
             'unit_price_minor' => $sessionProduct->unit_price_minor,
             'discount_minor' => 0,
             'discount_type' => 'fixed',
-            'tax_rate' => $taxRate,
+            'tax_rates' => $taxRates,
             'tax_minor' => $lineCalculation['tax_minor'],
             'total_minor' => $lineCalculation['total_minor'],
             'sort_order' => $sortOrder,

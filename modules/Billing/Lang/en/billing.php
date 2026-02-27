@@ -94,6 +94,7 @@ return [
         'discount' => 'Discount',
         'discount_value' => 'Discount Value',
         'tax' => 'Tax',
+        'taxes' => 'Taxes',
         'subtotal' => 'Subtotal',
         'total' => 'Total',
         'paid' => 'Paid',

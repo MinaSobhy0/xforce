@@ -42,6 +42,7 @@ class StockMovement extends BaseModel
     public const TYPE_ADJUSTMENT = 'adjustment';
     public const TYPE_PURCHASE_RECEIVE = 'purchase_receive';
     public const TYPE_APPOINTMENT_CONSUME = 'appointment_consume';
+    public const TYPE_INVOICE_SALE = 'invoice_sale';
     public const TYPE_RETURN = 'return';
     public const TYPE_WASTE = 'waste';
 
@@ -53,6 +54,7 @@ class StockMovement extends BaseModel
         self::TYPE_ADJUSTMENT => 'Adjustment',
         self::TYPE_PURCHASE_RECEIVE => 'Purchase Receive',
         self::TYPE_APPOINTMENT_CONSUME => 'Appointment Consume',
+        self::TYPE_INVOICE_SALE => 'Invoice Sale',
         self::TYPE_RETURN => 'Return',
         self::TYPE_WASTE => 'Waste',
     ];
@@ -65,6 +67,7 @@ class StockMovement extends BaseModel
         self::TYPE_ADJUSTMENT => 'gray',
         self::TYPE_PURCHASE_RECEIVE => 'success',
         self::TYPE_APPOINTMENT_CONSUME => 'danger',
+        self::TYPE_INVOICE_SALE => 'success',
         self::TYPE_RETURN => 'info',
         self::TYPE_WASTE => 'danger',
     ];
@@ -131,6 +134,7 @@ class StockMovement extends BaseModel
             self::TYPE_OUT,
             self::TYPE_TRANSFER_OUT,
             self::TYPE_APPOINTMENT_CONSUME,
+            self::TYPE_INVOICE_SALE,
             self::TYPE_WASTE,
         ]);
     }
@@ -166,6 +170,7 @@ class StockMovement extends BaseModel
             self::TYPE_OUT,
             self::TYPE_TRANSFER_OUT,
             self::TYPE_APPOINTMENT_CONSUME,
+            self::TYPE_INVOICE_SALE,
             self::TYPE_WASTE,
         ]);
     }

@@ -23,9 +23,11 @@ class AccountingIntegrationService
     /**
      * Create journal entry when invoice is issued.
      *
-     * Debit: Accounts Receivable
+     * Debit: Accounts Receivable (total amount customer owes)
+     * Debit: Tax Receivable (for negative taxes like Withholding - we get back from govt)
+     * Debit: Sales Discount (if invoice-level discount exists)
      * Credit: Revenue Account (per line)
-     * Credit: Tax Payable (per tax rate account)
+     * Credit: Tax Payable (for positive taxes like VAT - we owe to govt)
      */
     public function createInvoiceJournalEntry(Invoice $invoice): ?JournalEntry
     {
@@ -33,6 +35,9 @@ class AccountingIntegrationService
         if (!$invoice->isIssued() && !$invoice->isPartiallyPaid() && !$invoice->isPaid()) {
             return null;
         }
+
+        // Load relationships
+        $invoice->load('lines.product', 'patient');
 
         // Get Sales Journal
         $salesJournal = Journal::getSalesJournal();
@@ -49,6 +54,103 @@ class AccountingIntegrationService
             return null;
         }
 
+        // Group revenue by account and taxes by tax account
+        $revenueByAccount = [];
+        $taxByAccount = []; // [key => ['account_id' => id, 'amount' => int, 'is_credit' => bool]]
+        $linesSubtotal = 0; // Sum of line subtotals (after line-level discounts, before tax)
+        $totalVat = 0;
+        $totalWithholding = 0;
+
+        foreach ($invoice->lines as $line) {
+            // Calculate line revenue (subtotal - discount, before tax)
+            $lineRevenue = (int) round($line->quantity * $line->unit_price_minor);
+            // Apply line-level discount
+            if ($line->discount_minor > 0) {
+                if ($line->discount_type === 'percent') {
+                    $lineRevenue -= (int) round($lineRevenue * $line->discount_minor / 100);
+                } else {
+                    $lineRevenue -= $line->discount_minor;
+                }
+            }
+            $afterDiscount = max(0, $lineRevenue);
+
+            $linesSubtotal += $afterDiscount;
+
+            // Revenue - use line account, or product account, or default revenue account
+            $revenueAccountId = $line->account_id
+                ?? $line->product?->income_account_id
+                ?? $this->getDefaultRevenueAccountForLine($line)?->id;
+
+            if ($revenueAccountId) {
+                if (!isset($revenueByAccount[$revenueAccountId])) {
+                    $revenueByAccount[$revenueAccountId] = 0;
+                }
+                $revenueByAccount[$revenueAccountId] += $afterDiscount;
+            }
+
+            // Process each tax rate in the tax_rates array
+            $taxRates = $line->tax_rates ?? [];
+            foreach ($taxRates as $rateValue) {
+                $rateFloat = floatval($rateValue);
+                if ($rateFloat == 0) {
+                    continue;
+                }
+
+                // Calculate tax amount for this rate
+                $taxAmount = (int) round($afterDiscount * abs($rateFloat) / 100);
+                if ($taxAmount <= 0) {
+                    continue;
+                }
+
+                // Find the tax rate record to get its account
+                $taxRate = TaxRate::where('rate', $rateFloat)
+                    ->where('type', TaxRate::TYPE_SALES)
+                    ->first();
+
+                // For sales invoices:
+                // Positive tax (VAT): Credit Tax Payable (we owe to government)
+                // Negative tax (Withholding): Debit Tax Receivable (we get back from government)
+                $isPositiveTax = $rateFloat > 0;
+
+                if ($isPositiveTax) {
+                    // Positive tax (VAT): Credit Tax Payable
+                    $taxAccountId = $taxRate?->account_id
+                        ?? $this->defaultAccounts->getTaxPayableAccount()?->id;
+                    $totalVat += $taxAmount;
+                } else {
+                    // Negative tax (Withholding): Debit Tax Receivable
+                    $taxAccountId = $taxRate?->account_id
+                        ?? $this->defaultAccounts->getTaxReceivableAccount()?->id;
+                    $totalWithholding += $taxAmount;
+                }
+
+                if ($taxAccountId) {
+                    $key = $taxAccountId . '_' . ($isPositiveTax ? 'credit' : 'debit');
+                    if (!isset($taxByAccount[$key])) {
+                        $taxByAccount[$key] = [
+                            'account_id' => $taxAccountId,
+                            'amount' => 0,
+                            'is_credit' => $isPositiveTax,
+                        ];
+                    }
+                    $taxByAccount[$key]['amount'] += $taxAmount;
+                }
+            }
+        }
+
+        // Calculate invoice-level discount
+        $invoiceDiscount = 0;
+        if ($invoice->discount_minor > 0) {
+            if ($invoice->discount_type === Invoice::DISCOUNT_PERCENT) {
+                $invoiceDiscount = (int) round($linesSubtotal * $invoice->discount_minor / 100);
+            } else {
+                $invoiceDiscount = $invoice->discount_minor;
+            }
+        }
+
+        // Calculate total AR (what customer owes): subtotal - invoice_discount + VAT - withholding
+        $totalAR = $linesSubtotal - $invoiceDiscount + $totalVat - $totalWithholding;
+
         // Create journal entry
         $entry = JournalEntry::create([
             'tenant_id' => $invoice->tenant_id,
@@ -60,68 +162,34 @@ class AccountingIntegrationService
             'source_id' => $invoice->id,
         ]);
 
-        // Group revenue by account and taxes by tax account
-        $revenueByAccount = [];
-        $taxByAccount = [];
-        $totalAmount = 0;
-
-        foreach ($invoice->lines as $line) {
-            // Calculate line revenue (subtotal - discount, before tax)
-            $lineRevenue = (int) round($line->quantity * $line->unit_price_minor);
-            // Apply discount
-            if ($line->discount_minor > 0) {
-                if ($line->discount_type === 'percent') {
-                    $lineRevenue -= (int) round($lineRevenue * $line->discount_minor / 100);
-                } else {
-                    $lineRevenue -= $line->discount_minor;
-                }
-            }
-
-            $totalAmount += $lineRevenue;
-
-            // Revenue - use line account, or product account, or default revenue account
-            $revenueAccountId = $line->account_id
-                ?? $line->product?->income_account_id
-                ?? $this->getDefaultRevenueAccountForLine($line)?->id;
-
-            if ($revenueAccountId) {
-                if (!isset($revenueByAccount[$revenueAccountId])) {
-                    $revenueByAccount[$revenueAccountId] = 0;
-                }
-                $revenueByAccount[$revenueAccountId] += $lineRevenue;
-            }
-
-            // Tax - find tax rate and use its account
-            if ($line->tax_minor > 0 && $line->tax_rate > 0) {
-                $taxRate = TaxRate::where('rate', $line->tax_rate)
-                    ->where('type', TaxRate::TYPE_SALES)
-                    ->first();
-
-                $taxAccountId = $taxRate?->account_id
-                    ?? $this->defaultAccounts->getTaxPayableAccount()?->id;
-
-                if ($taxAccountId) {
-                    if (!isset($taxByAccount[$taxAccountId])) {
-                        $taxByAccount[$taxAccountId] = 0;
-                    }
-                    $taxByAccount[$taxAccountId] += $line->tax_minor;
-                }
-
-                $totalAmount += $line->tax_minor;
-            }
-        }
-
-        // Debit: Accounts Receivable (revenue + tax, correctly calculated from lines)
+        // Debit: Accounts Receivable (what customer actually owes)
         $entry->lines()->create([
             'tenant_id' => $invoice->tenant_id,
             'account_id' => $arAccount->id,
-            'debit_minor' => $totalAmount,
+            'debit_minor' => $totalAR,
             'credit_minor' => 0,
             'description' => "Customer: {$invoice->patient?->full_name}",
             'branch_id' => $invoice->branch_id,
             'partner_type' => $invoice->patient_id ? Patient::class : null,
             'partner_id' => $invoice->patient_id,
         ]);
+
+        // Debit: Sales Discount (if invoice-level discount exists)
+        if ($invoiceDiscount > 0) {
+            $discountAccount = $this->defaultAccounts->getDiscountAccount();
+            if ($discountAccount) {
+                $entry->lines()->create([
+                    'tenant_id' => $invoice->tenant_id,
+                    'account_id' => $discountAccount->id,
+                    'debit_minor' => $invoiceDiscount,
+                    'credit_minor' => 0,
+                    'description' => "Discount on invoice {$invoice->code}",
+                    'branch_id' => $invoice->branch_id,
+                    'partner_type' => $invoice->patient_id ? Patient::class : null,
+                    'partner_id' => $invoice->patient_id,
+                ]);
+            }
+        }
 
         // Credit: Revenue accounts
         foreach ($revenueByAccount as $accountId => $amount) {
@@ -139,25 +207,51 @@ class AccountingIntegrationService
             }
         }
 
-        // Credit: Tax accounts (separate line per tax account)
-        foreach ($taxByAccount as $accountId => $amount) {
-            if ($amount > 0) {
-                $entry->lines()->create([
-                    'tenant_id' => $invoice->tenant_id,
-                    'account_id' => $accountId,
-                    'debit_minor' => 0,
-                    'credit_minor' => $amount,
-                    'description' => "Tax on invoice {$invoice->code}",
-                    'branch_id' => $invoice->branch_id,
-                    'partner_type' => $invoice->patient_id ? Patient::class : null,
-                    'partner_id' => $invoice->patient_id,
-                ]);
+        // Tax account entries
+        foreach ($taxByAccount as $taxData) {
+            if ($taxData['amount'] > 0) {
+                if ($taxData['is_credit']) {
+                    // Positive tax (VAT): Credit Tax Payable
+                    $entry->lines()->create([
+                        'tenant_id' => $invoice->tenant_id,
+                        'account_id' => $taxData['account_id'],
+                        'debit_minor' => 0,
+                        'credit_minor' => $taxData['amount'],
+                        'description' => "Output VAT on invoice {$invoice->code}",
+                        'branch_id' => $invoice->branch_id,
+                        'partner_type' => $invoice->patient_id ? Patient::class : null,
+                        'partner_id' => $invoice->patient_id,
+                    ]);
+                } else {
+                    // Negative tax (Withholding): Debit Tax Receivable
+                    $entry->lines()->create([
+                        'tenant_id' => $invoice->tenant_id,
+                        'account_id' => $taxData['account_id'],
+                        'debit_minor' => $taxData['amount'],
+                        'credit_minor' => 0,
+                        'description' => "Withholding tax on invoice {$invoice->code}",
+                        'branch_id' => $invoice->branch_id,
+                        'partner_type' => $invoice->patient_id ? Patient::class : null,
+                        'partner_id' => $invoice->patient_id,
+                    ]);
+                }
             }
         }
 
         // Recalculate and post
         $entry->recalculateTotals();
         $entry->post();
+
+        \Log::info('Invoice: Journal entry created', [
+            'invoice_id' => $invoice->id,
+            'invoice_code' => $invoice->code,
+            'entry_id' => $entry->id,
+            'lines_subtotal' => $linesSubtotal,
+            'invoice_discount' => $invoiceDiscount,
+            'total_vat' => $totalVat,
+            'total_withholding' => $totalWithholding,
+            'total_ar' => $totalAR,
+        ]);
 
         return $entry;
     }

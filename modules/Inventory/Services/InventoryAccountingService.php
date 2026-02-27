@@ -351,7 +351,8 @@ class InventoryAccountingService
     /**
      * Create journal entry for vendor bill.
      * Debit: Inventory/Expense (per line - subtotal without tax)
-     * Debit: Tax Receivable (per tax account)
+     * Debit: Tax Receivable (per tax account - for positive taxes like VAT)
+     * Credit: Tax Payable (for negative taxes like Withholding)
      * Credit: Accounts Payable (total including tax)
      */
     public function createVendorBillJournalEntry(VendorBill $bill): ?JournalEntry
@@ -368,7 +369,7 @@ class InventoryAccountingService
 
         $lines = [];
         $totalAmount = 0;
-        $taxByAccount = [];
+        $taxByAccount = []; // [account_id => ['amount' => int, 'is_debit' => bool]]
 
         foreach ($bill->lines as $line) {
             $product = $line->product;
@@ -383,7 +384,8 @@ class InventoryAccountingService
                 }
             }
 
-            $totalAmount += $subtotal;
+            $afterDiscount = max(0, $subtotal);
+            $totalAmount += $afterDiscount;
 
             // Get the appropriate account for this line
             $debitAccount = null;
@@ -412,29 +414,61 @@ class InventoryAccountingService
             // Debit inventory/expense account (subtotal without tax)
             $lines[] = [
                 'account_code' => $debitAccount->code,
-                'debit' => $subtotal,
+                'debit' => $afterDiscount,
                 'credit' => 0,
                 'description' => $line->description,
             ];
 
-            // Collect taxes by tax account
-            if ($line->tax_minor > 0 && $line->tax_rate > 0) {
-                // Find the tax rate and use its configured account
-                $taxRate = TaxRate::where('rate', $line->tax_rate)
+            // Process each tax rate in the tax_rates array
+            $taxRates = $line->tax_rates ?? [];
+            foreach ($taxRates as $rateValue) {
+                $rateFloat = floatval($rateValue);
+                if ($rateFloat == 0) {
+                    continue;
+                }
+
+                // Calculate tax amount for this rate
+                $taxAmount = (int) round($afterDiscount * abs($rateFloat) / 100);
+                if ($taxAmount <= 0) {
+                    continue;
+                }
+
+                // Find the tax rate record to get its account
+                $taxRate = TaxRate::where('rate', $rateFloat)
                     ->where('type', TaxRate::TYPE_PURCHASE)
                     ->first();
 
-                $taxAccountId = $taxRate?->account_id
-                    ?? $this->defaultAccounts->getTaxReceivableAccount()?->id;
+                // Determine tax account based on tax type
+                $isPositiveTax = $rateFloat > 0; // VAT is positive, Withholding is negative
 
-                if ($taxAccountId) {
-                    if (!isset($taxByAccount[$taxAccountId])) {
-                        $taxByAccount[$taxAccountId] = 0;
-                    }
-                    $taxByAccount[$taxAccountId] += $line->tax_minor;
+                if ($isPositiveTax) {
+                    // Positive tax (VAT): Debit Tax Receivable
+                    $taxAccountId = $taxRate?->account_id
+                        ?? $this->defaultAccounts->getTaxReceivableAccount()?->id;
+                } else {
+                    // Negative tax (Withholding): Credit Tax Payable
+                    $taxAccountId = $taxRate?->account_id
+                        ?? $this->defaultAccounts->getTaxPayableAccount()?->id;
                 }
 
-                $totalAmount += $line->tax_minor;
+                if ($taxAccountId) {
+                    $key = $taxAccountId . '_' . ($isPositiveTax ? 'debit' : 'credit');
+                    if (!isset($taxByAccount[$key])) {
+                        $taxByAccount[$key] = [
+                            'account_id' => $taxAccountId,
+                            'amount' => 0,
+                            'is_debit' => $isPositiveTax,
+                        ];
+                    }
+                    $taxByAccount[$key]['amount'] += $taxAmount;
+                }
+
+                // Adjust total amount: add positive tax, subtract negative (withholding)
+                if ($isPositiveTax) {
+                    $totalAmount += $taxAmount;
+                } else {
+                    $totalAmount -= $taxAmount;
+                }
             }
         }
 
@@ -443,22 +477,33 @@ class InventoryAccountingService
             return null;
         }
 
-        // Debit: Tax accounts (separate line per tax account)
-        foreach ($taxByAccount as $accountId => $amount) {
-            if ($amount > 0) {
-                $taxAccount = ChartOfAccount::find($accountId);
+        // Add tax lines (separate line per tax account)
+        foreach ($taxByAccount as $taxData) {
+            if ($taxData['amount'] > 0) {
+                $taxAccount = ChartOfAccount::find($taxData['account_id']);
                 if ($taxAccount) {
-                    $lines[] = [
-                        'account_code' => $taxAccount->code,
-                        'debit' => $amount,
-                        'credit' => 0,
-                        'description' => "Input tax on bill {$bill->code}",
-                    ];
+                    if ($taxData['is_debit']) {
+                        // Positive tax (VAT): Debit Tax Receivable
+                        $lines[] = [
+                            'account_code' => $taxAccount->code,
+                            'debit' => $taxData['amount'],
+                            'credit' => 0,
+                            'description' => "Input VAT on bill {$bill->code}",
+                        ];
+                    } else {
+                        // Negative tax (Withholding): Credit Tax Payable
+                        $lines[] = [
+                            'account_code' => $taxAccount->code,
+                            'debit' => 0,
+                            'credit' => $taxData['amount'],
+                            'description' => "Withholding tax on bill {$bill->code}",
+                        ];
+                    }
                 }
             }
         }
 
-        // Credit Accounts Payable for total (including tax)
+        // Credit Accounts Payable for total (subtotal + VAT - withholding)
         $lines[] = [
             'account_code' => $apAccount->code,
             'debit' => 0,

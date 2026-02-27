@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Modules\Auth\Models\User;
+use Modules\Booking\Events\AppointmentCompleted;
 use Modules\Core\Models\Branch;
 use Modules\Core\Models\Room;
 use Modules\Patients\Models\Patient;
@@ -403,7 +404,13 @@ class Appointment extends BaseModel
 
     public function complete(): bool
     {
-        return $this->transitionTo(self::STATUS_COMPLETED);
+        $result = $this->transitionTo(self::STATUS_COMPLETED);
+
+        if ($result) {
+            AppointmentCompleted::dispatch($this);
+        }
+
+        return $result;
     }
 
     public function cancel(?string $reason = null): bool

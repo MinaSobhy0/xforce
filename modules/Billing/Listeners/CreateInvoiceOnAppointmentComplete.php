@@ -2,7 +2,6 @@
 
 namespace Modules\Billing\Listeners;
 
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Log;
 use Modules\Billing\Models\Invoice;
 use Modules\Billing\Services\InvoiceCalculationService;
@@ -10,7 +9,7 @@ use Modules\Billing\Services\PaymentIntegrationService;
 use Modules\Booking\Events\AppointmentCompleted;
 use Modules\Booking\Models\Appointment;
 
-class CreateInvoiceOnAppointmentComplete implements ShouldQueue
+class CreateInvoiceOnAppointmentComplete
 {
     protected InvoiceCalculationService $calculationService;
     protected PaymentIntegrationService $paymentService;
@@ -48,14 +47,25 @@ class CreateInvoiceOnAppointmentComplete implements ShouldQueue
         }
 
         try {
+            Log::info("Creating invoice for appointment", [
+                'appointment_id' => $appointment->id,
+                'service_id' => $appointment->service_id,
+                'price_minor' => $appointment->price_minor,
+            ]);
+
             $invoice = $this->createInvoice($appointment);
 
             // Apply member discount if applicable
             $this->paymentService->applyMemberDiscountToInvoice($invoice);
 
-            Log::info("Auto-created invoice {$invoice->code} for appointment {$appointment->code}");
+            Log::info("Auto-created invoice {$invoice->code} for appointment {$appointment->code}", [
+                'invoice_id' => $invoice->id,
+                'lines_count' => $invoice->lines()->count(),
+            ]);
         } catch (\Exception $e) {
-            Log::error("Failed to auto-create invoice for appointment {$appointment->id}: " . $e->getMessage());
+            Log::error("Failed to auto-create invoice for appointment {$appointment->id}: " . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+            ]);
         }
     }
 
@@ -65,7 +75,7 @@ class CreateInvoiceOnAppointmentComplete implements ShouldQueue
     protected function invoiceExistsForAppointment(Appointment $appointment): bool
     {
         return Invoice::where('appointment_id', $appointment->id)
-            ->whereNotIn('status', [Invoice::STATUS_CANCELLED, Invoice::STATUS_VOIDED])
+            ->whereNotIn('status', [Invoice::STATUS_CANCELLED, Invoice::STATUS_REFUNDED])
             ->exists();
     }
 
@@ -88,13 +98,4 @@ class CreateInvoiceOnAppointmentComplete implements ShouldQueue
         );
     }
 
-    /**
-     * Determine whether the listener should be queued.
-     */
-    public function shouldQueue(AppointmentCompleted $event): bool
-    {
-        // Only queue if auto-invoice is enabled and no invoice exists
-        return config('billing.auto_invoice_on_complete', true)
-            && !$this->invoiceExistsForAppointment($event->appointment);
-    }
 }

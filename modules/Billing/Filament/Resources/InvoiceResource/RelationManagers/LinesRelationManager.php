@@ -36,7 +36,8 @@ class LinesRelationManager extends RelationManager
                             if ($service) {
                                 $set('description', $service->name);
                                 $set('unit_price_minor', $service->base_price_minor / 100);
-                                $set('tax_rate', TaxRate::getDefault(TaxRate::TYPE_SALES)?->rate ?? 14);
+                                $defaultTax = TaxRate::getDefault(TaxRate::TYPE_SALES);
+                                $set('tax_rates', $defaultTax ? [(string) $defaultTax->rate] : ['14']);
                             }
                         }
                     }),
@@ -74,11 +75,22 @@ class LinesRelationManager extends RelationManager
                     ])
                     ->default('fixed'),
 
-                Forms\Components\TextInput::make('tax_rate')
-                    ->label(__('billing::billing.fields.tax'))
-                    ->numeric()
-                    ->default(fn () => TaxRate::getDefault(TaxRate::TYPE_SALES)?->rate ?? 14)
-                    ->suffix('%'),
+                Forms\Components\CheckboxList::make('tax_rates')
+                    ->label(__('billing::billing.fields.taxes'))
+                    ->options(function () {
+                        return TaxRate::where('is_active', true)
+                            ->where('type', TaxRate::TYPE_SALES)
+                            ->orderByRaw('CASE WHEN rate >= 0 THEN 0 ELSE 1 END, ABS(rate)')
+                            ->get()
+                            ->mapWithKeys(fn ($t) => [
+                                (string) $t->rate => $t->getTranslation('name', app()->getLocale()) . " ({$t->rate}%)"
+                            ]);
+                    })
+                    ->default(function () {
+                        $default = TaxRate::getDefault(TaxRate::TYPE_SALES);
+                        return $default ? [(string) $default->rate] : ['14'];
+                    })
+                    ->columns(2),
             ]);
     }
 
@@ -108,9 +120,28 @@ class LinesRelationManager extends RelationManager
                             : number_format($state / 100, 2))
                         : '-'),
 
-                Tables\Columns\TextColumn::make('tax_rate')
-                    ->label(__('billing::billing.fields.tax'))
-                    ->suffix('%'),
+                Tables\Columns\TextColumn::make('tax_rates')
+                    ->label(__('billing::billing.fields.taxes'))
+                    ->formatStateUsing(function ($state) {
+                        if (empty($state)) {
+                            return '-';
+                        }
+                        $rates = is_array($state) ? $state : json_decode($state, true);
+                        if (empty($rates)) {
+                            return '-';
+                        }
+                        $vatRates = array_filter($rates, fn ($r) => floatval($r) >= 0);
+                        $whRates = array_filter($rates, fn ($r) => floatval($r) < 0);
+
+                        $parts = [];
+                        if (!empty($vatRates)) {
+                            $parts[] = 'VAT: ' . implode(', ', array_map(fn ($r) => $r . '%', $vatRates));
+                        }
+                        if (!empty($whRates)) {
+                            $parts[] = 'WH: ' . implode(', ', array_map(fn ($r) => $r . '%', $whRates));
+                        }
+                        return implode(' | ', $parts);
+                    }),
 
                 Tables\Columns\TextColumn::make('total_minor')
                     ->label(__('billing::billing.fields.total'))

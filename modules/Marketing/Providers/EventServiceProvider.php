@@ -4,7 +4,7 @@ namespace Modules\Marketing\Providers;
 
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 use Modules\Marketing\Listeners\SendAppointmentReminder;
-use Modules\Marketing\Listeners\SendFollowUpMessage;
+// use Modules\Marketing\Listeners\SendFollowUpMessage; // TODO: Create this listener
 use Modules\Marketing\Listeners\SendInvoiceReceipt;
 
 class EventServiceProvider extends ServiceProvider
@@ -21,9 +21,10 @@ class EventServiceProvider extends ServiceProvider
         \Modules\Booking\Events\AppointmentConfirmed::class => [
             SendAppointmentReminder::class,
         ],
-        \Modules\Booking\Events\AppointmentCompleted::class => [
-            SendFollowUpMessage::class,
-        ],
+        // TODO: Create SendFollowUpMessage listener
+        // \Modules\Booking\Events\AppointmentCompleted::class => [
+        //     SendFollowUpMessage::class,
+        // ],
         \Modules\Billing\Events\InvoicePaid::class => [
             SendInvoiceReceipt::class,
         ],

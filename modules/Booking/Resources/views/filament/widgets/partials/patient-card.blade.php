@@ -12,10 +12,11 @@
     $canRecordPayment = in_array($appointment->status, ['checked_in', 'in_progress']) && $hasBalance;
 
     // Check if appointment is completed with unpaid invoice
+    // Include draft status since auto-created invoices start as draft
     $canCheckout = $showCheckout
         && $appointment->status === 'completed'
         && $appointment->invoice
-        && in_array($appointment->invoice->status, ['issued', 'partially_paid']);
+        && in_array($appointment->invoice->status, ['draft', 'issued', 'partially_paid']);
 
     // Status colors and labels
     $statusConfig = [

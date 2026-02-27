@@ -25,7 +25,7 @@ return new class extends Migration
             $table->integer('unit_price_minor')->default(0);
             $table->integer('discount_minor')->default(0);
             $table->string('discount_type')->nullable();
-            $table->decimal('tax_rate', 5, 2)->default(0);
+            $table->jsonb('tax_rates')->nullable();
             $table->integer('tax_minor')->default(0);
             $table->integer('total_minor')->default(0);
             $table->foreignId('package_subscription_id')->nullable();

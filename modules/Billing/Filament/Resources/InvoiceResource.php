@@ -138,7 +138,7 @@ class InvoiceResource extends Resource
                                                         $set('description', $service->name);
                                                         $set('unit_price_minor', $price / 100);
                                                         $defaultTax = TaxRate::getDefault(TaxRate::TYPE_SALES);
-                                                        $set('tax_rate', $defaultTax ? (string) $defaultTax->rate : '14');
+                                                        $set('tax_rates', $defaultTax ? [(string) $defaultTax->rate] : ['14']);
                                                     }
                                                 }
                                             })
@@ -211,12 +211,12 @@ class InvoiceResource extends Resource
                                             })
                                             ->columnSpan(['default' => 4, 'md' => 2]),
 
-                                        Forms\Components\Select::make('tax_rate')
-                                            ->label(__('billing::billing.fields.tax'))
+                                        Forms\Components\CheckboxList::make('tax_rates')
+                                            ->label(__('billing::billing.fields.taxes'))
                                             ->options(function () {
                                                 return TaxRate::where('is_active', true)
                                                     ->where('type', TaxRate::TYPE_SALES)
-                                                    ->orderBy('rate')
+                                                    ->orderByRaw('CASE WHEN rate >= 0 THEN 0 ELSE 1 END, ABS(rate)')
                                                     ->get()
                                                     ->mapWithKeys(fn ($t) => [
                                                         (string) $t->rate => $t->getTranslation('name', app()->getLocale()) . " ({$t->rate}%)"
@@ -224,8 +224,9 @@ class InvoiceResource extends Resource
                                             })
                                             ->default(function () {
                                                 $default = TaxRate::getDefault(TaxRate::TYPE_SALES);
-                                                return $default ? (string) $default->rate : '14';
+                                                return $default ? [(string) $default->rate] : ['14'];
                                             })
+                                            ->columns(2)
                                             ->columnSpan(['default' => 4, 'md' => 3]),
                                     ])
                                     ->columns(12)
@@ -299,7 +300,8 @@ class InvoiceResource extends Resource
                                     ->label(__('billing::billing.fields.tax'))
                                     ->content(function (Forms\Get $get) {
                                         $lines = $get('lines') ?? [];
-                                        $tax = 0;
+                                        $vatTotal = 0;
+                                        $whTotal = 0;
                                         foreach ($lines as $line) {
                                             $qty = (float) ($line['quantity'] ?? 0);
                                             $price = (float) ($line['unit_price_minor'] ?? 0) * 100;
@@ -315,11 +317,30 @@ class InvoiceResource extends Resource
                                             }
                                             $lineSubtotal = max(0, $lineSubtotal);
 
-                                            // Calculate tax
-                                            $taxRate = (float) ($line['tax_rate'] ?? 0);
-                                            $tax += $lineSubtotal * $taxRate / 100;
+                                            // Calculate tax for each rate
+                                            $taxRates = $line['tax_rates'] ?? [];
+                                            foreach ($taxRates as $rate) {
+                                                $rateFloat = (float) $rate;
+                                                $taxAmount = $lineSubtotal * abs($rateFloat) / 100;
+                                                if ($rateFloat >= 0) {
+                                                    $vatTotal += $taxAmount;
+                                                } else {
+                                                    $whTotal += $taxAmount;
+                                                }
+                                            }
                                         }
-                                        return format_money((int) $tax);
+
+                                        $parts = [];
+                                        if ($vatTotal > 0) {
+                                            $parts[] = 'VAT: ' . format_money((int) $vatTotal);
+                                        }
+                                        if ($whTotal > 0) {
+                                            $parts[] = 'WH: -' . format_money((int) $whTotal);
+                                        }
+                                        if (empty($parts)) {
+                                            return format_money(0);
+                                        }
+                                        return implode(' | ', $parts);
                                     }),
 
                                 Forms\Components\Placeholder::make('total_display')
@@ -345,9 +366,10 @@ class InvoiceResource extends Resource
                                             $lineSubtotal = max(0, $lineSubtotal);
                                             $subtotal += $lineSubtotal;
 
-                                            // Calculate tax
-                                            $taxRate = (float) ($line['tax_rate'] ?? 0);
-                                            $tax += $lineSubtotal * $taxRate / 100;
+                                            // Calculate tax - sum all rates
+                                            $taxRates = $line['tax_rates'] ?? [];
+                                            $totalTaxPercent = array_sum(array_map('floatval', $taxRates));
+                                            $tax += $lineSubtotal * $totalTaxPercent / 100;
                                         }
 
                                         // Apply invoice-level discount

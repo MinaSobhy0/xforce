@@ -15,6 +15,8 @@ use Modules\Core\Models\Branch;
 use Modules\Patients\Models\Patient;
 use Modules\Booking\Models\Appointment;
 use Modules\Accounting\Models\JournalEntry;
+use Modules\Inventory\Models\StockLevel;
+use Modules\Inventory\Models\StockMovement;
 use Modules\TreatmentPlans\Models\TreatmentPlan;
 
 class Invoice extends BaseModel
@@ -297,9 +299,35 @@ class Invoice extends BaseModel
             // Create journal entry for issued invoice
             app(\Modules\Billing\Services\AccountingIntegrationService::class)
                 ->createInvoiceJournalEntry($this);
+
+            // Deduct stock for product lines
+            $this->deductStockForProductLines();
         }
 
         return $result;
+    }
+
+    /**
+     * Deduct stock for all product lines in this invoice.
+     */
+    protected function deductStockForProductLines(): void
+    {
+        $productLines = $this->lines()
+            ->where('line_type', InvoiceLine::LINE_TYPE_PRODUCT)
+            ->whereNotNull('product_id')
+            ->get();
+
+        foreach ($productLines as $line) {
+            $stockLevel = StockLevel::getOrCreate($line->product_id, $this->branch_id);
+
+            $stockLevel->decrease(
+                (int) $line->quantity,
+                StockMovement::TYPE_INVOICE_SALE,
+                'invoice',
+                $this->id,
+                "Sale: Invoice #{$this->code}"
+            );
+        }
     }
 
     public function cancel(?string $reason = null): bool
