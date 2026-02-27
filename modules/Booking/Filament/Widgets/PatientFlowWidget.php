@@ -353,14 +353,13 @@ class PatientFlowWidget extends Widget implements HasForms
      */
     public function getAvailableDoctors(): array
     {
-        $branchId = BranchContext::currentId();
-
-        // Get practitioners assigned to this branch with doctor/nurse/technician roles
+        // Get practitioners with doctor/nurse/technician roles via Spatie permissions
         return DB::table('users')
-            ->join('user_branch_roles', 'users.id', '=', 'user_branch_roles.user_id')
-            ->join('roles', 'user_branch_roles.role_id', '=', 'roles.id')
-            ->where('user_branch_roles.branch_id', $branchId)
-            ->where('user_branch_roles.is_active', true)
+            ->join('model_has_roles', function ($join) {
+                $join->on('users.id', '=', 'model_has_roles.model_id')
+                    ->where('model_has_roles.model_type', 'Modules\\Auth\\Models\\User');
+            })
+            ->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
             ->where('users.status', 'active')
             ->whereIn('roles.name', ['doctor', 'nurse', 'technician'])
             ->select('users.id', 'users.first_name', 'users.last_name')
