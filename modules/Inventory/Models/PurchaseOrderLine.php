@@ -17,7 +17,7 @@ class PurchaseOrderLine extends BaseModel
         'quantity',
         'quantity_received',
         'unit_price_minor',
-        'tax_rate',
+        'tax_rates',
         'tax_amount_minor',
         'line_total_minor',
         'notes',
@@ -27,7 +27,7 @@ class PurchaseOrderLine extends BaseModel
         'quantity' => 'integer',
         'quantity_received' => 'integer',
         'unit_price_minor' => 'integer',
-        'tax_rate' => 'decimal:2',
+        'tax_rates' => 'array',
         'tax_amount_minor' => 'integer',
         'line_total_minor' => 'integer',
         'created_at' => 'datetime',
@@ -38,7 +38,6 @@ class PurchaseOrderLine extends BaseModel
         'quantity' => 1,
         'quantity_received' => 0,
         'unit_price_minor' => 0,
-        'tax_rate' => 0,
         'tax_amount_minor' => 0,
         'line_total_minor' => 0,
     ];
@@ -66,11 +65,15 @@ class PurchaseOrderLine extends BaseModel
     {
         parent::booted();
 
-        // Calculate line total on save (including tax)
+        // Calculate line total on save (including multiple taxes)
         static::saving(function (self $line) {
             $subtotal = $line->quantity * $line->unit_price_minor;
-            $taxRate = (float) ($line->tax_rate ?? 0);
-            $line->tax_amount_minor = (int) ($subtotal * $taxRate / 100);
+
+            // Sum all tax rates (positive VAT and negative withholding)
+            $taxRates = $line->tax_rates ?? [];
+            $totalTaxPercent = array_sum(array_map('floatval', $taxRates));
+
+            $line->tax_amount_minor = (int) ($subtotal * $totalTaxPercent / 100);
             $line->line_total_minor = $subtotal + $line->tax_amount_minor;
         });
 

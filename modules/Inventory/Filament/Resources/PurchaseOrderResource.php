@@ -138,9 +138,9 @@ class PurchaseOrderResource extends Resource
                                             $product = Product::find($state);
                                             if ($product) {
                                                 $set('unit_price_minor', $product->cost_price_minor / 100);
-                                                // Set default tax rate
+                                                // Set default tax rates (multi-select)
                                                 $defaultTax = \Modules\Billing\Models\TaxRate::getDefault(\Modules\Billing\Models\TaxRate::TYPE_PURCHASE);
-                                                $set('tax_rate', $defaultTax ? (string) $defaultTax->rate : '14');
+                                                $set('tax_rates', $defaultTax ? [(string) $defaultTax->rate] : ['14']);
                                             }
                                         }
                                     })
@@ -165,12 +165,13 @@ class PurchaseOrderResource extends Resource
                                     ->dehydrateStateUsing(fn ($state) => $state ? (int) ($state * 100) : 0)
                                     ->columnSpan(['default' => 4, 'md' => 2]),
 
-                                Forms\Components\Select::make('tax_rate')
-                                    ->label(__('inventory::inventory.fields.tax'))
+                                Forms\Components\Select::make('tax_rates')
+                                    ->label(__('inventory::inventory.fields.taxes'))
+                                    ->multiple()
                                     ->options(function () {
                                         return \Modules\Billing\Models\TaxRate::where('is_active', true)
                                             ->where('type', \Modules\Billing\Models\TaxRate::TYPE_PURCHASE)
-                                            ->orderBy('rate')
+                                            ->orderByDesc('rate')
                                             ->get()
                                             ->mapWithKeys(fn ($t) => [
                                                 (string) $t->rate => $t->getTranslation('name', app()->getLocale()) . " ({$t->rate}%)"
@@ -178,7 +179,7 @@ class PurchaseOrderResource extends Resource
                                     })
                                     ->default(function () {
                                         $default = \Modules\Billing\Models\TaxRate::getDefault(\Modules\Billing\Models\TaxRate::TYPE_PURCHASE);
-                                        return $default ? (string) $default->rate : '14';
+                                        return $default ? [(string) $default->rate] : ['14'];
                                     })
                                     ->live(onBlur: true)
                                     ->columnSpan(['default' => 4, 'md' => 2]),
@@ -259,7 +260,7 @@ class PurchaseOrderResource extends Resource
                                                 return number_format($subtotal, 2) . ' ' . current_currency();
                                             }),
 
-                                        // VAT (positive tax rates)
+                                        // VAT (positive tax rates from multi-select)
                                         Forms\Components\Placeholder::make('vat_display')
                                             ->label(__('inventory::inventory.fields.vat'))
                                             ->content(function (Forms\Get $get) {
@@ -269,15 +270,16 @@ class PurchaseOrderResource extends Resource
                                                     $qty = (float) ($line['quantity'] ?? 0);
                                                     $price = (float) ($line['unit_price_minor'] ?? 0);
                                                     $lineSubtotal = $qty * $price;
-                                                    $taxRate = (float) ($line['tax_rate'] ?? 0);
-                                                    if ($taxRate > 0) {
-                                                        $vatAmount += $lineSubtotal * ($taxRate / 100);
-                                                    }
+                                                    $taxRates = $line['tax_rates'] ?? [];
+                                                    // Only positive rates (VAT)
+                                                    $positiveRates = array_filter(array_map('floatval', $taxRates), fn($r) => $r > 0);
+                                                    $vatPercent = array_sum($positiveRates);
+                                                    $vatAmount += $lineSubtotal * ($vatPercent / 100);
                                                 }
                                                 return '+ ' . number_format($vatAmount, 2) . ' ' . current_currency();
                                             }),
 
-                                        // Withholding (negative tax rates - shown as absolute value)
+                                        // Withholding (negative tax rates from multi-select)
                                         Forms\Components\Placeholder::make('whm_display')
                                             ->label(__('inventory::inventory.fields.whm'))
                                             ->content(function (Forms\Get $get) {
@@ -287,19 +289,22 @@ class PurchaseOrderResource extends Resource
                                                     $qty = (float) ($line['quantity'] ?? 0);
                                                     $price = (float) ($line['unit_price_minor'] ?? 0);
                                                     $lineSubtotal = $qty * $price;
-                                                    $taxRate = (float) ($line['tax_rate'] ?? 0);
-                                                    if ($taxRate < 0) {
-                                                        $whmAmount += $lineSubtotal * (abs($taxRate) / 100);
-                                                    }
+                                                    $taxRates = $line['tax_rates'] ?? [];
+                                                    // Only negative rates (Withholding) - use absolute values
+                                                    $negativeRates = array_filter(array_map('floatval', $taxRates), fn($r) => $r < 0);
+                                                    $whmPercent = abs(array_sum($negativeRates));
+                                                    $whmAmount += $lineSubtotal * ($whmPercent / 100);
                                                 }
                                                 return '- ' . number_format($whmAmount, 2) . ' ' . current_currency();
                                             })
                                             ->visible(function (Forms\Get $get) {
                                                 $lines = $get('lines') ?? [];
                                                 foreach ($lines as $line) {
-                                                    $taxRate = (float) ($line['tax_rate'] ?? 0);
-                                                    if ($taxRate < 0) {
-                                                        return true;
+                                                    $taxRates = $line['tax_rates'] ?? [];
+                                                    foreach ($taxRates as $rate) {
+                                                        if ((float) $rate < 0) {
+                                                            return true;
+                                                        }
                                                     }
                                                 }
                                                 return false;
@@ -337,19 +342,16 @@ class PurchaseOrderResource extends Resource
                                             ->content(function (Forms\Get $get) {
                                                 $lines = $get('lines') ?? [];
                                                 $subtotal = 0;
-                                                $vatAmount = 0;
-                                                $whmAmount = 0;
+                                                $taxAmount = 0;
                                                 foreach ($lines as $line) {
                                                     $qty = (float) ($line['quantity'] ?? 0);
                                                     $price = (float) ($line['unit_price_minor'] ?? 0);
                                                     $lineSubtotal = $qty * $price;
                                                     $subtotal += $lineSubtotal;
-                                                    $taxRate = (float) ($line['tax_rate'] ?? 0);
-                                                    if ($taxRate > 0) {
-                                                        $vatAmount += $lineSubtotal * ($taxRate / 100);
-                                                    } elseif ($taxRate < 0) {
-                                                        $whmAmount += $lineSubtotal * (abs($taxRate) / 100);
-                                                    }
+                                                    $taxRates = $line['tax_rates'] ?? [];
+                                                    // Sum all tax rates (positive VAT + negative WH)
+                                                    $totalTaxPercent = array_sum(array_map('floatval', $taxRates));
+                                                    $taxAmount += $lineSubtotal * ($totalTaxPercent / 100);
                                                 }
                                                 $discountType = $get('discount_type') ?? 'percentage';
                                                 $discountValue = (float) ($get('discount_value') ?? 0);
@@ -359,8 +361,8 @@ class PurchaseOrderResource extends Resource
                                                     $discountAmount = $discountValue;
                                                 }
                                                 $shipping = (float) ($get('shipping_amount_minor') ?? 0);
-                                                // Total = Subtotal + VAT - Withholding - Discount + Shipping
-                                                $total = $subtotal + $vatAmount - $whmAmount - $discountAmount + $shipping;
+                                                // Total = Subtotal + Tax (net of VAT and WH) - Discount + Shipping
+                                                $total = $subtotal + $taxAmount - $discountAmount + $shipping;
                                                 return new \Illuminate\Support\HtmlString(
                                                     '<span class="text-xl font-bold text-primary-600 dark:text-primary-400">' .
                                                     number_format($total, 2) . ' ' . current_currency() .
@@ -390,9 +392,10 @@ class PurchaseOrderResource extends Resource
                                     $qty = (float) ($line['quantity'] ?? 0);
                                     $price = (float) ($line['unit_price_minor'] ?? 0) * 100;
                                     $lineSubtotal = $qty * $price;
-                                    $taxRate = (float) ($line['tax_rate'] ?? 0);
-                                    // Include both positive (VAT) and negative (WH) taxes
-                                    $taxAmount += $lineSubtotal * ($taxRate / 100);
+                                    $taxRates = $line['tax_rates'] ?? [];
+                                    // Sum all tax rates (positive VAT + negative WH)
+                                    $totalTaxPercent = array_sum(array_map('floatval', $taxRates));
+                                    $taxAmount += $lineSubtotal * ($totalTaxPercent / 100);
                                 }
                                 return (int) $taxAmount;
                             }),
@@ -422,8 +425,9 @@ class PurchaseOrderResource extends Resource
                                     $price = (float) ($line['unit_price_minor'] ?? 0) * 100;
                                     $lineSubtotal = $qty * $price;
                                     $subtotal += $lineSubtotal;
-                                    $taxRate = (float) ($line['tax_rate'] ?? 0);
-                                    $taxAmount += $lineSubtotal * ($taxRate / 100);
+                                    $taxRates = $line['tax_rates'] ?? [];
+                                    $totalTaxPercent = array_sum(array_map('floatval', $taxRates));
+                                    $taxAmount += $lineSubtotal * ($totalTaxPercent / 100);
                                 }
                                 // Discount
                                 $discountType = $get('discount_type') ?? 'percentage';
