@@ -13,8 +13,11 @@ return new class extends Migration
             $table->foreignId('tenant_id')->index();
             $table->foreignId('invoice_id')->index();
             $table->foreignId('service_id')->nullable()->index();
+            $table->foreignId('product_id')->nullable()->index();
+            $table->foreignId('session_product_id')->nullable();
             $table->foreignId('account_id')->nullable();
             $table->foreignId('treatment_id')->nullable()->index();
+            $table->string('line_type', 20)->default('service')->index(); // service, product, package, other
             $table->foreignId('treatment_plan_item_id')->nullable();
             $table->foreignId('appointment_id')->nullable();
             $table->string('description');
@@ -32,6 +35,8 @@ return new class extends Migration
 
             $table->foreign('invoice_id')->references('id')->on('invoices')->cascadeOnDelete();
             $table->foreign('service_id')->references('id')->on('services')->nullOnDelete();
+            $table->foreign('product_id')->references('id')->on('products')->nullOnDelete();
+            $table->foreign('session_product_id')->references('id')->on('session_products')->nullOnDelete();
             $table->foreign('account_id')->references('id')->on('chart_of_accounts')->nullOnDelete();
         });
     }

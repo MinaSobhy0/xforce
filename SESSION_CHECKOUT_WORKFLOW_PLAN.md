@@ -227,24 +227,31 @@ $table->foreignId('discount_approved_by')->nullable(); // Manager approval (opti
 
 ---
 
-### Phase 3: Invoice Line Enhancement
+### Phase 3: Invoice Line Enhancement ✅ COMPLETE
 
-**Files to Modify:**
-- [ ] `modules/Billing/Database/Migrations/2024_01_01_000003_create_invoice_lines_table.php`
-- [ ] `modules/Billing/Models/InvoiceLine.php`
+**Files Modified:**
+- [x] `modules/Billing/Database/Migrations/2024_01_01_000003_create_invoice_lines_table.php`
+- [x] `modules/Billing/Database/Migrations/2026_02_27_153948_add_product_fields_to_invoice_lines_table.php` (NEW)
+- [x] `modules/Billing/Models/InvoiceLine.php`
+- [x] `modules/Billing/Models/Invoice.php`
 
-**New Fields:**
+**New Fields Added:**
 ```php
 $table->string('line_type')->default('service'); // service, product, package, other
 $table->foreignId('product_id')->nullable();      // Link to product if product line
 $table->foreignId('session_product_id')->nullable(); // Link to SessionProduct
 ```
 
-**Tasks:**
-- [ ] Add migration for new columns
-- [ ] Update InvoiceLine model with relationships
-- [ ] Add scopes: `services()`, `products()`
-- [ ] Update fillable array
+**Tasks Completed:**
+- [x] Add migration for new columns (handles both bigint and uuid product_id types)
+- [x] Update InvoiceLine model with relationships (`product()`, `sessionProduct()`)
+- [x] Add scopes: `services()`, `products()`, `packages()`
+- [x] Add helper methods: `isService()`, `isProduct()`
+- [x] Update fillable array
+- [x] Add line type constants
+- [x] Add Invoice model helpers: `getServicesTotalMinorAttribute()`, `getProductsTotalMinorAttribute()`, `getPackagesTotalMinorAttribute()`
+- [x] Add Invoice model relationships: `serviceLines()`, `productLines()`, `packageLines()`
+- [x] Run migration on tenant_jon
 
 ---
 

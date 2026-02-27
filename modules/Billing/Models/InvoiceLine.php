@@ -4,11 +4,14 @@ namespace Modules\Billing\Models;
 
 use XLinic\Framework\Core\Model\BaseModel;
 use XLinic\Framework\Core\Model\Traits\HasTenancy;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Modules\Accounting\Models\ChartOfAccount;
+use Modules\Booking\Models\Appointment;
+use Modules\Booking\Models\SessionProduct;
+use Modules\Inventory\Models\Product;
 use Modules\Services\Models\Service;
 use Modules\TreatmentPlans\Models\TreatmentPlanItem;
-use Modules\Booking\Models\Appointment;
 
 class InvoiceLine extends BaseModel
 {
@@ -18,9 +21,12 @@ class InvoiceLine extends BaseModel
         'tenant_id',
         'invoice_id',
         'service_id',
+        'product_id',
+        'session_product_id',
         'account_id',
         'treatment_plan_item_id',
         'appointment_id',
+        'line_type',
         'description',
         'quantity',
         'unit_price_minor',
@@ -46,6 +52,12 @@ class InvoiceLine extends BaseModel
 
     public const DISCOUNT_FIXED = 'fixed';
     public const DISCOUNT_PERCENT = 'percent';
+
+    // Line types
+    public const LINE_TYPE_SERVICE = 'service';
+    public const LINE_TYPE_PRODUCT = 'product';
+    public const LINE_TYPE_PACKAGE = 'package';
+    public const LINE_TYPE_OTHER = 'other';
 
     protected static function booted(): void
     {
@@ -147,5 +159,45 @@ class InvoiceLine extends BaseModel
         }
 
         return $this->discount_minor;
+    }
+
+    // Product relationship
+    public function product(): BelongsTo
+    {
+        return $this->belongsTo(Product::class);
+    }
+
+    // Session product relationship (links to upsold product during session)
+    public function sessionProduct(): BelongsTo
+    {
+        return $this->belongsTo(SessionProduct::class);
+    }
+
+    // Scopes for filtering by line type
+    public function scopeServices(Builder $query): Builder
+    {
+        return $query->where('line_type', self::LINE_TYPE_SERVICE);
+    }
+
+    public function scopeProducts(Builder $query): Builder
+    {
+        return $query->where('line_type', self::LINE_TYPE_PRODUCT);
+    }
+
+    public function scopePackages(Builder $query): Builder
+    {
+        return $query->where('line_type', self::LINE_TYPE_PACKAGE);
+    }
+
+    // Check if this is a service line
+    public function isService(): bool
+    {
+        return $this->line_type === self::LINE_TYPE_SERVICE;
+    }
+
+    // Check if this is a product line
+    public function isProduct(): bool
+    {
+        return $this->line_type === self::LINE_TYPE_PRODUCT;
     }
 }

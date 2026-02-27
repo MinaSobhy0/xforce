@@ -207,6 +207,50 @@ class Invoice extends BaseModel
         return self::STATUS_COLORS[$this->status] ?? 'gray';
     }
 
+    // Line type totals
+    public function getServicesTotalMinorAttribute(): int
+    {
+        return (int) $this->lines()
+            ->where('line_type', InvoiceLine::LINE_TYPE_SERVICE)
+            ->sum('total_minor');
+    }
+
+    public function getProductsTotalMinorAttribute(): int
+    {
+        return (int) $this->lines()
+            ->where('line_type', InvoiceLine::LINE_TYPE_PRODUCT)
+            ->sum('total_minor');
+    }
+
+    public function getPackagesTotalMinorAttribute(): int
+    {
+        return (int) $this->lines()
+            ->where('line_type', InvoiceLine::LINE_TYPE_PACKAGE)
+            ->sum('total_minor');
+    }
+
+    // Line type relationships
+    public function serviceLines(): HasMany
+    {
+        return $this->hasMany(InvoiceLine::class)
+            ->where('line_type', InvoiceLine::LINE_TYPE_SERVICE)
+            ->orderBy('sort_order');
+    }
+
+    public function productLines(): HasMany
+    {
+        return $this->hasMany(InvoiceLine::class)
+            ->where('line_type', InvoiceLine::LINE_TYPE_PRODUCT)
+            ->orderBy('sort_order');
+    }
+
+    public function packageLines(): HasMany
+    {
+        return $this->hasMany(InvoiceLine::class)
+            ->where('line_type', InvoiceLine::LINE_TYPE_PACKAGE)
+            ->orderBy('sort_order');
+    }
+
     // State machine
     public function canTransitionTo(string $status): bool
     {
