@@ -3,6 +3,7 @@
 namespace Modules\Booking\Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 use Modules\Booking\Models\WorkSchedule;
 use Modules\Core\Database\Seeders\Concerns\ResolveTenantId;
 
@@ -13,6 +14,23 @@ class WorkScheduleSeeder extends Seeder
     public function run(): void
     {
         $tenantId = $this->resolveTenantId();
+
+        // Get the main branch for this tenant
+        $mainBranch = DB::table('branches')
+            ->where('tenant_id', $tenantId)
+            ->where('is_main', true)
+            ->first();
+
+        // Fallback to first active branch if no main branch
+        if (!$mainBranch) {
+            $mainBranch = DB::table('branches')
+                ->where('tenant_id', $tenantId)
+                ->where('is_active', true)
+                ->orderBy('sort_order')
+                ->first();
+        }
+
+        $branchId = $mainBranch?->id;
 
         $schedules = [
             // Standard Full-Time (Sunday-Thursday, Friday off)
@@ -124,6 +142,7 @@ class WorkScheduleSeeder extends Seeder
             if (!$existing) {
                 WorkSchedule::create(array_merge($schedule, [
                     'tenant_id' => $tenantId,
+                    'branch_id' => $branchId,
                     'is_active' => true,
                 ]));
             }
