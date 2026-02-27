@@ -308,6 +308,99 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('addToTreatmentPlan')
+                ->label(__('booking::session.actions.add_to_plan'))
+                ->icon('heroicon-o-clipboard-document-list')
+                ->color('primary')
+                ->form([
+                    Forms\Components\Radio::make('plan_mode')
+                        ->label(__('booking::session.plan_modal.mode'))
+                        ->options([
+                            'existing' => __('booking::session.plan_modal.add_to_existing'),
+                            'new' => __('booking::session.plan_modal.create_new'),
+                        ])
+                        ->default('existing')
+                        ->live()
+                        ->required(),
+                    Forms\Components\Select::make('treatment_plan_id')
+                        ->label(__('booking::session.plan_modal.select_plan'))
+                        ->options(fn () => $this->getActiveTreatmentPlans()
+                            ->mapWithKeys(fn ($plan) => [$plan->id => $plan->name]))
+                        ->visible(fn (Forms\Get $get) => $get('plan_mode') === 'existing')
+                        ->required(fn (Forms\Get $get) => $get('plan_mode') === 'existing'),
+                    Forms\Components\TextInput::make('new_plan_name')
+                        ->label(__('booking::session.plan_modal.plan_name'))
+                        ->visible(fn (Forms\Get $get) => $get('plan_mode') === 'new')
+                        ->required(fn (Forms\Get $get) => $get('plan_mode') === 'new'),
+                    Forms\Components\Repeater::make('items')
+                        ->label(__('booking::session.plan_modal.items'))
+                        ->schema([
+                            Forms\Components\Select::make('item_type')
+                                ->label(__('booking::session.plan_modal.item_type'))
+                                ->options(TreatmentPlanItem::TYPES)
+                                ->default('service')
+                                ->required()
+                                ->live(),
+                            Forms\Components\Select::make('service_id')
+                                ->label(__('booking::session.plan_modal.service'))
+                                ->options(fn () => $this->getAvailableServices())
+                                ->visible(fn (Forms\Get $get) => $get('item_type') === 'service')
+                                ->required(fn (Forms\Get $get) => $get('item_type') === 'service')
+                                ->searchable()
+                                ->live()
+                                ->afterStateUpdated(fn (Forms\Set $set, $state) => $this->setItemPrice($set, $state, 'service')),
+                            Forms\Components\Select::make('product_id')
+                                ->label(__('booking::session.plan_modal.product'))
+                                ->options(fn () => $this->getAvailableProductsForPlan())
+                                ->visible(fn (Forms\Get $get) => $get('item_type') === 'product')
+                                ->required(fn (Forms\Get $get) => $get('item_type') === 'product')
+                                ->searchable()
+                                ->live()
+                                ->afterStateUpdated(fn (Forms\Set $set, $state) => $this->setItemPrice($set, $state, 'product')),
+                            Forms\Components\Select::make('package_id')
+                                ->label(__('booking::session.plan_modal.package'))
+                                ->options(fn () => $this->getAvailablePackages())
+                                ->visible(fn (Forms\Get $get) => $get('item_type') === 'package')
+                                ->required(fn (Forms\Get $get) => $get('item_type') === 'package')
+                                ->searchable()
+                                ->live()
+                                ->afterStateUpdated(fn (Forms\Set $set, $state) => $this->setItemPrice($set, $state, 'package')),
+                            Forms\Components\TextInput::make('sessions')
+                                ->label(__('booking::session.plan_modal.sessions'))
+                                ->numeric()
+                                ->default(1)
+                                ->minValue(1)
+                                ->maxValue(50)
+                                ->visible(fn (Forms\Get $get) => $get('item_type') === 'service'),
+                            Forms\Components\TextInput::make('quantity')
+                                ->label(__('booking::session.plan_modal.quantity'))
+                                ->numeric()
+                                ->default(1)
+                                ->minValue(1)
+                                ->visible(fn (Forms\Get $get) => in_array($get('item_type'), ['product', 'package'])),
+                            Forms\Components\TextInput::make('interval_days')
+                                ->label(__('booking::session.plan_modal.interval'))
+                                ->numeric()
+                                ->default(7)
+                                ->minValue(1)
+                                ->suffix(__('booking::session.plan.days'))
+                                ->visible(fn (Forms\Get $get) => $get('item_type') === 'service'),
+                            Forms\Components\TextInput::make('unit_price')
+                                ->label(__('booking::session.plan_modal.price'))
+                                ->numeric()
+                                ->prefix(current_currency())
+                                ->required(),
+                        ])
+                        ->columns(3)
+                        ->minItems(1)
+                        ->maxItems(10)
+                        ->defaultItems(1)
+                        ->required(),
+                ])
+                ->modalHeading(__('booking::session.modals.add_to_plan'))
+                ->modalWidth('4xl')
+                ->action(fn (array $data) => $this->addItemsToTreatmentPlan($data)),
+
             Action::make('applyDiscount')
                 ->label(__('booking::session.actions.apply_discount'))
                 ->icon('heroicon-o-receipt-percent')
@@ -1725,5 +1818,160 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
         }
 
         $this->prescriptionMedications[] = $medicine->toPrescriptionItemData();
+    }
+
+    // ============================================
+    // TREATMENT PLAN ADDITION METHODS
+    // ============================================
+
+    /**
+     * Get available products for treatment plan (non-consumables).
+     */
+    public function getAvailableProductsForPlan(): array
+    {
+        return Product::query()
+            ->where('is_active', true)
+            ->where('is_consumable', false)
+            ->get()
+            ->mapWithKeys(fn ($p) => [$p->id => $p->getTranslation('name', app()->getLocale())])
+            ->toArray();
+    }
+
+    /**
+     * Get available packages for treatment plan.
+     */
+    public function getAvailablePackages(): array
+    {
+        return \Modules\Packages\Models\Package::query()
+            ->where('is_active', true)
+            ->get()
+            ->mapWithKeys(fn ($p) => [$p->id => $p->getTranslation('name', app()->getLocale())])
+            ->toArray();
+    }
+
+    /**
+     * Set item price based on selection.
+     */
+    public function setItemPrice(Forms\Set $set, $itemId, string $type): void
+    {
+        if (!$itemId) {
+            return;
+        }
+
+        $price = 0;
+
+        switch ($type) {
+            case 'service':
+                $service = Service::find($itemId);
+                $price = $service ? ($service->base_price_minor / 100) : 0;
+                break;
+            case 'product':
+                $product = Product::find($itemId);
+                $price = $product ? ($product->sell_price_minor / 100) : 0;
+                break;
+            case 'package':
+                $package = \Modules\Packages\Models\Package::find($itemId);
+                $price = $package ? ($package->price_minor / 100) : 0;
+                break;
+        }
+
+        $set('unit_price', $price);
+    }
+
+    /**
+     * Add items to treatment plan (existing or new).
+     */
+    public function addItemsToTreatmentPlan(array $data): void
+    {
+        if (!$this->patient) {
+            Notification::make()
+                ->title(__('booking::session.messages.error'))
+                ->danger()
+                ->send();
+            return;
+        }
+
+        try {
+            DB::transaction(function () use ($data) {
+                $plan = null;
+
+                if ($data['plan_mode'] === 'new') {
+                    // Create new treatment plan
+                    $plan = TreatmentPlan::create([
+                        'patient_id' => $this->patient->id,
+                        'branch_id' => $this->appointment->branch_id,
+                        'created_by_user_id' => auth()->id(),
+                        'name' => ['en' => $data['new_plan_name'], 'ar' => $data['new_plan_name']],
+                        'status' => TreatmentPlan::STATUS_ACTIVE,
+                        'source' => TreatmentPlan::SOURCE_CONSULTATION,
+                        'start_date' => today(),
+                    ]);
+                } else {
+                    // Get existing plan
+                    $plan = TreatmentPlan::find($data['treatment_plan_id']);
+                    if (!$plan) {
+                        throw new \Exception('Treatment plan not found');
+                    }
+                }
+
+                // Get max sort order
+                $maxSortOrder = $plan->items()->max('sort_order') ?? 0;
+
+                // Add items to plan
+                foreach ($data['items'] as $index => $item) {
+                    $itemType = $item['item_type'] ?? 'service';
+                    $unitPriceMinor = (int) (($item['unit_price'] ?? 0) * 100);
+
+                    $itemData = [
+                        'tenant_id' => $plan->tenant_id,
+                        'treatment_plan_id' => $plan->id,
+                        'item_type' => $itemType,
+                        'unit_price_minor' => $unitPriceMinor,
+                        'sort_order' => $maxSortOrder + $index + 1,
+                    ];
+
+                    switch ($itemType) {
+                        case TreatmentPlanItem::TYPE_SERVICE:
+                            $service = Service::find($item['service_id']);
+                            $itemData['service_id'] = $item['service_id'];
+                            $itemData['recommended_sessions'] = (int) ($item['sessions'] ?? 1);
+                            $itemData['session_interval_days'] = (int) ($item['interval_days'] ?? 7);
+                            $itemData['itemable_type'] = Service::class;
+                            $itemData['itemable_id'] = $item['service_id'];
+                            break;
+
+                        case TreatmentPlanItem::TYPE_PRODUCT:
+                            $product = Product::find($item['product_id']);
+                            $itemData['quantity'] = (int) ($item['quantity'] ?? 1);
+                            $itemData['itemable_type'] = Product::class;
+                            $itemData['itemable_id'] = $item['product_id'];
+                            break;
+
+                        case TreatmentPlanItem::TYPE_PACKAGE:
+                            $package = \Modules\Packages\Models\Package::find($item['package_id']);
+                            $itemData['quantity'] = (int) ($item['quantity'] ?? 1);
+                            $itemData['itemable_type'] = \Modules\Packages\Models\Package::class;
+                            $itemData['itemable_id'] = $item['package_id'];
+                            break;
+                    }
+
+                    TreatmentPlanItem::create($itemData);
+                }
+
+                // Recalculate plan financials
+                $plan->recalculateFinancials();
+            });
+
+            Notification::make()
+                ->title(__('booking::session.messages.items_added_to_plan'))
+                ->success()
+                ->send();
+        } catch (\Exception $e) {
+            Notification::make()
+                ->title(__('booking::session.messages.add_to_plan_failed'))
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
+        }
     }
 }

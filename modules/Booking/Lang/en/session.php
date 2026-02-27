@@ -106,6 +106,7 @@ return [
         'back_to_dashboard' => 'Back to Dashboard',
         'apply_discount' => 'Apply Discount',
         'apply' => 'Apply',
+        'add_to_plan' => 'Add to Plan',
     ],
 
     // Modals
@@ -113,6 +114,25 @@ return [
         'complete_session' => 'Complete Session',
         'complete_session_desc' => 'Are you sure you want to complete this session? This will mark the appointment as completed.',
         'apply_discount' => 'Apply Discount',
+        'add_to_plan' => 'Add to Treatment Plan',
+    ],
+
+    // Plan modal
+    'plan_modal' => [
+        'mode' => 'Plan Mode',
+        'add_to_existing' => 'Add to Existing Plan',
+        'create_new' => 'Create New Plan',
+        'select_plan' => 'Select Treatment Plan',
+        'plan_name' => 'Plan Name',
+        'items' => 'Items to Add',
+        'item_type' => 'Type',
+        'service' => 'Service',
+        'product' => 'Product',
+        'package' => 'Package',
+        'sessions' => 'Sessions',
+        'quantity' => 'Qty',
+        'interval' => 'Interval',
+        'price' => 'Price',
     ],
 
     // Discount
@@ -150,6 +170,9 @@ return [
         'product_removed' => 'Product removed',
         'discount_applied' => 'Discount applied successfully',
         'discount_applied_body' => 'Discount of :amount applied. Final price: :final',
+        'items_added_to_plan' => 'Items added to treatment plan successfully',
+        'add_to_plan_failed' => 'Failed to add items to treatment plan',
+        'error' => 'An error occurred',
     ],
 
     // Pre-treatment checklist

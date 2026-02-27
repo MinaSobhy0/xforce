@@ -73,12 +73,14 @@ Enhance the treatment session completion flow to automatically generate invoices
 
 ## Implementation Checklist
 
-### Phase 1: Add to Existing Treatment Plan (During Session)
+### Phase 1: Add to Existing Treatment Plan (During Session) ✅ COMPLETE
 
-**Files to Modify:**
-- [ ] `modules/Booking/Filament/Pages/TreatmentSession.php`
-- [ ] `modules/TreatmentPlans/Models/TreatmentPlanItem.php`
-- [ ] `modules/TreatmentPlans/Database/Migrations/2024_02_01_000002_create_treatment_plan_items_table.php`
+**Files Modified:**
+- [x] `modules/Booking/Filament/Pages/TreatmentSession.php`
+- [x] `modules/Booking/Lang/en/session.php`
+- [x] `modules/Booking/Lang/ar/session.php`
+
+**Note:** TreatmentPlanItem model already has full support for item_type (service, product, package) and polymorphic itemable relationship.
 
 **Database Changes for TreatmentPlanItem:**
 ```php
@@ -96,14 +98,16 @@ $table->integer('discount_minor')->default(0);
 $table->integer('total_minor');
 ```
 
-**Tasks:**
-- [ ] Add "Add to Treatment Plan" action in session page
-- [ ] Show patient's existing treatment plans (if any)
-- [ ] Allow selecting existing plan OR creating new
-- [ ] Support three item types: Service, Product, Package
-- [ ] Dynamic form based on item type selected
-- [ ] On save: create `TreatmentPlanItem` records
-- [ ] Recalculate plan financials after adding
+**Tasks Completed:**
+- [x] Add "Add to Treatment Plan" action in session page
+- [x] Show patient's existing treatment plans (if any)
+- [x] Allow selecting existing plan OR creating new
+- [x] Support three item types: Service, Product, Package
+- [x] Dynamic form based on item type selected (repeater with conditional fields)
+- [x] Auto-populate price from selected item
+- [x] On save: create `TreatmentPlanItem` records with proper polymorphic relationships
+- [x] Recalculate plan financials after adding
+- [x] Add EN/AR translations for modal and messages
 
 **UI Flow:**
 ```

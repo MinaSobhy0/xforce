@@ -106,6 +106,7 @@ return [
         'back_to_dashboard' => 'العودة للوحة',
         'apply_discount' => 'تطبيق خصم',
         'apply' => 'تطبيق',
+        'add_to_plan' => 'إضافة للخطة',
     ],
 
     // Modals
@@ -113,6 +114,25 @@ return [
         'complete_session' => 'إنهاء الجلسة',
         'complete_session_desc' => 'هل أنت متأكد من إنهاء هذه الجلسة؟ سيتم تحديث حالة الموعد إلى مكتمل.',
         'apply_discount' => 'تطبيق خصم',
+        'add_to_plan' => 'إضافة لخطة العلاج',
+    ],
+
+    // Plan modal
+    'plan_modal' => [
+        'mode' => 'نوع الخطة',
+        'add_to_existing' => 'إضافة لخطة موجودة',
+        'create_new' => 'إنشاء خطة جديدة',
+        'select_plan' => 'اختر خطة العلاج',
+        'plan_name' => 'اسم الخطة',
+        'items' => 'العناصر المراد إضافتها',
+        'item_type' => 'النوع',
+        'service' => 'خدمة',
+        'product' => 'منتج',
+        'package' => 'باقة',
+        'sessions' => 'الجلسات',
+        'quantity' => 'الكمية',
+        'interval' => 'الفاصل',
+        'price' => 'السعر',
     ],
 
     // Discount
@@ -150,6 +170,9 @@ return [
         'product_removed' => 'تم حذف المنتج',
         'discount_applied' => 'تم تطبيق الخصم بنجاح',
         'discount_applied_body' => 'تم تطبيق خصم :amount. السعر النهائي: :final',
+        'items_added_to_plan' => 'تمت إضافة العناصر لخطة العلاج بنجاح',
+        'add_to_plan_failed' => 'فشل إضافة العناصر لخطة العلاج',
+        'error' => 'حدث خطأ',
     ],
 
     // Pre-treatment checklist
