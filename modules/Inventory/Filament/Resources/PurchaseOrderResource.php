@@ -125,7 +125,7 @@ class PurchaseOrderResource extends Resource
                         Forms\Components\Repeater::make('lines')
                             ->relationship()
                             ->schema([
-                                // Row 1: Product, Qty, Price, Discount, Taxes
+                                // Row 1: Product, Notes, Received
                                 Forms\Components\Select::make('product_id')
                                     ->label(__('inventory::inventory.fields.product'))
                                     ->relationship('product', 'id')
@@ -144,8 +144,22 @@ class PurchaseOrderResource extends Resource
                                             }
                                         }
                                     })
-                                    ->columnSpan(['default' => 12, 'md' => 3]),
+                                    ->columnSpan(['default' => 12, 'md' => 4]),
 
+                                Forms\Components\TextInput::make('notes')
+                                    ->label(__('inventory::inventory.fields.notes'))
+                                    ->maxLength(255)
+                                    ->columnSpan(['default' => 12, 'md' => 6]),
+
+                                Forms\Components\TextInput::make('quantity_received')
+                                    ->label(__('inventory::inventory.fields.received'))
+                                    ->numeric()
+                                    ->disabled()
+                                    ->dehydrated(false)
+                                    ->default(0)
+                                    ->columnSpan(['default' => 12, 'md' => 2]),
+
+                                // Row 2: Qty, Price, Discount, Taxes
                                 Forms\Components\TextInput::make('quantity')
                                     ->label(__('inventory::inventory.fields.qty'))
                                     ->numeric()
@@ -153,7 +167,7 @@ class PurchaseOrderResource extends Resource
                                     ->default(1)
                                     ->minValue(1)
                                     ->live(onBlur: true)
-                                    ->columnSpan(['default' => 3, 'md' => 1]),
+                                    ->columnSpan(['default' => 4, 'md' => 2]),
 
                                 Forms\Components\TextInput::make('unit_price_minor')
                                     ->label(__('inventory::inventory.fields.unit_price'))
@@ -163,7 +177,7 @@ class PurchaseOrderResource extends Resource
                                     ->live(onBlur: true)
                                     ->formatStateUsing(fn ($state) => $state ? $state / 100 : null)
                                     ->dehydrateStateUsing(fn ($state) => $state ? (int) ($state * 100) : 0)
-                                    ->columnSpan(['default' => 5, 'md' => 2]),
+                                    ->columnSpan(['default' => 8, 'md' => 3]),
 
                                 Forms\Components\Select::make('discount_type')
                                     ->label(__('inventory::inventory.fields.disc_type'))
@@ -173,7 +187,7 @@ class PurchaseOrderResource extends Resource
                                     ])
                                     ->default('fixed')
                                     ->live()
-                                    ->columnSpan(['default' => 4, 'md' => 1]),
+                                    ->columnSpan(['default' => 4, 'md' => 2]),
 
                                 Forms\Components\TextInput::make('discount_minor')
                                     ->label(__('inventory::inventory.fields.discount'))
@@ -211,28 +225,16 @@ class PurchaseOrderResource extends Resource
                                         return $default ? [(string) $default->rate] : ['14'];
                                     })
                                     ->live(onBlur: true)
-                                    ->columnSpan(['default' => 4, 'md' => 2]),
-
-                                Forms\Components\TextInput::make('quantity_received')
-                                    ->label(__('inventory::inventory.fields.received'))
-                                    ->numeric()
-                                    ->disabled()
-                                    ->dehydrated(false)
-                                    ->default(0)
-                                    ->columnSpan(['default' => 3, 'md' => 1]),
-
-                                // Row 2: Notes (optional)
-                                Forms\Components\Textarea::make('notes')
-                                    ->label(__('inventory::inventory.fields.notes'))
-                                    ->rows(1)
-                                    ->columnSpanFull(),
+                                    ->columnSpan(['default' => 4, 'md' => 3]),
                             ])
                             ->columns(12)
                             ->defaultItems(1)
                             ->addActionLabel(__('inventory::inventory.actions.add_item'))
-                            ->reorderable(false)
-                            ->itemLabel(fn (array $state): ?string => isset($state['product_id']) ? Product::find($state['product_id'])?->sku : null)
-                            ->live(),
+                            ->reorderable()
+                            ->reorderableWithButtons()
+                            ->cloneable()
+                            ->live(onBlur: true)
+                            ->itemLabel(fn (array $state): ?string => isset($state['product_id']) ? Product::find($state['product_id'])?->sku : null),
                     ]),
 
                 Forms\Components\Section::make(__('inventory::inventory.sections.totals'))
