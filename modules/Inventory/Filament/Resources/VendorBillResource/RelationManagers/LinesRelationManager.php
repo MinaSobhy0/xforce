@@ -2,8 +2,10 @@
 
 namespace Modules\Inventory\Filament\Resources\VendorBillResource\RelationManagers;
 
+use Modules\Billing\Models\TaxRate;
 use Modules\Inventory\Models\VendorBillLine;
 use Modules\Inventory\Models\Product;
+use Modules\Accounting\Models\ChartOfAccount;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
@@ -14,14 +16,17 @@ class LinesRelationManager extends RelationManager
 {
     protected static string $relationship = 'lines';
 
-    protected static ?string $title = 'Line Items';
+    public static function getTitle(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): string
+    {
+        return __('inventory::inventory.sections.line_items');
+    }
 
     public function form(Form $form): Form
     {
         return $form
             ->schema([
                 Forms\Components\Select::make('product_id')
-                    ->label('Product')
+                    ->label(__('inventory::inventory.fields.product'))
                     ->options(Product::query()->where('is_active', true)->get()->mapWithKeys(fn ($p) => [
                         $p->id => "[{$p->sku}] " . $p->getTranslation('name', app()->getLocale())
                     ]))
@@ -34,47 +39,90 @@ class LinesRelationManager extends RelationManager
                             if ($product) {
                                 $set('description', $product->getTranslation('name', app()->getLocale()));
                                 $set('unit_price_minor', $product->cost_price_minor / 100);
+                                $defaultTax = TaxRate::getDefault(TaxRate::TYPE_PURCHASE);
+                                $set('tax_rates', $defaultTax ? [(string) $defaultTax->rate] : ['14']);
+                                if ($product->expense_account_id) {
+                                    $set('account_id', $product->expense_account_id);
+                                }
                             }
                         }
                     }),
 
                 Forms\Components\TextInput::make('description')
+                    ->label(__('inventory::inventory.fields.description'))
                     ->required()
                     ->maxLength(255),
 
+                Forms\Components\Select::make('account_id')
+                    ->label(__('inventory::inventory.fields.account'))
+                    ->options(
+                        ChartOfAccount::where('type', ChartOfAccount::TYPE_EXPENSE)
+                            ->where('is_active', true)
+                            ->orderBy('code')
+                            ->get()
+                            ->mapWithKeys(fn ($a) => [$a->id => "[{$a->code}] " . $a->getTranslation('name', app()->getLocale())])
+                    )
+                    ->default(fn () => ChartOfAccount::where('type', ChartOfAccount::TYPE_EXPENSE)->where('is_active', true)->orderBy('code')->first()?->id)
+                    ->searchable()
+                    ->preload()
+                    ->required(),
+
                 Forms\Components\TextInput::make('quantity')
+                    ->label(__('inventory::inventory.fields.qty'))
                     ->numeric()
                     ->default(1)
                     ->minValue(0.01)
                     ->required(),
 
                 Forms\Components\TextInput::make('unit_price_minor')
-                    ->label('Unit Price')
+                    ->label(__('inventory::inventory.fields.unit_price'))
                     ->numeric()
                     ->required()
                     ->prefix(current_currency())
                     ->formatStateUsing(fn ($state) => $state ? $state / 100 : null)
                     ->dehydrateStateUsing(fn ($state) => $state ? (int) ($state * 100) : 0),
 
-                Forms\Components\TextInput::make('discount_minor')
-                    ->label('Discount')
-                    ->numeric()
-                    ->default(0)
-                    ->formatStateUsing(fn ($state) => $state ? $state / 100 : 0)
-                    ->dehydrateStateUsing(fn ($state) => $state ? (int) ($state * 100) : 0),
-
                 Forms\Components\Select::make('discount_type')
+                    ->label(__('inventory::inventory.fields.disc_type'))
                     ->options([
-                        'fixed' => 'Fixed',
-                        'percent' => 'Percent',
+                        'fixed' => current_currency(),
+                        'percent' => '%',
                     ])
                     ->default('fixed'),
 
-                Forms\Components\TextInput::make('tax_rate')
-                    ->label('Tax %')
+                Forms\Components\TextInput::make('discount_minor')
+                    ->label(__('inventory::inventory.fields.discount'))
                     ->numeric()
                     ->default(0)
-                    ->suffix('%'),
+                    ->formatStateUsing(function ($state, Forms\Get $get) {
+                        if ($get('discount_type') === 'percent') {
+                            return $state ?: 0;
+                        }
+                        return $state ? $state / 100 : 0;
+                    })
+                    ->dehydrateStateUsing(function ($state, Forms\Get $get) {
+                        if ($get('discount_type') === 'percent') {
+                            return $state ? (int) $state : 0;
+                        }
+                        return $state ? (int) ($state * 100) : 0;
+                    }),
+
+                Forms\Components\Select::make('tax_rates')
+                    ->label(__('inventory::inventory.fields.taxes'))
+                    ->multiple()
+                    ->options(function () {
+                        return TaxRate::where('is_active', true)
+                            ->where('type', TaxRate::TYPE_PURCHASE)
+                            ->orderByDesc('rate')
+                            ->get()
+                            ->mapWithKeys(fn ($t) => [
+                                (string) $t->rate => $t->getTranslation('name', app()->getLocale()) . " ({$t->rate}%)"
+                            ]);
+                    })
+                    ->default(function () {
+                        $default = TaxRate::getDefault(TaxRate::TYPE_PURCHASE);
+                        return $default ? [(string) $default->rate] : ['14'];
+                    }),
             ]);
     }
 
@@ -84,34 +132,55 @@ class LinesRelationManager extends RelationManager
             ->recordTitleAttribute('description')
             ->columns([
                 Tables\Columns\TextColumn::make('product.sku')
-                    ->label('SKU')
+                    ->label(__('inventory::inventory.fields.sku'))
                     ->placeholder('-'),
 
                 Tables\Columns\TextColumn::make('description')
+                    ->label(__('inventory::inventory.fields.description'))
                     ->searchable()
                     ->wrap(),
 
                 Tables\Columns\TextColumn::make('quantity')
+                    ->label(__('inventory::inventory.fields.qty'))
                     ->numeric(2),
 
                 Tables\Columns\TextColumn::make('unit_price_minor')
-                    ->label('Unit Price')
+                    ->label(__('inventory::inventory.fields.unit_price'))
                     ->formatStateUsing(fn ($state) => format_money($state)),
 
                 Tables\Columns\TextColumn::make('discount_minor')
-                    ->label('Discount')
+                    ->label(__('inventory::inventory.fields.discount'))
                     ->formatStateUsing(fn ($state, $record) => $state > 0
                         ? ($record->discount_type === 'percent'
                             ? $state . '%'
                             : format_money($state))
                         : '-'),
 
-                Tables\Columns\TextColumn::make('tax_rate')
-                    ->label('Tax')
-                    ->suffix('%'),
+                Tables\Columns\TextColumn::make('tax_rates')
+                    ->label(__('inventory::inventory.fields.taxes'))
+                    ->formatStateUsing(function ($state) {
+                        if (empty($state)) {
+                            return '-';
+                        }
+                        $rates = is_array($state) ? $state : json_decode($state, true);
+                        if (empty($rates) || !is_array($rates)) {
+                            return '-';
+                        }
+                        $vatRates = array_filter($rates, fn ($r) => floatval($r) >= 0);
+                        $whRates = array_filter($rates, fn ($r) => floatval($r) < 0);
+
+                        $parts = [];
+                        if (!empty($vatRates)) {
+                            $parts[] = 'VAT: ' . implode(', ', array_map(fn ($r) => $r . '%', $vatRates));
+                        }
+                        if (!empty($whRates)) {
+                            $parts[] = 'WH: ' . implode(', ', array_map(fn ($r) => $r . '%', $whRates));
+                        }
+                        return empty($parts) ? '-' : implode(' | ', $parts);
+                    }),
 
                 Tables\Columns\TextColumn::make('total_minor')
-                    ->label('Total')
+                    ->label(__('inventory::inventory.fields.total'))
                     ->formatStateUsing(fn ($state) => format_money($state))
                     ->weight('bold'),
             ])

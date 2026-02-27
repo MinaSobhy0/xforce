@@ -298,6 +298,9 @@ class VendorBillResource extends Resource
 
                                             // Sum only positive tax rates (VAT)
                                             $taxRates = $line['tax_rates'] ?? [];
+                                            if (!is_array($taxRates)) {
+                                                $taxRates = [];
+                                            }
                                             $positiveRates = array_filter(array_map('floatval', $taxRates), fn ($r) => $r > 0);
                                             $vatPercent = array_sum($positiveRates);
                                             $vat += $lineSubtotal * $vatPercent / 100;
@@ -308,6 +311,9 @@ class VendorBillResource extends Resource
                                         $lines = $get('lines') ?? [];
                                         foreach ($lines as $line) {
                                             $taxRates = $line['tax_rates'] ?? [];
+                                            if (!is_array($taxRates)) {
+                                                continue;
+                                            }
                                             if (array_filter(array_map('floatval', $taxRates), fn ($r) => $r > 0)) {
                                                 return true;
                                             }
@@ -336,6 +342,9 @@ class VendorBillResource extends Resource
 
                                             // Sum only negative tax rates (Withholding)
                                             $taxRates = $line['tax_rates'] ?? [];
+                                            if (!is_array($taxRates)) {
+                                                $taxRates = [];
+                                            }
                                             $negativeRates = array_filter(array_map('floatval', $taxRates), fn ($r) => $r < 0);
                                             $whmPercent = array_sum($negativeRates);
                                             $whm += $lineSubtotal * $whmPercent / 100;
@@ -346,6 +355,9 @@ class VendorBillResource extends Resource
                                         $lines = $get('lines') ?? [];
                                         foreach ($lines as $line) {
                                             $taxRates = $line['tax_rates'] ?? [];
+                                            if (!is_array($taxRates)) {
+                                                continue;
+                                            }
                                             if (array_filter(array_map('floatval', $taxRates), fn ($r) => $r < 0)) {
                                                 return true;
                                             }
@@ -374,6 +386,9 @@ class VendorBillResource extends Resource
 
                                             // Add tax (sum of all rates: VAT positive, WH negative)
                                             $taxRates = $line['tax_rates'] ?? [];
+                                            if (!is_array($taxRates)) {
+                                                $taxRates = [];
+                                            }
                                             $totalTaxPercent = array_sum(array_map('floatval', $taxRates));
                                             $lineSubtotal += $lineSubtotal * $totalTaxPercent / 100;
 

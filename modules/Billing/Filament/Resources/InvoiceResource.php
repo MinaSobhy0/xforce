@@ -211,12 +211,13 @@ class InvoiceResource extends Resource
                                             })
                                             ->columnSpan(['default' => 4, 'md' => 2]),
 
-                                        Forms\Components\CheckboxList::make('tax_rates')
+                                        Forms\Components\Select::make('tax_rates')
                                             ->label(__('billing::billing.fields.taxes'))
+                                            ->multiple()
                                             ->options(function () {
                                                 return TaxRate::where('is_active', true)
                                                     ->where('type', TaxRate::TYPE_SALES)
-                                                    ->orderByRaw('CASE WHEN rate >= 0 THEN 0 ELSE 1 END, ABS(rate)')
+                                                    ->orderByDesc('rate')
                                                     ->get()
                                                     ->mapWithKeys(fn ($t) => [
                                                         (string) $t->rate => $t->getTranslation('name', app()->getLocale()) . " ({$t->rate}%)"
@@ -226,7 +227,6 @@ class InvoiceResource extends Resource
                                                 $default = TaxRate::getDefault(TaxRate::TYPE_SALES);
                                                 return $default ? [(string) $default->rate] : ['14'];
                                             })
-                                            ->columns(2)
                                             ->columnSpan(['default' => 4, 'md' => 3]),
                                     ])
                                     ->columns(12)
@@ -296,18 +296,17 @@ class InvoiceResource extends Resource
                                     ->prefix(fn (Forms\Get $get) => $get('discount_type') === 'percent' ? null : current_currency())
                                     ->suffix(fn (Forms\Get $get) => $get('discount_type') === 'percent' ? '%' : null),
 
-                                Forms\Components\Placeholder::make('tax_display')
-                                    ->label(__('billing::billing.fields.tax'))
+                                Forms\Components\Placeholder::make('vat_display')
+                                    ->label(__('billing::billing.fields.vat'))
                                     ->content(function (Forms\Get $get) {
                                         $lines = $get('lines') ?? [];
-                                        $vatTotal = 0;
-                                        $whTotal = 0;
+                                        $vat = 0;
                                         foreach ($lines as $line) {
                                             $qty = (float) ($line['quantity'] ?? 0);
                                             $price = (float) ($line['unit_price_minor'] ?? 0) * 100;
                                             $lineSubtotal = $qty * $price;
 
-                                            // Apply line discount first
+                                            // Apply line discount before tax
                                             $discountType = $line['discount_type'] ?? 'fixed';
                                             $discountValue = (float) ($line['discount_minor'] ?? 0);
                                             if ($discountType === 'percent') {
@@ -315,32 +314,74 @@ class InvoiceResource extends Resource
                                             } else {
                                                 $lineSubtotal -= $discountValue * 100;
                                             }
-                                            $lineSubtotal = max(0, $lineSubtotal);
 
-                                            // Calculate tax for each rate
+                                            // Sum only positive tax rates (VAT)
                                             $taxRates = $line['tax_rates'] ?? [];
-                                            foreach ($taxRates as $rate) {
-                                                $rateFloat = (float) $rate;
-                                                $taxAmount = $lineSubtotal * abs($rateFloat) / 100;
-                                                if ($rateFloat >= 0) {
-                                                    $vatTotal += $taxAmount;
-                                                } else {
-                                                    $whTotal += $taxAmount;
-                                                }
+                                            if (!is_array($taxRates)) {
+                                                $taxRates = [];
+                                            }
+                                            $positiveRates = array_filter(array_map('floatval', $taxRates), fn ($r) => $r > 0);
+                                            $vatPercent = array_sum($positiveRates);
+                                            $vat += $lineSubtotal * $vatPercent / 100;
+                                        }
+                                        return format_money((int) $vat);
+                                    })
+                                    ->visible(function (Forms\Get $get) {
+                                        $lines = $get('lines') ?? [];
+                                        foreach ($lines as $line) {
+                                            $taxRates = $line['tax_rates'] ?? [];
+                                            if (!is_array($taxRates)) {
+                                                continue;
+                                            }
+                                            if (array_filter(array_map('floatval', $taxRates), fn ($r) => $r > 0)) {
+                                                return true;
                                             }
                                         }
+                                        return false;
+                                    }),
 
-                                        $parts = [];
-                                        if ($vatTotal > 0) {
-                                            $parts[] = 'VAT: ' . format_money((int) $vatTotal);
+                                Forms\Components\Placeholder::make('whm_display')
+                                    ->label(__('billing::billing.fields.whm'))
+                                    ->content(function (Forms\Get $get) {
+                                        $lines = $get('lines') ?? [];
+                                        $whm = 0;
+                                        foreach ($lines as $line) {
+                                            $qty = (float) ($line['quantity'] ?? 0);
+                                            $price = (float) ($line['unit_price_minor'] ?? 0) * 100;
+                                            $lineSubtotal = $qty * $price;
+
+                                            // Apply line discount before tax
+                                            $discountType = $line['discount_type'] ?? 'fixed';
+                                            $discountValue = (float) ($line['discount_minor'] ?? 0);
+                                            if ($discountType === 'percent') {
+                                                $lineSubtotal -= $lineSubtotal * $discountValue / 100;
+                                            } else {
+                                                $lineSubtotal -= $discountValue * 100;
+                                            }
+
+                                            // Sum only negative tax rates (Withholding)
+                                            $taxRates = $line['tax_rates'] ?? [];
+                                            if (!is_array($taxRates)) {
+                                                $taxRates = [];
+                                            }
+                                            $negativeRates = array_filter(array_map('floatval', $taxRates), fn ($r) => $r < 0);
+                                            $whmPercent = array_sum($negativeRates);
+                                            $whm += $lineSubtotal * $whmPercent / 100;
                                         }
-                                        if ($whTotal > 0) {
-                                            $parts[] = 'WH: -' . format_money((int) $whTotal);
+                                        return format_money((int) $whm);
+                                    })
+                                    ->visible(function (Forms\Get $get) {
+                                        $lines = $get('lines') ?? [];
+                                        foreach ($lines as $line) {
+                                            $taxRates = $line['tax_rates'] ?? [];
+                                            if (!is_array($taxRates)) {
+                                                continue;
+                                            }
+                                            if (array_filter(array_map('floatval', $taxRates), fn ($r) => $r < 0)) {
+                                                return true;
+                                            }
                                         }
-                                        if (empty($parts)) {
-                                            return format_money(0);
-                                        }
-                                        return implode(' | ', $parts);
+                                        return false;
                                     }),
 
                                 Forms\Components\Placeholder::make('total_display')
@@ -368,6 +409,9 @@ class InvoiceResource extends Resource
 
                                             // Calculate tax - sum all rates
                                             $taxRates = $line['tax_rates'] ?? [];
+                                            if (!is_array($taxRates)) {
+                                                $taxRates = [];
+                                            }
                                             $totalTaxPercent = array_sum(array_map('floatval', $taxRates));
                                             $tax += $lineSubtotal * $totalTaxPercent / 100;
                                         }

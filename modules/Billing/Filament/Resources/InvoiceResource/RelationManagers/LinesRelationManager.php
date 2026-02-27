@@ -75,12 +75,13 @@ class LinesRelationManager extends RelationManager
                     ])
                     ->default('fixed'),
 
-                Forms\Components\CheckboxList::make('tax_rates')
+                Forms\Components\Select::make('tax_rates')
                     ->label(__('billing::billing.fields.taxes'))
+                    ->multiple()
                     ->options(function () {
                         return TaxRate::where('is_active', true)
                             ->where('type', TaxRate::TYPE_SALES)
-                            ->orderByRaw('CASE WHEN rate >= 0 THEN 0 ELSE 1 END, ABS(rate)')
+                            ->orderByDesc('rate')
                             ->get()
                             ->mapWithKeys(fn ($t) => [
                                 (string) $t->rate => $t->getTranslation('name', app()->getLocale()) . " ({$t->rate}%)"
@@ -89,8 +90,7 @@ class LinesRelationManager extends RelationManager
                     ->default(function () {
                         $default = TaxRate::getDefault(TaxRate::TYPE_SALES);
                         return $default ? [(string) $default->rate] : ['14'];
-                    })
-                    ->columns(2),
+                    }),
             ]);
     }
 
@@ -127,7 +127,7 @@ class LinesRelationManager extends RelationManager
                             return '-';
                         }
                         $rates = is_array($state) ? $state : json_decode($state, true);
-                        if (empty($rates)) {
+                        if (empty($rates) || !is_array($rates)) {
                             return '-';
                         }
                         $vatRates = array_filter($rates, fn ($r) => floatval($r) >= 0);
@@ -140,7 +140,7 @@ class LinesRelationManager extends RelationManager
                         if (!empty($whRates)) {
                             $parts[] = 'WH: ' . implode(', ', array_map(fn ($r) => $r . '%', $whRates));
                         }
-                        return implode(' | ', $parts);
+                        return empty($parts) ? '-' : implode(' | ', $parts);
                     }),
 
                 Tables\Columns\TextColumn::make('total_minor')

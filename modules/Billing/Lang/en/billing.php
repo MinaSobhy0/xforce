@@ -95,6 +95,8 @@ return [
         'discount_value' => 'Discount Value',
         'tax' => 'Tax',
         'taxes' => 'Taxes',
+        'vat' => 'VAT',
+        'whm' => 'Withholding',
         'subtotal' => 'Subtotal',
         'total' => 'Total',
         'paid' => 'Paid',
