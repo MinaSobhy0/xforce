@@ -15,6 +15,8 @@ return new class extends Migration
             $table->foreignId('parent_id')->nullable()->index();
             $table->jsonb('name');
             $table->jsonb('description')->nullable();
+            $table->string('icon', 100)->nullable();
+            $table->string('color', 50)->nullable();
             $table->string('image_url')->nullable();
             $table->boolean('is_active')->default(true);
             $table->integer('sort_order')->default(0);
