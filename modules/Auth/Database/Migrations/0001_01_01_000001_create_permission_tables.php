@@ -41,6 +41,8 @@ return new class extends Migration
             $table->bigIncrements('id');
             $table->string('name');
             $table->string('guard_name');
+            $table->string('display_name')->nullable();
+            $table->string('module')->nullable();
             $table->timestamps();
 
             $table->unique(['name', 'guard_name']);
@@ -57,6 +59,8 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->string('guard_name');
             $table->integer('level')->default(0);
+            $table->boolean('is_system')->default(false);
+            $table->boolean('is_active')->default(true);
             $table->timestamps();
             if ($teams || config('permission.testing')) {
                 $table->unique([$columnNames['team_foreign_key'], 'name', 'guard_name']);
