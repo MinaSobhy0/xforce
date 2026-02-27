@@ -207,20 +207,9 @@ class PurchaseOrderResource extends Resource
                     ->schema([
                         Forms\Components\Grid::make(2)
                             ->schema([
-                                // Left column: Tax, Discount, Shipping inputs
+                                // Left column: Discount, Shipping inputs (tax is per-line now)
                                 Forms\Components\Section::make()
                                     ->schema([
-                                        Forms\Components\Select::make('tax_rate_id')
-                                            ->label(__('inventory::inventory.fields.tax'))
-                                            ->options(fn () => \Modules\Billing\Models\TaxRate::active()
-                                                ->get()
-                                                ->mapWithKeys(fn ($rate) => [
-                                                    $rate->id => $rate->getTranslation('name', app()->getLocale()) . ' (' . $rate->rate . '%)'
-                                                ]))
-                                            ->default(fn () => \Modules\Billing\Models\TaxRate::getDefault()?->id)
-                                            ->live()
-                                            ->dehydrated(false),
-
                                         Forms\Components\Grid::make(2)
                                             ->schema([
                                                 Forms\Components\Select::make('discount_type')
@@ -270,24 +259,50 @@ class PurchaseOrderResource extends Resource
                                                 return number_format($subtotal, 2) . ' ' . current_currency();
                                             }),
 
-                                        Forms\Components\Placeholder::make('tax_display')
-                                            ->label(__('inventory::inventory.fields.tax'))
+                                        // VAT (positive tax rates)
+                                        Forms\Components\Placeholder::make('vat_display')
+                                            ->label(__('inventory::inventory.fields.vat'))
                                             ->content(function (Forms\Get $get) {
                                                 $lines = $get('lines') ?? [];
-                                                $subtotal = 0;
+                                                $vatAmount = 0;
                                                 foreach ($lines as $line) {
                                                     $qty = (float) ($line['quantity'] ?? 0);
                                                     $price = (float) ($line['unit_price_minor'] ?? 0);
-                                                    $subtotal += $qty * $price;
+                                                    $lineSubtotal = $qty * $price;
+                                                    $taxRate = (float) ($line['tax_rate'] ?? 0);
+                                                    if ($taxRate > 0) {
+                                                        $vatAmount += $lineSubtotal * ($taxRate / 100);
+                                                    }
                                                 }
-                                                $taxRateId = $get('tax_rate_id');
-                                                $taxPercent = 0;
-                                                if ($taxRateId) {
-                                                    $taxRate = \Modules\Billing\Models\TaxRate::find($taxRateId);
-                                                    $taxPercent = $taxRate?->rate ?? 0;
+                                                return '+ ' . number_format($vatAmount, 2) . ' ' . current_currency();
+                                            }),
+
+                                        // Withholding (negative tax rates - shown as absolute value)
+                                        Forms\Components\Placeholder::make('whm_display')
+                                            ->label(__('inventory::inventory.fields.whm'))
+                                            ->content(function (Forms\Get $get) {
+                                                $lines = $get('lines') ?? [];
+                                                $whmAmount = 0;
+                                                foreach ($lines as $line) {
+                                                    $qty = (float) ($line['quantity'] ?? 0);
+                                                    $price = (float) ($line['unit_price_minor'] ?? 0);
+                                                    $lineSubtotal = $qty * $price;
+                                                    $taxRate = (float) ($line['tax_rate'] ?? 0);
+                                                    if ($taxRate < 0) {
+                                                        $whmAmount += $lineSubtotal * (abs($taxRate) / 100);
+                                                    }
                                                 }
-                                                $taxAmount = $subtotal * ($taxPercent / 100);
-                                                return '+ ' . number_format($taxAmount, 2) . ' ' . current_currency();
+                                                return '- ' . number_format($whmAmount, 2) . ' ' . current_currency();
+                                            })
+                                            ->visible(function (Forms\Get $get) {
+                                                $lines = $get('lines') ?? [];
+                                                foreach ($lines as $line) {
+                                                    $taxRate = (float) ($line['tax_rate'] ?? 0);
+                                                    if ($taxRate < 0) {
+                                                        return true;
+                                                    }
+                                                }
+                                                return false;
                                             }),
 
                                         Forms\Components\Placeholder::make('discount_display')
@@ -322,18 +337,20 @@ class PurchaseOrderResource extends Resource
                                             ->content(function (Forms\Get $get) {
                                                 $lines = $get('lines') ?? [];
                                                 $subtotal = 0;
+                                                $vatAmount = 0;
+                                                $whmAmount = 0;
                                                 foreach ($lines as $line) {
                                                     $qty = (float) ($line['quantity'] ?? 0);
                                                     $price = (float) ($line['unit_price_minor'] ?? 0);
-                                                    $subtotal += $qty * $price;
+                                                    $lineSubtotal = $qty * $price;
+                                                    $subtotal += $lineSubtotal;
+                                                    $taxRate = (float) ($line['tax_rate'] ?? 0);
+                                                    if ($taxRate > 0) {
+                                                        $vatAmount += $lineSubtotal * ($taxRate / 100);
+                                                    } elseif ($taxRate < 0) {
+                                                        $whmAmount += $lineSubtotal * (abs($taxRate) / 100);
+                                                    }
                                                 }
-                                                $taxRateId = $get('tax_rate_id');
-                                                $taxPercent = 0;
-                                                if ($taxRateId) {
-                                                    $taxRate = \Modules\Billing\Models\TaxRate::find($taxRateId);
-                                                    $taxPercent = $taxRate?->rate ?? 0;
-                                                }
-                                                $taxAmount = $subtotal * ($taxPercent / 100);
                                                 $discountType = $get('discount_type') ?? 'percentage';
                                                 $discountValue = (float) ($get('discount_value') ?? 0);
                                                 if ($discountType === 'percentage') {
@@ -342,7 +359,8 @@ class PurchaseOrderResource extends Resource
                                                     $discountAmount = $discountValue;
                                                 }
                                                 $shipping = (float) ($get('shipping_amount_minor') ?? 0);
-                                                $total = $subtotal + $taxAmount - $discountAmount + $shipping;
+                                                // Total = Subtotal + VAT - Withholding - Discount + Shipping
+                                                $total = $subtotal + $vatAmount - $whmAmount - $discountAmount + $shipping;
                                                 return new \Illuminate\Support\HtmlString(
                                                     '<span class="text-xl font-bold text-primary-600 dark:text-primary-400">' .
                                                     number_format($total, 2) . ' ' . current_currency() .
@@ -367,18 +385,16 @@ class PurchaseOrderResource extends Resource
                         Forms\Components\Hidden::make('tax_amount_minor')
                             ->dehydrateStateUsing(function (Forms\Get $get) {
                                 $lines = $get('lines') ?? [];
-                                $subtotal = 0;
+                                $taxAmount = 0;
                                 foreach ($lines as $line) {
                                     $qty = (float) ($line['quantity'] ?? 0);
                                     $price = (float) ($line['unit_price_minor'] ?? 0) * 100;
-                                    $subtotal += $qty * $price;
+                                    $lineSubtotal = $qty * $price;
+                                    $taxRate = (float) ($line['tax_rate'] ?? 0);
+                                    // Include both positive (VAT) and negative (WH) taxes
+                                    $taxAmount += $lineSubtotal * ($taxRate / 100);
                                 }
-                                $taxRateId = $get('tax_rate_id');
-                                if ($taxRateId) {
-                                    $taxRate = \Modules\Billing\Models\TaxRate::find($taxRateId);
-                                    return (int) ($subtotal * (($taxRate?->rate ?? 0) / 100));
-                                }
-                                return 0;
+                                return (int) $taxAmount;
                             }),
                         Forms\Components\Hidden::make('discount_amount_minor')
                             ->dehydrateStateUsing(function (Forms\Get $get) {
@@ -400,17 +416,14 @@ class PurchaseOrderResource extends Resource
                             ->dehydrateStateUsing(function (Forms\Get $get) {
                                 $lines = $get('lines') ?? [];
                                 $subtotal = 0;
+                                $taxAmount = 0;
                                 foreach ($lines as $line) {
                                     $qty = (float) ($line['quantity'] ?? 0);
                                     $price = (float) ($line['unit_price_minor'] ?? 0) * 100;
-                                    $subtotal += $qty * $price;
-                                }
-                                // Tax
-                                $taxRateId = $get('tax_rate_id');
-                                $taxAmount = 0;
-                                if ($taxRateId) {
-                                    $taxRate = \Modules\Billing\Models\TaxRate::find($taxRateId);
-                                    $taxAmount = (int) ($subtotal * (($taxRate?->rate ?? 0) / 100));
+                                    $lineSubtotal = $qty * $price;
+                                    $subtotal += $lineSubtotal;
+                                    $taxRate = (float) ($line['tax_rate'] ?? 0);
+                                    $taxAmount += $lineSubtotal * ($taxRate / 100);
                                 }
                                 // Discount
                                 $discountType = $get('discount_type') ?? 'percentage';
@@ -422,7 +435,7 @@ class PurchaseOrderResource extends Resource
                                 }
                                 // Shipping
                                 $shipping = (int) (((float) ($get('shipping_amount_minor') ?? 0)) * 100);
-                                // Total
+                                // Total = Subtotal + Tax (which includes negative WH) - Discount + Shipping
                                 return (int) ($subtotal + $taxAmount - $discountAmount + $shipping);
                             }),
                     ]),

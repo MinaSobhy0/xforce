@@ -69,10 +69,11 @@ class TaxRateResource extends Resource
                                     ->label(__('billing::billing.tax_resource.rate'))
                                     ->numeric()
                                     ->required()
-                                    ->minValue(0)
+                                    ->minValue(-100)
                                     ->maxValue(100)
                                     ->suffix('%')
-                                    ->step(0.01),
+                                    ->step(0.01)
+                                    ->helperText(__('billing::billing.tax_resource.rate_help')),
 
                                 Forms\Components\Select::make('type')
                                     ->label(__('billing::billing.tax_resource.type'))
@@ -123,8 +124,15 @@ class TaxRateResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('translated_name')
                     ->label(__('billing::billing.tax_resource.tax_name'))
-                    ->searchable(['name'])
-                    ->sortable(),
+                    ->searchable(query: function ($query, string $search) {
+                        $query->where(function ($q) use ($search) {
+                            $q->whereRaw("name->>'en' ILIKE ?", ["%{$search}%"])
+                              ->orWhereRaw("name->>'ar' ILIKE ?", ["%{$search}%"]);
+                        });
+                    })
+                    ->sortable(query: function ($query, string $direction) {
+                        $query->orderBy('rate', $direction);
+                    }),
 
                 Tables\Columns\TextColumn::make('rate')
                     ->label(__('billing::billing.tax_resource.rate'))

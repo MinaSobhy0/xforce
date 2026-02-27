@@ -180,6 +180,7 @@ return [
     'tax_resource' => [
         'tax_name' => 'Tax Name',
         'rate' => 'Rate',
+        'rate_help' => 'Positive rates for VAT, negative rates for withholding (e.g., -3%)',
         'type' => 'Type',
         'type_sales' => 'Sales',
         'type_purchase' => 'Purchase',
