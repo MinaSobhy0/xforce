@@ -408,7 +408,8 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
                                 ->maxValue(fn (Forms\Get $get) => $get('discount_type') === 'percent' ? 100 : ($get('unit_price') ?? 999999))
                                 ->suffix(fn (Forms\Get $get) => $get('discount_type') === 'percent' ? '%' : null)
                                 ->prefix(fn (Forms\Get $get) => $get('discount_type') === 'fixed' ? current_currency() : null)
-                                ->visible(fn (Forms\Get $get) => in_array($get('discount_type'), ['percent', 'fixed'])),
+                                ->visible(fn (Forms\Get $get) => in_array($get('discount_type'), ['percent', 'fixed']))
+                                ->live(debounce: 500),
                             Forms\Components\Placeholder::make('final_price_display')
                                 ->label(__('booking::session.plan_modal.final_price'))
                                 ->content(function (Forms\Get $get) {
