@@ -39,6 +39,8 @@ class Appointment extends BaseModel
         'status',
         'price_minor',
         'discount_minor',
+        'discount_type',
+        'discount_reason',
         'notes',
         'internal_notes',
         'cancellation_reason',
@@ -112,6 +114,15 @@ class Appointment extends BaseModel
         self::SOURCE_MOBILE_APP => 'Mobile App',
         self::SOURCE_REFERRAL => 'Referral',
         self::SOURCE_SOCIAL_MEDIA => 'Social Media',
+    ];
+
+    // Discount type constants
+    public const DISCOUNT_FIXED = 'fixed';
+    public const DISCOUNT_PERCENT = 'percent';
+
+    public const DISCOUNT_TYPES = [
+        self::DISCOUNT_FIXED => 'Fixed Amount',
+        self::DISCOUNT_PERCENT => 'Percentage',
     ];
 
     protected static function booted(): void
@@ -244,7 +255,51 @@ class Appointment extends BaseModel
 
     public function getNetPriceAttribute(): int
     {
-        return max(0, ($this->price_minor ?? 0) - ($this->discount_minor ?? 0));
+        return max(0, ($this->price_minor ?? 0) - $this->getDiscountAmountMinor());
+    }
+
+    /**
+     * Calculate the actual discount amount in minor units.
+     * For percentage discounts, calculate from price_minor.
+     * For fixed discounts, return discount_minor directly.
+     */
+    public function getDiscountAmountMinor(): int
+    {
+        $discountMinor = $this->discount_minor ?? 0;
+
+        if ($discountMinor <= 0) {
+            return 0;
+        }
+
+        if ($this->discount_type === self::DISCOUNT_PERCENT) {
+            return (int) round(($this->price_minor ?? 0) * $discountMinor / 100);
+        }
+
+        return $discountMinor;
+    }
+
+    /**
+     * Check if a discount has been applied.
+     */
+    public function hasDiscount(): bool
+    {
+        return ($this->discount_minor ?? 0) > 0;
+    }
+
+    /**
+     * Get formatted discount display string.
+     */
+    public function getDiscountDisplayAttribute(): string
+    {
+        if (!$this->hasDiscount()) {
+            return '';
+        }
+
+        if ($this->discount_type === self::DISCOUNT_PERCENT) {
+            return $this->discount_minor . '%';
+        }
+
+        return number_format($this->discount_minor / 100, 2);
     }
 
     public function getPaidAmountAttribute(): int

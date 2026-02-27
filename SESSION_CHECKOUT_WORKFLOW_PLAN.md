@@ -136,27 +136,31 @@ Modal:
 
 ---
 
-### Phase 1B: Doctor Discount on Services (During Session)
+### Phase 1B: Doctor Discount on Services (During Session) ✅ COMPLETE
 
-**Files to Modify:**
-- [ ] `modules/Booking/Filament/Pages/TreatmentSession.php`
-- [ ] `modules/Booking/Models/Appointment.php`
-- [ ] `modules/Booking/Database/Migrations/xxxx_add_discount_fields_to_appointments.php` (if needed)
+**Files Modified:**
+- [x] `modules/Booking/Filament/Pages/TreatmentSession.php`
+- [x] `modules/Booking/Models/Appointment.php`
+- [x] `modules/Booking/Database/Migrations/2026_02_27_154206_add_discount_fields_to_appointments_table.php` (NEW)
+- [x] `modules/Booking/Resources/views/filament/components/discount-preview.blade.php` (NEW)
+- [x] `modules/Booking/Lang/en/session.php`
+- [x] `modules/Booking/Lang/ar/session.php`
 
-**New Fields on Appointment (if not exist):**
+**New Fields Added to Appointment:**
 ```php
-$table->integer('discount_minor')->default(0);        // Discount amount
+$table->integer('discount_minor')->default(0);        // Already existed
 $table->string('discount_type')->default('fixed');    // 'fixed' or 'percent'
 $table->string('discount_reason')->nullable();        // Doctor's reason for discount
-$table->foreignId('discount_approved_by')->nullable(); // Manager approval (optional)
 ```
 
-**Tasks:**
-- [ ] Add "Apply Discount" action in treatment session page
-- [ ] Form fields: discount type (fixed/percent), amount, reason
-- [ ] Calculate and display discounted price in session summary
-- [ ] Store discount on appointment record
-- [ ] Pass discount to invoice generation
+**Tasks Completed:**
+- [x] Add "Apply Discount" action in treatment session page
+- [x] Form fields: discount type (fixed/percent), amount, reason (optional)
+- [x] Calculate and display discounted price in modal preview
+- [x] Store discount on appointment record
+- [x] Add Appointment model helpers: `getDiscountAmountMinor()`, `hasDiscount()`, `getDiscountDisplayAttribute()`
+- [x] Add discount type constants and translations (EN/AR)
+- [x] Run migration on tenant_jon
 
 **UI in Treatment Session:**
 ```

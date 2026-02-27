@@ -104,12 +104,28 @@ return [
     'actions' => [
         'complete_session' => 'إنهاء الجلسة',
         'back_to_dashboard' => 'العودة للوحة',
+        'apply_discount' => 'تطبيق خصم',
+        'apply' => 'تطبيق',
     ],
 
     // Modals
     'modals' => [
         'complete_session' => 'إنهاء الجلسة',
         'complete_session_desc' => 'هل أنت متأكد من إنهاء هذه الجلسة؟ سيتم تحديث حالة الموعد إلى مكتمل.',
+        'apply_discount' => 'تطبيق خصم',
+    ],
+
+    // Discount
+    'discount' => [
+        'type' => 'نوع الخصم',
+        'percentage' => 'نسبة الخصم',
+        'amount' => 'قيمة الخصم',
+        'reason' => 'السبب (اختياري)',
+        'reason_placeholder' => 'مثال: مريض جديد، خصم ولاء...',
+        'preview' => 'معاينة السعر',
+        'original_price' => 'السعر الأصلي',
+        'discount_amount' => 'الخصم',
+        'final_price' => 'السعر النهائي',
     ],
 
     // Messages
@@ -132,6 +148,8 @@ return [
         'consumable_removed' => 'تم حذف المستهلك',
         'product_added' => 'تمت إضافة المنتج',
         'product_removed' => 'تم حذف المنتج',
+        'discount_applied' => 'تم تطبيق الخصم بنجاح',
+        'discount_applied_body' => 'تم تطبيق خصم :amount. السعر النهائي: :final',
     ],
 
     // Pre-treatment checklist

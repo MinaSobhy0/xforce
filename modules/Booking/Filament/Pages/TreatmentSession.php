@@ -308,6 +308,60 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('applyDiscount')
+                ->label(__('booking::session.actions.apply_discount'))
+                ->icon('heroicon-o-receipt-percent')
+                ->color('warning')
+                ->form([
+                    Forms\Components\Select::make('discount_type')
+                        ->label(__('booking::session.discount.type'))
+                        ->options(Appointment::DISCOUNT_TYPES)
+                        ->default($this->appointment?->discount_type ?? 'fixed')
+                        ->required()
+                        ->live(),
+                    Forms\Components\TextInput::make('discount_value')
+                        ->label(fn (Forms\Get $get) => $get('discount_type') === 'percent'
+                            ? __('booking::session.discount.percentage')
+                            : __('booking::session.discount.amount'))
+                        ->numeric()
+                        ->default(fn () => $this->appointment?->discount_minor ?? 0)
+                        ->required()
+                        ->minValue(0)
+                        ->maxValue(fn (Forms\Get $get) => $get('discount_type') === 'percent' ? 100 : $this->appointment?->price_minor ?? 999999)
+                        ->suffix(fn (Forms\Get $get) => $get('discount_type') === 'percent' ? '%' : null)
+                        ->live()
+                        ->afterStateUpdated(fn (Forms\Set $set, Forms\Get $get, $state) => $this->calculateDiscountPreview($set, $get, $state)),
+                    Forms\Components\Placeholder::make('discount_preview')
+                        ->label(__('booking::session.discount.preview'))
+                        ->content(function (Forms\Get $get) {
+                            $type = $get('discount_type') ?? 'fixed';
+                            $value = (int) ($get('discount_value') ?? 0);
+                            $price = $this->appointment?->price_minor ?? 0;
+
+                            if ($type === 'percent') {
+                                $discountAmount = (int) round($price * $value / 100);
+                            } else {
+                                $discountAmount = $value;
+                            }
+
+                            $finalPrice = max(0, $price - $discountAmount);
+
+                            return view('booking::filament.components.discount-preview', [
+                                'originalPrice' => $price / 100,
+                                'discountAmount' => $discountAmount / 100,
+                                'finalPrice' => $finalPrice / 100,
+                            ]);
+                        }),
+                    Forms\Components\Textarea::make('discount_reason')
+                        ->label(__('booking::session.discount.reason'))
+                        ->rows(2)
+                        ->placeholder(__('booking::session.discount.reason_placeholder'))
+                        ->default($this->appointment?->discount_reason),
+                ])
+                ->modalHeading(__('booking::session.modals.apply_discount'))
+                ->modalSubmitActionLabel(__('booking::session.actions.apply'))
+                ->action(fn (array $data) => $this->applyDiscount($data)),
+
             Action::make('complete')
                 ->label(__('booking::session.actions.complete_session'))
                 ->icon('heroicon-o-check-circle')
@@ -410,6 +464,62 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
             ->send();
 
         $this->redirect(DoctorDashboard::getUrl());
+    }
+
+    public function applyDiscount(array $data): void
+    {
+        if (!$this->appointment) {
+            return;
+        }
+
+        $discountType = $data['discount_type'] ?? 'fixed';
+        $discountValue = (int) ($data['discount_value'] ?? 0);
+        $discountReason = $data['discount_reason'] ?? null;
+
+        $this->appointment->update([
+            'discount_type' => $discountType,
+            'discount_minor' => $discountValue,
+            'discount_reason' => $discountReason,
+        ]);
+
+        $this->appointment->refresh();
+
+        Notification::make()
+            ->title(__('booking::session.messages.discount_applied'))
+            ->body(__('booking::session.messages.discount_applied_body', [
+                'amount' => number_format($this->appointment->getDiscountAmountMinor() / 100, 2),
+                'final' => number_format($this->appointment->net_price / 100, 2),
+            ]))
+            ->success()
+            ->send();
+    }
+
+    protected function calculateDiscountPreview(Forms\Set $set, Forms\Get $get, $state): void
+    {
+        // This triggers a re-render of the placeholder
+    }
+
+    /**
+     * Get current discount info for display.
+     */
+    public function getDiscountInfo(): array
+    {
+        if (!$this->appointment || !$this->appointment->hasDiscount()) {
+            return [
+                'has_discount' => false,
+            ];
+        }
+
+        return [
+            'has_discount' => true,
+            'type' => $this->appointment->discount_type,
+            'value' => $this->appointment->discount_minor,
+            'display' => $this->appointment->discount_display,
+            'amount' => $this->appointment->getDiscountAmountMinor(),
+            'reason' => $this->appointment->discount_reason,
+            'original_price' => $this->appointment->price_minor,
+            'net_price' => $this->appointment->net_price,
+        ];
     }
 
     public function patientInfolist(Infolist $infolist): Infolist

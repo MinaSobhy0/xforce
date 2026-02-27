@@ -104,12 +104,28 @@ return [
     'actions' => [
         'complete_session' => 'Complete Session',
         'back_to_dashboard' => 'Back to Dashboard',
+        'apply_discount' => 'Apply Discount',
+        'apply' => 'Apply',
     ],
 
     // Modals
     'modals' => [
         'complete_session' => 'Complete Session',
         'complete_session_desc' => 'Are you sure you want to complete this session? This will mark the appointment as completed.',
+        'apply_discount' => 'Apply Discount',
+    ],
+
+    // Discount
+    'discount' => [
+        'type' => 'Discount Type',
+        'percentage' => 'Discount Percentage',
+        'amount' => 'Discount Amount',
+        'reason' => 'Reason (Optional)',
+        'reason_placeholder' => 'e.g., First-time patient, Loyalty discount...',
+        'preview' => 'Price Preview',
+        'original_price' => 'Original Price',
+        'discount_amount' => 'Discount',
+        'final_price' => 'Final Price',
     ],
 
     // Messages
@@ -132,6 +148,8 @@ return [
         'consumable_removed' => 'Consumable removed',
         'product_added' => 'Product added',
         'product_removed' => 'Product removed',
+        'discount_applied' => 'Discount applied successfully',
+        'discount_applied_body' => 'Discount of :amount applied. Final price: :final',
     ],
 
     // Pre-treatment checklist
