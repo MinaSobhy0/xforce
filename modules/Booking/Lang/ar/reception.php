@@ -121,6 +121,13 @@ return [
         'room_empty' => 'الغرفة متاحة',
     ],
 
+    // Modal
+    'modal' => [
+        'cancel' => 'إلغاء',
+        'save' => 'حفظ',
+        'current_doctor' => 'الطبيب الحالي',
+    ],
+
     // Misc
     'unassigned' => 'غير معين',
     'no_room' => 'بدون غرفة',

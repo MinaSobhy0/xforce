@@ -121,6 +121,13 @@ return [
         'room_empty' => 'Room is available',
     ],
 
+    // Modal
+    'modal' => [
+        'cancel' => 'Cancel',
+        'save' => 'Save',
+        'current_doctor' => 'Current Doctor',
+    ],
+
     // Misc
     'unassigned' => 'Unassigned',
     'no_room' => 'No room',

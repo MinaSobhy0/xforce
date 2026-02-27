@@ -242,10 +242,10 @@
                 {{-- Modal Footer --}}
                 <div class="flex items-center justify-end gap-2 px-4 py-3 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
                     <x-filament::button color="gray" wire:click="closeRoomModal">
-                        {{ __('filament::components/modal.actions.cancel.label') }}
+                        {{ __('booking::reception.modal.cancel') }}
                     </x-filament::button>
                     <x-filament::button color="primary" wire:click="saveRoom">
-                        {{ __('filament::components/modal.actions.confirm.label') }}
+                        {{ __('booking::reception.modal.save') }}
                     </x-filament::button>
                 </div>
             </div>
@@ -323,10 +323,10 @@
                 {{-- Modal Footer --}}
                 <div class="flex items-center justify-end gap-2 px-4 py-3 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
                     <x-filament::button color="gray" wire:click="closeDoctorModal">
-                        {{ __('filament::components/modal.actions.cancel.label') }}
+                        {{ __('booking::reception.modal.cancel') }}
                     </x-filament::button>
                     <x-filament::button color="primary" wire:click="saveDoctor">
-                        {{ __('filament::components/modal.actions.confirm.label') }}
+                        {{ __('booking::reception.modal.save') }}
                     </x-filament::button>
                 </div>
             </div>
