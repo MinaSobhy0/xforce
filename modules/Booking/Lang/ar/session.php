@@ -107,6 +107,7 @@ return [
         'apply_discount' => 'تطبيق خصم',
         'apply' => 'تطبيق',
         'add_to_plan' => 'إضافة للخطة',
+        'start_session' => 'بدء الجلسة',
     ],
 
     // Modals
@@ -179,6 +180,8 @@ return [
         'discount_applied_body' => 'تم تطبيق خصم :amount. السعر النهائي: :final',
         'items_added_to_plan' => 'تمت إضافة العناصر لخطة العلاج بنجاح',
         'add_to_plan_failed' => 'فشل إضافة العناصر لخطة العلاج',
+        'session_started' => 'تم بدء الجلسة بنجاح',
+        'cannot_start_session' => 'لا يمكن بدء جلسة لهذه الخدمة',
         'error' => 'حدث خطأ',
     ],
 

@@ -210,9 +210,21 @@
                             @foreach($currentPlan->items as $item)
                                 <div class="flex items-center justify-between py-1 px-2 bg-gray-50 dark:bg-gray-800 rounded text-xs">
                                     <span class="text-gray-700 dark:text-gray-300">{{ $item->service?->translated_name }}</span>
-                                    <span class="font-medium {{ $item->completed_sessions >= $item->recommended_sessions ? 'text-green-600' : 'text-gray-600 dark:text-gray-400' }}">
-                                        {{ $item->completed_sessions }}/{{ $item->recommended_sessions }}
-                                    </span>
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-medium {{ $item->completed_sessions >= $item->recommended_sessions ? 'text-green-600' : 'text-gray-600 dark:text-gray-400' }}">
+                                            {{ $item->completed_sessions }}/{{ $item->recommended_sessions }}
+                                        </span>
+                                        @if($item->canBook() && $item->service_id !== $appointment->service_id)
+                                            <button
+                                                wire:click="startSessionForItem({{ $item->id }})"
+                                                wire:loading.attr="disabled"
+                                                class="p-1 rounded bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 hover:bg-primary-200 dark:hover:bg-primary-900/50 transition-colors"
+                                                title="{{ __('booking::session.actions.start_session') }}"
+                                            >
+                                                <x-heroicon-o-play class="w-3.5 h-3.5" />
+                                            </button>
+                                        @endif
+                                    </div>
                                 </div>
                             @endforeach
                         </div>

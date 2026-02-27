@@ -647,6 +647,60 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
     }
 
     /**
+     * Start a new session for another service in the treatment plan.
+     */
+    public function startSessionForItem(int $itemId): void
+    {
+        $item = TreatmentPlanItem::find($itemId);
+
+        if (!$item || !$item->canBook()) {
+            Notification::make()
+                ->title(__('booking::session.messages.error'))
+                ->body(__('booking::session.messages.cannot_start_session'))
+                ->danger()
+                ->send();
+            return;
+        }
+
+        // Create a new appointment for this service
+        $newAppointment = Appointment::create([
+            'tenant_id' => $this->appointment->tenant_id,
+            'branch_id' => $this->appointment->branch_id,
+            'patient_id' => $this->appointment->patient_id,
+            'service_id' => $item->service_id,
+            'practitioner_id' => $item->preferred_practitioner_id ?? $this->appointment->practitioner_id,
+            'room_id' => $this->appointment->room_id,
+            'scheduled_at' => now(),
+            'duration_minutes' => $item->service?->duration_minutes ?? 30,
+            'price_minor' => $item->unit_price_minor,
+            'status' => Appointment::STATUS_SCHEDULED,
+            'notes' => $item->notes,
+            'source' => 'treatment_plan',
+        ]);
+
+        // Link appointment to treatment plan item
+        $newAppointment->treatmentPlanAppointment()->create([
+            'tenant_id' => $this->appointment->tenant_id,
+            'treatment_plan_id' => $item->treatment_plan_id,
+            'treatment_plan_item_id' => $item->id,
+            'session_number' => $item->completed_sessions + 1,
+        ]);
+
+        // Confirm and check in the appointment immediately
+        $newAppointment->confirm();
+        $newAppointment->checkIn();
+
+        Notification::make()
+            ->title(__('booking::session.messages.session_started'))
+            ->body($item->service?->translated_name)
+            ->success()
+            ->send();
+
+        // Redirect to the new session
+        $this->redirect(static::getUrl(['appointment_id' => $newAppointment->id]));
+    }
+
+    /**
      * Get current discount info for display.
      */
     public function getDiscountInfo(): array

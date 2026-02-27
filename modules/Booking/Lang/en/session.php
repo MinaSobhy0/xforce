@@ -107,6 +107,7 @@ return [
         'apply_discount' => 'Apply Discount',
         'apply' => 'Apply',
         'add_to_plan' => 'Add to Plan',
+        'start_session' => 'Start Session',
     ],
 
     // Modals
@@ -179,6 +180,8 @@ return [
         'discount_applied_body' => 'Discount of :amount applied. Final price: :final',
         'items_added_to_plan' => 'Items added to treatment plan successfully',
         'add_to_plan_failed' => 'Failed to add items to treatment plan',
+        'session_started' => 'Session started successfully',
+        'cannot_start_session' => 'Cannot start session for this service',
         'error' => 'An error occurred',
     ],
 
