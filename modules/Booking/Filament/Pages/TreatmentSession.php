@@ -3,13 +3,15 @@
 namespace Modules\Booking\Filament\Pages;
 
 use App\Traits\ChecksResourcePermissions;
+use Filament\Actions\Action;
+use Filament\Actions\Concerns\InteractsWithActions;
+use Filament\Actions\Contracts\HasActions;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Pages\Page;
 use Filament\Notifications\Notification;
-use Filament\Actions\Action;
 use Filament\Infolists\Infolist;
 use Filament\Infolists\Components;
 use Filament\Infolists\Concerns\InteractsWithInfolists;
@@ -35,10 +37,11 @@ use Modules\Inventory\Models\Product;
 use Modules\Booking\Models\SessionConsumable;
 use Modules\Booking\Models\SessionProduct;
 
-class TreatmentSession extends Page implements HasForms, HasInfolists
+class TreatmentSession extends Page implements HasForms, HasInfolists, HasActions
 {
     use InteractsWithForms;
     use InteractsWithInfolists;
+    use InteractsWithActions;
     use ChecksResourcePermissions;
     use WithFileUploads;
 
@@ -305,6 +308,15 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
         return null;
     }
 
+    /**
+     * Open the Add to Treatment Plan modal.
+     * Called from the plus button in the Current Treatment Plan section.
+     */
+    public function openAddToPlanModal(): void
+    {
+        $this->mountAction('addToTreatmentPlan');
+    }
+
     protected function getHeaderActions(): array
     {
         return [
@@ -312,7 +324,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
                 ->label(__('booking::session.actions.add_to_plan'))
                 ->icon('heroicon-o-clipboard-document-list')
                 ->color('primary')
-                ->hidden() // Hidden from header, triggered via plus button in Current Treatment Plan section
+                ->extraAttributes(['style' => 'display: none;']) // Hidden from header, triggered via plus button in Current Treatment Plan section
                 ->form([
                     Forms\Components\Radio::make('plan_mode')
                         ->label(__('booking::session.plan_modal.mode'))

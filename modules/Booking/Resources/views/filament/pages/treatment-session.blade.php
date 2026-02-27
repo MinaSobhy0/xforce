@@ -183,7 +183,7 @@
                         </div>
                         <button
                             type="button"
-                            wire:click="mountAction('addToTreatmentPlan')"
+                            wire:click="openAddToPlanModal"
                             class="p-1.5 rounded-lg bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors"
                             title="{{ __('booking::session.actions.add_to_plan') }}"
                         >
