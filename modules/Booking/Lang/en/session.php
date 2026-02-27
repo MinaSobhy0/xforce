@@ -108,6 +108,7 @@ return [
         'apply' => 'Apply',
         'add_to_plan' => 'Add to Plan',
         'start_session' => 'Start Session',
+        'start_another_session' => 'Start Another Session',
     ],
 
     // Modals
@@ -116,6 +117,21 @@ return [
         'complete_session_desc' => 'Are you sure you want to complete this session? This will mark the appointment as completed.',
         'apply_discount' => 'Apply Discount',
         'add_to_plan' => 'Add to Treatment Plan',
+        'start_another_session' => 'Start Another Service Session',
+    ],
+
+    // Start another session
+    'start_another' => [
+        'service' => 'Service',
+        'action' => 'What would you like to do?',
+        'complete_current' => 'Complete current session & start new',
+        'complete_current_desc' => 'Complete this session and immediately start the new service',
+        'keep_open' => 'Keep current session open',
+        'keep_open_desc' => 'Start the new service while keeping this session open',
+        'assign_doctor' => 'Assign to another doctor',
+        'assign_doctor_desc' => 'Create the appointment and assign it to another qualified doctor',
+        'select_doctor' => 'Select Doctor',
+        'no_other_doctors' => 'No other qualified doctors available for this service',
     ],
 
     // Plan modal
@@ -181,6 +197,8 @@ return [
         'items_added_to_plan' => 'Items added to treatment plan successfully',
         'add_to_plan_failed' => 'Failed to add items to treatment plan',
         'session_started' => 'Session started successfully',
+        'session_assigned' => 'Session assigned successfully',
+        'session_assigned_body' => ':service assigned to another doctor',
         'cannot_start_session' => 'Cannot start session for this service',
         'not_qualified_for_service' => 'You are not qualified to perform this service',
         'error' => 'An error occurred',

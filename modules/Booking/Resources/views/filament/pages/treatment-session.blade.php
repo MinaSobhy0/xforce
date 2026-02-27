@@ -214,7 +214,7 @@
                                         <span class="font-medium {{ $item->completed_sessions >= $item->recommended_sessions ? 'text-green-600' : 'text-gray-600 dark:text-gray-400' }}">
                                             {{ $item->completed_sessions }}/{{ $item->recommended_sessions }}
                                         </span>
-                                        @if($item->canBook() && $item->service_id !== $appointment->service_id && $this->canPractitionerPerformService($item->service_id))
+                                        @if($item->canBook() && $item->service_id !== $appointment->service_id)
                                             <button
                                                 wire:click="startSessionForItem({{ $item->id }})"
                                                 wire:loading.attr="disabled"

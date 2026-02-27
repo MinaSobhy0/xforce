@@ -108,6 +108,7 @@ return [
         'apply' => 'تطبيق',
         'add_to_plan' => 'إضافة للخطة',
         'start_session' => 'بدء الجلسة',
+        'start_another_session' => 'بدء جلسة أخرى',
     ],
 
     // Modals
@@ -116,6 +117,21 @@ return [
         'complete_session_desc' => 'هل أنت متأكد من إنهاء هذه الجلسة؟ سيتم تحديث حالة الموعد إلى مكتمل.',
         'apply_discount' => 'تطبيق خصم',
         'add_to_plan' => 'إضافة لخطة العلاج',
+        'start_another_session' => 'بدء جلسة خدمة أخرى',
+    ],
+
+    // Start another session
+    'start_another' => [
+        'service' => 'الخدمة',
+        'action' => 'ماذا تريد أن تفعل؟',
+        'complete_current' => 'إنهاء الجلسة الحالية وبدء الجديدة',
+        'complete_current_desc' => 'إنهاء هذه الجلسة وبدء الخدمة الجديدة فوراً',
+        'keep_open' => 'إبقاء الجلسة الحالية مفتوحة',
+        'keep_open_desc' => 'بدء الخدمة الجديدة مع إبقاء هذه الجلسة مفتوحة',
+        'assign_doctor' => 'تعيين لطبيب آخر',
+        'assign_doctor_desc' => 'إنشاء الموعد وتعيينه لطبيب مؤهل آخر',
+        'select_doctor' => 'اختر الطبيب',
+        'no_other_doctors' => 'لا يوجد أطباء مؤهلين آخرين لهذه الخدمة',
     ],
 
     // Plan modal
@@ -181,6 +197,8 @@ return [
         'items_added_to_plan' => 'تمت إضافة العناصر لخطة العلاج بنجاح',
         'add_to_plan_failed' => 'فشل إضافة العناصر لخطة العلاج',
         'session_started' => 'تم بدء الجلسة بنجاح',
+        'session_assigned' => 'تم تعيين الجلسة بنجاح',
+        'session_assigned_body' => 'تم تعيين :service لطبيب آخر',
         'cannot_start_session' => 'لا يمكن بدء جلسة لهذه الخدمة',
         'not_qualified_for_service' => 'أنت غير مؤهل لتقديم هذه الخدمة',
         'error' => 'حدث خطأ',

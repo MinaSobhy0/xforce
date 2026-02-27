@@ -99,6 +99,9 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
     // Treatment plan form
     public ?array $treatmentPlanData = [];
 
+    // Start another session
+    public ?int $pendingSessionItemId = null;
+
     // Consumables & Products
     public array $sessionConsumables = [];
     public array $sessionProducts = [];
@@ -519,6 +522,53 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                 ->modalDescription(__('booking::session.modals.complete_session_desc'))
                 ->action(fn () => $this->completeSession()),
 
+            Action::make('startAnotherSession')
+                ->label(__('booking::session.actions.start_another_session'))
+                ->icon('heroicon-o-play')
+                ->color('info')
+                ->extraAttributes(['style' => 'display: none;'])
+                ->form(function () {
+                    $item = $this->pendingSessionItemId ? TreatmentPlanItem::find($this->pendingSessionItemId) : null;
+                    $qualifiedPractitioners = $item ? $this->getQualifiedPractitionersForService($item->service_id) : [];
+
+                    return [
+                        Forms\Components\Placeholder::make('service_info')
+                            ->label(__('booking::session.start_another.service'))
+                            ->content(fn () => $item?->service?->translated_name ?? '-'),
+
+                        Forms\Components\Radio::make('action')
+                            ->label(__('booking::session.start_another.action'))
+                            ->options([
+                                'complete_current' => __('booking::session.start_another.complete_current'),
+                                'keep_open' => __('booking::session.start_another.keep_open'),
+                                'assign_doctor' => __('booking::session.start_another.assign_doctor'),
+                            ])
+                            ->descriptions([
+                                'complete_current' => __('booking::session.start_another.complete_current_desc'),
+                                'keep_open' => __('booking::session.start_another.keep_open_desc'),
+                                'assign_doctor' => __('booking::session.start_another.assign_doctor_desc'),
+                            ])
+                            ->default('keep_open')
+                            ->required()
+                            ->live(),
+
+                        Forms\Components\Select::make('practitioner_id')
+                            ->label(__('booking::session.start_another.select_doctor'))
+                            ->options($qualifiedPractitioners)
+                            ->visible(fn (Forms\Get $get) => $get('action') === 'assign_doctor' && !empty($qualifiedPractitioners))
+                            ->required(fn (Forms\Get $get) => $get('action') === 'assign_doctor')
+                            ->searchable(),
+
+                        Forms\Components\Placeholder::make('no_doctors_warning')
+                            ->label('')
+                            ->content(__('booking::session.start_another.no_other_doctors'))
+                            ->visible(fn (Forms\Get $get) => $get('action') === 'assign_doctor' && empty($qualifiedPractitioners)),
+                    ];
+                })
+                ->modalHeading(__('booking::session.modals.start_another_session'))
+                ->modalWidth('md')
+                ->action(fn (array $data) => $this->executeStartAnotherSession($data)),
+
             Action::make('back')
                 ->label(__('booking::session.actions.back_to_dashboard'))
                 ->icon('heroicon-o-arrow-left')
@@ -679,7 +729,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
     }
 
     /**
-     * Start a new session for another service in the treatment plan.
+     * Open modal to start a new session for another service.
      */
     public function startSessionForItem(int $itemId): void
     {
@@ -694,15 +744,61 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
             return;
         }
 
-        // Check if current practitioner can perform this service
-        if (!$this->canPractitionerPerformService($item->service_id)) {
+        $this->pendingSessionItemId = $itemId;
+        $this->mountAction('startAnotherSession');
+    }
+
+    /**
+     * Get qualified practitioners for a service.
+     */
+    public function getQualifiedPractitionersForService(int $serviceId): array
+    {
+        $service = Service::find($serviceId);
+        if (!$service) {
+            return [];
+        }
+
+        $qualifiedStaff = $service->qualifiedStaff()
+            ->with('user')
+            ->get();
+
+        // If no qualified staff defined, return empty (will use current practitioner)
+        if ($qualifiedStaff->isEmpty()) {
+            return [];
+        }
+
+        return $qualifiedStaff
+            ->filter(fn ($staff) => $staff->user && $staff->user->id !== $this->appointment->practitioner_id)
+            ->mapWithKeys(fn ($staff) => [$staff->user->id => $staff->user->full_name])
+            ->toArray();
+    }
+
+    /**
+     * Execute the start another session action.
+     */
+    public function executeStartAnotherSession(array $data): void
+    {
+        $item = TreatmentPlanItem::find($this->pendingSessionItemId);
+
+        if (!$item || !$item->canBook()) {
             Notification::make()
                 ->title(__('booking::session.messages.error'))
-                ->body(__('booking::session.messages.not_qualified_for_service'))
+                ->body(__('booking::session.messages.cannot_start_session'))
                 ->danger()
                 ->send();
             return;
         }
+
+        $action = $data['action'] ?? 'keep_open';
+        $practitionerId = $data['practitioner_id'] ?? $this->appointment->practitioner_id;
+
+        // Handle current session based on action
+        if ($action === 'complete_current') {
+            $this->completeSession();
+        }
+
+        // If assigning to another doctor, just create appointment without redirect
+        $redirectToNewSession = ($action !== 'assign_doctor');
 
         // Create a new appointment for this service
         $now = now();
@@ -713,7 +809,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
             'branch_id' => $this->appointment->branch_id,
             'patient_id' => $this->appointment->patient_id,
             'service_id' => $item->service_id,
-            'practitioner_id' => $this->appointment->practitioner_id,
+            'practitioner_id' => $practitionerId,
             'room_id' => $this->appointment->room_id,
             'date' => $now->toDateString(),
             'start_time' => $now->format('H:i:s'),
@@ -733,18 +829,32 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
             'session_number' => $item->completed_sessions + 1,
         ]);
 
-        // Confirm and check in the appointment immediately
-        $newAppointment->confirm();
-        $newAppointment->checkIn();
+        // Confirm and check in if starting now
+        if ($redirectToNewSession) {
+            $newAppointment->confirm();
+            $newAppointment->checkIn();
 
-        Notification::make()
-            ->title(__('booking::session.messages.session_started'))
-            ->body($item->service?->translated_name)
-            ->success()
-            ->send();
+            Notification::make()
+                ->title(__('booking::session.messages.session_started'))
+                ->body($item->service?->translated_name)
+                ->success()
+                ->send();
 
-        // Redirect to the new session
-        $this->redirect(static::getUrl(['appointment_id' => $newAppointment->id]));
+            $this->redirect(static::getUrl(['appointment_id' => $newAppointment->id]));
+        } else {
+            // Just confirm for another doctor
+            $newAppointment->confirm();
+
+            Notification::make()
+                ->title(__('booking::session.messages.session_assigned'))
+                ->body(__('booking::session.messages.session_assigned_body', [
+                    'service' => $item->service?->translated_name,
+                ]))
+                ->success()
+                ->send();
+        }
+
+        $this->pendingSessionItemId = null;
     }
 
     /**
