@@ -79,7 +79,19 @@ class ViewPurchaseOrder extends BaseViewRecord
                 ->label('Create Vendor Bill')
                 ->icon('heroicon-o-document-minus')
                 ->color('primary')
-                ->visible(fn () => ($this->record->isReceived() || $this->record->areAllItemsReceived()) && !$this->record->vendor_bill_id)
+                ->visible(function () {
+                    // Must have received items
+                    if (!$this->record->isReceived() && !$this->record->areAllItemsReceived()) {
+                        return false;
+                    }
+                    // No bill linked yet
+                    if (!$this->record->vendor_bill_id) {
+                        return true;
+                    }
+                    // Or linked bill is cancelled
+                    $bill = $this->record->vendorBill;
+                    return $bill && $bill->status === VendorBill::STATUS_CANCELLED;
+                })
                 ->requiresConfirmation()
                 ->modalDescription('This will create a vendor bill from this purchase order.')
                 ->action(function () {
@@ -105,7 +117,14 @@ class ViewPurchaseOrder extends BaseViewRecord
                 ->label('View Vendor Bill')
                 ->icon('heroicon-o-document-minus')
                 ->color('info')
-                ->visible(fn () => $this->record->vendor_bill_id !== null)
+                ->visible(function () {
+                    if (!$this->record->vendor_bill_id) {
+                        return false;
+                    }
+                    $bill = $this->record->vendorBill;
+                    // Show view button only if bill exists and is not cancelled
+                    return $bill && $bill->status !== VendorBill::STATUS_CANCELLED;
+                })
                 ->url(fn () => VendorBillResource::getUrl('view', ['record' => $this->record->vendor_bill_id])),
 
             Actions\Action::make('reverse_receiving')
