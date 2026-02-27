@@ -182,6 +182,7 @@ return [
         'add_to_plan_failed' => 'فشل إضافة العناصر لخطة العلاج',
         'session_started' => 'تم بدء الجلسة بنجاح',
         'cannot_start_session' => 'لا يمكن بدء جلسة لهذه الخدمة',
+        'not_qualified_for_service' => 'أنت غير مؤهل لتقديم هذه الخدمة',
         'error' => 'حدث خطأ',
     ],
 

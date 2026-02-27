@@ -182,6 +182,7 @@ return [
         'add_to_plan_failed' => 'Failed to add items to treatment plan',
         'session_started' => 'Session started successfully',
         'cannot_start_session' => 'Cannot start session for this service',
+        'not_qualified_for_service' => 'You are not qualified to perform this service',
         'error' => 'An error occurred',
     ],
 

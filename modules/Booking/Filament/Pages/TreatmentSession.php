@@ -647,6 +647,38 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
     }
 
     /**
+     * Check if the current practitioner can perform a service.
+     */
+    public function canPractitionerPerformService(int $serviceId): bool
+    {
+        $practitionerId = $this->appointment?->practitioner_id ?? auth()->id();
+
+        if (!$practitionerId) {
+            return false;
+        }
+
+        $service = Service::find($serviceId);
+        if (!$service) {
+            return false;
+        }
+
+        // Check if service has qualified staff restrictions
+        $qualifiedStaffIds = $service->qualifiedStaff()
+            ->with('user')
+            ->get()
+            ->pluck('user.id')
+            ->filter()
+            ->toArray();
+
+        // If no qualified staff defined, any practitioner can perform
+        if (empty($qualifiedStaffIds)) {
+            return true;
+        }
+
+        return in_array($practitionerId, $qualifiedStaffIds);
+    }
+
+    /**
      * Start a new session for another service in the treatment plan.
      */
     public function startSessionForItem(int $itemId): void
@@ -662,13 +694,23 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
             return;
         }
 
+        // Check if current practitioner can perform this service
+        if (!$this->canPractitionerPerformService($item->service_id)) {
+            Notification::make()
+                ->title(__('booking::session.messages.error'))
+                ->body(__('booking::session.messages.not_qualified_for_service'))
+                ->danger()
+                ->send();
+            return;
+        }
+
         // Create a new appointment for this service
         $newAppointment = Appointment::create([
             'tenant_id' => $this->appointment->tenant_id,
             'branch_id' => $this->appointment->branch_id,
             'patient_id' => $this->appointment->patient_id,
             'service_id' => $item->service_id,
-            'practitioner_id' => $item->preferred_practitioner_id ?? $this->appointment->practitioner_id,
+            'practitioner_id' => $this->appointment->practitioner_id, // Use current practitioner
             'room_id' => $this->appointment->room_id,
             'scheduled_at' => now(),
             'duration_minutes' => $item->service?->duration_minutes ?? 30,
