@@ -260,41 +260,77 @@ class PurchaseOrderResource extends Resource
                                                 return number_format($subtotal, 2) . ' ' . current_currency();
                                             }),
 
-                                        // VAT (positive tax rates from multi-select)
+                                        // VAT (positive tax rates - Odoo logic: discount first, then tax)
                                         Forms\Components\Placeholder::make('vat_display')
                                             ->label(__('inventory::inventory.fields.vat'))
                                             ->content(function (Forms\Get $get) {
                                                 $lines = $get('lines') ?? [];
-                                                $vatAmount = 0;
+                                                $subtotal = 0;
+                                                $vatOnSubtotal = 0;
+
+                                                // Calculate subtotal and VAT per line
                                                 foreach ($lines as $line) {
                                                     $qty = (float) ($line['quantity'] ?? 0);
                                                     $price = (float) ($line['unit_price_minor'] ?? 0);
                                                     $lineSubtotal = $qty * $price;
+                                                    $subtotal += $lineSubtotal;
+
                                                     $taxRates = $line['tax_rates'] ?? [];
-                                                    // Only positive rates (VAT)
                                                     $positiveRates = array_filter(array_map('floatval', $taxRates), fn($r) => $r > 0);
                                                     $vatPercent = array_sum($positiveRates);
-                                                    $vatAmount += $lineSubtotal * ($vatPercent / 100);
+                                                    $vatOnSubtotal += $lineSubtotal * ($vatPercent / 100);
                                                 }
+
+                                                // Apply discount ratio to VAT (Odoo-like: discount reduces taxable base)
+                                                $discountType = $get('discount_type') ?? 'percentage';
+                                                $discountValue = (float) ($get('discount_value') ?? 0);
+                                                $discountRatio = 1;
+                                                if ($subtotal > 0) {
+                                                    if ($discountType === 'percentage') {
+                                                        $discountRatio = 1 - ($discountValue / 100);
+                                                    } else {
+                                                        $discountRatio = ($subtotal - $discountValue) / $subtotal;
+                                                    }
+                                                }
+
+                                                $vatAmount = $vatOnSubtotal * max(0, $discountRatio);
                                                 return '+ ' . number_format($vatAmount, 2) . ' ' . current_currency();
                                             }),
 
-                                        // Withholding (negative tax rates from multi-select)
+                                        // Withholding (negative tax rates - Odoo logic: discount first, then tax)
                                         Forms\Components\Placeholder::make('whm_display')
                                             ->label(__('inventory::inventory.fields.whm'))
                                             ->content(function (Forms\Get $get) {
                                                 $lines = $get('lines') ?? [];
-                                                $whmAmount = 0;
+                                                $subtotal = 0;
+                                                $whmOnSubtotal = 0;
+
+                                                // Calculate subtotal and WH per line
                                                 foreach ($lines as $line) {
                                                     $qty = (float) ($line['quantity'] ?? 0);
                                                     $price = (float) ($line['unit_price_minor'] ?? 0);
                                                     $lineSubtotal = $qty * $price;
+                                                    $subtotal += $lineSubtotal;
+
                                                     $taxRates = $line['tax_rates'] ?? [];
-                                                    // Only negative rates (Withholding) - use absolute values
                                                     $negativeRates = array_filter(array_map('floatval', $taxRates), fn($r) => $r < 0);
                                                     $whmPercent = abs(array_sum($negativeRates));
-                                                    $whmAmount += $lineSubtotal * ($whmPercent / 100);
+                                                    $whmOnSubtotal += $lineSubtotal * ($whmPercent / 100);
                                                 }
+
+                                                // Apply discount ratio to WH
+                                                $discountType = $get('discount_type') ?? 'percentage';
+                                                $discountValue = (float) ($get('discount_value') ?? 0);
+                                                $discountRatio = 1;
+                                                if ($subtotal > 0) {
+                                                    if ($discountType === 'percentage') {
+                                                        $discountRatio = 1 - ($discountValue / 100);
+                                                    } else {
+                                                        $discountRatio = ($subtotal - $discountValue) / $subtotal;
+                                                    }
+                                                }
+
+                                                $whmAmount = $whmOnSubtotal * max(0, $discountRatio);
                                                 return '- ' . number_format($whmAmount, 2) . ' ' . current_currency();
                                             })
                                             ->visible(function (Forms\Get $get) {
@@ -342,17 +378,21 @@ class PurchaseOrderResource extends Resource
                                             ->content(function (Forms\Get $get) {
                                                 $lines = $get('lines') ?? [];
                                                 $subtotal = 0;
-                                                $taxAmount = 0;
+                                                $taxOnSubtotal = 0;
+
+                                                // Calculate subtotal and taxes per line
                                                 foreach ($lines as $line) {
                                                     $qty = (float) ($line['quantity'] ?? 0);
                                                     $price = (float) ($line['unit_price_minor'] ?? 0);
                                                     $lineSubtotal = $qty * $price;
                                                     $subtotal += $lineSubtotal;
+
                                                     $taxRates = $line['tax_rates'] ?? [];
-                                                    // Sum all tax rates (positive VAT + negative WH)
                                                     $totalTaxPercent = array_sum(array_map('floatval', $taxRates));
-                                                    $taxAmount += $lineSubtotal * ($totalTaxPercent / 100);
+                                                    $taxOnSubtotal += $lineSubtotal * ($totalTaxPercent / 100);
                                                 }
+
+                                                // Calculate discount
                                                 $discountType = $get('discount_type') ?? 'percentage';
                                                 $discountValue = (float) ($get('discount_value') ?? 0);
                                                 if ($discountType === 'percentage') {
@@ -360,9 +400,15 @@ class PurchaseOrderResource extends Resource
                                                 } else {
                                                     $discountAmount = $discountValue;
                                                 }
+
+                                                // Odoo logic: discount reduces taxable base, so tax is proportionally reduced
+                                                $discountRatio = $subtotal > 0 ? ($subtotal - $discountAmount) / $subtotal : 1;
+                                                $taxAmount = $taxOnSubtotal * max(0, $discountRatio);
+
                                                 $shipping = (float) ($get('shipping_amount_minor') ?? 0);
-                                                // Total = Subtotal + Tax (net of VAT and WH) - Discount + Shipping
-                                                $total = $subtotal + $taxAmount - $discountAmount + $shipping;
+
+                                                // Total = (Subtotal - Discount) + Tax + Shipping
+                                                $total = ($subtotal - $discountAmount) + $taxAmount + $shipping;
                                                 return new \Illuminate\Support\HtmlString(
                                                     '<span class="text-xl font-bold text-primary-600 dark:text-primary-400">' .
                                                     number_format($total, 2) . ' ' . current_currency() .
@@ -387,17 +433,31 @@ class PurchaseOrderResource extends Resource
                         Forms\Components\Hidden::make('tax_amount_minor')
                             ->dehydrateStateUsing(function (Forms\Get $get) {
                                 $lines = $get('lines') ?? [];
-                                $taxAmount = 0;
+                                $subtotal = 0;
+                                $taxOnSubtotal = 0;
+
                                 foreach ($lines as $line) {
                                     $qty = (float) ($line['quantity'] ?? 0);
                                     $price = (float) ($line['unit_price_minor'] ?? 0) * 100;
                                     $lineSubtotal = $qty * $price;
+                                    $subtotal += $lineSubtotal;
+
                                     $taxRates = $line['tax_rates'] ?? [];
-                                    // Sum all tax rates (positive VAT + negative WH)
                                     $totalTaxPercent = array_sum(array_map('floatval', $taxRates));
-                                    $taxAmount += $lineSubtotal * ($totalTaxPercent / 100);
+                                    $taxOnSubtotal += $lineSubtotal * ($totalTaxPercent / 100);
                                 }
-                                return (int) $taxAmount;
+
+                                // Odoo logic: apply discount ratio to tax
+                                $discountType = $get('discount_type') ?? 'percentage';
+                                $discountValue = (float) ($get('discount_value') ?? 0);
+                                if ($discountType === 'percentage') {
+                                    $discountAmount = $subtotal * ($discountValue / 100);
+                                } else {
+                                    $discountAmount = $discountValue * 100;
+                                }
+                                $discountRatio = $subtotal > 0 ? ($subtotal - $discountAmount) / $subtotal : 1;
+
+                                return (int) ($taxOnSubtotal * max(0, $discountRatio));
                             }),
                         Forms\Components\Hidden::make('discount_amount_minor')
                             ->dehydrateStateUsing(function (Forms\Get $get) {
@@ -419,16 +479,19 @@ class PurchaseOrderResource extends Resource
                             ->dehydrateStateUsing(function (Forms\Get $get) {
                                 $lines = $get('lines') ?? [];
                                 $subtotal = 0;
-                                $taxAmount = 0;
+                                $taxOnSubtotal = 0;
+
                                 foreach ($lines as $line) {
                                     $qty = (float) ($line['quantity'] ?? 0);
                                     $price = (float) ($line['unit_price_minor'] ?? 0) * 100;
                                     $lineSubtotal = $qty * $price;
                                     $subtotal += $lineSubtotal;
+
                                     $taxRates = $line['tax_rates'] ?? [];
                                     $totalTaxPercent = array_sum(array_map('floatval', $taxRates));
-                                    $taxAmount += $lineSubtotal * ($totalTaxPercent / 100);
+                                    $taxOnSubtotal += $lineSubtotal * ($totalTaxPercent / 100);
                                 }
+
                                 // Discount
                                 $discountType = $get('discount_type') ?? 'percentage';
                                 $discountValue = (float) ($get('discount_value') ?? 0);
@@ -437,10 +500,16 @@ class PurchaseOrderResource extends Resource
                                 } else {
                                     $discountAmount = (int) ($discountValue * 100);
                                 }
+
+                                // Odoo logic: tax is calculated on discounted subtotal
+                                $discountRatio = $subtotal > 0 ? ($subtotal - $discountAmount) / $subtotal : 1;
+                                $taxAmount = (int) ($taxOnSubtotal * max(0, $discountRatio));
+
                                 // Shipping
                                 $shipping = (int) (((float) ($get('shipping_amount_minor') ?? 0)) * 100);
-                                // Total = Subtotal + Tax (which includes negative WH) - Discount + Shipping
-                                return (int) ($subtotal + $taxAmount - $discountAmount + $shipping);
+
+                                // Total = (Subtotal - Discount) + Tax + Shipping
+                                return (int) (($subtotal - $discountAmount) + $taxAmount + $shipping);
                             }),
                     ]),
 
