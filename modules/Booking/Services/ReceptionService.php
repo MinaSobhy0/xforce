@@ -285,26 +285,25 @@ class ReceptionService
             ->get();
 
         // Get appointments that are in rooms (checked_in with room_id)
-        $appointments = Appointment::query()
+        $query = Appointment::query()
             ->with(['patient', 'service', 'practitioner', 'room'])
             ->forDate($date)
             ->whereNotNull('room_id')
             ->where('status', Appointment::STATUS_CHECKED_IN)
-            ->ordered()
-            ->get();
+            ->ordered();
 
         if ($branchId) {
-            $appointments = $appointments->filter(function ($a) use ($branchId) {
-                return $a->branch_id === $branchId;
-            });
+            $query->forBranch($branchId);
         }
+
+        $appointments = $query->get();
 
         // Group appointments by room
         $patientsByRoom = [];
         foreach ($rooms as $room) {
             $patientsByRoom[$room->id] = [
                 'room' => $room,
-                'appointments' => $appointments->filter(fn ($a) => $a->room_id === $room->id)->values(),
+                'appointments' => $appointments->filter(fn ($a) => (string) $a->room_id === (string) $room->id)->values(),
             ];
         }
 

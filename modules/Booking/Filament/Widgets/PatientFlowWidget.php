@@ -125,6 +125,17 @@ class PatientFlowWidget extends Widget implements HasForms
             return;
         }
 
+        // Auto-confirm if still scheduled (state machine requires: scheduled -> confirmed -> checked_in)
+        if ($appointment->status === \Modules\Booking\Models\Appointment::STATUS_SCHEDULED) {
+            if (!$appointment->confirm()) {
+                \Filament\Notifications\Notification::make()
+                    ->title(__('booking::reception.messages.cannot_check_in'))
+                    ->danger()
+                    ->send();
+                return;
+            }
+        }
+
         if ($appointment->checkIn()) {
             \Filament\Notifications\Notification::make()
                 ->title(__('booking::reception.messages.checked_in'))
@@ -204,9 +215,22 @@ class PatientFlowWidget extends Widget implements HasForms
 
         $appointment->update(['room_id' => $this->selectedRoomId ?: null]);
 
-        $roomName = $this->selectedRoomId
-            ? DB::table('rooms')->where('id', $this->selectedRoomId)->value('name')
-            : __('booking::reception.unassigned');
+        $roomName = __('booking::reception.unassigned');
+        if ($this->selectedRoomId) {
+            $name = DB::table('rooms')->where('id', $this->selectedRoomId)->value('name');
+            if ($name && is_string($name) && str_starts_with($name, '{')) {
+                $decoded = json_decode($name, true);
+                if (is_array($decoded)) {
+                    $locale = app()->getLocale();
+                    $fallbackLocale = config('app.fallback_locale', 'en');
+                    $roomName = $decoded[$locale] ?? $decoded[$fallbackLocale] ?? reset($decoded) ?: $name;
+                } else {
+                    $roomName = $name;
+                }
+            } elseif ($name) {
+                $roomName = $name;
+            }
+        }
 
         \Filament\Notifications\Notification::make()
             ->title(__('booking::reception.messages.room_assigned'))
@@ -292,6 +316,13 @@ class PatientFlowWidget extends Widget implements HasForms
     {
         $branchId = BranchContext::currentId();
 
+        if (!$branchId) {
+            return [];
+        }
+
+        $locale = app()->getLocale();
+        $fallbackLocale = config('app.fallback_locale', 'en');
+
         return DB::table('rooms')
             ->where('branch_id', $branchId)
             ->where('is_active', true)
@@ -299,7 +330,21 @@ class PatientFlowWidget extends Widget implements HasForms
             ->whereIn('room_type', ['treatment', 'consultation'])
             ->orderBy('sort_order')
             ->orderBy('name')
-            ->pluck('name', 'id')
+            ->select('id', 'name')
+            ->get()
+            ->mapWithKeys(function ($room) use ($locale, $fallbackLocale) {
+                $name = $room->name;
+
+                // Handle JSON translatable field
+                if (is_string($name) && str_starts_with($name, '{')) {
+                    $decoded = json_decode($name, true);
+                    if (is_array($decoded)) {
+                        $name = $decoded[$locale] ?? $decoded[$fallbackLocale] ?? reset($decoded) ?: $name;
+                    }
+                }
+
+                return [(string) $room->id => $name];
+            })
             ->toArray();
     }
 
