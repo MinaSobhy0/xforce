@@ -120,7 +120,7 @@ class ReceptionService
         $date = $date ?? today();
 
         $query = Appointment::query()
-            ->with(['patient', 'service', 'practitioner', 'room', 'invoice'])
+            ->with(['patient', 'service', 'practitioner', 'room'])
             ->forDate($date)
             ->ordered();
 

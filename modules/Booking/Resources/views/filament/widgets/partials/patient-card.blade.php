@@ -4,18 +4,11 @@
     $showRoom = $showRoom ?? true;
     $showCheckIn = $showCheckIn ?? false;
     $showPayment = $showPayment ?? true;
-    $showCheckout = $showCheckout ?? true;
     $showAssignActions = $showAssignActions ?? false;
     $canCheckIn = $this->canCheckIn($appointment);
     $canChangeRoomOrDoctor = $this->canChangeRoomOrDoctor($appointment);
     $hasBalance = $appointment->remaining_balance > 0;
     $canRecordPayment = in_array($appointment->status, ['checked_in', 'in_progress']) && $hasBalance;
-
-    // Check if appointment is completed with unpaid invoice
-    $canCheckout = $showCheckout
-        && $appointment->status === 'completed'
-        && $appointment->invoice
-        && in_array($appointment->invoice->status, ['issued', 'partially_paid']);
 
     // Status colors and labels
     $statusConfig = [
@@ -128,7 +121,7 @@
     </div>
 
     {{-- Action Buttons --}}
-    @if(($showCheckIn && $canCheckIn) || ($showPayment && $canRecordPayment) || $canCheckout)
+    @if(($showCheckIn && $canCheckIn) || ($showPayment && $canRecordPayment))
         <div class="px-3 pb-4 space-y-2">
             {{-- Check-in Button --}}
             @if($showCheckIn && $canCheckIn)
@@ -160,25 +153,6 @@
                     icon="heroicon-o-banknotes"
                 >
                     {{ __('booking::reception.actions.record_payment') }}
-                </x-filament::button>
-            @endif
-
-            {{-- Checkout Button (shows for completed appointments with unpaid invoice) --}}
-            @if($canCheckout)
-                <x-filament::button
-                    wire:click="goToCheckout('{{ $appointment->id }}')"
-                    wire:loading.attr="disabled"
-                    color="success"
-                    size="sm"
-                    class="w-full"
-                    icon="heroicon-o-banknotes"
-                >
-                    <span wire:loading.remove wire:target="goToCheckout('{{ $appointment->id }}')">
-                        {{ __('booking::reception.actions.checkout') }}
-                    </span>
-                    <span wire:loading wire:target="goToCheckout('{{ $appointment->id }}')">
-                        {{ __('booking::reception.actions.loading') }}...
-                    </span>
                 </x-filament::button>
             @endif
         </div>
