@@ -408,6 +408,9 @@ class TenantService
             $roleId = DB::table('roles')->insertGetId([
                 'name' => 'super_admin',
                 'guard_name' => 'web',
+                'display_name' => 'Super Admin',
+                'is_system' => true,
+                'is_active' => true,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -471,6 +474,9 @@ class TenantService
                     $roleId = DB::table('roles')->insertGetId([
                         'name' => $roleName,
                         'guard_name' => 'web',
+                        'display_name' => ucwords(str_replace('_', ' ', $roleName)),
+                        'is_system' => in_array($roleName, ['super_admin', 'admin']),
+                        'is_active' => true,
                         'created_at' => now(),
                         'updated_at' => now(),
                     ]);
