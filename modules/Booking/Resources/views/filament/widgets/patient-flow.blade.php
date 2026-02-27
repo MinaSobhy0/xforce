@@ -73,7 +73,7 @@
                     </div>
                     <div class="flex-1 p-2 space-y-2 overflow-y-auto {{ $arrivingColors['bg'] }}">
                         @forelse($arrivingAppointments as $appointment)
-                            @include('booking::filament.widgets.partials.patient-card', ['appointment' => $appointment, 'waitTimeClasses' => $waitTimeClasses, 'showCheckIn' => true])
+                            @include('booking::filament.widgets.partials.patient-card', ['appointment' => $appointment, 'waitTimeClasses' => $waitTimeClasses, 'showCheckIn' => true, 'showAssignActions' => true])
                         @empty
                             <div class="flex flex-col items-center justify-center py-6 text-gray-400 dark:text-gray-500">
                                 <x-dynamic-component :component="$arrivingLane['icon']" class="w-6 h-6 mb-1 opacity-50" />
@@ -101,7 +101,7 @@
                     </div>
                     <div class="flex-1 p-2 space-y-2 overflow-y-auto {{ $waitingColors['bg'] }}">
                         @forelse($waitingAppointments as $appointment)
-                            @include('booking::filament.widgets.partials.patient-card', ['appointment' => $appointment, 'waitTimeClasses' => $waitTimeClasses])
+                            @include('booking::filament.widgets.partials.patient-card', ['appointment' => $appointment, 'waitTimeClasses' => $waitTimeClasses, 'showAssignActions' => true])
                         @empty
                             <div class="flex flex-col items-center justify-center py-6 text-gray-400 dark:text-gray-500">
                                 <x-dynamic-component :component="$waitingLane['icon']" class="w-6 h-6 mb-1 opacity-50" />
@@ -139,7 +139,7 @@
                         </div>
                         <div class="flex-1 p-2 space-y-2 overflow-y-auto {{ $roomColors['bg'] }}">
                             @forelse($roomAppointments as $appointment)
-                                @include('booking::filament.widgets.partials.patient-card', ['appointment' => $appointment, 'waitTimeClasses' => $waitTimeClasses, 'showRoom' => false])
+                                @include('booking::filament.widgets.partials.patient-card', ['appointment' => $appointment, 'waitTimeClasses' => $waitTimeClasses, 'showRoom' => false, 'showAssignActions' => true])
                             @empty
                                 <div class="flex flex-col items-center justify-center py-6 text-gray-400 dark:text-gray-500">
                                     <x-heroicon-o-check-circle class="w-6 h-6 mb-1 opacity-50 text-green-400" />
@@ -180,4 +180,156 @@
             </div>
         </div>
     </x-filament::section>
+
+    {{-- Room Assignment Modal --}}
+    @if($showRoomModal)
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" wire:click.self="closeRoomModal">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 overflow-hidden">
+                @php
+                    $editingAppointment = $this->getEditingAppointment();
+                    $availableRooms = $this->getAvailableRooms();
+                @endphp
+
+                {{-- Modal Header --}}
+                <div class="flex items-center justify-between px-4 py-3 bg-cyan-50 dark:bg-cyan-900/50 border-b border-cyan-200 dark:border-cyan-800">
+                    <div class="flex items-center gap-2">
+                        <x-heroicon-o-building-office class="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+                        <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
+                            {{ __('booking::reception.actions.assign_room') }}
+                        </h3>
+                    </div>
+                    <button type="button" wire:click="closeRoomModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                        <x-heroicon-o-x-mark class="w-5 h-5" />
+                    </button>
+                </div>
+
+                {{-- Modal Body --}}
+                <div class="p-4 space-y-4">
+                    @if($editingAppointment)
+                        {{-- Patient Info --}}
+                        <div class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                            <div class="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
+                                <x-heroicon-o-user class="w-5 h-5 text-primary-600 dark:text-primary-400" />
+                            </div>
+                            <div>
+                                <div class="font-medium text-gray-900 dark:text-white">
+                                    {{ $editingAppointment->patient?->full_name ?? 'Patient' }}
+                                </div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400">
+                                    {{ $editingAppointment->service?->name }} - {{ $editingAppointment->start_time?->format('H:i') }}
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Room Selection --}}
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                {{ __('booking::reception.forms.room') }}
+                            </label>
+                            <select
+                                wire:model="selectedRoomId"
+                                class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                            >
+                                <option value="">-- {{ __('booking::reception.no_room') }} --</option>
+                                @foreach($availableRooms as $roomId => $roomName)
+                                    <option value="{{ $roomId }}">{{ $roomName }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    @endif
+                </div>
+
+                {{-- Modal Footer --}}
+                <div class="flex items-center justify-end gap-2 px-4 py-3 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
+                    <x-filament::button color="gray" wire:click="closeRoomModal">
+                        {{ __('filament::components/modal.actions.cancel.label') }}
+                    </x-filament::button>
+                    <x-filament::button color="primary" wire:click="saveRoom">
+                        {{ __('filament::components/modal.actions.confirm.label') }}
+                    </x-filament::button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- Doctor Assignment Modal --}}
+    @if($showDoctorModal)
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" wire:click.self="closeDoctorModal">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 overflow-hidden">
+                @php
+                    $editingAppointment = $this->getEditingAppointment();
+                    $availableDoctors = $this->getAvailableDoctors();
+                @endphp
+
+                {{-- Modal Header --}}
+                <div class="flex items-center justify-between px-4 py-3 bg-indigo-50 dark:bg-indigo-900/50 border-b border-indigo-200 dark:border-indigo-800">
+                    <div class="flex items-center gap-2">
+                        <x-heroicon-o-user-circle class="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                        <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
+                            {{ __('booking::reception.actions.assign_doctor') }}
+                        </h3>
+                    </div>
+                    <button type="button" wire:click="closeDoctorModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                        <x-heroicon-o-x-mark class="w-5 h-5" />
+                    </button>
+                </div>
+
+                {{-- Modal Body --}}
+                <div class="p-4 space-y-4">
+                    @if($editingAppointment)
+                        {{-- Patient Info --}}
+                        <div class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                            <div class="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
+                                <x-heroicon-o-user class="w-5 h-5 text-primary-600 dark:text-primary-400" />
+                            </div>
+                            <div>
+                                <div class="font-medium text-gray-900 dark:text-white">
+                                    {{ $editingAppointment->patient?->full_name ?? 'Patient' }}
+                                </div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400">
+                                    {{ $editingAppointment->service?->name }} - {{ $editingAppointment->start_time?->format('H:i') }}
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Current Doctor --}}
+                        @if($editingAppointment->practitioner)
+                            <div class="text-sm text-gray-600 dark:text-gray-400">
+                                {{ __('booking::reception.columns.doctor') }}:
+                                <span class="font-medium text-gray-900 dark:text-white">
+                                    {{ $editingAppointment->practitioner->full_name }}
+                                </span>
+                            </div>
+                        @endif
+
+                        {{-- Doctor Selection --}}
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                {{ __('booking::reception.forms.practitioner') }}
+                            </label>
+                            <select
+                                wire:model="selectedDoctorId"
+                                class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                            >
+                                <option value="">-- {{ __('booking::reception.unassigned') }} --</option>
+                                @foreach($availableDoctors as $doctorId => $doctorName)
+                                    <option value="{{ $doctorId }}">{{ $doctorName }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    @endif
+                </div>
+
+                {{-- Modal Footer --}}
+                <div class="flex items-center justify-end gap-2 px-4 py-3 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
+                    <x-filament::button color="gray" wire:click="closeDoctorModal">
+                        {{ __('filament::components/modal.actions.cancel.label') }}
+                    </x-filament::button>
+                    <x-filament::button color="primary" wire:click="saveDoctor">
+                        {{ __('filament::components/modal.actions.confirm.label') }}
+                    </x-filament::button>
+                </div>
+            </div>
+        </div>
+    @endif
 </x-filament-widgets::widget>

@@ -4,7 +4,9 @@
     $showRoom = $showRoom ?? true;
     $showCheckIn = $showCheckIn ?? false;
     $showPayment = $showPayment ?? true;
+    $showAssignActions = $showAssignActions ?? false;
     $canCheckIn = $this->canCheckIn($appointment);
+    $canChangeRoomOrDoctor = $this->canChangeRoomOrDoctor($appointment);
     $hasBalance = $appointment->remaining_balance > 0;
     $canRecordPayment = in_array($appointment->status, ['checked_in', 'in_progress']) && $hasBalance;
 
@@ -73,17 +75,47 @@
 
         {{-- Room & Doctor --}}
         <div class="flex flex-wrap gap-1.5">
-            @if($showRoom && $appointment->room)
-                <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-md bg-cyan-50 text-cyan-700 dark:bg-cyan-900/50 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800">
+            @if($showAssignActions && $canChangeRoomOrDoctor)
+                {{-- Clickable Room Badge --}}
+                <button
+                    type="button"
+                    wire:click="openRoomModal('{{ $appointment->id }}')"
+                    class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-md border transition-colors cursor-pointer
+                        {{ $appointment->room
+                            ? 'bg-cyan-50 text-cyan-700 dark:bg-cyan-900/50 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800 hover:bg-cyan-100 dark:hover:bg-cyan-900'
+                            : 'bg-gray-50 text-gray-500 dark:bg-gray-800 dark:text-gray-400 border-gray-200 dark:border-gray-700 border-dashed hover:bg-gray-100 dark:hover:bg-gray-700' }}"
+                    title="{{ __('booking::reception.actions.assign_room') }}"
+                >
                     <x-heroicon-o-building-office class="w-3 h-3" />
-                    {{ $appointment->room->name }}
-                </span>
-            @endif
-            @if($appointment->practitioner)
-                <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-md bg-indigo-50 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                    {{ $appointment->room?->name ?? __('booking::reception.no_room') }}
+                </button>
+
+                {{-- Clickable Doctor Badge --}}
+                <button
+                    type="button"
+                    wire:click="openDoctorModal('{{ $appointment->id }}')"
+                    class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-md border transition-colors cursor-pointer
+                        {{ $appointment->practitioner
+                            ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900'
+                            : 'bg-gray-50 text-gray-500 dark:bg-gray-800 dark:text-gray-400 border-gray-200 dark:border-gray-700 border-dashed hover:bg-gray-100 dark:hover:bg-gray-700' }}"
+                    title="{{ __('booking::reception.actions.assign_doctor') }}"
+                >
                     <x-heroicon-o-user-circle class="w-3 h-3" />
-                    {{ $appointment->practitioner->full_name }}
-                </span>
+                    {{ $appointment->practitioner?->full_name ?? __('booking::reception.unassigned') }}
+                </button>
+            @else
+                @if($showRoom && $appointment->room)
+                    <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-md bg-cyan-50 text-cyan-700 dark:bg-cyan-900/50 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800">
+                        <x-heroicon-o-building-office class="w-3 h-3" />
+                        {{ $appointment->room->name }}
+                    </span>
+                @endif
+                @if($appointment->practitioner)
+                    <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-md bg-indigo-50 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                        <x-heroicon-o-user-circle class="w-3 h-3" />
+                        {{ $appointment->practitioner->full_name }}
+                    </span>
+                @endif
             @endif
         </div>
     </div>
