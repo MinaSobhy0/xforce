@@ -190,19 +190,21 @@ $table->string('discount_reason')->nullable();        // Doctor's reason for dis
 
 ---
 
-### Phase 2: Enhanced Invoice Generation on Session Complete
+### Phase 2: Enhanced Invoice Generation on Session Complete ✅ COMPLETE
 
-**Files to Modify:**
-- [ ] `modules/Billing/Listeners/CreateInvoiceOnAppointmentComplete.php`
-- [ ] `modules/Billing/Services/InvoiceCalculationService.php`
+**Files Modified:**
+- [x] `modules/Billing/Listeners/CreateInvoiceOnAppointmentComplete.php`
+- [x] `modules/Billing/Services/InvoiceCalculationService.php`
 
-**Tasks:**
-- [ ] Modify listener to include sold products in invoice
-- [ ] Add `createInvoiceForSession()` method to service
-- [ ] Create service line from appointment
-- [ ] Create product lines from `SessionProduct` where `usage_type = 'sold'`
-- [ ] Mark products as invoiced (`is_invoiced = true`, `invoice_line_id`)
-- [ ] Group lines by type (service vs product) using description prefix or category
+**Tasks Completed:**
+- [x] Modify listener to include sold products in invoice
+- [x] Add `createInvoiceForSession()` method to service
+- [x] Create service line from appointment with proper discount type handling
+- [x] Create product lines from `SessionProduct` where `usage_type = 'sold'`
+- [x] Mark products as invoiced (`is_invoiced = true`, `invoice_line_id`)
+- [x] Use `line_type` field to distinguish service vs product lines
+- [x] Link invoice to treatment_plan_id if applicable
+- [x] Include session number in service line description (e.g., "Session 3 of 6")
 
 **Invoice Line Structure:**
 ```php

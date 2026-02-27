@@ -71,16 +71,19 @@ class CreateInvoiceOnAppointmentComplete implements ShouldQueue
 
     /**
      * Create the invoice for the appointment.
+     * Uses the new session invoice method which includes sold products and proper discount handling.
      */
     protected function createInvoice(Appointment $appointment): Invoice
     {
-        return $this->calculationService->createInvoiceForAppointment(
-            $appointment->patient_id,
-            $appointment->branch_id,
-            $appointment->id,
-            $appointment->service_id,
-            $appointment->price_minor,
-            $appointment->discount_minor ?? 0,
+        // Load required relationships for session invoice
+        $appointment->load([
+            'service',
+            'treatmentPlanAppointment.item.treatmentPlan',
+            'products' => fn ($q) => $q->where('usage_type', \Modules\Booking\Models\SessionProduct::USAGE_SOLD),
+        ]);
+
+        return $this->calculationService->createInvoiceForSession(
+            $appointment,
             auth()->id()
         );
     }

@@ -2,9 +2,12 @@
 
 namespace Modules\Billing\Services;
 
+use Illuminate\Support\Facades\DB;
 use Modules\Billing\Models\Invoice;
 use Modules\Billing\Models\InvoiceLine;
 use Modules\Billing\Models\TaxRate;
+use Modules\Booking\Models\Appointment;
+use Modules\Booking\Models\SessionProduct;
 use Modules\Services\Models\Service;
 
 class InvoiceCalculationService
@@ -126,6 +129,8 @@ class InvoiceCalculationService
 
     /**
      * Create a quick invoice for an appointment.
+     *
+     * @deprecated Use createInvoiceForSession instead, which includes sold products
      */
     public function createInvoiceForAppointment(
         string $patientId,
@@ -171,5 +176,138 @@ class InvoiceCalculationService
         ]);
 
         return $invoice;
+    }
+
+    /**
+     * Create a comprehensive invoice for a treatment session.
+     * Includes the service line and any sold products.
+     */
+    public function createInvoiceForSession(Appointment $appointment, ?string $createdByUserId = null): Invoice
+    {
+        return DB::transaction(function () use ($appointment, $createdByUserId) {
+            $taxRate = $this->getDefaultTaxRate();
+            $sortOrder = 0;
+
+            // Create the invoice
+            $invoice = Invoice::create([
+                'patient_id' => $appointment->patient_id,
+                'branch_id' => $appointment->branch_id,
+                'appointment_id' => $appointment->id,
+                'treatment_plan_id' => $appointment->treatmentPlanAppointment?->item?->treatment_plan_id,
+                'type' => Invoice::TYPE_STANDARD,
+                'subtotal_minor' => 0,
+                'discount_minor' => 0,
+                'tax_minor' => 0,
+                'total_minor' => 0,
+                'created_by_user_id' => $createdByUserId,
+            ]);
+
+            // Create service line
+            $this->createServiceLine($invoice, $appointment, $taxRate, $sortOrder++);
+
+            // Create product lines from sold session products
+            $soldProducts = SessionProduct::where('appointment_id', $appointment->id)
+                ->where('usage_type', SessionProduct::USAGE_SOLD)
+                ->with('product')
+                ->get();
+
+            foreach ($soldProducts as $sessionProduct) {
+                $this->createProductLine($invoice, $sessionProduct, $taxRate, $sortOrder++);
+            }
+
+            // Recalculate invoice totals
+            $invoice->recalculateTotals();
+
+            return $invoice;
+        });
+    }
+
+    /**
+     * Create a service line for the appointment.
+     */
+    protected function createServiceLine(
+        Invoice $invoice,
+        Appointment $appointment,
+        float $taxRate,
+        int $sortOrder
+    ): InvoiceLine {
+        $service = $appointment->service;
+        $discountType = $appointment->discount_type ?? 'fixed';
+        $discountMinor = $appointment->discount_minor ?? 0;
+
+        // Build session description
+        $description = $service?->name ?? 'Service';
+        if ($planAppt = $appointment->treatmentPlanAppointment) {
+            $description .= ' (Session ' . $planAppt->session_number . ' of ' . $planAppt->item->recommended_sessions . ')';
+        }
+
+        $lineCalculation = $this->calculateLine(
+            $appointment->price_minor,
+            1,
+            $discountMinor,
+            $discountType,
+            $taxRate
+        );
+
+        return $invoice->lines()->create([
+            'tenant_id' => $invoice->tenant_id,
+            'service_id' => $appointment->service_id,
+            'appointment_id' => $appointment->id,
+            'treatment_plan_item_id' => $appointment->treatmentPlanAppointment?->treatment_plan_item_id,
+            'line_type' => InvoiceLine::LINE_TYPE_SERVICE,
+            'description' => $description,
+            'quantity' => 1,
+            'unit_price_minor' => $appointment->price_minor,
+            'discount_minor' => $discountMinor,
+            'discount_type' => $discountType,
+            'tax_rate' => $taxRate,
+            'tax_minor' => $lineCalculation['tax_minor'],
+            'total_minor' => $lineCalculation['total_minor'],
+            'sort_order' => $sortOrder,
+        ]);
+    }
+
+    /**
+     * Create a product line from a session product.
+     */
+    protected function createProductLine(
+        Invoice $invoice,
+        SessionProduct $sessionProduct,
+        float $taxRate,
+        int $sortOrder
+    ): InvoiceLine {
+        $product = $sessionProduct->product;
+
+        $lineCalculation = $this->calculateLine(
+            $sessionProduct->unit_price_minor,
+            $sessionProduct->quantity,
+            0, // No line-level discount on products
+            'fixed',
+            $taxRate
+        );
+
+        $invoiceLine = $invoice->lines()->create([
+            'tenant_id' => $invoice->tenant_id,
+            'product_id' => $product?->id,
+            'session_product_id' => $sessionProduct->id,
+            'line_type' => InvoiceLine::LINE_TYPE_PRODUCT,
+            'description' => $product?->name ?? 'Product',
+            'quantity' => $sessionProduct->quantity,
+            'unit_price_minor' => $sessionProduct->unit_price_minor,
+            'discount_minor' => 0,
+            'discount_type' => 'fixed',
+            'tax_rate' => $taxRate,
+            'tax_minor' => $lineCalculation['tax_minor'],
+            'total_minor' => $lineCalculation['total_minor'],
+            'sort_order' => $sortOrder,
+        ]);
+
+        // Mark session product as invoiced
+        $sessionProduct->update([
+            'is_invoiced' => true,
+            'invoice_line_id' => $invoiceLine->id,
+        ]);
+
+        return $invoiceLine;
     }
 }
