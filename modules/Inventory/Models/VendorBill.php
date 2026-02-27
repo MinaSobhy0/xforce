@@ -327,9 +327,16 @@ class VendorBill extends BaseModel
             'status' => self::STATUS_DRAFT,
             'bill_date' => now(),
             'created_by' => auth()->id(),
+            // Copy discount from PO
+            'discount_minor' => $po->discount_amount_minor,
+            'discount_type' => 'fixed',
         ]);
 
         foreach ($po->lines as $poLine) {
+            // Sum tax rates from PO line (can be multiple: VAT + WH)
+            $taxRates = $poLine->tax_rates ?? [];
+            $totalTaxRate = array_sum(array_map('floatval', $taxRates));
+
             VendorBillLine::create([
                 'tenant_id' => $po->tenant_id,
                 'vendor_bill_id' => $bill->id,
@@ -338,7 +345,7 @@ class VendorBill extends BaseModel
                 'description' => $poLine->product?->getTranslation('name', app()->getLocale()) ?? 'Product',
                 'quantity' => $poLine->quantity_received ?: $poLine->quantity,
                 'unit_price_minor' => $poLine->unit_price_minor,
-                'tax_rate' => 0,
+                'tax_rate' => $totalTaxRate,
             ]);
         }
 
