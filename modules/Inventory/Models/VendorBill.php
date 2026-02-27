@@ -219,6 +219,12 @@ class VendorBill extends BaseModel
         return $this->isDraft();
     }
 
+    public function canResetToDraft(): bool
+    {
+        // Can reset if validated and no payments made
+        return $this->status === self::STATUS_VALIDATED && $this->paid_minor === 0;
+    }
+
     /*
     |--------------------------------------------------------------------------
     | Actions
@@ -286,6 +292,37 @@ class VendorBill extends BaseModel
         $this->save();
 
         return true;
+    }
+
+    /**
+     * Reset vendor bill to draft status and delete journal entry
+     */
+    public function resetToDraft(): bool
+    {
+        if (!$this->canResetToDraft()) {
+            return false;
+        }
+
+        return \DB::transaction(function () {
+            // Delete journal entry if exists
+            if ($this->journal_entry_id) {
+                $journalEntry = $this->journalEntry;
+                if ($journalEntry) {
+                    // Delete journal entry lines first
+                    $journalEntry->lines()->delete();
+                    $journalEntry->delete();
+                }
+                $this->journal_entry_id = null;
+            }
+
+            // Reset status
+            $this->status = self::STATUS_DRAFT;
+            $this->validated_at = null;
+            $this->validated_by = null;
+            $this->save();
+
+            return true;
+        });
     }
 
     /**

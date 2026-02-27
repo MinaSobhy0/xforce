@@ -532,6 +532,27 @@ class VendorBillResource extends Resource
                                 ->send();
                         }),
 
+                    Tables\Actions\Action::make('reset_to_draft')
+                        ->label(__('inventory::inventory.actions.reset_to_draft'))
+                        ->icon('heroicon-o-arrow-path')
+                        ->color('warning')
+                        ->requiresConfirmation()
+                        ->modalDescription(__('inventory::inventory.messages.reset_bill_to_draft_confirmation'))
+                        ->visible(fn (VendorBill $record) => $record->canResetToDraft())
+                        ->action(function (VendorBill $record) {
+                            if ($record->resetToDraft()) {
+                                Notification::make()
+                                    ->title(__('inventory::inventory.messages.bill_reset_to_draft'))
+                                    ->success()
+                                    ->send();
+                            } else {
+                                Notification::make()
+                                    ->title(__('inventory::inventory.messages.bill_reset_failed'))
+                                    ->danger()
+                                    ->send();
+                            }
+                        }),
+
                     Tables\Actions\Action::make('cancel')
                         ->label(__('inventory::inventory.actions.cancel'))
                         ->icon('heroicon-o-x-circle')
