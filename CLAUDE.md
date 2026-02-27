@@ -114,8 +114,13 @@ Migrations in `database/migrations/` are NOT run for tenants - only module migra
 ## Module Development
 
 ### Adding a Migration
-1. Create in `modules/{Module}/Database/Migrations/`
-2. File is auto-included in tenant provisioning
+
+**IMPORTANT**: All tenant migrations MUST be placed in `modules/{Module}/Database/Migrations/`, NOT in `database/migrations/`.
+
+- `modules/*/Database/Migrations/` → Runs during tenant provisioning (correct)
+- `database/migrations/` → Only for central/platform tables in public schema (tenants, subscriptions, etc.)
+
+If you create a migration in `database/migrations/` for a tenant table, it will NOT be created in tenant schemas and you'll get "relation does not exist" errors.
 
 ### Adding a Seeder
 1. Create in `modules/{Module}/Database/Seeders/`
