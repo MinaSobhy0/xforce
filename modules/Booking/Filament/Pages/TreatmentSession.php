@@ -312,6 +312,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists
                 ->label(__('booking::session.actions.add_to_plan'))
                 ->icon('heroicon-o-clipboard-document-list')
                 ->color('primary')
+                ->hidden() // Hidden from header, triggered via plus button in Current Treatment Plan section
                 ->form([
                     Forms\Components\Radio::make('plan_mode')
                         ->label(__('booking::session.plan_modal.mode'))

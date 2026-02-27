@@ -176,9 +176,19 @@
             @php $currentPlan = $this->getCurrentTreatmentPlan(); @endphp
             <x-filament::section>
                 <x-slot name="heading">
-                    <div class="flex items-center gap-2">
-                        <x-heroicon-o-clipboard-document-list class="w-5 h-5 text-blue-500" />
-                        {{ __('booking::session.sections.current_plan') }}
+                    <div class="flex items-center justify-between w-full">
+                        <div class="flex items-center gap-2">
+                            <x-heroicon-o-clipboard-document-list class="w-5 h-5 text-blue-500" />
+                            {{ __('booking::session.sections.current_plan') }}
+                        </div>
+                        <button
+                            type="button"
+                            wire:click="mountAction('addToTreatmentPlan')"
+                            class="p-1.5 rounded-lg bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors"
+                            title="{{ __('booking::session.actions.add_to_plan') }}"
+                        >
+                            <x-heroicon-o-plus class="w-5 h-5" />
+                        </button>
                     </div>
                 </x-slot>
 
