@@ -57,6 +57,28 @@ class ViewVendorBill extends BaseViewRecord
                 ->visible(fn () => $this->record->canRecordPayment())
                 ->url(fn () => $this->getResource()::getUrl('record-payment', ['record' => $this->record])),
 
+            Actions\Action::make('reset_to_draft')
+                ->label(__('inventory::inventory.actions.reset_to_draft'))
+                ->icon('heroicon-o-arrow-path')
+                ->color('warning')
+                ->requiresConfirmation()
+                ->modalDescription(__('inventory::inventory.messages.reset_bill_to_draft_confirmation'))
+                ->visible(fn () => $this->record->canResetToDraft())
+                ->action(function () {
+                    if ($this->record->resetToDraft()) {
+                        Notification::make()
+                            ->title(__('inventory::inventory.messages.bill_reset_to_draft'))
+                            ->success()
+                            ->send();
+                        $this->refreshFormData(['status', 'validated_at', 'journal_entry_id']);
+                    } else {
+                        Notification::make()
+                            ->title(__('inventory::inventory.messages.bill_reset_failed'))
+                            ->danger()
+                            ->send();
+                    }
+                }),
+
             Actions\Action::make('cancel')
                 ->label('Cancel')
                 ->icon('heroicon-o-x-circle')
