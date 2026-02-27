@@ -141,7 +141,7 @@ class VendorBillResource extends Resource
                                                         $set('description', $product->getTranslation('name', app()->getLocale()));
                                                         $set('unit_price_minor', $product->cost_price_minor / 100);
                                                         $defaultTax = TaxRate::getDefault(TaxRate::TYPE_PURCHASE);
-                                                        $set('tax_rate', $defaultTax ? (string) $defaultTax->rate : '14');
+                                                        $set('tax_rates', $defaultTax ? [(string) $defaultTax->rate] : ['14']);
                                                         // Set expense account from product or fallback to first expense account
                                                         if ($product->expense_account_id) {
                                                             $set('account_id', $product->expense_account_id);
@@ -219,12 +219,13 @@ class VendorBillResource extends Resource
                                             })
                                             ->columnSpan(['default' => 4, 'md' => 2]),
 
-                                        Forms\Components\Select::make('tax_rate')
-                                            ->label(__('inventory::inventory.fields.tax'))
+                                        Forms\Components\Select::make('tax_rates')
+                                            ->label(__('inventory::inventory.fields.taxes'))
+                                            ->multiple()
                                             ->options(function () {
                                                 return TaxRate::where('is_active', true)
                                                     ->where('type', TaxRate::TYPE_PURCHASE)
-                                                    ->orderBy('rate')
+                                                    ->orderByDesc('rate')
                                                     ->get()
                                                     ->mapWithKeys(fn ($t) => [
                                                         (string) $t->rate => $t->getTranslation('name', app()->getLocale()) . " ({$t->rate}%)"
@@ -232,7 +233,7 @@ class VendorBillResource extends Resource
                                             })
                                             ->default(function () {
                                                 $default = TaxRate::getDefault(TaxRate::TYPE_PURCHASE);
-                                                return $default ? (string) $default->rate : '14';
+                                                return $default ? [(string) $default->rate] : ['14'];
                                             })
                                             ->columnSpan(['default' => 4, 'md' => 3]),
                                     ])
@@ -260,46 +261,27 @@ class VendorBillResource extends Resource
                                         foreach ($lines as $line) {
                                             $qty = (float) ($line['quantity'] ?? 0);
                                             $price = (float) ($line['unit_price_minor'] ?? 0) * 100;
-                                            $subtotal += $qty * $price;
+                                            $lineSubtotal = $qty * $price;
+
+                                            // Apply line discount - show subtotal AFTER discount
+                                            $discountType = $line['discount_type'] ?? 'fixed';
+                                            $discountValue = (float) ($line['discount_minor'] ?? 0);
+                                            if ($discountType === 'percent') {
+                                                $lineSubtotal -= $lineSubtotal * $discountValue / 100;
+                                            } else {
+                                                $lineSubtotal -= $discountValue * 100;
+                                            }
+
+                                            $subtotal += $lineSubtotal;
                                         }
                                         return format_money((int) $subtotal);
                                     }),
 
-                                Forms\Components\Placeholder::make('discount_display')
-                                    ->label(__('inventory::inventory.fields.discount'))
+                                Forms\Components\Placeholder::make('vat_display')
+                                    ->label(__('inventory::inventory.fields.vat'))
                                     ->content(function (Forms\Get $get) {
                                         $lines = $get('lines') ?? [];
-                                        $totalDiscount = 0;
-                                        foreach ($lines as $line) {
-                                            $qty = (float) ($line['quantity'] ?? 0);
-                                            $price = (float) ($line['unit_price_minor'] ?? 0) * 100;
-                                            $lineSubtotal = $qty * $price;
-
-                                            $discountType = $line['discount_type'] ?? 'fixed';
-                                            $discountValue = (float) ($line['discount_minor'] ?? 0);
-                                            if ($discountType === 'percent') {
-                                                $totalDiscount += $lineSubtotal * $discountValue / 100;
-                                            } else {
-                                                $totalDiscount += $discountValue * 100;
-                                            }
-                                        }
-                                        return $totalDiscount > 0 ? '-' . format_money((int) $totalDiscount) : '-';
-                                    })
-                                    ->visible(function (Forms\Get $get) {
-                                        $lines = $get('lines') ?? [];
-                                        foreach ($lines as $line) {
-                                            if (($line['discount_minor'] ?? 0) > 0) {
-                                                return true;
-                                            }
-                                        }
-                                        return false;
-                                    }),
-
-                                Forms\Components\Placeholder::make('tax_display')
-                                    ->label(__('inventory::inventory.fields.tax'))
-                                    ->content(function (Forms\Get $get) {
-                                        $lines = $get('lines') ?? [];
-                                        $tax = 0;
+                                        $vat = 0;
                                         foreach ($lines as $line) {
                                             $qty = (float) ($line['quantity'] ?? 0);
                                             $price = (float) ($line['unit_price_minor'] ?? 0) * 100;
@@ -314,10 +296,61 @@ class VendorBillResource extends Resource
                                                 $lineSubtotal -= $discountValue * 100;
                                             }
 
-                                            $taxRate = (float) ($line['tax_rate'] ?? 0);
-                                            $tax += $lineSubtotal * $taxRate / 100;
+                                            // Sum only positive tax rates (VAT)
+                                            $taxRates = $line['tax_rates'] ?? [];
+                                            $positiveRates = array_filter(array_map('floatval', $taxRates), fn ($r) => $r > 0);
+                                            $vatPercent = array_sum($positiveRates);
+                                            $vat += $lineSubtotal * $vatPercent / 100;
                                         }
-                                        return format_money((int) $tax);
+                                        return format_money((int) $vat);
+                                    })
+                                    ->visible(function (Forms\Get $get) {
+                                        $lines = $get('lines') ?? [];
+                                        foreach ($lines as $line) {
+                                            $taxRates = $line['tax_rates'] ?? [];
+                                            if (array_filter(array_map('floatval', $taxRates), fn ($r) => $r > 0)) {
+                                                return true;
+                                            }
+                                        }
+                                        return false;
+                                    }),
+
+                                Forms\Components\Placeholder::make('whm_display')
+                                    ->label(__('inventory::inventory.fields.whm'))
+                                    ->content(function (Forms\Get $get) {
+                                        $lines = $get('lines') ?? [];
+                                        $whm = 0;
+                                        foreach ($lines as $line) {
+                                            $qty = (float) ($line['quantity'] ?? 0);
+                                            $price = (float) ($line['unit_price_minor'] ?? 0) * 100;
+                                            $lineSubtotal = $qty * $price;
+
+                                            // Apply line discount before tax
+                                            $discountType = $line['discount_type'] ?? 'fixed';
+                                            $discountValue = (float) ($line['discount_minor'] ?? 0);
+                                            if ($discountType === 'percent') {
+                                                $lineSubtotal -= $lineSubtotal * $discountValue / 100;
+                                            } else {
+                                                $lineSubtotal -= $discountValue * 100;
+                                            }
+
+                                            // Sum only negative tax rates (Withholding)
+                                            $taxRates = $line['tax_rates'] ?? [];
+                                            $negativeRates = array_filter(array_map('floatval', $taxRates), fn ($r) => $r < 0);
+                                            $whmPercent = array_sum($negativeRates);
+                                            $whm += $lineSubtotal * $whmPercent / 100;
+                                        }
+                                        return format_money((int) $whm);
+                                    })
+                                    ->visible(function (Forms\Get $get) {
+                                        $lines = $get('lines') ?? [];
+                                        foreach ($lines as $line) {
+                                            $taxRates = $line['tax_rates'] ?? [];
+                                            if (array_filter(array_map('floatval', $taxRates), fn ($r) => $r < 0)) {
+                                                return true;
+                                            }
+                                        }
+                                        return false;
                                     }),
 
                                 Forms\Components\Placeholder::make('total_display')
@@ -339,9 +372,10 @@ class VendorBillResource extends Resource
                                                 $lineSubtotal -= $discountValue * 100;
                                             }
 
-                                            // Add tax
-                                            $taxRate = (float) ($line['tax_rate'] ?? 0);
-                                            $lineSubtotal += $lineSubtotal * $taxRate / 100;
+                                            // Add tax (sum of all rates: VAT positive, WH negative)
+                                            $taxRates = $line['tax_rates'] ?? [];
+                                            $totalTaxPercent = array_sum(array_map('floatval', $taxRates));
+                                            $lineSubtotal += $lineSubtotal * $totalTaxPercent / 100;
 
                                             $total += $lineSubtotal;
                                         }

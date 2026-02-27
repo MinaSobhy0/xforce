@@ -21,7 +21,7 @@ class VendorBillLine extends BaseModel
         'unit_price_minor',
         'discount_minor',
         'discount_type',
-        'tax_rate',
+        'tax_rates',
         'tax_minor',
         'total_minor',
         'sort_order',
@@ -31,7 +31,7 @@ class VendorBillLine extends BaseModel
         'quantity' => 'decimal:2',
         'unit_price_minor' => 'integer',
         'discount_minor' => 'integer',
-        'tax_rate' => 'decimal:2',
+        'tax_rates' => 'array',
         'tax_minor' => 'integer',
         'total_minor' => 'integer',
         'sort_order' => 'integer',
@@ -120,8 +120,10 @@ class VendorBillLine extends BaseModel
         $discountAmount = $this->effective_discount_minor;
         $afterDiscount = max(0, $subtotal - $discountAmount);
 
-        // Calculate tax
-        $this->tax_minor = (int) round($afterDiscount * $this->tax_rate / 100);
+        // Calculate tax - sum all tax rates
+        $taxRates = $this->tax_rates ?? [];
+        $totalTaxPercent = array_sum(array_map('floatval', $taxRates));
+        $this->tax_minor = (int) round($afterDiscount * $totalTaxPercent / 100);
 
         // Total is subtotal - discount + tax
         $this->total_minor = $afterDiscount + $this->tax_minor;
