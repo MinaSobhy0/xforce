@@ -4,18 +4,20 @@ namespace Modules\Billing\Filament\Resources\InvoiceResource\RelationManagers;
 
 use Modules\Billing\Models\InvoiceLine;
 use Modules\Billing\Models\TaxRate;
+use Modules\Accounting\Models\ChartOfAccount;
 use Modules\Services\Models\Service;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 
 class LinesRelationManager extends RelationManager
 {
     protected static string $relationship = 'lines';
 
-    public static function getTitle(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): string
+    public static function getTitle(Model $ownerRecord, string $pageClass): string
     {
         return __('billing::billing.sections.line_items');
     }
@@ -24,12 +26,25 @@ class LinesRelationManager extends RelationManager
     {
         return $form
             ->schema([
+                Forms\Components\Select::make('line_type')
+                    ->label(__('billing::billing.fields.line_type'))
+                    ->options([
+                        InvoiceLine::LINE_TYPE_SERVICE => __('billing::billing.line_types.service'),
+                        InvoiceLine::LINE_TYPE_PRODUCT => __('billing::billing.line_types.product'),
+                        InvoiceLine::LINE_TYPE_PACKAGE => __('billing::billing.line_types.package'),
+                        InvoiceLine::LINE_TYPE_OTHER => __('billing::billing.line_types.other'),
+                    ])
+                    ->default(InvoiceLine::LINE_TYPE_SERVICE)
+                    ->required()
+                    ->live(),
+
                 Forms\Components\Select::make('service_id')
                     ->label(__('billing::billing.fields.service'))
                     ->options(Service::query()->where('is_active', true)->pluck('name', 'id'))
                     ->searchable()
                     ->preload()
-                    ->reactive()
+                    ->live()
+                    ->visible(fn (Forms\Get $get) => $get('line_type') === InvoiceLine::LINE_TYPE_SERVICE)
                     ->afterStateUpdated(function ($state, Forms\Set $set) {
                         if ($state) {
                             $service = Service::find($state);
@@ -42,11 +57,26 @@ class LinesRelationManager extends RelationManager
                         }
                     }),
 
+                Forms\Components\Select::make('account_id')
+                    ->label(__('billing::billing.fields.account'))
+                    ->options(
+                        ChartOfAccount::where('type', ChartOfAccount::TYPE_INCOME)
+                            ->where('is_active', true)
+                            ->orderBy('code')
+                            ->get()
+                            ->mapWithKeys(fn ($a) => [$a->id => "[{$a->code}] " . $a->getTranslation('name', app()->getLocale())])
+                    )
+                    ->searchable()
+                    ->preload()
+                    ->required(),
+
                 Forms\Components\TextInput::make('description')
+                    ->label(__('billing::billing.fields.description'))
                     ->required()
                     ->maxLength(255),
 
                 Forms\Components\TextInput::make('quantity')
+                    ->label(__('billing::billing.fields.quantity'))
                     ->numeric()
                     ->default(1)
                     ->minValue(0.01)
@@ -60,20 +90,29 @@ class LinesRelationManager extends RelationManager
                     ->formatStateUsing(fn ($state) => $state ? $state / 100 : null)
                     ->dehydrateStateUsing(fn ($state) => $state ? (int) ($state * 100) : 0),
 
-                Forms\Components\TextInput::make('discount_minor')
-                    ->label(__('billing::billing.fields.discount'))
-                    ->numeric()
-                    ->default(0)
-                    ->formatStateUsing(fn ($state) => $state ? $state / 100 : 0)
-                    ->dehydrateStateUsing(fn ($state) => $state ? (int) ($state * 100) : 0),
-
                 Forms\Components\Select::make('discount_type')
                     ->label(__('billing::billing.fields.discount_type'))
                     ->options([
                         'fixed' => __('billing::billing.discount_types.fixed'),
                         'percent' => __('billing::billing.discount_types.percent'),
                     ])
-                    ->default('fixed'),
+                    ->default('fixed')
+                    ->live(),
+
+                Forms\Components\TextInput::make('discount_minor')
+                    ->label(__('billing::billing.fields.discount'))
+                    ->numeric()
+                    ->default(0)
+                    ->formatStateUsing(fn ($state, $record) =>
+                        $record && $record->discount_type === 'percent'
+                            ? $state
+                            : ($state ? $state / 100 : 0)
+                    )
+                    ->dehydrateStateUsing(fn ($state, Forms\Get $get) =>
+                        $get('discount_type') === 'percent'
+                            ? (int) $state
+                            : (int) (($state ?? 0) * 100)
+                    ),
 
                 Forms\Components\Select::make('tax_rates')
                     ->label(__('billing::billing.fields.taxes'))
@@ -96,86 +135,119 @@ class LinesRelationManager extends RelationManager
 
     public function table(Table $table): Table
     {
+        $isEditable = $this->ownerRecord->isEditable();
+
         return $table
             ->recordTitleAttribute('description')
+            ->paginated(false)
             ->columns([
-                Tables\Columns\TextColumn::make('description')
+                // Service Code - Read only
+                Tables\Columns\TextColumn::make('service.code')
+                    ->label('')
+                    ->default('-')
+                    ->color('gray'),
+
+                // Description - Inline editable
+                Tables\Columns\TextInputColumn::make('description')
                     ->label(__('billing::billing.fields.description'))
-                    ->searchable()
-                    ->wrap(),
+                    ->rules(['required', 'max:255'])
+                    ->disabled(! $isEditable)
+                    ->searchable(),
 
-                Tables\Columns\TextColumn::make('quantity')
+                // Quantity - Inline editable
+                Tables\Columns\TextInputColumn::make('quantity')
                     ->label(__('billing::billing.fields.quantity'))
-                    ->numeric(2),
+                    ->type('number')
+                    ->rules(['required', 'numeric', 'min:0.01'])
+                    ->disabled(! $isEditable)
+                    ->afterStateUpdated(fn ($record) => $this->recalculate($record)),
 
-                Tables\Columns\TextColumn::make('unit_price_minor')
+                // Unit Price - Inline editable with conversion
+                Tables\Columns\TextInputColumn::make('unit_price_value')
                     ->label(__('billing::billing.fields.unit_price'))
-                    ->formatStateUsing(fn ($state) => format_money($state)),
+                    ->type('number')
+                    ->disabled(! $isEditable)
+                    ->state(fn ($record) => number_format($record->unit_price_minor / 100, 2, '.', ''))
+                    ->updateStateUsing(function ($record, $state) {
+                        $record->update(['unit_price_minor' => (int)(floatval($state) * 100)]);
+                        $this->recalculate($record);
+                        return $state;
+                    }),
 
-                Tables\Columns\TextColumn::make('discount_minor')
+                // Discount - Inline editable with conversion
+                Tables\Columns\TextInputColumn::make('discount_value')
                     ->label(__('billing::billing.fields.discount'))
-                    ->formatStateUsing(fn ($state, $record) => $state > 0
-                        ? ($record->discount_type === 'percent'
-                            ? $state . '%'
-                            : number_format($state / 100, 2))
-                        : '-'),
+                    ->type('number')
+                    ->disabled(! $isEditable)
+                    ->state(fn ($record) => $record->discount_type === 'percent'
+                        ? number_format($record->discount_minor, 2, '.', '')
+                        : number_format($record->discount_minor / 100, 2, '.', ''))
+                    ->updateStateUsing(function ($record, $state) {
+                        $value = $record->discount_type === 'percent'
+                            ? (int) floatval($state)
+                            : (int)(floatval($state) * 100);
+                        $record->update(['discount_minor' => $value]);
+                        $this->recalculate($record);
+                        return $state;
+                    }),
 
+                // Taxes - Display only (multiple values)
                 Tables\Columns\TextColumn::make('tax_rates')
                     ->label(__('billing::billing.fields.taxes'))
                     ->formatStateUsing(function ($state, $record) {
-                        // Use record's accessor to get properly casted array
                         $rates = $record->tax_rates ?? [];
-
-                        // Fallback to state parsing if record accessor fails
                         if (empty($rates)) {
-                            if (empty($state)) {
-                                return '-';
-                            }
-                            $rates = is_array($state) ? $state : json_decode($state, true);
-                        }
-
-                        if (empty($rates) || !is_array($rates)) {
                             return '-';
                         }
-
                         $vatRates = array_filter($rates, fn ($r) => floatval($r) >= 0);
                         $whRates = array_filter($rates, fn ($r) => floatval($r) < 0);
-
                         $parts = [];
                         if (!empty($vatRates)) {
-                            $parts[] = 'VAT: ' . implode(', ', array_map(fn ($r) => $r . '%', $vatRates));
+                            $parts[] = 'VAT: ' . implode(', ', array_map(fn ($r) => number_format((float)$r, 2) . '%', $vatRates));
                         }
                         if (!empty($whRates)) {
-                            $parts[] = 'WH: ' . implode(', ', array_map(fn ($r) => $r . '%', $whRates));
+                            $parts[] = 'WH: ' . implode(', ', array_map(fn ($r) => number_format((float)$r, 2) . '%', $whRates));
                         }
                         return empty($parts) ? '-' : implode(' | ', $parts);
                     }),
 
+                // Total - Read only, calculated
                 Tables\Columns\TextColumn::make('total_minor')
                     ->label(__('billing::billing.fields.total'))
                     ->formatStateUsing(fn ($state) => format_money($state))
                     ->weight('bold'),
             ])
-            ->filters([
-                //
-            ])
+            ->filters([])
             ->headerActions([
                 Tables\Actions\CreateAction::make()
-                    ->visible(fn () => $this->ownerRecord->isEditable()),
+                    ->label(__('billing::billing.actions.add_line_item'))
+                    ->visible($isEditable)
+                    ->mutateFormDataUsing(function (array $data): array {
+                        if (!isset($data['account_id'])) {
+                            $data['account_id'] = ChartOfAccount::where('type', ChartOfAccount::TYPE_INCOME)
+                                ->where('is_active', true)
+                                ->first()?->id;
+                        }
+                        return $data;
+                    })
+                    ->after(fn () => $this->ownerRecord->recalculateTotals()),
             ])
             ->actions([
-                Tables\Actions\EditAction::make()
-                    ->visible(fn () => $this->ownerRecord->isEditable()),
                 Tables\Actions\DeleteAction::make()
-                    ->visible(fn () => $this->ownerRecord->isEditable()),
+                    ->iconButton()
+                    ->visible($isEditable)
+                    ->after(fn () => $this->ownerRecord->recalculateTotals()),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()
-                        ->visible(fn () => $this->ownerRecord->isEditable()),
-                ]),
-            ])
+            ->bulkActions([])
             ->reorderable('sort_order')
             ->defaultSort('sort_order');
+    }
+
+    protected function recalculate($record): void
+    {
+        $record->refresh();
+        $record->calculateTotal();
+        $record->save();
+        $this->ownerRecord->recalculateTotals();
     }
 }

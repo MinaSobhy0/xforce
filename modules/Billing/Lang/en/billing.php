@@ -35,6 +35,13 @@ return [
         'online' => 'Online Payment',
     ],
 
+    'line_types' => [
+        'service' => 'Service',
+        'product' => 'Product',
+        'package' => 'Package',
+        'other' => 'Other',
+    ],
+
     'actions' => [
         'issue' => 'Issue Invoice',
         'record_payment' => 'Record Payment',
@@ -43,6 +50,8 @@ return [
         'print' => 'Print',
         'download_pdf' => 'Download PDF',
         'add_line_item' => 'Add Line Item',
+        'edit_invoice' => 'Edit Invoice',
+        'edit_line' => 'Edit Line Item',
     ],
 
     'tabs' => [
@@ -85,6 +94,7 @@ return [
         'patient' => 'Patient',
         'branch' => 'Branch',
         'due_date' => 'Due Date',
+        'line_type' => 'Type',
         'service' => 'Service',
         'description' => 'Description',
         'account' => 'Account',
@@ -198,12 +208,16 @@ return [
 
     'placeholders' => [
         'auto_generated' => 'Auto-generated',
+        'no_payments' => 'No payments recorded yet',
+        'no_lines' => 'No line items added',
     ],
 
     'messages' => [
         'invoice_issued' => 'Invoice issued successfully',
         'payment_recorded' => 'Payment recorded successfully',
         'invoice_cancelled' => 'Invoice cancelled',
+        'issue_confirmation' => 'This will issue the invoice and send it to the customer. This action cannot be undone.',
+        'cancel_confirmation' => 'Are you sure you want to cancel this invoice? This action cannot be undone.',
     ],
 
     // PDF Invoice

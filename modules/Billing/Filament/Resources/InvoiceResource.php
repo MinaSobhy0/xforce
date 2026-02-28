@@ -121,12 +121,26 @@ class InvoiceResource extends Resource
                                 Forms\Components\Repeater::make('lines')
                                     ->relationship()
                                     ->schema([
+                                        Forms\Components\Select::make('line_type')
+                                            ->label(__('billing::billing.fields.line_type'))
+                                            ->options([
+                                                InvoiceLine::LINE_TYPE_SERVICE => __('billing::billing.line_types.service'),
+                                                InvoiceLine::LINE_TYPE_PRODUCT => __('billing::billing.line_types.product'),
+                                                InvoiceLine::LINE_TYPE_PACKAGE => __('billing::billing.line_types.package'),
+                                                InvoiceLine::LINE_TYPE_OTHER => __('billing::billing.line_types.other'),
+                                            ])
+                                            ->default(InvoiceLine::LINE_TYPE_SERVICE)
+                                            ->required()
+                                            ->live()
+                                            ->columnSpan(['default' => 12, 'md' => 2]),
+
                                         Forms\Components\Select::make('service_id')
                                             ->label(__('billing::billing.fields.service'))
                                             ->options(Service::query()->where('is_active', true)->pluck('name', 'id'))
                                             ->searchable()
                                             ->preload()
                                             ->live()
+                                            ->visible(fn (Forms\Get $get) => $get('line_type') === InvoiceLine::LINE_TYPE_SERVICE)
                                             ->afterStateUpdated(function ($state, Forms\Set $set, \Livewire\Component $livewire) {
                                                 if ($state) {
                                                     $service = Service::find($state);
@@ -142,7 +156,7 @@ class InvoiceResource extends Resource
                                                     }
                                                 }
                                             })
-                                            ->columnSpan(['default' => 12, 'md' => 4]),
+                                            ->columnSpan(['default' => 12, 'md' => 3]),
 
                                         Forms\Components\TextInput::make('description')
                                             ->required()
@@ -162,7 +176,7 @@ class InvoiceResource extends Resource
                                             ->searchable()
                                             ->preload()
                                             ->required()
-                                            ->columnSpan(['default' => 12, 'md' => 4]),
+                                            ->columnSpan(['default' => 12, 'md' => 3]),
 
                                         Forms\Components\TextInput::make('quantity')
                                             ->label(__('billing::billing.fields.quantity'))
@@ -586,102 +600,54 @@ class InvoiceResource extends Resource
     {
         return $infolist
             ->schema([
+                // Header Section - Invoice Info & Customer Combined
                 Infolists\Components\Section::make()
                     ->schema([
-                        Infolists\Components\TextEntry::make('code')
-                            ->label(__('billing::billing.fields.invoice_code'))
-                            ->weight(FontWeight::Bold)
-                            ->size(Infolists\Components\TextEntry\TextEntrySize::Large),
+                        Infolists\Components\Grid::make(4)
+                            ->schema([
+                                Infolists\Components\Group::make([
+                                    Infolists\Components\TextEntry::make('code')
+                                        ->label(__('billing::billing.fields.invoice_code'))
+                                        ->weight(FontWeight::Bold)
+                                        ->size(Infolists\Components\TextEntry\TextEntrySize::Large),
+                                    Infolists\Components\TextEntry::make('type')
+                                        ->formatStateUsing(fn ($state) => Invoice::TYPES[$state] ?? $state)
+                                        ->color('gray'),
+                                ]),
 
-                        Infolists\Components\TextEntry::make('status')
-                            ->badge()
-                            ->formatStateUsing(fn (string $state): string => Invoice::STATUSES[$state] ?? $state)
-                            ->color(fn (string $state): string => Invoice::STATUS_COLORS[$state] ?? 'gray'),
+                                Infolists\Components\Group::make([
+                                    Infolists\Components\TextEntry::make('patient.full_name')
+                                        ->label(__('billing::billing.fields.patient'))
+                                        ->icon('heroicon-o-user'),
+                                    Infolists\Components\TextEntry::make('branch.name')
+                                        ->label(__('billing::billing.fields.branch'))
+                                        ->icon('heroicon-o-building-storefront')
+                                        ->color('gray'),
+                                ]),
 
-                        Infolists\Components\TextEntry::make('type')
-                            ->formatStateUsing(fn ($state) => Invoice::TYPES[$state] ?? $state),
+                                Infolists\Components\Group::make([
+                                    Infolists\Components\TextEntry::make('created_at')
+                                        ->label(__('billing::billing.fields.created'))
+                                        ->date()
+                                        ->icon('heroicon-o-calendar'),
+                                    Infolists\Components\TextEntry::make('due_date')
+                                        ->label(__('billing::billing.fields.due_date'))
+                                        ->date()
+                                        ->icon('heroicon-o-clock')
+                                        ->color(fn (Invoice $record) => $record->is_overdue ? 'danger' : 'gray')
+                                        ->placeholder('-'),
+                                ]),
+
+                                Infolists\Components\Group::make([
+                                    Infolists\Components\TextEntry::make('status')
+                                        ->label(__('billing::billing.fields.status'))
+                                        ->badge()
+                                        ->formatStateUsing(fn (string $state): string => Invoice::STATUSES[$state] ?? $state)
+                                        ->color(fn (string $state): string => Invoice::STATUS_COLORS[$state] ?? 'gray'),
+                                ])->extraAttributes(['class' => 'flex items-center justify-end']),
+                            ]),
                     ])
-                    ->columns(3),
-
-                Infolists\Components\Section::make(__('billing::billing.sections.customer'))
-                    ->schema([
-                        Infolists\Components\TextEntry::make('patient.full_name')
-                            ->label(__('billing::billing.fields.patient')),
-
-                        Infolists\Components\TextEntry::make('patient.phone')
-                            ->label(__('billing::billing.fields.phone')),
-
-                        Infolists\Components\TextEntry::make('branch.name')
-                            ->label(__('billing::billing.fields.branch')),
-                    ])
-                    ->columns(3),
-
-                Infolists\Components\Section::make(__('billing::billing.sections.amounts'))
-                    ->schema([
-                        Infolists\Components\TextEntry::make('subtotal_minor')
-                            ->label(__('billing::billing.fields.subtotal'))
-                            ->formatStateUsing(fn ($state) => format_money($state)),
-
-                        Infolists\Components\TextEntry::make('discount_minor')
-                            ->label(__('billing::billing.fields.discount'))
-                            ->formatStateUsing(fn ($state) => format_money($state)),
-
-                        Infolists\Components\TextEntry::make('tax_minor')
-                            ->label(__('billing::billing.fields.tax'))
-                            ->formatStateUsing(fn ($state) => format_money($state)),
-
-                        Infolists\Components\TextEntry::make('total_minor')
-                            ->label(__('billing::billing.fields.total'))
-                            ->formatStateUsing(fn ($state) => format_money($state))
-                            ->weight(FontWeight::Bold),
-
-                        Infolists\Components\TextEntry::make('paid_minor')
-                            ->label(__('billing::billing.fields.paid'))
-                            ->formatStateUsing(fn ($state) => format_money($state))
-                            ->color('success'),
-
-                        Infolists\Components\TextEntry::make('remaining_minor')
-                            ->label(__('billing::billing.fields.remaining'))
-                            ->formatStateUsing(fn ($state) => format_money($state))
-                            ->color(fn ($state) => $state > 0 ? 'danger' : 'success'),
-                    ])
-                    ->columns(3),
-
-                Infolists\Components\Section::make(__('billing::billing.sections.dates'))
-                    ->schema([
-                        Infolists\Components\TextEntry::make('created_at')
-                            ->label(__('billing::billing.fields.created'))
-                            ->dateTime(),
-
-                        Infolists\Components\TextEntry::make('issued_at')
-                            ->label(__('billing::billing.fields.issued_at'))
-                            ->dateTime()
-                            ->placeholder(__('billing::billing.placeholders.not_issued')),
-
-                        Infolists\Components\TextEntry::make('due_date')
-                            ->label(__('billing::billing.fields.due_date'))
-                            ->date()
-                            ->placeholder(__('billing::billing.placeholders.no_due_date')),
-
-                        Infolists\Components\TextEntry::make('paid_at')
-                            ->label(__('billing::billing.fields.paid'))
-                            ->dateTime()
-                            ->placeholder(__('billing::billing.placeholders.not_paid')),
-                    ])
-                    ->columns(4),
-
-                Infolists\Components\Section::make(__('billing::billing.sections.notes'))
-                    ->schema([
-                        Infolists\Components\TextEntry::make('notes')
-                            ->label(__('billing::billing.fields.customer_notes'))
-                            ->placeholder(__('billing::billing.placeholders.no_notes')),
-
-                        Infolists\Components\TextEntry::make('internal_notes')
-                            ->label(__('billing::billing.fields.internal_notes'))
-                            ->placeholder(__('billing::billing.placeholders.no_internal_notes')),
-                    ])
-                    ->columns(2)
-                    ->collapsed(),
+                    ->compact(),
             ]);
     }
 

@@ -35,6 +35,13 @@ return [
         'online' => 'دفع إلكتروني',
     ],
 
+    'line_types' => [
+        'service' => 'خدمة',
+        'product' => 'منتج',
+        'package' => 'باقة',
+        'other' => 'أخرى',
+    ],
+
     'actions' => [
         'issue' => 'إصدار الفاتورة',
         'record_payment' => 'تسجيل دفعة',
@@ -43,6 +50,8 @@ return [
         'print' => 'طباعة',
         'download_pdf' => 'تحميل PDF',
         'add_line_item' => 'إضافة بند',
+        'edit_invoice' => 'تعديل الفاتورة',
+        'edit_line' => 'تعديل البند',
     ],
 
     'tabs' => [
@@ -85,6 +94,7 @@ return [
         'patient' => 'المريض',
         'branch' => 'الفرع',
         'due_date' => 'تاريخ الاستحقاق',
+        'line_type' => 'النوع',
         'service' => 'الخدمة',
         'description' => 'الوصف',
         'account' => 'الحساب',
@@ -130,6 +140,8 @@ return [
         'no_notes' => 'لا توجد ملاحظات',
         'no_internal_notes' => 'لا توجد ملاحظات داخلية',
         'no_reference' => '-',
+        'no_payments' => 'لم يتم تسجيل أي مدفوعات بعد',
+        'no_lines' => 'لم يتم إضافة بنود',
     ],
 
     'relation' => [
@@ -200,6 +212,8 @@ return [
         'invoice_issued' => 'تم إصدار الفاتورة بنجاح',
         'payment_recorded' => 'تم تسجيل الدفعة بنجاح',
         'invoice_cancelled' => 'تم إلغاء الفاتورة',
+        'issue_confirmation' => 'سيتم إصدار الفاتورة وإرسالها للعميل. لا يمكن التراجع عن هذا الإجراء.',
+        'cancel_confirmation' => 'هل أنت متأكد من إلغاء هذه الفاتورة؟ لا يمكن التراجع عن هذا الإجراء.',
     ],
 
     // PDF Invoice
