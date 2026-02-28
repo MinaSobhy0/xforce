@@ -5,15 +5,414 @@
 @php
     $openSidebarClasses = 'fi-sidebar-open translate-x-0 shadow-xl ring-1 ring-gray-950/5 dark:ring-white/10 rtl:-translate-x-0';
     $isRtl = __('filament-panels::layout.direction') === 'rtl';
+    $panelId = filament()->getCurrentPanel()?->getId();
+
+    // Quick Access items configuration - only for tenant panel
+    $quickAccessItems = [];
+    if ($panelId === 'tenant') {
+        $quickAccessItems = [
+            [
+                'label' => __('Today'),
+                'icon' => 'heroicon-o-calendar',
+                'url' => route('filament.tenant.pages.reception'),
+            ],
+            [
+                'label' => __('Book'),
+                'icon' => 'heroicon-o-plus-circle',
+                'url' => route('filament.tenant.pages.create-booking'),
+            ],
+            [
+                'label' => __('Patients'),
+                'icon' => 'heroicon-o-users',
+                'url' => route('filament.tenant.resources.patients.index'),
+            ],
+            [
+                'label' => __('Calendar'),
+                'icon' => 'heroicon-o-calendar-days',
+                'url' => route('filament.tenant.pages.calendar'),
+            ],
+        ];
+    }
 @endphp
+
+<style>
+    /* Icon Rail Header */
+    .fi-rail-header {
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .dark .fi-rail-header {
+        border-bottom: 1px solid #334155;
+    }
+
+    /* Logo */
+    .fi-rail-logo {
+        color: #1f2937;
+    }
+
+    .dark .fi-rail-logo {
+        color: #f1f5f9;
+    }
+
+    /* Icon Rail Styles - Light Mode */
+    .fi-sidebar-rail-light {
+        background: #ffffff !important;
+        border-right: 1px solid #e5e7eb !important;
+    }
+
+    .fi-sidebar-rail-light .fi-rail-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        padding: 10px 4px;
+        border-radius: 10px;
+        color: #64748b;
+        cursor: pointer;
+        border: none;
+        background: transparent;
+        transition: all 0.2s ease;
+    }
+
+    .fi-sidebar-rail-light .fi-rail-btn:hover {
+        background: #f1f5f9;
+        color: #334155;
+    }
+
+    .fi-sidebar-rail-light .fi-rail-btn.active {
+        background: #eef2ff;
+        color: #4f46e5;
+        box-shadow: inset 3px 0 0 #6366f1;
+    }
+
+    .fi-sidebar-rail-light .fi-rail-btn-icon {
+        width: 20px;
+        height: 20px;
+        margin-bottom: 4px;
+    }
+
+    .fi-sidebar-rail-light .fi-rail-btn-label {
+        font-size: 8px;
+        font-weight: 500;
+        text-align: center;
+        line-height: 1.2;
+        text-transform: uppercase;
+        letter-spacing: 0.01em;
+        max-width: 100%;
+        word-wrap: break-word;
+        white-space: normal;
+    }
+
+
+    /* Icon Rail Styles - Dark Mode */
+    .dark .fi-sidebar-rail-light {
+        background: #1e293b !important;
+        border-right: 1px solid #334155 !important;
+    }
+
+    .dark .fi-sidebar-rail-light .fi-rail-btn {
+        color: #94a3b8;
+    }
+
+    .dark .fi-sidebar-rail-light .fi-rail-btn:hover {
+        background: rgba(255, 255, 255, 0.05);
+        color: #f1f5f9;
+    }
+
+    .dark .fi-sidebar-rail-light .fi-rail-btn.active {
+        background: rgba(99, 102, 241, 0.15);
+        color: #a5b4fc;
+        box-shadow: inset 3px 0 0 #6366f1;
+    }
+
+    .dark .fi-sidebar-rail-light .fi-rail-logo {
+        color: #f1f5f9;
+    }
+
+    .fi-rail-footer {
+        border-top: 1px solid #e5e7eb;
+        padding: 8px 6px;
+    }
+
+    .dark .fi-rail-footer {
+        border-top: 1px solid #334155;
+    }
+
+    /* Menu Panel Styles - Light Mode */
+    .fi-sidebar-menu-panel {
+        background: #ffffff !important;
+        border-right: 1px solid #e5e7eb !important;
+    }
+
+    .fi-sidebar-menu-panel .fi-panel-header {
+        height: 64px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 16px;
+        border-bottom: 1px solid #e5e7eb;
+        background: #ffffff;
+    }
+
+    .fi-sidebar-menu-panel .fi-panel-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #1f2937;
+    }
+
+    /* Menu Panel Styles - Dark Mode */
+    .dark .fi-sidebar-menu-panel {
+        background: #1e293b !important;
+        border-right: 1px solid #334155 !important;
+    }
+
+    .dark .fi-sidebar-menu-panel .fi-panel-header {
+        border-bottom: 1px solid #334155;
+        background: #1e293b;
+    }
+
+    .dark .fi-sidebar-menu-panel .fi-panel-title {
+        color: #f1f5f9;
+    }
+
+    .fi-panel-close-btn {
+        padding: 8px;
+        border-radius: 8px;
+        color: #94a3b8;
+        cursor: pointer;
+        border: none;
+        background: transparent;
+        transition: all 0.15s ease;
+    }
+
+    .fi-panel-close-btn:hover {
+        background: #f1f5f9;
+        color: #475569;
+    }
+
+    .dark .fi-panel-close-btn:hover {
+        background: #334155;
+        color: #f1f5f9;
+    }
+
+    /* Quick Access Section */
+    .fi-quick-access-section {
+        border-bottom: 1px solid #e5e7eb;
+        background: #fafafa;
+    }
+
+    .dark .fi-quick-access-section {
+        border-bottom: 1px solid #334155;
+        background: #263244;
+    }
+
+    /* Quick Access Grid */
+    .fi-quick-access-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+    }
+
+    .fi-quick-access-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 8px 4px;
+        border-radius: 8px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+
+    .fi-quick-access-btn:hover {
+        background: #f1f5f9;
+        border-color: #cbd5e1;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+    }
+
+    .fi-quick-access-btn .fi-qa-icon {
+        width: 18px;
+        height: 18px;
+        color: #64748b;
+        margin-bottom: 2px;
+    }
+
+    .fi-quick-access-btn:hover .fi-qa-icon {
+        color: #6366f1;
+    }
+
+    .fi-quick-access-btn .fi-qa-label {
+        font-size: 10px;
+        font-weight: 500;
+        color: #475569;
+    }
+
+    .fi-quick-access-btn:hover .fi-qa-label {
+        color: #1f2937;
+    }
+
+    /* Quick Access - Dark Mode */
+    .dark .fi-quick-access-btn {
+        background: #334155;
+        border-color: #475569;
+    }
+
+    .dark .fi-quick-access-btn:hover {
+        background: #3f4f66;
+        border-color: #64748b;
+    }
+
+    .dark .fi-quick-access-btn .fi-qa-icon {
+        color: #94a3b8;
+    }
+
+    .dark .fi-quick-access-btn:hover .fi-qa-icon {
+        color: #a5b4fc;
+    }
+
+    .dark .fi-quick-access-btn .fi-qa-label {
+        color: #cbd5e1;
+    }
+
+    .dark .fi-quick-access-btn:hover .fi-qa-label {
+        color: #f1f5f9;
+    }
+
+    /* Menu Items */
+    .fi-menu-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 12px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        color: #475569;
+        text-decoration: none;
+        transition: all 0.15s ease;
+        margin-bottom: 2px;
+    }
+
+    .fi-menu-item:hover {
+        background: #f1f5f9;
+        color: #1f2937;
+    }
+
+    .fi-menu-item.active {
+        background: #eef2ff;
+        color: #4f46e5;
+        box-shadow: inset 3px 0 0 #6366f1;
+    }
+
+    .fi-menu-item .fi-menu-icon {
+        width: 20px;
+        height: 20px;
+        color: #94a3b8;
+        flex-shrink: 0;
+    }
+
+    .fi-menu-item:hover .fi-menu-icon {
+        color: #64748b;
+    }
+
+    .fi-menu-item.active .fi-menu-icon {
+        color: #6366f1;
+    }
+
+    .fi-menu-item .fi-menu-badge {
+        margin-left: auto;
+        padding: 2px 8px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 600;
+        background: #f1f5f9;
+        color: #64748b;
+    }
+
+    .fi-menu-item.active .fi-menu-badge {
+        background: #e0e7ff;
+        color: #4f46e5;
+    }
+
+    /* Menu Items - Dark Mode */
+    .dark .fi-menu-item {
+        color: #cbd5e1;
+    }
+
+    .dark .fi-menu-item:hover {
+        background: #334155;
+        color: #f1f5f9;
+    }
+
+    .dark .fi-menu-item.active {
+        background: rgba(99, 102, 241, 0.15);
+        color: #a5b4fc;
+    }
+
+    .dark .fi-menu-item .fi-menu-icon {
+        color: #64748b;
+    }
+
+    .dark .fi-menu-item:hover .fi-menu-icon {
+        color: #94a3b8;
+    }
+
+    .dark .fi-menu-item.active .fi-menu-icon {
+        color: #a5b4fc;
+    }
+
+    .dark .fi-menu-item .fi-menu-badge {
+        background: #334155;
+        color: #94a3b8;
+    }
+
+    .dark .fi-menu-item.active .fi-menu-badge {
+        background: rgba(99, 102, 241, 0.2);
+        color: #a5b4fc;
+    }
+
+    /* Submenu List */
+    .fi-submenu-list {
+        margin: 4px 0 4px 32px;
+        padding-left: 12px;
+        border-left: 2px solid #e5e7eb;
+        list-style: none;
+    }
+
+    .dark .fi-submenu-list {
+        border-left-color: #475569;
+    }
+
+    /* Scrollbar styling */
+    .fi-sidebar-panel-nav::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .fi-sidebar-panel-nav::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .fi-sidebar-panel-nav::-webkit-scrollbar-thumb {
+        background: #e2e8f0;
+        border-radius: 4px;
+    }
+
+    .fi-sidebar-panel-nav::-webkit-scrollbar-thumb:hover {
+        background: #cbd5e1;
+    }
+</style>
 
 {{-- format-ignore-start --}}
 <aside
     x-data="{
         activeGroup: localStorage.getItem('sidebar_active_group') || null,
+        isPanelCollapsed: localStorage.getItem('sidebar_panel_collapsed') === 'true',
         init() {
-            // Restore active group from localStorage
             this.activeGroup = localStorage.getItem('sidebar_active_group') || null;
+            this.isPanelCollapsed = localStorage.getItem('sidebar_panel_collapsed') === 'true';
         },
         setActiveGroup(group) {
             if (this.activeGroup === group) {
@@ -22,11 +421,21 @@
             } else {
                 this.activeGroup = group;
                 localStorage.setItem('sidebar_active_group', group);
+                this.isPanelCollapsed = false;
+                localStorage.setItem('sidebar_panel_collapsed', 'false');
             }
         },
         closeGroup() {
             this.activeGroup = null;
             localStorage.removeItem('sidebar_active_group');
+        },
+        togglePanel() {
+            this.isPanelCollapsed = !this.isPanelCollapsed;
+            localStorage.setItem('sidebar_panel_collapsed', this.isPanelCollapsed);
+            if (this.isPanelCollapsed) {
+                this.activeGroup = null;
+                localStorage.removeItem('sidebar_active_group');
+            }
         },
         isGroupActive(group) {
             return this.activeGroup === group;
@@ -36,153 +445,193 @@
     x-bind:class="$store.sidebar.isOpen ? @js($openSidebarClasses) : '-translate-x-full rtl:translate-x-full lg:translate-x-0'"
     {{
         $attributes->class([
-            'fi-sidebar fixed inset-y-0 start-0 z-30 flex h-screen content-start bg-white transition-all dark:bg-gray-900 lg:z-0 lg:sticky lg:bg-transparent lg:shadow-none lg:ring-0 lg:transition-none dark:lg:bg-transparent',
+            'fi-sidebar fixed inset-y-0 start-0 z-30 flex h-screen content-start bg-transparent transition-all dark:bg-transparent lg:z-0 lg:sticky lg:shadow-none lg:ring-0 lg:transition-none',
         ])
     }}
 >
-    <div class="h-full flex">
-        {{-- First Sidebar: Icons with labels --}}
-        <div class="fi-sidebar-icons flex flex-col w-24 h-full bg-gray-50 dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800 shrink-0">
-            {{-- Logo Area - aligned with topbar --}}
-            <header class="flex h-16 items-center justify-center bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10">
+    <div style="height: 100%; display: flex;">
+        {{-- Icon Rail (Left Sidebar) - LIGHT --}}
+        <div class="fi-sidebar-rail-light" style="width: 85px; height: 100%; display: flex; flex-direction: column; flex-shrink: 0;">
+            {{-- Logo Area --}}
+            <header class="fi-rail-header" style="height: 64px; display: flex; align-items: center; justify-content: center;">
                 @if ($homeUrl = filament()->getHomeUrl())
-                    <a {{ \Filament\Support\generate_href_html($homeUrl) }} class="flex items-center justify-center">
+                    <a {{ \Filament\Support\generate_href_html($homeUrl) }} style="display: flex; align-items: center; justify-content: center;">
                         @php
                             $logo = \App\Models\PlatformSetting::get('platform_logo');
                         @endphp
                         @if($logo)
-                            <img src="{{ asset('storage/' . $logo) }}" alt="Logo" class="h-10 w-auto object-contain" />
+                            <img src="{{ asset('storage/' . $logo) }}" alt="Logo" style="height: 32px; width: auto; object-fit: contain;" />
                         @else
-                            <x-filament::icon
-                                icon="heroicon-o-squares-2x2"
-                                class="w-8 h-8 text-primary-600"
-                            />
+                            <div class="fi-rail-logo" style="font-size: 18px; font-weight: 700; letter-spacing: -0.02em;">
+                                <span style="color: #6366f1;">X</span>Linic
+                            </div>
                         @endif
                     </a>
                 @endif
             </header>
 
             {{-- Navigation Icons --}}
-            <nav class="flex-1 overflow-y-auto py-8 px-2">
-                <ul class="flex flex-col items-center gap-4">
+            <nav style="flex: 1; overflow-y: auto; padding: 12px 6px;">
+                <ul style="display: flex; flex-direction: column; gap: 4px; list-style: none; margin: 0; padding: 0;">
                     @foreach ($navigation as $group)
                         @php
                             $groupLabel = $group->getLabel();
                             $groupIcon = $group->getIcon();
-                            $isActive = $group->isActive();
                         @endphp
-                        <li class="w-full">
+                        <li>
                             <button
                                 type="button"
                                 x-on:click="setActiveGroup('{{ $groupLabel }}')"
-                                x-bind:class="isGroupActive('{{ $groupLabel }}') ? 'bg-primary-50 text-primary-600 dark:bg-primary-500/10 dark:text-primary-400' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800'"
-                                class="flex flex-col items-center justify-center w-full py-3 px-2 rounded-xl transition-colors duration-200 group"
+                                :class="isGroupActive('{{ $groupLabel }}') ? 'fi-rail-btn active' : 'fi-rail-btn'"
                                 title="{{ $groupLabel }}"
                             >
                                 @if($groupIcon)
                                     <x-filament::icon
                                         :icon="$groupIcon"
-                                        class="w-5 h-5 mb-1"
+                                        class="fi-rail-btn-icon"
                                     />
                                 @else
                                     <x-filament::icon
                                         icon="heroicon-o-folder"
-                                        class="w-5 h-5 mb-1"
+                                        class="fi-rail-btn-icon"
                                     />
                                 @endif
-                                <span class="text-[9px] font-normal text-center leading-tight whitespace-normal break-words w-full">
-                                    {{ $groupLabel }}
-                                </span>
+                                <span class="fi-rail-btn-label">{{ $groupLabel }}</span>
                             </button>
                         </li>
                     @endforeach
                 </ul>
             </nav>
 
-            {{-- User Menu at Bottom --}}
-            <div class="border-t border-gray-200 dark:border-gray-800 p-2">
-                <form action="{{ filament()->getLogoutUrl() }}" method="post" class="w-full">
+            {{-- Logout --}}
+            <div class="fi-rail-footer">
+                <form action="{{ filament()->getLogoutUrl() }}" method="post" style="width: 100%;">
                     @csrf
-                    <x-filament::icon-button
-                        color="gray"
-                        icon="heroicon-o-arrow-right-on-rectangle"
-                        :label="__('filament-panels::layout.actions.logout.label')"
-                        tag="button"
-                        type="submit"
-                        class="w-full"
-                    />
+                    <button type="submit" class="fi-rail-btn" style="width: 100%;">
+                        <x-filament::icon icon="heroicon-o-arrow-left-on-rectangle" class="fi-rail-btn-icon" />
+                        <span class="fi-rail-btn-label">Logout</span>
+                    </button>
                 </form>
             </div>
         </div>
 
-        {{-- Second Sidebar: Sub-items --}}
+        {{-- Menu Panel (Right Sidebar) - LIGHT --}}
         <div
-            x-show="activeGroup !== null"
-            x-transition
-            x-cloak
-            class="fi-sidebar-items w-56 h-full bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 shadow-xl ring-1 ring-gray-950/5 dark:ring-white/10 shrink-0 flex flex-col"
+            x-show="activeGroup !== null && !isPanelCollapsed"
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0 -translate-x-4"
+            x-transition:enter-end="opacity-100 translate-x-0"
+            x-transition:leave="transition ease-in duration-150"
+            x-transition:leave-start="opacity-100 translate-x-0"
+            x-transition:leave-end="opacity-0 -translate-x-4"
+            class="fi-sidebar-menu-panel"
+            style="width: 260px; height: 100%; display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden; box-shadow: 4px 0 15px rgba(0, 0, 0, 0.05);"
         >
-            {{-- Header with group name - aligned with topbar --}}
-            <header class="flex h-16 items-center gap-x-4 px-4 bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10 shrink-0">
-                <h2 class="text-sm font-semibold text-gray-900 dark:text-white truncate flex-1" x-text="activeGroup"></h2>
+            {{-- Panel Header --}}
+            <header class="fi-panel-header">
+                <span class="fi-panel-title" x-text="activeGroup"></span>
                 <button
                     type="button"
-                    x-on:click="closeGroup()"
-                    class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-500"
+                    x-on:click="togglePanel()"
+                    class="fi-panel-close-btn"
+                    title="Collapse"
                 >
-                    <x-filament::icon
-                        icon="heroicon-o-x-mark"
-                        class="w-5 h-5"
-                    />
+                    <x-filament::icon icon="heroicon-o-chevron-left" style="width: 18px; height: 18px;" />
                 </button>
             </header>
 
-            {{-- Items List --}}
-            <nav class="flex-1 overflow-y-auto py-4 px-3">
+            {{-- Quick Access Section --}}
+            @if(count($quickAccessItems) > 0)
+                <div class="fi-quick-access-section" style="padding: 10px 12px;">
+                    <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
+                        <x-filament::icon icon="heroicon-o-bolt" style="width: 12px; height: 12px; color: #94a3b8;" />
+                        <span style="font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Quick Access</span>
+                    </div>
+                    <div class="fi-quick-access-grid">
+                        @foreach($quickAccessItems as $item)
+                            <a href="{{ $item['url'] }}" class="fi-quick-access-btn">
+                                <x-filament::icon :icon="$item['icon']" class="fi-qa-icon" />
+                                <span class="fi-qa-label">{{ $item['label'] }}</span>
+                            </a>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+
+            {{-- Menu Items --}}
+            <nav class="fi-sidebar-panel-nav" style="flex: 1; overflow-y: auto; padding: 12px;">
                 @foreach ($navigation as $group)
                     <ul
                         x-show="activeGroup === '{{ $group->getLabel() }}'"
-                        x-transition:enter="transition ease-out duration-100"
+                        x-transition:enter="transition ease-out duration-150"
                         x-transition:enter-start="opacity-0"
                         x-transition:enter-end="opacity-100"
-                        class="space-y-1"
+                        style="list-style: none; margin: 0; padding: 0;"
                     >
                         @foreach ($group->getItems() as $item)
                             @php
                                 $itemIsActive = $item->isActive();
+                                $hasChildren = count($item->getChildItems()) > 0;
                             @endphp
-                            <li>
-                                <a
-                                    href="{{ $item->getUrl() }}"
-                                    @if ($item->shouldOpenUrlInNewTab())
-                                        target="_blank"
-                                    @endif
-                                    @class([
-                                        'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200',
-                                        'bg-primary-50 text-primary-600 dark:bg-primary-500/10 dark:text-primary-400' => $itemIsActive,
-                                        'text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-800' => !$itemIsActive,
-                                    ])
-                                >
-                                    @if($icon = $item->getIcon())
+                            <li x-data="{ expanded: {{ $itemIsActive || collect($item->getChildItems())->contains(fn($child) => $child->isActive()) ? 'true' : 'false' }} }">
+                                @if($hasChildren)
+                                    {{-- Parent item with children --}}
+                                    <button
+                                        type="button"
+                                        x-on:click="expanded = !expanded"
+                                        class="fi-menu-item {{ $itemIsActive ? 'active' : '' }}"
+                                        style="width: 100%; cursor: pointer; border: none; background: transparent; text-align: left;"
+                                    >
+                                        @if($icon = $item->getIcon())
+                                            <x-filament::icon :icon="$icon" class="fi-menu-icon" />
+                                        @endif
+                                        <span style="flex: 1;">{{ $item->getLabel() }}</span>
                                         <x-filament::icon
-                                            :icon="$icon"
-                                            @class([
-                                                'w-5 h-5',
-                                                'text-primary-600 dark:text-primary-400' => $itemIsActive,
-                                                'text-gray-400 group-hover:text-gray-500 dark:text-gray-500 dark:group-hover:text-gray-400' => !$itemIsActive,
-                                            ])
+                                            icon="heroicon-o-chevron-down"
+                                            style="width: 16px; height: 16px; color: #94a3b8; transition: transform 0.2s ease;"
+                                            x-bind:style="expanded ? 'transform: rotate(180deg);' : ''"
                                         />
-                                    @endif
-                                    <span class="truncate">{{ $item->getLabel() }}</span>
-                                    @if($badge = $item->getBadge())
-                                        <span @class([
-                                            'ml-auto inline-flex items-center px-2 py-0.5 rounded text-xs font-medium',
-                                            'bg-primary-100 text-primary-700 dark:bg-primary-500/20 dark:text-primary-400',
-                                        ])>
-                                            {{ $badge }}
-                                        </span>
-                                    @endif
-                                </a>
+                                    </button>
+
+                                    {{-- Children --}}
+                                    <ul
+                                        x-show="expanded"
+                                        x-collapse
+                                        class="fi-submenu-list"
+                                    >
+                                        @foreach ($item->getChildItems() as $childItem)
+                                            @php $childIsActive = $childItem->isActive(); @endphp
+                                            <li>
+                                                <a
+                                                    href="{{ $childItem->getUrl() }}"
+                                                    @if ($childItem->shouldOpenUrlInNewTab()) target="_blank" @endif
+                                                    class="fi-menu-item {{ $childIsActive ? 'active' : '' }}"
+                                                    style="font-size: 13px; padding: 8px 12px;"
+                                                >
+                                                    <span>{{ $childItem->getLabel() }}</span>
+                                                    @if($badge = $childItem->getBadge())
+                                                        <span class="fi-menu-badge">{{ $badge }}</span>
+                                                    @endif
+                                                </a>
+                                            </li>
+                                        @endforeach
+                                    </ul>
+                                @else
+                                    {{-- Simple item without children --}}
+                                    <a
+                                        href="{{ $item->getUrl() }}"
+                                        @if ($item->shouldOpenUrlInNewTab()) target="_blank" @endif
+                                        class="fi-menu-item {{ $itemIsActive ? 'active' : '' }}"
+                                    >
+                                        @if($icon = $item->getIcon())
+                                            <x-filament::icon :icon="$icon" class="fi-menu-icon" />
+                                        @endif
+                                        <span>{{ $item->getLabel() }}</span>
+                                        @if($badge = $item->getBadge())
+                                            <span class="fi-menu-badge">{{ $badge }}</span>
+                                        @endif
+                                    </a>
+                                @endif
                             </li>
                         @endforeach
                     </ul>

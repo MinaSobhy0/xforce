@@ -172,6 +172,12 @@ class TenantPanelProvider extends PanelProvider
                 fn (): View => view('filament.hooks.branch-switcher')
             )
 
+            // Custom sidebar theme styles
+            ->renderHook(
+                PanelsRenderHook::STYLES_AFTER,
+                fn (): string => '<link rel="stylesheet" href="' . asset('css/filament/admin/theme.css') . '">'
+            )
+
             // Middleware - Session must start before tenant identification for CSRF
             ->middleware([
                 EncryptCookies::class,

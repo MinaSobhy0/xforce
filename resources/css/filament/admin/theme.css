@@ -1,183 +1,268 @@
-/* XLinic Admin Double Sidebar Theme */
+/* XLinic Enhanced Double Sidebar Theme */
 
-/* Enhanced sidebar styling for double-sidebar effect */
-.fi-sidebar {
-    transition: all 0.3s ease-in-out;
-}
+/* ================================================
+   SIDEBAR RAIL (Left Icon Column)
+   ================================================ */
 
-/* Navigation group icons - always visible */
-.fi-sidebar-nav-groups {
-    padding: 0.5rem;
-}
-
-/* Navigation group styling */
-.fi-sidebar-group {
-    margin-bottom: 0.25rem;
-    border-radius: 0.5rem;
-    overflow: hidden;
-}
-
-/* Group header with icon - mini sidebar indicator */
-.fi-sidebar-group-button {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.75rem 1rem;
-    width: 100%;
-    border-radius: 0.5rem;
-    transition: all 0.2s ease;
-}
-
-.fi-sidebar-group-button:hover {
-    background-color: rgba(59, 130, 246, 0.1);
-}
-
-/* Group icon styling - larger for mini sidebar visibility */
-.fi-sidebar-group-button .fi-sidebar-group-icon {
-    width: 1.5rem;
-    height: 1.5rem;
-    flex-shrink: 0;
-}
-
-/* Collapsed sidebar - show only icons */
-.fi-sidebar-collapsed .fi-sidebar-group-button span:not(.fi-sidebar-group-icon) {
-    display: none;
-}
-
-.fi-sidebar-collapsed .fi-sidebar-group-button {
-    justify-content: center;
-    padding: 0.75rem;
-}
-
-/* Group items styling */
-.fi-sidebar-group-items {
-    margin-left: 0.5rem;
-    padding-left: 1rem;
-    border-left: 2px solid rgba(59, 130, 246, 0.2);
-}
-
-/* Individual nav items */
-.fi-sidebar-item {
-    margin-bottom: 0.125rem;
-}
-
-.fi-sidebar-item-button {
-    padding: 0.5rem 0.75rem;
-    border-radius: 0.375rem;
-    transition: all 0.2s ease;
-}
-
-.fi-sidebar-item-button:hover {
-    background-color: rgba(59, 130, 246, 0.1);
-}
-
-/* Active item styling */
-.fi-sidebar-item-active .fi-sidebar-item-button {
-    background-color: rgba(59, 130, 246, 0.15);
-    border-left: 3px solid rgb(59, 130, 246);
-}
-
-/* Dark mode adjustments */
-.dark .fi-sidebar-group-button:hover {
-    background-color: rgba(59, 130, 246, 0.2);
-}
-
-.dark .fi-sidebar-group-items {
-    border-left-color: rgba(59, 130, 246, 0.3);
-}
-
-.dark .fi-sidebar-item-button:hover {
-    background-color: rgba(59, 130, 246, 0.2);
-}
-
-.dark .fi-sidebar-item-active .fi-sidebar-item-button {
-    background-color: rgba(59, 130, 246, 0.25);
-}
-
-/* Sidebar header branding */
-.fi-sidebar-header {
-    padding: 1rem;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-    margin-bottom: 0.5rem;
-}
-
-.dark .fi-sidebar-header {
-    border-bottom-color: rgba(255, 255, 255, 0.1);
-}
-
-/* Collapsed sidebar tooltip */
-.fi-sidebar-collapsed .fi-sidebar-group {
+.fi-sidebar-rail {
     position: relative;
 }
 
-.fi-sidebar-collapsed .fi-sidebar-group:hover .fi-sidebar-group-items {
-    display: block !important;
+/* Subtle gradient overlay for depth */
+.fi-sidebar-rail::before {
+    content: '';
     position: absolute;
-    left: 100%;
-    top: 0;
-    min-width: 200px;
-    background: white;
-    border-radius: 0.5rem;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    padding: 0.5rem;
-    margin-left: 0.5rem;
-    z-index: 50;
-    border-left: none;
-    margin-left: 0.25rem;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(255,255,255,0.02) 0%, transparent 50%, rgba(0,0,0,0.1) 100%);
+    pointer-events: none;
 }
 
-.dark .fi-sidebar-collapsed .fi-sidebar-group:hover .fi-sidebar-group-items {
-    background: rgb(31, 41, 55);
+/* Rail navigation scrollbar */
+.fi-sidebar-rail-nav::-webkit-scrollbar {
+    width: 3px;
 }
 
-/* Smooth transitions for sidebar */
-.fi-sidebar,
-.fi-sidebar-nav,
-.fi-sidebar-group,
-.fi-sidebar-group-items {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Mobile responsive */
-@media (max-width: 1024px) {
-    .fi-sidebar {
-        width: 100% !important;
-    }
-
-    .fi-sidebar-collapsed .fi-sidebar-group:hover .fi-sidebar-group-items {
-        position: static;
-        min-width: auto;
-        box-shadow: none;
-        background: transparent;
-        margin-left: 0;
-    }
-}
-
-/* Badge styling for menu items */
-.fi-sidebar-item-badge {
-    margin-left: auto;
-    padding: 0.125rem 0.5rem;
-    font-size: 0.75rem;
-    font-weight: 600;
-    border-radius: 9999px;
-    background-color: rgb(59, 130, 246);
-    color: white;
-}
-
-/* Scrollbar styling */
-.fi-sidebar-nav::-webkit-scrollbar {
-    width: 4px;
-}
-
-.fi-sidebar-nav::-webkit-scrollbar-track {
+.fi-sidebar-rail-nav::-webkit-scrollbar-track {
     background: transparent;
 }
 
-.fi-sidebar-nav::-webkit-scrollbar-thumb {
-    background-color: rgba(59, 130, 246, 0.3);
+.fi-sidebar-rail-nav::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+}
+
+.fi-sidebar-rail-nav::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Rail button hover glow effect */
+.fi-sidebar-rail-btn {
+    position: relative;
+    overflow: visible;
+}
+
+.fi-sidebar-rail-btn::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    background: radial-gradient(circle at center, var(--c-primary-500) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    border-radius: 16px;
+    z-index: -1;
+}
+
+.fi-sidebar-rail-btn:hover::before {
+    opacity: 0.15;
+}
+
+/* ================================================
+   SIDEBAR PANEL (Right Menu Column)
+   ================================================ */
+
+.fi-sidebar-panel {
+    position: relative;
+    background: linear-gradient(180deg, #f9fafb 0%, #f3f4f6 100%);
+}
+
+.dark .fi-sidebar-panel {
+    background: linear-gradient(180deg, #111827 0%, #0f172a 100%);
+}
+
+/* Panel scrollbar */
+.fi-sidebar-panel-nav::-webkit-scrollbar {
+    width: 4px;
+}
+
+.fi-sidebar-panel-nav::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.fi-sidebar-panel-nav::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.1);
     border-radius: 4px;
 }
 
-.fi-sidebar-nav::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(59, 130, 246, 0.5);
+.dark .fi-sidebar-panel-nav::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.fi-sidebar-panel-nav::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.dark .fi-sidebar-panel-nav::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* ================================================
+   QUICK ACCESS BUTTONS
+   ================================================ */
+
+.fi-quick-access-btn {
+    position: relative;
+    overflow: hidden;
+}
+
+.fi-quick-access-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    transition: left 0.5s ease;
+}
+
+.fi-quick-access-btn:hover::before {
+    left: 100%;
+}
+
+/* Color-specific hover states */
+.fi-quick-access-btn:hover.hover\:bg-emerald-50 {
+    background-color: rgba(16, 185, 129, 0.1) !important;
+}
+
+.fi-quick-access-btn:hover.hover\:bg-blue-50 {
+    background-color: rgba(59, 130, 246, 0.1) !important;
+}
+
+.fi-quick-access-btn:hover.hover\:bg-violet-50 {
+    background-color: rgba(139, 92, 246, 0.1) !important;
+}
+
+.fi-quick-access-btn:hover.hover\:bg-amber-50 {
+    background-color: rgba(245, 158, 11, 0.1) !important;
+}
+
+/* ================================================
+   MENU ITEMS
+   ================================================ */
+
+.fi-sidebar-item {
+    position: relative;
+}
+
+/* Hover lift effect */
+.fi-sidebar-item:hover {
+    transform: translateX(2px);
+}
+
+/* Active item glow */
+.fi-sidebar-item.bg-primary-50 {
+    box-shadow: 0 0 0 1px rgba(var(--c-primary-500), 0.1),
+                0 1px 3px rgba(var(--c-primary-500), 0.1);
+}
+
+/* Sub-items connecting line animation */
+.fi-sidebar-subitem {
+    position: relative;
+}
+
+.fi-sidebar-subitem::before {
+    content: '';
+    position: absolute;
+    left: -11px;
+    top: 50%;
+    width: 6px;
+    height: 1px;
+    background: currentColor;
+    opacity: 0.2;
+    transition: all 0.2s ease;
+}
+
+.fi-sidebar-subitem:hover::before {
+    width: 10px;
+    opacity: 0.4;
+}
+
+/* ================================================
+   TRANSITIONS & ANIMATIONS
+   ================================================ */
+
+/* Smooth transitions for all interactive elements */
+.fi-sidebar,
+.fi-sidebar-rail,
+.fi-sidebar-panel,
+.fi-sidebar-item,
+.fi-sidebar-subitem,
+.fi-quick-access-btn {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Alpine.js collapse transition */
+[x-collapse] {
+    transition-property: height, opacity;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ================================================
+   RESPONSIVE
+   ================================================ */
+
+@media (max-width: 1024px) {
+    .fi-sidebar-rail {
+        width: 64px !important;
+    }
+
+    .fi-sidebar-panel {
+        width: 280px !important;
+    }
+
+    .fi-sidebar-rail-btn span {
+        font-size: 8px;
+    }
+}
+
+/* ================================================
+   BADGE STYLING
+   ================================================ */
+
+.fi-sidebar-item .rounded {
+    animation: pulse-subtle 2s ease-in-out infinite;
+}
+
+@keyframes pulse-subtle {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.8;
+    }
+}
+
+/* ================================================
+   DARK MODE ENHANCEMENTS
+   ================================================ */
+
+.dark .fi-sidebar-rail {
+    background: linear-gradient(180deg, #0f172a 0%, #020617 100%);
+}
+
+.dark .fi-sidebar-panel {
+    box-shadow: -1px 0 0 rgba(255, 255, 255, 0.05);
+}
+
+/* ================================================
+   FOCUS STATES (Accessibility)
+   ================================================ */
+
+.fi-sidebar-rail-btn:focus-visible,
+.fi-sidebar-item:focus-visible,
+.fi-quick-access-btn:focus-visible {
+    outline: 2px solid var(--c-primary-500);
+    outline-offset: 2px;
+}
+
+/* ================================================
+   ICON SIZING UTILITIES
+   ================================================ */
+
+.w-4\.5 {
+    width: 1.125rem;
+}
+
+.h-4\.5 {
+    height: 1.125rem;
 }
