@@ -2,6 +2,7 @@
 
 namespace Modules\Inventory\Filament\Resources;
 
+use App\Services\BranchContext;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -49,7 +50,7 @@ class StockLocationResource extends Resource
                             ->required()
                             ->searchable()
                             ->preload()
-                            ->default(fn () => session('current_branch_id')),
+                            ->default(fn () => BranchContext::currentId()),
 
                         Forms\Components\Select::make('parent_id')
                             ->label(__('inventory::inventory.fields.parent_location'))

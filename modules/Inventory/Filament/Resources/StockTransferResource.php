@@ -2,6 +2,7 @@
 
 namespace Modules\Inventory\Filament\Resources;
 
+use App\Services\BranchContext;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -52,7 +53,7 @@ class StockTransferResource extends Resource
                             ->required()
                             ->searchable()
                             ->preload()
-                            ->default(fn () => session('current_branch_id'))
+                            ->default(fn () => BranchContext::currentId())
                             ->live(),
 
                         Forms\Components\TextInput::make('transfer_number')
