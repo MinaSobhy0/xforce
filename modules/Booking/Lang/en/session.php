@@ -119,6 +119,14 @@ return [
         'not_started' => 'Not Started',
         'in_progress' => 'In Progress',
         'cancelled' => 'Cancelled',
+        'completed' => 'Completed',
+        'delivered' => 'Delivered',
+        'package_item' => 'Package',
+        'legend' => [
+            'package' => 'From Package',
+            'individual' => 'Individual Service',
+            'product' => 'Product',
+        ],
     ],
 
     // Previous visits

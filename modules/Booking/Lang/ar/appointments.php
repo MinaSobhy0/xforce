@@ -105,6 +105,11 @@ return [
         'vs_last_week' => 'مقارنة بالأسبوع الماضي',
     ],
 
+    'labels' => [
+        'session_progress' => 'جلسة :used/:total',
+        'pulses_progress' => ':used/:total نبضة',
+    ],
+
     'validation' => [
         'practitioner_busy' => 'الطبيب لديه موعد آخر في :time مع :patient',
         'room_busy' => 'الغرفة مشغولة في :time بواسطة :patient',

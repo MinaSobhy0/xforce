@@ -59,9 +59,13 @@ class SubscriptionsRelationManager extends RelationManager
 
                 Tables\Columns\TextColumn::make('sessions_used')
                     ->label(__('packages::packages.fields.sessions_used'))
-                    ->getStateUsing(fn (PackageSubscription $record) =>
-                        $record->sessions_used . ' / ' . ($record->package?->total_sessions ?? 0)
-                    ),
+                    ->getStateUsing(function (PackageSubscription $record) {
+                        $package = $record->package;
+                        if ($package?->isPulseBased()) {
+                            return number_format($record->pulses_used) . ' / ' . number_format($package->total_pulses) . ' ' . __('packages::packages.labels.pulses');
+                        }
+                        return $record->sessions_used . ' / ' . ($package?->total_sessions ?? 0);
+                    }),
 
                 Tables\Columns\TextColumn::make('usage_progress')
                     ->label(__('packages::packages.fields.progress'))

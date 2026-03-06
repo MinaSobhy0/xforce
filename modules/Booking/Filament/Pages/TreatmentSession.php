@@ -211,6 +211,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
             'room',
             'branch',
             'treatmentPlanAppointment.item.treatmentPlan',
+            'packageSubscription.package.items',
             'visits',
         ])->find($this->appointment_id);
 
@@ -1774,12 +1775,15 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
     }
 
     /**
-     * Refresh equipment data to get latest shot counts.
+     * Refresh equipment data to get latest shot counts and tracking info.
      */
     protected function refreshEquipmentData(array $savedEquipment): array
     {
         $equipmentIds = collect($savedEquipment)->pluck('equipment_id')->toArray();
-        $freshEquipment = Equipment::whereIn('id', $equipmentIds)->get()->keyBy('id');
+        $freshEquipment = Equipment::with('trackingParameters')
+            ->whereIn('id', $equipmentIds)
+            ->get()
+            ->keyBy('id');
 
         return collect($savedEquipment)->map(function ($item) use ($freshEquipment) {
             $equipment = $freshEquipment->get($item['equipment_id']);
@@ -1792,6 +1796,8 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                 $item['is_maintenance_due'] = $equipment->is_maintenance_due;
                 $item['next_maintenance_at'] = $equipment->next_maintenance_at?->format('Y-m-d');
                 $item['status'] = $equipment->status;
+                // Refresh has_tracking in case parameters were added/removed
+                $item['has_tracking'] = $equipment->hasTracking();
             }
             return $item;
         })->toArray();
@@ -2621,6 +2627,39 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
             ->get()
             ->mapWithKeys(fn ($p) => [$p->id => $p->getTranslation('name', app()->getLocale())])
             ->toArray();
+    }
+
+    /**
+     * Get patient's active package subscriptions with their services.
+     */
+    public function getPatientActivePackages(): \Illuminate\Support\Collection
+    {
+        if (!$this->patient) {
+            return collect();
+        }
+
+        return \Modules\Packages\Models\PackageSubscription::query()
+            ->where('patient_id', $this->patient->id)
+            ->active()
+            ->with(['package.items.service'])
+            ->get();
+    }
+
+    /**
+     * Check if a service is covered by any active package subscription.
+     * Returns the package subscription if found, null otherwise.
+     */
+    public function getPackageForService(string $serviceId): ?\Modules\Packages\Models\PackageSubscription
+    {
+        $subscriptions = $this->getPatientActivePackages();
+
+        foreach ($subscriptions as $subscription) {
+            if ($subscription->package && $subscription->hasRemainingSessionsForService($serviceId)) {
+                return $subscription;
+            }
+        }
+
+        return null;
     }
 
     /**

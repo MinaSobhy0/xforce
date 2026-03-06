@@ -236,6 +236,56 @@ class TreatmentSessionData extends BaseModel
     }
 
     /**
+     * Get total pulses from equipment dynamic parameters.
+     * This sums up all parameters with unit 'pulses' from all equipment used.
+     */
+    public function getPulsesFromEquipmentParameters(): int
+    {
+        $equipmentParamValues = $this->equipment_parameter_values ?? [];
+
+        if (empty($equipmentParamValues)) {
+            return 0;
+        }
+
+        $totalPulses = 0;
+
+        foreach ($equipmentParamValues as $equipmentId => $paramValues) {
+            if (empty($paramValues)) {
+                continue;
+            }
+
+            // Load the equipment's tracking parameters to identify pulse-type parameters
+            $equipment = Equipment::with('trackingParameters')->find($equipmentId);
+            if (!$equipment) {
+                continue;
+            }
+
+            foreach ($equipment->trackingParameters as $param) {
+                // Check if this parameter is a pulse type by unit or parameter key (pulses only, not shots)
+                $isPulseParam = in_array(strtolower($param->unit ?? ''), ['pulses', 'pulse'])
+                    || str_contains(strtolower($param->parameter_key ?? ''), 'pulse');
+
+                if ($isPulseParam && isset($paramValues[$param->parameter_key])) {
+                    $value = $paramValues[$param->parameter_key];
+                    if (is_numeric($value)) {
+                        $totalPulses += (int) $value;
+                    }
+                }
+            }
+        }
+
+        return $totalPulses;
+    }
+
+    /**
+     * Get total consumption units (pulses from equipment parameters + pulses from treatment areas).
+     */
+    public function getTotalPulseConsumption(): int
+    {
+        return $this->getPulsesFromEquipmentParameters() + $this->getTotalPulses();
+    }
+
+    /**
      * Check if there were any adverse events.
      */
     public function hasAdverseEvents(): bool

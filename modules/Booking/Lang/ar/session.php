@@ -119,6 +119,14 @@ return [
         'not_started' => 'لم تبدأ',
         'in_progress' => 'جارية',
         'cancelled' => 'ملغاة',
+        'completed' => 'مكتمل',
+        'delivered' => 'تم التسليم',
+        'package_item' => 'باقة',
+        'legend' => [
+            'package' => 'من الباقة',
+            'individual' => 'خدمة فردية',
+            'product' => 'منتج',
+        ],
     ],
 
     // Previous visits

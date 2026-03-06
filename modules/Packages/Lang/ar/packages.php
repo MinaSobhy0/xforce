@@ -27,9 +27,13 @@ return [
         'sessions_consumed' => 'مستهلكة',
         'sessions_booked' => 'محجوزة',
         'sessions_available' => 'متاحة',
+        'sessions' => 'جلسات',
         'consumed' => 'مستهلكة',
         'booked' => 'محجوزة',
+        'pulses' => 'نبضات',
         'pulses_remaining' => 'نبضات متبقية',
+        'pulses_consumed' => 'نبضات مستهلكة',
+        'pulses_available' => 'نبضات متاحة',
     ],
 
     'pages' => [

@@ -119,7 +119,7 @@ class DoctorDashboard extends Page implements HasForms
         $user = auth()->user();
 
         return Appointment::query()
-            ->with(['patient', 'service', 'room', 'treatmentPlanAppointment.item'])
+            ->with(['patient', 'service', 'room', 'treatmentPlanAppointment.item', 'packageSubscription.package.items'])
             ->forDate(today())
             ->forPractitioner($user->id)
             ->ordered()

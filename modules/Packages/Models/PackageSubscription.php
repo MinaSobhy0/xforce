@@ -231,7 +231,17 @@ class PackageSubscription extends BaseModel
 
     public function getUsageProgressAttribute(): float
     {
-        $total = $this->package?->total_sessions ?? 0;
+        $package = $this->package;
+
+        if ($package?->isPulseBased()) {
+            $total = $package->total_pulses ?? 0;
+            if ($total <= 0) {
+                return 100;
+            }
+            return round(($this->pulses_used / $total) * 100, 1);
+        }
+
+        $total = $package?->total_sessions ?? 0;
         if ($total <= 0) {
             return 100;
         }

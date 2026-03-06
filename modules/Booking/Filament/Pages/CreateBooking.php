@@ -315,7 +315,21 @@ class CreateBooking extends Page implements HasForms
                                                                 $html .= '<svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>';
                                                             }
                                                             $html .= '<span class="truncate max-w-[100px]">' . e($sub->package->translated_name) . '</span>';
-                                                            $html .= '<span class="px-1.5 py-0.5 rounded-full text-[10px] font-semibold" style="' . $badgeStyle . '">' . $sub->sessions_remaining . '/' . $sub->package->total_sessions . '</span>';
+                                                            // Show pulses or sessions based on package type
+                                                            // Check if package is pulse-based (by consumption_type or pulses_per_session)
+                                                            $isPulse = $sub->package->isPulseBased() || $sub->package->hasPulseBasedItems();
+                                                            if ($isPulse) {
+                                                                $totalPulses = $sub->package->total_pulses;
+                                                                // If total_pulses is 0, calculate from items manually
+                                                                if ($totalPulses <= 0) {
+                                                                    $totalPulses = $sub->package->items->sum(fn ($item) => ($item->quantity ?? 0) * ($item->pulses_per_session ?? 1));
+                                                                }
+                                                                $pulsesUsed = $sub->sessions_used * ($sub->package->items->first()?->pulses_per_session ?? 1);
+                                                                $pulsesRemaining = max(0, $totalPulses - $pulsesUsed);
+                                                                $html .= '<span class="px-1.5 py-0.5 rounded-full text-[10px] font-semibold" style="' . $badgeStyle . '">' . number_format($pulsesRemaining) . '/' . number_format($totalPulses) . ' ' . __('packages::packages.labels.pulses') . '</span>';
+                                                            } else {
+                                                                $html .= '<span class="px-1.5 py-0.5 rounded-full text-[10px] font-semibold" style="' . $badgeStyle . '">' . $sub->sessions_remaining . '/' . $sub->package->total_sessions . '</span>';
+                                                            }
                                                             $html .= '</button>';
                                                         }
                                                         $html .= '</div>';

@@ -177,7 +177,16 @@ class Equipment extends BaseModel
      */
     public function hasTracking(): bool
     {
-        return $this->tracking_enabled && $this->trackingParameters()->active()->exists();
+        if (!$this->tracking_enabled) {
+            return false;
+        }
+
+        // Use loaded relationship if available to avoid extra query
+        if ($this->relationLoaded('trackingParameters')) {
+            return $this->trackingParameters->contains('is_active', true);
+        }
+
+        return $this->trackingParameters()->active()->exists();
     }
 
     /**

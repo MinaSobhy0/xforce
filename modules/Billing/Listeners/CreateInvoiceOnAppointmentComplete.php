@@ -96,17 +96,66 @@ class CreateInvoiceOnAppointmentComplete
                 return;
             }
 
+            // Determine quantity and unit type based on package item consumption type
+            $quantityUsed = 1;
+            $unitType = null; // Let useSession determine from item
+
+            // Check if this is a pulse-based service in the package
+            $packageItem = $subscription->package?->items()
+                ->where('service_id', $appointment->service_id)
+                ->first();
+
+            if ($packageItem && $packageItem->isPulseBased()) {
+                // Get pulses from equipment dynamic parameters
+                $sessionData = $appointment->sessionData;
+
+                if ($sessionData) {
+                    $pulsesFromEquipment = $sessionData->getPulsesFromEquipmentParameters();
+
+                    if ($pulsesFromEquipment > 0) {
+                        $quantityUsed = $pulsesFromEquipment;
+                        $unitType = 'pulse';
+
+                        Log::info("Pulse-based package session: consuming {$quantityUsed} pulses from equipment parameters", [
+                            'appointment_id' => $appointment->id,
+                            'subscription_id' => $subscription->id,
+                        ]);
+                    } else {
+                        // Fallback: check treatment areas for pulses
+                        $pulsesFromAreas = $sessionData->getTotalPulses();
+                        if ($pulsesFromAreas > 0) {
+                            $quantityUsed = $pulsesFromAreas;
+                            $unitType = 'pulse';
+
+                            Log::info("Pulse-based package session: consuming {$quantityUsed} pulses from treatment areas", [
+                                'appointment_id' => $appointment->id,
+                                'subscription_id' => $subscription->id,
+                            ]);
+                        } else {
+                            // No pulses recorded - log warning but still record 1 session
+                            Log::warning("Pulse-based package session but no pulses recorded in equipment parameters or treatment areas", [
+                                'appointment_id' => $appointment->id,
+                                'subscription_id' => $subscription->id,
+                            ]);
+                        }
+                    }
+                }
+            }
+
             // Record package usage (this triggers revenue recognition via event)
             $packageService = app(PackageService::class);
             $packageService->useSession(
                 $subscription,
                 $appointment->service_id,
                 $appointment->id,
-                1 // Default to 1 session - unit type determined from item's consumption_type
+                $quantityUsed,
+                $unitType
             );
 
             Log::info("Package session recorded for appointment {$appointment->code}", [
                 'subscription_id' => $subscription->id,
+                'quantity_used' => $quantityUsed,
+                'unit_type' => $unitType ?? 'session',
                 'sessions_remaining' => $subscription->sessions_remaining,
             ]);
 

@@ -46,33 +46,58 @@
 
             {{-- Progress Bar --}}
             @php
-                $totalSessions = $package->total_sessions ?? 0;
-                $sessionsUsed = $subscription->sessions_used;
-                $sessionsBooked = $subscription->sessions_booked;
-                $sessionsAvailable = $subscription->sessions_available;
-                $usedProgress = $totalSessions > 0 ? ($sessionsUsed / $totalSessions) * 100 : 0;
-                $bookedProgress = $totalSessions > 0 ? ($sessionsBooked / $totalSessions) * 100 : 0;
+                // Check if package is pulse-based (by consumption_type or pulses_per_session)
+                $isPulseBased = $package->isPulseBased() || $package->hasPulseBasedItems();
+                if ($isPulseBased) {
+                    $totalUnits = $package->total_pulses ?? 0;
+                    // If total_pulses is 0, calculate from items manually
+                    if ($totalUnits <= 0) {
+                        $totalUnits = $package->items->sum(fn ($item) => ($item->quantity ?? 0) * ($item->pulses_per_session ?? 1));
+                    }
+                    // Calculate pulses used from sessions used
+                    $avgPulsesPerSession = $package->items->isNotEmpty()
+                        ? $package->items->avg('pulses_per_session') ?? 1
+                        : 1;
+                    $unitsUsed = $subscription->sessions_used * $avgPulsesPerSession;
+                    $unitsBooked = 0; // Pulses don't have booked state
+                    $unitsAvailable = max(0, $totalUnits - $unitsUsed);
+                    $unitLabel = __('packages::packages.labels.pulses');
+                    $consumedLabel = __('packages::packages.labels.pulses_consumed');
+                    $availableLabel = __('packages::packages.labels.pulses_available');
+                } else {
+                    $totalUnits = $package->total_sessions ?? 0;
+                    $unitsUsed = $subscription->sessions_used;
+                    $unitsBooked = $subscription->sessions_booked;
+                    $unitsAvailable = $subscription->sessions_available;
+                    $unitLabel = __('packages::packages.labels.sessions');
+                    $consumedLabel = __('packages::packages.labels.sessions_consumed');
+                    $availableLabel = __('packages::packages.labels.sessions_available');
+                }
+                $usedProgress = $totalUnits > 0 ? ($unitsUsed / $totalUnits) * 100 : 0;
+                $bookedProgress = $totalUnits > 0 ? ($unitsBooked / $totalUnits) * 100 : 0;
             @endphp
             <div class="px-4 py-2 bg-gray-50/50 dark:bg-gray-900/50">
                 <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
                     <span>{{ __('packages::packages.labels.usage_progress') }}</span>
                     <span>
-                        {{ $sessionsUsed }} {{ __('packages::packages.labels.sessions_consumed') }}
-                        @if($sessionsBooked > 0)
-                            · {{ $sessionsBooked }} {{ __('packages::packages.labels.sessions_booked') }}
+                        {{ $isPulseBased ? number_format($unitsUsed) : $unitsUsed }} {{ $consumedLabel }}
+                        @if($unitsBooked > 0)
+                            · {{ $unitsBooked }} {{ __('packages::packages.labels.sessions_booked') }}
                         @endif
-                        · {{ $sessionsAvailable }} {{ __('packages::packages.labels.sessions_available') }}
+                        · {{ $isPulseBased ? number_format($unitsAvailable) : $unitsAvailable }} {{ $availableLabel }}
                     </span>
                 </div>
                 <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 relative overflow-hidden">
-                    {{-- Used sessions (solid color) --}}
+                    {{-- Used units (solid color) --}}
                     <div class="absolute inset-y-0 left-0 bg-primary-600 transition-all duration-300"
                          style="width: {{ min($usedProgress, 100) }}%"></div>
-                    {{-- Booked sessions (striped/lighter color) --}}
-                    <div class="absolute inset-y-0 bg-primary-400 transition-all duration-300"
-                         style="left: {{ min($usedProgress, 100) }}%; width: {{ min($bookedProgress, 100 - $usedProgress) }}%"></div>
+                    {{-- Booked sessions (striped/lighter color) - only for session-based --}}
+                    @if(!$isPulseBased && $unitsBooked > 0)
+                        <div class="absolute inset-y-0 bg-primary-400 transition-all duration-300"
+                             style="left: {{ min($usedProgress, 100) }}%; width: {{ min($bookedProgress, 100 - $usedProgress) }}%"></div>
+                    @endif
                 </div>
-                @if($sessionsBooked > 0)
+                @if($unitsBooked > 0)
                     <div class="flex items-center gap-4 mt-1 text-xs text-gray-400 dark:text-gray-500">
                         <span class="flex items-center gap-1">
                             <span class="w-2 h-2 rounded-full bg-primary-600"></span>
@@ -92,14 +117,25 @@
                     @foreach($package->items as $item)
                         @php
                             $service = $item->service;
-                            $usedForService = $subscription->getSessionsUsedByService($item->service_id);
-                            $bookedForService = $subscription->getSessionsBookedByService($item->service_id);
-                            $availableForService = $subscription->getSessionsAvailableByService($item->service_id);
-                            $totalForService = $item->quantity;
-                            $usedPercent = $totalForService > 0 ? ($usedForService / $totalForService) * 100 : 0;
-                            $bookedPercent = $totalForService > 0 ? ($bookedForService / $totalForService) * 100 : 0;
                             $isSessionBased = $item->consumption_type === 'sessions';
-                            $isFullyUsed = $availableForService <= 0 && $bookedForService <= 0;
+                            $pulsesPerSession = $item->pulses_per_session ?? 1;
+
+                            // Session-based tracking (always needed for booking)
+                            $sessionsUsed = $subscription->getSessionsUsedByService($item->service_id);
+                            $sessionsBooked = $subscription->getSessionsBookedByService($item->service_id);
+                            $sessionsAvailable = $subscription->getSessionsAvailableByService($item->service_id);
+                            $totalSessions = $item->quantity;
+
+                            // For pulse-based, calculate pulse values
+                            if (!$isSessionBased) {
+                                $totalPulses = $totalSessions * $pulsesPerSession;
+                                $pulsesUsed = $sessionsUsed * $pulsesPerSession;
+                                $pulsesAvailable = $sessionsAvailable * $pulsesPerSession;
+                            }
+
+                            $usedPercent = $totalSessions > 0 ? ($sessionsUsed / $totalSessions) * 100 : 0;
+                            $bookedPercent = $totalSessions > 0 ? ($sessionsBooked / $totalSessions) * 100 : 0;
+                            $isFullyUsed = $sessionsAvailable <= 0 && $sessionsBooked <= 0;
                         @endphp
                         <div class="rounded-lg border border-gray-100 dark:border-gray-700 p-3 bg-gray-50/50 dark:bg-gray-800/50 {{ $isFullyUsed ? 'opacity-50' : '' }}">
                             <div class="flex items-start justify-between mb-2">
@@ -109,19 +145,23 @@
                                     </h5>
                                     <p class="text-xs text-gray-500 dark:text-gray-400">
                                         @if($isSessionBased)
-                                            {{ $availableForService }} {{ __('packages::packages.labels.sessions_available') }}
-                                            @if($bookedForService > 0)
-                                                <span class="text-primary-500">({{ $bookedForService }} {{ __('packages::packages.labels.booked') }})</span>
+                                            {{ $sessionsAvailable }} {{ __('packages::packages.labels.sessions_available') }}
+                                            @if($sessionsBooked > 0)
+                                                <span class="text-primary-500">({{ $sessionsBooked }} {{ __('packages::packages.labels.booked') }})</span>
                                             @endif
                                         @else
-                                            {{ $item->pulses_per_session ? ($availableForService * $item->pulses_per_session) : $availableForService }} {{ __('packages::packages.labels.pulses_remaining') }}
+                                            {{ number_format($pulsesAvailable) }} {{ __('packages::packages.labels.pulses_remaining') }}
                                         @endif
                                     </p>
                                 </div>
                                 <div class="flex-shrink-0 ml-2">
-                                    @if($availableForService > 0 || $bookedForService > 0)
+                                    @if($sessionsAvailable > 0 || $sessionsBooked > 0)
                                         <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-success-100 dark:bg-success-900 text-success-700 dark:text-success-300 text-sm font-semibold">
-                                            {{ $availableForService }}
+                                            @if($isSessionBased)
+                                                {{ $sessionsAvailable }}
+                                            @else
+                                                {{ number_format($pulsesAvailable / 1000, 0) }}k
+                                            @endif
                                         </span>
                                     @else
                                         <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-400 text-sm">
@@ -136,13 +176,17 @@
                                 <div class="absolute inset-y-0 left-0 {{ $isFullyUsed ? 'bg-gray-400' : 'bg-success-500' }} transition-all duration-300"
                                      style="width: {{ min($usedPercent, 100) }}%"></div>
                                 {{-- Booked portion --}}
-                                @if($bookedForService > 0)
+                                @if($sessionsBooked > 0)
                                     <div class="absolute inset-y-0 bg-primary-400 transition-all duration-300"
                                          style="left: {{ min($usedPercent, 100) }}%; width: {{ min($bookedPercent, 100 - $usedPercent) }}%"></div>
                                 @endif
                             </div>
                             <div class="mt-1 text-xs text-gray-400 dark:text-gray-500 text-right">
-                                {{ $usedForService }}@if($bookedForService > 0)+{{ $bookedForService }}@endif/{{ $totalForService }}
+                                @if($isSessionBased)
+                                    {{ $sessionsUsed }}@if($sessionsBooked > 0)+{{ $sessionsBooked }}@endif/{{ $totalSessions }}
+                                @else
+                                    {{ number_format($pulsesUsed) }}/{{ number_format($totalPulses) }} {{ __('packages::packages.labels.pulses') }}
+                                @endif
                             </div>
                         </div>
                     @endforeach

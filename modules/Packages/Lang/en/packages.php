@@ -27,9 +27,13 @@ return [
         'sessions_consumed' => 'consumed',
         'sessions_booked' => 'booked',
         'sessions_available' => 'available',
+        'sessions' => 'sessions',
         'consumed' => 'Consumed',
         'booked' => 'Booked',
+        'pulses' => 'pulses',
         'pulses_remaining' => 'pulses remaining',
+        'pulses_consumed' => 'pulses consumed',
+        'pulses_available' => 'pulses available',
     ],
 
     'pages' => [

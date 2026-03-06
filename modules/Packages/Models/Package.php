@@ -179,7 +179,69 @@ class Package extends BaseModel
      */
     public function hasPulseBasedItems(): bool
     {
-        return $this->items->contains('consumption_type', PackageItem::CONSUMPTION_PULSES);
+        return $this->items->contains(fn ($item) =>
+            $item->consumption_type === PackageItem::CONSUMPTION_PULSES ||
+            ($item->pulses_per_session ?? 0) > 1
+        );
+    }
+
+    /**
+     * Check if package is primarily pulse-based (all items are pulse-based)
+     */
+    public function isPulseBased(): bool
+    {
+        if ($this->items->isEmpty()) {
+            return false;
+        }
+        // Check if all items are pulse-based by consumption_type OR have pulses_per_session > 1
+        return $this->items->every(fn ($item) =>
+            $item->consumption_type === PackageItem::CONSUMPTION_PULSES ||
+            ($item->pulses_per_session ?? 0) > 1
+        );
+    }
+
+    /**
+     * Check if package is primarily session-based (all items are session-based)
+     */
+    public function isSessionBased(): bool
+    {
+        if ($this->items->isEmpty()) {
+            return true; // Default to session-based
+        }
+        return $this->items->every(fn ($item) => $item->consumption_type === PackageItem::CONSUMPTION_SESSIONS);
+    }
+
+    /**
+     * Get consumption type label for display
+     */
+    public function getConsumptionTypeAttribute(): string
+    {
+        if ($this->isPulseBased()) {
+            return 'pulses';
+        }
+        if ($this->hasPulseBasedItems() && $this->hasSessionBasedItems()) {
+            return 'mixed';
+        }
+        return 'sessions';
+    }
+
+    /**
+     * Get total consumption units (pulses or sessions) based on package type
+     */
+    public function getTotalConsumptionAttribute(): int
+    {
+        if ($this->isPulseBased()) {
+            return $this->total_pulses;
+        }
+        return $this->total_sessions;
+    }
+
+    /**
+     * Get consumption unit label
+     */
+    public function getConsumptionUnitAttribute(): string
+    {
+        return $this->isPulseBased() ? 'pulses' : 'sessions';
     }
 
     public function getMinDepositAmountAttribute(): int

@@ -31,7 +31,41 @@
                                         <div class="text-sm text-gray-500 dark:text-gray-400">
                                             {{ $appointment->start_time?->format('H:i') }} - {{ $appointment->service?->translated_name }}
                                         </div>
-                                        @if($appointment->treatmentPlanAppointment)
+                                        {{-- Check package session FIRST (higher priority) --}}
+                                        @if($appointment->is_package_session && $appointment->packageSubscription)
+                                            @php
+                                                $sub = $appointment->packageSubscription;
+                                                $package = $sub->package;
+                                                if ($package && !$package->relationLoaded('items')) {
+                                                    $package->load('items');
+                                                }
+                                                $serviceItem = $package?->items?->firstWhere('service_id', $appointment->service_id);
+                                                $pulsesPerSession = $serviceItem?->pulses_per_session ?? 0;
+                                                // Item is pulse-based if consumption_type is 'pulses' (regardless of pulses_per_session)
+                                                $isServicePulseBased = $serviceItem?->consumption_type === 'pulses';
+                                                $sessionsUsed = $sub->getSessionsUsedByService($appointment->service_id);
+                                                $totalQuantity = $serviceItem?->quantity ?? 0;
+                                            @endphp
+                                            <div class="text-xs text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1">
+                                                <x-heroicon-o-gift class="w-3 h-3" />
+                                                @if($isServicePulseBased)
+                                                    {{-- For pulse-based: if pulses_per_session is set, multiply; otherwise quantity IS total pulses --}}
+                                                    @php
+                                                        if ($pulsesPerSession > 0) {
+                                                            $pulsesUsed = $sessionsUsed * $pulsesPerSession;
+                                                            $totalPulses = $totalQuantity * $pulsesPerSession;
+                                                        } else {
+                                                            // quantity IS the total pulses, sessionsUsed tracks pulse consumption
+                                                            $pulsesUsed = $sessionsUsed;
+                                                            $totalPulses = $totalQuantity;
+                                                        }
+                                                    @endphp
+                                                    {{ number_format($pulsesUsed) }}/{{ number_format($totalPulses) }} {{ __('packages::packages.labels.pulses') }}
+                                                @else
+                                                    {{ $sessionsUsed }}/{{ $totalQuantity }} {{ __('packages::packages.labels.sessions') }}
+                                                @endif
+                                            </div>
+                                        @elseif($appointment->treatmentPlanAppointment)
                                             <div class="text-xs text-blue-600 dark:text-blue-400 mt-1">
                                                 Session {{ $appointment->treatmentPlanAppointment->session_number }} of {{ $appointment->treatmentPlanAppointment->item->recommended_sessions }}
                                             </div>
@@ -73,7 +107,41 @@
                                         <div class="text-sm text-gray-500 dark:text-gray-400">
                                             {{ $appointment->start_time?->format('H:i') }} - {{ $appointment->service?->translated_name }}
                                         </div>
-                                        @if($appointment->treatmentPlanAppointment)
+                                        {{-- Check package session FIRST (higher priority) --}}
+                                        @if($appointment->is_package_session && $appointment->packageSubscription)
+                                            @php
+                                                $sub = $appointment->packageSubscription;
+                                                $package = $sub->package;
+                                                if ($package && !$package->relationLoaded('items')) {
+                                                    $package->load('items');
+                                                }
+                                                $serviceItem = $package?->items?->firstWhere('service_id', $appointment->service_id);
+                                                $pulsesPerSession = $serviceItem?->pulses_per_session ?? 0;
+                                                // Item is pulse-based if consumption_type is 'pulses' (regardless of pulses_per_session)
+                                                $isServicePulseBased = $serviceItem?->consumption_type === 'pulses';
+                                                $sessionsUsed = $sub->getSessionsUsedByService($appointment->service_id);
+                                                $totalQuantity = $serviceItem?->quantity ?? 0;
+                                            @endphp
+                                            <div class="text-xs text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1">
+                                                <x-heroicon-o-gift class="w-3 h-3" />
+                                                @if($isServicePulseBased)
+                                                    {{-- For pulse-based: if pulses_per_session is set, multiply; otherwise quantity IS total pulses --}}
+                                                    @php
+                                                        if ($pulsesPerSession > 0) {
+                                                            $pulsesUsed = $sessionsUsed * $pulsesPerSession;
+                                                            $totalPulses = $totalQuantity * $pulsesPerSession;
+                                                        } else {
+                                                            // quantity IS the total pulses, sessionsUsed tracks pulse consumption
+                                                            $pulsesUsed = $sessionsUsed;
+                                                            $totalPulses = $totalQuantity;
+                                                        }
+                                                    @endphp
+                                                    {{ number_format($pulsesUsed) }}/{{ number_format($totalPulses) }} {{ __('packages::packages.labels.pulses') }}
+                                                @else
+                                                    {{ $sessionsUsed }}/{{ $totalQuantity }} {{ __('packages::packages.labels.sessions') }}
+                                                @endif
+                                            </div>
+                                        @elseif($appointment->treatmentPlanAppointment)
                                             <div class="text-xs text-blue-600 dark:text-blue-400 mt-1">
                                                 Session {{ $appointment->treatmentPlanAppointment->session_number }} of {{ $appointment->treatmentPlanAppointment->item->recommended_sessions }}
                                             </div>
@@ -112,7 +180,41 @@
                                         <div class="text-sm text-gray-500 dark:text-gray-400">
                                             {{ $appointment->start_time?->format('H:i') }} - {{ $appointment->service?->translated_name }}
                                         </div>
-                                        @if($appointment->treatmentPlanAppointment)
+                                        {{-- Check package session FIRST (higher priority) --}}
+                                        @if($appointment->is_package_session && $appointment->packageSubscription)
+                                            @php
+                                                $sub = $appointment->packageSubscription;
+                                                $package = $sub->package;
+                                                if ($package && !$package->relationLoaded('items')) {
+                                                    $package->load('items');
+                                                }
+                                                $serviceItem = $package?->items?->firstWhere('service_id', $appointment->service_id);
+                                                $pulsesPerSession = $serviceItem?->pulses_per_session ?? 0;
+                                                // Item is pulse-based if consumption_type is 'pulses' (regardless of pulses_per_session)
+                                                $isServicePulseBased = $serviceItem?->consumption_type === 'pulses';
+                                                $sessionsUsed = $sub->getSessionsUsedByService($appointment->service_id);
+                                                $totalQuantity = $serviceItem?->quantity ?? 0;
+                                            @endphp
+                                            <div class="text-xs text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1">
+                                                <x-heroicon-o-gift class="w-3 h-3" />
+                                                @if($isServicePulseBased)
+                                                    {{-- For pulse-based: if pulses_per_session is set, multiply; otherwise quantity IS total pulses --}}
+                                                    @php
+                                                        if ($pulsesPerSession > 0) {
+                                                            $pulsesUsed = $sessionsUsed * $pulsesPerSession;
+                                                            $totalPulses = $totalQuantity * $pulsesPerSession;
+                                                        } else {
+                                                            // quantity IS the total pulses, sessionsUsed tracks pulse consumption
+                                                            $pulsesUsed = $sessionsUsed;
+                                                            $totalPulses = $totalQuantity;
+                                                        }
+                                                    @endphp
+                                                    {{ number_format($pulsesUsed) }}/{{ number_format($totalPulses) }} {{ __('packages::packages.labels.pulses') }}
+                                                @else
+                                                    {{ $sessionsUsed }}/{{ $totalQuantity }} {{ __('packages::packages.labels.sessions') }}
+                                                @endif
+                                            </div>
+                                        @elseif($appointment->treatmentPlanAppointment)
                                             <div class="text-xs text-blue-600 dark:text-blue-400 mt-1">
                                                 Session {{ $appointment->treatmentPlanAppointment->session_number }} of {{ $appointment->treatmentPlanAppointment->item->recommended_sessions }}
                                             </div>
@@ -169,7 +271,41 @@
                                         <div class="text-sm text-gray-500 dark:text-gray-400">
                                             {{ $appointment->start_time?->format('H:i') }} - {{ $appointment->service?->translated_name }}
                                         </div>
-                                        @if($appointment->treatmentPlanAppointment)
+                                        {{-- Check package session FIRST (higher priority) --}}
+                                        @if($appointment->is_package_session && $appointment->packageSubscription)
+                                            @php
+                                                $sub = $appointment->packageSubscription;
+                                                $package = $sub->package;
+                                                if ($package && !$package->relationLoaded('items')) {
+                                                    $package->load('items');
+                                                }
+                                                $serviceItem = $package?->items?->firstWhere('service_id', $appointment->service_id);
+                                                $pulsesPerSession = $serviceItem?->pulses_per_session ?? 0;
+                                                // Item is pulse-based if consumption_type is 'pulses' (regardless of pulses_per_session)
+                                                $isServicePulseBased = $serviceItem?->consumption_type === 'pulses';
+                                                $sessionsUsed = $sub->getSessionsUsedByService($appointment->service_id);
+                                                $totalQuantity = $serviceItem?->quantity ?? 0;
+                                            @endphp
+                                            <div class="text-xs text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1">
+                                                <x-heroicon-o-gift class="w-3 h-3" />
+                                                @if($isServicePulseBased)
+                                                    {{-- For pulse-based: if pulses_per_session is set, multiply; otherwise quantity IS total pulses --}}
+                                                    @php
+                                                        if ($pulsesPerSession > 0) {
+                                                            $pulsesUsed = $sessionsUsed * $pulsesPerSession;
+                                                            $totalPulses = $totalQuantity * $pulsesPerSession;
+                                                        } else {
+                                                            // quantity IS the total pulses, sessionsUsed tracks pulse consumption
+                                                            $pulsesUsed = $sessionsUsed;
+                                                            $totalPulses = $totalQuantity;
+                                                        }
+                                                    @endphp
+                                                    {{ number_format($pulsesUsed) }}/{{ number_format($totalPulses) }} {{ __('packages::packages.labels.pulses') }}
+                                                @else
+                                                    {{ $sessionsUsed }}/{{ $totalQuantity }} {{ __('packages::packages.labels.sessions') }}
+                                                @endif
+                                            </div>
+                                        @elseif($appointment->treatmentPlanAppointment)
                                             <div class="text-xs text-green-600 dark:text-green-400 mt-1">
                                                 Session {{ $appointment->treatmentPlanAppointment->session_number }} of {{ $appointment->treatmentPlanAppointment->item->recommended_sessions }}
                                             </div>

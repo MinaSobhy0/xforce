@@ -105,6 +105,11 @@ return [
         'vs_last_week' => 'vs last week',
     ],
 
+    'labels' => [
+        'session_progress' => 'Session :used/:total',
+        'pulses_progress' => ':used/:total pulses',
+    ],
+
     'validation' => [
         'practitioner_busy' => 'Doctor has another appointment at :time with :patient',
         'room_busy' => 'Room is occupied at :time by :patient',

@@ -675,9 +675,17 @@ class Appointment extends BaseModel
             return null;
         }
 
-        $used = $this->packageSubscription->sessions_used;
-        $total = $this->packageSubscription->package?->total_sessions ?? 0;
+        $package = $this->packageSubscription->package;
 
-        return "Session {$used}/{$total}";
+        if ($package?->isPulseBased()) {
+            $used = $this->packageSubscription->pulses_used;
+            $total = $package->total_pulses ?? 0;
+            return __('booking::appointments.labels.pulses_progress', ['used' => number_format($used), 'total' => number_format($total)]);
+        }
+
+        $used = $this->packageSubscription->sessions_used;
+        $total = $package?->total_sessions ?? 0;
+
+        return __('booking::appointments.labels.session_progress', ['used' => $used, 'total' => $total]);
     }
 }

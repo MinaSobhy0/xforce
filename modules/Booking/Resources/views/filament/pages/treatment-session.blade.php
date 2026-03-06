@@ -56,6 +56,41 @@
                             </div>
                         @endif
 
+                        {{-- Package Session Badge --}}
+                        @if($appointment?->is_package_session && $appointment?->packageSubscription)
+                            @php
+                                $sub = $appointment->packageSubscription;
+                                $package = $sub->package;
+                                // Load items if not loaded
+                                if ($package && !$package->relationLoaded('items')) {
+                                    $package->load('items');
+                                }
+                                // Check if the current service's package item is pulse-based
+                                $serviceItem = $package?->items?->firstWhere('service_id', $appointment->service_id);
+                                $pulsesPerSession = $serviceItem?->pulses_per_session ?? 0;
+                                // Item is pulse-based if consumption_type is 'pulses' OR has pulses_per_session > 1
+                                $isServicePulseBased = $serviceItem?->consumption_type === 'pulses' || $pulsesPerSession > 1;
+                            @endphp
+                            <div class="px-2 sm:px-3 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-full font-medium flex items-center gap-1 text-xs sm:text-sm">
+                                <x-heroicon-o-gift class="w-3 h-3 sm:w-4 sm:h-4" />
+                                @if($isServicePulseBased && $pulsesPerSession > 0)
+                                    @php
+                                        $sessionsUsedForService = $sub->getSessionsUsedByService($appointment->service_id);
+                                        $totalSessionsForService = $serviceItem->quantity ?? 0;
+                                        $pulsesUsed = $sessionsUsedForService * $pulsesPerSession;
+                                        $totalPulses = $totalSessionsForService * $pulsesPerSession;
+                                    @endphp
+                                    {{ number_format($pulsesUsed) }}/{{ number_format($totalPulses) }} {{ __('packages::packages.labels.pulses') }}
+                                @else
+                                    @php
+                                        $sessionsUsedForService = $sub->getSessionsUsedByService($appointment->service_id);
+                                        $totalSessionsForService = $serviceItem?->quantity ?? 0;
+                                    @endphp
+                                    {{ $sessionsUsedForService }}/{{ $totalSessionsForService }} {{ __('packages::packages.labels.sessions') }}
+                                @endif
+                            </div>
+                        @endif
+
                         {{-- Visit Badge --}}
                         @if($visit)
                             <div class="px-2 sm:px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full font-medium flex items-center gap-1 text-xs sm:text-sm">
@@ -317,7 +352,10 @@
             </x-filament::section>
 
             {{-- Current Treatment Plan --}}
-            @php $currentPlan = $this->getCurrentTreatmentPlan(); @endphp
+            @php
+                $currentPlan = $this->getCurrentTreatmentPlan();
+                $patientPackages = $this->getPatientActivePackages();
+            @endphp
             <x-filament::section>
                 <x-slot name="heading">
                     <div class="flex items-center justify-between w-full">
@@ -338,86 +376,224 @@
 
                 @if($currentPlan)
                     <div class="space-y-3">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <div class="font-semibold text-gray-900 dark:text-white text-sm">{{ $currentPlan->translated_name }}</div>
-                                <div class="text-xs text-gray-500 dark:text-gray-400">{{ $currentPlan->code }}</div>
-                            </div>
-                            <span class="text-lg font-bold text-primary-600">{{ $currentPlan->progress_percentage }}%</span>
-                        </div>
+                        @php
+                            // Group items by package coverage
+                            $packageGroups = [];
+                            $individualItems = [];
+                            $productItems = [];
 
-                        <div class="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                            <div class="h-full bg-primary-500 rounded-full transition-all" style="width: {{ $currentPlan->progress_percentage }}%"></div>
-                        </div>
+                            foreach ($currentPlan->items as $item) {
+                                $isService = $item->item_type === 'service';
+                                $isProduct = $item->item_type === 'product';
 
-                        <div class="space-y-1">
-                            @foreach($currentPlan->items as $item)
-                                @php
-                                    $isService = $item->item_type === 'service';
-                                    $isProduct = $item->item_type === 'product';
-                                    $itemName = $item->item_name ?: ($item->service?->translated_name ?? $item->itemable?->translated_name ?? $item->itemable?->name ?? '');
-                                    $completed = $isService ? $item->completed_sessions : ($item->completed_quantity ?? 0);
-                                    $total = $isService ? $item->recommended_sessions : ($item->quantity ?? 1);
-                                    $isDone = $completed >= $total;
-                                @endphp
-                                <div class="flex items-center justify-between py-1.5 px-2 bg-gray-50 dark:bg-gray-800 rounded text-xs">
-                                    <div class="flex items-center gap-2">
-                                        @if($isProduct)
-                                            <x-heroicon-o-cube class="w-3.5 h-3.5 text-amber-500" />
-                                        @else
-                                            <x-heroicon-o-sparkles class="w-3.5 h-3.5 text-primary-500" />
-                                        @endif
-                                        <span class="text-gray-700 dark:text-gray-300">{{ $itemName }}</span>
+                                if ($isProduct) {
+                                    $productItems[] = $item;
+                                    continue;
+                                }
+
+                                // Check if this service is covered by an active package
+                                $coveringPackage = null;
+                                if ($isService && $item->service_id) {
+                                    foreach ($patientPackages as $sub) {
+                                        if ($sub->package?->hasService($item->service_id) && $sub->hasRemainingSessionsForService($item->service_id)) {
+                                            $coveringPackage = $sub;
+                                            break;
+                                        }
+                                    }
+                                }
+
+                                if ($coveringPackage) {
+                                    $packageId = $coveringPackage->package->id;
+                                    if (!isset($packageGroups[$packageId])) {
+                                        $packageGroups[$packageId] = [
+                                            'subscription' => $coveringPackage,
+                                            'items' => [],
+                                        ];
+                                    }
+                                    $packageGroups[$packageId]['items'][] = $item;
+                                } else {
+                                    $individualItems[] = $item;
+                                }
+                            }
+                        @endphp
+
+                        <div class="space-y-3 mt-3">
+                            {{-- Package Groups --}}
+                            @foreach($packageGroups as $packageId => $group)
+                                @php $package = $group['subscription']->package; @endphp
+                                <div class="rounded-xl border-2 border-emerald-200 dark:border-emerald-700 bg-emerald-50/30 dark:bg-emerald-900/10 overflow-hidden">
+                                    {{-- Package Header --}}
+                                    <div class="px-3 py-2 bg-emerald-100 dark:bg-emerald-900/30 border-b border-emerald-200 dark:border-emerald-700 flex items-center gap-2">
+                                        <x-heroicon-s-gift class="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                                        <span class="font-medium text-emerald-800 dark:text-emerald-200 text-sm">{{ $package->translated_name }}</span>
                                     </div>
-                                    <div class="flex items-center gap-2">
-                                        <span class="font-medium {{ $isDone ? 'text-green-600' : 'text-gray-600 dark:text-gray-400' }}">
-                                            {{ $completed }}/{{ $total }}
-                                        </span>
-                                        @if($isService)
-                                            @if($item->service_id === $appointment->service_id)
-                                                {{-- Current session indicator --}}
-                                                <span class="px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded text-xs">
-                                                    {{ __('booking::session.plan.current') }}
-                                                </span>
-                                            @elseif($isDone)
-                                                <x-heroicon-o-check-circle class="w-4 h-4 text-green-500" />
-                                            @elseif($item->isCancelled())
-                                                <span class="px-1.5 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded text-xs">
-                                                    {{ __('booking::session.plan.cancelled') }}
+                                    {{-- Package Items --}}
+                                    <div class="p-2 space-y-2">
+                                        @foreach($group['items'] as $item)
+                                            @php
+                                                $itemName = $item->item_name ?: ($item->service?->translated_name ?? '');
+                                                $completed = $item->completed_sessions;
+                                                $total = $item->recommended_sessions;
+                                                $isDone = $completed >= $total;
+                                                $hasActiveSession = $item->planAppointments()
+                                                    ->whereHas('appointment', fn($q) => $q->whereIn('status', ['in_progress', 'checked_in', 'confirmed']))
+                                                    ->exists();
+                                                $hasStarted = $item->completed_sessions > 0 || $hasActiveSession;
+                                            @endphp
+                                            <div class="flex items-center gap-3 py-2 px-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700">
+                                                {{-- Icon --}}
+                                                <x-heroicon-o-sparkles class="w-5 h-5 text-emerald-500 flex-shrink-0" />
+
+                                                {{-- Service Name & Progress --}}
+                                                <div class="flex-1 min-w-0">
+                                                    <div class="flex items-center justify-between gap-2">
+                                                        <span class="font-medium text-gray-900 dark:text-white text-sm truncate">{{ $itemName }}</span>
+                                                        <span class="flex-shrink-0 font-bold {{ $isDone ? 'text-green-600' : 'text-gray-600 dark:text-gray-400' }} text-sm">
+                                                            {{ $completed }}/{{ $total }}
+                                                        </span>
+                                                    </div>
+                                                    <div class="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mt-1.5">
+                                                        <div class="h-full {{ $isDone ? 'bg-green-500' : 'bg-emerald-500' }} rounded-full transition-all" style="width: {{ $total > 0 ? min(100, ($completed / $total) * 100) : 0 }}%"></div>
+                                                    </div>
+                                                </div>
+
+                                                {{-- Status & Actions --}}
+                                                <div class="flex items-center gap-2 flex-shrink-0">
+                                                    @if($item->service_id === $appointment->service_id)
+                                                        <span class="px-3 py-1.5 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 rounded-lg text-xs font-semibold flex items-center gap-1.5">
+                                                            <x-heroicon-s-play class="w-4 h-4" />
+                                                            {{ __('booking::session.plan.current') }}
+                                                        </span>
+                                                    @elseif($isDone)
+                                                        <span class="px-3 py-1.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 rounded-lg text-xs font-semibold flex items-center gap-1">
+                                                            <x-heroicon-s-check-circle class="w-4 h-4" />
+                                                            {{ __('booking::session.plan.completed') }}
+                                                        </span>
+                                                    @elseif($item->isCancelled())
+                                                        <span class="px-3 py-1.5 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 rounded-lg text-xs font-semibold">
+                                                            {{ __('booking::session.plan.cancelled') }}
+                                                        </span>
+                                                    @else
+                                                        @if($hasStarted)
+                                                            <span class="px-2.5 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded-lg text-xs font-medium">
+                                                                {{ __('booking::session.plan.in_progress') }}
+                                                            </span>
+                                                        @else
+                                                            <span class="px-2.5 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-lg text-xs font-medium">
+                                                                {{ __('booking::session.plan.not_started') }}
+                                                            </span>
+                                                        @endif
+                                                        <button
+                                                            wire:click="startSessionForItem({{ $item->id }})"
+                                                            wire:loading.attr="disabled"
+                                                            class="p-2 rounded-lg bg-primary-500 text-white hover:bg-primary-600 transition-colors shadow-sm"
+                                                            title="{{ __('booking::session.actions.start_session') }}"
+                                                        >
+                                                            <x-heroicon-s-play class="w-4 h-4" />
+                                                        </button>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endforeach
+
+                            {{-- Individual Services --}}
+                            @foreach($individualItems as $item)
+                                @php
+                                    $itemName = $item->item_name ?: ($item->service?->translated_name ?? '');
+                                    $completed = $item->completed_sessions;
+                                    $total = $item->recommended_sessions;
+                                    $isDone = $completed >= $total;
+                                    $hasActiveSession = $item->planAppointments()
+                                        ->whereHas('appointment', fn($q) => $q->whereIn('status', ['in_progress', 'checked_in', 'confirmed']))
+                                        ->exists();
+                                    $hasStarted = $item->completed_sessions > 0 || $hasActiveSession;
+                                @endphp
+                                <div class="flex items-center gap-3 py-2 px-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                                    {{-- Icon --}}
+                                    <div class="flex-shrink-0 w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900/50 flex items-center justify-center">
+                                        <x-heroicon-o-sparkles class="w-5 h-5 text-primary-600 dark:text-primary-400" />
+                                    </div>
+
+                                    {{-- Service Name & Progress --}}
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex items-center justify-between gap-2">
+                                            <span class="font-medium text-gray-900 dark:text-white text-sm truncate">{{ $itemName }}</span>
+                                            <span class="flex-shrink-0 font-bold {{ $isDone ? 'text-green-600' : 'text-gray-600 dark:text-gray-400' }} text-sm">
+                                                {{ $completed }}/{{ $total }}
+                                            </span>
+                                        </div>
+                                        <div class="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mt-1.5">
+                                            <div class="h-full {{ $isDone ? 'bg-green-500' : 'bg-primary-500' }} rounded-full transition-all" style="width: {{ $total > 0 ? min(100, ($completed / $total) * 100) : 0 }}%"></div>
+                                        </div>
+                                    </div>
+
+                                    {{-- Status & Actions --}}
+                                    <div class="flex items-center gap-2 flex-shrink-0">
+                                        @if($item->service_id === $appointment->service_id)
+                                            <span class="px-3 py-1.5 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 rounded-lg text-xs font-semibold flex items-center gap-1.5">
+                                                <x-heroicon-s-play class="w-4 h-4" />
+                                                {{ __('booking::session.plan.current') }}
+                                            </span>
+                                        @elseif($isDone)
+                                            <span class="px-3 py-1.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 rounded-lg text-xs font-semibold flex items-center gap-1">
+                                                <x-heroicon-s-check-circle class="w-4 h-4" />
+                                                {{ __('booking::session.plan.completed') }}
+                                            </span>
+                                        @elseif($item->isCancelled())
+                                            <span class="px-3 py-1.5 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 rounded-lg text-xs font-semibold">
+                                                {{ __('booking::session.plan.cancelled') }}
+                                            </span>
+                                        @else
+                                            @if($hasStarted)
+                                                <span class="px-2.5 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded-lg text-xs font-medium">
+                                                    {{ __('booking::session.plan.in_progress') }}
                                                 </span>
                                             @else
-                                                {{-- Show status badge - check for active sessions or completed sessions --}}
-                                                @php
-                                                    $hasActiveSession = $item->planAppointments()
-                                                        ->whereHas('appointment', fn($q) => $q->whereIn('status', ['in_progress', 'checked_in', 'confirmed']))
-                                                        ->exists();
-                                                    $hasStarted = $item->completed_sessions > 0 || $hasActiveSession;
-                                                @endphp
-                                                @if($hasStarted)
-                                                    <span class="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded text-xs">
-                                                        {{ __('booking::session.plan.in_progress') }}
-                                                    </span>
-                                                @else
-                                                    <span class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded text-xs">
-                                                        {{ __('booking::session.plan.not_started') }}
-                                                    </span>
-                                                @endif
-                                                {{-- Play button --}}
-                                                <button
-                                                    wire:click="startSessionForItem({{ $item->id }})"
-                                                    wire:loading.attr="disabled"
-                                                    class="p-1 rounded bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 hover:bg-primary-200 dark:hover:bg-primary-900/50 transition-colors"
-                                                    title="{{ __('booking::session.actions.start_session') }}"
-                                                >
-                                                    <x-heroicon-o-play class="w-3.5 h-3.5" />
-                                                </button>
+                                                <span class="px-2.5 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-lg text-xs font-medium">
+                                                    {{ __('booking::session.plan.not_started') }}
+                                                </span>
                                             @endif
-                                        @elseif($isProduct && !$item->is_delivered)
-                                            <span class="px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded text-xs">
+                                            <button
+                                                wire:click="startSessionForItem({{ $item->id }})"
+                                                wire:loading.attr="disabled"
+                                                class="p-2 rounded-lg bg-primary-500 text-white hover:bg-primary-600 transition-colors shadow-sm"
+                                                title="{{ __('booking::session.actions.start_session') }}"
+                                            >
+                                                <x-heroicon-s-play class="w-4 h-4" />
+                                            </button>
+                                        @endif
+                                    </div>
+                                </div>
+                            @endforeach
+
+                            {{-- Products --}}
+                            @foreach($productItems as $item)
+                                @php
+                                    $itemName = $item->item_name ?: ($item->itemable?->translated_name ?? $item->itemable?->name ?? '');
+                                @endphp
+                                <div class="flex items-center gap-3 py-2 px-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-700">
+                                    {{-- Icon --}}
+                                    <div class="flex-shrink-0 w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center">
+                                        <x-heroicon-o-cube class="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                                    </div>
+
+                                    {{-- Product Name --}}
+                                    <span class="flex-1 font-medium text-gray-900 dark:text-white text-sm truncate">{{ $itemName }}</span>
+
+                                    {{-- Status --}}
+                                    <div class="flex items-center gap-2 flex-shrink-0">
+                                        @if(!$item->is_delivered)
+                                            <span class="px-3 py-1.5 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 rounded-lg text-xs font-semibold">
                                                 {{ __('booking::session.plan.pending_delivery') }}
                                             </span>
-                                        @elseif($isProduct && $item->is_delivered)
-                                            <x-heroicon-o-check-circle class="w-4 h-4 text-green-500" />
+                                        @else
+                                            <span class="px-3 py-1.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 rounded-lg text-xs font-semibold flex items-center gap-1">
+                                                <x-heroicon-s-check-circle class="w-4 h-4" />
+                                                {{ __('booking::session.plan.delivered') }}
+                                            </span>
                                         @endif
                                     </div>
                                 </div>
