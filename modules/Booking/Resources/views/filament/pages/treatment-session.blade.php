@@ -668,11 +668,11 @@
                     </div>
                 </x-slot>
 
-                <div class="flex gap-2 mb-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg items-end">
-                    <div class="flex-1">
+                <div class="flex gap-2 mb-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg items-end [&_.fi-fo-field-wrp]:flex-row [&_.fi-fo-field-wrp]:items-end [&_.fi-fo-field-wrp]:gap-2 [&_.fi-fo-field-wrp>div:first-child]:flex-1 [&_.fi-fo-field-wrp>div:last-child]:w-20">
+                    <div class="flex-1 [&>form>div]:flex [&>form>div]:flex-row [&>form>div]:gap-2 [&>form>div]:items-end [&>form>div>div:first-child]:flex-1 [&>form>div>div:last-child]:w-20">
                         {{ $this->consumableForm }}
                     </div>
-                    <x-filament::button wire:click="addConsumable" size="sm">
+                    <x-filament::button wire:click="addConsumable" size="sm" class="mb-0">
                         <x-heroicon-o-plus class="w-4 h-4" />
                     </x-filament::button>
                 </div>
@@ -708,11 +708,11 @@
                     </div>
                 </x-slot>
 
-                <div class="flex gap-2 mb-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg items-end">
-                    <div class="flex-1">
+                <div class="flex gap-2 mb-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg items-end [&_.fi-fo-field-wrp]:flex-row [&_.fi-fo-field-wrp]:items-end [&_.fi-fo-field-wrp]:gap-2 [&_.fi-fo-field-wrp>div:first-child]:flex-1 [&_.fi-fo-field-wrp>div:last-child]:w-20">
+                    <div class="flex-1 [&>form>div]:flex [&>form>div]:flex-row [&>form>div]:gap-2 [&>form>div]:items-end [&>form>div>div:first-child]:flex-1 [&>form>div>div:last-child]:w-20">
                         {{ $this->productForm }}
                     </div>
-                    <x-filament::button wire:click="addProduct" size="sm">
+                    <x-filament::button wire:click="addProduct" size="sm" class="mb-0">
                         <x-heroicon-o-plus class="w-4 h-4" />
                     </x-filament::button>
                 </div>

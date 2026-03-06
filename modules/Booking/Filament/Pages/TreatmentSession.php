@@ -182,49 +182,44 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
     {
         return $form
             ->schema([
-                Forms\Components\Grid::make(3)
-                    ->schema([
-                        Forms\Components\Select::make('newConsumableId')
-                            ->label('')
-                            ->placeholder(__('booking::session.consumables.select'))
-                            ->options(function () {
-                                return Product::query()
-                                    ->where('is_active', true)
-                                    ->where('is_consumable', true)
-                                    ->limit(50)
-                                    ->get()
-                                    ->mapWithKeys(fn (Product $p) => [
-                                        $p->id => $p->getTranslation('name', app()->getLocale())
-                                    ]);
+                Forms\Components\Select::make('newConsumableId')
+                    ->hiddenLabel()
+                    ->placeholder(__('booking::session.consumables.select'))
+                    ->options(function () {
+                        return Product::query()
+                            ->where('is_active', true)
+                            ->where('is_consumable', true)
+                            ->limit(50)
+                            ->get()
+                            ->mapWithKeys(fn (Product $p) => [
+                                $p->id => $p->getTranslation('name', app()->getLocale())
+                            ]);
+                    })
+                    ->searchable()
+                    ->getSearchResultsUsing(function (string $search): array {
+                        return Product::query()
+                            ->where('is_active', true)
+                            ->where('is_consumable', true)
+                            ->where(function ($q) use ($search) {
+                                $q->where('name->en', 'ilike', "%{$search}%")
+                                    ->orWhere('name->ar', 'ilike', "%{$search}%")
+                                    ->orWhere('sku', 'ilike', "%{$search}%");
                             })
-                            ->searchable()
-                            ->getSearchResultsUsing(function (string $search): array {
-                                return Product::query()
-                                    ->where('is_active', true)
-                                    ->where('is_consumable', true)
-                                    ->where(function ($q) use ($search) {
-                                        $q->where('name->en', 'ilike', "%{$search}%")
-                                            ->orWhere('name->ar', 'ilike', "%{$search}%")
-                                            ->orWhere('sku', 'ilike', "%{$search}%");
-                                    })
-                                    ->limit(20)
-                                    ->get()
-                                    ->mapWithKeys(fn (Product $p) => [
-                                        $p->id => $p->getTranslation('name', app()->getLocale())
-                                    ])
-                                    ->toArray();
-                            })
-                            ->columnSpan(2)
-                            ->extraAttributes(['class' => 'flex-1']),
-                        Forms\Components\TextInput::make('newConsumableQty')
-                            ->label('')
-                            ->numeric()
-                            ->default(1)
-                            ->minValue(0.1)
-                            ->step(0.1)
-                            ->placeholder(__('booking::session.consumables.quantity'))
-                            ->columnSpan(1),
-                    ]),
+                            ->limit(20)
+                            ->get()
+                            ->mapWithKeys(fn (Product $p) => [
+                                $p->id => $p->getTranslation('name', app()->getLocale())
+                            ])
+                            ->toArray();
+                    }),
+                Forms\Components\TextInput::make('newConsumableQty')
+                    ->hiddenLabel()
+                    ->numeric()
+                    ->default(1)
+                    ->minValue(0.1)
+                    ->step(0.1)
+                    ->placeholder(__('booking::session.consumables.quantity'))
+                    ->extraInputAttributes(['class' => 'text-center', 'style' => 'width: 70px']),
             ])
             ->statePath('consumableFormData');
     }
@@ -233,48 +228,43 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
     {
         return $form
             ->schema([
-                Forms\Components\Grid::make(3)
-                    ->schema([
-                        Forms\Components\Select::make('newProductId')
-                            ->label('')
-                            ->placeholder(__('booking::session.products.select'))
-                            ->options(function () {
-                                return Product::query()
-                                    ->where('is_active', true)
-                                    ->where('is_consumable', false)
-                                    ->limit(50)
-                                    ->get()
-                                    ->mapWithKeys(fn (Product $p) => [
-                                        $p->id => $p->getTranslation('name', app()->getLocale())
-                                    ]);
+                Forms\Components\Select::make('newProductId')
+                    ->hiddenLabel()
+                    ->placeholder(__('booking::session.products.select'))
+                    ->options(function () {
+                        return Product::query()
+                            ->where('is_active', true)
+                            ->where('is_consumable', false)
+                            ->limit(50)
+                            ->get()
+                            ->mapWithKeys(fn (Product $p) => [
+                                $p->id => $p->getTranslation('name', app()->getLocale())
+                            ]);
+                    })
+                    ->searchable()
+                    ->getSearchResultsUsing(function (string $search): array {
+                        return Product::query()
+                            ->where('is_active', true)
+                            ->where('is_consumable', false)
+                            ->where(function ($q) use ($search) {
+                                $q->where('name->en', 'ilike', "%{$search}%")
+                                    ->orWhere('name->ar', 'ilike', "%{$search}%")
+                                    ->orWhere('sku', 'ilike', "%{$search}%");
                             })
-                            ->searchable()
-                            ->getSearchResultsUsing(function (string $search): array {
-                                return Product::query()
-                                    ->where('is_active', true)
-                                    ->where('is_consumable', false)
-                                    ->where(function ($q) use ($search) {
-                                        $q->where('name->en', 'ilike', "%{$search}%")
-                                            ->orWhere('name->ar', 'ilike', "%{$search}%")
-                                            ->orWhere('sku', 'ilike', "%{$search}%");
-                                    })
-                                    ->limit(20)
-                                    ->get()
-                                    ->mapWithKeys(fn (Product $p) => [
-                                        $p->id => $p->getTranslation('name', app()->getLocale())
-                                    ])
-                                    ->toArray();
-                            })
-                            ->columnSpan(2)
-                            ->extraAttributes(['class' => 'flex-1']),
-                        Forms\Components\TextInput::make('newProductQty')
-                            ->label('')
-                            ->numeric()
-                            ->default(1)
-                            ->minValue(1)
-                            ->placeholder(__('booking::session.products.quantity'))
-                            ->columnSpan(1),
-                    ]),
+                            ->limit(20)
+                            ->get()
+                            ->mapWithKeys(fn (Product $p) => [
+                                $p->id => $p->getTranslation('name', app()->getLocale())
+                            ])
+                            ->toArray();
+                    }),
+                Forms\Components\TextInput::make('newProductQty')
+                    ->hiddenLabel()
+                    ->numeric()
+                    ->default(1)
+                    ->minValue(1)
+                    ->placeholder(__('booking::session.products.quantity'))
+                    ->extraInputAttributes(['class' => 'text-center', 'style' => 'width: 70px']),
             ])
             ->statePath('productFormData');
     }
