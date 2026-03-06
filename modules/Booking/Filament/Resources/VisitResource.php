@@ -356,22 +356,23 @@ class VisitResource extends Resource
                     ->schema([
                         Infolists\Components\RepeatableEntry::make('all_sold_products')
                             ->hiddenLabel()
-                            ->state(fn (Visit $record) => $record->getAllSoldProducts())
+                            ->state(fn (Visit $record) => $record->getAllSoldProducts()->toArray())
                             ->schema([
                                 Infolists\Components\TextEntry::make('product_name')
                                     ->label(__('inventory::inventory.labels.product'))
-                                    ->state(fn ($record) => $record->product?->getTranslation('name', app()->getLocale()) ?? '-'),
+                                    ->getStateUsing(fn ($record) => $record['product']['name'] ?? '-'),
 
                                 Infolists\Components\TextEntry::make('quantity')
-                                    ->label(__('booking::session.consumables.quantity')),
+                                    ->label(__('booking::session.consumables.quantity'))
+                                    ->getStateUsing(fn ($record) => $record['quantity'] ?? 0),
 
-                                Infolists\Components\TextEntry::make('unit_price_minor')
+                                Infolists\Components\TextEntry::make('unit_price')
                                     ->label(__('booking::session.invoice.unit_price'))
-                                    ->money(fn () => current_currency(), divideBy: 100),
+                                    ->getStateUsing(fn ($record) => number_format(($record['unit_price_minor'] ?? 0) / 100, 2) . ' ' . current_currency()),
 
-                                Infolists\Components\TextEntry::make('total_price_minor')
+                                Infolists\Components\TextEntry::make('total_price')
                                     ->label(__('booking::session.invoice.total'))
-                                    ->money(fn () => current_currency(), divideBy: 100),
+                                    ->getStateUsing(fn ($record) => number_format(($record['total_price_minor'] ?? 0) / 100, 2) . ' ' . current_currency()),
                             ])
                             ->columns(4)
                             ->contained(false),
