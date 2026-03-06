@@ -356,23 +356,24 @@ class VisitResource extends Resource
                     ->schema([
                         Infolists\Components\RepeatableEntry::make('all_sold_products')
                             ->hiddenLabel()
-                            ->state(fn (Visit $record) => $record->getAllSoldProducts()->toArray())
+                            ->state(fn (Visit $record) => $record->getAllSoldProducts()->map(fn ($p) => [
+                                'product_name' => $p->product?->getTranslation('name', app()->getLocale()) ?? '-',
+                                'quantity' => $p->quantity,
+                                'unit_price' => number_format($p->unit_price_minor / 100, 2) . ' ' . current_currency(),
+                                'total_price' => number_format($p->total_price_minor / 100, 2) . ' ' . current_currency(),
+                            ])->toArray())
                             ->schema([
                                 Infolists\Components\TextEntry::make('product_name')
-                                    ->label(__('inventory::inventory.labels.product'))
-                                    ->getStateUsing(fn ($record) => $record['product']['name'] ?? '-'),
+                                    ->label(__('inventory::inventory.labels.product')),
 
                                 Infolists\Components\TextEntry::make('quantity')
-                                    ->label(__('booking::session.consumables.quantity'))
-                                    ->getStateUsing(fn ($record) => $record['quantity'] ?? 0),
+                                    ->label(__('booking::session.consumables.quantity')),
 
                                 Infolists\Components\TextEntry::make('unit_price')
-                                    ->label(__('booking::session.invoice.unit_price'))
-                                    ->getStateUsing(fn ($record) => number_format(($record['unit_price_minor'] ?? 0) / 100, 2) . ' ' . current_currency()),
+                                    ->label(__('booking::session.invoice.unit_price')),
 
                                 Infolists\Components\TextEntry::make('total_price')
-                                    ->label(__('booking::session.invoice.total'))
-                                    ->getStateUsing(fn ($record) => number_format(($record['total_price_minor'] ?? 0) / 100, 2) . ' ' . current_currency()),
+                                    ->label(__('booking::session.invoice.total')),
                             ])
                             ->columns(4)
                             ->contained(false),
