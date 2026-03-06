@@ -2120,6 +2120,9 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
             'unit' => $sessionProduct->unit,
             'unit_price' => $sessionProduct->unit_price,
             'total_price' => $sessionProduct->total_price,
+            'usage_type' => 'sold',
+            'discount_type' => 'none',
+            'discount_value' => 0,
         ];
 
         $this->newProductId = null;
