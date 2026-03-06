@@ -2066,7 +2066,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
         SessionConsumable::where('id', $consumableId)->delete();
 
         $this->sessionConsumables = array_values(
-            array_filter($this->sessionConsumables, fn ($c) => $c['id'] !== $consumableId)
+            array_filter($this->sessionConsumables, fn ($c) => (string) $c['id'] !== $consumableId)
         );
 
         Notification::make()
@@ -2139,7 +2139,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
         SessionProduct::where('id', $productId)->delete();
 
         $this->sessionProducts = array_values(
-            array_filter($this->sessionProducts, fn ($p) => $p['id'] !== $productId)
+            array_filter($this->sessionProducts, fn ($p) => (string) $p['id'] !== $productId)
         );
 
         Notification::make()
