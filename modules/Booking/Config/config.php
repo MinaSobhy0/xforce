@@ -13,7 +13,7 @@ return [
     'cancellation_policy_hours' => 24,
 
     // Slot generation settings
-    'min_advance_hours' => 2, // Minimum hours before appointment can be booked
+    'min_advance_hours' => 0, // Minimum hours before appointment can be booked
     'slot_interval_minutes' => null, // null = use service duration, or set fixed interval
     'show_practitioner_selection' => true, // Allow manual practitioner selection
     'auto_assign_practitioner' => true, // Auto-select first available practitioner
