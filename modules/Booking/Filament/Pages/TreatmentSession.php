@@ -2055,6 +2055,8 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
         $this->newConsumableId = null;
         $this->newConsumableQty = 1;
 
+        $this->dispatch('consumable-added');
+
         Notification::make()
             ->title(__('booking::session.messages.consumable_added'))
             ->success()
@@ -2127,6 +2129,8 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
 
         $this->newProductId = null;
         $this->newProductQty = 1;
+
+        $this->dispatch('product-added');
 
         Notification::make()
             ->title(__('booking::session.messages.product_added'))

@@ -681,9 +681,14 @@
                             $wire.set('newConsumableId', id);
                             this.open = false;
                             this.search = this.items.find(i => i.id == id)?.name || '';
+                        },
+                        clear() {
+                            this.search = '';
+                            this.open = false;
                         }
                     }"
                     @click.outside="open = false"
+                    @consumable-added.window="clear()"
                 >
                     <div class="flex-1 relative">
                         <input
@@ -751,9 +756,14 @@
                             this.open = false;
                             const item = this.items.find(i => i.id == id);
                             this.search = item ? item.name + ' - ' + item.price.toFixed(2) : '';
+                        },
+                        clear() {
+                            this.search = '';
+                            this.open = false;
                         }
                     }"
                     @click.outside="open = false"
+                    @product-added.window="clear()"
                 >
                     <div class="flex-1 relative">
                         <input
