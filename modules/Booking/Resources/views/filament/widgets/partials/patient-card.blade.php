@@ -11,21 +11,12 @@
     $hasBalance = $appointment->remaining_balance > 0;
     $canRecordPayment = in_array($appointment->status, ['checked_in', 'in_progress']) && $hasBalance;
 
-    // Get visit info
-    $visit = $appointment->current_visit;
-    $hasOpenVisit = $visit && $visit->status === 'open';
-
-    // Check if can checkout via visit (preferred method)
-    $canVisitCheckout = $showCheckout && $hasOpenVisit && $appointment->status === 'completed';
-
-    // Legacy: Check if appointment is completed with unpaid invoice (fallback for non-visit appointments)
-    $canLegacyCheckout = $showCheckout
-        && !$hasOpenVisit
+    // Check if appointment is completed with unpaid invoice
+    // Include draft status since auto-created invoices start as draft
+    $canCheckout = $showCheckout
         && $appointment->status === 'completed'
         && $appointment->invoice
         && in_array($appointment->invoice->status, ['draft', 'issued', 'partially_paid']);
-
-    $canCheckout = $canVisitCheckout || $canLegacyCheckout;
 
     // Status colors and labels
     $statusConfig = [
@@ -43,88 +34,93 @@
     $statusInfo = $statusConfig[$status] ?? $statusConfig['scheduled'];
 @endphp
 
-<div class="bg-white dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow transition-all overflow-hidden">
-    {{-- Compact Header --}}
-    <div class="flex items-center justify-between px-2 py-1.5 bg-gray-50 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-700">
-        <div class="flex items-center gap-1.5">
-            <span class="text-xs font-bold text-primary-600 dark:text-primary-400">
+<div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all overflow-hidden">
+    {{-- Header with Time and Wait Time --}}
+    <div class="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-700">
+        <div class="flex items-center gap-2">
+            <span class="text-sm font-bold text-primary-600 dark:text-primary-400">
                 {{ $appointment->start_time?->format('H:i') }}
             </span>
-            <span class="inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium rounded {{ $statusInfo['color'] }}">
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full {{ $statusInfo['color'] }}">
+                <x-dynamic-component :component="$statusInfo['icon']" class="w-3 h-3" />
                 {{ $statusInfo['label'] }}
             </span>
-            @if($visit)
-                <span class="inline-flex items-center px-1.5 py-0.5 text-[10px] rounded
-                    @if($visit->status === 'open') bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300
-                    @else bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400
-                    @endif">
-                    {{ $visit->code }}
-                </span>
-            @endif
         </div>
         @if($waitTime)
-            <span class="inline-flex items-center px-1.5 py-0.5 text-[10px] font-bold rounded {{ $waitClass }}">
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-bold rounded-full {{ $waitClass }}">
+                <x-heroicon-o-clock class="w-3 h-3" />
                 {{ $waitTime['formatted'] }}
             </span>
         @endif
     </div>
 
-    {{-- Compact Body --}}
-    <div class="px-2 py-1.5 space-y-1">
-        {{-- Patient & Service Row --}}
-        <div class="flex items-center justify-between gap-2">
+    {{-- Body --}}
+    <div class="p-3 space-y-2">
+        {{-- Patient Name --}}
+        <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center flex-shrink-0">
+                <x-heroicon-o-user class="w-4 h-4 text-primary-600 dark:text-primary-400" />
+            </div>
             <div class="min-w-0 flex-1">
-                <div class="text-xs font-semibold text-gray-900 dark:text-white truncate">
+                <div class="text-sm font-semibold text-gray-900 dark:text-white truncate">
                     {{ $appointment->patient?->full_name ?? __('booking::reception.unknown_patient') }}
                 </div>
-                @if($appointment->service)
-                    <div class="text-[10px] text-gray-500 dark:text-gray-400 truncate">
-                        {{ $appointment->service->name }}
-                    </div>
+                @if($appointment->patient?->phone)
+                    <a href="tel:{{ $appointment->patient->phone }}" class="text-xs text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400">
+                        {{ $appointment->patient->phone }}
+                    </a>
                 @endif
             </div>
-            @if($appointment->patient?->phone)
-                <a href="tel:{{ $appointment->patient->phone }}" class="text-[10px] text-gray-400 hover:text-primary-600 flex-shrink-0">
-                    <x-heroicon-o-phone class="w-3 h-3" />
-                </a>
-            @endif
         </div>
 
-        {{-- Room & Doctor Row --}}
-        <div class="flex flex-wrap gap-1">
+        {{-- Service --}}
+        @if($appointment->service)
+            <div class="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
+                <x-heroicon-o-clipboard-document-list class="w-4 h-4 text-gray-400 flex-shrink-0" />
+                <span class="truncate">{{ $appointment->service->name }}</span>
+            </div>
+        @endif
+
+        {{-- Room & Doctor --}}
+        <div class="flex flex-wrap gap-1.5">
             @if($showAssignActions && $canChangeRoomOrDoctor)
+                {{-- Clickable Room Badge --}}
                 <button
                     type="button"
                     wire:click="openRoomModal('{{ $appointment->id }}')"
-                    class="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-medium rounded border transition-colors
+                    class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-md border transition-colors cursor-pointer
                         {{ $appointment->room
-                            ? 'bg-cyan-50 text-cyan-700 dark:bg-cyan-900/50 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800'
-                            : 'bg-gray-50 text-gray-500 dark:bg-gray-800 dark:text-gray-400 border-gray-200 dark:border-gray-700 border-dashed' }}"
+                            ? 'bg-cyan-50 text-cyan-700 dark:bg-cyan-900/50 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800 hover:bg-cyan-100 dark:hover:bg-cyan-900'
+                            : 'bg-gray-50 text-gray-500 dark:bg-gray-800 dark:text-gray-400 border-gray-200 dark:border-gray-700 border-dashed hover:bg-gray-100 dark:hover:bg-gray-700' }}"
+                    title="{{ __('booking::reception.actions.assign_room') }}"
                 >
-                    <x-heroicon-o-building-office class="w-2.5 h-2.5" />
+                    <x-heroicon-o-building-office class="w-3 h-3" />
                     {{ $appointment->room?->name ?? __('booking::reception.no_room') }}
                 </button>
+
+                {{-- Clickable Doctor Badge --}}
                 <button
                     type="button"
                     wire:click="openDoctorModal('{{ $appointment->id }}')"
-                    class="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-medium rounded border transition-colors
+                    class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-md border transition-colors cursor-pointer
                         {{ $appointment->practitioner
-                            ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800'
-                            : 'bg-gray-50 text-gray-500 dark:bg-gray-800 dark:text-gray-400 border-gray-200 dark:border-gray-700 border-dashed' }}"
+                            ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900'
+                            : 'bg-gray-50 text-gray-500 dark:bg-gray-800 dark:text-gray-400 border-gray-200 dark:border-gray-700 border-dashed hover:bg-gray-100 dark:hover:bg-gray-700' }}"
+                    title="{{ __('booking::reception.actions.assign_doctor') }}"
                 >
-                    <x-heroicon-o-user-circle class="w-2.5 h-2.5" />
+                    <x-heroicon-o-user-circle class="w-3 h-3" />
                     {{ $appointment->practitioner?->full_name ?? __('booking::reception.unassigned') }}
                 </button>
             @else
                 @if($showRoom && $appointment->room)
-                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-medium rounded bg-cyan-50 text-cyan-700 dark:bg-cyan-900/50 dark:text-cyan-300">
-                        <x-heroicon-o-building-office class="w-2.5 h-2.5" />
+                    <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-md bg-cyan-50 text-cyan-700 dark:bg-cyan-900/50 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800">
+                        <x-heroicon-o-building-office class="w-3 h-3" />
                         {{ $appointment->room->name }}
                     </span>
                 @endif
                 @if($appointment->practitioner)
-                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-medium rounded bg-indigo-50 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300">
-                        <x-heroicon-o-user-circle class="w-2.5 h-2.5" />
+                    <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-md bg-indigo-50 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                        <x-heroicon-o-user-circle class="w-3 h-3" />
                         {{ $appointment->practitioner->full_name }}
                     </span>
                 @endif
@@ -132,58 +128,58 @@
         </div>
     </div>
 
-    {{-- Compact Action Buttons --}}
+    {{-- Action Buttons --}}
     @if(($showCheckIn && $canCheckIn) || ($showPayment && $canRecordPayment) || $canCheckout)
-        <div class="px-2 pb-2 flex gap-1">
+        <div class="px-3 pb-4 space-y-2">
+            {{-- Check-in Button --}}
             @if($showCheckIn && $canCheckIn)
                 <x-filament::button
                     wire:click="checkInAppointment('{{ $appointment->id }}')"
                     wire:loading.attr="disabled"
                     color="warning"
-                    size="xs"
-                    class="flex-1"
+                    size="sm"
+                    class="w-full"
+                    icon="heroicon-o-check-circle"
                 >
                     <span wire:loading.remove wire:target="checkInAppointment('{{ $appointment->id }}')">
                         {{ __('booking::reception.actions.check_in') }}
                     </span>
-                    <span wire:loading wire:target="checkInAppointment('{{ $appointment->id }}')">...</span>
+                    <span wire:loading wire:target="checkInAppointment('{{ $appointment->id }}')">
+                        {{ __('booking::reception.actions.checking_in') }}...
+                    </span>
                 </x-filament::button>
             @endif
 
+            {{-- Record Payment Button (shows for checked_in and in_progress) --}}
             @if($showPayment && $canRecordPayment)
                 <x-filament::button
                     :href="route('filament.tenant.resources.appointments.view', ['record' => $appointment->id])"
                     tag="a"
                     color="success"
-                    size="xs"
-                    class="flex-1"
+                    size="sm"
+                    class="w-full"
+                    icon="heroicon-o-banknotes"
                 >
                     {{ __('booking::reception.actions.record_payment') }}
                 </x-filament::button>
             @endif
 
-            @if($canVisitCheckout)
-                <x-filament::button
-                    :href="$visit->checkout_url"
-                    tag="a"
-                    color="success"
-                    size="xs"
-                    class="flex-1"
-                >
-                    {{ __('booking::reception.actions.checkout') }}
-                </x-filament::button>
-            @elseif($canLegacyCheckout)
+            {{-- Checkout Button (shows for completed appointments with unpaid invoice) --}}
+            @if($canCheckout)
                 <x-filament::button
                     wire:click="goToCheckout('{{ $appointment->id }}')"
                     wire:loading.attr="disabled"
                     color="success"
-                    size="xs"
-                    class="flex-1"
+                    size="sm"
+                    class="w-full"
+                    icon="heroicon-o-banknotes"
                 >
                     <span wire:loading.remove wire:target="goToCheckout('{{ $appointment->id }}')">
                         {{ __('booking::reception.actions.checkout') }}
                     </span>
-                    <span wire:loading wire:target="goToCheckout('{{ $appointment->id }}')">...</span>
+                    <span wire:loading wire:target="goToCheckout('{{ $appointment->id }}')">
+                        {{ __('booking::reception.actions.loading') }}...
+                    </span>
                 </x-filament::button>
             @endif
         </div>
