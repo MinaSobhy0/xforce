@@ -43,6 +43,7 @@ return [
         'requires_consent' => 'Requires Consent',
         'consent_template' => 'Consent Template',
         'equipment_required' => 'Equipment Required',
+        'consumables_required' => 'Consumables Required',
         'qualified_staff' => 'Qualified Staff',
         'service_rooms' => 'Service Rooms',
         'required_equipment' => 'Required Equipment',
@@ -61,6 +62,20 @@ return [
         'parameter_template' => 'Parameter Template',
         'parameter_template_help' => 'Select a pre-defined template for this service\'s parameters',
         'template_parameters' => 'Included Parameters',
+        'default_parameter_template' => 'Default Parameter Template',
+        'default_parameter_template_help' => 'New services in this category will automatically use this template',
+        'default_template' => 'Default Template',
+        'template_preview' => 'Template Parameters',
+        'unearned_revenue_account' => 'Unearned Revenue Account',
+        'unearned_revenue_account_help' => 'Liability account for advance payments (e.g., package purchases)',
+        'service_revenue_account' => 'Service Revenue Account',
+        'service_revenue_account_help' => 'Income account for recognizing service revenue when performed',
+    ],
+
+    'placeholders' => [
+        'no_template_selected' => 'No template selected',
+        'template_not_found' => 'Template not found',
+        'no_parameters' => 'No parameters defined in this template',
     ],
 
     'parameter_modes' => [
@@ -80,8 +95,14 @@ return [
     ],
 
     'tabs' => [
+        'basic_info' => 'Basic Info',
         'scheduling' => 'Scheduling & Resources',
         'parameters' => 'Treatment Parameters',
+        'dynamic_parameters' => 'Dynamic Parameters',
+        'equipment_consumables' => 'Equipment & Consumables',
+        'qualified_staff' => 'Qualified Staff',
+        'service_rooms' => 'Service Rooms',
+        'accounting' => 'Accounting',
     ],
 
     'sections' => [
@@ -101,6 +122,10 @@ return [
         'custom_parameters_description' => 'Define custom parameters for this service',
         'parameter_presets' => 'Parameter Presets',
         'parameter_presets_description' => 'Pre-defined value sets for quick parameter selection',
+        'default_template' => 'Default Parameter Template',
+        'default_template_description' => 'Services in this category will inherit this parameter template by default',
+        'revenue_accounts' => 'Revenue Accounts',
+        'revenue_accounts_description' => 'Configure default accounting accounts for services in this category',
     ],
 
     'staff' => [
@@ -120,7 +145,10 @@ return [
         'priority' => 'Priority',
         'priority_help' => 'Lower number = higher priority for backup rooms',
         'type' => 'Room Type',
+        'capacity' => 'Capacity',
         'set_as_primary' => 'Set as Primary',
+        'set_primary' => 'Set as Primary',
+        'unset_primary' => 'Remove Primary',
         'primary_updated' => 'Primary room updated successfully',
         'add_room' => 'Add Room',
     ],
@@ -137,6 +165,17 @@ return [
         'mark_optional' => 'Mark as Optional',
         'mark_mandatory' => 'Mark as Mandatory',
         'add_equipment' => 'Add Equipment',
+    ],
+
+    'consumables' => [
+        'product' => 'Product',
+        'sku' => 'SKU',
+        'unit' => 'Unit',
+        'category' => 'Category',
+        'quantity' => 'Quantity',
+        'quantity_help' => 'Units consumed per service',
+        'add_consumable' => 'Add Consumable',
+        'update_quantity' => 'Update Quantity',
     ],
 
     'actions' => [

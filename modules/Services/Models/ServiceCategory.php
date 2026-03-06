@@ -6,7 +6,13 @@ use XLinic\Framework\Core\Model\BaseModel;
 use XLinic\Framework\Core\Model\Traits\HasTenancy;
 use XLinic\Framework\Core\Model\Traits\HasTranslation;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Modules\Equipment\Models\Equipment;
+use Modules\Core\Models\Room;
+use Modules\Staff\Models\StaffProfile;
+use Modules\Inventory\Models\Product;
+use Modules\Accounting\Models\ChartOfAccount;
 
 class ServiceCategory extends BaseModel
 {
@@ -23,6 +29,9 @@ class ServiceCategory extends BaseModel
         'color',
         'sort_order',
         'is_active',
+        'default_parameter_template_id',
+        'unearned_revenue_account_id',
+        'service_revenue_account_id',
     ];
 
     protected $casts = [
@@ -113,5 +122,68 @@ class ServiceCategory extends BaseModel
     public function canDelete(): bool
     {
         return !$this->hasChildren() && !$this->hasServices();
+    }
+
+    /**
+     * Get the default parameter template for this category.
+     */
+    public function defaultParameterTemplate(): BelongsTo
+    {
+        return $this->belongsTo(ParameterTemplate::class, 'default_parameter_template_id');
+    }
+
+    /**
+     * Get required equipment for this category.
+     */
+    public function requiredEquipment(): BelongsToMany
+    {
+        return $this->belongsToMany(Equipment::class, 'service_category_equipment', 'service_category_id', 'equipment_id')
+            ->withPivot(['is_mandatory'])
+            ->withTimestamps();
+    }
+
+    /**
+     * Get qualified staff for this category.
+     */
+    public function qualifiedStaff(): BelongsToMany
+    {
+        return $this->belongsToMany(StaffProfile::class, 'service_category_qualified_staff', 'service_category_id', 'staff_profile_id')
+            ->withTimestamps();
+    }
+
+    /**
+     * Get rooms for this category.
+     */
+    public function rooms(): BelongsToMany
+    {
+        return $this->belongsToMany(Room::class, 'service_category_rooms', 'service_category_id', 'room_id')
+            ->withPivot(['is_primary', 'priority'])
+            ->withTimestamps();
+    }
+
+    /**
+     * Get consumables for this category.
+     */
+    public function consumables(): BelongsToMany
+    {
+        return $this->belongsToMany(Product::class, 'service_category_consumables', 'service_category_id', 'product_id')
+            ->withPivot(['quantity'])
+            ->withTimestamps();
+    }
+
+    /**
+     * Get the unearned revenue account for this category.
+     */
+    public function unearnedRevenueAccount(): BelongsTo
+    {
+        return $this->belongsTo(ChartOfAccount::class, 'unearned_revenue_account_id');
+    }
+
+    /**
+     * Get the service revenue account for this category.
+     */
+    public function serviceRevenueAccount(): BelongsTo
+    {
+        return $this->belongsTo(ChartOfAccount::class, 'service_revenue_account_id');
     }
 }

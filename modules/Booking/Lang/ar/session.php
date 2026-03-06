@@ -12,6 +12,8 @@ return [
         'time' => 'الوقت',
         'room' => 'الغرفة',
         'session_number' => 'الجلسة :current من :total',
+        'years' => 'سنة',
+        'duration' => 'المدة',
     ],
 
     // Sections
@@ -58,9 +60,22 @@ return [
         'blood_type' => 'فصيلة الدم',
         'bmi' => 'مؤشر كتلة الجسم',
         'smoker' => 'مدخن',
+        'status' => 'الحالة',
         'medications' => 'الأدوية الحالية',
         'conditions' => 'الحالات الطبية',
+        'allergies' => 'حساسية خطيرة',
+        'contraindications' => 'موانع الاستعمال',
         'no_history' => 'لم يتم تسجيل تاريخ طبي',
+        'no_profile' => 'لم يتم العثور على ملف طبي',
+        'view_full_profile' => 'الملف الكامل',
+        'create_profile' => 'إنشاء ملف طبي',
+        'pregnant' => 'حامل',
+        'breastfeeding' => 'مرضعة',
+        'critical_allergies' => 'حساسية خطيرة',
+        'has_contraindications' => 'يوجد موانع استعمال',
+        'no_allergies' => 'لا توجد حساسية معروفة',
+        'no_medications' => 'لا توجد أدوية حالية',
+        'no_contraindications' => 'لا توجد موانع استعمال',
     ],
 
     // Notes
@@ -93,6 +108,12 @@ return [
         'add_service' => 'إضافة خدمة',
         'notes' => 'ملاحظات',
         'create' => 'إنشاء الخطة',
+        'no_plan' => 'لا توجد خطة علاج مخصصة',
+        'pending_delivery' => 'قيد التسليم',
+        'current' => 'الحالي',
+        'not_started' => 'لم تبدأ',
+        'in_progress' => 'جارية',
+        'cancelled' => 'ملغاة',
     ],
 
     // Previous visits
@@ -235,6 +256,18 @@ return [
         'added' => 'تمت إضافة المعدات',
         'has_params' => 'معايير',
         'tracking_params' => 'معايير التتبع',
+        // Shot tracking
+        'shots_remaining' => 'النبضات المتبقية',
+        'shots_this_session' => 'نبضات هذه الجلسة',
+        'energy_delivered' => 'الطاقة (جول)',
+        'low_shots_warning' => 'نبضات منخفضة - يُنصح بالصيانة',
+        // Maintenance
+        'maintenance_due' => 'صيانة مستحقة',
+        'next_maintenance' => 'الصيانة القادمة',
+        'last_maintenance' => 'آخر صيانة',
+        // Dynamic parameters
+        'no_tracking_params' => 'لم يتم تكوين معايير التتبع',
+        'cumulative_hint' => 'هذه القيمة تتراكم عبر الجلسات',
     ],
 
     // Presets
@@ -276,5 +309,38 @@ return [
         'usage_type' => 'الاستخدام',
         'applied' => 'مطبق أثناء العلاج',
         'sold' => 'مُباع للمريض',
+    ],
+
+    // Invoice section
+    'invoice' => [
+        'title' => 'ملخص الفاتورة',
+        'item' => 'العنصر',
+        'qty' => 'الكمية',
+        'unit_price' => 'سعر الوحدة',
+        'discount' => 'الخصم',
+        'total' => 'الإجمالي',
+        'subtotal' => 'المجموع الفرعي',
+        'grand_total' => 'المجموع الكلي',
+        'service_session' => 'جلسة الخدمة',
+        'active_session' => 'جلسة نشطة',
+        'product_sold' => 'منتج (مُباع)',
+        'service_discount' => 'خصم الخدمة',
+        'overall_discount' => 'خصم إجمالي',
+        'no_discount' => 'بدون خصم',
+        'percentage' => 'نسبة مئوية',
+        'fixed_amount' => 'مبلغ ثابت',
+        'discount_reason' => 'سبب الخصم',
+        'discount_reason_placeholder' => 'مثال: خصم ولاء، زيارة أولى...',
+        'apply_discount' => 'تطبيق الخصم',
+        'discount_applied' => 'تم تطبيق الخصم',
+        'package_session' => 'جلسة الباقة',
+        'plan_product' => 'منتج خطة العلاج',
+        'covered_by_package' => 'مغطاة بالباقة',
+        'no_billable_items' => 'لا توجد عناصر قابلة للفوترة',
+        'edit_price' => 'تعديل السعر',
+        'save_price' => 'حفظ',
+        'cancel_edit' => 'إلغاء',
+        'other_visit_items' => 'عناصر أخرى في الزيارة :code',
+        'visit_checkout_note' => 'سيتم إنشاء الفاتورة الكاملة عند الدفع',
     ],
 ];

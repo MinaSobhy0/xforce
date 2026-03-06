@@ -10,6 +10,30 @@ return [
         'basic_info' => 'معلومات الباقة',
         'items' => 'محتويات الباقة',
         'items_description' => 'أضف العلاجات والكميات المتضمنة في هذه الباقة',
+        'patient_selection' => 'اختيار المريض',
+        'package_selection' => 'اختيار الباقة',
+        'package_details' => 'تفاصيل الباقة',
+        'payment' => 'خيارات الدفع',
+        'summary' => 'ملخص الطلب',
+        'active_packages' => 'الباقات النشطة',
+    ],
+
+    'labels' => [
+        'expires_in' => 'تنتهي خلال :days يوم',
+        'balance_due' => 'الرصيد المستحق',
+        'usage_progress' => 'تقدم الاستخدام',
+        'sessions_used' => 'جلسة مستخدمة',
+        'sessions_remaining' => 'جلسات متبقية',
+        'sessions_consumed' => 'مستهلكة',
+        'sessions_booked' => 'محجوزة',
+        'sessions_available' => 'متاحة',
+        'consumed' => 'مستهلكة',
+        'booked' => 'محجوزة',
+        'pulses_remaining' => 'نبضات متبقية',
+    ],
+
+    'pages' => [
+        'sell_package' => 'بيع باقة',
     ],
 
     'fields' => [
@@ -48,6 +72,37 @@ return [
         'progress' => 'التقدم',
         'notes' => 'ملاحظات',
         'cancellation_reason' => 'سبب الإلغاء',
+        'package' => 'الباقة',
+        'payment_option' => 'خيار الدفع',
+        'deposit_amount' => 'مبلغ العربون',
+        'min_deposit' => 'الحد الأدنى للعربون: :amount (:percent%)',
+        'min_deposit_percent' => 'نسبة الحد الأدنى %',
+        'activation_rule' => 'قاعدة التفعيل',
+        'activation_rule_help' => 'متى يجب تفعيل الباقة؟',
+        'consumption_type' => 'النوع',
+        'unit_price' => 'سعر الوحدة',
+        'line_total' => 'الإجمالي',
+        'total_price' => 'إجمالي الباقة',
+        'pulses_per_session' => 'نبضات/جلسة',
+    ],
+
+    'consumption_types' => [
+        'sessions' => 'جلسات',
+        'pulses' => 'نبضات',
+    ],
+
+    'payment_options' => [
+        'full' => 'دفع المبلغ كاملاً الآن',
+        'deposit' => 'دفع عربون الآن',
+    ],
+
+    'activation_rules' => [
+        'immediate' => 'تفعيل فوري (يمكن استخدام الجلسات مع وجود رصيد متبقي)',
+        'paid_in_full' => 'تفعيل بعد الدفع الكامل',
+    ],
+
+    'validation' => [
+        'min_deposit' => 'الحد الأدنى للعربون هو :amount',
     ],
 
     'types' => [
@@ -69,6 +124,14 @@ return [
         'unfreeze' => 'إلغاء التجميد',
         'cancel' => 'إلغاء',
         'use_session' => 'استخدام جلسة',
+        'sell_package' => 'بيع الباقة',
+        'book_session' => 'حجز جلسة',
+    ],
+
+    'notifications' => [
+        'package_sold' => 'تم بيع الباقة بنجاح',
+        'package_sold_body' => 'تم بيع :package إلى :patient',
+        'error' => 'خطأ',
     ],
 
     'messages' => [
@@ -76,5 +139,6 @@ return [
         'unfrozen' => 'تم إلغاء تجميد الاشتراك بنجاح',
         'cancelled' => 'تم إلغاء الاشتراك بنجاح',
         'session_used' => 'تم استخدام الجلسة بنجاح',
+        'no_active_packages' => 'لا توجد باقات نشطة',
     ],
 ];

@@ -43,6 +43,7 @@ return [
         'requires_consent' => 'يتطلب موافقة',
         'consent_template' => 'نموذج الموافقة',
         'equipment_required' => 'المعدات المطلوبة',
+        'consumables_required' => 'المستهلكات المطلوبة',
         'qualified_staff' => 'الموظفون المؤهلون',
         'service_rooms' => 'غرف الخدمة',
         'required_equipment' => 'المعدات المطلوبة',
@@ -61,6 +62,20 @@ return [
         'parameter_template' => 'قالب المعايير',
         'parameter_template_help' => 'اختر قالبًا محددًا مسبقًا لمعايير هذه الخدمة',
         'template_parameters' => 'المعايير المتضمنة',
+        'default_parameter_template' => 'قالب المعايير الافتراضي',
+        'default_parameter_template_help' => 'ستستخدم الخدمات الجديدة في هذه الفئة هذا القالب تلقائيًا',
+        'default_template' => 'القالب الافتراضي',
+        'template_preview' => 'معايير القالب',
+        'unearned_revenue_account' => 'حساب الإيرادات غير المكتسبة',
+        'unearned_revenue_account_help' => 'حساب الالتزامات للدفعات المقدمة (مثل شراء الباقات)',
+        'service_revenue_account' => 'حساب إيرادات الخدمات',
+        'service_revenue_account_help' => 'حساب الدخل للاعتراف بإيرادات الخدمة عند تنفيذها',
+    ],
+
+    'placeholders' => [
+        'no_template_selected' => 'لم يتم اختيار قالب',
+        'template_not_found' => 'لم يتم العثور على القالب',
+        'no_parameters' => 'لم يتم تحديد معايير في هذا القالب',
     ],
 
     'parameter_modes' => [
@@ -70,8 +85,14 @@ return [
     ],
 
     'tabs' => [
+        'basic_info' => 'المعلومات الأساسية',
         'scheduling' => 'الجدولة والموارد',
         'parameters' => 'معايير العلاج',
+        'dynamic_parameters' => 'المعايير الديناميكية',
+        'equipment_consumables' => 'المعدات والمستهلكات',
+        'qualified_staff' => 'الموظفون المؤهلون',
+        'service_rooms' => 'غرف الخدمة',
+        'accounting' => 'المحاسبة',
     ],
 
     'sections' => [
@@ -91,6 +112,10 @@ return [
         'custom_parameters_description' => 'تحديد معايير مخصصة لهذه الخدمة',
         'parameter_presets' => 'إعدادات المعايير المسبقة',
         'parameter_presets_description' => 'مجموعات القيم المحددة مسبقًا للاختيار السريع',
+        'default_template' => 'قالب المعايير الافتراضي',
+        'default_template_description' => 'ستورث الخدمات في هذه الفئة قالب المعايير هذا بشكل افتراضي',
+        'revenue_accounts' => 'حسابات الإيرادات',
+        'revenue_accounts_description' => 'تكوين حسابات المحاسبة الافتراضية للخدمات في هذه الفئة',
     ],
 
     'staff' => [
@@ -110,7 +135,10 @@ return [
         'priority' => 'الأولوية',
         'priority_help' => 'رقم أقل = أولوية أعلى للغرف الاحتياطية',
         'type' => 'نوع الغرفة',
+        'capacity' => 'السعة',
         'set_as_primary' => 'تعيين كرئيسية',
+        'set_primary' => 'تعيين كرئيسية',
+        'unset_primary' => 'إزالة الرئيسية',
         'primary_updated' => 'تم تحديث الغرفة الرئيسية بنجاح',
         'add_room' => 'إضافة غرفة',
     ],
@@ -127,6 +155,17 @@ return [
         'mark_optional' => 'تعيين كاختياري',
         'mark_mandatory' => 'تعيين كإلزامي',
         'add_equipment' => 'إضافة معدات',
+    ],
+
+    'consumables' => [
+        'product' => 'المنتج',
+        'sku' => 'رمز المنتج',
+        'unit' => 'الوحدة',
+        'category' => 'الفئة',
+        'quantity' => 'الكمية',
+        'quantity_help' => 'الوحدات المستهلكة لكل خدمة',
+        'add_consumable' => 'إضافة مستهلك',
+        'update_quantity' => 'تحديث الكمية',
     ],
 
     'actions' => [

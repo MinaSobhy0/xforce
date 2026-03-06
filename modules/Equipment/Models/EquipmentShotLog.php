@@ -19,11 +19,15 @@ class EquipmentShotLog extends BaseModel
         'spot_size',
         'pulse_duration',
         'notes',
+        'cumulative_data',
+        'all_parameters',
         'logged_at',
     ];
 
     protected $casts = [
         'shots_count' => 'integer',
+        'cumulative_data' => 'array',
+        'all_parameters' => 'array',
         'logged_at' => 'datetime',
     ];
 

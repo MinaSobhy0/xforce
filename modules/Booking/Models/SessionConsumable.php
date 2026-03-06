@@ -6,6 +6,7 @@ use XLinic\Framework\Core\Model\BaseModel;
 use XLinic\Framework\Core\Model\Traits\HasTenancy;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Modules\Inventory\Models\Product;
+use Modules\Inventory\Models\StockMovement;
 use Modules\Core\Models\Branch;
 use Modules\Auth\Models\User;
 
@@ -21,6 +22,7 @@ class SessionConsumable extends BaseModel
         'product_id',
         'branch_id',
         'quantity',
+        'base_quantity',
         'unit',
         'unit_cost_minor',
         'total_cost_minor',
@@ -28,11 +30,13 @@ class SessionConsumable extends BaseModel
         'is_deducted',
         'deducted_at',
         'deducted_by',
+        'stock_movement_id',
         'created_by',
     ];
 
     protected $casts = [
         'quantity' => 'decimal:2',
+        'base_quantity' => 'decimal:2',
         'unit_cost_minor' => 'integer',
         'total_cost_minor' => 'integer',
         'is_deducted' => 'boolean',
@@ -87,6 +91,14 @@ class SessionConsumable extends BaseModel
     public function deductedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'deducted_by');
+    }
+
+    /**
+     * Get the stock movement record for this consumable.
+     */
+    public function stockMovement(): BelongsTo
+    {
+        return $this->belongsTo(StockMovement::class);
     }
 
     /**

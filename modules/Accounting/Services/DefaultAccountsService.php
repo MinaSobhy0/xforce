@@ -52,6 +52,10 @@ class DefaultAccountsService
         // Gift Cards
         'default_gift_card_liability_account_id' => ['2220', '2200', '2100'],
         'default_gift_card_breakage_account_id' => ['4550', '4500'],
+
+        // Packages (Deferred Revenue)
+        'default_package_unearned_revenue_account_id' => ['2240', '2200', '2100'],
+        'default_package_revenue_account_id' => ['4130', '4100', '4000'],
     ];
 
     /**
@@ -228,6 +232,18 @@ class DefaultAccountsService
         return $this->getAccount('default_gift_card_breakage_account_id');
     }
 
+    // ===== Package Accounts =====
+
+    public function getPackageUnearnedRevenueAccount(): ?ChartOfAccount
+    {
+        return $this->getAccount('default_package_unearned_revenue_account_id');
+    }
+
+    public function getPackageRevenueAccount(): ?ChartOfAccount
+    {
+        return $this->getAccount('default_package_revenue_account_id');
+    }
+
     // ===== Helper Methods =====
 
     /**
@@ -264,7 +280,20 @@ class DefaultAccountsService
         return match ($itemType) {
             'service' => $this->getServiceRevenueAccount(),
             'product' => $this->getProductRevenueAccount(),
+            'package' => $this->getPackageRevenueAccount(),
             default => $this->getServiceRevenueAccount(),
+        };
+    }
+
+    /**
+     * Get deferred/unearned revenue account based on item type.
+     */
+    public function getDeferredRevenueAccountForItem(string $itemType): ?ChartOfAccount
+    {
+        return match ($itemType) {
+            'package' => $this->getPackageUnearnedRevenueAccount(),
+            'gift_card' => $this->getGiftCardLiabilityAccount(),
+            default => $this->getPackageUnearnedRevenueAccount(),
         };
     }
 }

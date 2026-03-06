@@ -3,13 +3,12 @@
 namespace Modules\TreatmentPlans\Models;
 
 use XLinic\Framework\Core\Model\BaseModel;
-use XLinic\Framework\Core\Model\Traits\HasTenancy;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Modules\Booking\Models\Appointment;
 
 class TreatmentPlanAppointment extends BaseModel
 {
-    use HasTenancy;
+    // Note: HasTenancy is already included via BaseModel
 
     protected $fillable = [
         'tenant_id',

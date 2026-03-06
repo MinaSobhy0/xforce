@@ -10,6 +10,30 @@ return [
         'basic_info' => 'Package Information',
         'items' => 'Package Items',
         'items_description' => 'Add treatments and their quantities included in this package',
+        'patient_selection' => 'Select Patient',
+        'package_selection' => 'Select Package',
+        'package_details' => 'Package Details',
+        'payment' => 'Payment Options',
+        'summary' => 'Order Summary',
+        'active_packages' => 'Active Packages',
+    ],
+
+    'labels' => [
+        'expires_in' => 'Expires in :days days',
+        'balance_due' => 'Balance Due',
+        'usage_progress' => 'Usage Progress',
+        'sessions_used' => 'sessions used',
+        'sessions_remaining' => 'sessions remaining',
+        'sessions_consumed' => 'consumed',
+        'sessions_booked' => 'booked',
+        'sessions_available' => 'available',
+        'consumed' => 'Consumed',
+        'booked' => 'Booked',
+        'pulses_remaining' => 'pulses remaining',
+    ],
+
+    'pages' => [
+        'sell_package' => 'Sell Package',
     ],
 
     'fields' => [
@@ -48,6 +72,37 @@ return [
         'progress' => 'Progress',
         'notes' => 'Notes',
         'cancellation_reason' => 'Cancellation Reason',
+        'package' => 'Package',
+        'payment_option' => 'Payment Option',
+        'deposit_amount' => 'Deposit Amount',
+        'min_deposit' => 'Minimum deposit: :amount (:percent%)',
+        'min_deposit_percent' => 'Min Deposit %',
+        'activation_rule' => 'Activation Rule',
+        'activation_rule_help' => 'When should the package become active?',
+        'consumption_type' => 'Type',
+        'unit_price' => 'Unit Price',
+        'line_total' => 'Total',
+        'total_price' => 'Package Total',
+        'pulses_per_session' => 'Pulses/Session',
+    ],
+
+    'consumption_types' => [
+        'sessions' => 'Sessions',
+        'pulses' => 'Pulses',
+    ],
+
+    'payment_options' => [
+        'full' => 'Pay Full Amount Now',
+        'deposit' => 'Pay Deposit Now',
+    ],
+
+    'activation_rules' => [
+        'immediate' => 'Activate Immediately (can use sessions with balance)',
+        'paid_in_full' => 'Activate After Full Payment',
+    ],
+
+    'validation' => [
+        'min_deposit' => 'Minimum deposit is :amount',
     ],
 
     'types' => [
@@ -69,6 +124,8 @@ return [
         'unfreeze' => 'Unfreeze',
         'cancel' => 'Cancel',
         'use_session' => 'Use Session',
+        'sell_package' => 'Sell Package',
+        'book_session' => 'Book Session',
     ],
 
     'messages' => [
@@ -76,5 +133,12 @@ return [
         'unfrozen' => 'Subscription unfrozen successfully',
         'cancelled' => 'Subscription cancelled successfully',
         'session_used' => 'Session used successfully',
+        'no_active_packages' => 'No active packages',
+    ],
+
+    'notifications' => [
+        'package_sold' => 'Package Sold Successfully',
+        'package_sold_body' => ':package sold to :patient',
+        'error' => 'Error',
     ],
 ];

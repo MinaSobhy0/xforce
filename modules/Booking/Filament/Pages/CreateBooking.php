@@ -80,9 +80,16 @@ class CreateBooking extends Page implements HasForms
         $bookingTypeFromQuery = request()->query('booking_type');
         $treatmentPlanIdFromQuery = request()->query('treatment_plan_id');
         $treatmentPlanItemIdFromQuery = request()->query('treatment_plan_item_id');
+        $patientIdFromQuery = request()->query('patient_id');
+        $packageSubscriptionIdFromQuery = request()->query('package_subscription_id');
 
         $dateFrom = $dateFromQuery ? Carbon::parse($dateFromQuery) : today();
         $bookingType = in_array($bookingTypeFromQuery, ['service', 'package', 'treatment_plan']) ? $bookingTypeFromQuery : 'service';
+
+        // If package subscription is provided, default to package booking type
+        if ($packageSubscriptionIdFromQuery && $bookingType === 'service') {
+            $bookingType = 'package';
+        }
 
         $formData = [
             'branch_id' => current_branch_id(),
@@ -93,6 +100,24 @@ class CreateBooking extends Page implements HasForms
             'source' => Appointment::SOURCE_PHONE,
             'preferred_start_time' => $startTimeFromQuery,
         ];
+
+        // Handle patient from query
+        if ($patientIdFromQuery) {
+            $formData['patient_id'] = $patientIdFromQuery;
+        }
+
+        // Handle package subscription from query
+        if ($packageSubscriptionIdFromQuery) {
+            $subscription = PackageSubscription::with('package')->find($packageSubscriptionIdFromQuery);
+            if ($subscription && $subscription->isActive()) {
+                $formData['package_subscription_id'] = $packageSubscriptionIdFromQuery;
+                $formData['package_mode'] = 'existing';
+                // Also set patient if not already set
+                if (!isset($formData['patient_id'])) {
+                    $formData['patient_id'] = $subscription->patient_id;
+                }
+            }
+        }
 
         // Handle treatment plan booking
         if ($bookingType === 'treatment_plan' && $treatmentPlanIdFromQuery) {
@@ -1337,6 +1362,10 @@ class CreateBooking extends Page implements HasForms
 
                 $service = Service::find($item['service_id']);
 
+                // Determine if this is a package session
+                $isPackageSession = !empty($item['from_package']) || !empty($item['new_package_id']);
+                $packageSubscriptionId = $item['from_package'] ?? ($newPackageSubscriptions[$item['new_package_id']] ?? null);
+
                 $appointment = Appointment::create([
                     'patient_id' => $data['patient_id'],
                     'service_id' => $item['service_id'],
@@ -1348,34 +1377,31 @@ class CreateBooking extends Page implements HasForms
                     'start_time' => $item['start_time'],
                     'end_time' => $item['end_time'],
                     'duration_minutes' => $item['duration'],
-                    'price_minor' => $service?->base_price_minor ?? 0,
+                    // Package sessions have price 0 since they're prepaid
+                    'price_minor' => $isPackageSession ? 0 : ($service?->base_price_minor ?? 0),
                     'status' => Appointment::STATUS_SCHEDULED,
                     'source' => $data['source'] ?? Appointment::SOURCE_PHONE,
                     'notes' => $data['notes'] ?? null,
+                    // Package fields
+                    'package_subscription_id' => $packageSubscriptionId,
+                    'is_package_session' => $isPackageSession,
                 ]);
 
                 $createdAppointments[] = $appointment;
 
-                // Record package usage if from existing package
+                // Handle package booking - create/link treatment plan (usage recorded on session completion)
                 if (!empty($item['from_package'])) {
-                    \Log::warning('Package booking: from_package detected', [
+                    \Log::info('Package booking: from_package detected', [
                         'from_package' => $item['from_package'],
                         'service_id' => $item['service_id'],
                         'appointment_id' => $appointment->id,
                     ]);
 
-                    PackageSessionUsage::create([
-                        'subscription_id' => $item['from_package'],
-                        'service_id' => $item['service_id'],
-                        'appointment_id' => $appointment->id,
-                        'used_at' => now(),
-                    ]);
-
-                    // Check if package is now complete
-                    $subscription = PackageSubscription::find($item['from_package']);
-                    $subscription?->checkAndMarkComplete();
+                    // Note: PackageSessionUsage is created when appointment completes
+                    // via CreateInvoiceOnAppointmentComplete listener (triggers revenue recognition)
 
                     // Create or find treatment plan for this package subscription
+                    $subscription = PackageSubscription::find($item['from_package']);
                     if ($subscription) {
                         \Log::warning('Package booking: Creating treatment plan', [
                             'subscription_id' => $subscription->id,
@@ -1431,21 +1457,17 @@ class CreateBooking extends Page implements HasForms
                     }
                 }
 
-                // Record package usage if from newly purchased package
+                // Handle new package booking - create treatment plan (usage recorded on session completion)
                 if (!empty($item['new_package_id']) && isset($newPackageSubscriptions[$item['new_package_id']])) {
-                    \Log::warning('New package booking: new_package_id detected', [
+                    \Log::info('New package booking: new_package_id detected', [
                         'new_package_id' => $item['new_package_id'],
                         'subscription_id' => $newPackageSubscriptions[$item['new_package_id']],
                     ]);
 
                     $subscriptionId = $newPackageSubscriptions[$item['new_package_id']];
 
-                    PackageSessionUsage::create([
-                        'subscription_id' => $subscriptionId,
-                        'service_id' => $item['service_id'],
-                        'appointment_id' => $appointment->id,
-                        'used_at' => now(),
-                    ]);
+                    // Note: PackageSessionUsage is created when appointment completes
+                    // via CreateInvoiceOnAppointmentComplete listener (triggers revenue recognition)
 
                     // Create treatment plan for new package subscription
                     $subscription = PackageSubscription::find($subscriptionId);

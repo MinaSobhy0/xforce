@@ -3,7 +3,6 @@
 namespace Modules\TreatmentPlans\Models;
 
 use XLinic\Framework\Core\Model\BaseModel;
-use XLinic\Framework\Core\Model\Traits\HasTenancy;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Modules\Auth\Models\User;
@@ -16,7 +15,7 @@ use Carbon\Carbon;
 
 class TreatmentPlanItem extends BaseModel
 {
-    use HasTenancy;
+    // Note: HasTenancy is already included via BaseModel
 
     protected $fillable = [
         'tenant_id',

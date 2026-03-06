@@ -17,4 +17,13 @@ return [
 
     // Notify before package expiry (days)
     'expiry_notification_days' => [30, 7, 1],
+
+    // Automatically recognize revenue when package session is used
+    'auto_revenue_recognition' => true,
+
+    // Default minimum deposit percentage for packages (0 = full payment required)
+    'default_min_deposit_percent' => 0,
+
+    // Default activation rule for packages
+    'default_activation_rule' => 'immediate', // 'immediate' or 'paid_in_full'
 ];

@@ -3,6 +3,7 @@
 namespace Modules\Booking\Filament\Resources\AppointmentResource\Pages;
 
 use Modules\Booking\Filament\Resources\AppointmentResource;
+use Modules\Booking\Filament\Pages\Checkout;
 use Modules\Booking\Models\Appointment;
 use Modules\Billing\Models\Payment;
 use Modules\Accounting\Models\Journal;
@@ -166,6 +167,13 @@ class ViewAppointment extends BaseViewRecord
                 ->requiresConfirmation()
                 ->visible(fn (): bool => $this->record->canTransitionTo(Appointment::STATUS_CHECKED_IN))
                 ->action(fn () => $this->record->checkIn()),
+
+            Actions\Action::make('checkout')
+                ->label(__('booking::checkout.actions.confirm_checkout'))
+                ->icon('heroicon-o-shopping-cart')
+                ->color('success')
+                ->visible(fn (): bool => $this->record->current_visit?->canCheckout() ?? false)
+                ->url(fn (): string => Checkout::getUrl(['visit_id' => $this->record->current_visit?->id])),
 
             Actions\Action::make('cancel')
                 ->label(__('booking::appointments.actions.cancel'))

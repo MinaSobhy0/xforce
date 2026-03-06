@@ -8,6 +8,8 @@ use Modules\Billing\Models\InvoiceLine;
 use Modules\Billing\Models\TaxRate;
 use Modules\Booking\Models\Appointment;
 use Modules\Booking\Models\SessionProduct;
+use Modules\Packages\Models\Package;
+use Modules\Packages\Models\PackageSubscription;
 use Modules\Services\Models\Service;
 
 class InvoiceCalculationService
@@ -326,5 +328,49 @@ class InvoiceCalculationService
         ]);
 
         return $invoiceLine;
+    }
+
+    /**
+     * Create a package line for an invoice.
+     */
+    public function createPackageLine(
+        Invoice $invoice,
+        PackageSubscription $subscription,
+        array $taxRates,
+        int $sortOrder = 0
+    ): InvoiceLine {
+        $package = $subscription->package;
+
+        // Build description
+        $description = $package->translated_name ?? $package->name;
+        if ($package->isSessionBased()) {
+            $description .= " ({$package->total_sessions} Sessions)";
+        } elseif ($package->isPulseBased()) {
+            $description .= " ({$package->total_pulses} Pulses)";
+        }
+        $description .= " - Valid for {$package->validity_days} days";
+
+        $lineCalculation = $this->calculateLine(
+            $subscription->package_price_minor,
+            1,
+            0,
+            'fixed',
+            $taxRates
+        );
+
+        return $invoice->lines()->create([
+            'tenant_id' => $invoice->tenant_id,
+            'line_type' => InvoiceLine::LINE_TYPE_PACKAGE,
+            'description' => $description,
+            'quantity' => 1,
+            'unit_price_minor' => $subscription->package_price_minor,
+            'discount_minor' => 0,
+            'discount_type' => 'fixed',
+            'tax_rates' => $taxRates,
+            'tax_minor' => $lineCalculation['tax_minor'],
+            'total_minor' => $lineCalculation['total_minor'],
+            'package_subscription_id' => $subscription->id,
+            'sort_order' => $sortOrder,
+        ]);
     }
 }

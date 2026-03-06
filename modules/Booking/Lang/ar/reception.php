@@ -132,6 +132,18 @@ return [
         'current_doctor' => 'الطبيب الحالي',
     ],
 
+    // Open Visits
+    'open_visits' => [
+        'title' => 'الزيارات المفتوحة',
+        'services' => 'الخدمات',
+        'open_sessions' => 'الجلسات المفتوحة',
+        'doctors' => 'الأطباء',
+        'estimated' => 'الإجمالي المقدر',
+        'view_patient' => 'عرض المريض',
+        'empty' => 'لا توجد زيارات مفتوحة',
+        'empty_desc' => 'جميع المرضى غادروا',
+    ],
+
     // Misc
     'unassigned' => 'غير معين',
     'no_room' => 'بدون غرفة',

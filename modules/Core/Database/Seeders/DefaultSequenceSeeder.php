@@ -81,6 +81,12 @@ class DefaultSequenceSeeder extends Seeder
                 'format' => '{prefix}-{number:3}',
                 'start_at' => 0,
             ],
+            // Visit sequence: VST-000001
+            'visit' => [
+                'prefix' => 'VST',
+                'format' => '{prefix}-{number:6}',
+                'start_at' => 0,
+            ],
         ];
 
         // Seed the sequences

@@ -503,6 +503,36 @@ class AppointmentResource extends Resource
                             ]),
                     ]),
 
+                Infolists\Components\Section::make(__('booking::appointments.sections.visit'))
+                    ->schema([
+                        Infolists\Components\Grid::make(4)
+                            ->schema([
+                                Infolists\Components\TextEntry::make('current_visit.code')
+                                    ->label(__('booking::appointments.fields.visit_code'))
+                                    ->placeholder('-')
+                                    ->url(fn (Appointment $record) => $record->current_visit
+                                        ? route('filament.tenant.resources.visits.view', ['record' => $record->current_visit->id])
+                                        : null),
+
+                                Infolists\Components\TextEntry::make('current_visit.status')
+                                    ->label(__('booking::appointments.fields.visit_status'))
+                                    ->badge()
+                                    ->color(fn (Appointment $record): string => $record->current_visit?->status_color ?? 'gray')
+                                    ->placeholder('-'),
+
+                                Infolists\Components\TextEntry::make('current_visit.check_in_at')
+                                    ->label(__('booking::appointments.fields.visit_check_in'))
+                                    ->dateTime()
+                                    ->placeholder('-'),
+
+                                Infolists\Components\TextEntry::make('current_visit.checked_in_by_name')
+                                    ->label(__('booking::appointments.fields.checked_in_by'))
+                                    ->placeholder('-'),
+                            ]),
+                    ])
+                    ->visible(fn (Appointment $record): bool => $record->current_visit !== null)
+                    ->collapsible(),
+
                 Infolists\Components\Section::make(__('booking::appointments.sections.notes'))
                     ->schema([
                         Infolists\Components\TextEntry::make('notes')

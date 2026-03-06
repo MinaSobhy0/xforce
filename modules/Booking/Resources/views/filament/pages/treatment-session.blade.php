@@ -10,9 +10,18 @@
                     <div>
                         <div class="font-semibold text-gray-900 dark:text-white text-lg">
                             {{ $patient?->full_name }}
+                            @if($patient?->age)
+                                <span class="text-sm font-normal text-gray-500 dark:text-gray-400">({{ $patient->age }} {{ __('booking::session.info.years') }})</span>
+                            @endif
                         </div>
-                        <div class="text-sm text-gray-600 dark:text-gray-400">
-                            {{ $patient?->code }} | {{ $patient?->phone }}
+                        <div class="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2 flex-wrap">
+                            <span>{{ $patient?->code }}</span>
+                            <span class="text-gray-300 dark:text-gray-600">|</span>
+                            <span>{{ $patient?->phone }}</span>
+                            @if($patient?->occupation)
+                                <span class="text-gray-300 dark:text-gray-600">|</span>
+                                <span>{{ $patient->occupation }}</span>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -32,6 +41,52 @@
                     @if($appointment?->treatmentPlanAppointment)
                         <div class="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full font-medium">
                             {{ __('booking::session.info.session_number', ['current' => $appointment->treatmentPlanAppointment->session_number, 'total' => $appointment->treatmentPlanAppointment->item->recommended_sessions]) }}
+                        </div>
+                    @endif
+
+                    {{-- Visit Badge --}}
+                    @if($visit)
+                        <div class="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full font-medium flex items-center gap-1.5">
+                            <x-heroicon-o-ticket class="w-4 h-4" />
+                            {{ $visit->code }}
+                        </div>
+                    @endif
+
+                    {{-- Session Timer --}}
+                    @if($sessionData?->session_started_at)
+                        <div
+                            x-data="{
+                                startTime: {{ $sessionData->session_started_at->timestamp * 1000 }},
+                                elapsed: 0,
+                                timer: null,
+                                init() {
+                                    this.updateElapsed();
+                                    this.timer = setInterval(() => this.updateElapsed(), 1000);
+                                },
+                                updateElapsed() {
+                                    this.elapsed = Math.floor((Date.now() - this.startTime) / 1000);
+                                },
+                                get hours() {
+                                    return Math.floor(this.elapsed / 3600);
+                                },
+                                get minutes() {
+                                    return Math.floor((this.elapsed % 3600) / 60);
+                                },
+                                get seconds() {
+                                    return this.elapsed % 60;
+                                },
+                                get display() {
+                                    if (this.hours > 0) {
+                                        return String(this.hours).padStart(2, '0') + ':' + String(this.minutes).padStart(2, '0') + ':' + String(this.seconds).padStart(2, '0');
+                                    }
+                                    return String(this.minutes).padStart(2, '0') + ':' + String(this.seconds).padStart(2, '0');
+                                }
+                            }"
+                            x-init="init()"
+                            class="flex items-center gap-2 px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full font-medium"
+                        >
+                            <x-heroicon-o-clock class="w-4 h-4" />
+                            <span x-text="display" class="font-mono tabular-nums"></span>
                         </div>
                     @endif
                 </div>
@@ -110,64 +165,140 @@
 
         {{-- Main 2-Column Layout: Medical Info + Treatment Plan --}}
         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem;">
-            {{-- Medical Information --}}
+            {{-- Medical Records --}}
             <x-filament::section>
                 <x-slot name="heading">
-                    <div class="flex items-center gap-2">
-                        <x-heroicon-o-heart class="w-5 h-5 text-red-500" />
-                        {{ __('booking::session.sections.medical_info') }}
+                    <div class="flex items-center justify-between w-full">
+                        <div class="flex items-center gap-2">
+                            <div class="p-1.5 bg-primary-100 dark:bg-primary-900/30 rounded-lg">
+                                <x-heroicon-o-clipboard-document-list class="w-5 h-5 text-primary-600 dark:text-primary-400" />
+                            </div>
+                            {{ __('booking::session.sections.medical_info') }}
+                        </div>
+                        @if($patient)
+                            <a href="{{ url('/admin/medical-profile?patient_id=' . $patient->id) }}"
+                               target="_blank"
+                               class="px-3 py-1.5 border border-primary-500 text-primary-600 dark:text-primary-400 rounded-lg text-sm font-medium hover:bg-primary-50 dark:hover:bg-primary-900/20 flex items-center gap-1.5 transition-colors">
+                                <x-heroicon-o-arrow-top-right-on-square class="w-4 h-4" />
+                                {{ __('booking::session.medical.view_full_profile') }}
+                            </a>
+                        @endif
                     </div>
                 </x-slot>
 
-                @if($medicalHistory)
-                    <div class="grid grid-cols-4 gap-3 mb-4">
-                        <div class="text-center p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                            <div class="text-xs text-gray-500 dark:text-gray-400">{{ __('booking::session.medical.fitzpatrick') }}</div>
-                            <div class="font-semibold text-gray-900 dark:text-white text-sm">{{ $medicalHistory->fitzpatrick_type ?? '-' }}</div>
-                        </div>
-                        <div class="text-center p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                            <div class="text-xs text-gray-500 dark:text-gray-400">{{ __('booking::session.medical.blood_type') }}</div>
-                            <div class="font-semibold text-gray-900 dark:text-white text-sm">{{ $medicalHistory->blood_type ?? '-' }}</div>
-                        </div>
-                        <div class="text-center p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                            <div class="text-xs text-gray-500 dark:text-gray-400">{{ __('booking::session.medical.bmi') }}</div>
-                            <div class="font-semibold text-gray-900 dark:text-white text-sm">{{ $medicalHistory->bmi ?? '-' }}</div>
-                        </div>
-                        <div class="text-center p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                            <div class="text-xs text-gray-500 dark:text-gray-400">{{ __('booking::session.medical.smoker') }}</div>
-                            <div class="font-semibold text-sm {{ $medicalHistory->is_smoker ? 'text-red-600' : 'text-green-600' }}">
-                                {{ $medicalHistory->is_smoker ? __('Yes') : __('No') }}
-                            </div>
-                        </div>
+                @php
+                    $criticalAllergies = $medicalProfile?->getCriticalAllergies() ?? collect();
+                    $activeAllergies = $medicalProfile?->getActiveAllergies() ?? collect();
+                    $activeContraindications = $medicalProfile?->getActiveContraindications() ?? collect();
+                    $ongoingMeds = $medicalProfile?->getOngoingMedications() ?? collect();
+                @endphp
+
+                {{-- Key Info Row --}}
+                <div class="grid grid-cols-2 gap-4 mb-5">
+                    <div class="flex items-center gap-2">
+                        <span class="text-gray-500 dark:text-gray-400 text-sm">{{ __('booking::session.medical.fitzpatrick') }}</span>
+                        <span class="font-semibold text-gray-900 dark:text-white">{{ $medicalProfile?->fitzpatrick_short ?? '-' }}</span>
                     </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-gray-500 dark:text-gray-400 text-sm">{{ __('booking::session.medical.blood_type') }}</span>
+                        <span class="font-semibold text-gray-900 dark:text-white">{{ $medicalProfile?->blood_type ?? '-' }}</span>
+                    </div>
+                </div>
 
-                    @if(!empty($this->getMedications()))
-                        <div class="mb-3">
-                            <div class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{{ __('booking::session.medical.medications') }}</div>
-                            <div class="flex flex-wrap gap-1">
-                                @foreach($this->getMedications() as $med)
-                                    <span class="px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded text-xs">{{ $med }}</span>
-                                @endforeach
-                            </div>
+                {{-- Allergies Section --}}
+                <div class="mb-4">
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="p-1 rounded-full bg-red-100 dark:bg-red-900/30">
+                            <x-heroicon-o-exclamation-circle class="w-4 h-4 text-red-500" />
+                        </div>
+                        <span class="font-medium text-gray-700 dark:text-gray-300">{{ __('booking::session.medical.allergies') }}</span>
+                    </div>
+                    @if($activeAllergies->isNotEmpty())
+                        <div class="flex flex-wrap gap-1.5 ps-7">
+                            @foreach($activeAllergies as $allergy)
+                                <span class="px-2.5 py-1 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 rounded-lg text-xs font-medium border border-red-200 dark:border-red-800">
+                                    {{ $allergy->allergen }}
+                                    @if(in_array($allergy->severity, ['severe', 'life_threatening']))
+                                        <x-heroicon-s-exclamation-triangle class="w-3 h-3 inline text-red-500" />
+                                    @endif
+                                </span>
+                            @endforeach
+                        </div>
+                    @else
+                        <div class="flex items-center gap-2 ps-7 text-green-600 dark:text-green-400">
+                            <x-heroicon-o-check class="w-4 h-4" />
+                            <span class="text-sm">{{ __('booking::session.medical.no_allergies') }}</span>
                         </div>
                     @endif
+                </div>
 
-                    @if(!empty($this->getMedicalConditions()))
-                        <div>
-                            <div class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{{ __('booking::session.medical.conditions') }}</div>
-                            <div class="flex flex-wrap gap-1">
-                                @foreach($this->getMedicalConditions() as $condition)
-                                    <span class="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs">
-                                        {{ \Modules\Patients\Models\PatientMedicalHistory::COMMON_CONDITIONS[$condition] ?? $condition }}
-                                    </span>
-                                @endforeach
-                            </div>
+                {{-- Medications Section --}}
+                <div class="mb-4">
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="p-1 rounded-full bg-cyan-100 dark:bg-cyan-900/30">
+                            <x-heroicon-o-beaker class="w-4 h-4 text-cyan-500" />
+                        </div>
+                        <span class="font-medium text-gray-700 dark:text-gray-300">{{ __('booking::session.medical.medications') }}</span>
+                    </div>
+                    @if($ongoingMeds->isNotEmpty())
+                        <div class="flex flex-wrap gap-1.5 ps-7">
+                            @foreach($ongoingMeds as $med)
+                                <span class="px-2.5 py-1 bg-cyan-50 dark:bg-cyan-900/20 text-cyan-700 dark:text-cyan-300 rounded-lg text-xs font-medium border border-cyan-200 dark:border-cyan-800">
+                                    {{ $med->medication_name }}
+                                </span>
+                            @endforeach
+                        </div>
+                    @else
+                        <div class="flex items-center gap-2 ps-7 text-gray-500 dark:text-gray-400">
+                            <span class="text-sm">{{ __('booking::session.medical.no_medications') }}</span>
                         </div>
                     @endif
-                @else
-                    <div class="text-center py-4 text-gray-500 dark:text-gray-400 text-sm">
-                        <x-heroicon-o-document-text class="w-8 h-8 mx-auto mb-2 opacity-50" />
-                        {{ __('booking::session.medical.no_history') }}
+                </div>
+
+                {{-- Contraindications Section --}}
+                <div>
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="p-1 rounded-full bg-amber-100 dark:bg-amber-900/30">
+                            <x-heroicon-o-shield-exclamation class="w-4 h-4 text-amber-500" />
+                        </div>
+                        <span class="font-medium text-gray-700 dark:text-gray-300">{{ __('booking::session.medical.contraindications') }}</span>
+                    </div>
+                    @if($activeContraindications->isNotEmpty())
+                        <div class="flex flex-wrap gap-1.5 ps-7">
+                            @foreach($activeContraindications as $contra)
+                                <span class="px-2.5 py-1 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 rounded-lg text-xs font-medium border border-amber-200 dark:border-amber-800">
+                                    {{ $contra->name }}
+                                    @if($contra->block_booking)
+                                        <x-heroicon-s-no-symbol class="w-3 h-3 inline text-red-500" />
+                                    @endif
+                                </span>
+                            @endforeach
+                        </div>
+                    @else
+                        <div class="flex items-center gap-2 ps-7 text-green-600 dark:text-green-400">
+                            <x-heroicon-o-check class="w-4 h-4" />
+                            <span class="text-sm">{{ __('booking::session.medical.no_contraindications') }}</span>
+                        </div>
+                    @endif
+                </div>
+
+                {{-- Pregnancy/Breastfeeding Alerts --}}
+                @if($medicalProfile?->is_pregnant || $medicalProfile?->is_breastfeeding)
+                    <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <div class="flex flex-wrap gap-2">
+                            @if($medicalProfile->is_pregnant)
+                                <span class="px-3 py-1.5 bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300 rounded-full text-xs font-medium flex items-center gap-1.5">
+                                    <x-heroicon-s-heart class="w-4 h-4" />
+                                    {{ __('booking::session.medical.pregnant') }}
+                                </span>
+                            @endif
+                            @if($medicalProfile->is_breastfeeding)
+                                <span class="px-3 py-1.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full text-xs font-medium flex items-center gap-1.5">
+                                    <x-heroicon-s-heart class="w-4 h-4" />
+                                    {{ __('booking::session.medical.breastfeeding') }}
+                                </span>
+                            @endif
+                        </div>
                     </div>
                 @endif
             </x-filament::section>
@@ -208,21 +339,72 @@
 
                         <div class="space-y-1">
                             @foreach($currentPlan->items as $item)
-                                <div class="flex items-center justify-between py-1 px-2 bg-gray-50 dark:bg-gray-800 rounded text-xs">
-                                    <span class="text-gray-700 dark:text-gray-300">{{ $item->service?->translated_name }}</span>
+                                @php
+                                    $isService = $item->item_type === 'service';
+                                    $isProduct = $item->item_type === 'product';
+                                    $itemName = $item->item_name ?: ($item->service?->translated_name ?? $item->itemable?->translated_name ?? $item->itemable?->name ?? '');
+                                    $completed = $isService ? $item->completed_sessions : ($item->completed_quantity ?? 0);
+                                    $total = $isService ? $item->recommended_sessions : ($item->quantity ?? 1);
+                                    $isDone = $completed >= $total;
+                                @endphp
+                                <div class="flex items-center justify-between py-1.5 px-2 bg-gray-50 dark:bg-gray-800 rounded text-xs">
                                     <div class="flex items-center gap-2">
-                                        <span class="font-medium {{ $item->completed_sessions >= $item->recommended_sessions ? 'text-green-600' : 'text-gray-600 dark:text-gray-400' }}">
-                                            {{ $item->completed_sessions }}/{{ $item->recommended_sessions }}
+                                        @if($isProduct)
+                                            <x-heroicon-o-cube class="w-3.5 h-3.5 text-amber-500" />
+                                        @else
+                                            <x-heroicon-o-sparkles class="w-3.5 h-3.5 text-primary-500" />
+                                        @endif
+                                        <span class="text-gray-700 dark:text-gray-300">{{ $itemName }}</span>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-medium {{ $isDone ? 'text-green-600' : 'text-gray-600 dark:text-gray-400' }}">
+                                            {{ $completed }}/{{ $total }}
                                         </span>
-                                        @if($item->canBook() && $item->service_id !== $appointment->service_id)
-                                            <button
-                                                wire:click="startSessionForItem({{ $item->id }})"
-                                                wire:loading.attr="disabled"
-                                                class="p-1 rounded bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 hover:bg-primary-200 dark:hover:bg-primary-900/50 transition-colors"
-                                                title="{{ __('booking::session.actions.start_session') }}"
-                                            >
-                                                <x-heroicon-o-play class="w-3.5 h-3.5" />
-                                            </button>
+                                        @if($isService)
+                                            @if($item->service_id === $appointment->service_id)
+                                                {{-- Current session indicator --}}
+                                                <span class="px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded text-xs">
+                                                    {{ __('booking::session.plan.current') }}
+                                                </span>
+                                            @elseif($isDone)
+                                                <x-heroicon-o-check-circle class="w-4 h-4 text-green-500" />
+                                            @elseif($item->isCancelled())
+                                                <span class="px-1.5 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded text-xs">
+                                                    {{ __('booking::session.plan.cancelled') }}
+                                                </span>
+                                            @else
+                                                {{-- Show status badge - check for active sessions or completed sessions --}}
+                                                @php
+                                                    $hasActiveSession = $item->planAppointments()
+                                                        ->whereHas('appointment', fn($q) => $q->whereIn('status', ['in_progress', 'checked_in', 'confirmed']))
+                                                        ->exists();
+                                                    $hasStarted = $item->completed_sessions > 0 || $hasActiveSession;
+                                                @endphp
+                                                @if($hasStarted)
+                                                    <span class="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded text-xs">
+                                                        {{ __('booking::session.plan.in_progress') }}
+                                                    </span>
+                                                @else
+                                                    <span class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded text-xs">
+                                                        {{ __('booking::session.plan.not_started') }}
+                                                    </span>
+                                                @endif
+                                                {{-- Play button --}}
+                                                <button
+                                                    wire:click="startSessionForItem({{ $item->id }})"
+                                                    wire:loading.attr="disabled"
+                                                    class="p-1 rounded bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 hover:bg-primary-200 dark:hover:bg-primary-900/50 transition-colors"
+                                                    title="{{ __('booking::session.actions.start_session') }}"
+                                                >
+                                                    <x-heroicon-o-play class="w-3.5 h-3.5" />
+                                                </button>
+                                            @endif
+                                        @elseif($isProduct && !$item->is_delivered)
+                                            <span class="px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded text-xs">
+                                                {{ __('booking::session.plan.pending_delivery') }}
+                                            </span>
+                                        @elseif($isProduct && $item->is_delivered)
+                                            <x-heroicon-o-check-circle class="w-4 h-4 text-green-500" />
                                         @endif
                                     </div>
                                 </div>
@@ -238,8 +420,8 @@
             </x-filament::section>
         </div>
 
-        {{-- Equipment & Parameters Section (if service has parameters) --}}
-        @if($this->hasServiceParameters())
+        {{-- Equipment & Clinical Notes Section (always show if equipment available) --}}
+        @if($this->hasEquipmentSection())
             <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem;">
                 {{-- Equipment --}}
                 <x-filament::section>
@@ -256,17 +438,33 @@
                     </x-slot>
 
                     @if(count($sessionEquipment) > 0)
-                        <div class="space-y-2 mb-3">
+                        <div class="space-y-3 mb-3">
                             @foreach($sessionEquipment as $index => $equipment)
-                                <div class="border border-gray-200 dark:border-gray-700 rounded-lg {{ $equipment['is_preset'] ? 'bg-blue-50/50 dark:bg-blue-900/10' : '' }}">
+                                @php
+                                    $shotsRemaining = $equipment['shots_remaining'] ?? null;
+                                    $shotsPercentage = $equipment['shots_percentage'] ?? null;
+                                    $maxShots = $equipment['max_shots'] ?? null;
+                                    $isMaintenanceDue = $equipment['is_maintenance_due'] ?? false;
+                                    $nextMaintenance = $equipment['next_maintenance_at'] ?? null;
+                                    $isLowShots = $maxShots && $shotsRemaining !== null && $shotsRemaining < ($maxShots * 0.1);
+                                @endphp
+                                <div class="border rounded-lg overflow-hidden {{ $isMaintenanceDue ? 'border-amber-400 dark:border-amber-500' : ($isLowShots ? 'border-red-400 dark:border-red-500' : 'border-gray-200 dark:border-gray-700') }} {{ $equipment['is_preset'] ? 'bg-blue-50/50 dark:bg-blue-900/10' : '' }}">
+                                    {{-- Equipment Header --}}
                                     <div class="flex items-center gap-2 p-2">
                                         <div class="flex-1">
                                             <div class="flex items-center gap-2">
                                                 <span class="font-medium text-gray-900 dark:text-white text-sm">{{ $equipment['name'] }}</span>
+                                                <span class="text-xs text-gray-500">{{ $equipment['code'] ?? '' }}</span>
                                                 @if($equipment['is_preset'])
                                                     <span class="px-1.5 py-0.5 text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 rounded">{{ __('booking::session.equipment.preset') }}</span>
                                                 @endif
+                                                @if($isMaintenanceDue)
+                                                    <span class="px-1.5 py-0.5 text-xs bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 rounded animate-pulse">{{ __('booking::session.equipment.maintenance_due') }}</span>
+                                                @endif
                                             </div>
+                                            @if($equipment['category'] ?? null)
+                                                <span class="text-xs text-gray-500">{{ \Modules\Equipment\Models\Equipment::CATEGORIES[$equipment['category']] ?? $equipment['category'] }}</span>
+                                            @endif
                                         </div>
                                         @if(!$equipment['is_preset'])
                                             <button wire:click="removeEquipment('{{ $equipment['equipment_id'] }}')" class="p-1 text-gray-400 hover:text-red-500 rounded">
@@ -275,36 +473,121 @@
                                         @endif
                                     </div>
 
+                                    {{-- Shot Tracking Section --}}
+                                    @if($maxShots)
+                                        <div class="px-2 pb-2">
+                                            <div class="flex items-center justify-between text-xs mb-1">
+                                                <span class="text-gray-600 dark:text-gray-400">{{ __('booking::session.equipment.shots_remaining') }}</span>
+                                                <span class="{{ $isLowShots ? 'text-red-600 font-semibold' : 'text-gray-700 dark:text-gray-300' }}">
+                                                    {{ number_format($shotsRemaining ?? 0) }} / {{ number_format($maxShots) }}
+                                                </span>
+                                            </div>
+                                            <div class="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                                @php
+                                                    $usedPercentage = $shotsPercentage ?? 0;
+                                                    $barColor = $usedPercentage > 90 ? 'bg-red-500' : ($usedPercentage > 75 ? 'bg-amber-500' : 'bg-green-500');
+                                                @endphp
+                                                <div class="{{ $barColor }} h-full rounded-full transition-all" style="width: {{ $usedPercentage }}%"></div>
+                                            </div>
+                                            @if($isLowShots)
+                                                <div class="mt-1 flex items-center gap-1 text-xs text-red-600">
+                                                    <x-heroicon-o-exclamation-triangle class="w-3 h-3" />
+                                                    {{ __('booking::session.equipment.low_shots_warning') }}
+                                                </div>
+                                            @endif
+                                        </div>
+                                    @endif
+
+                                    {{-- Equipment Dynamic Parameters (all tracking parameters are dynamic) --}}
                                     @if(!empty($equipment['has_tracking']))
                                         @php $equipmentParams = $this->getEquipmentParametersByCategory($equipment['equipment_id']); @endphp
                                         @if(!empty($equipmentParams))
                                             <div class="border-t border-gray-200 dark:border-gray-700 p-2 bg-gray-50/50 dark:bg-gray-800/50">
                                                 @foreach($equipmentParams as $category => $categoryData)
                                                     @if(count($categoryData['parameters']) > 0)
-                                                        <div class="grid grid-cols-2 gap-2">
-                                                            @foreach($categoryData['parameters'] as $param)
-                                                                <div>
-                                                                    <label class="block text-xs text-gray-600 dark:text-gray-400 mb-0.5">
-                                                                        {{ $param->name }}
-                                                                        @if($param->unit)<span class="text-gray-400">({{ $param->unit }})</span>@endif
-                                                                    </label>
-                                                                    @if($param->value_type === 'select')
-                                                                        <select wire:change="updateEquipmentParameterValue('{{ $equipment['equipment_id'] }}', '{{ $param->parameter_key }}', $event.target.value)" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-xs py-1">
-                                                                            <option value="">-</option>
-                                                                            @foreach($param->options ?? [] as $option)
-                                                                                <option value="{{ $option['value'] }}" {{ ($equipmentParameterValues[$equipment['equipment_id']][$param->parameter_key] ?? '') == $option['value'] ? 'selected' : '' }}>{{ $option['label'] }}</option>
-                                                                            @endforeach
-                                                                        </select>
-                                                                    @else
-                                                                        <input type="{{ in_array($param->value_type, ['integer', 'decimal']) ? 'number' : 'text' }}" value="{{ $equipmentParameterValues[$equipment['equipment_id']][$param->parameter_key] ?? $param->default_value }}" wire:change="updateEquipmentParameterValue('{{ $equipment['equipment_id'] }}', '{{ $param->parameter_key }}', $event.target.value)" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-xs py-1" @if($param->min_value !== null) min="{{ $param->min_value }}" @endif @if($param->max_value !== null) max="{{ $param->max_value }}" @endif />
-                                                                    @endif
-                                                                </div>
-                                                            @endforeach
+                                                        <div class="mb-2 last:mb-0">
+                                                            <div class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 flex items-center gap-1">
+                                                                @if($category === 'energy')
+                                                                    <x-heroicon-o-bolt class="w-3 h-3" />
+                                                                @elseif($category === 'timing')
+                                                                    <x-heroicon-o-clock class="w-3 h-3" />
+                                                                @elseif($category === 'safety')
+                                                                    <x-heroicon-o-shield-check class="w-3 h-3" />
+                                                                @elseif($category === 'cooling')
+                                                                    <x-heroicon-o-fire class="w-3 h-3 rotate-180" />
+                                                                @elseif($category === 'delivery')
+                                                                    <x-heroicon-o-arrow-path class="w-3 h-3" />
+                                                                @endif
+                                                                {{ $categoryData['label'] }}
+                                                            </div>
+                                                            <div class="grid grid-cols-2 gap-2">
+                                                                @foreach($categoryData['parameters'] as $param)
+                                                                    <div>
+                                                                        <label class="block text-xs text-gray-600 dark:text-gray-400 mb-0.5">
+                                                                            {{ $param->name }}
+                                                                            @if($param->unit)<span class="text-gray-400">({{ $param->unit }})</span>@endif
+                                                                            @if($param->is_required)<span class="text-red-500">*</span>@endif
+                                                                            @if($param->is_cumulative)
+                                                                                <span class="text-xs text-blue-500" title="{{ __('booking::session.equipment.cumulative_hint') }}">∑</span>
+                                                                            @endif
+                                                                        </label>
+                                                                        @if($param->value_type === 'select')
+                                                                            <select
+                                                                                wire:change="updateEquipmentParameterValue('{{ $equipment['equipment_id'] }}', '{{ $param->parameter_key }}', $event.target.value)"
+                                                                                class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-xs py-1"
+                                                                            >
+                                                                                <option value="">-</option>
+                                                                                @foreach($param->options ?? [] as $option)
+                                                                                    <option value="{{ $option['value'] }}" {{ ($equipmentParameterValues[$equipment['equipment_id']][$param->parameter_key] ?? '') == $option['value'] ? 'selected' : '' }}>{{ $option['label'] }}</option>
+                                                                                @endforeach
+                                                                            </select>
+                                                                        @elseif($param->value_type === 'boolean')
+                                                                            <label class="flex items-center gap-2">
+                                                                                <input
+                                                                                    type="checkbox"
+                                                                                    {{ ($equipmentParameterValues[$equipment['equipment_id']][$param->parameter_key] ?? $param->default_value) ? 'checked' : '' }}
+                                                                                    wire:change="updateEquipmentParameterValue('{{ $equipment['equipment_id'] }}', '{{ $param->parameter_key }}', $event.target.checked)"
+                                                                                    class="rounded border-gray-300 text-primary-600"
+                                                                                />
+                                                                                <span class="text-xs text-gray-600 dark:text-gray-400">{{ __('Yes') }}</span>
+                                                                            </label>
+                                                                        @else
+                                                                            <input
+                                                                                type="{{ in_array($param->value_type, ['integer', 'decimal']) ? 'number' : 'text' }}"
+                                                                                value="{{ $equipmentParameterValues[$equipment['equipment_id']][$param->parameter_key] ?? $param->default_value }}"
+                                                                                wire:change="updateEquipmentParameterValue('{{ $equipment['equipment_id'] }}', '{{ $param->parameter_key }}', $event.target.value)"
+                                                                                class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-xs py-1"
+                                                                                @if($param->min_value !== null) min="{{ $param->min_value }}" @endif
+                                                                                @if($param->max_value !== null) max="{{ $param->max_value }}" @endif
+                                                                                @if($param->step) step="{{ $param->step }}" @elseif($param->value_type === 'decimal') step="0.01" @endif
+                                                                                placeholder="{{ $param->default_value ?? '' }}"
+                                                                            />
+                                                                        @endif
+                                                                        @if($param->description)
+                                                                            <p class="text-xs text-gray-400 mt-0.5">{{ $param->description }}</p>
+                                                                        @endif
+                                                                    </div>
+                                                                @endforeach
+                                                            </div>
                                                         </div>
                                                     @endif
                                                 @endforeach
                                             </div>
+                                        @else
+                                            <div class="border-t border-gray-200 dark:border-gray-700 p-2 text-center text-xs text-gray-500">
+                                                {{ __('booking::session.equipment.no_tracking_params') }}
+                                            </div>
                                         @endif
+                                    @endif
+
+                                    {{-- Maintenance Info --}}
+                                    @if($nextMaintenance)
+                                        <div class="border-t border-gray-200 dark:border-gray-700 px-2 py-1 bg-gray-100/50 dark:bg-gray-800/50">
+                                            <div class="flex items-center justify-between text-xs">
+                                                <span class="text-gray-500">{{ __('booking::session.equipment.next_maintenance') }}</span>
+                                                <span class="{{ $isMaintenanceDue ? 'text-amber-600 font-medium' : 'text-gray-600 dark:text-gray-400' }}">{{ $nextMaintenance }}</span>
+                                            </div>
+                                        </div>
                                     @endif
                                 </div>
                             @endforeach
@@ -327,44 +610,6 @@
                     @endif
                 </x-filament::section>
 
-                {{-- Clinical Notes --}}
-                <x-filament::section>
-                    <x-slot name="heading">
-                        <div class="flex items-center gap-2">
-                            <x-heroicon-o-document-text class="w-5 h-5 text-gray-400" />
-                            {{ __('booking::session.sections.clinical_notes') }}
-                        </div>
-                    </x-slot>
-
-                    <div class="grid grid-cols-2 gap-3 mb-3">
-                        <div>
-                            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('booking::session.clinical.skin_reaction') }}</label>
-                            <select wire:model.live="skinReaction" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm">
-                                @foreach($this->getSkinReactionOptions() as $value => $label)
-                                    <option value="{{ $value }}">{{ $label }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('booking::session.clinical.pain_level') }}</label>
-                            <select wire:model.live="painLevel" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm">
-                                <option value="">-</option>
-                                @for($i = 0; $i <= 10; $i++)
-                                    <option value="{{ $i }}">{{ $i }}</option>
-                                @endfor
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('booking::session.clinical.observations') }}</label>
-                        <textarea wire:model.blur="clinicalNotes" rows="2" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm" placeholder="{{ __('booking::session.clinical.observations_placeholder') }}"></textarea>
-                    </div>
-
-                    <x-filament::button wire:click="saveClinicalNotes" size="sm" class="w-full">
-                        {{ __('booking::session.clinical.save') }}
-                    </x-filament::button>
-                </x-filament::section>
             </div>
 
             {{-- Service Parameters --}}
@@ -455,60 +700,6 @@
                 @endif
             </x-filament::section>
 
-            {{-- Products Section --}}
-            <x-filament::section>
-                <x-slot name="heading">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                            <x-heroicon-o-shopping-bag class="w-5 h-5 text-green-500" />
-                            {{ __('booking::session.sections.products') }}
-                        </div>
-                        @if(count($sessionProducts) > 0)
-                            <span class="text-sm font-medium text-gray-500">{{ number_format($this->getTotalProductsValue(), 2) }}</span>
-                        @endif
-                    </div>
-                </x-slot>
-
-                <div class="flex gap-2 mb-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg flex-wrap">
-                    <select wire:model="newProductId" class="flex-1 min-w-[120px] border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm">
-                        <option value="">{{ __('booking::session.products.select') }}</option>
-                        @foreach($this->getAvailableProducts() as $product)
-                            <option value="{{ $product->id }}">{{ $product->getTranslation('name', app()->getLocale()) }}</option>
-                        @endforeach
-                    </select>
-                    <input type="number" wire:model="newProductQty" class="w-14 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm text-center" min="1" placeholder="Qty" />
-                    <select wire:model="newProductUsageType" class="w-24 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm">
-                        <option value="applied">{{ __('booking::session.products.applied') }}</option>
-                        <option value="sold">{{ __('booking::session.products.sold') }}</option>
-                    </select>
-                    <x-filament::button wire:click="addProduct" size="sm">
-                        <x-heroicon-o-plus class="w-4 h-4" />
-                    </x-filament::button>
-                </div>
-
-                @if(count($sessionProducts) > 0)
-                    <div class="space-y-1">
-                        @foreach($sessionProducts as $product)
-                            <div class="flex items-center justify-between p-2 border border-gray-200 dark:border-gray-700 rounded text-sm">
-                                <div>
-                                    <span class="font-medium text-gray-900 dark:text-white">{{ $product['product_name'] }}</span>
-                                    <span class="px-1.5 py-0.5 text-xs rounded ml-1 {{ $product['usage_type'] === 'sold' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' }}">
-                                        {{ $product['usage_type'] === 'sold' ? __('booking::session.products.sold') : __('booking::session.products.applied') }}
-                                    </span>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <span class="text-gray-700 dark:text-gray-300">{{ number_format($product['total_price'], 2) }}</span>
-                                    <button wire:click="removeProduct('{{ $product['id'] }}')" class="text-red-500 hover:text-red-700">
-                                        <x-heroicon-o-x-mark class="w-4 h-4" />
-                                    </button>
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                @else
-                    <div class="text-center py-3 text-gray-500 dark:text-gray-400 text-sm">{{ __('booking::session.products.none') }}</div>
-                @endif
-            </x-filament::section>
         </div>
 
         {{-- Prescription Section --}}
@@ -905,5 +1096,277 @@
                 </div>
             </x-filament::section>
         </div>
+
+        {{-- Invoice Section --}}
+        @if($this->hasBillableItems())
+            <x-filament::section>
+                <x-slot name="heading">
+                    <div class="flex items-center justify-between w-full">
+                        <div class="flex items-center gap-2">
+                            <x-heroicon-o-receipt-percent class="w-5 h-5 text-green-500" />
+                            {{ __('booking::session.invoice.title') }}
+                        </div>
+                        <span class="text-lg font-bold text-green-600">
+                            {{ number_format($this->getInvoiceTotal(), 2) }} {{ current_currency() }}
+                        </span>
+                    </div>
+                </x-slot>
+
+                {{-- Invoice Line Items --}}
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-gray-200 dark:border-gray-700">
+                                <th class="text-left py-2 px-2 font-medium text-gray-600 dark:text-gray-400">{{ __('booking::session.invoice.item') }}</th>
+                                <th class="text-center py-2 px-2 font-medium text-gray-600 dark:text-gray-400 w-20">{{ __('booking::session.invoice.qty') }}</th>
+                                <th class="text-right py-2 px-2 font-medium text-gray-600 dark:text-gray-400 w-28">{{ __('booking::session.invoice.unit_price') }}</th>
+                                <th class="text-right py-2 px-2 font-medium text-gray-600 dark:text-gray-400 w-36">{{ __('booking::session.invoice.discount') }}</th>
+                                <th class="text-right py-2 px-2 font-medium text-gray-600 dark:text-gray-400 w-28">{{ __('booking::session.invoice.total') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($this->getInvoiceItems() as $index => $item)
+                                <tr class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                                    {{-- Item Name --}}
+                                    <td class="py-3 px-2">
+                                        <div class="flex items-center gap-2">
+                                            @if($item['type'] === 'service')
+                                                <x-heroicon-o-sparkles class="w-4 h-4 text-blue-500" />
+                                            @elseif($item['type'] === 'active_service')
+                                                <x-heroicon-o-play-circle class="w-4 h-4 text-green-500" />
+                                            @elseif($item['type'] === 'plan_product')
+                                                <x-heroicon-o-cube class="w-4 h-4 text-amber-500" />
+                                            @else
+                                                <x-heroicon-o-shopping-bag class="w-4 h-4 text-purple-500" />
+                                            @endif
+                                            <div>
+                                                <div class="font-medium text-gray-900 dark:text-white">{{ $item['name'] }}</div>
+                                                <div class="text-xs text-gray-500">{{ $item['description'] }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    {{-- Quantity --}}
+                                    <td class="py-3 px-2 text-center">
+                                        @if($item['editable'] ?? true)
+                                            <input
+                                                type="number"
+                                                value="{{ $item['quantity'] }}"
+                                                x-data
+                                                x-on:change="$wire.updateInvoiceItemQuantity('{{ $item['type'] }}', '{{ $item['id'] }}', $event.target.value)"
+                                                class="w-16 text-center border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm py-1"
+                                                min="0.01"
+                                                step="0.01"
+                                            />
+                                        @else
+                                            <span class="text-gray-700 dark:text-gray-300">{{ $item['quantity'] }}</span>
+                                        @endif
+                                    </td>
+
+                                    {{-- Unit Price --}}
+                                    <td class="py-3 px-2 text-right">
+                                        @if($item['editable'] ?? true)
+                                            <div class="relative" wire:loading.class="opacity-50">
+                                                <input
+                                                    type="number"
+                                                    value="{{ $item['unit_price'] }}"
+                                                    x-data
+                                                    x-on:change="$wire.updateInvoiceItemPrice('{{ $item['type'] }}', '{{ $item['id'] }}', Math.round($event.target.value * 100))"
+                                                    class="w-24 text-right border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm py-1"
+                                                    step="0.01"
+                                                    min="0"
+                                                />
+                                                <div wire:loading wire:target="updateInvoiceItemPrice" class="absolute inset-0 flex items-center justify-center">
+                                                    <x-filament::loading-indicator class="w-4 h-4" />
+                                                </div>
+                                            </div>
+                                        @else
+                                            <span class="text-gray-700 dark:text-gray-300">{{ number_format($item['unit_price'], 2) }}</span>
+                                        @endif
+                                    </td>
+
+                                    {{-- Discount --}}
+                                    <td class="py-3 px-2 text-right">
+                                        @if($item['editable'] ?? true)
+                                            <div class="flex items-center gap-1 justify-end">
+                                                <select
+                                                    x-data
+                                                    x-on:change="$wire.updateInvoiceItemDiscountType('{{ $item['type'] }}', '{{ $item['id'] }}', $event.target.value)"
+                                                    class="w-20 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-xs py-1"
+                                                >
+                                                    <option value="none" @selected($item['discount_type'] === 'none')>-</option>
+                                                    <option value="percent" @selected($item['discount_type'] === 'percent')>%</option>
+                                                    <option value="fixed" @selected($item['discount_type'] === 'fixed')>{{ current_currency() }}</option>
+                                                </select>
+                                                <input
+                                                    type="number"
+                                                    value="{{ $item['discount_value'] }}"
+                                                    x-data
+                                                    x-on:change="$wire.updateInvoiceItemDiscountValue('{{ $item['type'] }}', '{{ $item['id'] }}', $event.target.value)"
+                                                    class="w-16 text-right border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-xs py-1"
+                                                    min="0"
+                                                    @if($item['discount_type'] === 'percent') max="100" @endif
+                                                    step="0.01"
+                                                />
+                                            </div>
+                                        @else
+                                            <span class="text-gray-700 dark:text-gray-300">
+                                                @if($item['discount'] > 0)
+                                                    {{ number_format($item['discount'], 2) }}
+                                                @else
+                                                    -
+                                                @endif
+                                            </span>
+                                        @endif
+                                    </td>
+
+                                    {{-- Total --}}
+                                    <td class="py-3 px-2 text-right font-medium text-gray-900 dark:text-white">
+                                        {{ number_format($item['total'], 2) }}
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+
+                {{-- Totals Section --}}
+                <div class="mt-4 border-t border-gray-200 dark:border-gray-700 pt-4">
+                    <div class="flex justify-end">
+                        <div class="w-72 space-y-2">
+                            {{-- Subtotal --}}
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-600 dark:text-gray-400">{{ __('booking::session.invoice.subtotal') }}</span>
+                                <span class="text-gray-900 dark:text-white font-medium">{{ number_format($this->getInvoiceSubtotal(), 2) }} {{ current_currency() }}</span>
+                            </div>
+
+                            {{-- Overall Discount --}}
+                            <div x-data="{ showDiscountForm: false }" class="space-y-2">
+                                <div class="flex items-center justify-between text-sm">
+                                    <span class="text-gray-600 dark:text-gray-400">{{ __('booking::session.invoice.overall_discount') }}</span>
+                                    <div class="flex items-center gap-2">
+                                        @if($overallDiscountType !== 'none' && $overallDiscountValue > 0)
+                                            <span class="text-red-500">-{{ number_format($this->getOverallDiscountAmount(), 2) }} {{ current_currency() }}</span>
+                                        @else
+                                            <span class="text-gray-400">-</span>
+                                        @endif
+                                        <button
+                                            type="button"
+                                            @click="showDiscountForm = !showDiscountForm"
+                                            class="p-1 text-gray-400 hover:text-primary-500 rounded"
+                                        >
+                                            <x-heroicon-o-plus-circle class="w-4 h-4" x-show="!showDiscountForm" />
+                                            <x-heroicon-o-minus-circle class="w-4 h-4" x-show="showDiscountForm" x-cloak />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {{-- Discount Form --}}
+                                <div x-show="showDiscountForm" x-cloak x-transition class="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-2">
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <select
+                                            wire:model.live="overallDiscountType"
+                                            class="border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm"
+                                        >
+                                            <option value="none">{{ __('booking::session.invoice.no_discount') }}</option>
+                                            <option value="percent">{{ __('booking::session.invoice.percentage') }}</option>
+                                            <option value="fixed">{{ __('booking::session.invoice.fixed_amount') }}</option>
+                                        </select>
+                                        <input
+                                            type="number"
+                                            wire:model.live="overallDiscountValue"
+                                            class="border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm"
+                                            placeholder="{{ $overallDiscountType === 'percent' ? '%' : current_currency() }}"
+                                            min="0"
+                                            @if($overallDiscountType === 'percent') max="100" @endif
+                                        />
+                                    </div>
+                                    <input
+                                        type="text"
+                                        wire:model.live="overallDiscountReason"
+                                        class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm"
+                                        placeholder="{{ __('booking::session.invoice.discount_reason_placeholder') }}"
+                                    />
+                                    <x-filament::button
+                                        wire:click="applyOverallDiscount"
+                                        size="sm"
+                                        class="w-full"
+                                    >
+                                        {{ __('booking::session.invoice.apply_discount') }}
+                                    </x-filament::button>
+                                </div>
+                            </div>
+
+                            {{-- Total --}}
+                            <div class="flex justify-between text-lg font-bold border-t border-gray-200 dark:border-gray-700 pt-2">
+                                <span class="text-gray-900 dark:text-white">{{ __('booking::session.invoice.total') }}</span>
+                                <span class="text-green-600">{{ number_format($this->getInvoiceTotal(), 2) }} {{ current_currency() }}</span>
+                            </div>
+
+                            {{-- Package Info (if applicable) --}}
+                            @if($appointment?->is_package_session)
+                                <div class="flex items-center gap-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-sm">
+                                    <x-heroicon-o-gift class="w-5 h-5 text-blue-500" />
+                                    <div>
+                                        <div class="font-medium text-blue-700 dark:text-blue-300">{{ __('booking::session.invoice.package_session') }}</div>
+                                        <div class="text-xs text-blue-600 dark:text-blue-400">{{ __('booking::session.invoice.covered_by_package') }}</div>
+                                    </div>
+                                </div>
+                            @endif
+
+                            {{-- Visit Summary (if other appointments in same visit) --}}
+                            @php $visitSummary = $this->getVisitSummary(); @endphp
+                            @if($visitSummary && ($visitSummary['other_appointments']->isNotEmpty() || $visitSummary['other_products']->isNotEmpty()))
+                                <div class="border-t border-gray-200 dark:border-gray-700 pt-3 mt-3">
+                                    <div class="flex items-center gap-2 text-purple-600 dark:text-purple-400 mb-2">
+                                        <x-heroicon-o-ticket class="w-4 h-4" />
+                                        <span class="text-sm font-medium">{{ __('booking::session.invoice.other_visit_items', ['code' => $visitSummary['code']]) }}</span>
+                                    </div>
+
+                                    @if($visitSummary['other_appointments']->isNotEmpty())
+                                        <div class="space-y-1 text-sm">
+                                            @foreach($visitSummary['other_appointments'] as $otherAppt)
+                                                <div class="flex items-center justify-between py-1 px-2 bg-purple-50 dark:bg-purple-900/20 rounded">
+                                                    <div class="flex items-center gap-2">
+                                                        <x-heroicon-o-sparkles class="w-3 h-3 text-purple-500" />
+                                                        <span class="text-gray-700 dark:text-gray-300">{{ $otherAppt['service'] }}</span>
+                                                        <span class="text-xs text-gray-500">({{ $otherAppt['practitioner'] }})</span>
+                                                        <span class="px-1.5 py-0.5 text-xs rounded
+                                                            @if($otherAppt['status'] === 'completed') bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300
+                                                            @elseif($otherAppt['status'] === 'in_progress') bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300
+                                                            @else bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400
+                                                            @endif">{{ $otherAppt['status_label'] }}</span>
+                                                    </div>
+                                                    <span class="font-medium text-gray-900 dark:text-white">{{ number_format($otherAppt['price'], 2) }}</span>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    @endif
+
+                                    @if($visitSummary['other_products']->isNotEmpty())
+                                        <div class="space-y-1 text-sm mt-2">
+                                            @foreach($visitSummary['other_products'] as $otherProd)
+                                                <div class="flex items-center justify-between py-1 px-2 bg-purple-50 dark:bg-purple-900/20 rounded">
+                                                    <div class="flex items-center gap-2">
+                                                        <x-heroicon-o-shopping-bag class="w-3 h-3 text-purple-500" />
+                                                        <span class="text-gray-700 dark:text-gray-300">{{ $otherProd['name'] }}</span>
+                                                        <span class="text-xs text-gray-500">x{{ $otherProd['quantity'] }}</span>
+                                                    </div>
+                                                    <span class="font-medium text-gray-900 dark:text-white">{{ number_format($otherProd['total'], 2) }}</span>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    @endif
+
+                                    <div class="text-xs text-purple-600 dark:text-purple-400 mt-2 italic">
+                                        {{ __('booking::session.invoice.visit_checkout_note') }}
+                                    </div>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </x-filament::section>
+        @endif
     </div>
 </x-filament-panels::page>

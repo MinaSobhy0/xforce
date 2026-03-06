@@ -42,6 +42,10 @@ return [
         'completed_at' => 'تاريخ الانتهاء',
         'cancelled_at' => 'تاريخ الإلغاء',
         'created_at' => 'تاريخ الإنشاء',
+        'visit_code' => 'كود الزيارة',
+        'visit_status' => 'حالة الزيارة',
+        'visit_check_in' => 'تسجيل دخول الزيارة',
+        'checked_in_by' => 'تم التسجيل بواسطة',
     ],
 
     'sections' => [
@@ -49,6 +53,7 @@ return [
         'patient' => 'معلومات المريض',
         'schedule' => 'الجدولة',
         'pricing' => 'التسعير',
+        'visit' => 'معلومات الزيارة',
         'notes' => 'الملاحظات',
         'timestamps' => 'التواريخ',
     ],

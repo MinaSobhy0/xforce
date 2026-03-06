@@ -3,7 +3,6 @@
 namespace Modules\TreatmentPlans\Models;
 
 use XLinic\Framework\Core\Model\BaseModel;
-use XLinic\Framework\Core\Model\Traits\HasTenancy;
 use XLinic\Framework\Core\Model\Traits\HasTranslation;
 use XLinic\Framework\Core\Model\Traits\HasActivity;
 use XLinic\Framework\Core\Model\Traits\HasSequence;
@@ -23,7 +22,8 @@ use Carbon\Carbon;
 
 class TreatmentPlan extends BaseModel
 {
-    use HasTenancy, HasTranslation, HasActivity, HasSequence, SoftDeletes;
+    // Note: HasTenancy is already included via BaseModel
+    use HasTranslation, HasActivity, HasSequence, SoftDeletes;
 
     protected string $sequenceCode = 'treatment_plan';
     protected string $sequenceColumn = 'code';

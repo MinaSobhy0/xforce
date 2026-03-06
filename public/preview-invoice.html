@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice Design Enhancement Preview</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .section-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-200 px-6 py-4">
+        <div class="flex items-center justify-between max-w-7xl mx-auto">
+            <div class="flex items-center gap-4">
+                <a href="#" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+                <h1 class="text-xl font-semibold text-gray-900">Invoice Preview - Enhanced Design</h1>
+            </div>
+            <span class="text-sm text-gray-500">Before & After Comparison</span>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto py-8 px-6">
+        <!-- Comparison Header -->
+        <div class="grid grid-cols-2 gap-8 mb-6">
+            <div class="text-center">
+                <span class="inline-flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-full text-sm font-medium">
+                    <i class="fas fa-times-circle"></i> Current Design (Multiple Cards)
+                </span>
+            </div>
+            <div class="text-center">
+                <span class="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                    <i class="fas fa-check-circle"></i> Enhanced Design (Consolidated)
+                </span>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-8">
+            <!-- BEFORE: Current Design -->
+            <div class="space-y-4">
+                <!-- Card 1: Top Section -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div class="grid grid-cols-3 gap-4">
+                        <div>
+                            <p class="text-xs text-gray-500">Invoice Code</p>
+                            <p class="text-lg font-bold text-gray-900">INV-2024-0042</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">Status</p>
+                            <span class="inline-flex px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-sm">Issued</span>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">Type</p>
+                            <p class="text-sm text-gray-900">Standard</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 2: Customer Section -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div class="grid grid-cols-3 gap-4">
+                        <div>
+                            <p class="text-xs text-gray-500">Patient</p>
+                            <p class="text-sm font-medium text-gray-900">Ahmed Mohamed Ali</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">Phone</p>
+                            <p class="text-sm text-gray-900">+20 123 456 7890</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">Branch</p>
+                            <p class="text-sm text-gray-900">Main Branch</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 3: Amounts Section -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div class="grid grid-cols-3 gap-4">
+                        <div>
+                            <p class="text-xs text-gray-500">Subtotal</p>
+                            <p class="text-sm text-gray-900">EGP 5,000.00</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">Discount</p>
+                            <p class="text-sm text-gray-900">EGP 500.00</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">Tax (14%)</p>
+                            <p class="text-sm text-gray-900">EGP 630.00</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">Total</p>
+                            <p class="text-lg font-bold text-gray-900">EGP 5,130.00</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">Paid</p>
+                            <p class="text-sm text-green-600">EGP 3,000.00</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">Remaining</p>
+                            <p class="text-sm text-red-600">EGP 2,130.00</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 4: Dates Section -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div class="grid grid-cols-4 gap-4">
+                        <div>
+                            <p class="text-xs text-gray-500">Created</p>
+                            <p class="text-sm text-gray-900">Feb 28, 2024</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">Issued</p>
+                            <p class="text-sm text-gray-900">Feb 28, 2024</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">Due Date</p>
+                            <p class="text-sm text-red-600">Mar 15, 2024</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">Paid At</p>
+                            <p class="text-sm text-gray-400">-</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 5: Notes (Collapsed) -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                    <button class="flex items-center justify-between w-full text-left">
+                        <span class="text-sm font-medium text-gray-700">Notes</span>
+                        <i class="fas fa-chevron-down text-gray-400 text-xs"></i>
+                    </button>
+                </div>
+
+                <p class="text-center text-sm text-gray-400 mt-4">5 separate cards = visual clutter</p>
+            </div>
+
+            <!-- AFTER: Enhanced Design -->
+            <div class="space-y-4">
+                <!-- Single Header Card with all key info -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <!-- Top Bar with Status -->
+                    <div class="bg-gradient-to-r from-indigo-500 to-indigo-600 px-6 py-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                                    <i class="fas fa-file-invoice text-white text-xl"></i>
+                                </div>
+                                <div>
+                                    <h2 class="text-2xl font-bold text-white">INV-2024-0042</h2>
+                                    <p class="text-indigo-200 text-sm">Standard Invoice</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="inline-flex px-4 py-2 bg-amber-400 text-amber-900 rounded-lg text-sm font-semibold shadow-sm">
+                                    <i class="fas fa-clock mr-2"></i> Issued
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Info Row -->
+                    <div class="grid grid-cols-4 divide-x divide-gray-100 bg-gray-50">
+                        <div class="px-4 py-3 text-center">
+                            <p class="text-xs text-gray-500">Patient</p>
+                            <p class="text-sm font-semibold text-gray-900 truncate">Ahmed Mohamed</p>
+                        </div>
+                        <div class="px-4 py-3 text-center">
+                            <p class="text-xs text-gray-500">Branch</p>
+                            <p class="text-sm font-semibold text-gray-900">Main Branch</p>
+                        </div>
+                        <div class="px-4 py-3 text-center">
+                            <p class="text-xs text-gray-500">Created</p>
+                            <p class="text-sm font-semibold text-gray-900">Feb 28, 2024</p>
+                        </div>
+                        <div class="px-4 py-3 text-center">
+                            <p class="text-xs text-gray-500">Due Date</p>
+                            <p class="text-sm font-semibold text-red-600">Mar 15, 2024</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Compact Financial Summary -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="section-title">Financial Summary</h3>
+                        <span class="text-xs text-gray-400">EGP</span>
+                    </div>
+
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-500">Subtotal</span>
+                            <span class="text-gray-900">5,000.00</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-500">Discount</span>
+                            <span class="text-red-500">- 500.00</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-500">VAT (14%)</span>
+                            <span class="text-gray-900">+ 630.00</span>
+                        </div>
+                        <div class="border-t border-gray-200 pt-2 mt-2">
+                            <div class="flex justify-between">
+                                <span class="text-gray-900 font-semibold">Total</span>
+                                <span class="text-xl font-bold text-gray-900">5,130.00</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Payment Progress -->
+                    <div class="mt-4 pt-4 border-t border-gray-100">
+                        <div class="flex justify-between text-sm mb-2">
+                            <span class="text-gray-500">Payment Progress</span>
+                            <span class="text-gray-900 font-medium">58%</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-green-500 h-2 rounded-full" style="width: 58%"></div>
+                        </div>
+                        <div class="flex justify-between mt-2 text-xs">
+                            <span class="text-green-600 font-medium">Paid: 3,000.00</span>
+                            <span class="text-red-600 font-medium">Remaining: 2,130.00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions Bar -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-3">
+                    <div class="flex items-center justify-between gap-2">
+                        <button class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition-colors">
+                            <i class="fas fa-credit-card"></i> Record Payment
+                        </button>
+                        <button class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg text-sm font-medium transition-colors">
+                            <i class="fas fa-print"></i> Print
+                        </button>
+                        <button class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors">
+                            <i class="fas fa-ellipsis-h"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <p class="text-center text-sm text-green-600 mt-4">
+                    <i class="fas fa-check mr-1"></i> Consolidated into 3 logical sections
+                </p>
+            </div>
+        </div>
+
+        <!-- Line Items Comparison -->
+        <div class="mt-12">
+            <h2 class="text-lg font-semibold text-gray-900 mb-6 text-center">Line Items Table Enhancement</h2>
+
+            <div class="grid grid-cols-2 gap-8">
+                <!-- Before: Verbose Table -->
+                <div>
+                    <p class="text-sm text-red-600 font-medium mb-3 text-center">Current: Large cells, verbose display</p>
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                        <table class="w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                                    <th class="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase">Qty</th>
+                                    <th class="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase">Price</th>
+                                    <th class="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase">Tax</th>
+                                    <th class="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200">
+                                <tr>
+                                    <td class="px-6 py-4 text-sm text-gray-900">Laser Hair Removal - Full Body</td>
+                                    <td class="px-6 py-4 text-sm text-gray-900 text-right">1.00</td>
+                                    <td class="px-6 py-4 text-sm text-gray-900 text-right">EGP 3,000.00</td>
+                                    <td class="px-6 py-4 text-sm text-gray-900 text-right">VAT: 14%</td>
+                                    <td class="px-6 py-4 text-sm font-medium text-gray-900 text-right">EGP 3,420.00</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 text-sm text-gray-900">Facial Treatment - Premium</td>
+                                    <td class="px-6 py-4 text-sm text-gray-900 text-right">2.00</td>
+                                    <td class="px-6 py-4 text-sm text-gray-900 text-right">EGP 1,000.00</td>
+                                    <td class="px-6 py-4 text-sm text-gray-900 text-right">VAT: 14%</td>
+                                    <td class="px-6 py-4 text-sm font-medium text-gray-900 text-right">EGP 2,280.00</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- After: Compact Table -->
+                <div>
+                    <p class="text-sm text-green-600 font-medium mb-3 text-center">Enhanced: Compact, scannable</p>
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                        <table class="w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Item</th>
+                                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Qty</th>
+                                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Price</th>
+                                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-4 py-3">
+                                        <p class="text-sm font-medium text-gray-900">Laser Hair Removal - Full Body</p>
+                                        <div class="flex items-center gap-1 mt-1">
+                                            <span class="inline-flex px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">VAT 14%</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-3 text-sm text-gray-600 text-center">1</td>
+                                    <td class="px-4 py-3 text-sm text-gray-600 text-right">3,000</td>
+                                    <td class="px-4 py-3 text-sm font-semibold text-gray-900 text-right">3,420</td>
+                                </tr>
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-4 py-3">
+                                        <p class="text-sm font-medium text-gray-900">Facial Treatment - Premium</p>
+                                        <div class="flex items-center gap-1 mt-1">
+                                            <span class="inline-flex px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">VAT 14%</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-3 text-sm text-gray-600 text-center">2</td>
+                                    <td class="px-4 py-3 text-sm text-gray-600 text-right">1,000</td>
+                                    <td class="px-4 py-3 text-sm font-semibold text-gray-900 text-right">2,280</td>
+                                </tr>
+                            </tbody>
+                            <tfoot class="bg-gray-50">
+                                <tr>
+                                    <td colspan="3" class="px-4 py-3 text-sm font-medium text-gray-700 text-right">Total</td>
+                                    <td class="px-4 py-3 text-base font-bold text-gray-900 text-right">5,700</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Benefits Summary -->
+        <div class="mt-12 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl p-8">
+            <h2 class="text-lg font-semibold text-gray-900 mb-6 text-center">Enhancement Benefits</h2>
+            <div class="grid grid-cols-4 gap-6">
+                <div class="text-center">
+                    <div class="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center mx-auto mb-3">
+                        <i class="fas fa-compress-alt text-indigo-600"></i>
+                    </div>
+                    <h3 class="font-medium text-gray-900">Less Scrolling</h3>
+                    <p class="text-sm text-gray-500 mt-1">5 cards reduced to 3 sections</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center mx-auto mb-3">
+                        <i class="fas fa-eye text-indigo-600"></i>
+                    </div>
+                    <h3 class="font-medium text-gray-900">Better Hierarchy</h3>
+                    <p class="text-sm text-gray-500 mt-1">Key info visible at a glance</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center mx-auto mb-3">
+                        <i class="fas fa-bolt text-indigo-600"></i>
+                    </div>
+                    <h3 class="font-medium text-gray-900">Quick Actions</h3>
+                    <p class="text-sm text-gray-500 mt-1">Primary actions always visible</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center mx-auto mb-3">
+                        <i class="fas fa-chart-line text-indigo-600"></i>
+                    </div>
+                    <h3 class="font-medium text-gray-900">Visual Progress</h3>
+                    <p class="text-sm text-gray-500 mt-1">Payment status at a glance</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Footer -->
+    <div class="bg-white border-t border-gray-200 px-6 py-4 mt-12">
+        <p class="text-center text-sm text-gray-500">
+            This is a design preview. Refresh the page after changes are implemented to see the actual result.
+        </p>
+    </div>
+</body>
+</html>

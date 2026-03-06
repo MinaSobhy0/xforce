@@ -42,6 +42,10 @@ return [
         'completed_at' => 'Completed At',
         'cancelled_at' => 'Cancelled At',
         'created_at' => 'Created At',
+        'visit_code' => 'Visit Code',
+        'visit_status' => 'Visit Status',
+        'visit_check_in' => 'Visit Check-in',
+        'checked_in_by' => 'Checked In By',
     ],
 
     'sections' => [
@@ -49,6 +53,7 @@ return [
         'patient' => 'Patient Information',
         'schedule' => 'Schedule',
         'pricing' => 'Pricing',
+        'visit' => 'Visit Information',
         'notes' => 'Notes',
         'timestamps' => 'Timestamps',
     ],

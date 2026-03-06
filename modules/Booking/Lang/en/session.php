@@ -12,6 +12,8 @@ return [
         'time' => 'Time',
         'room' => 'Room',
         'session_number' => 'Session :current of :total',
+        'years' => 'yrs',
+        'duration' => 'Duration',
     ],
 
     // Sections
@@ -58,9 +60,22 @@ return [
         'blood_type' => 'Blood Type',
         'bmi' => 'BMI',
         'smoker' => 'Smoker',
+        'status' => 'Status',
         'medications' => 'Current Medications',
         'conditions' => 'Medical Conditions',
+        'allergies' => 'Critical Allergies',
+        'contraindications' => 'Contraindications',
         'no_history' => 'No medical history recorded',
+        'no_profile' => 'No medical profile found',
+        'view_full_profile' => 'Full Profile',
+        'create_profile' => 'Create Medical Profile',
+        'pregnant' => 'Pregnant',
+        'breastfeeding' => 'Breastfeeding',
+        'critical_allergies' => 'Critical Allergies',
+        'has_contraindications' => 'Has Contraindications',
+        'no_allergies' => 'No known allergies',
+        'no_medications' => 'No current medications',
+        'no_contraindications' => 'No contraindications',
     ],
 
     // Notes
@@ -93,6 +108,12 @@ return [
         'add_service' => 'Add Service',
         'notes' => 'Notes',
         'create' => 'Create Plan',
+        'no_plan' => 'No treatment plan assigned',
+        'pending_delivery' => 'Pending',
+        'current' => 'Current',
+        'not_started' => 'Not Started',
+        'in_progress' => 'In Progress',
+        'cancelled' => 'Cancelled',
     ],
 
     // Previous visits
@@ -235,6 +256,18 @@ return [
         'added' => 'Equipment added',
         'has_params' => 'Params',
         'tracking_params' => 'Tracking Parameters',
+        // Shot tracking
+        'shots_remaining' => 'Shots Remaining',
+        'shots_this_session' => 'Shots This Session',
+        'energy_delivered' => 'Energy (J)',
+        'low_shots_warning' => 'Low shots - consider maintenance',
+        // Maintenance
+        'maintenance_due' => 'Maintenance Due',
+        'next_maintenance' => 'Next Maintenance',
+        'last_maintenance' => 'Last Maintenance',
+        // Dynamic parameters
+        'no_tracking_params' => 'No tracking parameters configured',
+        'cumulative_hint' => 'This value accumulates across sessions',
     ],
 
     // Presets
@@ -276,5 +309,38 @@ return [
         'usage_type' => 'Usage',
         'applied' => 'Applied during treatment',
         'sold' => 'Sold to patient',
+    ],
+
+    // Invoice section
+    'invoice' => [
+        'title' => 'Invoice Summary',
+        'item' => 'Item',
+        'qty' => 'Qty',
+        'unit_price' => 'Unit Price',
+        'discount' => 'Discount',
+        'total' => 'Total',
+        'subtotal' => 'Subtotal',
+        'grand_total' => 'Grand Total',
+        'service_session' => 'Service Session',
+        'active_session' => 'Active Session',
+        'product_sold' => 'Product (Sold)',
+        'service_discount' => 'Service Discount',
+        'overall_discount' => 'Overall Discount',
+        'no_discount' => 'No Discount',
+        'percentage' => 'Percentage',
+        'fixed_amount' => 'Fixed Amount',
+        'discount_reason' => 'Discount Reason',
+        'discount_reason_placeholder' => 'e.g., Loyalty discount, First visit...',
+        'apply_discount' => 'Apply Discount',
+        'discount_applied' => 'Discount Applied',
+        'package_session' => 'Package Session',
+        'plan_product' => 'Treatment Plan Product',
+        'covered_by_package' => 'Covered by Package',
+        'no_billable_items' => 'No billable items',
+        'edit_price' => 'Edit Price',
+        'save_price' => 'Save',
+        'cancel_edit' => 'Cancel',
+        'other_visit_items' => 'Other items in visit :code',
+        'visit_checkout_note' => 'Full invoice will be generated at checkout',
     ],
 ];

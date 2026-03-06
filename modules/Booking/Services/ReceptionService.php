@@ -6,6 +6,7 @@ use App\Services\BranchContext;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Modules\Booking\Models\Appointment;
+use Modules\Booking\Models\Visit;
 use Modules\Core\Models\Room;
 
 class ReceptionService
@@ -325,5 +326,93 @@ class ReceptionService
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
+    }
+
+    /**
+     * Get open visits for today.
+     */
+    public function getOpenVisits(?string $branchId = null): Collection
+    {
+        $branchId = $branchId ?? BranchContext::currentId();
+
+        $query = Visit::query()
+            ->with([
+                'patient',
+                'appointments.service',
+                'appointments.practitioner',
+                'checkedInBy',
+            ])
+            ->where('status', Visit::STATUS_OPEN)
+            ->whereDate('check_in_at', today())
+            ->orderBy('check_in_at');
+
+        if ($branchId) {
+            $query->where('branch_id', $branchId);
+        }
+
+        return $query->get();
+    }
+
+    /**
+     * Get visit statistics for a given date.
+     */
+    public function getVisitStats(?string $branchId = null, ?Carbon $date = null): array
+    {
+        $branchId = $branchId ?? BranchContext::currentId();
+        $date = $date ?? today();
+
+        $query = Visit::query()->whereDate('check_in_at', $date);
+
+        if ($branchId) {
+            $query->where('branch_id', $branchId);
+        }
+
+        $visits = $query->get();
+
+        return [
+            'total' => $visits->count(),
+            'open' => $visits->where('status', Visit::STATUS_OPEN)->count(),
+            'completed' => $visits->where('status', Visit::STATUS_COMPLETED)->count(),
+            'invoiced' => $visits->where('status', Visit::STATUS_INVOICED)->count(),
+            'cancelled' => $visits->where('status', Visit::STATUS_CANCELLED)->count(),
+        ];
+    }
+
+    /**
+     * Get visits ready for checkout (all appointments completed).
+     */
+    public function getVisitsReadyForCheckout(?string $branchId = null): Collection
+    {
+        $branchId = $branchId ?? BranchContext::currentId();
+
+        $query = Visit::query()
+            ->with([
+                'patient',
+                'appointments',
+                'products',
+            ])
+            ->where('status', Visit::STATUS_OPEN)
+            ->whereDate('check_in_at', today())
+            ->orderBy('check_in_at');
+
+        if ($branchId) {
+            $query->where('branch_id', $branchId);
+        }
+
+        // Filter to visits where all appointments are completed
+        return $query->get()->filter(function ($visit) {
+            if ($visit->appointments->isEmpty()) {
+                return false;
+            }
+            return !$visit->hasOpenAppointments();
+        });
+    }
+
+    /**
+     * Get visit for an appointment.
+     */
+    public function getVisitForAppointment(Appointment $appointment): ?Visit
+    {
+        return $appointment->visits()->latest('check_in_at')->first();
     }
 }

@@ -340,6 +340,12 @@ class AccountingIntegrationService
      */
     protected function getDefaultRevenueAccountForLine($line): ?ChartOfAccount
     {
+        // If line is a package, credit Unearned Revenue (deferred revenue)
+        // Revenue recognition happens when sessions are used via RevenueRecognitionService
+        if ($line->line_type === \Modules\Billing\Models\InvoiceLine::LINE_TYPE_PACKAGE) {
+            return $this->defaultAccounts->getPackageUnearnedRevenueAccount();
+        }
+
         // If line has a product, use product revenue account
         if ($line->product_id && $line->product?->income_account_id) {
             return ChartOfAccount::find($line->product->income_account_id);

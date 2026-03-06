@@ -64,6 +64,24 @@ class AppServiceProvider extends ServiceProvider
                 Livewire::component($alias, $className);
             }
         }
+
+        // Register resource pages
+        foreach (glob($modulesPath . '/*/Filament/Resources/*/Pages/*.php') as $file) {
+            $className = $this->getClassFromFile($file);
+            if ($className && class_exists($className)) {
+                $alias = $this->getComponentAlias($className);
+                Livewire::component($alias, $className);
+            }
+        }
+
+        // Register relation managers
+        foreach (glob($modulesPath . '/*/Filament/Resources/*/RelationManagers/*.php') as $file) {
+            $className = $this->getClassFromFile($file);
+            if ($className && class_exists($className)) {
+                $alias = $this->getComponentAlias($className);
+                Livewire::component($alias, $className);
+            }
+        }
     }
 
     /**

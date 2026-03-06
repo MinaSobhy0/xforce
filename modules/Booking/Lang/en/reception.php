@@ -132,6 +132,18 @@ return [
         'current_doctor' => 'Current Doctor',
     ],
 
+    // Open Visits
+    'open_visits' => [
+        'title' => 'Open Visits',
+        'services' => 'Services',
+        'open_sessions' => 'Open Sessions',
+        'doctors' => 'Doctors',
+        'estimated' => 'Est. Total',
+        'view_patient' => 'View Patient',
+        'empty' => 'No Open Visits',
+        'empty_desc' => 'All patients have checked out',
+    ],
+
     // Misc
     'unassigned' => 'Unassigned',
     'no_room' => 'No room',

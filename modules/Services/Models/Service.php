@@ -15,7 +15,9 @@ use Modules\Equipment\Models\Equipment;
 use Modules\Core\Models\Room;
 use Modules\Auth\Models\User;
 use Modules\Staff\Models\StaffProfile;
+use Modules\Inventory\Models\Product;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 
 class Service extends BaseModel
 {
@@ -92,6 +94,23 @@ class Service extends BaseModel
     ];
 
     protected $appends = ['translated_name', 'formatted_price'];
+
+    protected static function booted(): void
+    {
+        static::creating(function (Service $service) {
+            // Auto-assign parameter_template_id from category if not set
+            if (!$service->parameter_template_id && $service->category_id) {
+                $category = ServiceCategory::find($service->category_id);
+                if ($category && $category->default_parameter_template_id) {
+                    $service->parameter_template_id = $category->default_parameter_template_id;
+                    // Also enable template mode if we're assigning a template
+                    if ($service->parameter_mode === 'none') {
+                        $service->parameter_mode = 'template';
+                    }
+                }
+            }
+        });
+    }
 
     public function getTranslatedNameAttribute(): string
     {
@@ -408,5 +427,92 @@ class Service extends BaseModel
             $q->where('has_dynamic_parameters', true)
                 ->orWhere('parameter_mode', '!=', 'none');
         });
+    }
+
+    /**
+     * Get effective equipment (service's own or fallback to category).
+     * Override pattern: If service has its own equipment, use it. Otherwise, use category's.
+     */
+    public function getEffectiveEquipment(): Collection
+    {
+        // If service has its own equipment, use it
+        if ($this->requiredEquipment()->exists()) {
+            return $this->requiredEquipment;
+        }
+
+        // Fall back to category's equipment
+        if ($this->category) {
+            return $this->category->requiredEquipment;
+        }
+
+        return collect();
+    }
+
+    /**
+     * Get effective qualified staff (service's own or fallback to category).
+     * Override pattern: If service has its own staff, use it. Otherwise, use category's.
+     */
+    public function getEffectiveQualifiedStaff(): Collection
+    {
+        // If service has its own qualified staff, use it
+        if ($this->qualifiedStaff()->exists()) {
+            return $this->qualifiedStaff;
+        }
+
+        // Fall back to category's qualified staff
+        if ($this->category) {
+            return $this->category->qualifiedStaff;
+        }
+
+        return collect();
+    }
+
+    /**
+     * Get effective rooms (service's own or fallback to category).
+     * Override pattern: If service has its own rooms, use it. Otherwise, use category's.
+     */
+    public function getEffectiveRooms(): Collection
+    {
+        // If service has its own rooms, use it
+        if ($this->rooms()->exists()) {
+            return $this->rooms;
+        }
+
+        // Fall back to category's rooms
+        if ($this->category) {
+            return $this->category->rooms;
+        }
+
+        return collect();
+    }
+
+    /**
+     * Get effective consumables (service's own or fallback to category).
+     * Override pattern: If service has its own consumables, use it. Otherwise, use category's.
+     */
+    public function getEffectiveConsumables(): Collection
+    {
+        // If service has consumables_required field set, use it
+        if (!empty($this->consumables_required)) {
+            // consumables_required is a JSON array of product IDs with quantities
+            return collect($this->consumables_required)->map(function ($item) {
+                return [
+                    'product' => Product::find($item['product_id'] ?? null),
+                    'quantity' => $item['quantity'] ?? 1,
+                ];
+            })->filter(fn ($item) => $item['product'] !== null);
+        }
+
+        // Fall back to category's consumables
+        if ($this->category) {
+            return $this->category->consumables->map(function ($product) {
+                return [
+                    'product' => $product,
+                    'quantity' => $product->pivot->quantity ?? 1,
+                ];
+            });
+        }
+
+        return collect();
     }
 }

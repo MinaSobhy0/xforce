@@ -30,6 +30,7 @@ class Invoice extends BaseModel
         'tenant_id',
         'code',
         'patient_id',
+        'visit_id',
         'branch_id',
         'appointment_id',
         'treatment_plan_id',
@@ -130,6 +131,11 @@ class Invoice extends BaseModel
     public function patient(): BelongsTo
     {
         return $this->belongsTo(Patient::class);
+    }
+
+    public function visit(): BelongsTo
+    {
+        return $this->belongsTo(\Modules\Booking\Models\Visit::class);
     }
 
     public function branch(): BelongsTo

@@ -16,6 +16,7 @@ use Modules\Equipment\Models\Equipment;
 use Modules\Core\Models\Room;
 use Modules\Auth\Models\User;
 use Modules\Staff\Models\StaffProfile;
+use Modules\Inventory\Models\Product;
 use Modules\Services\Filament\Resources\ServiceResource\Pages;
 use Modules\Services\Filament\Resources\ServiceResource\RelationManagers;
 use Illuminate\Database\Eloquent\Builder;
@@ -301,10 +302,34 @@ class ServiceResource extends Resource
                                             ->columns(2)
                                             ->helperText('Equipment needed for this service'),
 
-                                        Forms\Components\TagsInput::make('consumables_required')
-                                            ->label('Consumables Required')
-                                            ->separator(',')
-                                            ->helperText('Consumable items needed per session'),
+                                        Forms\Components\Repeater::make('consumables_required')
+                                            ->label(__('services::services.fields.consumables_required'))
+                                            ->schema([
+                                                Forms\Components\Select::make('product_id')
+                                                    ->label(__('services::services.consumables.product'))
+                                                    ->options(function () {
+                                                        return Product::query()
+                                                            ->where('is_consumable', true)
+                                                            ->where('is_active', true)
+                                                            ->get()
+                                                            ->mapWithKeys(fn ($product) => [
+                                                                $product->id => ($product->getTranslation('name', app()->getLocale()) ?? $product->sku) . " ({$product->sku})"
+                                                            ]);
+                                                    })
+                                                    ->searchable()
+                                                    ->required(),
+                                                Forms\Components\TextInput::make('quantity')
+                                                    ->label(__('services::services.consumables.quantity'))
+                                                    ->numeric()
+                                                    ->default(1)
+                                                    ->minValue(1)
+                                                    ->required(),
+                                            ])
+                                            ->columns(2)
+                                            ->defaultItems(0)
+                                            ->reorderable(false)
+                                            ->addActionLabel(__('services::services.consumables.add_consumable'))
+                                            ->helperText(__('services::services.consumables.quantity_help')),
                                     ]),
                             ]),
 
@@ -506,12 +531,11 @@ class ServiceResource extends Resource
                 Tables\Columns\TextColumn::make('translated_name')
                     ->label(__('services::services.fields.name'))
                     ->searchable(['name'])
-                    ->sortable()
+                    ->sortable(['name'])
                     ->wrap(),
 
                 Tables\Columns\TextColumn::make('category.translated_name')
-                    ->label(__('services::services.fields.category'))
-                    ->sortable(),
+                    ->label(__('services::services.fields.category')),
 
                 Tables\Columns\TextColumn::make('duration_minutes')
                     ->label('Duration')

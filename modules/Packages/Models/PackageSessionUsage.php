@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Modules\Services\Models\Service;
 use Modules\Booking\Models\Appointment;
 use Modules\Auth\Models\User;
+use Modules\Accounting\Models\JournalEntry;
+use Modules\Packages\Events\PackageSessionUsed;
 
 class PackageSessionUsage extends BaseModel
 {
@@ -21,12 +23,27 @@ class PackageSessionUsage extends BaseModel
         'service_id',
         'appointment_id',
         'used_at',
+        'quantity_used',
+        'unit_type',
         'used_by_user_id',
         'notes',
+        'journal_entry_id',
     ];
 
     protected $casts = [
         'used_at' => 'datetime',
+        'quantity_used' => 'integer',
+    ];
+
+    // Unit types
+    public const UNIT_SESSION = 'session';
+    public const UNIT_PULSE = 'pulse';
+    public const UNIT_CREDIT = 'credit';
+
+    public const UNIT_TYPES = [
+        self::UNIT_SESSION => 'Session',
+        self::UNIT_PULSE => 'Pulse',
+        self::UNIT_CREDIT => 'Credit',
     ];
 
     protected static function booted(): void
@@ -40,11 +57,26 @@ class PackageSessionUsage extends BaseModel
             if (empty($usage->used_by_user_id)) {
                 $usage->used_by_user_id = auth()->id();
             }
+            if (empty($usage->quantity_used)) {
+                $usage->quantity_used = 1;
+            }
+            if (empty($usage->unit_type)) {
+                $usage->unit_type = self::UNIT_SESSION;
+            }
         });
 
         static::created(function (PackageSessionUsage $usage) {
             // Check if subscription is now complete
             $usage->subscription?->checkAndMarkComplete();
+
+            // Dispatch event for revenue recognition
+            if ($usage->subscription) {
+                PackageSessionUsed::dispatch(
+                    $usage->subscription,
+                    $usage,
+                    $usage->appointment
+                );
+            }
         });
     }
 
@@ -67,6 +99,11 @@ class PackageSessionUsage extends BaseModel
     public function usedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'used_by_user_id');
+    }
+
+    public function journalEntry(): BelongsTo
+    {
+        return $this->belongsTo(JournalEntry::class);
     }
 
     // Accessors
@@ -99,5 +136,31 @@ class PackageSessionUsage extends BaseModel
     public function scopeToday($query)
     {
         return $query->whereDate('used_at', today());
+    }
+
+    public function scopeByUnitType($query, string $unitType)
+    {
+        return $query->where('unit_type', $unitType);
+    }
+
+    // Unit type helpers
+    public function isSessionUsage(): bool
+    {
+        return $this->unit_type === self::UNIT_SESSION;
+    }
+
+    public function isPulseUsage(): bool
+    {
+        return $this->unit_type === self::UNIT_PULSE;
+    }
+
+    public function getUnitTypeLabelAttribute(): string
+    {
+        return self::UNIT_TYPES[$this->unit_type] ?? $this->unit_type;
+    }
+
+    public function hasRevenueRecognition(): bool
+    {
+        return $this->journal_entry_id !== null;
     }
 }

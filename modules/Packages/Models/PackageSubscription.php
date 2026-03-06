@@ -10,6 +10,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Modules\Patients\Models\Patient;
 use Modules\Billing\Models\Invoice;
+use Modules\Accounting\Models\ChartOfAccount;
+use Modules\Accounting\Models\JournalEntry;
+use Modules\Auth\Models\User;
+use Modules\Core\Models\Branch;
 use Carbon\Carbon;
 
 class PackageSubscription extends BaseModel
@@ -21,6 +25,15 @@ class PackageSubscription extends BaseModel
         'patient_id',
         'package_id',
         'invoice_id',
+        'package_price_minor',
+        'deposit_paid_minor',
+        'balance_remaining_minor',
+        'activation_rule',
+        'recognized_revenue_minor',
+        'unrecognized_revenue_minor',
+        'unearned_revenue_account_id',
+        'branch_id',
+        'created_by_user_id',
         'status',
         'purchased_at',
         'expires_at',
@@ -33,12 +46,26 @@ class PackageSubscription extends BaseModel
     ];
 
     protected $casts = [
+        'package_price_minor' => 'integer',
+        'deposit_paid_minor' => 'integer',
+        'balance_remaining_minor' => 'integer',
+        'recognized_revenue_minor' => 'integer',
+        'unrecognized_revenue_minor' => 'integer',
         'purchased_at' => 'datetime',
         'expires_at' => 'datetime',
         'frozen_at' => 'datetime',
         'frozen_until' => 'datetime',
         'completed_at' => 'datetime',
         'cancelled_at' => 'datetime',
+    ];
+
+    // Activation rules
+    public const ACTIVATION_IMMEDIATE = 'immediate';
+    public const ACTIVATION_PAID_IN_FULL = 'paid_in_full';
+
+    public const ACTIVATION_RULES = [
+        self::ACTIVATION_IMMEDIATE => 'Activate Immediately',
+        self::ACTIVATION_PAID_IN_FULL => 'Activate After Full Payment',
     ];
 
     // Status constants
@@ -103,6 +130,34 @@ class PackageSubscription extends BaseModel
         return $this->hasMany(PackageSessionUsage::class, 'subscription_id');
     }
 
+    public function unearnedRevenueAccount(): BelongsTo
+    {
+        return $this->belongsTo(ChartOfAccount::class, 'unearned_revenue_account_id');
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
+    }
+
+    public function createdByUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by_user_id');
+    }
+
+    public function journalEntries()
+    {
+        return $this->morphMany(JournalEntry::class, 'source');
+    }
+
+    /**
+     * Get appointments linked to this package subscription.
+     */
+    public function appointments(): HasMany
+    {
+        return $this->hasMany(\Modules\Booking\Models\Appointment::class, 'package_subscription_id');
+    }
+
     // Session tracking
     public function getSessionsUsedAttribute(): int
     {
@@ -129,6 +184,49 @@ class PackageSubscription extends BaseModel
     public function hasRemainingSessionsForService(string $serviceId): bool
     {
         return $this->getSessionsRemainingByService($serviceId) > 0;
+    }
+
+    // Booked sessions tracking (scheduled but not completed)
+    public function getSessionsBookedAttribute(): int
+    {
+        return $this->appointments()
+            ->where('is_package_session', true)
+            ->whereIn('status', [
+                \Modules\Booking\Models\Appointment::STATUS_SCHEDULED,
+                \Modules\Booking\Models\Appointment::STATUS_CONFIRMED,
+                \Modules\Booking\Models\Appointment::STATUS_CHECKED_IN,
+                \Modules\Booking\Models\Appointment::STATUS_IN_PROGRESS,
+            ])
+            ->count();
+    }
+
+    public function getSessionsBookedByService(string $serviceId): int
+    {
+        return $this->appointments()
+            ->where('is_package_session', true)
+            ->where('service_id', $serviceId)
+            ->whereIn('status', [
+                \Modules\Booking\Models\Appointment::STATUS_SCHEDULED,
+                \Modules\Booking\Models\Appointment::STATUS_CONFIRMED,
+                \Modules\Booking\Models\Appointment::STATUS_CHECKED_IN,
+                \Modules\Booking\Models\Appointment::STATUS_IN_PROGRESS,
+            ])
+            ->count();
+    }
+
+    /**
+     * Get truly available sessions (total - used - booked).
+     */
+    public function getSessionsAvailableAttribute(): int
+    {
+        $totalSessions = $this->package?->total_sessions ?? 0;
+        return max(0, $totalSessions - $this->sessions_used - $this->sessions_booked);
+    }
+
+    public function getSessionsAvailableByService(string $serviceId): int
+    {
+        $totalForService = $this->package?->getServiceQuantity($serviceId) ?? 0;
+        return max(0, $totalForService - $this->getSessionsUsedByService($serviceId) - $this->getSessionsBookedByService($serviceId));
     }
 
     public function getUsageProgressAttribute(): float
@@ -321,5 +419,148 @@ class PackageSubscription extends BaseModel
         return $query->whereHas('package.items', function ($q) use ($serviceId) {
             $q->where('service_id', $serviceId);
         });
+    }
+
+    // Payment tracking helpers
+    public function isFullyPaid(): bool
+    {
+        return $this->balance_remaining_minor <= 0;
+    }
+
+    public function hasBalance(): bool
+    {
+        return $this->balance_remaining_minor > 0;
+    }
+
+    public function getPaymentProgressAttribute(): float
+    {
+        if ($this->package_price_minor <= 0) {
+            return 100;
+        }
+        $paid = $this->package_price_minor - $this->balance_remaining_minor;
+        return round(($paid / $this->package_price_minor) * 100, 1);
+    }
+
+    public function getTotalPaidAttribute(): int
+    {
+        return $this->package_price_minor - $this->balance_remaining_minor;
+    }
+
+    public function getFormattedBalanceAttribute(): string
+    {
+        return format_money($this->balance_remaining_minor);
+    }
+
+    public function getFormattedPriceAttribute(): string
+    {
+        return format_money($this->package_price_minor);
+    }
+
+    public function recordPayment(int $amountMinor): void
+    {
+        $this->balance_remaining_minor = max(0, $this->balance_remaining_minor - $amountMinor);
+        $this->deposit_paid_minor += $amountMinor;
+        $this->save();
+    }
+
+    // Activation rule helpers
+    public function canBeActivated(): bool
+    {
+        if ($this->activation_rule === self::ACTIVATION_IMMEDIATE) {
+            return true;
+        }
+        return $this->isFullyPaid();
+    }
+
+    public function requiresFullPaymentForActivation(): bool
+    {
+        return $this->activation_rule === self::ACTIVATION_PAID_IN_FULL;
+    }
+
+    // Revenue recognition helpers
+    public function getPerSessionValueAttribute(): int
+    {
+        $totalSessions = $this->package?->total_sessions ?? 0;
+        if ($totalSessions <= 0) {
+            return 0;
+        }
+        return (int) floor($this->package_price_minor / $totalSessions);
+    }
+
+    public function recordRevenueRecognition(int $amountMinor): void
+    {
+        $this->recognized_revenue_minor += $amountMinor;
+        $this->unrecognized_revenue_minor = max(0, $this->unrecognized_revenue_minor - $amountMinor);
+        $this->save();
+    }
+
+    // Session usage with consumption tracking
+    public function recordUsage(
+        int $serviceId,
+        ?int $appointmentId = null,
+        int $quantityUsed = 1,
+        string $unitType = 'session',
+        ?string $notes = null
+    ): PackageSessionUsage {
+        $usage = $this->usages()->create([
+            'tenant_id' => $this->tenant_id,
+            'service_id' => $serviceId,
+            'appointment_id' => $appointmentId,
+            'used_at' => now(),
+            'quantity_used' => $quantityUsed,
+            'unit_type' => $unitType,
+            'notes' => $notes,
+        ]);
+
+        // Check if all sessions used, mark as completed
+        $this->checkAndMarkComplete();
+
+        // Load the appointment if provided
+        $appointment = $appointmentId
+            ? \Modules\Booking\Models\Appointment::find($appointmentId)
+            : null;
+
+        // Fire event for revenue recognition
+        \Modules\Packages\Events\PackageSessionUsed::dispatch($this, $usage, $appointment);
+
+        return $usage;
+    }
+
+    // Pulse-based consumption tracking
+    public function getPulsesUsedAttribute(): int
+    {
+        return $this->usages()
+            ->where('unit_type', 'pulse')
+            ->sum('quantity_used');
+    }
+
+    public function getPulsesRemainingAttribute(): int
+    {
+        $totalPulses = $this->package?->total_pulses ?? 0;
+        return max(0, $totalPulses - $this->pulses_used);
+    }
+
+    public function getConsumptionUsedAttribute(): int
+    {
+        if ($this->package?->isPulseBased()) {
+            return $this->pulses_used;
+        }
+        return $this->sessions_used;
+    }
+
+    public function getConsumptionRemainingAttribute(): int
+    {
+        if ($this->package?->isPulseBased()) {
+            return $this->pulses_remaining;
+        }
+        return $this->sessions_remaining;
+    }
+
+    public function getConsumptionTotalAttribute(): int
+    {
+        if ($this->package?->isPulseBased()) {
+            return $this->package->total_pulses;
+        }
+        return $this->package?->total_sessions ?? 0;
     }
 }

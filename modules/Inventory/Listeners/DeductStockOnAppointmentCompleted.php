@@ -3,7 +3,7 @@
 namespace Modules\Inventory\Listeners;
 
 use Modules\Booking\Events\AppointmentCompleted;
-use Modules\Inventory\Models\Product;
+use Modules\Booking\Models\SessionConsumable;
 use Modules\Inventory\Models\StockLevel;
 use Modules\Inventory\Models\StockMovement;
 
@@ -13,77 +13,72 @@ class DeductStockOnAppointmentCompleted
      * Handle the event.
      *
      * This listener auto-deducts consumable products when an appointment is completed.
-     * The deduction is based on the treatment's consumable product mappings.
+     * It uses the SessionConsumable records which are auto-populated from service/category.
      */
     public function handle(AppointmentCompleted $event): void
     {
         $appointment = $event->appointment;
 
-        // Skip if no treatment or no branch
-        if (!$appointment->treatment || !$appointment->branch_id) {
+        // Skip if no branch
+        if (!$appointment->branch_id) {
             return;
         }
 
-        // Get consumable products for the treatment
-        // This assumes treatments have a consumables relationship defined
-        $consumables = $this->getConsumablesForTreatment($appointment->treatment);
+        // Get all session consumables that haven't been stock-deducted yet
+        $consumables = SessionConsumable::where('appointment_id', $appointment->id)
+            ->where('is_deducted', true) // Already marked as deducted in TreatmentSession
+            ->whereNull('stock_movement_id') // But no actual stock movement created yet
+            ->with('product')
+            ->get();
 
-        if (empty($consumables)) {
+        if ($consumables->isEmpty()) {
             return;
         }
 
         foreach ($consumables as $consumable) {
-            $this->deductStock(
-                $consumable['product_id'],
-                $consumable['quantity'],
-                $appointment->branch_id,
-                $appointment->tenant_id,
-                $appointment->id
-            );
+            $this->deductStock($consumable, $appointment);
         }
     }
 
     /**
-     * Get consumable products for a treatment.
+     * Deduct stock for a session consumable.
      */
-    protected function getConsumablesForTreatment($treatment): array
+    protected function deductStock(SessionConsumable $consumable, $appointment): void
     {
-        // Check if treatment has consumables relationship
-        if (method_exists($treatment, 'consumables') && $treatment->consumables) {
-            return $treatment->consumables->map(function ($consumable) {
-                return [
-                    'product_id' => $consumable->product_id,
-                    'quantity' => $consumable->quantity ?? 1,
-                ];
-            })->toArray();
+        if (!$consumable->product) {
+            return;
         }
 
-        // Alternative: Check treatment_consumables pivot table
-        // This would be implemented when treatment-product mapping is set up
+        // Get branch - use consumable's branch if set, otherwise appointment's branch
+        $branchId = $consumable->branch_id ?? $appointment->branch_id;
 
-        return [];
-    }
-
-    /**
-     * Deduct stock for a product at a branch.
-     */
-    protected function deductStock(
-        string $productId,
-        int $quantity,
-        string $branchId,
-        string $tenantId,
-        string $appointmentId
-    ): void {
         // Get or create stock level
-        $stockLevel = StockLevel::getOrCreate($productId, $branchId, $tenantId);
+        $stockLevel = StockLevel::getOrCreate(
+            $consumable->product_id,
+            $branchId,
+            $appointment->tenant_id
+        );
 
-        // Deduct stock
-        $stockLevel->decrease(
-            $quantity,
+        // Check if we have enough stock
+        $availableQty = $stockLevel->available_quantity ?? $stockLevel->quantity_on_hand;
+        $requiredQty = (int) ceil($consumable->quantity);
+
+        // Deduct stock (allow negative for tracking purposes, business logic can handle alerts)
+        $movement = $stockLevel->decrease(
+            $requiredQty,
             StockMovement::TYPE_APPOINTMENT_CONSUME,
             'appointment',
-            $appointmentId,
-            'Auto-deducted on appointment completion'
+            $appointment->id,
+            sprintf(
+                'Auto-deducted for session: %s - %s',
+                $consumable->product?->getTranslation('name', 'en') ?? 'Unknown',
+                $appointment->id
+            )
         );
+
+        // Link the stock movement to the session consumable
+        $consumable->update([
+            'stock_movement_id' => $movement->id,
+        ]);
     }
 }
