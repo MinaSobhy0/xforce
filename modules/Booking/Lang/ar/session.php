@@ -31,6 +31,7 @@ return [
         'clinical_notes' => 'التوثيق السريري',
         'consumables' => 'المستهلكات',
         'products' => 'المنتجات',
+        'sell_product' => 'بيع منتج',
     ],
 
     // Alerts

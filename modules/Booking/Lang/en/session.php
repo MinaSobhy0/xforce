@@ -31,6 +31,7 @@ return [
         'clinical_notes' => 'Clinical Documentation',
         'consumables' => 'Consumables',
         'products' => 'Products',
+        'sell_product' => 'Sell Product',
     ],
 
     // Alerts

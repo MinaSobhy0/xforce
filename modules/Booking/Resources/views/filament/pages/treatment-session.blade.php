@@ -700,6 +700,53 @@
                 @endif
             </x-filament::section>
 
+            {{-- Sell Product Section --}}
+            <x-filament::section>
+                <x-slot name="heading">
+                    <div class="flex items-center gap-2">
+                        <x-heroicon-o-shopping-cart class="w-5 h-5 text-green-500" />
+                        {{ __('booking::session.sections.sell_product') }}
+                        @if(count($sessionProducts) > 0)
+                            <span class="text-xs text-gray-500">({{ count($sessionProducts) }})</span>
+                        @endif
+                    </div>
+                </x-slot>
+
+                <div class="flex gap-2 mb-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg flex-wrap">
+                    <select wire:model="newProductId" class="flex-1 min-w-[120px] border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm">
+                        <option value="">{{ __('booking::session.products.select') }}</option>
+                        @foreach($this->getAvailableProducts() as $product)
+                            <option value="{{ $product->id }}">{{ $product->getTranslation('name', app()->getLocale()) }}</option>
+                        @endforeach
+                    </select>
+                    <input type="number" wire:model="newProductQty" class="w-14 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm text-center" min="1" placeholder="Qty" />
+                    <x-filament::button wire:click="addProduct" size="sm">
+                        <x-heroicon-o-plus class="w-4 h-4" />
+                    </x-filament::button>
+                </div>
+
+                @if(count($sessionProducts) > 0)
+                    <div class="space-y-1">
+                        @foreach($sessionProducts as $product)
+                            <div class="flex items-center justify-between p-2 border border-gray-200 dark:border-gray-700 rounded text-sm">
+                                <div class="flex-1">
+                                    <span class="font-medium text-gray-900 dark:text-white">{{ $product['product_name'] }}</span>
+                                    <span class="text-xs text-gray-500 ml-1">x{{ $product['quantity'] }}</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-gray-700 dark:text-gray-300">{{ number_format($product['total_price'], 2) }}</span>
+                                    <button type="button" wire:click="removeProduct('{{ $product['id'] }}')" class="text-red-500 hover:text-red-700">
+                                        <x-heroicon-o-x-mark class="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @else
+                    <div class="text-center py-3 text-gray-500 dark:text-gray-400 text-sm">{{ __('booking::session.products.none') }}</div>
+                @endif
+            </x-filament::section>
+
         </div>
 
         {{-- Prescription Section --}}

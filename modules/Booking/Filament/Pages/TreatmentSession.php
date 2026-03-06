@@ -2112,7 +2112,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
             'quantity' => $this->newProductQty ?? 1,
             'unit' => $product->unit,
             'unit_price_minor' => $product->sell_price_minor,
-            'usage_type' => $this->newProductUsageType ?? 'applied',
+            'usage_type' => 'sold',
             'created_by' => auth()->id(),
         ]);
 
@@ -2124,12 +2124,10 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
             'unit' => $sessionProduct->unit,
             'unit_price' => $sessionProduct->unit_price,
             'total_price' => $sessionProduct->total_price,
-            'usage_type' => $sessionProduct->usage_type,
         ];
 
         $this->newProductId = null;
         $this->newProductQty = 1;
-        $this->newProductUsageType = 'applied';
 
         Notification::make()
             ->title(__('booking::session.messages.product_added'))
