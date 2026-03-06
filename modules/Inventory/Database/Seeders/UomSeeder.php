@@ -211,6 +211,55 @@ class UomSeeder extends Seeder
                     ],
                 ],
             ],
+            [
+                'name' => ['en' => 'Clinic', 'ar' => 'العيادة'],
+                'description' => ['en' => 'Medical and clinic supplies', 'ar' => 'المستلزمات الطبية والعيادة'],
+                'sort_order' => 5,
+                'units' => [
+                    [
+                        'name' => ['en' => 'Ampoule', 'ar' => 'أمبولة'],
+                        'abbreviation' => 'amp',
+                        'uom_type' => Uom::TYPE_REFERENCE,
+                        'ratio' => 1,
+                        'is_reference' => true,
+                    ],
+                    [
+                        'name' => ['en' => 'Vial', 'ar' => 'قارورة'],
+                        'abbreviation' => 'vial',
+                        'uom_type' => Uom::TYPE_REFERENCE,
+                        'ratio' => 1,
+                        'is_reference' => false,
+                    ],
+                    [
+                        'name' => ['en' => 'Syringe', 'ar' => 'حقنة'],
+                        'abbreviation' => 'syr',
+                        'uom_type' => Uom::TYPE_REFERENCE,
+                        'ratio' => 1,
+                        'is_reference' => false,
+                    ],
+                    [
+                        'name' => ['en' => 'Tube', 'ar' => 'أنبوب'],
+                        'abbreviation' => 'tube',
+                        'uom_type' => Uom::TYPE_REFERENCE,
+                        'ratio' => 1,
+                        'is_reference' => false,
+                    ],
+                    [
+                        'name' => ['en' => 'Sachet', 'ar' => 'كيس'],
+                        'abbreviation' => 'sach',
+                        'uom_type' => Uom::TYPE_REFERENCE,
+                        'ratio' => 1,
+                        'is_reference' => false,
+                    ],
+                    [
+                        'name' => ['en' => 'Session', 'ar' => 'جلسة'],
+                        'abbreviation' => 'sess',
+                        'uom_type' => Uom::TYPE_REFERENCE,
+                        'ratio' => 1,
+                        'is_reference' => false,
+                    ],
+                ],
+            ],
         ];
 
         foreach ($categories as $categoryData) {
