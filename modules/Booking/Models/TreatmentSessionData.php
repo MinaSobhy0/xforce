@@ -244,18 +244,12 @@ class TreatmentSessionData extends BaseModel
         $equipmentParamValues = $this->equipment_parameter_values ?? [];
 
         if (empty($equipmentParamValues)) {
-            \Log::debug("getPulsesFromEquipmentParameters: equipment_parameter_values is empty");
             return 0;
         }
 
         $totalPulses = 0;
 
         foreach ($equipmentParamValues as $equipmentId => $paramValues) {
-            \Log::debug("getPulsesFromEquipmentParameters: processing equipment", [
-                'equipment_id' => $equipmentId,
-                'param_values' => $paramValues,
-            ]);
-
             if (empty($paramValues)) {
                 continue;
             }
@@ -263,7 +257,6 @@ class TreatmentSessionData extends BaseModel
             // Load the equipment's tracking parameters to identify pulse-type parameters
             $equipment = Equipment::with('trackingParameters')->find($equipmentId);
             if (!$equipment) {
-                \Log::debug("getPulsesFromEquipmentParameters: equipment not found", ['equipment_id' => $equipmentId]);
                 continue;
             }
 
@@ -272,28 +265,15 @@ class TreatmentSessionData extends BaseModel
                 $isPulseParam = in_array(strtolower($param->unit ?? ''), ['pulses', 'pulse'])
                     || str_contains(strtolower($param->parameter_key ?? ''), 'pulse');
 
-                \Log::debug("getPulsesFromEquipmentParameters: checking param", [
-                    'parameter_key' => $param->parameter_key,
-                    'unit' => $param->unit,
-                    'is_pulse_param' => $isPulseParam,
-                    'has_value' => isset($paramValues[$param->parameter_key]),
-                    'value' => $paramValues[$param->parameter_key] ?? null,
-                ]);
-
                 if ($isPulseParam && isset($paramValues[$param->parameter_key])) {
                     $value = $paramValues[$param->parameter_key];
                     if (is_numeric($value)) {
                         $totalPulses += (int) $value;
-                        \Log::debug("getPulsesFromEquipmentParameters: added pulses", [
-                            'value' => $value,
-                            'total_so_far' => $totalPulses,
-                        ]);
                     }
                 }
             }
         }
 
-        \Log::debug("getPulsesFromEquipmentParameters: final total", ['total_pulses' => $totalPulses]);
         return $totalPulses;
     }
 

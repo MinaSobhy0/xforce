@@ -107,16 +107,10 @@ class CreateInvoiceOnAppointmentComplete
 
             if ($packageItem && $packageItem->isPulseBased()) {
                 // Get pulses from equipment dynamic parameters
-                // Use fresh() to ensure we get the latest saved data, not cached relationship
+                // Use fresh query to ensure we get the latest saved data, not cached relationship
                 $sessionData = $appointment->sessionData()->first();
 
                 if ($sessionData) {
-                    // Debug: log the raw equipment parameter values
-                    Log::debug("Session data equipment_parameter_values", [
-                        'appointment_id' => $appointment->id,
-                        'equipment_parameter_values' => $sessionData->equipment_parameter_values,
-                    ]);
-
                     $pulsesFromEquipment = $sessionData->getPulsesFromEquipmentParameters();
 
                     if ($pulsesFromEquipment > 0) {
