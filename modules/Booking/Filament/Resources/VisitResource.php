@@ -358,8 +358,9 @@ class VisitResource extends Resource
                             ->hiddenLabel()
                             ->state(fn (Visit $record) => $record->getAllSoldProducts())
                             ->schema([
-                                Infolists\Components\TextEntry::make('product.translated_name')
-                                    ->label(__('inventory::inventory.labels.product')),
+                                Infolists\Components\TextEntry::make('product_name')
+                                    ->label(__('inventory::inventory.labels.product'))
+                                    ->state(fn ($record) => $record->product?->getTranslation('name', app()->getLocale()) ?? '-'),
 
                                 Infolists\Components\TextEntry::make('quantity')
                                     ->label(__('booking::session.consumables.quantity')),
