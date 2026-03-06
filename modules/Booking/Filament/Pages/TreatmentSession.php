@@ -170,6 +170,14 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
         $this->loadInvoiceData();
     }
 
+    protected function getForms(): array
+    {
+        return [
+            'consumableForm',
+            'productForm',
+        ];
+    }
+
     public function consumableForm(Form $form): Form
     {
         return $form
