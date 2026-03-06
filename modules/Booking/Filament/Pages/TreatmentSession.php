@@ -467,7 +467,10 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                         ->schema([
                             Forms\Components\Select::make('item_type')
                                 ->label(__('booking::session.plan_modal.item_type'))
-                                ->options(TreatmentPlanItem::TYPES)
+                                ->options([
+                                    TreatmentPlanItem::TYPE_SERVICE => 'Service',
+                                    TreatmentPlanItem::TYPE_PACKAGE => 'Package',
+                                ])
                                 ->default('service')
                                 ->required()
                                 ->live(),
@@ -479,14 +482,6 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                                 ->searchable()
                                 ->live()
                                 ->afterStateUpdated(fn (Forms\Set $set, $state) => $this->setItemPrice($set, $state, 'service')),
-                            Forms\Components\Select::make('product_id')
-                                ->label(__('booking::session.plan_modal.product'))
-                                ->options(fn () => $this->getAvailableProductsForPlan())
-                                ->visible(fn (Forms\Get $get) => $get('item_type') === 'product')
-                                ->required(fn (Forms\Get $get) => $get('item_type') === 'product')
-                                ->searchable()
-                                ->live()
-                                ->afterStateUpdated(fn (Forms\Set $set, $state) => $this->setItemPrice($set, $state, 'product')),
                             Forms\Components\Select::make('package_id')
                                 ->label(__('booking::session.plan_modal.package'))
                                 ->options(fn () => $this->getAvailablePackages())
@@ -507,7 +502,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                                 ->numeric()
                                 ->default(1)
                                 ->minValue(1)
-                                ->visible(fn (Forms\Get $get) => in_array($get('item_type'), ['product', 'package'])),
+                                ->visible(fn (Forms\Get $get) => $get('item_type') === 'package'),
                             Forms\Components\TextInput::make('interval_days')
                                 ->label(__('booking::session.plan_modal.interval'))
                                 ->numeric()
