@@ -207,6 +207,14 @@ class Patient extends BaseModel implements Authenticatable
     }
 
     /**
+     * Get the patient's visits.
+     */
+    public function visits(): HasMany
+    {
+        return $this->hasMany(\Modules\Booking\Models\Visit::class)->orderByDesc('check_in_at');
+    }
+
+    /**
      * Get the patient's package subscriptions.
      */
     public function packageSubscriptions(): HasMany

@@ -4,10 +4,13 @@ namespace Modules\Patients\Filament\Resources\PatientResource\Pages;
 
 use Modules\Patients\Filament\Resources\PatientResource;
 use Modules\Patients\Filament\Pages\MedicalProfilePage;
+use Modules\Packages\Models\PackageSubscription;
+use Modules\Booking\Filament\Pages\CreateBooking;
 use Filament\Actions;
 use App\Filament\Resources\Pages\BaseViewRecord;
 use Filament\Infolists\Infolist;
 use Filament\Infolists\Components;
+use Illuminate\Support\HtmlString;
 
 class ViewPatient extends BaseViewRecord
 {
@@ -95,6 +98,30 @@ class ViewPatient extends BaseViewRecord
                         Components\TextEntry::make('loyalty_points')
                             ->label('Loyalty Points')
                             ->numeric(),
+                    ]),
+
+                // Active Packages Section
+                Components\Section::make(__('packages::packages.sections.active_packages'))
+                    ->icon('heroicon-o-gift')
+                    ->iconColor('success')
+                    ->visible(fn ($record) => $record->packageSubscriptions()->active()->exists())
+                    ->schema([
+                        Components\ViewEntry::make('active_packages')
+                            ->hiddenLabel()
+                            ->view('packages::components.patient-packages-widget')
+                            ->viewData(fn ($record) => [
+                                'subscriptions' => $record->packageSubscriptions()
+                                    ->active()
+                                    ->with(['package.items.service', 'appointments' => fn ($q) => $q->where('is_package_session', true)->whereIn('status', [
+                                        \Modules\Booking\Models\Appointment::STATUS_SCHEDULED,
+                                        \Modules\Booking\Models\Appointment::STATUS_CONFIRMED,
+                                        \Modules\Booking\Models\Appointment::STATUS_CHECKED_IN,
+                                        \Modules\Booking\Models\Appointment::STATUS_IN_PROGRESS,
+                                    ])])
+                                    ->orderBy('expires_at')
+                                    ->get(),
+                                'patientId' => $record->id,
+                            ]),
                     ]),
 
                 Components\Section::make('Medical Information')
@@ -185,6 +212,30 @@ class ViewPatient extends BaseViewRecord
                             ])
                             ->contained(false)
                             ->getStateUsing(fn ($record) => $record->notes()->activeAlerts()->get()),
+                    ]),
+
+                // Visit History Section
+                Components\Section::make(__('booking::visits.navigation'))
+                    ->icon('heroicon-o-ticket')
+                    ->iconColor('purple')
+                    ->collapsible()
+                    ->collapsed(fn ($record) => $record->visits()->count() > 5)
+                    ->schema([
+                        Components\ViewEntry::make('visit_history')
+                            ->hiddenLabel()
+                            ->view('booking::components.patient-visit-history')
+                            ->viewData(fn ($record) => [
+                                'visits' => $record->visits()
+                                    ->with([
+                                        'appointments.service',
+                                        'appointments.practitioner',
+                                        'products.product',
+                                        'invoice',
+                                    ])
+                                    ->limit(10)
+                                    ->get(),
+                                'patientId' => $record->id,
+                            ]),
                     ]),
             ]);
     }

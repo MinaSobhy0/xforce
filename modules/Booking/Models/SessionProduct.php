@@ -29,12 +29,16 @@ class SessionProduct extends BaseModel
     protected $fillable = [
         'tenant_id',
         'appointment_id',
+        'session_data_id',
+        'visit_id',
         'product_id',
         'branch_id',
         'quantity',
         'unit',
         'unit_price_minor',
         'total_price_minor',
+        'discount_type',
+        'discount_value',
         'discount_minor',
         'usage_type',
         'notes',
@@ -49,6 +53,7 @@ class SessionProduct extends BaseModel
         'quantity' => 'decimal:2',
         'unit_price_minor' => 'integer',
         'total_price_minor' => 'integer',
+        'discount_value' => 'decimal:2',
         'discount_minor' => 'integer',
         'is_invoiced' => 'boolean',
         'is_deducted' => 'boolean',
@@ -57,6 +62,8 @@ class SessionProduct extends BaseModel
 
     protected $attributes = [
         'usage_type' => self::USAGE_APPLIED,
+        'discount_type' => 'none',
+        'discount_value' => 0,
         'discount_minor' => 0,
     ];
 
@@ -65,8 +72,20 @@ class SessionProduct extends BaseModel
         parent::booted();
 
         static::saving(function (self $model) {
+            // Calculate discount_minor based on discount_type and discount_value
+            $subtotal = (int) ($model->quantity * $model->unit_price_minor);
+
+            if ($model->discount_type === 'percent' && $model->discount_value > 0) {
+                $model->discount_minor = (int) round($subtotal * $model->discount_value / 100);
+            } elseif ($model->discount_type === 'fixed' && $model->discount_value > 0) {
+                // Fixed discount value is in major units, convert to minor
+                $model->discount_minor = min((int) ($model->discount_value * 100), $subtotal);
+            } else {
+                $model->discount_minor = 0;
+            }
+
             // Auto-calculate total price
-            $model->total_price_minor = (int) (($model->quantity * $model->unit_price_minor) - $model->discount_minor);
+            $model->total_price_minor = max(0, $subtotal - $model->discount_minor);
         });
     }
 
@@ -76,6 +95,14 @@ class SessionProduct extends BaseModel
     public function appointment(): BelongsTo
     {
         return $this->belongsTo(Appointment::class);
+    }
+
+    /**
+     * Get the visit this product belongs to.
+     */
+    public function visit(): BelongsTo
+    {
+        return $this->belongsTo(Visit::class);
     }
 
     /**

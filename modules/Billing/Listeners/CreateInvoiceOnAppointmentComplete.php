@@ -8,6 +8,8 @@ use Modules\Billing\Services\InvoiceCalculationService;
 use Modules\Billing\Services\PaymentIntegrationService;
 use Modules\Booking\Events\AppointmentCompleted;
 use Modules\Booking\Models\Appointment;
+use Modules\Booking\Models\SessionProduct;
+use Modules\Packages\Services\PackageService;
 
 class CreateInvoiceOnAppointmentComplete
 {
@@ -29,8 +31,17 @@ class CreateInvoiceOnAppointmentComplete
     {
         $appointment = $event->appointment;
 
+        // Handle package session - ALWAYS record usage (revenue recognition happens via event)
+        // This must happen regardless of auto-invoice setting
+        if ($appointment->isPackageSession()) {
+            $this->handlePackageSession($appointment);
+            return;
+        }
+
         // Check if auto-invoice is enabled
+        // When using visit-based invoicing, this should be false
         if (!config('billing.auto_invoice_on_complete', true)) {
+            Log::debug("Auto-invoice disabled, skipping invoice creation for appointment {$appointment->id}");
             return;
         }
 
@@ -67,6 +78,146 @@ class CreateInvoiceOnAppointmentComplete
                 'trace' => $e->getTraceAsString(),
             ]);
         }
+    }
+
+    /**
+     * Handle package session completion.
+     * Records package usage and creates invoice only for sold products.
+     */
+    protected function handlePackageSession(Appointment $appointment): void
+    {
+        try {
+            $subscription = $appointment->packageSubscription;
+
+            if (!$subscription) {
+                Log::warning("Package session appointment has no subscription", [
+                    'appointment_id' => $appointment->id,
+                ]);
+                return;
+            }
+
+            // Record package usage (this triggers revenue recognition via event)
+            $packageService = app(PackageService::class);
+            $packageService->useSession(
+                $subscription,
+                $appointment->service_id,
+                $appointment->id,
+                1 // Default to 1 session - unit type determined from item's consumption_type
+            );
+
+            Log::info("Package session recorded for appointment {$appointment->code}", [
+                'subscription_id' => $subscription->id,
+                'sessions_remaining' => $subscription->sessions_remaining,
+            ]);
+
+            // Check if there are sold products - if so, create invoice for products only
+            // BUT only if auto-invoice is enabled (not using visit-based invoicing)
+            if (config('billing.auto_invoice_on_complete', true)) {
+                $soldProducts = SessionProduct::where('appointment_id', $appointment->id)
+                    ->where('usage_type', SessionProduct::USAGE_SOLD)
+                    ->exists();
+
+                if ($soldProducts) {
+                    $this->createProductsOnlyInvoice($appointment);
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error("Failed to handle package session for appointment {$appointment->id}: " . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+            ]);
+        }
+    }
+
+    /**
+     * Create invoice for sold products only (no service line).
+     * Used when appointment is a package session but products were upsold.
+     */
+    protected function createProductsOnlyInvoice(Appointment $appointment): ?Invoice
+    {
+        $soldProducts = SessionProduct::where('appointment_id', $appointment->id)
+            ->where('usage_type', SessionProduct::USAGE_SOLD)
+            ->with('product')
+            ->get();
+
+        if ($soldProducts->isEmpty()) {
+            return null;
+        }
+
+        $taxRates = $this->calculationService->getDefaultTaxRates();
+        $totalMinor = 0;
+        $taxMinor = 0;
+
+        // Calculate totals from products
+        foreach ($soldProducts as $product) {
+            $lineCalc = $this->calculationService->calculateLine(
+                $product->unit_price_minor,
+                $product->quantity,
+                0,
+                'fixed',
+                $taxRates
+            );
+            $totalMinor += $lineCalc['total_minor'];
+            $taxMinor += $lineCalc['tax_minor'];
+        }
+
+        $subtotalMinor = $totalMinor - $taxMinor;
+
+        // Create invoice
+        $invoice = Invoice::create([
+            'tenant_id' => $appointment->tenant_id,
+            'patient_id' => $appointment->patient_id,
+            'branch_id' => $appointment->branch_id,
+            'appointment_id' => $appointment->id,
+            'type' => Invoice::TYPE_STANDARD,
+            'subtotal_minor' => $subtotalMinor,
+            'discount_minor' => 0,
+            'tax_minor' => $taxMinor,
+            'total_minor' => $totalMinor,
+            'created_by_user_id' => auth()->id(),
+        ]);
+
+        // Create product lines
+        $sortOrder = 0;
+        foreach ($soldProducts as $sessionProduct) {
+            $product = $sessionProduct->product;
+            $lineCalc = $this->calculationService->calculateLine(
+                $sessionProduct->unit_price_minor,
+                $sessionProduct->quantity,
+                0,
+                'fixed',
+                $taxRates
+            );
+
+            $invoiceLine = $invoice->lines()->create([
+                'tenant_id' => $invoice->tenant_id,
+                'product_id' => $product?->id,
+                'session_product_id' => $sessionProduct->id,
+                'line_type' => \Modules\Billing\Models\InvoiceLine::LINE_TYPE_PRODUCT,
+                'description' => $product?->name ?? 'Product',
+                'quantity' => $sessionProduct->quantity,
+                'unit_price_minor' => $sessionProduct->unit_price_minor,
+                'discount_minor' => 0,
+                'discount_type' => 'fixed',
+                'tax_rates' => $taxRates,
+                'tax_minor' => $lineCalc['tax_minor'],
+                'total_minor' => $lineCalc['total_minor'],
+                'sort_order' => $sortOrder++,
+            ]);
+
+            // Mark session product as invoiced
+            $sessionProduct->update([
+                'is_invoiced' => true,
+                'invoice_line_id' => $invoiceLine->id,
+            ]);
+        }
+
+        Log::info("Created products-only invoice for package session", [
+            'appointment_id' => $appointment->id,
+            'invoice_id' => $invoice->id,
+            'products_count' => $soldProducts->count(),
+        ]);
+
+        return $invoice;
     }
 
     /**

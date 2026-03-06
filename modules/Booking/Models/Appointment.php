@@ -7,6 +7,7 @@ use XLinic\Framework\Core\Model\Traits\HasTenancy;
 use XLinic\Framework\Core\Model\Traits\HasActivity;
 use XLinic\Framework\Core\Model\Traits\HasSequence;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -14,8 +15,10 @@ use Modules\Auth\Models\User;
 use Modules\Booking\Events\AppointmentCompleted;
 use Modules\Core\Models\Branch;
 use Modules\Core\Models\Room;
+use Modules\Packages\Models\PackageSubscription;
 use Modules\Patients\Models\Patient;
 use Modules\Services\Models\Service;
+use Modules\Booking\Models\Visit;
 
 class Appointment extends BaseModel
 {
@@ -33,12 +36,15 @@ class Appointment extends BaseModel
         'practitioner_id',
         'room_id',
         'equipment_id',
+        'package_subscription_id',
+        'is_package_session',
         'date',
         'start_time',
         'end_time',
         'duration_minutes',
         'status',
         'price_minor',
+        'quantity',
         'discount_minor',
         'discount_type',
         'discount_reason',
@@ -60,7 +66,9 @@ class Appointment extends BaseModel
         'end_time' => 'datetime:H:i',
         'duration_minutes' => 'integer',
         'price_minor' => 'integer',
+        'quantity' => 'decimal:2',
         'discount_minor' => 'integer',
+        'is_package_session' => 'boolean',
         'confirmed_at' => 'datetime',
         'checked_in_at' => 'datetime',
         'started_at' => 'datetime',
@@ -171,6 +179,11 @@ class Appointment extends BaseModel
         return $this->belongsTo(\Modules\Equipment\Models\Equipment::class);
     }
 
+    public function packageSubscription(): BelongsTo
+    {
+        return $this->belongsTo(PackageSubscription::class);
+    }
+
     public function rescheduledFrom(): BelongsTo
     {
         return $this->belongsTo(Appointment::class, 'rescheduled_from_id');
@@ -184,6 +197,20 @@ class Appointment extends BaseModel
     public function treatmentPlanAppointment(): HasOne
     {
         return $this->hasOne(\Modules\TreatmentPlans\Models\TreatmentPlanAppointment::class);
+    }
+
+    public function visits(): BelongsToMany
+    {
+        return $this->belongsToMany(Visit::class, 'visit_appointments')
+            ->withTimestamps();
+    }
+
+    /**
+     * Get the current/latest visit for this appointment
+     */
+    public function getCurrentVisitAttribute(): ?Visit
+    {
+        return $this->visits()->latest('check_in_at')->first();
     }
 
     public function sessionData(): HasOne
@@ -393,6 +420,15 @@ class Appointment extends BaseModel
         $result = $this->transitionTo(self::STATUS_CHECKED_IN);
         if ($result && $this->patient) {
             $this->patient->recordVisit();
+
+            // Find or create a visit and link this appointment
+            $visitService = app(\Modules\Booking\Services\VisitService::class);
+            $visit = $visitService->findOrCreateVisit(
+                $this->patient,
+                $this->branch,
+                Visit::SOURCE_APPOINTMENT
+            );
+            $visitService->addAppointment($visit, $this);
         }
         return $result;
     }
@@ -610,5 +646,38 @@ class Appointment extends BaseModel
                         ->orWhere('phone', 'like', "%{$term}%");
                 });
         });
+    }
+
+    public function scopePackageSessions($query)
+    {
+        return $query->where('is_package_session', true);
+    }
+
+    public function scopeRegularSessions($query)
+    {
+        return $query->where('is_package_session', false);
+    }
+
+    // Package session helpers
+    public function isPackageSession(): bool
+    {
+        return $this->is_package_session === true && $this->package_subscription_id !== null;
+    }
+
+    public function hasPackageSubscription(): bool
+    {
+        return $this->package_subscription_id !== null;
+    }
+
+    public function getPackageSessionLabel(): ?string
+    {
+        if (!$this->isPackageSession() || !$this->packageSubscription) {
+            return null;
+        }
+
+        $used = $this->packageSubscription->sessions_used;
+        $total = $this->packageSubscription->package?->total_sessions ?? 0;
+
+        return "Session {$used}/{$total}";
     }
 }

@@ -36,6 +36,8 @@ use Modules\Equipment\Models\Equipment;
 use Modules\Inventory\Models\Product;
 use Modules\Booking\Models\SessionConsumable;
 use Modules\Booking\Models\SessionProduct;
+use Modules\Booking\Models\Visit;
+use Modules\Booking\Services\VisitService;
 
 class TreatmentSession extends Page implements HasForms, HasInfolists, HasActions
 {
@@ -65,6 +67,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
     public ?string $appointment_id = null;
 
     public ?Appointment $appointment = null;
+    public ?Visit $visit = null;
     public ?Patient $patient = null;
     public ?PatientMedicalHistory $medicalHistory = null;
     public ?MedicalProfile $medicalProfile = null;
@@ -116,6 +119,15 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
     public ?string $prescriptionDiagnosis = null;
     public ?string $prescriptionNotes = null;
 
+    // Invoice section
+    public ?int $servicePriceMinor = null;
+    public ?string $serviceDiscountType = 'none';
+    public ?int $serviceDiscountValue = 0;
+    public ?string $overallDiscountType = 'none';
+    public ?int $overallDiscountValue = 0;
+    public ?string $overallDiscountReason = null;
+    public ?string $editingInvoiceItem = null; // Track which item is being edited: 'service' or 'product-{id}'
+
     public function mount(): void
     {
         $this->loadAppointment();
@@ -149,19 +161,47 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
 
         // Load or create session data
         $this->loadOrCreateSessionData();
+
+        // Initialize invoice data
+        $this->loadInvoiceData();
+    }
+
+    protected function loadInvoiceData(): void
+    {
+        if (!$this->appointment) {
+            return;
+        }
+
+        // Load service price from appointment
+        $this->servicePriceMinor = $this->appointment->price_minor
+            ?? $this->appointment->service?->base_price_minor
+            ?? 0;
+
+        // Load existing service discount from appointment
+        if ($this->appointment->discount_minor > 0) {
+            $this->serviceDiscountType = $this->appointment->discount_type ?? 'fixed';
+            // For percentage: stored value is the percentage (e.g., 10 for 10%)
+            // For fixed: stored value is in minor units, but user sees/edits in major units
+            $this->serviceDiscountValue = $this->serviceDiscountType === 'fixed'
+                ? (int) ($this->appointment->discount_minor / 100)
+                : $this->appointment->discount_minor;
+        }
     }
 
     protected function loadAppointment(): void
     {
         $this->appointment = Appointment::with([
             'patient.medicalHistory',
-            'patient.medicalProfile',
+            'patient.medicalProfile.allergies',
+            'patient.medicalProfile.medications',
+            'patient.medicalProfile.contraindications',
             'patient.amrSummary',
             'service',
             'practitioner',
             'room',
             'branch',
             'treatmentPlanAppointment.item.treatmentPlan',
+            'visits',
         ])->find($this->appointment_id);
 
         if ($this->appointment) {
@@ -169,6 +209,20 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
             $this->medicalHistory = $this->patient?->medicalHistory;
             $this->medicalProfile = $this->patient?->medicalProfile;
             $this->amrSummary = $this->patient?->amrSummary;
+
+            // Load the current visit for this appointment
+            $this->visit = $this->appointment->current_visit;
+
+            // If no visit exists yet (checked in before visit system), create one now
+            if (!$this->visit && $this->appointment->patient && $this->appointment->isCheckedIn()) {
+                $visitService = app(\Modules\Booking\Services\VisitService::class);
+                $this->visit = $visitService->findOrCreateVisit(
+                    $this->appointment->patient,
+                    $this->appointment->branch,
+                    Visit::SOURCE_APPOINTMENT
+                );
+                $visitService->addAppointment($this->visit, $this->appointment);
+            }
         }
     }
 
@@ -191,6 +245,15 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                 'practitioner_id' => $this->appointment->practitioner_id,
                 'session_started_at' => $this->appointment->started_at ?? now(),
             ]);
+
+            // Update treatment plan item status to in_progress if this is a plan appointment
+            if ($planAppointment = $this->appointment->treatmentPlanAppointment) {
+                $item = $planAppointment->item;
+                if ($item && $item->isPending()) {
+                    $item->status = TreatmentPlanItem::STATUS_IN_PROGRESS;
+                    $item->save();
+                }
+            }
         }
 
         // Load state from session data
@@ -242,14 +305,28 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
             return;
         }
 
-        $this->sessionConsumables = SessionConsumable::where('appointment_id', $this->appointment->id)
+        // Load existing session consumables
+        $existingConsumables = SessionConsumable::where('appointment_id', $this->appointment->id)
             ->with('product')
-            ->get()
+            ->get();
+
+        // If no consumables exist, auto-populate from service/category using override pattern
+        if ($existingConsumables->isEmpty() && $this->appointment->service) {
+            $this->autoPopulateConsumablesFromService();
+
+            // Reload after auto-population
+            $existingConsumables = SessionConsumable::where('appointment_id', $this->appointment->id)
+                ->with('product')
+                ->get();
+        }
+
+        $this->sessionConsumables = $existingConsumables
             ->map(fn ($c) => [
                 'id' => $c->id,
                 'product_id' => $c->product_id,
                 'product_name' => $c->product?->getTranslation('name', app()->getLocale()) ?? '',
                 'quantity' => $c->quantity,
+                'base_quantity' => $c->base_quantity ?? $c->quantity, // fallback for old records
                 'unit' => $c->unit,
                 'unit_cost' => $c->unit_cost,
                 'total_cost' => $c->total_cost,
@@ -268,8 +345,45 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                 'unit_price' => $p->unit_price,
                 'total_price' => $p->total_price,
                 'usage_type' => $p->usage_type,
+                'discount_type' => $p->discount_type ?? 'none',
+                'discount_value' => $p->discount_value ?? 0,
             ])
             ->toArray();
+    }
+
+    /**
+     * Auto-populate consumables from service or category using override pattern.
+     * Service consumables take precedence over category consumables.
+     */
+    protected function autoPopulateConsumablesFromService(): void
+    {
+        $service = $this->appointment->service;
+        if (!$service) {
+            return;
+        }
+
+        // Use the effective consumables method which implements the override pattern
+        $effectiveConsumables = $service->getEffectiveConsumables();
+
+        foreach ($effectiveConsumables as $consumableData) {
+            $product = $consumableData['product'];
+            $quantity = $consumableData['quantity'] ?? 1;
+
+            if (!$product) {
+                continue;
+            }
+
+            SessionConsumable::create([
+                'tenant_id' => $this->appointment->tenant_id,
+                'appointment_id' => $this->appointment->id,
+                'product_id' => $product->id,
+                'branch_id' => $this->appointment->branch_id,
+                'quantity' => $quantity,
+                'unit' => $product->unit ?? 'pcs',
+                'unit_cost_minor' => $product->cost_price_minor ?? 0,
+                'created_by' => auth()->id(),
+            ]);
+        }
     }
 
     protected function getDefaultChecklist(): array
@@ -551,7 +665,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                 ->color('info')
                 ->extraAttributes(['style' => 'display: none;'])
                 ->form(function () {
-                    $item = $this->pendingSessionItemId ? TreatmentPlanItem::find($this->pendingSessionItemId) : null;
+                    $item = $this->pendingSessionItemId ? TreatmentPlanItem::withoutGlobalScope('tenant')->find($this->pendingSessionItemId) : null;
                     $qualifiedPractitioners = $item ? $this->getQualifiedPractitionersForService($item->service_id) : [];
 
                     return [
@@ -637,19 +751,8 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                 ]);
             }
 
-            // Update equipment shot counts for all session equipment
-            foreach ($this->sessionEquipment as $equipmentData) {
-                if (!empty($equipmentData['shots_used'])) {
-                    $equipment = Equipment::find($equipmentData['equipment_id']);
-                    if ($equipment) {
-                        $equipment->recordShots(
-                            (int) $equipmentData['shots_used'],
-                            $this->appointment->id,
-                            $this->parameterValues
-                        );
-                    }
-                }
-            }
+            // Update cumulative equipment parameters (shots, energy, etc.)
+            $this->updateCumulativeEquipmentParameters();
 
             $this->appointment->complete();
 
@@ -756,9 +859,11 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
      */
     public function startSessionForItem(int $itemId): void
     {
-        $item = TreatmentPlanItem::find($itemId);
+        // Use withoutGlobalScope to avoid tenant scope issues - schema isolation handles tenancy
+        $item = TreatmentPlanItem::withoutGlobalScope('tenant')->find($itemId);
 
-        if (!$item || !$item->canBook()) {
+        // Allow starting session if item exists, is a service, not completed, and not cancelled
+        if (!$item || !$item->isService() || $item->isCompleted() || $item->isCancelled()) {
             Notification::make()
                 ->title(__('booking::session.messages.error'))
                 ->body(__('booking::session.messages.cannot_start_session'))
@@ -801,9 +906,11 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
      */
     public function executeStartAnotherSession(array $data): void
     {
-        $item = TreatmentPlanItem::find($this->pendingSessionItemId);
+        // Use withoutGlobalScope to avoid tenant scope issues - schema isolation handles tenancy
+        $item = TreatmentPlanItem::withoutGlobalScope('tenant')->find($this->pendingSessionItemId);
 
-        if (!$item || !$item->canBook()) {
+        // Allow starting if item exists, is a service, not completed, and not cancelled
+        if (!$item || !$item->isService() || $item->isCompleted() || $item->isCancelled()) {
             Notification::make()
                 ->title(__('booking::session.messages.error'))
                 ->body(__('booking::session.messages.cannot_start_session'))
@@ -852,10 +959,23 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
             'session_number' => $item->completed_sessions + 1,
         ]);
 
-        // Confirm and check in if starting now
+        // Update item status to in_progress when session is started
+        if ($item->isPending()) {
+            $item->status = TreatmentPlanItem::STATUS_IN_PROGRESS;
+            $item->save();
+        }
+
+        // Link the new appointment to the current visit
+        if ($this->visit) {
+            app(VisitService::class)->addAppointment($this->visit, $newAppointment);
+        }
+
+        // Confirm, check in, and start if starting now
         if ($redirectToNewSession) {
             $newAppointment->confirm();
+            // checkIn() will link to visit if not already linked
             $newAppointment->checkIn();
+            $newAppointment->start(); // Set to IN_PROGRESS so TreatmentSession page accepts it
 
             Notification::make()
                 ->title(__('booking::session.messages.session_started'))
@@ -865,7 +985,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
 
             $this->redirect(static::getUrl(['appointment_id' => $newAppointment->id]));
         } else {
-            // Just confirm for another doctor
+            // Just confirm for another doctor - they'll check in when ready
             $newAppointment->confirm();
 
             Notification::make()
@@ -1314,6 +1434,31 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
         return $this->appointment?->service?->hasParameters() ?? false;
     }
 
+    /**
+     * Check if the equipment section should be shown.
+     * Shows if there's session equipment, available equipment, or service has parameters.
+     */
+    public function hasEquipmentSection(): bool
+    {
+        // Show if we have session equipment
+        if (!empty($this->sessionEquipment)) {
+            return true;
+        }
+
+        // Show if there's available equipment to add
+        if ($this->getAvailableEquipment()->isNotEmpty()) {
+            return true;
+        }
+
+        // Show if service has effective equipment (from service or category)
+        if ($this->appointment?->service?->getEffectiveEquipment()->isNotEmpty()) {
+            return true;
+        }
+
+        // Also show if service has parameters (for backward compatibility)
+        return $this->hasServiceParameters();
+    }
+
     public function updateParameterValue(string $key, $value): void
     {
         $this->parameterValues[$key] = $value;
@@ -1346,31 +1491,33 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
         $savedParameterValues = $this->sessionData->equipment_parameter_values ?? [];
 
         if (!empty($savedEquipment)) {
-            $this->sessionEquipment = $savedEquipment;
+            // Refresh equipment data to get latest shot counts
+            $this->sessionEquipment = $this->refreshEquipmentData($savedEquipment);
             $this->equipmentParameterValues = $savedParameterValues;
             return;
         }
 
-        // Auto-load equipment from service requirements
+        // Auto-load equipment using override pattern (service first, then category)
         $serviceEquipment = [];
         if ($this->appointment->service) {
-            $requiredEquipment = $this->appointment->service->requiredEquipment()
-                ->where('branch_id', $this->appointment->branch_id)
-                ->where('status', Equipment::STATUS_ACTIVE)
-                ->with('trackingParameters')
-                ->get();
+            // Use getEffectiveEquipment for override pattern
+            $effectiveEquipment = $this->appointment->service->getEffectiveEquipment();
+
+            // Filter by status and branch (include equipment with no branch or matching branch)
+            $branchId = $this->appointment->branch_id;
+            $requiredEquipment = $effectiveEquipment
+                ->filter(function ($equipment) use ($branchId) {
+                    // Must be active
+                    if ($equipment->status !== Equipment::STATUS_ACTIVE) {
+                        return false;
+                    }
+                    // Include if: no branch set, or matches appointment branch
+                    return empty($equipment->branch_id) || $equipment->branch_id == $branchId;
+                });
 
             foreach ($requiredEquipment as $equipment) {
-                $serviceEquipment[] = [
-                    'id' => $equipment->id,
-                    'equipment_id' => $equipment->id,
-                    'name' => $equipment->name,
-                    'code' => $equipment->code,
-                    'is_preset' => true, // From service requirements
-                    'has_tracking' => $equipment->hasTracking(),
-                    'shots_used' => null,
-                    'energy_delivered' => null,
-                ];
+                $equipment->load('trackingParameters');
+                $serviceEquipment[] = $this->buildEquipmentData($equipment, true);
 
                 // Initialize parameter values with defaults
                 if ($equipment->hasTracking()) {
@@ -1383,16 +1530,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
         if ($this->appointment->equipment_id && !collect($serviceEquipment)->pluck('equipment_id')->contains($this->appointment->equipment_id)) {
             $equipment = Equipment::with('trackingParameters')->find($this->appointment->equipment_id);
             if ($equipment) {
-                $serviceEquipment[] = [
-                    'id' => $equipment->id,
-                    'equipment_id' => $equipment->id,
-                    'name' => $equipment->name,
-                    'code' => $equipment->code,
-                    'is_preset' => true,
-                    'has_tracking' => $equipment->hasTracking(),
-                    'shots_used' => null,
-                    'energy_delivered' => null,
-                ];
+                $serviceEquipment[] = $this->buildEquipmentData($equipment, true);
 
                 // Initialize parameter values with defaults
                 if ($equipment->hasTracking()) {
@@ -1412,6 +1550,86 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
         }
     }
 
+    /**
+     * Build equipment data array with tracking info.
+     */
+    protected function buildEquipmentData(Equipment $equipment, bool $isPreset = false): array
+    {
+        return [
+            'id' => $equipment->id,
+            'equipment_id' => $equipment->id,
+            'name' => $equipment->name,
+            'code' => $equipment->code,
+            'category' => $equipment->category,
+            'is_preset' => $isPreset,
+            'has_tracking' => $equipment->hasTracking(),
+            // Shot tracking data (from equipment totals)
+            'max_shots' => $equipment->max_shots,
+            'total_shots_fired' => $equipment->total_shots_fired,
+            'shots_remaining' => $equipment->shots_remaining,
+            'shots_percentage' => $equipment->shots_percentage,
+            // Maintenance data
+            'is_maintenance_due' => $equipment->is_maintenance_due,
+            'next_maintenance_at' => $equipment->next_maintenance_at?->format('Y-m-d'),
+            'last_maintenance_at' => $equipment->last_maintenance_at?->format('Y-m-d'),
+            // Status
+            'status' => $equipment->status,
+        ];
+    }
+
+    /**
+     * Refresh equipment data to get latest shot counts.
+     */
+    protected function refreshEquipmentData(array $savedEquipment): array
+    {
+        $equipmentIds = collect($savedEquipment)->pluck('equipment_id')->toArray();
+        $freshEquipment = Equipment::whereIn('id', $equipmentIds)->get()->keyBy('id');
+
+        return collect($savedEquipment)->map(function ($item) use ($freshEquipment) {
+            $equipment = $freshEquipment->get($item['equipment_id']);
+            if ($equipment) {
+                // Update tracking data but preserve session-specific data
+                $item['max_shots'] = $equipment->max_shots;
+                $item['total_shots_fired'] = $equipment->total_shots_fired;
+                $item['shots_remaining'] = $equipment->shots_remaining;
+                $item['shots_percentage'] = $equipment->shots_percentage;
+                $item['is_maintenance_due'] = $equipment->is_maintenance_due;
+                $item['next_maintenance_at'] = $equipment->next_maintenance_at?->format('Y-m-d');
+                $item['status'] = $equipment->status;
+            }
+            return $item;
+        })->toArray();
+    }
+
+    /**
+     * Get equipment info for display (refreshed from DB).
+     */
+    public function getEquipmentInfo(string $equipmentId): ?array
+    {
+        $equipment = Equipment::find($equipmentId);
+        if (!$equipment) {
+            return null;
+        }
+
+        return [
+            'id' => $equipment->id,
+            'name' => $equipment->name,
+            'code' => $equipment->code,
+            'category' => $equipment->category,
+            'category_label' => Equipment::CATEGORIES[$equipment->category] ?? $equipment->category,
+            'max_shots' => $equipment->max_shots,
+            'total_shots_fired' => $equipment->total_shots_fired,
+            'shots_remaining' => $equipment->shots_remaining,
+            'shots_percentage' => $equipment->shots_percentage,
+            'is_maintenance_due' => $equipment->is_maintenance_due,
+            'next_maintenance_at' => $equipment->next_maintenance_at?->format('M d, Y'),
+            'last_maintenance_at' => $equipment->last_maintenance_at?->format('M d, Y'),
+            'status' => $equipment->status,
+            'status_label' => Equipment::STATUSES[$equipment->status] ?? $equipment->status,
+            'status_color' => Equipment::STATUS_COLORS[$equipment->status] ?? 'gray',
+        ];
+    }
+
     public function getAvailableEquipment(): Collection
     {
         if (!$this->appointment) {
@@ -1421,10 +1639,17 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
         // Get equipment IDs already in session
         $usedEquipmentIds = collect($this->sessionEquipment)->pluck('equipment_id')->toArray();
 
+        $branchId = $this->appointment->branch_id;
+
         return Equipment::query()
-            ->where('branch_id', $this->appointment->branch_id)
             ->where('status', Equipment::STATUS_ACTIVE)
+            ->where(function ($query) use ($branchId) {
+                // Include equipment with no branch or matching branch
+                $query->whereNull('branch_id')
+                    ->orWhere('branch_id', $branchId);
+            })
             ->whereNotIn('id', $usedEquipmentIds)
+            ->orderBy('name')
             ->get();
     }
 
@@ -1448,16 +1673,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
             return;
         }
 
-        $this->sessionEquipment[] = [
-            'id' => $equipment->id,
-            'equipment_id' => $equipment->id,
-            'name' => $equipment->name,
-            'code' => $equipment->code,
-            'is_preset' => false,
-            'has_tracking' => $equipment->hasTracking(),
-            'shots_used' => null,
-            'energy_delivered' => null,
-        ];
+        $this->sessionEquipment[] = $this->buildEquipmentData($equipment, false);
 
         // Initialize parameter values with defaults if equipment has tracking
         if ($equipment->hasTracking()) {
@@ -1584,6 +1800,67 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
             }
         }
         return false;
+    }
+
+    /**
+     * Update cumulative equipment parameters on session complete.
+     * This handles dynamic parameters like shots, energy, pulses, etc.
+     */
+    protected function updateCumulativeEquipmentParameters(): void
+    {
+        foreach ($this->sessionEquipment as $equipmentData) {
+            $equipmentId = $equipmentData['equipment_id'];
+            $equipment = Equipment::with('trackingParameters')->find($equipmentId);
+
+            if (!$equipment) {
+                continue;
+            }
+
+            $parameterValues = $this->equipmentParameterValues[$equipmentId] ?? [];
+
+            // Get cumulative parameters for this equipment
+            $cumulativeParams = $equipment->trackingParameters()
+                ->where('is_cumulative', true)
+                ->where('is_active', true)
+                ->get();
+
+            $cumulativeData = [];
+
+            foreach ($cumulativeParams as $param) {
+                $value = $parameterValues[$param->parameter_key] ?? null;
+
+                if ($value !== null && is_numeric($value) && $value > 0) {
+                    $cumulativeData[$param->parameter_key] = [
+                        'value' => (float) $value,
+                        'unit' => $param->unit,
+                        'name' => $param->name,
+                    ];
+
+                    // Special handling for shots - update total_shots_fired
+                    if (in_array($param->parameter_key, ['shots', 'shots_used', 'pulses', 'pulse_count'])) {
+                        $equipment->recordShots(
+                            (int) $value,
+                            $this->appointment->id,
+                            $parameterValues
+                        );
+                    }
+                }
+            }
+
+            // Log cumulative data to equipment shot log for tracking
+            if (!empty($cumulativeData)) {
+                $equipment->shotLogs()->create([
+                    'appointment_id' => $this->appointment->id,
+                    'shots_count' => $cumulativeData['shots']['value'] ?? $cumulativeData['shots_used']['value'] ?? $cumulativeData['pulses']['value'] ?? 0,
+                    'energy_setting' => $parameterValues['energy'] ?? $parameterValues['fluence'] ?? $parameterValues['energy_setting'] ?? null,
+                    'spot_size' => $parameterValues['spot_size'] ?? null,
+                    'pulse_duration' => $parameterValues['pulse_duration'] ?? $parameterValues['pulse_width'] ?? null,
+                    'cumulative_data' => $cumulativeData,
+                    'all_parameters' => $parameterValues,
+                    'logged_at' => now(),
+                ]);
+            }
+        }
     }
 
     // ============================================
@@ -1748,12 +2025,18 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
             return;
         }
 
+        $serviceQty = (float) ($this->appointment->quantity ?? 1);
+        $enteredQty = $this->newConsumableQty ?? 1;
+        // base_quantity = what's needed per 1 service unit
+        $baseQty = $serviceQty > 0 ? $enteredQty / $serviceQty : $enteredQty;
+
         $consumable = SessionConsumable::create([
             'tenant_id' => $this->appointment->tenant_id,
             'appointment_id' => $this->appointment->id,
             'product_id' => $product->id,
             'branch_id' => $this->appointment->branch_id,
-            'quantity' => $this->newConsumableQty ?? 1,
+            'quantity' => $enteredQty,
+            'base_quantity' => $baseQty,
             'unit' => $product->unit,
             'unit_cost_minor' => $product->cost_price_minor,
             'created_by' => auth()->id(),
@@ -1764,6 +2047,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
             'product_id' => $consumable->product_id,
             'product_name' => $product->getTranslation('name', app()->getLocale()),
             'quantity' => $consumable->quantity,
+            'base_quantity' => $consumable->base_quantity,
             'unit' => $consumable->unit,
             'unit_cost' => $consumable->unit_cost,
             'total_cost' => $consumable->total_cost,
@@ -1824,6 +2108,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
             'appointment_id' => $this->appointment->id,
             'product_id' => $product->id,
             'branch_id' => $this->appointment->branch_id,
+            'visit_id' => $this->visit?->id,
             'quantity' => $this->newProductQty ?? 1,
             'unit' => $product->unit,
             'unit_price_minor' => $product->sell_price_minor,
@@ -2275,5 +2560,683 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                 ->danger()
                 ->send();
         }
+    }
+
+    // ============================================
+    // INVOICE SECTION METHODS
+    // ============================================
+
+    /**
+     * Get all invoice line items for display.
+     */
+    public function getInvoiceItems(): array
+    {
+        $items = [];
+
+        // Service line item
+        if ($this->appointment?->service) {
+            $unitPrice = $this->servicePriceMinor ?? $this->appointment->price_minor ?? 0;
+            $quantity = $this->appointment->quantity ?? 1;
+            $subtotalMinor = $unitPrice * $quantity;
+
+            $discountType = $this->serviceDiscountType ?? 'none';
+            $discountValue = $this->serviceDiscountValue ?? 0;
+
+            // Calculate discount - for fixed, discountValue is in major units
+            $discountMinor = $this->calculateLineDiscountForDisplay($subtotalMinor, $discountType, $discountValue);
+            $totalMinor = max(0, $subtotalMinor - $discountMinor);
+
+            $items[] = [
+                'type' => 'service',
+                'id' => $this->appointment->service_id,
+                'name' => $this->appointment->service->translated_name,
+                'description' => __('booking::session.invoice.service_session'),
+                'quantity' => $quantity,
+                'unit_price' => $unitPrice / 100,
+                'unit_price_minor' => $unitPrice,
+                'discount_type' => $discountType,
+                'discount_value' => $discountValue,
+                'discount' => $discountMinor / 100,
+                'discount_minor' => $discountMinor,
+                'total' => $totalMinor / 100,
+                'total_minor' => $totalMinor,
+                'editable' => true,
+            ];
+        }
+
+        // Other active services from the treatment plan (in progress sessions)
+        if ($this->appointment?->treatmentPlanAppointment?->item?->treatmentPlan) {
+            $treatmentPlan = $this->appointment->treatmentPlanAppointment->item->treatmentPlan;
+            $currentAppointmentId = $this->appointment->id;
+
+            // Get item IDs from this treatment plan
+            $planItemIds = $treatmentPlan->items()->pluck('id')->toArray();
+
+            // Get other active service appointments from the same treatment plan
+            $activeAppointments = \Modules\Booking\Models\Appointment::query()
+                ->whereHas('treatmentPlanAppointment', function ($q) use ($planItemIds) {
+                    $q->whereIn('treatment_plan_item_id', $planItemIds);
+                })
+                ->where('id', '!=', $currentAppointmentId)
+                ->whereIn('status', [
+                    \Modules\Booking\Models\Appointment::STATUS_IN_PROGRESS,
+                    \Modules\Booking\Models\Appointment::STATUS_CHECKED_IN,
+                    \Modules\Booking\Models\Appointment::STATUS_CONFIRMED,
+                ])
+                ->with(['service', 'treatmentPlanAppointment.item'])
+                ->get();
+
+            foreach ($activeAppointments as $activeAppt) {
+                if (!$activeAppt->service) continue;
+
+                $planItem = $activeAppt->treatmentPlanAppointment?->item;
+                $unitPrice = $activeAppt->price_minor ?? $planItem?->unit_price_minor ?? $activeAppt->service->base_price_minor ?? 0;
+                $quantity = $activeAppt->quantity ?? 1;
+                $subtotalMinor = $unitPrice * $quantity;
+
+                $discountType = $activeAppt->discount_type ?? 'none';
+                $discountValue = $activeAppt->discount_minor ?? 0;
+                $discountMinor = $this->calculateLineDiscountForDisplay($subtotalMinor, $discountType, $discountValue);
+                $totalMinor = max(0, $subtotalMinor - $discountMinor);
+
+                $items[] = [
+                    'type' => 'active_service',
+                    'id' => $activeAppt->id,
+                    'service_id' => $activeAppt->service_id,
+                    'name' => $activeAppt->service->translated_name,
+                    'description' => __('booking::session.invoice.active_session'),
+                    'quantity' => $quantity,
+                    'unit_price' => $unitPrice / 100,
+                    'unit_price_minor' => $unitPrice,
+                    'discount_type' => $discountType,
+                    'discount_value' => $discountValue,
+                    'discount' => $discountMinor / 100,
+                    'discount_minor' => $discountMinor,
+                    'total' => $totalMinor / 100,
+                    'total_minor' => $totalMinor,
+                    'editable' => false, // Can't edit from here, need to go to that session
+                    'appointment_id' => $activeAppt->id,
+                ];
+            }
+        }
+
+        // Sold products (not applied - those are consumables/cost)
+        foreach ($this->sessionProducts as $index => $product) {
+            if (($product['usage_type'] ?? 'applied') === 'sold') {
+                $quantity = $product['quantity'] ?? 1;
+                $unitPriceMinor = (int) (($product['unit_price'] ?? 0) * 100);
+                $subtotalMinor = $unitPriceMinor * $quantity;
+
+                $discountType = $product['discount_type'] ?? 'none';
+                $discountValue = $product['discount_value'] ?? 0;
+
+                // Calculate discount
+                $discountMinor = $this->calculateLineDiscountForDisplay($subtotalMinor, $discountType, $discountValue);
+                $totalMinor = max(0, $subtotalMinor - $discountMinor);
+
+                $items[] = [
+                    'type' => 'product',
+                    'id' => $product['id'],
+                    'product_id' => $product['product_id'],
+                    'name' => $product['product_name'],
+                    'description' => __('booking::session.invoice.product_sold'),
+                    'quantity' => $quantity,
+                    'unit_price' => $unitPriceMinor / 100,
+                    'unit_price_minor' => $unitPriceMinor,
+                    'discount_type' => $discountType,
+                    'discount_value' => $discountValue,
+                    'discount' => $discountMinor / 100,
+                    'discount_minor' => $discountMinor,
+                    'total' => $totalMinor / 100,
+                    'total_minor' => $totalMinor,
+                    'editable' => true,
+                ];
+            }
+        }
+
+        // Treatment plan products (if appointment is part of a treatment plan)
+        if ($this->appointment?->treatmentPlanAppointment?->item?->treatmentPlan) {
+            $treatmentPlan = $this->appointment->treatmentPlanAppointment->item->treatmentPlan;
+
+            // Get product items from the treatment plan
+            $planProducts = $treatmentPlan->items()
+                ->where('item_type', 'product')
+                ->with('itemable')
+                ->get();
+
+            foreach ($planProducts as $planItem) {
+                $product = $planItem->itemable;
+                if (!$product) continue;
+
+                $quantity = $planItem->quantity ?? 1;
+                $unitPriceMinor = $planItem->unit_price_minor ?? 0;
+                $subtotalMinor = $unitPriceMinor * $quantity;
+                $discountMinor = $planItem->discount_minor ?? 0;
+                $totalMinor = $planItem->total_minor ?? max(0, $subtotalMinor - $discountMinor);
+
+                $items[] = [
+                    'type' => 'plan_product',
+                    'id' => $planItem->id,
+                    'product_id' => $product->id,
+                    'name' => $product->translated_name ?? $product->name,
+                    'description' => __('booking::session.invoice.plan_product'),
+                    'quantity' => $quantity,
+                    'unit_price' => $unitPriceMinor / 100,
+                    'unit_price_minor' => $unitPriceMinor,
+                    'discount_type' => 'fixed',
+                    'discount_value' => $discountMinor / 100,
+                    'discount' => $discountMinor / 100,
+                    'discount_minor' => $discountMinor,
+                    'total' => $totalMinor / 100,
+                    'total_minor' => $totalMinor,
+                    'editable' => true,
+                    'is_delivered' => $planItem->is_delivered,
+                    'invoiced_quantity' => $planItem->invoiced_quantity ?? 0,
+                ];
+            }
+        }
+
+        return $items;
+    }
+
+    /**
+     * Get visit summary for display - shows other appointments in the same visit.
+     */
+    public function getVisitSummary(): ?array
+    {
+        if (!$this->visit) {
+            return null;
+        }
+
+        // Refresh visit with appointments
+        $this->visit->load(['appointments.service', 'appointments.practitioner', 'products.product']);
+
+        $otherAppointments = $this->visit->appointments
+            ->filter(fn ($appt) => $appt->id !== $this->appointment?->id)
+            ->map(fn ($appt) => [
+                'id' => $appt->id,
+                'service' => $appt->service?->translated_name ?? '-',
+                'practitioner' => $appt->practitioner?->full_name ?? '-',
+                'status' => $appt->status,
+                'status_label' => __('booking::appointments.statuses.' . $appt->status),
+                'price' => $appt->net_price,
+            ]);
+
+        $visitProducts = $this->visit->products
+            ->filter(fn ($prod) => $prod->appointment_id !== $this->appointment?->id)
+            ->map(fn ($prod) => [
+                'id' => $prod->id,
+                'name' => $prod->product?->translated_name ?? '-',
+                'quantity' => $prod->quantity,
+                'total' => $prod->total_price,
+                'usage_type' => $prod->usage_type,
+            ]);
+
+        return [
+            'code' => $this->visit->code,
+            'check_in_at' => $this->visit->check_in_at,
+            'status' => $this->visit->status,
+            'other_appointments' => $otherAppointments,
+            'other_products' => $visitProducts->where('usage_type', 'sold'),
+            'total_appointments' => $this->visit->appointments->count(),
+            'total_products' => $this->visit->products->where('usage_type', 'sold')->count(),
+        ];
+    }
+
+    /**
+     * Calculate discount for display (handles major/minor unit conversion).
+     */
+    protected function calculateLineDiscountForDisplay(int $priceMinor, string $discountType, $discountValue): int
+    {
+        if ($discountType === 'none' || !$discountValue || $discountValue <= 0) {
+            return 0;
+        }
+
+        if ($discountType === 'percent') {
+            return (int) round($priceMinor * $discountValue / 100);
+        }
+
+        // Fixed discount - value is in major units, convert to minor
+        $discountMinor = (int) ($discountValue * 100);
+        return min($discountMinor, $priceMinor);
+    }
+
+    /**
+     * Update invoice item quantity.
+     */
+    public function updateInvoiceItemQuantity(string $type, string $id, $quantity): void
+    {
+        $quantity = max(0.01, (float) $quantity);
+
+        if ($type === 'service') {
+            $oldQuantity = (float) ($this->appointment->quantity ?? 1);
+
+            // Update appointment quantity
+            $this->appointment->update(['quantity' => $quantity]);
+            $this->appointment->refresh();
+
+            // Auto-update consumables proportionally
+            $this->updateConsumablesForQuantityChange($oldQuantity, $quantity);
+
+            // Reload consumables to refresh UI
+            $this->loadConsumablesAndProducts();
+
+            Notification::make()
+                ->title('Quantity updated')
+                ->body('Consumables adjusted automatically')
+                ->success()
+                ->duration(2000)
+                ->send();
+        } elseif ($type === 'product') {
+            // Update in database first
+            $sessionProduct = SessionProduct::find($id);
+            if ($sessionProduct) {
+                $sessionProduct->quantity = $quantity;
+                $sessionProduct->save();
+
+                // Reload products to get updated totals
+                $this->loadConsumablesAndProducts();
+
+                Notification::make()
+                    ->title('Quantity updated')
+                    ->success()
+                    ->duration(2000)
+                    ->send();
+            }
+        } elseif ($type === 'plan_product') {
+            // Update treatment plan item - use withoutGlobalScope for tenant schema isolation
+            $planItem = \Modules\TreatmentPlans\Models\TreatmentPlanItem::withoutGlobalScope('tenant')->find($id);
+            if ($planItem) {
+                $planItem->quantity = (int) $quantity;
+                $planItem->save();
+
+                Notification::make()
+                    ->title('Quantity updated')
+                    ->success()
+                    ->duration(2000)
+                    ->send();
+            }
+        }
+    }
+
+    /**
+     * Update consumables proportionally when service quantity changes.
+     * Uses base_quantity (per 1 service unit) to calculate new quantity.
+     */
+    protected function updateConsumablesForQuantityChange(float $oldQuantity, float $newQuantity): void
+    {
+        if ($newQuantity <= 0) {
+            return;
+        }
+
+        foreach ($this->sessionConsumables as $index => $consumable) {
+            // Use base_quantity to calculate: new_qty = base_qty * service_qty
+            $baseQty = (float) ($consumable['base_quantity'] ?? $consumable['quantity']);
+            $newConsumableQty = round($baseQty * $newQuantity, 2);
+            $newTotalCost = $consumable['unit_cost'] * $newConsumableQty;
+
+            // Update in database (unit_cost is in major units, convert to minor for storage)
+            SessionConsumable::where('id', $consumable['id'])->update([
+                'quantity' => $newConsumableQty,
+                'total_cost_minor' => (int) ($newTotalCost * 100),
+            ]);
+
+            // Update local array (keep in major units for display)
+            $this->sessionConsumables[$index]['quantity'] = $newConsumableQty;
+            $this->sessionConsumables[$index]['total_cost'] = $newTotalCost;
+        }
+    }
+
+    /**
+     * Update invoice item price.
+     */
+    public function updateInvoiceItemPrice(string $type, string $id, $priceMinor): void
+    {
+        $priceMinor = max(0, (int) $priceMinor);
+
+        if ($type === 'service') {
+            $this->servicePriceMinor = $priceMinor;
+            $this->appointment?->update(['price_minor' => $priceMinor]);
+
+            Notification::make()
+                ->title('Price updated')
+                ->success()
+                ->duration(2000)
+                ->send();
+        } elseif ($type === 'product') {
+            // Update in database first
+            $sessionProduct = SessionProduct::find($id);
+            if ($sessionProduct) {
+                $sessionProduct->unit_price_minor = $priceMinor;
+                $sessionProduct->save();
+
+                // Reload products to get updated totals
+                $this->loadConsumablesAndProducts();
+
+                Notification::make()
+                    ->title('Price updated')
+                    ->success()
+                    ->duration(2000)
+                    ->send();
+            }
+        } elseif ($type === 'plan_product') {
+            // Update treatment plan item - use withoutGlobalScope for tenant schema isolation
+            $planItem = \Modules\TreatmentPlans\Models\TreatmentPlanItem::withoutGlobalScope('tenant')->find($id);
+            if ($planItem) {
+                $planItem->unit_price_minor = $priceMinor;
+                $planItem->save();
+
+                Notification::make()
+                    ->title('Price updated')
+                    ->success()
+                    ->duration(2000)
+                    ->send();
+            }
+        }
+    }
+
+    /**
+     * Update invoice item discount type.
+     */
+    public function updateInvoiceItemDiscountType(string $type, string $id, string $discountType): void
+    {
+        if ($type === 'service') {
+            $this->serviceDiscountType = $discountType;
+            if ($discountType === 'none') {
+                $this->serviceDiscountValue = 0;
+            }
+            // Save to appointment
+            $this->saveServiceDiscountToAppointment();
+        } elseif ($type === 'product') {
+            // Update in database first
+            $sessionProduct = SessionProduct::find($id);
+            if ($sessionProduct) {
+                $sessionProduct->discount_type = $discountType;
+                if ($discountType === 'none') {
+                    $sessionProduct->discount_value = 0;
+                }
+                $sessionProduct->save();
+
+                // Reload products to get updated totals
+                $this->loadConsumablesAndProducts();
+            }
+        } elseif ($type === 'plan_product') {
+            // Update treatment plan item - discount is stored as minor units - use withoutGlobalScope for tenant schema isolation
+            $planItem = \Modules\TreatmentPlans\Models\TreatmentPlanItem::withoutGlobalScope('tenant')->find($id);
+            if ($planItem) {
+                if ($discountType === 'none') {
+                    $planItem->discount_minor = 0;
+                }
+                $planItem->save();
+
+                Notification::make()
+                    ->title('Discount updated')
+                    ->success()
+                    ->duration(2000)
+                    ->send();
+            }
+        }
+    }
+
+    /**
+     * Update invoice item discount value.
+     */
+    public function updateInvoiceItemDiscountValue(string $type, string $id, $discountValue): void
+    {
+        $discountValue = max(0, (float) $discountValue);
+
+        if ($type === 'service') {
+            $this->serviceDiscountValue = (int) $discountValue;
+            // Save to appointment
+            $this->saveServiceDiscountToAppointment();
+        } elseif ($type === 'product') {
+            // Update in database first
+            $sessionProduct = SessionProduct::find($id);
+            if ($sessionProduct) {
+                $sessionProduct->discount_value = $discountValue;
+                $sessionProduct->save();
+
+                // Reload products to get updated totals
+                $this->loadConsumablesAndProducts();
+            }
+        } elseif ($type === 'plan_product') {
+            // Update treatment plan item - discount is stored as minor units (fixed amount) - use withoutGlobalScope for tenant schema isolation
+            $planItem = \Modules\TreatmentPlans\Models\TreatmentPlanItem::withoutGlobalScope('tenant')->find($id);
+            if ($planItem) {
+                // Convert to minor units if it's a fixed amount
+                $planItem->discount_minor = (int) ($discountValue * 100);
+                $planItem->save();
+
+                Notification::make()
+                    ->title('Discount updated')
+                    ->success()
+                    ->duration(2000)
+                    ->send();
+            }
+        }
+    }
+
+    /**
+     * Toggle editing mode for an invoice item.
+     */
+    public function toggleInvoiceItemEdit(string $type, string $id): void
+    {
+        $itemKey = $type === 'service' ? 'service' : "product-{$id}";
+
+        if ($this->editingInvoiceItem === $itemKey) {
+            $this->editingInvoiceItem = null;
+        } else {
+            $this->editingInvoiceItem = $itemKey;
+        }
+    }
+
+    /**
+     * Check if an invoice item is being edited.
+     */
+    public function isEditingInvoiceItem(string $type, string $id): bool
+    {
+        $itemKey = $type === 'service' ? 'service' : "product-{$id}";
+        return $this->editingInvoiceItem === $itemKey;
+    }
+
+    /**
+     * Save service discount to appointment.
+     */
+    protected function saveServiceDiscountToAppointment(): void
+    {
+        if (!$this->appointment) {
+            return;
+        }
+
+        $discountType = $this->serviceDiscountType ?? 'none';
+        $discountValue = $this->serviceDiscountValue ?? 0;
+
+        if ($discountType === 'none' || $discountValue <= 0) {
+            $this->appointment->update([
+                'discount_type' => 'none',
+                'discount_minor' => 0,
+            ]);
+        } else {
+            // Calculate discount_minor based on type
+            // For percent: store the percentage value
+            // For fixed: store the amount in minor units
+            $discountMinor = $discountType === 'fixed'
+                ? (int) ($discountValue * 100)
+                : (int) $discountValue;
+
+            $this->appointment->update([
+                'discount_type' => $discountType,
+                'discount_minor' => $discountMinor,
+            ]);
+        }
+    }
+
+    /**
+     * Calculate discount amount for a line item.
+     */
+    protected function calculateLineDiscount(int $priceMinor, string $discountType, int $discountValue): int
+    {
+        if ($discountType === 'none' || $discountValue <= 0) {
+            return 0;
+        }
+
+        if ($discountType === 'percent') {
+            return (int) round($priceMinor * $discountValue / 100);
+        }
+
+        // Fixed discount
+        return min($discountValue, $priceMinor);
+    }
+
+    /**
+     * Get invoice subtotal (before overall discount).
+     */
+    public function getInvoiceSubtotal(): float
+    {
+        $items = $this->getInvoiceItems();
+        return collect($items)->sum('total');
+    }
+
+    /**
+     * Get invoice subtotal in minor units.
+     */
+    public function getInvoiceSubtotalMinor(): int
+    {
+        $items = $this->getInvoiceItems();
+        return (int) collect($items)->sum('total_minor');
+    }
+
+    /**
+     * Get overall discount amount.
+     */
+    public function getOverallDiscountAmount(): float
+    {
+        return $this->getOverallDiscountAmountMinor() / 100;
+    }
+
+    /**
+     * Get overall discount amount in minor units.
+     */
+    public function getOverallDiscountAmountMinor(): int
+    {
+        if (!$this->overallDiscountType || $this->overallDiscountType === 'none' || !$this->overallDiscountValue) {
+            return 0;
+        }
+
+        $subtotal = $this->getInvoiceSubtotalMinor();
+
+        // Convert discount value to what calculateLineDiscount expects
+        // Percentage: use as-is (10 means 10%)
+        // Fixed: convert from major units (display) to minor units
+        $discountValue = $this->overallDiscountType === 'fixed'
+            ? (int) ($this->overallDiscountValue * 100)
+            : (int) $this->overallDiscountValue;
+
+        return $this->calculateLineDiscount($subtotal, $this->overallDiscountType, $discountValue);
+    }
+
+    /**
+     * Get invoice total (after all discounts).
+     */
+    public function getInvoiceTotal(): float
+    {
+        return $this->getInvoiceTotalMinor() / 100;
+    }
+
+    /**
+     * Get invoice total in minor units.
+     */
+    public function getInvoiceTotalMinor(): int
+    {
+        return max(0, $this->getInvoiceSubtotalMinor() - $this->getOverallDiscountAmountMinor());
+    }
+
+    /**
+     * Update service price.
+     */
+    public function updateServicePrice(int $priceMinor): void
+    {
+        $this->servicePriceMinor = max(0, $priceMinor);
+
+        // Update appointment price
+        if ($this->appointment) {
+            $this->appointment->update(['price_minor' => $this->servicePriceMinor]);
+        }
+    }
+
+    /**
+     * Update service discount.
+     */
+    public function updateServiceDiscount(string $type, int $value): void
+    {
+        $this->serviceDiscountType = $type;
+        $this->serviceDiscountValue = max(0, $value);
+
+        // Update appointment discount
+        if ($this->appointment) {
+            $this->appointment->update([
+                'discount_type' => $type === 'none' ? 'none' : $type,
+                'discount_minor' => $type === 'none' ? 0 : $this->serviceDiscountValue,
+            ]);
+        }
+    }
+
+    /**
+     * Update product price.
+     */
+    public function updateProductPrice(string $productId, int $priceMinor): void
+    {
+        $sessionProduct = SessionProduct::find($productId);
+        if ($sessionProduct) {
+            $sessionProduct->update(['unit_price_minor' => max(0, $priceMinor)]);
+            $this->loadConsumablesAndProducts();
+        }
+    }
+
+    /**
+     * Apply overall discount.
+     * Uses the current values from wire:model properties.
+     */
+    public function applyOverallDiscount(): void
+    {
+        // Values are already set via wire:model.live
+        $this->overallDiscountValue = max(0, $this->overallDiscountValue ?? 0);
+
+        // Store discount in appointment
+        // For percentage: store the percentage value (e.g., 10 for 10%)
+        // For fixed: store the amount in minor units (user enters major units, we convert)
+        if ($this->appointment) {
+            if ($this->overallDiscountType !== 'none' && $this->overallDiscountValue > 0) {
+                // For fixed discounts, user enters in major units, convert to minor
+                $discountMinor = $this->overallDiscountType === 'fixed'
+                    ? $this->overallDiscountValue * 100
+                    : $this->overallDiscountValue; // For percent, store as-is
+
+                $this->appointment->update([
+                    'discount_type' => $this->overallDiscountType,
+                    'discount_minor' => $discountMinor,
+                    'discount_reason' => $this->overallDiscountReason,
+                ]);
+            } else {
+                $this->appointment->update([
+                    'discount_type' => 'none',
+                    'discount_minor' => 0,
+                    'discount_reason' => null,
+                ]);
+            }
+        }
+
+        Notification::make()
+            ->title(__('booking::session.invoice.discount_applied'))
+            ->success()
+            ->send();
+    }
+
+    /**
+     * Check if session has billable items.
+     */
+    public function hasBillableItems(): bool
+    {
+        return !empty($this->getInvoiceItems());
     }
 }

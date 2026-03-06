@@ -8,7 +8,8 @@ return [
     'tax_inclusive' => false,
 
     // Auto invoice settings
-    'auto_invoice_on_complete' => true,
+    // Set to false when using visit-based invoicing (checkout page)
+    'auto_invoice_on_complete' => false,
 
     // Payment settings
     'default_payment_terms_days' => 0,
