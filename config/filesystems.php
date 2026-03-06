@@ -46,6 +46,16 @@ return [
             'report' => false,
         ],
 
+        // Tenant-specific storage disk - path is set dynamically by TenantStorageServiceProvider
+        'tenant' => [
+            'driver' => 'local',
+            'root' => storage_path('app/tenants/default'),
+            'url' => env('APP_URL').'/tenant-storage',
+            'visibility' => 'private',
+            'throw' => false,
+            'report' => false,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),

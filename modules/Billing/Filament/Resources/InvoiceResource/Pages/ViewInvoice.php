@@ -480,6 +480,27 @@ class ViewInvoice extends BaseViewRecord
                         ->success()
                         ->send();
                 }),
+
+            Actions\Action::make('reset_to_draft')
+                ->label(__('billing::billing.actions.reset_to_draft'))
+                ->icon('heroicon-o-arrow-uturn-left')
+                ->color('warning')
+                ->requiresConfirmation()
+                ->modalDescription(__('billing::billing.messages.reset_to_draft_confirmation'))
+                ->visible(fn () => $this->record->canResetToDraft() && !$this->isEditing)
+                ->action(function () {
+                    if ($this->record->resetToDraft()) {
+                        Notification::make()
+                            ->title(__('billing::billing.messages.invoice_reset_to_draft'))
+                            ->success()
+                            ->send();
+                    } else {
+                        Notification::make()
+                            ->title(__('billing::billing.messages.cannot_reset_to_draft'))
+                            ->danger()
+                            ->send();
+                    }
+                }),
         ];
     }
 }

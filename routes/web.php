@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\TwoFactorChallengeController;
 use App\Http\Controllers\BackupController;
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\TenantMediaController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -24,4 +25,11 @@ Route::get('/two-factor-challenge', [TwoFactorChallengeController::class, 'creat
 Route::get('/admin/backups/{backup}/download', [BackupController::class, 'download'])
     ->middleware(['auth'])
     ->name('admin.backups.download');
+
+// Tenant Storage Route - serves files from tenant-specific storage
+// Tenant is identified via subdomain, requires authentication
+Route::get('/tenant-storage/{path}', [TenantMediaController::class, 'show'])
+    ->middleware(['auth'])
+    ->where('path', '.*')
+    ->name('tenant.storage');
 

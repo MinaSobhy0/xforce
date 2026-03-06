@@ -82,12 +82,13 @@ class PatientPhoto extends BaseModel implements HasMedia
 
     /**
      * Register media collections.
+     * Uses 'tenant' disk to ensure tenant-isolated storage.
      */
     public function registerMediaCollections(): void
     {
         $this->addMediaCollection('photos')
-            ->useDisk('public')
-            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
+            ->useDisk('tenant')
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
             ->singleFile();
     }
 

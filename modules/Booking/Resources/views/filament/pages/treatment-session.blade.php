@@ -1,94 +1,107 @@
 <x-filament-panels::page>
     <div class="space-y-6">
         {{-- Appointment Info Bar --}}
-        <div class="rounded-xl bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-700 p-4">
-            <div class="flex flex-wrap items-center justify-between gap-4">
-                <div class="flex items-center gap-4">
-                    <div class="flex-shrink-0 w-12 h-12 rounded-full bg-primary-100 dark:bg-primary-800 flex items-center justify-center">
-                        <x-heroicon-o-user class="w-6 h-6 text-primary-600 dark:text-primary-400" />
+        <div class="rounded-xl bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-700 p-3 sm:p-4">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 lg:gap-4">
+                {{-- Patient Info --}}
+                <div class="flex items-center gap-3 sm:gap-4">
+                    <div class="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary-100 dark:bg-primary-800 flex items-center justify-center">
+                        <x-heroicon-o-user class="w-5 h-5 sm:w-6 sm:h-6 text-primary-600 dark:text-primary-400" />
                     </div>
-                    <div>
-                        <div class="font-semibold text-gray-900 dark:text-white text-lg">
+                    <div class="min-w-0 flex-1">
+                        <div class="font-semibold text-gray-900 dark:text-white text-base sm:text-lg truncate">
                             {{ $patient?->full_name }}
                             @if($patient?->age)
-                                <span class="text-sm font-normal text-gray-500 dark:text-gray-400">({{ $patient->age }} {{ __('booking::session.info.years') }})</span>
+                                <span class="text-xs sm:text-sm font-normal text-gray-500 dark:text-gray-400">({{ $patient->age }} {{ __('booking::session.info.years') }})</span>
                             @endif
                         </div>
-                        <div class="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2 flex-wrap">
+                        <div class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1 sm:gap-2 flex-wrap">
                             <span>{{ $patient?->code }}</span>
-                            <span class="text-gray-300 dark:text-gray-600">|</span>
+                            <span class="text-gray-300 dark:text-gray-600 hidden sm:inline">|</span>
                             <span>{{ $patient?->phone }}</span>
                             @if($patient?->occupation)
-                                <span class="text-gray-300 dark:text-gray-600">|</span>
-                                <span>{{ $patient->occupation }}</span>
+                                <span class="text-gray-300 dark:text-gray-600 hidden sm:inline">|</span>
+                                <span class="hidden sm:inline">{{ $patient->occupation }}</span>
                             @endif
                         </div>
                     </div>
                 </div>
-                <div class="flex items-center gap-6 text-sm">
-                    <div>
-                        <span class="text-gray-500 dark:text-gray-400">{{ __('booking::session.info.service') }}:</span>
-                        <span class="font-medium text-gray-900 dark:text-white ml-1">{{ $appointment?->service?->translated_name }}</span>
-                    </div>
-                    <div>
-                        <span class="text-gray-500 dark:text-gray-400">{{ __('booking::session.info.time') }}:</span>
-                        <span class="font-medium text-gray-900 dark:text-white ml-1">{{ $appointment?->start_time?->format('H:i') }}</span>
-                    </div>
-                    <div>
-                        <span class="text-gray-500 dark:text-gray-400">{{ __('booking::session.info.room') }}:</span>
-                        <span class="font-medium text-gray-900 dark:text-white ml-1">{{ $appointment?->room?->name ?? '-' }}</span>
-                    </div>
-                    @if($appointment?->treatmentPlanAppointment)
-                        <div class="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full font-medium">
-                            {{ __('booking::session.info.session_number', ['current' => $appointment->treatmentPlanAppointment->session_number, 'total' => $appointment->treatmentPlanAppointment->item->recommended_sessions]) }}
-                        </div>
-                    @endif
 
-                    {{-- Visit Badge --}}
-                    @if($visit)
-                        <div class="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full font-medium flex items-center gap-1.5">
-                            <x-heroicon-o-ticket class="w-4 h-4" />
-                            {{ $visit->code }}
+                {{-- Session Details --}}
+                <div class="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm">
+                    {{-- Service & Time - compact on mobile --}}
+                    <div class="flex flex-wrap items-center gap-2 sm:gap-4">
+                        <div class="hidden sm:block">
+                            <span class="text-gray-500 dark:text-gray-400">{{ __('booking::session.info.service') }}:</span>
+                            <span class="font-medium text-gray-900 dark:text-white ml-1">{{ $appointment?->service?->translated_name }}</span>
                         </div>
-                    @endif
+                        <div class="sm:hidden font-medium text-gray-900 dark:text-white">
+                            {{ $appointment?->service?->translated_name }}
+                        </div>
+                        <div>
+                            <span class="text-gray-500 dark:text-gray-400">{{ __('booking::session.info.time') }}:</span>
+                            <span class="font-medium text-gray-900 dark:text-white ml-1">{{ $appointment?->start_time?->format('H:i') }}</span>
+                        </div>
+                        <div class="hidden sm:block">
+                            <span class="text-gray-500 dark:text-gray-400">{{ __('booking::session.info.room') }}:</span>
+                            <span class="font-medium text-gray-900 dark:text-white ml-1">{{ $appointment?->room?->name ?? '-' }}</span>
+                        </div>
+                    </div>
 
-                    {{-- Session Timer --}}
-                    @if($sessionData?->session_started_at)
-                        <div
-                            x-data="{
-                                startTime: {{ $sessionData->session_started_at->timestamp * 1000 }},
-                                elapsed: 0,
-                                timer: null,
-                                init() {
-                                    this.updateElapsed();
-                                    this.timer = setInterval(() => this.updateElapsed(), 1000);
-                                },
-                                updateElapsed() {
-                                    this.elapsed = Math.floor((Date.now() - this.startTime) / 1000);
-                                },
-                                get hours() {
-                                    return Math.floor(this.elapsed / 3600);
-                                },
-                                get minutes() {
-                                    return Math.floor((this.elapsed % 3600) / 60);
-                                },
-                                get seconds() {
-                                    return this.elapsed % 60;
-                                },
-                                get display() {
-                                    if (this.hours > 0) {
-                                        return String(this.hours).padStart(2, '0') + ':' + String(this.minutes).padStart(2, '0') + ':' + String(this.seconds).padStart(2, '0');
+                    {{-- Badges --}}
+                    <div class="flex flex-wrap items-center gap-2">
+                        @if($appointment?->treatmentPlanAppointment)
+                            <div class="px-2 sm:px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full font-medium text-xs sm:text-sm">
+                                {{ __('booking::session.info.session_number', ['current' => $appointment->treatmentPlanAppointment->session_number, 'total' => $appointment->treatmentPlanAppointment->item->recommended_sessions]) }}
+                            </div>
+                        @endif
+
+                        {{-- Visit Badge --}}
+                        @if($visit)
+                            <div class="px-2 sm:px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full font-medium flex items-center gap-1 text-xs sm:text-sm">
+                                <x-heroicon-o-ticket class="w-3 h-3 sm:w-4 sm:h-4" />
+                                {{ $visit->code }}
+                            </div>
+                        @endif
+
+                        {{-- Session Timer --}}
+                        @if($sessionData?->session_started_at)
+                            <div
+                                x-data="{
+                                    startTime: {{ $sessionData->session_started_at->timestamp * 1000 }},
+                                    elapsed: 0,
+                                    timer: null,
+                                    init() {
+                                        this.updateElapsed();
+                                        this.timer = setInterval(() => this.updateElapsed(), 1000);
+                                    },
+                                    updateElapsed() {
+                                        this.elapsed = Math.floor((Date.now() - this.startTime) / 1000);
+                                    },
+                                    get hours() {
+                                        return Math.floor(this.elapsed / 3600);
+                                    },
+                                    get minutes() {
+                                        return Math.floor((this.elapsed % 3600) / 60);
+                                    },
+                                    get seconds() {
+                                        return this.elapsed % 60;
+                                    },
+                                    get display() {
+                                        if (this.hours > 0) {
+                                            return String(this.hours).padStart(2, '0') + ':' + String(this.minutes).padStart(2, '0') + ':' + String(this.seconds).padStart(2, '0');
+                                        }
+                                        return String(this.minutes).padStart(2, '0') + ':' + String(this.seconds).padStart(2, '0');
                                     }
-                                    return String(this.minutes).padStart(2, '0') + ':' + String(this.seconds).padStart(2, '0');
-                                }
-                            }"
-                            x-init="init()"
-                            class="flex items-center gap-2 px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full font-medium"
-                        >
-                            <x-heroicon-o-clock class="w-4 h-4" />
-                            <span x-text="display" class="font-mono tabular-nums"></span>
-                        </div>
-                    @endif
+                                }"
+                                x-init="init()"
+                                class="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full font-medium text-xs sm:text-sm"
+                            >
+                                <x-heroicon-o-clock class="w-3 h-3 sm:w-4 sm:h-4" />
+                                <span x-text="display" class="font-mono tabular-nums"></span>
+                            </div>
+                        @endif
+                    </div>
                 </div>
             </div>
         </div>
@@ -164,7 +177,7 @@
         @endif
 
         {{-- Main 2-Column Layout: Medical Info + Treatment Plan --}}
-        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem;">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
             {{-- Medical Records --}}
             <x-filament::section>
                 <x-slot name="heading">
@@ -194,7 +207,7 @@
                 @endphp
 
                 {{-- Key Info Row --}}
-                <div class="grid grid-cols-2 gap-4 mb-5">
+                <div class="grid grid-cols-2 gap-2 sm:gap-4 mb-4 sm:mb-5">
                     <div class="flex items-center gap-2">
                         <span class="text-gray-500 dark:text-gray-400 text-sm">{{ __('booking::session.medical.fitzpatrick') }}</span>
                         <span class="font-semibold text-gray-900 dark:text-white">{{ $medicalProfile?->fitzpatrick_short ?? '-' }}</span>
@@ -422,7 +435,7 @@
 
         {{-- Equipment & Clinical Notes Section (always show if equipment available) --}}
         @if($this->hasEquipmentSection())
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem;">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
                 {{-- Equipment --}}
                 <x-filament::section>
                     <x-slot name="heading">
@@ -596,15 +609,16 @@
 
                     @php $availableEquipment = $this->getAvailableEquipment(); @endphp
                     @if($availableEquipment->isNotEmpty())
-                        <div class="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
                             <select wire:model="newEquipmentId" class="flex-1 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm">
                                 <option value="">{{ __('booking::session.equipment.add_equipment') }}</option>
                                 @foreach($availableEquipment as $eq)
                                     <option value="{{ $eq->id }}">{{ $eq->name }}</option>
                                 @endforeach
                             </select>
-                            <x-filament::button wire:click="addEquipment" size="sm">
+                            <x-filament::button wire:click="addEquipment" size="sm" class="w-full sm:w-auto">
                                 <x-heroicon-o-plus class="w-4 h-4" />
+                                <span class="sm:hidden ml-1">{{ __('booking::session.consumables.add') }}</span>
                             </x-filament::button>
                         </div>
                     @endif
@@ -623,7 +637,7 @@
                         </div>
                     </x-slot>
 
-                    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-3">
                         @foreach($parameters as $param)
                             @php
                                 $key = $param['key'] ?? '';
@@ -655,7 +669,7 @@
         @endif
 
         {{-- Consumables & Products Row --}}
-        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem;">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
             {{-- Consumables Section --}}
             <x-filament::section>
                 <x-slot name="heading">
@@ -668,7 +682,7 @@
                     </div>
                 </x-slot>
 
-                <div class="flex gap-2 mb-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg"
+                <div class="flex flex-col sm:flex-row gap-2 mb-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg"
                     x-data="{
                         search: '',
                         open: false,
@@ -705,10 +719,13 @@
                             </template>
                         </div>
                     </div>
-                    <input type="number" wire:model="newConsumableQty" class="w-16 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm text-center" min="0.1" step="0.1" placeholder="Qty" />
-                    <x-filament::button wire:click="addConsumable" size="sm">
-                        <x-heroicon-o-plus class="w-4 h-4" />
-                    </x-filament::button>
+                    <div class="flex gap-2">
+                        <input type="number" wire:model="newConsumableQty" class="w-20 sm:w-16 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm text-center" min="0.1" step="0.1" placeholder="Qty" />
+                        <x-filament::button wire:click="addConsumable" size="sm" class="flex-1 sm:flex-none">
+                            <x-heroicon-o-plus class="w-4 h-4" />
+                            <span class="sm:hidden ml-1">{{ __('booking::session.consumables.add') }}</span>
+                        </x-filament::button>
+                    </div>
                 </div>
 
                 @if(count($sessionConsumables) > 0)
@@ -742,7 +759,7 @@
                     </div>
                 </x-slot>
 
-                <div class="flex gap-2 mb-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg"
+                <div class="flex flex-col sm:flex-row gap-2 mb-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg"
                     x-data="{
                         search: '',
                         open: false,
@@ -783,10 +800,13 @@
                             </template>
                         </div>
                     </div>
-                    <input type="number" wire:model="newProductQty" class="w-16 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm text-center" min="1" placeholder="Qty" />
-                    <x-filament::button wire:click="addProduct" size="sm">
-                        <x-heroicon-o-plus class="w-4 h-4" />
-                    </x-filament::button>
+                    <div class="flex gap-2">
+                        <input type="number" wire:model="newProductQty" class="w-20 sm:w-16 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm text-center" min="1" placeholder="Qty" />
+                        <x-filament::button wire:click="addProduct" size="sm" class="flex-1 sm:flex-none">
+                            <x-heroicon-o-plus class="w-4 h-4" />
+                            <span class="sm:hidden ml-1">{{ __('booking::session.products.add') }}</span>
+                        </x-filament::button>
+                    </div>
                 </div>
 
                 @if(count($sessionProducts) > 0)
@@ -830,7 +850,7 @@
 
             {{-- Existing Prescriptions --}}
             @if($existingPrescriptions->count() > 0)
-                <div class="mb-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div class="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
                     @foreach($existingPrescriptions as $prescription)
                         <div class="p-3 border border-gray-200 dark:border-gray-700 rounded-lg {{ $prescription->status === 'finalized' ? 'bg-green-50 dark:bg-green-900/10' : 'bg-gray-50 dark:bg-gray-800' }}">
                             <div class="flex items-center justify-between mb-1">
@@ -913,8 +933,8 @@
                                     </button>
                                 </div>
 
-                                <div x-show="!isCollapsed" x-collapse class="border-t border-gray-200 dark:border-white/10 p-3 space-y-3">
-                                    <div class="grid grid-cols-2 gap-3">
+                                <div x-show="!isCollapsed" x-collapse class="border-t border-gray-200 dark:border-white/10 p-2 sm:p-3 space-y-2 sm:space-y-3">
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
                                         <div>
                                             <label class="block text-xs text-gray-700 dark:text-gray-300 mb-1">{{ __('prescriptions::prescription.fields.medication_name') }}</label>
                                             <input type="text" wire:model="prescriptionMedications.{{ $index }}.medication_name" class="w-full rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm" />
@@ -925,7 +945,7 @@
                                         </div>
                                     </div>
 
-                                    <div class="grid grid-cols-4 gap-2">
+                                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
                                         <div>
                                             <label class="block text-xs text-gray-700 dark:text-gray-300 mb-1">{{ __('prescriptions::prescription.fields.form') }}</label>
                                             <select wire:model="prescriptionMedications.{{ $index }}.form" class="w-full rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm">
@@ -956,7 +976,7 @@
                                         </div>
                                     </div>
 
-                                    <div class="grid grid-cols-4 gap-2">
+                                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
                                         <div>
                                             <label class="block text-xs text-gray-700 dark:text-gray-300 mb-1">{{ __('prescriptions::prescription.fields.frequency') }}</label>
                                             <select wire:model="prescriptionMedications.{{ $index }}.frequency" class="w-full rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm">
@@ -1032,11 +1052,11 @@
                     </div>
                 </x-slot>
 
-                <div class="mb-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                    <div class="flex gap-2">
+                <div class="mb-4 p-2 sm:p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <div class="flex flex-col sm:flex-row gap-2">
                         <textarea wire:model="noteContent" rows="2" class="flex-1 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm" placeholder="{{ __('booking::session.notes.placeholder') }}"></textarea>
-                        <div class="flex flex-col gap-1">
-                            <select wire:model="noteType" class="border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-xs">
+                        <div class="flex sm:flex-col gap-2 sm:gap-1">
+                            <select wire:model="noteType" class="flex-1 sm:flex-none border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-xs">
                                 @foreach(\Modules\Patients\Models\PatientNote::TYPES as $key => $label)
                                     <option value="{{ $key }}">{{ $label }}</option>
                                 @endforeach
@@ -1073,52 +1093,104 @@
                 </div>
             </x-slot>
 
-            <div class="mb-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                <div class="flex gap-2 flex-wrap">
-                    <input type="file" wire:model="photoUpload" accept="image/*" class="flex-1 min-w-[150px] text-xs border border-gray-300 dark:border-gray-600 rounded p-1 dark:bg-gray-700" />
-                    <select wire:model="photoType" class="border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-xs">
-                        @foreach(\Modules\Patients\Models\PatientPhoto::TYPES as $key => $label)
-                            <option value="{{ $key }}">{{ $label }}</option>
-                        @endforeach
-                    </select>
-                    <x-filament::button wire:click="uploadPhoto" size="sm">{{ __('booking::session.photos.upload') }}</x-filament::button>
+            {{-- Photo Upload Actions --}}
+            <div class="mb-3 flex flex-wrap gap-2 items-center"
+                x-data="{
+                    uploading: false,
+                    progress: 0
+                }"
+                x-on:livewire-upload-start="uploading = true"
+                x-on:livewire-upload-finish="uploading = false; $wire.processCameraPhoto()"
+                x-on:livewire-upload-error="uploading = false"
+                x-on:livewire-upload-progress="progress = $event.detail.progress"
+            >
+                {{-- Take Photo Button (Camera) --}}
+                <div class="relative">
+                    <input
+                        type="file"
+                        wire:model="cameraPhoto"
+                        accept="image/*"
+                        capture="environment"
+                        class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                    />
+                    <x-filament::button color="success" icon="heroicon-o-camera" x-bind:disabled="uploading">
+                        <span x-show="!uploading">{{ __('booking::session.photos.take_photo') }}</span>
+                        <span x-show="uploading" class="flex items-center gap-2">
+                            <x-filament::loading-indicator class="w-4 h-4" />
+                            <span x-text="progress + '%'"></span>
+                        </span>
+                    </x-filament::button>
                 </div>
+
+                {{-- Gallery/Upload Button --}}
+                {{ $this->uploadPhotoAction }}
+
+                {{-- Photo Type Selector --}}
+                <select
+                    wire:model="cameraPhotoType"
+                    class="text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg"
+                >
+                    @foreach(\Modules\Patients\Models\PatientPhoto::TYPES as $key => $label)
+                        <option value="{{ $key }}">{{ $label }}</option>
+                    @endforeach
+                </select>
             </div>
 
             @php $photos = $this->getPatientPhotos(); @endphp
             @if($photos->isNotEmpty())
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
                     @foreach($photos as $photo)
-                        <div class="relative rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm overflow-hidden">
+                        @php
+                            $media = $photo->getFirstMedia('photos');
+                            $fileSize = $media ? $media->size : 0;
+                            $fileSizeFormatted = $fileSize > 0 ? number_format($fileSize / 1024, 1) . ' KB' : '';
+                            if ($fileSize > 1024 * 1024) {
+                                $fileSizeFormatted = number_format($fileSize / (1024 * 1024), 1) . ' MB';
+                            }
+                        @endphp
+                        <div class="relative rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm overflow-hidden group">
                             {{-- Image --}}
-                            <div style="aspect-ratio: 1; position: relative;">
+                            <div class="aspect-square relative">
                                 @if($photo->getFirstMediaUrl('photos', 'thumb'))
-                                    <a href="{{ $photo->getFirstMediaUrl('photos') }}" target="_blank">
-                                        <img src="{{ $photo->getFirstMediaUrl('photos', 'thumb') }}" alt="{{ $photo->description }}" style="width: 100%; height: 100%; object-fit: cover;" />
+                                    <a href="{{ $photo->getFirstMediaUrl('photos') }}" target="_blank" class="block w-full h-full">
+                                        <img src="{{ $photo->getFirstMediaUrl('photos', 'thumb') }}" alt="{{ $photo->description }}" class="w-full h-full object-cover transition-transform group-hover:scale-105" />
                                     </a>
                                 @else
                                     <div class="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-700">
-                                        <x-heroicon-o-photo class="w-10 h-10 text-gray-400" />
+                                        <x-heroicon-o-photo class="w-8 h-8 sm:w-10 sm:h-10 text-gray-400" />
                                     </div>
                                 @endif
+
+                            </div>
+
+                            {{-- Info footer --}}
+                            <div class="p-2 border-t border-gray-200 dark:border-gray-700">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <span class="text-xs font-medium text-gray-700 dark:text-gray-300">{{ $photo->type_label }}</span>
+                                        @if($fileSizeFormatted)
+                                            <span class="text-xs text-gray-400 dark:text-gray-500 ml-1">({{ $fileSizeFormatted }})</span>
+                                        @endif
+                                    </div>
+                                    <span class="text-xs text-gray-500">{{ $photo->taken_at?->format('M d') }}</span>
+                                </div>
                                 {{-- Delete button - only for photos from current appointment --}}
                                 @if($photo->appointment_id === $this->appointment?->id)
                                     <button
                                         type="button"
                                         wire:click="deletePhoto('{{ $photo->id }}')"
-                                        onclick="return confirm('Are you sure you want to delete this photo?')"
-                                        style="position: absolute; top: 8px; right: 8px; padding: 6px; background: #ef4444; color: white; border-radius: 6px; z-index: 10;"
+                                        wire:confirm="{{ __('Are you sure you want to delete this photo?') }}"
+                                        class="mt-2 w-full flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white rounded-md transition-colors"
+                                        style="background-color: #dc2626;"
+                                        onmouseover="this.style.backgroundColor='#b91c1c'"
+                                        onmouseout="this.style.backgroundColor='#dc2626'"
                                     >
-                                        <x-heroicon-o-trash class="w-4 h-4" />
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+                                            <path fill-rule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.519.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z" clip-rule="evenodd" />
+                                        </svg>
+                                        {{ __('Remove') }}
                                     </button>
                                 @endif
-                            </div>
-                            {{-- Info footer --}}
-                            <div class="p-2 border-t border-gray-200 dark:border-gray-700">
-                                <div class="flex items-center justify-between">
-                                    <span class="text-xs font-medium text-gray-700 dark:text-gray-300">{{ $photo->type_label }}</span>
-                                    <span class="text-xs text-gray-500">{{ $photo->taken_at?->format('M d') }}</span>
-                                </div>
                             </div>
                         </div>
                     @endforeach
@@ -1129,7 +1201,7 @@
         </x-filament::section>
 
         {{-- Previous Visits & Create Plan Row --}}
-        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem;">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
             {{-- Previous Appointments --}}
             <x-filament::section collapsible>
                 <x-slot name="heading">
@@ -1173,28 +1245,36 @@
                     </div>
 
                     <div>
-                        {{-- Column Headers --}}
-                        <div class="flex gap-2 mb-2 text-xs font-medium text-gray-500 dark:text-gray-400">
+                        {{-- Column Headers - hidden on mobile --}}
+                        <div class="hidden sm:flex gap-2 mb-2 text-xs font-medium text-gray-500 dark:text-gray-400">
                             <div class="flex-1">{{ __('booking::session.plan.service') }}</div>
-                            <div class="w-20 text-center">{{ __('booking::session.plan.sessions_count') }}</div>
-                            <div class="w-20 text-center">{{ __('booking::session.plan.interval_days') }}</div>
+                            <div class="w-16 sm:w-20 text-center">{{ __('booking::session.plan.sessions_count') }}</div>
+                            <div class="w-16 sm:w-20 text-center">{{ __('booking::session.plan.interval_days') }}</div>
                             <div class="w-6"></div>
                         </div>
                         @foreach($treatmentPlanData['services'] ?? [] as $index => $service)
-                            <div class="flex gap-2 mb-2">
-                                <select wire:model="treatmentPlanData.services.{{ $index }}.service_id" class="flex-1 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm">
+                            <div class="flex flex-col sm:flex-row gap-2 mb-3 sm:mb-2 p-2 sm:p-0 bg-gray-50 sm:bg-transparent dark:bg-gray-800 sm:dark:bg-transparent rounded-lg sm:rounded-none">
+                                <select wire:model="treatmentPlanData.services.{{ $index }}.service_id" class="w-full sm:flex-1 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm">
                                     <option value="">{{ __('booking::session.plan.select_service') }}</option>
                                     @foreach($this->getAvailableServices() as $id => $name)
                                         <option value="{{ $id }}">{{ $name }}</option>
                                     @endforeach
                                 </select>
-                                <input type="number" wire:model="treatmentPlanData.services.{{ $index }}.sessions" class="w-20 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm text-center" min="1" />
-                                <input type="number" wire:model="treatmentPlanData.services.{{ $index }}.interval" class="w-20 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm text-center" min="1" />
-                                @if(count($treatmentPlanData['services'] ?? []) > 1)
-                                    <button type="button" wire:click="removeServiceRow({{ $index }})" class="text-red-500 p-1 w-6"><x-heroicon-o-x-mark class="w-4 h-4" /></button>
-                                @else
-                                    <div class="w-6"></div>
-                                @endif
+                                <div class="flex gap-2">
+                                    <div class="flex-1 sm:w-16 sm:flex-none">
+                                        <label class="sm:hidden text-xs text-gray-500 mb-1 block">{{ __('booking::session.plan.sessions_count') }}</label>
+                                        <input type="number" wire:model="treatmentPlanData.services.{{ $index }}.sessions" class="w-full sm:w-16 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm text-center" min="1" placeholder="Sessions" />
+                                    </div>
+                                    <div class="flex-1 sm:w-16 sm:flex-none">
+                                        <label class="sm:hidden text-xs text-gray-500 mb-1 block">{{ __('booking::session.plan.interval_days') }}</label>
+                                        <input type="number" wire:model="treatmentPlanData.services.{{ $index }}.interval" class="w-full sm:w-16 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm text-center" min="1" placeholder="Days" />
+                                    </div>
+                                    @if(count($treatmentPlanData['services'] ?? []) > 1)
+                                        <button type="button" wire:click="removeServiceRow({{ $index }})" class="text-red-500 p-1 w-8 flex items-center justify-center"><x-heroicon-o-x-mark class="w-4 h-4" /></button>
+                                    @else
+                                        <div class="w-8"></div>
+                                    @endif
+                                </div>
                             </div>
                         @endforeach
                         <button type="button" wire:click="addServiceRow" class="mt-2 w-full flex items-center justify-center gap-1 p-2 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-500 dark:text-gray-400 hover:border-primary-500 hover:text-primary-500 transition-colors">
@@ -1224,15 +1304,15 @@
                 </x-slot>
 
                 {{-- Invoice Line Items --}}
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm">
+                <div class="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+                    <table class="w-full text-sm min-w-[540px]">
                         <thead>
                             <tr class="border-b border-gray-200 dark:border-gray-700">
-                                <th class="text-left py-2 px-2 font-medium text-gray-600 dark:text-gray-400">{{ __('booking::session.invoice.item') }}</th>
-                                <th class="text-center py-2 px-2 font-medium text-gray-600 dark:text-gray-400 w-20">{{ __('booking::session.invoice.qty') }}</th>
-                                <th class="text-right py-2 px-2 font-medium text-gray-600 dark:text-gray-400 w-28">{{ __('booking::session.invoice.unit_price') }}</th>
-                                <th class="text-right py-2 px-2 font-medium text-gray-600 dark:text-gray-400 w-36">{{ __('booking::session.invoice.discount') }}</th>
-                                <th class="text-right py-2 px-2 font-medium text-gray-600 dark:text-gray-400 w-28">{{ __('booking::session.invoice.total') }}</th>
+                                <th class="text-left py-2 px-2 font-medium text-gray-600 dark:text-gray-400 text-xs sm:text-sm">{{ __('booking::session.invoice.item') }}</th>
+                                <th class="text-center py-2 px-2 font-medium text-gray-600 dark:text-gray-400 w-16 sm:w-20 text-xs sm:text-sm">{{ __('booking::session.invoice.qty') }}</th>
+                                <th class="text-right py-2 px-2 font-medium text-gray-600 dark:text-gray-400 w-24 sm:w-28 text-xs sm:text-sm">{{ __('booking::session.invoice.unit_price') }}</th>
+                                <th class="text-right py-2 px-2 font-medium text-gray-600 dark:text-gray-400 w-28 sm:w-36 text-xs sm:text-sm">{{ __('booking::session.invoice.discount') }}</th>
+                                <th class="text-right py-2 px-2 font-medium text-gray-600 dark:text-gray-400 w-24 sm:w-28 text-xs sm:text-sm">{{ __('booking::session.invoice.total') }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1343,8 +1423,8 @@
 
                 {{-- Totals Section --}}
                 <div class="mt-4 border-t border-gray-200 dark:border-gray-700 pt-4">
-                    <div class="flex justify-end">
-                        <div class="w-72 space-y-2">
+                    <div class="flex justify-center sm:justify-end">
+                        <div class="w-full sm:w-72 space-y-2">
                             {{-- Subtotal --}}
                             <div class="flex justify-between text-sm">
                                 <span class="text-gray-600 dark:text-gray-400">{{ __('booking::session.invoice.subtotal') }}</span>

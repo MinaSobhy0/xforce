@@ -344,6 +344,73 @@ class Invoice extends BaseModel
         return $this->transitionTo(self::STATUS_CANCELLED);
     }
 
+    /**
+     * Reset invoice back to draft status.
+     * Can only be done from cancelled or issued status (with no payments).
+     */
+    public function resetToDraft(): bool
+    {
+        // Only allow reset from cancelled or issued status
+        if (!in_array($this->status, [self::STATUS_CANCELLED, self::STATUS_ISSUED])) {
+            return false;
+        }
+
+        // Don't allow reset if there are any payments
+        if ($this->paid_minor > 0) {
+            return false;
+        }
+
+        // If was issued, reverse the journal entry and restore stock
+        if ($this->status === self::STATUS_ISSUED) {
+            $this->reverseJournalEntries();
+            $this->restoreStockForProductLines();
+        }
+
+        // Reset status and timestamps
+        $this->status = self::STATUS_DRAFT;
+        $this->issued_at = null;
+        $this->cancelled_at = null;
+        $this->cancellation_reason = null;
+
+        return $this->save();
+    }
+
+    /**
+     * Reverse all journal entries for this invoice.
+     */
+    protected function reverseJournalEntries(): void
+    {
+        $journalEntries = $this->journalEntries()->get();
+
+        foreach ($journalEntries as $entry) {
+            // Create reversing entry
+            $entry->reverse("Reversed: Invoice {$this->code} reset to draft");
+        }
+    }
+
+    /**
+     * Restore stock for all product lines in this invoice.
+     */
+    protected function restoreStockForProductLines(): void
+    {
+        $productLines = $this->lines()
+            ->where('line_type', InvoiceLine::LINE_TYPE_PRODUCT)
+            ->whereNotNull('product_id')
+            ->get();
+
+        foreach ($productLines as $line) {
+            $stockLevel = StockLevel::getOrCreate($line->product_id, $this->branch_id);
+
+            $stockLevel->increase(
+                (int) $line->quantity,
+                StockMovement::TYPE_ADJUSTMENT,
+                'invoice',
+                $this->id,
+                "Restored: Invoice #{$this->code} reset to draft"
+            );
+        }
+    }
+
     public function recordPayment(int $amountMinor): void
     {
         $this->increment('paid_minor', $amountMinor);
@@ -385,6 +452,13 @@ class Invoice extends BaseModel
     public function isEditable(): bool
     {
         return $this->isDraft();
+    }
+
+    public function canResetToDraft(): bool
+    {
+        // Only allow reset from cancelled or issued status with no payments
+        return in_array($this->status, [self::STATUS_CANCELLED, self::STATUS_ISSUED])
+            && $this->paid_minor <= 0;
     }
 
     public function canRecordPayment(): bool

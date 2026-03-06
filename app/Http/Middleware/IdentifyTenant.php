@@ -6,6 +6,7 @@ use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Storage;
 use Modules\Core\Models\Tenant;
 use Modules\Core\Models\TenantStatus;
 use Symfony\Component\HttpFoundation\Response;
@@ -191,5 +192,34 @@ class IdentifyTenant
 
         // Store schema name in a global for use by callbacks and other code
         app()->instance('tenant_schema', $schemaName);
+
+        // Configure tenant-specific file storage
+        $this->configureTenantStorage($tenant->slug);
+    }
+
+    /**
+     * Configure tenant-specific file storage disk.
+     */
+    protected function configureTenantStorage(string $tenantSlug): void
+    {
+        $tenantPath = storage_path('app/tenants/' . $tenantSlug);
+
+        // Ensure the tenant directory exists
+        if (!is_dir($tenantPath)) {
+            mkdir($tenantPath, 0755, true);
+        }
+
+        // Build tenant URL using the tenant's subdomain
+        // e.g., https://tenant-slug.x-linic.com/tenant-storage
+        $baseHost = env('APP_DOMAIN', 'x-linic.com');
+        $scheme = request()->secure() ? 'https' : 'http';
+        $tenantUrl = "{$scheme}://{$tenantSlug}.{$baseHost}/tenant-storage";
+
+        // Update the tenant disk configuration
+        Config::set('filesystems.disks.tenant.root', $tenantPath);
+        Config::set('filesystems.disks.tenant.url', $tenantUrl);
+
+        // Purge the disk instance so it picks up the new config
+        Storage::forgetDisk('tenant');
     }
 }

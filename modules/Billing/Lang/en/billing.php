@@ -47,6 +47,7 @@ return [
         'record_payment' => 'Record Payment',
         'cancel' => 'Cancel Invoice',
         'cancel_short' => 'Cancel',
+        'reset_to_draft' => 'Reset to Draft',
         'print' => 'Print',
         'download_pdf' => 'Download PDF',
         'add_line_item' => 'Add Line Item',
@@ -216,8 +217,11 @@ return [
         'invoice_issued' => 'Invoice issued successfully',
         'payment_recorded' => 'Payment recorded successfully',
         'invoice_cancelled' => 'Invoice cancelled',
+        'invoice_reset_to_draft' => 'Invoice reset to draft',
         'issue_confirmation' => 'This will issue the invoice and send it to the customer. This action cannot be undone.',
         'cancel_confirmation' => 'Are you sure you want to cancel this invoice? This action cannot be undone.',
+        'reset_to_draft_confirmation' => 'This will reset the invoice to draft status. If the invoice was issued, the journal entry will be reversed and stock will be restored.',
+        'cannot_reset_to_draft' => 'Cannot reset to draft. Invoice has payments recorded.',
     ],
 
     // PDF Invoice

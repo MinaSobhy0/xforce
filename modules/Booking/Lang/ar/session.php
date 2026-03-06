@@ -90,6 +90,10 @@ return [
     // Photos
     'photos' => [
         'upload' => 'رفع',
+        'take_photo' => 'التقاط صورة',
+        'choose_file' => 'المعرض',
+        'selected' => 'المحدد',
+        'uploading' => 'جاري الرفع...',
         'select_area' => 'منطقة الجسم...',
         'no_photos' => 'لم يتم تسجيل صور',
     ],

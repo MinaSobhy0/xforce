@@ -99,6 +99,17 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
     public ?string $photoBodyArea = null;
     public ?string $photoDescription = null;
 
+    // Photo upload form data (for Filament FileUpload)
+    public ?array $photoFormData = [
+        'photo' => null,
+        'photo_name' => null,
+        'type' => 'progress',
+    ];
+
+    // Camera photo capture
+    public $cameraPhoto = null;
+    public string $cameraPhotoType = 'progress';
+
     // Treatment plan form
     public ?array $treatmentPlanData = [];
 
@@ -1182,6 +1193,131 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
             ->get();
     }
 
+    /**
+     * Process camera photo after Livewire upload completes.
+     */
+    public function processCameraPhoto(): void
+    {
+        try {
+            if (!$this->cameraPhoto) {
+                return;
+            }
+
+            $extension = $this->cameraPhoto->getClientOriginalExtension() ?: 'jpg';
+            $fileName = $this->getPhotoName() . '.' . $extension;
+
+            // Store to tenant disk
+            $storedPath = $this->cameraPhoto->storeAs('patient-photos', $fileName, 'tenant');
+            $fullPath = \Storage::disk('tenant')->path($storedPath);
+
+            if (!file_exists($fullPath)) {
+                throw new \Exception('Failed to store photo');
+            }
+
+            // Create the photo record
+            $photo = PatientPhoto::create([
+                'patient_id' => $this->patient->id,
+                'appointment_id' => $this->appointment->id,
+                'type' => $this->cameraPhotoType,
+                'body_area' => null,
+                'description' => $this->getPhotoDescription(),
+                'taken_at' => now(),
+                'taken_by' => auth()->id(),
+            ]);
+
+            // Add to media collection
+            $photo->addMedia($fullPath)
+                ->usingFileName($fileName)
+                ->usingName($this->getPhotoName())
+                ->toMediaCollection('photos');
+
+            // Reset
+            $this->cameraPhoto = null;
+
+            Notification::make()
+                ->title(__('booking::session.messages.photo_uploaded'))
+                ->success()
+                ->send();
+
+        } catch (\Exception $e) {
+            \Log::error('Camera capture failed: ' . $e->getMessage());
+
+            Notification::make()
+                ->title(__('booking::session.messages.error'))
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
+        }
+    }
+
+    public function uploadPhotoAction(): Action
+    {
+        return Action::make('uploadPhoto')
+            ->label(__('booking::session.photos.choose_file'))
+            ->icon('heroicon-o-photo')
+            ->form([
+                Forms\Components\FileUpload::make('photo')
+                    ->label(__('booking::session.photos.take_photo'))
+                    ->image()
+                    ->maxSize(10240) // 10MB for camera photos
+                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/gif', 'image/webp'])
+                    ->disk('tenant')
+                    ->directory('patient-photos')
+                    ->required(),
+                Forms\Components\Select::make('type')
+                    ->label(__('booking::session.products.usage_type'))
+                    ->options(PatientPhoto::TYPES)
+                    ->default('progress')
+                    ->required(),
+            ])
+            ->action(function (array $data): void {
+                try {
+                    $photoPath = $data['photo'];
+
+                    if (empty($photoPath)) {
+                        throw new \Exception('No photo uploaded');
+                    }
+
+                    // Get full path from tenant disk
+                    $fullPath = \Storage::disk('tenant')->path($photoPath);
+
+                    if (!file_exists($fullPath)) {
+                        throw new \Exception('Uploaded file not found');
+                    }
+
+                    // Create the photo record
+                    $photo = PatientPhoto::create([
+                        'patient_id' => $this->patient->id,
+                        'appointment_id' => $this->appointment->id,
+                        'type' => $data['type'] ?? 'progress',
+                        'body_area' => null,
+                        'description' => $this->getPhotoDescription(),
+                        'taken_at' => now(),
+                        'taken_by' => auth()->id(),
+                    ]);
+
+                    // Add to media collection from tenant storage
+                    $photo->addMedia($fullPath)
+                        ->usingFileName($this->getPhotoName() . '.' . pathinfo($fullPath, PATHINFO_EXTENSION))
+                        ->usingName($this->getPhotoName())
+                        ->toMediaCollection('photos');
+
+                    Notification::make()
+                        ->title(__('booking::session.messages.photo_uploaded'))
+                        ->success()
+                        ->send();
+                } catch (\Exception $e) {
+                    \Log::error('Photo upload failed: ' . $e->getMessage());
+
+                    Notification::make()
+                        ->title(__('booking::session.messages.error'))
+                        ->body($e->getMessage())
+                        ->danger()
+                        ->send();
+                }
+            });
+    }
+
     public function getPatientPhotos(): Collection
     {
         if (!$this->patient) {
@@ -1217,6 +1353,31 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
         return $this->appointment->treatmentPlanAppointment->item->treatmentPlan;
     }
 
+    // Track if photo upload is ready
+    public bool $photoUploadReady = false;
+
+    // Called when photoUpload property is updated by Livewire
+    public function updatedPhotoUpload($value): void
+    {
+        \Log::info('=== updatedPhotoUpload HOOK TRIGGERED ===', [
+            'hasValue' => !empty($value),
+            'valueType' => $value ? get_class($value) : 'null',
+            'photoUploadProp' => !empty($this->photoUpload) ? get_class($this->photoUpload) : 'null',
+        ]);
+
+        if ($this->photoUpload) {
+            $this->photoUploadReady = true;
+
+            \Log::info('Photo upload ready - dispatching event', [
+                'fileName' => $this->photoUpload->getClientOriginalName(),
+                'size' => $this->photoUpload->getSize(),
+                'mimeType' => $this->photoUpload->getMimeType(),
+            ]);
+
+            $this->dispatch('photo-ready');
+        }
+    }
+
     public function addNote(): void
     {
         if (empty($this->noteContent)) {
@@ -1246,6 +1407,11 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
 
     public function uploadPhoto(): void
     {
+        \Log::info('uploadPhoto called', [
+            'hasFile' => !empty($this->photoUpload),
+            'fileType' => $this->photoUpload ? get_class($this->photoUpload) : null,
+        ]);
+
         if (!$this->photoUpload) {
             Notification::make()
                 ->title(__('booking::session.messages.photo_required'))
@@ -1254,27 +1420,63 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
             return;
         }
 
-        $photo = PatientPhoto::create([
-            'patient_id' => $this->patient->id,
-            'appointment_id' => $this->appointment->id,
-            'type' => $this->photoType,
-            'body_area' => $this->photoBodyArea,
-            'description' => $this->photoDescription ?? $this->getPhotoDescription(),
-            'taken_at' => now(),
-            'taken_by' => auth()->id(),
-        ]);
+        try {
+            // Get the original extension
+            $extension = $this->photoUpload->getClientOriginalExtension() ?: 'jpg';
+            $fileName = $this->getPhotoName() . '.' . $extension;
 
-        $photo->addMedia($this->photoUpload->getRealPath())
-            ->usingName($this->getPhotoName())
-            ->toMediaCollection('photos');
+            \Log::info('Storing temp file', ['fileName' => $fileName, 'extension' => $extension]);
 
-        $this->photoUpload = null;
-        $this->photoDescription = null;
+            // Store the uploaded file temporarily
+            $tempPath = $this->photoUpload->storeAs('temp-photos', $fileName, 'local');
+            $fullPath = storage_path('app/' . $tempPath);
 
-        Notification::make()
-            ->title(__('booking::session.messages.photo_uploaded'))
-            ->success()
-            ->send();
+            \Log::info('Temp file stored', ['tempPath' => $tempPath, 'fullPath' => $fullPath, 'exists' => file_exists($fullPath)]);
+
+            // Create the photo record
+            $photo = PatientPhoto::create([
+                'patient_id' => $this->patient->id,
+                'appointment_id' => $this->appointment->id,
+                'type' => $this->photoType,
+                'body_area' => $this->photoBodyArea,
+                'description' => $this->photoDescription ?? $this->getPhotoDescription(),
+                'taken_at' => now(),
+                'taken_by' => auth()->id(),
+            ]);
+
+            \Log::info('PatientPhoto created', ['photo_id' => $photo->id]);
+
+            // Add to media collection
+            $photo->addMedia($fullPath)
+                ->usingFileName($fileName)
+                ->usingName($this->getPhotoName())
+                ->toMediaCollection('photos');
+
+            \Log::info('Media added to collection', ['media_count' => $photo->getMedia('photos')->count()]);
+
+            // Reset form
+            $this->photoUpload = null;
+            $this->photoDescription = null;
+            $this->dispatch('photo-uploaded');
+
+            Notification::make()
+                ->title(__('booking::session.messages.photo_uploaded'))
+                ->success()
+                ->send();
+        } catch (\Exception $e) {
+            \Log::error('Photo upload failed: ' . $e->getMessage(), [
+                'exception' => $e,
+                'trace' => $e->getTraceAsString(),
+                'patient_id' => $this->patient?->id,
+                'appointment_id' => $this->appointment?->id,
+            ]);
+
+            Notification::make()
+                ->title(__('booking::session.messages.error'))
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
+        }
     }
 
     protected function getPhotoDescription(): string

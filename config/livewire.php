@@ -65,9 +65,9 @@ return [
 
     'temporary_file_upload' => [
         'disk' => 'local',
-        'rules' => ['file', 'max:12288'],
+        'rules' => ['file', 'max:10240', 'mimes:jpg,jpeg,png,gif,webp'], // 10MB for camera photos
         'directory' => 'livewire-tmp',
-        'middleware' => null,  // Example: 'throttle:5,1'             | Default: 'throttle:60,1'
+        'middleware' => null,  // No throttle to avoid upload issues
         'preview_mimes' => [   // Supported file types for temporary pre-signed file URLs...
             'png', 'gif', 'bmp', 'svg', 'wav', 'mp4',
             'mov', 'avi', 'wmv', 'mp3', 'm4a',

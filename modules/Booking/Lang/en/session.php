@@ -90,6 +90,10 @@ return [
     // Photos
     'photos' => [
         'upload' => 'Upload',
+        'take_photo' => 'Take Photo',
+        'choose_file' => 'Gallery',
+        'selected' => 'Selected',
+        'uploading' => 'Uploading...',
         'select_area' => 'Body area...',
         'no_photos' => 'No photos recorded',
     ],

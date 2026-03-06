@@ -585,6 +585,15 @@ class InvoiceResource extends Resource
                                 ->required(),
                         ])
                         ->action(fn (Invoice $record, array $data) => $record->cancel($data['reason'])),
+
+                    Tables\Actions\Action::make('reset_to_draft')
+                        ->label(__('billing::billing.actions.reset_to_draft'))
+                        ->icon('heroicon-o-arrow-uturn-left')
+                        ->color('warning')
+                        ->requiresConfirmation()
+                        ->modalDescription(__('billing::billing.messages.reset_to_draft_confirmation'))
+                        ->visible(fn (Invoice $record) => $record->canResetToDraft())
+                        ->action(fn (Invoice $record) => $record->resetToDraft()),
                 ]),
             ])
             ->bulkActions([
