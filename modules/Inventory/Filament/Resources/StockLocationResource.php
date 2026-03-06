@@ -198,7 +198,9 @@ class StockLocationResource extends Resource
 
     public static function getRelations(): array
     {
-        return [];
+        return [
+            \Modules\Inventory\Filament\Resources\StockLocationResource\RelationManagers\StockLevelsRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

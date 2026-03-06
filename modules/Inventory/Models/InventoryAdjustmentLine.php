@@ -112,7 +112,11 @@ class InventoryAdjustmentLine extends BaseModel
         }
 
         $adjustment = $this->inventoryAdjustment;
-        $stockLevel = StockLevel::getOrCreate($this->product_id, $adjustment->branch_id);
+        $stockLevel = StockLevel::getOrCreate(
+            $this->product_id,
+            $adjustment->branch_id,
+            $adjustment->location_id // Use the adjustment's location
+        );
 
         if ($this->isPositiveAdjustment()) {
             $stockLevel->increase(

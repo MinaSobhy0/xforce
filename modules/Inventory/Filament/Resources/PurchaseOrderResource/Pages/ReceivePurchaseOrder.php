@@ -67,19 +67,20 @@ class ReceivePurchaseOrder extends Page
                                 return StockLocation::where('branch_id', $branchId)
                                     ->where('location_type', StockLocation::TYPE_INTERNAL)
                                     ->active()
+                                    ->orderBy('sort_order')
                                     ->get()
                                     ->pluck('indented_name', 'id');
                             })
                             ->default(function () {
                                 $branchId = $this->record->branch_id;
-                                // Try to get WH/INPUT first, then fall back to WH/STOCK
-                                $inputLocation = StockLocation::getInputLocation($branchId);
-                                if ($inputLocation) {
-                                    return $inputLocation->id;
-                                }
-                                $defaultLocation = StockLocation::getDefaultLocation($branchId);
-                                return $defaultLocation?->id;
+                                // Default to first internal location (ordered by sort_order)
+                                return StockLocation::where('branch_id', $branchId)
+                                    ->where('location_type', StockLocation::TYPE_INTERNAL)
+                                    ->active()
+                                    ->orderBy('sort_order')
+                                    ->first()?->id;
                             })
+                            ->required()
                             ->searchable()
                             ->preload()
                             ->helperText(__('inventory::inventory.helpers.destination_location')),

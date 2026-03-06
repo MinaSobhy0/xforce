@@ -13,6 +13,7 @@ use Filament\Infolists\Infolist;
 use Filament\Notifications\Notification;
 use Modules\Core\Models\Branch;
 use Modules\Inventory\Models\InventoryAdjustment;
+use Modules\Inventory\Models\StockLocation;
 use Modules\Inventory\Filament\Resources\InventoryAdjustmentResource\Pages;
 use Modules\Inventory\Filament\Resources\InventoryAdjustmentResource\RelationManagers;
 
@@ -55,7 +56,7 @@ class InventoryAdjustmentResource extends Resource
             ->schema([
                 Forms\Components\Section::make(__('inventory::inventory.sections.adjustment_info'))
                     ->schema([
-                        Forms\Components\Grid::make(3)
+                        Forms\Components\Grid::make(4)
                             ->schema([
                                 Forms\Components\TextInput::make('reference')
                                     ->label(__('inventory::inventory.fields.reference'))
@@ -70,6 +71,34 @@ class InventoryAdjustmentResource extends Resource
                                     ->searchable()
                                     ->preload()
                                     ->default(fn () => current_branch_id())
+                                    ->live()
+                                    ->afterStateUpdated(fn (Forms\Set $set) => $set('location_id', null))
+                                    ->disabled(fn (?InventoryAdjustment $record) => $record !== null),
+
+                                Forms\Components\Select::make('location_id')
+                                    ->label(__('inventory::inventory.fields.location'))
+                                    ->options(function (Forms\Get $get) {
+                                        $branchId = $get('branch_id');
+                                        if (!$branchId) return [];
+                                        return StockLocation::where('branch_id', $branchId)
+                                            ->where('location_type', StockLocation::TYPE_INTERNAL)
+                                            ->active()
+                                            ->orderBy('sort_order')
+                                            ->get()
+                                            ->pluck('indented_name', 'id');
+                                    })
+                                    ->default(function () {
+                                        $branchId = current_branch_id();
+                                        if (!$branchId) return null;
+                                        return StockLocation::where('branch_id', $branchId)
+                                            ->where('location_type', StockLocation::TYPE_INTERNAL)
+                                            ->active()
+                                            ->orderBy('sort_order')
+                                            ->first()?->id;
+                                    })
+                                    ->required()
+                                    ->searchable()
+                                    ->preload()
                                     ->disabled(fn (?InventoryAdjustment $record) => $record !== null),
 
                                 Forms\Components\Select::make('adjustment_type')
@@ -208,6 +237,11 @@ class InventoryAdjustmentResource extends Resource
                     ->label(__('inventory::inventory.fields.branch'))
                     ->sortable(),
 
+                Tables\Columns\TextColumn::make('location.code')
+                    ->label(__('inventory::inventory.fields.location'))
+                    ->description(fn (InventoryAdjustment $record) => $record->location?->getTranslation('name', app()->getLocale()))
+                    ->sortable(),
+
                 Tables\Columns\TextColumn::make('adjustment_type')
                     ->label(__('inventory::inventory.fields.adjustment_type'))
                     ->badge()
@@ -309,13 +343,16 @@ class InventoryAdjustmentResource extends Resource
             ->schema([
                 Infolists\Components\Section::make(__('inventory::inventory.sections.adjustment_info'))
                     ->schema([
-                        Infolists\Components\Grid::make(4)
+                        Infolists\Components\Grid::make(5)
                             ->schema([
                                 Infolists\Components\TextEntry::make('reference')
                                     ->label(__('inventory::inventory.fields.reference')),
 
                                 Infolists\Components\TextEntry::make('branch.name')
                                     ->label(__('inventory::inventory.fields.branch')),
+
+                                Infolists\Components\TextEntry::make('location.full_path_name')
+                                    ->label(__('inventory::inventory.fields.location')),
 
                                 Infolists\Components\TextEntry::make('adjustment_type')
                                     ->label(__('inventory::inventory.fields.adjustment_type'))

@@ -16,6 +16,7 @@ class InventoryAdjustment extends BaseModel
     protected $fillable = [
         'tenant_id',
         'branch_id',
+        'location_id',
         'reference',
         'adjustment_type',
         'adjustment_date',
@@ -89,6 +90,11 @@ class InventoryAdjustment extends BaseModel
     public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class, 'branch_id');
+    }
+
+    public function location(): BelongsTo
+    {
+        return $this->belongsTo(StockLocation::class, 'location_id');
     }
 
     public function lines(): HasMany
@@ -257,7 +263,7 @@ class InventoryAdjustment extends BaseModel
 
     /**
      * Load products for counting from current stock levels.
-     * Loads ALL active products in the branch, not just those with stock.
+     * Loads ALL active storable products in the branch/location with their current stock.
      */
     public function loadProductsFromStock(): void
     {
@@ -265,8 +271,10 @@ class InventoryAdjustment extends BaseModel
             return;
         }
 
-        // Get all active products
-        $products = Product::where('is_active', true)->get();
+        // Get all active storable products
+        $products = Product::where('is_active', true)
+            ->storable()
+            ->get();
 
         foreach ($products as $product) {
             // Check if line already exists
@@ -275,11 +283,16 @@ class InventoryAdjustment extends BaseModel
                 ->first();
 
             if (!$existingLine) {
-                // Get stock level for this branch
-                $stockLevel = StockLevel::where('product_id', $product->id)
-                    ->where('branch_id', $this->branch_id)
-                    ->first();
+                // Get stock level for this branch and location
+                $query = StockLevel::where('product_id', $product->id)
+                    ->where('branch_id', $this->branch_id);
 
+                // If location is specified, filter by it
+                if ($this->location_id) {
+                    $query->where('location_id', $this->location_id);
+                }
+
+                $stockLevel = $query->first();
                 $theoreticalQty = $stockLevel?->quantity_on_hand ?? 0;
 
                 InventoryAdjustmentLine::create([

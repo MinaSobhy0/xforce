@@ -70,8 +70,18 @@ class StockTransferResource extends Resource
                                 return StockLocation::where('branch_id', $branchId)
                                     ->where('location_type', StockLocation::TYPE_INTERNAL)
                                     ->active()
+                                    ->orderBy('sort_order')
                                     ->get()
                                     ->pluck('indented_name', 'id');
+                            })
+                            ->default(function () {
+                                $branchId = BranchContext::currentId();
+                                if (!$branchId) return null;
+                                return StockLocation::where('branch_id', $branchId)
+                                    ->where('location_type', StockLocation::TYPE_INTERNAL)
+                                    ->active()
+                                    ->orderBy('sort_order')
+                                    ->first()?->id;
                             })
                             ->required()
                             ->searchable()
@@ -88,6 +98,7 @@ class StockTransferResource extends Resource
                                     ->where('location_type', StockLocation::TYPE_INTERNAL)
                                     ->where('id', '!=', $sourceId)
                                     ->active()
+                                    ->orderBy('sort_order')
                                     ->get()
                                     ->pluck('indented_name', 'id');
                             })

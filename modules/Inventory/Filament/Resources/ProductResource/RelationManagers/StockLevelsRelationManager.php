@@ -10,6 +10,7 @@ use Filament\Tables\Table;
 use Filament\Notifications\Notification;
 use Modules\Core\Models\Branch;
 use Modules\Inventory\Models\StockLevel;
+use Modules\Inventory\Models\StockLocation;
 
 class StockLevelsRelationManager extends RelationManager
 {
@@ -25,6 +26,24 @@ class StockLevelsRelationManager extends RelationManager
                     ->label(__('inventory::inventory.fields.branch'))
                     ->relationship('branch', 'id')
                     ->getOptionLabelFromRecordUsing(fn (Branch $record) => $record->name)
+                    ->required()
+                    ->searchable()
+                    ->preload()
+                    ->live()
+                    ->afterStateUpdated(fn (Forms\Set $set) => $set('location_id', null)),
+
+                Forms\Components\Select::make('location_id')
+                    ->label(__('inventory::inventory.fields.location'))
+                    ->options(function (Forms\Get $get) {
+                        $branchId = $get('branch_id');
+                        if (!$branchId) return [];
+                        return StockLocation::where('branch_id', $branchId)
+                            ->where('location_type', StockLocation::TYPE_INTERNAL)
+                            ->active()
+                            ->orderBy('sort_order')
+                            ->get()
+                            ->pluck('indented_name', 'id');
+                    })
                     ->required()
                     ->searchable()
                     ->preload(),
@@ -57,6 +76,12 @@ class StockLevelsRelationManager extends RelationManager
                     ->getStateUsing(fn (StockLevel $record) => $record->branch?->name)
                     ->searchable(),
 
+                Tables\Columns\TextColumn::make('location.code')
+                    ->label(__('inventory::inventory.fields.location'))
+                    ->description(fn (StockLevel $record) => $record->location?->getTranslation('name', app()->getLocale()))
+                    ->searchable()
+                    ->placeholder('-'),
+
                 Tables\Columns\TextColumn::make('quantity_on_hand')
                     ->label(__('inventory::inventory.fields.quantity_on_hand'))
                     ->sortable()
@@ -78,14 +103,24 @@ class StockLevelsRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('last_restock_at')
                     ->label(__('inventory::inventory.fields.last_restock'))
                     ->dateTime()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('last_count_at')
                     ->label(__('inventory::inventory.fields.last_count'))
                     ->dateTime()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
-            ->filters([])
+            ->filters([
+                Tables\Filters\SelectFilter::make('branch_id')
+                    ->label(__('inventory::inventory.fields.branch'))
+                    ->relationship('branch', 'name'),
+
+                Tables\Filters\SelectFilter::make('location_id')
+                    ->label(__('inventory::inventory.fields.location'))
+                    ->relationship('location', 'code'),
+            ])
             ->headerActions([
                 Tables\Actions\CreateAction::make(),
             ])

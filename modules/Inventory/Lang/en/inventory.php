@@ -211,6 +211,7 @@ return [
 
     'filters' => [
         'low_stock' => 'Low Stock',
+        'has_stock' => 'Has Stock',
         'incoming' => 'Incoming Only',
         'outgoing' => 'Outgoing Only',
     ],
@@ -235,6 +236,7 @@ return [
         'reverse_movement' => 'Reverse Movement',
         'confirm' => 'Confirm',
         'process' => 'Process Transfer',
+        'view_product' => 'View Product',
     ],
 
     'messages' => [

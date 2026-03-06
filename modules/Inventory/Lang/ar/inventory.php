@@ -211,6 +211,7 @@ return [
 
     'filters' => [
         'low_stock' => 'مخزون منخفض',
+        'has_stock' => 'يوجد مخزون',
         'incoming' => 'الوارد فقط',
         'outgoing' => 'الصادر فقط',
     ],
@@ -235,6 +236,7 @@ return [
         'reverse_movement' => 'عكس الحركة',
         'confirm' => 'تأكيد',
         'process' => 'تنفيذ التحويل',
+        'view_product' => 'عرض المنتج',
     ],
 
     'messages' => [
