@@ -22,6 +22,8 @@ class StockMovement extends BaseModel
         'reference_id',
         'source_branch_id',
         'destination_branch_id',
+        'source_location_id',
+        'destination_location_id',
         'notes',
         'created_by',
     ];
@@ -39,6 +41,8 @@ class StockMovement extends BaseModel
     public const TYPE_OUT = 'out';
     public const TYPE_TRANSFER_IN = 'transfer_in';
     public const TYPE_TRANSFER_OUT = 'transfer_out';
+    public const TYPE_LOCATION_TRANSFER_IN = 'location_transfer_in';
+    public const TYPE_LOCATION_TRANSFER_OUT = 'location_transfer_out';
     public const TYPE_ADJUSTMENT = 'adjustment';
     public const TYPE_PURCHASE_RECEIVE = 'purchase_receive';
     public const TYPE_APPOINTMENT_CONSUME = 'appointment_consume';
@@ -51,6 +55,8 @@ class StockMovement extends BaseModel
         self::TYPE_OUT => 'Stock Out',
         self::TYPE_TRANSFER_IN => 'Transfer In',
         self::TYPE_TRANSFER_OUT => 'Transfer Out',
+        self::TYPE_LOCATION_TRANSFER_IN => 'Location Transfer In',
+        self::TYPE_LOCATION_TRANSFER_OUT => 'Location Transfer Out',
         self::TYPE_ADJUSTMENT => 'Adjustment',
         self::TYPE_PURCHASE_RECEIVE => 'Purchase Receive',
         self::TYPE_APPOINTMENT_CONSUME => 'Appointment Consume',
@@ -64,6 +70,8 @@ class StockMovement extends BaseModel
         self::TYPE_OUT => 'danger',
         self::TYPE_TRANSFER_IN => 'info',
         self::TYPE_TRANSFER_OUT => 'warning',
+        self::TYPE_LOCATION_TRANSFER_IN => 'info',
+        self::TYPE_LOCATION_TRANSFER_OUT => 'warning',
         self::TYPE_ADJUSTMENT => 'gray',
         self::TYPE_PURCHASE_RECEIVE => 'success',
         self::TYPE_APPOINTMENT_CONSUME => 'danger',
@@ -105,6 +113,22 @@ class StockMovement extends BaseModel
     }
 
     /**
+     * Get the source location.
+     */
+    public function sourceLocation(): BelongsTo
+    {
+        return $this->belongsTo(StockLocation::class, 'source_location_id');
+    }
+
+    /**
+     * Get the destination location.
+     */
+    public function destinationLocation(): BelongsTo
+    {
+        return $this->belongsTo(StockLocation::class, 'destination_location_id');
+    }
+
+    /**
      * Get the creator.
      */
     public function createdBy(): BelongsTo
@@ -120,6 +144,7 @@ class StockMovement extends BaseModel
         return in_array($this->movement_type, [
             self::TYPE_IN,
             self::TYPE_TRANSFER_IN,
+            self::TYPE_LOCATION_TRANSFER_IN,
             self::TYPE_PURCHASE_RECEIVE,
             self::TYPE_RETURN,
         ]);
@@ -133,6 +158,7 @@ class StockMovement extends BaseModel
         return in_array($this->movement_type, [
             self::TYPE_OUT,
             self::TYPE_TRANSFER_OUT,
+            self::TYPE_LOCATION_TRANSFER_OUT,
             self::TYPE_APPOINTMENT_CONSUME,
             self::TYPE_INVOICE_SALE,
             self::TYPE_WASTE,
@@ -156,6 +182,7 @@ class StockMovement extends BaseModel
         return $query->whereIn('movement_type', [
             self::TYPE_IN,
             self::TYPE_TRANSFER_IN,
+            self::TYPE_LOCATION_TRANSFER_IN,
             self::TYPE_PURCHASE_RECEIVE,
             self::TYPE_RETURN,
         ]);
@@ -169,6 +196,7 @@ class StockMovement extends BaseModel
         return $query->whereIn('movement_type', [
             self::TYPE_OUT,
             self::TYPE_TRANSFER_OUT,
+            self::TYPE_LOCATION_TRANSFER_OUT,
             self::TYPE_APPOINTMENT_CONSUME,
             self::TYPE_INVOICE_SALE,
             self::TYPE_WASTE,
@@ -211,6 +239,64 @@ class StockMovement extends BaseModel
         );
         $inMovement->source_branch_id = $sourceBranchId;
         $inMovement->destination_branch_id = $destinationBranchId;
+        $inMovement->save();
+
+        return [$outMovement, $inMovement];
+    }
+
+    /**
+     * Create a stock transfer between locations (within same branch).
+     *
+     * @param string $productId
+     * @param string $sourceLocationId
+     * @param string $destinationLocationId
+     * @param int $quantity
+     * @param string|null $notes
+     * @return array [outMovement, inMovement]
+     */
+    public static function createLocationTransfer(
+        string $productId,
+        string $sourceLocationId,
+        string $destinationLocationId,
+        int $quantity,
+        ?string $notes = null
+    ): array {
+        $sourceLocation = StockLocation::findOrFail($sourceLocationId);
+        $destLocation = StockLocation::findOrFail($destinationLocationId);
+
+        // Both locations must be in the same branch
+        if ($sourceLocation->branch_id !== $destLocation->branch_id) {
+            throw new \InvalidArgumentException('Location transfers must be within the same branch');
+        }
+
+        $branchId = $sourceLocation->branch_id;
+
+        // Get or create stock levels for both locations
+        $sourceStock = StockLevel::getOrCreate($productId, $branchId, $sourceLocationId);
+        $destStock = StockLevel::getOrCreate($productId, $branchId, $destinationLocationId);
+
+        // Decrease source location
+        $outMovement = $sourceStock->decrease(
+            $quantity,
+            self::TYPE_LOCATION_TRANSFER_OUT,
+            'location_transfer',
+            $destinationLocationId,
+            $notes ?? "Transfer to " . $destLocation->code
+        );
+        $outMovement->source_location_id = $sourceLocationId;
+        $outMovement->destination_location_id = $destinationLocationId;
+        $outMovement->save();
+
+        // Increase destination location
+        $inMovement = $destStock->increase(
+            $quantity,
+            self::TYPE_LOCATION_TRANSFER_IN,
+            'location_transfer',
+            $sourceLocationId,
+            $notes ?? "Transfer from " . $sourceLocation->code
+        );
+        $inMovement->source_location_id = $sourceLocationId;
+        $inMovement->destination_location_id = $destinationLocationId;
         $inMovement->save();
 
         return [$outMovement, $inMovement];

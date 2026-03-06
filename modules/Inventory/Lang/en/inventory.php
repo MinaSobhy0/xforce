@@ -11,6 +11,8 @@ return [
         'inventory_adjustments' => 'Inventory Adjustments',
         'uom_categories' => 'UoM Categories',
         'uoms' => 'Units of Measure',
+        'stock_locations' => 'Stock Locations',
+        'stock_transfers' => 'Stock Transfers',
     ],
 
     'labels' => [
@@ -32,6 +34,10 @@ return [
         'uom_categories' => 'UoM Categories',
         'uom' => 'Unit of Measure',
         'uoms' => 'Units of Measure',
+        'stock_location' => 'Stock Location',
+        'stock_locations' => 'Stock Locations',
+        'stock_transfer' => 'Stock Transfer',
+        'stock_transfers' => 'Stock Transfers',
     ],
 
     'sections' => [
@@ -185,6 +191,17 @@ return [
         'uom_type' => 'UoM Type',
         'is_reference' => 'Reference Unit',
         'rounding_precision' => 'Rounding Precision',
+        'location' => 'Location',
+        'parent_location' => 'Parent Location',
+        'location_type' => 'Location Type',
+        'is_scrap_location' => 'Scrap Location',
+        'is_return_location' => 'Return Location',
+        'source_location' => 'Source Location',
+        'destination_location' => 'Destination Location',
+        'transfer_number' => 'Transfer Number',
+        'scheduled_date' => 'Scheduled Date',
+        'effective_date' => 'Effective Date',
+        'quantity_done' => 'Qty Done',
     ],
 
     'discount_types' => [
@@ -216,6 +233,8 @@ return [
         'add_line_item' => 'Add Line Item',
         'view_source' => 'View Source',
         'reverse_movement' => 'Reverse Movement',
+        'confirm' => 'Confirm',
+        'process' => 'Process Transfer',
     ],
 
     'messages' => [
@@ -252,6 +271,10 @@ return [
         'reversal_of' => 'Reversal of movement #:id',
         'movement_reversed' => 'Movement reversed successfully',
         'stock_level_not_found' => 'Stock level not found',
+        'transfer_confirmed' => 'Transfer confirmed successfully',
+        'transfer_completed' => 'Transfer completed successfully',
+        'transfer_cancelled' => 'Transfer cancelled',
+        'process_transfer_confirmation' => 'This will move the stock between locations. This action cannot be undone.',
     ],
 
     'help' => [
@@ -291,6 +314,8 @@ return [
         'out' => 'Stock Out',
         'transfer_in' => 'Transfer In',
         'transfer_out' => 'Transfer Out',
+        'location_transfer_in' => 'Location Transfer In',
+        'location_transfer_out' => 'Location Transfer Out',
         'adjustment' => 'Adjustment',
         'purchase_receive' => 'Purchase Receive',
         'appointment_consume' => 'Appointment Consume',
@@ -314,12 +339,28 @@ return [
         'smaller' => 'Smaller than reference',
     ],
 
+    'location_types' => [
+        'internal' => 'Internal',
+        'view' => 'View',
+        'supplier' => 'Supplier',
+        'customer' => 'Customer',
+        'inventory' => 'Inventory',
+    ],
+
+    'transfer_statuses' => [
+        'draft' => 'Draft',
+        'confirmed' => 'Confirmed',
+        'done' => 'Done',
+        'cancelled' => 'Cancelled',
+    ],
+
     'helpers' => [
         'ratio' => 'Conversion ratio to reference unit (e.g., 12 for dozen)',
         'is_reference' => 'Only one reference unit allowed per category',
         'sales_uom' => 'Default unit for sales and inventory tracking',
         'purchase_uom' => 'Unit used when purchasing (must be same category as Sales UoM)',
         'product_type' => 'Storable tracks inventory, Consumable assumed always available',
+        'destination_location' => 'Select where to store the received items',
     ],
 
     'widgets' => [

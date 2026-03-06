@@ -8,6 +8,7 @@ use Filament\Resources\Pages\Page;
 use Filament\Notifications\Notification;
 use Modules\Inventory\Models\PurchaseOrder;
 use Modules\Inventory\Models\PurchaseOrderLine;
+use Modules\Inventory\Models\StockLocation;
 use Modules\Inventory\Filament\Resources\PurchaseOrderResource;
 
 class ReceivePurchaseOrder extends Page
@@ -59,6 +60,30 @@ class ReceivePurchaseOrder extends Page
             ->schema([
                 Forms\Components\Section::make(__('inventory::inventory.sections.receive_items'))
                     ->schema([
+                        Forms\Components\Select::make('destination_location_id')
+                            ->label(__('inventory::inventory.fields.destination_location'))
+                            ->options(function () {
+                                $branchId = $this->record->branch_id;
+                                return StockLocation::where('branch_id', $branchId)
+                                    ->where('location_type', StockLocation::TYPE_INTERNAL)
+                                    ->active()
+                                    ->get()
+                                    ->pluck('indented_name', 'id');
+                            })
+                            ->default(function () {
+                                $branchId = $this->record->branch_id;
+                                // Try to get WH/INPUT first, then fall back to WH/STOCK
+                                $inputLocation = StockLocation::getInputLocation($branchId);
+                                if ($inputLocation) {
+                                    return $inputLocation->id;
+                                }
+                                $defaultLocation = StockLocation::getDefaultLocation($branchId);
+                                return $defaultLocation?->id;
+                            })
+                            ->searchable()
+                            ->preload()
+                            ->helperText(__('inventory::inventory.helpers.destination_location')),
+
                         Forms\Components\Repeater::make('lines')
                             ->schema([
                                 Forms\Components\Hidden::make('id'),
@@ -107,6 +132,7 @@ class ReceivePurchaseOrder extends Page
         $data = $this->form->getState();
 
         $hasReceivedItems = false;
+        $locationId = $data['destination_location_id'] ?? null;
 
         foreach ($data['lines'] as $lineData) {
             $receiveQty = (int) ($lineData['receive_now'] ?? 0);
@@ -115,7 +141,7 @@ class ReceivePurchaseOrder extends Page
                 $line = PurchaseOrderLine::find($lineData['id']);
 
                 if ($line && $line->remaining_quantity > 0) {
-                    $line->receiveItems(min($receiveQty, $line->remaining_quantity));
+                    $line->receiveItems(min($receiveQty, $line->remaining_quantity), $locationId);
                     $hasReceivedItems = true;
                 }
             }

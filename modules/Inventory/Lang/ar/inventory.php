@@ -11,6 +11,8 @@ return [
         'inventory_adjustments' => 'تسويات المخزون',
         'uom_categories' => 'فئات وحدات القياس',
         'uoms' => 'وحدات القياس',
+        'stock_locations' => 'مواقع المخزون',
+        'stock_transfers' => 'تحويلات المخزون',
     ],
 
     'labels' => [
@@ -32,6 +34,10 @@ return [
         'uom_categories' => 'فئات وحدات القياس',
         'uom' => 'وحدة القياس',
         'uoms' => 'وحدات القياس',
+        'stock_location' => 'موقع المخزون',
+        'stock_locations' => 'مواقع المخزون',
+        'stock_transfer' => 'تحويل مخزون',
+        'stock_transfers' => 'تحويلات المخزون',
     ],
 
     'sections' => [
@@ -185,6 +191,17 @@ return [
         'uom_type' => 'نوع الوحدة',
         'is_reference' => 'وحدة مرجعية',
         'rounding_precision' => 'دقة التقريب',
+        'location' => 'الموقع',
+        'parent_location' => 'الموقع الرئيسي',
+        'location_type' => 'نوع الموقع',
+        'is_scrap_location' => 'موقع الهالك',
+        'is_return_location' => 'موقع المرتجعات',
+        'source_location' => 'الموقع المصدر',
+        'destination_location' => 'الموقع الوجهة',
+        'transfer_number' => 'رقم التحويل',
+        'scheduled_date' => 'التاريخ المجدول',
+        'effective_date' => 'تاريخ التنفيذ',
+        'quantity_done' => 'الكمية المنفذة',
     ],
 
     'discount_types' => [
@@ -216,6 +233,8 @@ return [
         'add_line_item' => 'إضافة بند',
         'view_source' => 'عرض المصدر',
         'reverse_movement' => 'عكس الحركة',
+        'confirm' => 'تأكيد',
+        'process' => 'تنفيذ التحويل',
     ],
 
     'messages' => [
@@ -252,6 +271,10 @@ return [
         'reversal_of' => 'عكس الحركة #:id',
         'movement_reversed' => 'تم عكس الحركة بنجاح',
         'stock_level_not_found' => 'مستوى المخزون غير موجود',
+        'transfer_confirmed' => 'تم تأكيد التحويل بنجاح',
+        'transfer_completed' => 'تم إكمال التحويل بنجاح',
+        'transfer_cancelled' => 'تم إلغاء التحويل',
+        'process_transfer_confirmation' => 'سيتم نقل المخزون بين المواقع. لا يمكن التراجع عن هذا الإجراء.',
     ],
 
     'help' => [
@@ -291,6 +314,8 @@ return [
         'out' => 'إخراج مخزون',
         'transfer_in' => 'تحويل وارد',
         'transfer_out' => 'تحويل صادر',
+        'location_transfer_in' => 'تحويل موقع وارد',
+        'location_transfer_out' => 'تحويل موقع صادر',
         'adjustment' => 'تعديل',
         'purchase_receive' => 'استلام شراء',
         'appointment_consume' => 'استهلاك موعد',
@@ -314,12 +339,28 @@ return [
         'smaller' => 'أصغر من المرجعية',
     ],
 
+    'location_types' => [
+        'internal' => 'داخلي',
+        'view' => 'عرض',
+        'supplier' => 'مورد',
+        'customer' => 'عميل',
+        'inventory' => 'جرد',
+    ],
+
+    'transfer_statuses' => [
+        'draft' => 'مسودة',
+        'confirmed' => 'مؤكد',
+        'done' => 'مكتمل',
+        'cancelled' => 'ملغي',
+    ],
+
     'helpers' => [
         'ratio' => 'نسبة التحويل للوحدة المرجعية (مثال: 12 للدرزن)',
         'is_reference' => 'وحدة مرجعية واحدة فقط مسموح بها لكل فئة',
         'sales_uom' => 'الوحدة الافتراضية للمبيعات وتتبع المخزون',
         'purchase_uom' => 'الوحدة المستخدمة عند الشراء (يجب أن تكون من نفس فئة وحدة البيع)',
         'product_type' => 'القابل للتخزين يتتبع المخزون، الاستهلاكي يُفترض توفره دائماً',
+        'destination_location' => 'حدد مكان تخزين العناصر المستلمة',
     ],
 
     'widgets' => [

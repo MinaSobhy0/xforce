@@ -182,6 +182,14 @@ class StockMovementResource extends Resource
                     })
                     ->toggleable(),
 
+                Tables\Columns\TextColumn::make('sourceLocation.code')
+                    ->label(__('inventory::inventory.fields.source_location'))
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                Tables\Columns\TextColumn::make('destinationLocation.code')
+                    ->label(__('inventory::inventory.fields.destination_location'))
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 Tables\Columns\TextColumn::make('notes')
                     ->label(__('inventory::inventory.fields.notes'))
                     ->limit(30)

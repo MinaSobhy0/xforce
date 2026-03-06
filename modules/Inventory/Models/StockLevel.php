@@ -14,6 +14,7 @@ class StockLevel extends BaseModel
         'tenant_id',
         'product_id',
         'branch_id',
+        'location_id',
         'quantity_on_hand',
         'quantity_reserved',
         'quantity_on_order',
@@ -51,6 +52,14 @@ class StockLevel extends BaseModel
     public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);
+    }
+
+    /**
+     * Get the location.
+     */
+    public function location(): BelongsTo
+    {
+        return $this->belongsTo(StockLocation::class, 'location_id');
     }
 
     /**
@@ -96,6 +105,7 @@ class StockLevel extends BaseModel
             'quantity_after' => $this->quantity_on_hand,
             'reference_type' => $referenceType,
             'reference_id' => $referenceId,
+            'destination_location_id' => $this->location_id,
             'notes' => $notes,
         ]);
     }
@@ -119,6 +129,7 @@ class StockLevel extends BaseModel
             'quantity_after' => $this->quantity_on_hand,
             'reference_type' => $referenceType,
             'reference_id' => $referenceId,
+            'source_location_id' => $this->location_id,
             'notes' => $notes,
         ]);
     }
@@ -168,14 +179,31 @@ class StockLevel extends BaseModel
     }
 
     /**
-     * Get or create stock level for a product and branch.
+     * Get or create stock level for a product, branch, and optionally location.
+     *
+     * @param string $productId
+     * @param string $branchId
+     * @param string|null $locationId If null, uses default WH/STOCK location
+     * @param string|null $tenantId
+     * @return self
      */
-    public static function getOrCreate(string $productId, string $branchId, ?string $tenantId = null): self
-    {
+    public static function getOrCreate(
+        string $productId,
+        string $branchId,
+        ?string $locationId = null,
+        ?string $tenantId = null
+    ): self {
+        // If no location specified, try to get the default location
+        if ($locationId === null) {
+            $defaultLocation = StockLocation::getDefaultLocation($branchId);
+            $locationId = $defaultLocation?->id;
+        }
+
         return static::firstOrCreate(
             [
                 'product_id' => $productId,
                 'branch_id' => $branchId,
+                'location_id' => $locationId,
             ],
             [
                 'tenant_id' => $tenantId ?? app('currentTenant')?->id,
@@ -184,5 +212,13 @@ class StockLevel extends BaseModel
                 'quantity_on_order' => 0,
             ]
         );
+    }
+
+    /**
+     * Get the location name for display.
+     */
+    public function getLocationNameAttribute(): ?string
+    {
+        return $this->location?->getTranslation('name', app()->getLocale());
     }
 }

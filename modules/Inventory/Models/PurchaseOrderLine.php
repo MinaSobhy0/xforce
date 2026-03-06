@@ -137,8 +137,12 @@ class PurchaseOrderLine extends BaseModel
      * Odoo-like behavior:
      * - Storable products: Stock is increased, journal entries created
      * - Consumable products: Only quantity_received is updated (no stock tracking)
+     *
+     * @param int $quantity Quantity to receive
+     * @param string|null $locationId Destination location ID (null for default)
+     * @param string|null $notes Optional notes
      */
-    public function receiveItems(int $quantity, ?string $notes = null): ?StockMovement
+    public function receiveItems(int $quantity, ?string $locationId = null, ?string $notes = null): ?StockMovement
     {
         if ($quantity <= 0) {
             return null;
@@ -161,10 +165,11 @@ class PurchaseOrderLine extends BaseModel
         // Only create stock movements for storable products
         // Consumable products are not tracked in inventory
         if ($this->product && $this->product->tracksInventory()) {
-            // Get or create stock level for this product at the branch
+            // Get or create stock level for this product at the branch/location
             $stockLevel = StockLevel::getOrCreate(
                 $this->product_id,
                 $this->purchaseOrder->branch_id,
+                $locationId,
                 $this->tenant_id
             );
 
