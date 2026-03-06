@@ -668,14 +668,10 @@
                     </div>
                 </x-slot>
 
-                <div class="flex gap-2 mb-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                    <select wire:model="newConsumableId" class="flex-1 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm">
-                        <option value="">{{ __('booking::session.consumables.select') }}</option>
-                        @foreach($this->getAvailableConsumables() as $consumable)
-                            <option value="{{ $consumable->id }}">{{ $consumable->getTranslation('name', app()->getLocale()) }}</option>
-                        @endforeach
-                    </select>
-                    <input type="number" wire:model="newConsumableQty" class="w-16 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm text-center" min="0.1" step="0.1" placeholder="Qty" />
+                <div class="flex gap-2 mb-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg items-end">
+                    <div class="flex-1">
+                        {{ $this->consumableForm }}
+                    </div>
                     <x-filament::button wire:click="addConsumable" size="sm">
                         <x-heroicon-o-plus class="w-4 h-4" />
                     </x-filament::button>
@@ -712,14 +708,10 @@
                     </div>
                 </x-slot>
 
-                <div class="flex gap-2 mb-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg flex-wrap">
-                    <select wire:model="newProductId" class="flex-1 min-w-[120px] border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm">
-                        <option value="">{{ __('booking::session.products.select') }}</option>
-                        @foreach($this->getAvailableProducts() as $product)
-                            <option value="{{ $product->id }}">{{ $product->getTranslation('name', app()->getLocale()) }}</option>
-                        @endforeach
-                    </select>
-                    <input type="number" wire:model="newProductQty" class="w-14 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm text-center" min="1" placeholder="Qty" />
+                <div class="flex gap-2 mb-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg items-end">
+                    <div class="flex-1">
+                        {{ $this->productForm }}
+                    </div>
                     <x-filament::button wire:click="addProduct" size="sm">
                         <x-heroicon-o-plus class="w-4 h-4" />
                     </x-filament::button>

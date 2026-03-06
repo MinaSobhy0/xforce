@@ -114,6 +114,10 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
     public ?float $newProductQty = 1;
     public ?string $newProductUsageType = 'applied';
 
+    // Form data for searchable selects
+    public ?array $consumableFormData = [];
+    public ?array $productFormData = [];
+
     // Prescription data
     public array $prescriptionMedications = [];
     public ?string $prescriptionDiagnosis = null;
@@ -164,6 +168,107 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
 
         // Initialize invoice data
         $this->loadInvoiceData();
+    }
+
+    public function consumableForm(Form $form): Form
+    {
+        return $form
+            ->schema([
+                Forms\Components\Grid::make(3)
+                    ->schema([
+                        Forms\Components\Select::make('newConsumableId')
+                            ->label('')
+                            ->placeholder(__('booking::session.consumables.select'))
+                            ->options(function () {
+                                return Product::query()
+                                    ->where('is_active', true)
+                                    ->where('is_consumable', true)
+                                    ->limit(50)
+                                    ->get()
+                                    ->mapWithKeys(fn (Product $p) => [
+                                        $p->id => $p->getTranslation('name', app()->getLocale())
+                                    ]);
+                            })
+                            ->searchable()
+                            ->getSearchResultsUsing(function (string $search): array {
+                                return Product::query()
+                                    ->where('is_active', true)
+                                    ->where('is_consumable', true)
+                                    ->where(function ($q) use ($search) {
+                                        $q->where('name->en', 'ilike', "%{$search}%")
+                                            ->orWhere('name->ar', 'ilike', "%{$search}%")
+                                            ->orWhere('sku', 'ilike', "%{$search}%");
+                                    })
+                                    ->limit(20)
+                                    ->get()
+                                    ->mapWithKeys(fn (Product $p) => [
+                                        $p->id => $p->getTranslation('name', app()->getLocale())
+                                    ])
+                                    ->toArray();
+                            })
+                            ->columnSpan(2)
+                            ->extraAttributes(['class' => 'flex-1']),
+                        Forms\Components\TextInput::make('newConsumableQty')
+                            ->label('')
+                            ->numeric()
+                            ->default(1)
+                            ->minValue(0.1)
+                            ->step(0.1)
+                            ->placeholder(__('booking::session.consumables.quantity'))
+                            ->columnSpan(1),
+                    ]),
+            ])
+            ->statePath('consumableFormData');
+    }
+
+    public function productForm(Form $form): Form
+    {
+        return $form
+            ->schema([
+                Forms\Components\Grid::make(3)
+                    ->schema([
+                        Forms\Components\Select::make('newProductId')
+                            ->label('')
+                            ->placeholder(__('booking::session.products.select'))
+                            ->options(function () {
+                                return Product::query()
+                                    ->where('is_active', true)
+                                    ->where('is_consumable', false)
+                                    ->limit(50)
+                                    ->get()
+                                    ->mapWithKeys(fn (Product $p) => [
+                                        $p->id => $p->getTranslation('name', app()->getLocale())
+                                    ]);
+                            })
+                            ->searchable()
+                            ->getSearchResultsUsing(function (string $search): array {
+                                return Product::query()
+                                    ->where('is_active', true)
+                                    ->where('is_consumable', false)
+                                    ->where(function ($q) use ($search) {
+                                        $q->where('name->en', 'ilike', "%{$search}%")
+                                            ->orWhere('name->ar', 'ilike', "%{$search}%")
+                                            ->orWhere('sku', 'ilike', "%{$search}%");
+                                    })
+                                    ->limit(20)
+                                    ->get()
+                                    ->mapWithKeys(fn (Product $p) => [
+                                        $p->id => $p->getTranslation('name', app()->getLocale())
+                                    ])
+                                    ->toArray();
+                            })
+                            ->columnSpan(2)
+                            ->extraAttributes(['class' => 'flex-1']),
+                        Forms\Components\TextInput::make('newProductQty')
+                            ->label('')
+                            ->numeric()
+                            ->default(1)
+                            ->minValue(1)
+                            ->placeholder(__('booking::session.products.quantity'))
+                            ->columnSpan(1),
+                    ]),
+            ])
+            ->statePath('productFormData');
     }
 
     protected function loadInvoiceData(): void
@@ -2016,17 +2121,20 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
 
     public function addConsumable(): void
     {
-        if (!$this->newConsumableId || !$this->appointment) {
+        $consumableId = $this->consumableFormData['newConsumableId'] ?? $this->newConsumableId;
+        $consumableQty = $this->consumableFormData['newConsumableQty'] ?? $this->newConsumableQty ?? 1;
+
+        if (!$consumableId || !$this->appointment) {
             return;
         }
 
-        $product = Product::find($this->newConsumableId);
+        $product = Product::find($consumableId);
         if (!$product) {
             return;
         }
 
         $serviceQty = (float) ($this->appointment->quantity ?? 1);
-        $enteredQty = $this->newConsumableQty ?? 1;
+        $enteredQty = (float) $consumableQty;
         // base_quantity = what's needed per 1 service unit
         $baseQty = $serviceQty > 0 ? $enteredQty / $serviceQty : $enteredQty;
 
@@ -2053,6 +2161,8 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
             'total_cost' => $consumable->total_cost,
         ];
 
+        // Reset form
+        $this->consumableFormData = ['newConsumableId' => null, 'newConsumableQty' => 1];
         $this->newConsumableId = null;
         $this->newConsumableQty = 1;
 
@@ -2094,11 +2204,14 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
 
     public function addProduct(): void
     {
-        if (!$this->newProductId || !$this->appointment) {
+        $productId = $this->productFormData['newProductId'] ?? $this->newProductId;
+        $productQty = $this->productFormData['newProductQty'] ?? $this->newProductQty ?? 1;
+
+        if (!$productId || !$this->appointment) {
             return;
         }
 
-        $product = Product::find($this->newProductId);
+        $product = Product::find($productId);
         if (!$product) {
             return;
         }
@@ -2109,7 +2222,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
             'product_id' => $product->id,
             'branch_id' => $this->appointment->branch_id,
             'visit_id' => $this->visit?->id,
-            'quantity' => $this->newProductQty ?? 1,
+            'quantity' => (int) $productQty,
             'unit' => $product->unit,
             'unit_price_minor' => $product->sell_price_minor,
             'usage_type' => 'sold',
@@ -2126,6 +2239,8 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
             'total_price' => $sessionProduct->total_price,
         ];
 
+        // Reset form
+        $this->productFormData = ['newProductId' => null, 'newProductQty' => 1];
         $this->newProductId = null;
         $this->newProductQty = 1;
 
