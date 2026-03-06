@@ -296,8 +296,8 @@ class VisitService
             ]);
         }
 
-        // Confirm invoice
-        $invoice->confirm();
+        // Issue invoice
+        $invoice->issue();
 
         return $invoice;
     }
