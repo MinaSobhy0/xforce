@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Modules\Accounting\Models\ChartOfAccount;
 use Modules\Assets\Models\AssetType;
+use Modules\Inventory\Enums\ProductType;
 use Spatie\Translatable\HasTranslations;
 use XLinic\Framework\Core\Model\BaseModel;
 use XLinic\Framework\Core\Model\Traits\HasActivity;
@@ -31,11 +32,14 @@ class Product extends BaseModel
         'name',
         'description',
         'unit',
+        'sales_uom_id',
+        'purchase_uom_id',
         'cost_price_minor',
         'sell_price_minor',
         'reorder_point',
         'reorder_quantity',
         'lead_time_days',
+        'product_type',
         'is_consumable',
         'is_asset',
         'is_active',
@@ -58,6 +62,7 @@ class Product extends BaseModel
         'reorder_point' => 'integer',
         'reorder_quantity' => 'integer',
         'lead_time_days' => 'integer',
+        'product_type' => ProductType::class,
         'is_consumable' => 'boolean',
         'is_asset' => 'boolean',
         'is_active' => 'boolean',
@@ -72,6 +77,7 @@ class Product extends BaseModel
         'reorder_point' => 10,
         'reorder_quantity' => 50,
         'lead_time_days' => 7,
+        'product_type' => 'storable',
         'is_consumable' => true,
         'is_asset' => false,
         'is_active' => true,
@@ -187,6 +193,22 @@ class Product extends BaseModel
     }
 
     /**
+     * Get the sales UoM (default unit of measure).
+     */
+    public function salesUom(): BelongsTo
+    {
+        return $this->belongsTo(Uom::class, 'sales_uom_id');
+    }
+
+    /**
+     * Get the purchase UoM.
+     */
+    public function purchaseUom(): BelongsTo
+    {
+        return $this->belongsTo(Uom::class, 'purchase_uom_id');
+    }
+
+    /**
      * Scope to active products only.
      */
     public function scopeActive($query)
@@ -195,11 +217,27 @@ class Product extends BaseModel
     }
 
     /**
-     * Scope to consumable products only.
+     * Scope to storable products only (tracks inventory).
+     */
+    public function scopeStorable($query)
+    {
+        return $query->where('product_type', ProductType::STORABLE);
+    }
+
+    /**
+     * Scope to consumable products only (no inventory tracking).
      */
     public function scopeConsumable($query)
     {
-        return $query->where('is_consumable', true);
+        return $query->where('product_type', ProductType::CONSUMABLE);
+    }
+
+    /**
+     * Scope to products that track inventory.
+     */
+    public function scopeTracksInventory($query)
+    {
+        return $query->where('product_type', ProductType::STORABLE);
     }
 
     /**
@@ -253,5 +291,75 @@ class Product extends BaseModel
     public function getSellPriceAttribute(): float
     {
         return $this->sell_price_minor / 100;
+    }
+
+    /**
+     * Check if this product tracks inventory levels.
+     */
+    public function tracksInventory(): bool
+    {
+        return $this->product_type === ProductType::STORABLE;
+    }
+
+    /**
+     * Check if this product is storable.
+     */
+    public function isStorable(): bool
+    {
+        return $this->product_type === ProductType::STORABLE;
+    }
+
+    /**
+     * Check if this product is consumable (no inventory tracking).
+     */
+    public function isConsumableType(): bool
+    {
+        return $this->product_type === ProductType::CONSUMABLE;
+    }
+
+    /**
+     * Convert quantity from purchase UoM to sales UoM (stock UoM).
+     *
+     * @param float $purchaseQuantity Quantity in purchase UoM
+     * @return float Quantity in sales UoM
+     */
+    public function convertPurchaseToStock(float $purchaseQuantity): float
+    {
+        $purchaseUom = $this->purchaseUom;
+        $salesUom = $this->salesUom;
+
+        // If no UoMs set or same UoM, return as-is
+        if (!$purchaseUom || !$salesUom || $purchaseUom->id === $salesUom->id) {
+            return $purchaseQuantity;
+        }
+
+        return $purchaseUom->convertTo($purchaseQuantity, $salesUom);
+    }
+
+    /**
+     * Convert quantity from sales UoM (stock UoM) to purchase UoM.
+     *
+     * @param float $stockQuantity Quantity in sales UoM
+     * @return float Quantity in purchase UoM
+     */
+    public function convertStockToPurchase(float $stockQuantity): float
+    {
+        $purchaseUom = $this->purchaseUom;
+        $salesUom = $this->salesUom;
+
+        // If no UoMs set or same UoM, return as-is
+        if (!$purchaseUom || !$salesUom || $purchaseUom->id === $salesUom->id) {
+            return $stockQuantity;
+        }
+
+        return $salesUom->convertTo($stockQuantity, $purchaseUom);
+    }
+
+    /**
+     * Get the UoM category ID (from sales UoM).
+     */
+    public function getUomCategoryIdAttribute(): ?int
+    {
+        return $this->salesUom?->category_id;
     }
 }

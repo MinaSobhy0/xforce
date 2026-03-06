@@ -334,6 +334,9 @@ class TenantService
 
                 // Asset types
                 \Modules\Assets\Database\Seeders\AssetTypeSeeder::class,
+
+                // Inventory - Unit of Measure
+                \Modules\Inventory\Database\Seeders\UomSeeder::class,
             ];
 
             foreach ($seeders as $seederClass) {

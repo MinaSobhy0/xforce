@@ -9,6 +9,8 @@ return [
         'vendor_bills' => 'فواتير الموردين',
         'stock_movements' => 'حركات المخزون',
         'inventory_adjustments' => 'تسويات المخزون',
+        'uom_categories' => 'فئات وحدات القياس',
+        'uoms' => 'وحدات القياس',
     ],
 
     'labels' => [
@@ -26,6 +28,10 @@ return [
         'inventory_adjustments' => 'تسويات المخزون',
         'stock_movement' => 'حركة مخزون',
         'stock_movements' => 'حركات المخزون',
+        'uom_category' => 'فئة وحدة القياس',
+        'uom_categories' => 'فئات وحدات القياس',
+        'uom' => 'وحدة القياس',
+        'uoms' => 'وحدات القياس',
     ],
 
     'sections' => [
@@ -169,6 +175,16 @@ return [
         'reference_id' => 'رقم المرجع',
         'from_date' => 'من تاريخ',
         'until_date' => 'إلى تاريخ',
+        'product_type' => 'نوع المنتج',
+        'sales_uom' => 'وحدة البيع',
+        'purchase_uom' => 'وحدة الشراء',
+        'uom' => 'وحدة القياس',
+        'uoms' => 'وحدات القياس',
+        'abbreviation' => 'الاختصار',
+        'ratio' => 'نسبة التحويل',
+        'uom_type' => 'نوع الوحدة',
+        'is_reference' => 'وحدة مرجعية',
+        'rounding_precision' => 'دقة التقريب',
     ],
 
     'discount_types' => [
@@ -280,6 +296,25 @@ return [
         'appointment_consume' => 'استهلاك موعد',
         'return' => 'إرجاع',
         'waste' => 'هالك',
+    ],
+
+    'product_types' => [
+        'storable' => 'قابل للتخزين',
+        'consumable' => 'استهلاكي',
+    ],
+
+    'uom_types' => [
+        'bigger' => 'أكبر من المرجعية',
+        'reference' => 'وحدة مرجعية',
+        'smaller' => 'أصغر من المرجعية',
+    ],
+
+    'helpers' => [
+        'ratio' => 'نسبة التحويل للوحدة المرجعية (مثال: 12 للدرزن)',
+        'is_reference' => 'وحدة مرجعية واحدة فقط مسموح بها لكل فئة',
+        'sales_uom' => 'الوحدة الافتراضية للمبيعات وتتبع المخزون',
+        'purchase_uom' => 'الوحدة المستخدمة عند الشراء (يجب أن تكون من نفس فئة وحدة البيع)',
+        'product_type' => 'القابل للتخزين يتتبع المخزون، الاستهلاكي يُفترض توفره دائماً',
     ],
 
     'widgets' => [

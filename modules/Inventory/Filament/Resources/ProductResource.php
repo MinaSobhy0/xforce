@@ -12,8 +12,11 @@ use Filament\Infolists;
 use Filament\Infolists\Infolist;
 use Modules\Accounting\Models\ChartOfAccount;
 use Modules\Assets\Models\AssetType;
+use Modules\Inventory\Enums\ProductType;
 use Modules\Inventory\Models\Product;
 use Modules\Inventory\Models\ProductCategory;
+use Modules\Inventory\Models\Uom;
+use Modules\Inventory\Models\UomCategory;
 use Modules\Inventory\Filament\Resources\ProductResource\Pages;
 use Modules\Inventory\Filament\Resources\ProductResource\RelationManagers;
 use XLinic\Framework\Core\Filament\RelationManagers\ActivityLogRelationManager;
@@ -100,13 +103,52 @@ class ProductResource extends Resource
                                             ->rows(3),
                                     ]),
 
+                                Forms\Components\Grid::make(2)
+                                    ->schema([
+                                        Forms\Components\Select::make('sales_uom_id')
+                                            ->label(__('inventory::inventory.fields.sales_uom'))
+                                            ->relationship('salesUom', 'id')
+                                            ->getOptionLabelFromRecordUsing(fn (Uom $record) => $record->getTranslation('name', app()->getLocale()) . ' (' . $record->abbreviation . ')')
+                                            ->searchable()
+                                            ->preload()
+                                            ->live()
+                                            ->helperText(__('inventory::inventory.helpers.sales_uom')),
+
+                                        Forms\Components\Select::make('purchase_uom_id')
+                                            ->label(__('inventory::inventory.fields.purchase_uom'))
+                                            ->options(function (Forms\Get $get) {
+                                                $salesUomId = $get('sales_uom_id');
+                                                if (!$salesUomId) {
+                                                    return Uom::active()
+                                                        ->get()
+                                                        ->mapWithKeys(fn (Uom $uom) => [
+                                                            $uom->id => $uom->getTranslation('name', app()->getLocale()) . ' (' . $uom->abbreviation . ')'
+                                                        ]);
+                                                }
+
+                                                $salesUom = Uom::find($salesUomId);
+                                                if (!$salesUom) {
+                                                    return [];
+                                                }
+
+                                                return Uom::active()
+                                                    ->where('category_id', $salesUom->category_id)
+                                                    ->get()
+                                                    ->mapWithKeys(fn (Uom $uom) => [
+                                                        $uom->id => $uom->getTranslation('name', app()->getLocale()) . ' (' . $uom->abbreviation . ')'
+                                                    ]);
+                                            })
+                                            ->searchable()
+                                            ->helperText(__('inventory::inventory.helpers.purchase_uom')),
+                                    ]),
+
                                 Forms\Components\Grid::make(3)
                                     ->schema([
                                         Forms\Components\Select::make('unit')
                                             ->label(__('inventory::inventory.fields.unit'))
                                             ->options(Product::UNITS)
                                             ->default(Product::UNIT_PCS)
-                                            ->required(),
+                                            ->helperText('Legacy unit field'),
 
                                         Forms\Components\TextInput::make('barcode')
                                             ->label(__('inventory::inventory.fields.barcode'))
@@ -172,8 +214,16 @@ class ProductResource extends Resource
 
                         Forms\Components\Tabs\Tab::make(__('inventory::inventory.sections.settings'))
                             ->schema([
-                                Forms\Components\Grid::make(2)
+                                Forms\Components\Grid::make(3)
                                     ->schema([
+                                        Forms\Components\Select::make('product_type')
+                                            ->label(__('inventory::inventory.fields.product_type'))
+                                            ->options(ProductType::options())
+                                            ->default(ProductType::STORABLE->value)
+                                            ->required()
+                                            ->live()
+                                            ->helperText(__('inventory::inventory.helpers.product_type')),
+
                                         Forms\Components\Toggle::make('is_consumable')
                                             ->label(__('inventory::inventory.fields.is_consumable'))
                                             ->default(true)
@@ -309,9 +359,16 @@ class ProductResource extends Resource
                     ->money(current_currency())
                     ->sortable(),
 
-                Tables\Columns\IconColumn::make('is_consumable')
-                    ->label(__('inventory::inventory.fields.is_consumable'))
-                    ->boolean(),
+                Tables\Columns\TextColumn::make('salesUom.abbreviation')
+                    ->label(__('inventory::inventory.fields.uom'))
+                    ->placeholder('-')
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('product_type')
+                    ->label(__('inventory::inventory.fields.product_type'))
+                    ->badge()
+                    ->formatStateUsing(fn (ProductType $state): string => $state->label())
+                    ->color(fn (ProductType $state): string => $state->color()),
 
                 Tables\Columns\IconColumn::make('is_active')
                     ->label(__('inventory::inventory.fields.is_active'))
@@ -323,8 +380,9 @@ class ProductResource extends Resource
                     ->relationship('category', 'id')
                     ->getOptionLabelFromRecordUsing(fn (ProductCategory $record) => $record->getTranslation('name', app()->getLocale())),
 
-                Tables\Filters\TernaryFilter::make('is_consumable')
-                    ->label(__('inventory::inventory.fields.is_consumable')),
+                Tables\Filters\SelectFilter::make('product_type')
+                    ->label(__('inventory::inventory.fields.product_type'))
+                    ->options(ProductType::options()),
 
                 Tables\Filters\TernaryFilter::make('is_active')
                     ->label(__('inventory::inventory.fields.is_active')),
@@ -355,7 +413,7 @@ class ProductResource extends Resource
             ->schema([
                 Infolists\Components\Section::make(__('inventory::inventory.sections.basic_info'))
                     ->schema([
-                        Infolists\Components\Grid::make(3)
+                        Infolists\Components\Grid::make(4)
                             ->schema([
                                 Infolists\Components\TextEntry::make('sku')
                                     ->label(__('inventory::inventory.fields.sku')),
@@ -364,9 +422,15 @@ class ProductResource extends Resource
                                     ->label(__('inventory::inventory.fields.category'))
                                     ->getStateUsing(fn (Product $record) => $record->category?->getTranslation('name', app()->getLocale())),
 
-                                Infolists\Components\TextEntry::make('unit')
-                                    ->label(__('inventory::inventory.fields.unit'))
-                                    ->formatStateUsing(fn ($state) => Product::UNITS[$state] ?? $state),
+                                Infolists\Components\TextEntry::make('product_type')
+                                    ->label(__('inventory::inventory.fields.product_type'))
+                                    ->badge()
+                                    ->formatStateUsing(fn (ProductType $state): string => $state->label())
+                                    ->color(fn (ProductType $state): string => $state->color()),
+
+                                Infolists\Components\TextEntry::make('salesUom.abbreviation')
+                                    ->label(__('inventory::inventory.fields.sales_uom'))
+                                    ->getStateUsing(fn (Product $record) => $record->salesUom ? $record->salesUom->getTranslation('name', app()->getLocale()) . ' (' . $record->salesUom->abbreviation . ')' : '-'),
                             ]),
 
                         Infolists\Components\TextEntry::make('name')

@@ -9,6 +9,8 @@ return [
         'vendor_bills' => 'Vendor Bills',
         'stock_movements' => 'Stock Movements',
         'inventory_adjustments' => 'Inventory Adjustments',
+        'uom_categories' => 'UoM Categories',
+        'uoms' => 'Units of Measure',
     ],
 
     'labels' => [
@@ -26,6 +28,10 @@ return [
         'inventory_adjustments' => 'Inventory Adjustments',
         'stock_movement' => 'Stock Movement',
         'stock_movements' => 'Stock Movements',
+        'uom_category' => 'UoM Category',
+        'uom_categories' => 'UoM Categories',
+        'uom' => 'Unit of Measure',
+        'uoms' => 'Units of Measure',
     ],
 
     'sections' => [
@@ -169,6 +175,16 @@ return [
         'reference_id' => 'Reference ID',
         'from_date' => 'From Date',
         'until_date' => 'Until Date',
+        'product_type' => 'Product Type',
+        'sales_uom' => 'Sales UoM',
+        'purchase_uom' => 'Purchase UoM',
+        'uom' => 'UoM',
+        'uoms' => 'Units of Measure',
+        'abbreviation' => 'Abbreviation',
+        'ratio' => 'Conversion Ratio',
+        'uom_type' => 'UoM Type',
+        'is_reference' => 'Reference Unit',
+        'rounding_precision' => 'Rounding Precision',
     ],
 
     'discount_types' => [
@@ -280,6 +296,25 @@ return [
         'appointment_consume' => 'Appointment Consume',
         'return' => 'Return',
         'waste' => 'Waste',
+    ],
+
+    'product_types' => [
+        'storable' => 'Storable',
+        'consumable' => 'Consumable',
+    ],
+
+    'uom_types' => [
+        'bigger' => 'Bigger than reference',
+        'reference' => 'Reference Unit',
+        'smaller' => 'Smaller than reference',
+    ],
+
+    'helpers' => [
+        'ratio' => 'Conversion ratio to reference unit (e.g., 12 for dozen)',
+        'is_reference' => 'Only one reference unit allowed per category',
+        'sales_uom' => 'Default unit for sales and inventory tracking',
+        'purchase_uom' => 'Unit used when purchasing (must be same category as Sales UoM)',
+        'product_type' => 'Storable tracks inventory, Consumable assumed always available',
     ],
 
     'widgets' => [
