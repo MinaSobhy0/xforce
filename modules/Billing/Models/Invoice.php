@@ -315,15 +315,25 @@ class Invoice extends BaseModel
 
     /**
      * Deduct stock for all product lines in this invoice.
+     *
+     * Odoo-like behavior:
+     * - Storable products: Stock is deducted and tracked
+     * - Consumable products: No stock deduction (assumed always available)
      */
     protected function deductStockForProductLines(): void
     {
         $productLines = $this->lines()
             ->where('line_type', InvoiceLine::LINE_TYPE_PRODUCT)
             ->whereNotNull('product_id')
+            ->with('product')
             ->get();
 
         foreach ($productLines as $line) {
+            // Only deduct stock for storable products
+            if (!$line->product || !$line->product->tracksInventory()) {
+                continue;
+            }
+
             $stockLevel = StockLevel::getOrCreate($line->product_id, $this->branch_id);
 
             $stockLevel->decrease(
@@ -390,15 +400,25 @@ class Invoice extends BaseModel
 
     /**
      * Restore stock for all product lines in this invoice.
+     *
+     * Odoo-like behavior:
+     * - Storable products: Stock is restored
+     * - Consumable products: No stock restore (no stock was deducted)
      */
     protected function restoreStockForProductLines(): void
     {
         $productLines = $this->lines()
             ->where('line_type', InvoiceLine::LINE_TYPE_PRODUCT)
             ->whereNotNull('product_id')
+            ->with('product')
             ->get();
 
         foreach ($productLines as $line) {
+            // Only restore stock for storable products
+            if (!$line->product || !$line->product->tracksInventory()) {
+                continue;
+            }
+
             $stockLevel = StockLevel::getOrCreate($line->product_id, $this->branch_id);
 
             $stockLevel->increase(

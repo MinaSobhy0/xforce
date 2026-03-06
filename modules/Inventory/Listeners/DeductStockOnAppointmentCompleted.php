@@ -12,8 +12,12 @@ class DeductStockOnAppointmentCompleted
     /**
      * Handle the event.
      *
-     * This listener auto-deducts consumable products when an appointment is completed.
+     * This listener auto-deducts products from stock when an appointment is completed.
      * It uses the SessionConsumable records which are auto-populated from service/category.
+     *
+     * Odoo-like behavior:
+     * - Storable products: Stock is deducted and tracked
+     * - Consumable products: No stock deduction (assumed always available)
      */
     public function handle(AppointmentCompleted $event): void
     {
@@ -42,10 +46,17 @@ class DeductStockOnAppointmentCompleted
 
     /**
      * Deduct stock for a session consumable.
+     * Only storable products have their stock deducted.
      */
     protected function deductStock(SessionConsumable $consumable, $appointment): void
     {
         if (!$consumable->product) {
+            return;
+        }
+
+        // Odoo-like: Only deduct stock for storable products
+        // Consumable products are assumed always available
+        if (!$consumable->product->tracksInventory()) {
             return;
         }
 

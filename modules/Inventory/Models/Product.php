@@ -265,9 +265,15 @@ class Product extends BaseModel
 
     /**
      * Check if product is low on stock for any branch.
+     * Only applies to storable products - consumables are always "available".
      */
     public function isLowStock(): bool
     {
+        // Consumable products don't have low stock alerts (Odoo-like behavior)
+        if (!$this->tracksInventory()) {
+            return false;
+        }
+
         return $this->stockLevels()
             ->whereRaw('quantity_on_hand <= ?', [$this->reorder_point])
             ->exists();

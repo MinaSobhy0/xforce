@@ -303,6 +303,11 @@ return [
         'consumable' => 'Consumable',
     ],
 
+    'product_type_descriptions' => [
+        'storable' => 'Full inventory tracking with stock levels, reorder alerts, and stock movements',
+        'consumable' => 'No stock tracking, always assumed available (e.g., office supplies)',
+    ],
+
     'uom_types' => [
         'bigger' => 'Bigger than reference',
         'reference' => 'Reference Unit',

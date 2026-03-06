@@ -181,29 +181,35 @@ class ProductResource extends Resource
 
                         Forms\Components\Tabs\Tab::make(__('inventory::inventory.sections.stock'))
                             ->schema([
+                                Forms\Components\Placeholder::make('consumable_notice')
+                                    ->label('')
+                                    ->content(__('inventory::inventory.product_type_descriptions.consumable'))
+                                    ->visible(fn (Forms\Get $get) => $get('product_type') === ProductType::CONSUMABLE->value),
+
                                 Forms\Components\Grid::make(3)
                                     ->schema([
                                         Forms\Components\TextInput::make('reorder_point')
                                             ->label(__('inventory::inventory.fields.reorder_point'))
                                             ->numeric()
-                                            ->required()
+                                            ->required(fn (Forms\Get $get) => $get('product_type') === ProductType::STORABLE->value)
                                             ->default(10)
                                             ->helperText('Alert when stock falls below this'),
 
                                         Forms\Components\TextInput::make('reorder_quantity')
                                             ->label(__('inventory::inventory.fields.reorder_quantity'))
                                             ->numeric()
-                                            ->required()
+                                            ->required(fn (Forms\Get $get) => $get('product_type') === ProductType::STORABLE->value)
                                             ->default(50)
                                             ->helperText('Suggested quantity to reorder'),
 
                                         Forms\Components\TextInput::make('lead_time_days')
                                             ->label(__('inventory::inventory.fields.lead_time_days'))
                                             ->numeric()
-                                            ->required()
+                                            ->required(fn (Forms\Get $get) => $get('product_type') === ProductType::STORABLE->value)
                                             ->default(7)
                                             ->helperText('Days to receive from supplier'),
-                                    ]),
+                                    ])
+                                    ->visible(fn (Forms\Get $get) => $get('product_type') === ProductType::STORABLE->value),
                             ]),
 
                         Forms\Components\Tabs\Tab::make(__('inventory::inventory.sections.settings'))
@@ -216,7 +222,9 @@ class ProductResource extends Resource
                                             ->default(ProductType::STORABLE->value)
                                             ->required()
                                             ->live()
-                                            ->helperText(__('inventory::inventory.helpers.product_type')),
+                                            ->helperText(fn (Forms\Get $get) => $get('product_type')
+                                                ? ProductType::tryFrom($get('product_type'))?->description()
+                                                : __('inventory::inventory.helpers.product_type')),
 
                                         Forms\Components\Toggle::make('is_consumable')
                                             ->label(__('inventory::inventory.fields.is_consumable'))

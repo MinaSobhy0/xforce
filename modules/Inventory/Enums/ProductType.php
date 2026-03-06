@@ -42,10 +42,31 @@ enum ProductType: string
         };
     }
 
+    /**
+     * Get description for the product type.
+     */
+    public function description(): string
+    {
+        return match ($this) {
+            self::STORABLE => __('inventory::inventory.product_type_descriptions.storable'),
+            self::CONSUMABLE => __('inventory::inventory.product_type_descriptions.consumable'),
+        };
+    }
+
     public static function options(): array
     {
         return collect(self::cases())->mapWithKeys(fn ($case) => [
             $case->value => $case->label(),
+        ])->all();
+    }
+
+    /**
+     * Get options with descriptions for forms.
+     */
+    public static function optionsWithDescriptions(): array
+    {
+        return collect(self::cases())->mapWithKeys(fn ($case) => [
+            $case->value => $case->label() . ' - ' . $case->description(),
         ])->all();
     }
 }

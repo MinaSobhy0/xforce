@@ -133,6 +133,10 @@ class PurchaseOrderLine extends BaseModel
 
     /**
      * Receive items.
+     *
+     * Odoo-like behavior:
+     * - Storable products: Stock is increased, journal entries created
+     * - Consumable products: Only quantity_received is updated (no stock tracking)
      */
     public function receiveItems(int $quantity, ?string $notes = null): ?StockMovement
     {
@@ -148,30 +152,36 @@ class PurchaseOrderLine extends BaseModel
             return null;
         }
 
-        // Update quantity received
+        // Update quantity received (for all product types)
         $this->quantity_received += $quantity;
         $this->save();
 
-        // Get or create stock level for this product at the branch
-        $stockLevel = StockLevel::getOrCreate(
-            $this->product_id,
-            $this->purchaseOrder->branch_id,
-            $this->tenant_id
-        );
+        $movement = null;
 
-        // Increase stock
-        $movement = $stockLevel->increase(
-            $quantity,
-            StockMovement::TYPE_PURCHASE_RECEIVE,
-            'purchase_order',
-            $this->purchase_order_id,
-            $notes ?? "Received from PO #{$this->purchaseOrder->order_number}"
-        );
+        // Only create stock movements for storable products
+        // Consumable products are not tracked in inventory
+        if ($this->product && $this->product->tracksInventory()) {
+            // Get or create stock level for this product at the branch
+            $stockLevel = StockLevel::getOrCreate(
+                $this->product_id,
+                $this->purchaseOrder->branch_id,
+                $this->tenant_id
+            );
 
-        // Create journal entry for stock receipt
-        $this->createReceiptJournalEntry($movement, $quantity);
+            // Increase stock
+            $movement = $stockLevel->increase(
+                $quantity,
+                StockMovement::TYPE_PURCHASE_RECEIVE,
+                'purchase_order',
+                $this->purchase_order_id,
+                $notes ?? "Received from PO #{$this->purchaseOrder->order_number}"
+            );
 
-        // Dispatch event for asset creation
+            // Create journal entry for stock receipt (only for storable)
+            $this->createReceiptJournalEntry($movement, $quantity);
+        }
+
+        // Dispatch event for asset creation (applies to both types)
         PurchaseOrderReceived::dispatch($this, $quantity);
 
         // Update the order status
@@ -259,6 +269,10 @@ class PurchaseOrderLine extends BaseModel
     /**
      * Reverse receiving - decrease stock and create reverse journal entry.
      *
+     * Odoo-like behavior:
+     * - Storable products: Stock is decreased, journal entries reversed
+     * - Consumable products: Only quantity_received is updated (no stock tracking)
+     *
      * @param int|null $quantity Quantity to reverse. If null, reverses all received.
      */
     public function reverseReceiving(?int $quantity = null): bool
@@ -276,26 +290,29 @@ class PurchaseOrderLine extends BaseModel
             return true;
         }
 
-        // Get stock level
-        $stockLevel = StockLevel::where('product_id', $this->product_id)
-            ->where('branch_id', $this->purchaseOrder->branch_id)
-            ->first();
+        // Only reverse stock for storable products
+        if ($this->product && $this->product->tracksInventory()) {
+            // Get stock level
+            $stockLevel = StockLevel::where('product_id', $this->product_id)
+                ->where('branch_id', $this->purchaseOrder->branch_id)
+                ->first();
 
-        if ($stockLevel) {
-            // Decrease stock
-            $movement = $stockLevel->decrease(
-                $quantityToReverse,
-                StockMovement::TYPE_ADJUSTMENT,
-                'purchase_order_reversal',
-                $this->purchase_order_id,
-                "Reversal of PO #{$this->purchaseOrder->order_number}"
-            );
+            if ($stockLevel) {
+                // Decrease stock
+                $movement = $stockLevel->decrease(
+                    $quantityToReverse,
+                    StockMovement::TYPE_ADJUSTMENT,
+                    'purchase_order_reversal',
+                    $this->purchase_order_id,
+                    "Reversal of PO #{$this->purchaseOrder->order_number}"
+                );
 
-            // Create reverse journal entry
-            $this->createReversalJournalEntry($movement, $quantityToReverse);
+                // Create reverse journal entry
+                $this->createReversalJournalEntry($movement, $quantityToReverse);
+            }
         }
 
-        // Reduce quantity received
+        // Reduce quantity received (for all product types)
         $this->quantity_received -= $quantityToReverse;
         $this->save();
 

@@ -5,6 +5,7 @@ namespace Modules\Inventory\Filament\Widgets;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
+use Modules\Inventory\Enums\ProductType;
 use Modules\Inventory\Models\StockLevel;
 
 class LowStockAlertWidget extends BaseWidget
@@ -27,7 +28,9 @@ class LowStockAlertWidget extends BaseWidget
                 StockLevel::query()
                     ->with(['product', 'branch'])
                     ->whereHas('product', function ($q) {
-                        $q->whereColumn('stock_levels.quantity_on_hand', '<=', 'products.reorder_point');
+                        // Only show storable products (Odoo-like: consumables don't have reorder alerts)
+                        $q->where('product_type', ProductType::STORABLE)
+                            ->whereColumn('stock_levels.quantity_on_hand', '<=', 'products.reorder_point');
                     })
                     ->orderByRaw('stock_levels.quantity_on_hand ASC')
                     ->limit(10)
