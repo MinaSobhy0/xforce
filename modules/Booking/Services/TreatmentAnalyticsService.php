@@ -207,7 +207,7 @@ class TreatmentAnalyticsService
                 'total_cost' => $item->total_cost / 100,
                 'usage_count' => $item->usage_count,
                 'avg_quantity' => round($item->avg_quantity, 2),
-                'unit' => $item->product?->unit ?? 'pcs',
+                'unit' => $item->product?->unit_abbreviation ?? 'pcs',
             ];
         })->toArray();
     }

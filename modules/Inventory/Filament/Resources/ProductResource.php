@@ -142,14 +142,8 @@ class ProductResource extends Resource
                                             ->helperText(__('inventory::inventory.helpers.purchase_uom')),
                                     ]),
 
-                                Forms\Components\Grid::make(3)
+                                Forms\Components\Grid::make(2)
                                     ->schema([
-                                        Forms\Components\Select::make('unit')
-                                            ->label(__('inventory::inventory.fields.unit'))
-                                            ->options(Product::UNITS)
-                                            ->default(Product::UNIT_PCS)
-                                            ->helperText('Legacy unit field'),
-
                                         Forms\Components\TextInput::make('barcode')
                                             ->label(__('inventory::inventory.fields.barcode'))
                                             ->maxLength(100),

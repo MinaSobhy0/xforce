@@ -338,21 +338,21 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                 'product_name' => $c->product?->getTranslation('name', app()->getLocale()) ?? '',
                 'quantity' => $c->quantity,
                 'base_quantity' => $c->base_quantity ?? $c->quantity, // fallback for old records
-                'unit' => $c->unit,
+                'unit' => $c->unit_abbreviation,
                 'unit_cost' => $c->unit_cost,
                 'total_cost' => $c->total_cost,
             ])
             ->toArray();
 
         $this->sessionProducts = SessionProduct::where('appointment_id', $this->appointment->id)
-            ->with('product')
+            ->with(['product', 'uom'])
             ->get()
             ->map(fn ($p) => [
                 'id' => $p->id,
                 'product_id' => $p->product_id,
                 'product_name' => $p->product?->getTranslation('name', app()->getLocale()) ?? '',
                 'quantity' => $p->quantity,
-                'unit' => $p->unit,
+                'unit' => $p->unit_abbreviation,
                 'unit_price' => $p->unit_price,
                 'total_price' => $p->total_price,
                 'usage_type' => $p->usage_type,
@@ -390,7 +390,8 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                 'product_id' => $product->id,
                 'branch_id' => $this->appointment->branch_id,
                 'quantity' => $quantity,
-                'unit' => $product->unit ?? 'pcs',
+                'uom_id' => $product->sales_uom_id,
+                'unit' => $product->unit_abbreviation, // Fallback for display
                 'unit_cost_minor' => $product->cost_price_minor ?? 0,
                 'created_by' => auth()->id(),
             ]);
@@ -2229,7 +2230,8 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
             'branch_id' => $this->appointment->branch_id,
             'quantity' => $enteredQty,
             'base_quantity' => $baseQty,
-            'unit' => $product->unit,
+            'uom_id' => $product->sales_uom_id,
+            'unit' => $product->unit_abbreviation, // Fallback for display
             'unit_cost_minor' => $product->cost_price_minor,
             'created_by' => auth()->id(),
         ]);
@@ -2240,7 +2242,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
             'product_name' => $product->getTranslation('name', app()->getLocale()),
             'quantity' => $consumable->quantity,
             'base_quantity' => $consumable->base_quantity,
-            'unit' => $consumable->unit,
+            'unit' => $consumable->unit_abbreviation,
             'unit_cost' => $consumable->unit_cost,
             'total_cost' => $consumable->total_cost,
         ];
@@ -2304,7 +2306,8 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
             'branch_id' => $this->appointment->branch_id,
             'visit_id' => $this->visit?->id,
             'quantity' => $this->newProductQty ?? 1,
-            'unit' => $product->unit,
+            'uom_id' => $product->sales_uom_id,
+            'unit' => $product->unit_abbreviation, // Fallback for display
             'unit_price_minor' => $product->sell_price_minor,
             'usage_type' => 'sold',
             'created_by' => auth()->id(),
@@ -2315,7 +2318,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
             'product_id' => $sessionProduct->product_id,
             'product_name' => $product->getTranslation('name', app()->getLocale()),
             'quantity' => $sessionProduct->quantity,
-            'unit' => $sessionProduct->unit,
+            'unit' => $sessionProduct->unit_abbreviation,
             'unit_price' => $sessionProduct->unit_price,
             'total_price' => $sessionProduct->total_price,
             'usage_type' => 'sold',

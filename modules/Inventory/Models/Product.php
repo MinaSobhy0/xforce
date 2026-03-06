@@ -95,14 +95,21 @@ class Product extends BaseModel
         self::VALUATION_AVERAGE => 'AVCO (Average Cost)',
     ];
 
-    // Common units
+    // Legacy unit constants - deprecated, use salesUom relationship instead
+    /** @deprecated Use salesUom relationship instead */
     public const UNIT_PCS = 'pcs';
+    /** @deprecated Use salesUom relationship instead */
     public const UNIT_BOX = 'box';
+    /** @deprecated Use salesUom relationship instead */
     public const UNIT_ML = 'ml';
+    /** @deprecated Use salesUom relationship instead */
     public const UNIT_L = 'l';
+    /** @deprecated Use salesUom relationship instead */
     public const UNIT_G = 'g';
+    /** @deprecated Use salesUom relationship instead */
     public const UNIT_KG = 'kg';
 
+    /** @deprecated Use Uom model instead */
     public const UNITS = [
         self::UNIT_PCS => 'Pieces',
         self::UNIT_BOX => 'Box',
@@ -361,5 +368,40 @@ class Product extends BaseModel
     public function getUomCategoryIdAttribute(): ?int
     {
         return $this->salesUom?->category_id;
+    }
+
+    /**
+     * Get the unit abbreviation for display.
+     * Uses salesUom if set, otherwise falls back to legacy unit field.
+     */
+    public function getUnitAbbreviationAttribute(): string
+    {
+        if ($this->salesUom) {
+            return $this->salesUom->abbreviation;
+        }
+
+        return $this->unit ?? 'pcs';
+    }
+
+    /**
+     * Get the unit name for display.
+     * Uses salesUom if set, otherwise falls back to legacy unit field.
+     */
+    public function getUnitNameAttribute(): string
+    {
+        if ($this->salesUom) {
+            return $this->salesUom->getTranslation('name', app()->getLocale());
+        }
+
+        return self::UNITS[$this->unit] ?? $this->unit ?? 'Pieces';
+    }
+
+    /**
+     * Get the UoM ID (sales_uom_id).
+     * For use in forms and relations.
+     */
+    public function getUomIdAttribute()
+    {
+        return $this->sales_uom_id;
     }
 }
