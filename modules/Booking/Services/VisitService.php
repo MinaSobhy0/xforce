@@ -233,7 +233,7 @@ class VisitService
             $subtotalMinor += $lineTotal;
 
             $lines[] = [
-                'type' => 'service',
+                'line_type' => 'service',
                 'description' => $apt->service?->translated_name ?? 'Service',
                 'quantity' => $apt->quantity ?? 1,
                 'unit_price_minor' => $apt->price_minor,
@@ -249,7 +249,7 @@ class VisitService
             $subtotalMinor += $prod->total_price_minor;
 
             $lines[] = [
-                'type' => 'product',
+                'line_type' => 'product',
                 'description' => $prod->product?->translated_name ?? $prod->product?->name ?? 'Product',
                 'quantity' => $prod->quantity,
                 'unit_price_minor' => $prod->unit_price_minor,
@@ -283,7 +283,7 @@ class VisitService
             InvoiceLine::create([
                 'tenant_id' => $visit->tenant_id,
                 'invoice_id' => $invoice->id,
-                'type' => $lineData['type'],
+                'line_type' => $lineData['line_type'],
                 'description' => $lineData['description'],
                 'quantity' => $lineData['quantity'],
                 'unit_price_minor' => $lineData['unit_price_minor'],
