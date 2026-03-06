@@ -668,11 +668,40 @@
                     </div>
                 </x-slot>
 
-                <div class="flex gap-2 mb-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg items-end [&_.fi-fo-field-wrp]:flex-row [&_.fi-fo-field-wrp]:items-end [&_.fi-fo-field-wrp]:gap-2 [&_.fi-fo-field-wrp>div:first-child]:flex-1 [&_.fi-fo-field-wrp>div:last-child]:w-20">
-                    <div class="flex-1 [&>form>div]:flex [&>form>div]:flex-row [&>form>div]:gap-2 [&>form>div]:items-end [&>form>div>div:first-child]:flex-1 [&>form>div>div:last-child]:w-20">
-                        {{ $this->consumableForm }}
+                <div class="flex gap-2 mb-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg"
+                    x-data="{
+                        search: '',
+                        open: false,
+                        items: @js($this->getAvailableConsumables()->map(fn($p) => ['id' => $p->id, 'name' => $p->getTranslation('name', app()->getLocale())])->values()->toArray()),
+                        get filtered() {
+                            if (!this.search) return this.items;
+                            return this.items.filter(item => item.name.toLowerCase().includes(this.search.toLowerCase()));
+                        },
+                        select(id) {
+                            $wire.set('newConsumableId', id);
+                            this.open = false;
+                            this.search = this.items.find(i => i.id == id)?.name || '';
+                        }
+                    }"
+                    @click.outside="open = false"
+                >
+                    <div class="flex-1 relative">
+                        <input
+                            type="text"
+                            x-model="search"
+                            @focus="open = true"
+                            @input="open = true"
+                            placeholder="{{ __('booking::session.consumables.select') }}"
+                            class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm"
+                        />
+                        <div x-show="open && filtered.length > 0" x-cloak class="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded shadow-lg max-h-48 overflow-y-auto">
+                            <template x-for="item in filtered" :key="item.id">
+                                <button type="button" @click="select(item.id)" class="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700" x-text="item.name"></button>
+                            </template>
+                        </div>
                     </div>
-                    <x-filament::button wire:click="addConsumable" size="sm" class="mb-0">
+                    <input type="number" wire:model="newConsumableQty" class="w-16 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm text-center" min="0.1" step="0.1" placeholder="Qty" />
+                    <x-filament::button wire:click="addConsumable" size="sm">
                         <x-heroicon-o-plus class="w-4 h-4" />
                     </x-filament::button>
                 </div>
@@ -708,11 +737,40 @@
                     </div>
                 </x-slot>
 
-                <div class="flex gap-2 mb-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg items-end [&_.fi-fo-field-wrp]:flex-row [&_.fi-fo-field-wrp]:items-end [&_.fi-fo-field-wrp]:gap-2 [&_.fi-fo-field-wrp>div:first-child]:flex-1 [&_.fi-fo-field-wrp>div:last-child]:w-20">
-                    <div class="flex-1 [&>form>div]:flex [&>form>div]:flex-row [&>form>div]:gap-2 [&>form>div]:items-end [&>form>div>div:first-child]:flex-1 [&>form>div>div:last-child]:w-20">
-                        {{ $this->productForm }}
+                <div class="flex gap-2 mb-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg"
+                    x-data="{
+                        search: '',
+                        open: false,
+                        items: @js($this->getAvailableProducts()->map(fn($p) => ['id' => $p->id, 'name' => $p->getTranslation('name', app()->getLocale())])->values()->toArray()),
+                        get filtered() {
+                            if (!this.search) return this.items;
+                            return this.items.filter(item => item.name.toLowerCase().includes(this.search.toLowerCase()));
+                        },
+                        select(id) {
+                            $wire.set('newProductId', id);
+                            this.open = false;
+                            this.search = this.items.find(i => i.id == id)?.name || '';
+                        }
+                    }"
+                    @click.outside="open = false"
+                >
+                    <div class="flex-1 relative">
+                        <input
+                            type="text"
+                            x-model="search"
+                            @focus="open = true"
+                            @input="open = true"
+                            placeholder="{{ __('booking::session.products.select') }}"
+                            class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm"
+                        />
+                        <div x-show="open && filtered.length > 0" x-cloak class="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded shadow-lg max-h-48 overflow-y-auto">
+                            <template x-for="item in filtered" :key="item.id">
+                                <button type="button" @click="select(item.id)" class="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700" x-text="item.name"></button>
+                            </template>
+                        </div>
                     </div>
-                    <x-filament::button wire:click="addProduct" size="sm" class="mb-0">
+                    <input type="number" wire:model="newProductQty" class="w-16 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm text-center" min="1" placeholder="Qty" />
+                    <x-filament::button wire:click="addProduct" size="sm">
                         <x-heroicon-o-plus class="w-4 h-4" />
                     </x-filament::button>
                 </div>
