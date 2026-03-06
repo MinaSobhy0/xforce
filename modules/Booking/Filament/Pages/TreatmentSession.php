@@ -726,16 +726,6 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
             return;
         }
 
-        // Check if checklist is complete (if service has parameters)
-        if ($this->hasServiceParameters() && !$this->isChecklistComplete()) {
-            Notification::make()
-                ->title(__('booking::session.messages.checklist_incomplete'))
-                ->body(__('booking::session.messages.complete_checklist_first'))
-                ->warning()
-                ->send();
-            return;
-        }
-
         DB::transaction(function () {
             // Complete session data
             if ($this->sessionData) {
