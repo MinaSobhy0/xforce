@@ -324,7 +324,8 @@ class CreateBooking extends Page implements HasForms
                                                                 if ($totalPulses <= 0) {
                                                                     $totalPulses = $sub->package->items->sum(fn ($item) => ($item->quantity ?? 0) * ($item->pulses_per_session ?? 1));
                                                                 }
-                                                                $pulsesUsed = $sub->sessions_used * ($sub->package->items->first()?->pulses_per_session ?? 1);
+                                                                // Use pulses_used directly - it sums quantity_used from usage records
+                                                                $pulsesUsed = $sub->pulses_used;
                                                                 $pulsesRemaining = max(0, $totalPulses - $pulsesUsed);
                                                                 $html .= '<span class="px-1.5 py-0.5 rounded-full text-[10px] font-semibold" style="' . $badgeStyle . '">' . number_format($pulsesRemaining) . '/' . number_format($totalPulses) . ' ' . __('packages::packages.labels.pulses') . '</span>';
                                                             } else {

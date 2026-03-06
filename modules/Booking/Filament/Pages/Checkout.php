@@ -44,6 +44,9 @@ class Checkout extends Page implements HasForms, HasActions
     // Session actions for open sessions
     public array $sessionActions = [];
 
+    // Package payment options (package_id => 'full' or 'deposit')
+    public array $packagePaymentOptions = [];
+
     // Discount settings
     public ?string $overallDiscountType = 'none';
     public ?float $overallDiscountValue = 0;
@@ -53,6 +56,8 @@ class Checkout extends Page implements HasForms, HasActions
     public int $subtotalMinor = 0;
     public int $discountMinor = 0;
     public int $totalMinor = 0;
+    public int $packagesSubtotalMinor = 0; // Full package prices
+    public int $packagesPayableMinor = 0;  // Amount to pay (full or deposit)
 
     public static function getNavigationLabel(): string
     {
@@ -116,6 +121,7 @@ class Checkout extends Page implements HasForms, HasActions
             'appointments.practitioner',
             'appointments.treatmentPlanAppointment.item',
             'products.product',
+            'pendingPackages',
             'checkedInBy',
         ])->find($this->visit_id);
 
@@ -129,6 +135,11 @@ class Checkout extends Page implements HasForms, HasActions
         // Initialize actions for open sessions
         foreach ($this->getOpenAppointments() as $appointment) {
             $this->sessionActions[$appointment->id] = 'complete'; // Default to complete
+        }
+
+        // Initialize package payment options from pivot data
+        foreach ($this->getPendingPackages() as $package) {
+            $this->packagePaymentOptions[$package->id] = $package->pivot->payment_option ?? 'full';
         }
     }
 
@@ -189,6 +200,15 @@ class Checkout extends Page implements HasForms, HasActions
         return $visitProducts->merge($appointmentProducts)->unique('id');
     }
 
+    public function getPendingPackages(): Collection
+    {
+        if (!$this->visit) {
+            return collect();
+        }
+
+        return $this->visit->pendingPackages;
+    }
+
     public function calculateTotals(): void
     {
         $servicesTotal = 0;
@@ -214,12 +234,33 @@ class Checkout extends Page implements HasForms, HasActions
             $productsTotal += $prod->total_price_minor ?? 0;
         }
 
-        $this->subtotalMinor = $servicesTotal + $productsTotal;
+        // Calculate package totals
+        $this->packagesSubtotalMinor = 0;
+        $this->packagesPayableMinor = 0;
 
-        // Calculate discount
-        $this->discountMinor = $this->calculateOverallDiscount($this->subtotalMinor);
+        foreach ($this->getPendingPackages() as $package) {
+            $priceMinor = $package->pivot->package_price_minor;
+            $this->packagesSubtotalMinor += $priceMinor;
 
-        $this->totalMinor = max(0, $this->subtotalMinor - $this->discountMinor);
+            $paymentOption = $this->packagePaymentOptions[$package->id] ?? 'full';
+            if ($paymentOption === 'full') {
+                $this->packagesPayableMinor += $priceMinor;
+            } else {
+                // Deposit amount
+                $depositPercent = $package->min_deposit_percent ?? 100;
+                $this->packagesPayableMinor += (int) ceil($priceMinor * $depositPercent / 100);
+            }
+        }
+
+        // Subtotal includes full package prices (for invoice line items)
+        $this->subtotalMinor = $servicesTotal + $productsTotal + $this->packagesSubtotalMinor;
+
+        // Calculate discount on services + products only (not packages)
+        $discountableAmount = $servicesTotal + $productsTotal;
+        $this->discountMinor = $this->calculateOverallDiscount($discountableAmount);
+
+        // Total = services + products - discount + packages payable
+        $this->totalMinor = max(0, $servicesTotal + $productsTotal - $this->discountMinor + $this->packagesPayableMinor);
     }
 
     protected function calculateOverallDiscount(int $subtotal): int
@@ -240,6 +281,34 @@ class Checkout extends Page implements HasForms, HasActions
     {
         $this->sessionActions[$appointmentId] = $action;
         $this->calculateTotals();
+    }
+
+    public function updatePackagePaymentOption(int $packageId, string $option): void
+    {
+        $this->packagePaymentOptions[$packageId] = $option;
+
+        // Also update the pivot table
+        if ($this->visit) {
+            $this->visit->updatePendingPackagePaymentOption($packageId, $option);
+        }
+
+        $this->calculateTotals();
+    }
+
+    public function removePendingPackage(int $packageId): void
+    {
+        if ($this->visit) {
+            $this->visit->pendingPackages()->detach($packageId);
+            $this->loadVisit(); // Reload to refresh the relationship
+        }
+
+        unset($this->packagePaymentOptions[$packageId]);
+        $this->calculateTotals();
+
+        Notification::make()
+            ->title(__('booking::checkout.messages.package_removed'))
+            ->success()
+            ->send();
     }
 
     public function applyDiscount(): void

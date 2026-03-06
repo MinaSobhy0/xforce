@@ -161,22 +161,56 @@ class PackageSubscription extends BaseModel
     // Session tracking
     public function getSessionsUsedAttribute(): int
     {
+        // For pulse-based packages, use the sum of pulse quantities
+        if ($this->package?->isPulseBased()) {
+            return $this->pulses_used;
+        }
+        // For session-based packages, count records
         return $this->usages()->count();
     }
 
     public function getSessionsRemainingAttribute(): int
     {
+        // For pulse-based packages, use total pulses
+        if ($this->package?->isPulseBased()) {
+            return $this->pulses_remaining;
+        }
         $totalSessions = $this->package?->total_sessions ?? 0;
         return max(0, $totalSessions - $this->sessions_used);
     }
 
     public function getSessionsUsedByService(string $serviceId): int
     {
+        // Check if the package item for this service is pulse-based
+        $packageItem = $this->package?->items()
+            ->where('service_id', $serviceId)
+            ->first();
+
+        if ($packageItem?->isPulseBased()) {
+            // Sum the quantity_used for pulse-based services
+            return $this->usages()
+                ->where('service_id', $serviceId)
+                ->where('unit_type', 'pulse')
+                ->sum('quantity_used');
+        }
+
+        // For session-based services, count records
         return $this->usages()->where('service_id', $serviceId)->count();
     }
 
     public function getSessionsRemainingByService(string $serviceId): int
     {
+        // Check if the package item for this service is pulse-based
+        $packageItem = $this->package?->items()
+            ->where('service_id', $serviceId)
+            ->first();
+
+        if ($packageItem?->isPulseBased()) {
+            // For pulse-based, use total_units which includes pulses_per_session calculation
+            $totalForService = $packageItem->total_units;
+            return max(0, $totalForService - $this->getSessionsUsedByService($serviceId));
+        }
+
         $totalForService = $this->package?->getServiceQuantity($serviceId) ?? 0;
         return max(0, $totalForService - $this->getSessionsUsedByService($serviceId));
     }
@@ -216,15 +250,32 @@ class PackageSubscription extends BaseModel
 
     /**
      * Get truly available sessions (total - used - booked).
+     * For pulse-based packages, booked appointments don't reserve specific pulse counts.
      */
     public function getSessionsAvailableAttribute(): int
     {
+        // For pulse-based packages, available = remaining pulses
+        // (booked appointments don't reserve specific pulse counts until completed)
+        if ($this->package?->isPulseBased()) {
+            return $this->pulses_remaining;
+        }
+
         $totalSessions = $this->package?->total_sessions ?? 0;
         return max(0, $totalSessions - $this->sessions_used - $this->sessions_booked);
     }
 
     public function getSessionsAvailableByService(string $serviceId): int
     {
+        // Check if the package item for this service is pulse-based
+        $packageItem = $this->package?->items()
+            ->where('service_id', $serviceId)
+            ->first();
+
+        if ($packageItem?->isPulseBased()) {
+            // For pulse-based, available = remaining (booked appointments don't reserve pulses)
+            return $this->getSessionsRemainingByService($serviceId);
+        }
+
         $totalForService = $this->package?->getServiceQuantity($serviceId) ?? 0;
         return max(0, $totalForService - $this->getSessionsUsedByService($serviceId) - $this->getSessionsBookedByService($serviceId));
     }

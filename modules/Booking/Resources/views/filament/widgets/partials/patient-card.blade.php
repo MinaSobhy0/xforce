@@ -71,6 +71,18 @@
                     </a>
                 @endif
             </div>
+            @php
+                $patientBalance = $appointment->patient?->balance_minor ?? 0;
+            @endphp
+            @if($patientBalance != 0)
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full flex-shrink-0
+                    {{ $patientBalance > 0 ? 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300' : 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300' }}"
+                    title="{{ $patientBalance > 0 ? __('patients::patients.balance.owes') : __('patients::patients.balance.credit') }}"
+                >
+                    <x-heroicon-o-banknotes class="w-3 h-3" />
+                    {{ number_format(abs($patientBalance) / 100, 2) }}
+                </span>
+            @endif
         </div>
 
         {{-- Service --}}

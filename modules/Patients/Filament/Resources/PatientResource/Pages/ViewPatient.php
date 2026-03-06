@@ -80,6 +80,32 @@ class ViewPatient extends BaseViewRecord
                             ->label(__('patients::patients.fields.referral_source')),
                     ]),
 
+                // Balance Alert Section
+                Components\Section::make(__('patients::patients.balance.outstanding_balance'))
+                    ->icon('heroicon-o-banknotes')
+                    ->iconColor(fn ($record) => $record->balance_status_color)
+                    ->visible(fn ($record) => $record->balance_minor != 0)
+                    ->columns(3)
+                    ->schema([
+                        Components\TextEntry::make('balance_minor')
+                            ->label(__('patients::patients.balance.title'))
+                            ->formatStateUsing(fn ($state) => number_format(abs($state) / 100, 2) . ' ' . current_currency())
+                            ->color(fn ($record) => $record->balance_status_color)
+                            ->size(Components\TextEntry\TextEntrySize::Large)
+                            ->weight(\Filament\Support\Enums\FontWeight::Bold)
+                            ->suffix(fn ($record) => $record->balance_minor > 0 ? ' ' . __('patients::patients.balance.owes') : ' ' . __('patients::patients.balance.credit')),
+
+                        Components\TextEntry::make('balance_status_label')
+                            ->label(__('patients::patients.fields.status'))
+                            ->badge()
+                            ->color(fn ($record) => $record->balance_status_color),
+
+                        Components\ViewEntry::make('balance_actions')
+                            ->hiddenLabel()
+                            ->view('patients::components.balance-actions')
+                            ->viewData(fn ($record) => ['patient' => $record]),
+                    ]),
+
                 Components\Section::make('Statistics')
                     ->columns(4)
                     ->schema([

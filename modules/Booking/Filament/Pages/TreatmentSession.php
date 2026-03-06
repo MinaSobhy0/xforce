@@ -3472,4 +3472,101 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
     {
         return !empty($this->getInvoiceItems());
     }
+
+    /**
+     * Get packages pending purchase for this visit.
+     */
+    public function getPendingPackages(): \Illuminate\Support\Collection
+    {
+        if (!$this->visit) {
+            return collect();
+        }
+
+        return $this->visit->pendingPackages;
+    }
+
+    /**
+     * Add a package for purchase at checkout.
+     */
+    public function addPackageToPurchase(int $packageId): void
+    {
+        if (!$this->visit) {
+            Notification::make()
+                ->title(__('booking::session.messages.no_visit'))
+                ->danger()
+                ->send();
+            return;
+        }
+
+        $package = \Modules\Packages\Models\Package::find($packageId);
+        if (!$package) {
+            return;
+        }
+
+        // Check if already pending
+        if ($this->visit->hasPendingPackage($packageId)) {
+            Notification::make()
+                ->title(__('booking::session.messages.package_already_pending'))
+                ->warning()
+                ->send();
+            return;
+        }
+
+        // Add to visit
+        $this->visit->addPendingPackage($package);
+        $this->visit->load('pendingPackages'); // Refresh the relationship
+
+        Notification::make()
+            ->title(__('booking::session.messages.package_added'))
+            ->body(__('booking::session.messages.package_added_body', [
+                'package' => $package->translated_name
+            ]))
+            ->success()
+            ->send();
+    }
+
+    /**
+     * Remove a package from pending purchase.
+     */
+    public function removePendingPackage(int $packageId): void
+    {
+        if (!$this->visit) {
+            return;
+        }
+
+        $this->visit->removePendingPackage(\Modules\Packages\Models\Package::find($packageId));
+        $this->visit->load('pendingPackages'); // Refresh the relationship
+
+        Notification::make()
+            ->title(__('booking::session.messages.package_removed'))
+            ->success()
+            ->send();
+    }
+
+    /**
+     * Get packages available for purchase (active packages not already owned by patient).
+     */
+    public function getPurchasablePackages(): \Illuminate\Support\Collection
+    {
+        $packages = \Modules\Packages\Models\Package::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
+        // Get patient's active subscriptions
+        $activeSubscriptionPackageIds = $this->getPatientActivePackages()
+            ->pluck('package_id')
+            ->toArray();
+
+        // Get pending package IDs
+        $pendingPackageIds = $this->getPendingPackages()
+            ->pluck('id')
+            ->toArray();
+
+        // Filter out already owned or pending packages
+        return $packages->filter(function ($package) use ($activeSubscriptionPackageIds, $pendingPackageIds) {
+            return !in_array($package->id, $activeSubscriptionPackageIds)
+                && !in_array($package->id, $pendingPackageIds);
+        });
+    }
 }

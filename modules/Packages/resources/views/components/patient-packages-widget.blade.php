@@ -54,11 +54,8 @@
                     if ($totalUnits <= 0) {
                         $totalUnits = $package->items->sum(fn ($item) => ($item->quantity ?? 0) * ($item->pulses_per_session ?? 1));
                     }
-                    // Calculate pulses used from sessions used
-                    $avgPulsesPerSession = $package->items->isNotEmpty()
-                        ? $package->items->avg('pulses_per_session') ?? 1
-                        : 1;
-                    $unitsUsed = $subscription->sessions_used * $avgPulsesPerSession;
+                    // Use pulses_used directly - it sums quantity_used from usage records
+                    $unitsUsed = $subscription->pulses_used;
                     $unitsBooked = 0; // Pulses don't have booked state
                     $unitsAvailable = max(0, $totalUnits - $unitsUsed);
                     $unitLabel = __('packages::packages.labels.pulses');

@@ -220,4 +220,17 @@ return [
         'recent_visitors' => 'Recent Visitors',
         'visited_last_days' => 'Visited in last :days days',
     ],
+
+    // Balance
+    'balance' => [
+        'title' => 'Balance',
+        'owes' => 'Outstanding',
+        'credit' => 'Credit',
+        'settled' => 'Settled',
+        'outstanding_balance' => 'Outstanding Balance',
+        'patient_has_balance' => 'This patient has an outstanding balance',
+        'patient_has_credit' => 'This patient has credit',
+        'pay_balance' => 'Pay Balance',
+        'view_ledger' => 'View Ledger',
+    ],
 ];

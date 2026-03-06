@@ -35,6 +35,21 @@
                         <div class="font-semibold text-gray-900 dark:text-white">{{ $visit?->checkedInBy?->name ?? '-' }}</div>
                     </div>
 
+                    {{-- Patient Balance --}}
+                    @if($patient?->balance_minor != 0)
+                        <div class="px-4 py-2 rounded-lg {{ $patient->balance_minor > 0 ? 'bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-800' : 'bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800' }}">
+                            <div class="text-xs {{ $patient->balance_minor > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400' }}">
+                                {{ __('patients::patients.balance.title') }}
+                            </div>
+                            <div class="font-bold {{ $patient->balance_minor > 0 ? 'text-red-700 dark:text-red-300' : 'text-green-700 dark:text-green-300' }}">
+                                {{ number_format(abs($patient->balance_minor) / 100, 2) }} {{ current_currency() }}
+                                <span class="text-xs font-normal">
+                                    {{ $patient->balance_minor > 0 ? __('patients::patients.balance.owes') : __('patients::patients.balance.credit') }}
+                                </span>
+                            </div>
+                        </div>
+                    @endif
+
                     @if($visit?->chief_complaint)
                         <div class="px-3 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-full text-xs">
                             {{ $visit->chief_complaint }}
@@ -252,6 +267,125 @@
                         </div>
                     </x-filament::section>
                 @endif
+
+                {{-- Package Purchases --}}
+                @if($this->getPendingPackages()->isNotEmpty())
+                    <x-filament::section>
+                        <x-slot name="heading">
+                            <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
+                                <x-heroicon-o-gift class="w-5 h-5" />
+                                {{ __('booking::checkout.sections.packages') }}
+                                <span class="px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900/30 rounded-full text-xs font-medium">
+                                    {{ $this->getPendingPackages()->count() }}
+                                </span>
+                            </div>
+                        </x-slot>
+
+                        <div class="space-y-4">
+                            @foreach($this->getPendingPackages() as $package)
+                                @php
+                                    $priceMinor = $package->pivot->package_price_minor;
+                                    $paymentOption = $packagePaymentOptions[$package->id] ?? 'full';
+                                    $depositPercent = $package->min_deposit_percent ?? 100;
+                                    $depositAmount = (int) ceil($priceMinor * $depositPercent / 100);
+                                    $canPayDeposit = $depositPercent < 100;
+                                @endphp
+                                <div class="p-4 bg-indigo-50 dark:bg-indigo-900/10 rounded-lg border border-indigo-200 dark:border-indigo-800">
+                                    <div class="flex items-start justify-between">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-12 h-12 rounded-lg bg-indigo-100 dark:bg-indigo-800 flex items-center justify-center">
+                                                <x-heroicon-o-gift class="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+                                            </div>
+                                            <div>
+                                                <div class="font-semibold text-gray-900 dark:text-white">
+                                                    {{ $package->translated_name }}
+                                                </div>
+                                                <div class="text-sm text-gray-500 dark:text-gray-400">
+                                                    @if($package->isPulseBased())
+                                                        {{ number_format($package->total_pulses) }} {{ __('packages::packages.labels.pulses') }}
+                                                    @else
+                                                        {{ $package->total_sessions }} {{ __('packages::packages.labels.sessions') }}
+                                                    @endif
+                                                    <span class="mx-1">|</span>
+                                                    {{ $package->validity_days }} {{ __('packages::packages.labels.days_validity') }}
+                                                </div>
+                                                <div class="text-lg font-bold text-indigo-600 dark:text-indigo-400 mt-1">
+                                                    {{ number_format($priceMinor / 100, 2) }} {{ current_currency() }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button
+                                            wire:click="removePendingPackage({{ $package->id }})"
+                                            class="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                            title="{{ __('booking::checkout.actions.remove_package') }}"
+                                        >
+                                            <x-heroicon-o-trash class="w-5 h-5" />
+                                        </button>
+                                    </div>
+
+                                    @if($canPayDeposit)
+                                        <div class="mt-4 pt-4 border-t border-indigo-200 dark:border-indigo-700">
+                                            <div class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                {{ __('booking::checkout.labels.payment_option') }}
+                                            </div>
+                                            <div class="flex gap-3">
+                                                <label class="flex-1 cursor-pointer">
+                                                    <input
+                                                        type="radio"
+                                                        name="package_payment_{{ $package->id }}"
+                                                        value="full"
+                                                        wire:click="updatePackagePaymentOption({{ $package->id }}, 'full')"
+                                                        {{ $paymentOption === 'full' ? 'checked' : '' }}
+                                                        class="sr-only peer"
+                                                    />
+                                                    <div class="p-3 rounded-lg border-2 text-center transition-all
+                                                        peer-checked:border-green-500 peer-checked:bg-green-50 dark:peer-checked:bg-green-900/20
+                                                        border-gray-200 dark:border-gray-600 hover:border-gray-300">
+                                                        <div class="font-semibold text-gray-900 dark:text-white">
+                                                            {{ __('booking::checkout.payment_options.full') }}
+                                                        </div>
+                                                        <div class="text-sm text-gray-500 dark:text-gray-400">
+                                                            {{ number_format($priceMinor / 100, 2) }} {{ current_currency() }}
+                                                        </div>
+                                                    </div>
+                                                </label>
+                                                <label class="flex-1 cursor-pointer">
+                                                    <input
+                                                        type="radio"
+                                                        name="package_payment_{{ $package->id }}"
+                                                        value="deposit"
+                                                        wire:click="updatePackagePaymentOption({{ $package->id }}, 'deposit')"
+                                                        {{ $paymentOption === 'deposit' ? 'checked' : '' }}
+                                                        class="sr-only peer"
+                                                    />
+                                                    <div class="p-3 rounded-lg border-2 text-center transition-all
+                                                        peer-checked:border-amber-500 peer-checked:bg-amber-50 dark:peer-checked:bg-amber-900/20
+                                                        border-gray-200 dark:border-gray-600 hover:border-gray-300">
+                                                        <div class="font-semibold text-gray-900 dark:text-white">
+                                                            {{ __('booking::checkout.payment_options.deposit') }} ({{ $depositPercent }}%)
+                                                        </div>
+                                                        <div class="text-sm text-gray-500 dark:text-gray-400">
+                                                            {{ number_format($depositAmount / 100, 2) }} {{ current_currency() }}
+                                                        </div>
+                                                    </div>
+                                                </label>
+                                            </div>
+                                            @if($paymentOption === 'deposit')
+                                                <div class="mt-2 p-2 bg-amber-100 dark:bg-amber-900/30 rounded text-sm text-amber-700 dark:text-amber-300 flex items-center gap-2">
+                                                    <x-heroicon-o-information-circle class="w-4 h-4 flex-shrink-0" />
+                                                    {{ __('booking::checkout.messages.balance_remaining', [
+                                                        'amount' => number_format(($priceMinor - $depositAmount) / 100, 2),
+                                                        'currency' => current_currency()
+                                                    ]) }}
+                                                </div>
+                                            @endif
+                                        </div>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
+                    </x-filament::section>
+                @endif
             </div>
 
             {{-- Right Column: Summary & Checkout --}}
@@ -274,7 +408,7 @@
                             </span>
                         </div>
 
-                        {{-- Package Deduction --}}
+                        {{-- Package Deduction (sessions covered by existing packages) --}}
                         @if($this->getPackageSessionsCount() > 0)
                             <div class="flex justify-between text-blue-600 dark:text-blue-400">
                                 <span>
@@ -284,6 +418,30 @@
                                     -{{ number_format($this->getPackageDeductionTotal() / 100, 2) }} {{ current_currency() }}
                                 </span>
                             </div>
+                        @endif
+
+                        {{-- Package Purchases --}}
+                        @if($packagesSubtotalMinor > 0)
+                            <div class="flex justify-between text-indigo-600 dark:text-indigo-400">
+                                <span>{{ __('booking::checkout.summary.packages') }}</span>
+                                <span>{{ number_format($packagesSubtotalMinor / 100, 2) }} {{ current_currency() }}</span>
+                            </div>
+                            @if($packagesPayableMinor < $packagesSubtotalMinor)
+                                <div class="flex justify-between text-sm text-amber-600 dark:text-amber-400">
+                                    <span class="flex items-center gap-1">
+                                        <x-heroicon-o-arrow-right class="w-3 h-3" />
+                                        {{ __('booking::checkout.summary.paying_now') }}
+                                    </span>
+                                    <span>{{ number_format($packagesPayableMinor / 100, 2) }} {{ current_currency() }}</span>
+                                </div>
+                                <div class="flex justify-between text-sm text-gray-500 dark:text-gray-400">
+                                    <span class="flex items-center gap-1">
+                                        <x-heroicon-o-clock class="w-3 h-3" />
+                                        {{ __('booking::checkout.summary.balance_later') }}
+                                    </span>
+                                    <span>{{ number_format(($packagesSubtotalMinor - $packagesPayableMinor) / 100, 2) }} {{ current_currency() }}</span>
+                                </div>
+                            @endif
                         @endif
 
                         {{-- Discount Section --}}
@@ -361,7 +519,7 @@
                         </div>
 
                         {{-- Empty Visit Warning --}}
-                        @if($this->getCompletedAppointments()->isEmpty() && $this->getOpenAppointments()->isEmpty() && $this->getSoldProducts()->isEmpty())
+                        @if($this->getCompletedAppointments()->isEmpty() && $this->getOpenAppointments()->isEmpty() && $this->getSoldProducts()->isEmpty() && $this->getPendingPackages()->isEmpty())
                             <div class="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg text-amber-700 dark:text-amber-300 text-sm">
                                 <div class="flex items-center gap-2">
                                     <x-heroicon-o-exclamation-triangle class="w-5 h-5" />
@@ -373,7 +531,7 @@
                 </x-filament::section>
 
                 {{-- Quick Stats --}}
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-{{ $this->getPendingPackages()->isNotEmpty() ? '3' : '2' }} gap-4">
                     <div class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-center">
                         <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">
                             {{ $visit?->appointments?->count() ?? 0 }}
@@ -390,6 +548,16 @@
                             {{ __('booking::checkout.stats.products_sold') }}
                         </div>
                     </div>
+                    @if($this->getPendingPackages()->isNotEmpty())
+                        <div class="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl text-center">
+                            <div class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+                                {{ $this->getPendingPackages()->count() }}
+                            </div>
+                            <div class="text-xs text-indigo-600 dark:text-indigo-400">
+                                {{ __('booking::checkout.stats.packages') }}
+                            </div>
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>

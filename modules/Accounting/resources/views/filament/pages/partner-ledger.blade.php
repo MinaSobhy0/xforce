@@ -26,7 +26,7 @@
     {{-- Partner Ledger Data --}}
     <div class="mt-6 space-y-6">
         @forelse($partnerData as $partner)
-            <x-filament::section :collapsible="true" :collapsed="true">
+            <x-filament::section :collapsible="true" :collapsed="count($partnerData) > 1">
                 <x-slot name="heading">
                     <div class="flex justify-between items-center w-full">
                         <div class="flex items-center gap-3">
@@ -53,6 +53,7 @@
                                 <tr class="border-b border-gray-200 dark:border-gray-700">
                                     <th class="px-4 py-3 text-left font-semibold">{{ __('accounting::accounting.date') }}</th>
                                     <th class="px-4 py-3 text-left font-semibold">{{ __('accounting::accounting.reference') }}</th>
+                                    <th class="px-4 py-3 text-left font-semibold">{{ __('accounting::accounting.source') }}</th>
                                     <th class="px-4 py-3 text-left font-semibold">{{ __('accounting::accounting.description') }}</th>
                                     <th class="px-4 py-3 text-right font-semibold">{{ __('accounting::accounting.debit') }}</th>
                                     <th class="px-4 py-3 text-right font-semibold">{{ __('accounting::accounting.credit') }}</th>
@@ -60,6 +61,24 @@
                                 </tr>
                             </thead>
                             <tbody>
+                                {{-- Opening Balance Row --}}
+                                @if($partner['opening_balance'] != 0)
+                                    <tr class="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+                                        <td class="px-4 py-3 font-mono">{{ $this->start_date }}</td>
+                                        <td class="px-4 py-3">
+                                            <x-filament::badge color="gray">
+                                                {{ __('accounting::accounting.opening_balance') }}
+                                            </x-filament::badge>
+                                        </td>
+                                        <td class="px-4 py-3">-</td>
+                                        <td class="px-4 py-3 text-gray-500 italic">{{ __('accounting::accounting.balance_brought_forward') }}</td>
+                                        <td class="px-4 py-3 text-right font-mono">-</td>
+                                        <td class="px-4 py-3 text-right font-mono">-</td>
+                                        <td class="px-4 py-3 text-right font-mono font-semibold {{ $partner['opening_balance'] >= 0 ? 'text-success-600 dark:text-success-400' : 'text-danger-600 dark:text-danger-400' }}">
+                                            {{ $this->formatCurrency($partner['opening_balance']) }}
+                                        </td>
+                                    </tr>
+                                @endif
                                 @foreach($partner['transactions'] as $transaction)
                                     <tr class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900">
                                         <td class="px-4 py-3 font-mono">{{ $transaction['date'] }}</td>
@@ -67,6 +86,15 @@
                                             <x-filament::badge color="info">
                                                 {{ $transaction['reference'] }}
                                             </x-filament::badge>
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            @if(isset($transaction['source_type']) && $transaction['source_type'])
+                                                <x-filament::badge :color="$transaction['source_type'] === 'Invoice' ? 'warning' : ($transaction['source_type'] === 'Payment' ? 'success' : 'gray')">
+                                                    {{ $transaction['source_type'] }}: {{ $transaction['source_code'] ?? '' }}
+                                                </x-filament::badge>
+                                            @else
+                                                <span class="text-gray-400">-</span>
+                                            @endif
                                         </td>
                                         <td class="px-4 py-3">{{ $transaction['description'] ?? '-' }}</td>
                                         <td class="px-4 py-3 text-right font-mono text-success-600 dark:text-success-400">
@@ -83,7 +111,7 @@
                             </tbody>
                             <tfoot>
                                 <tr class="border-t-2 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800">
-                                    <td colspan="3" class="px-4 py-3 font-semibold">{{ __('accounting::accounting.totals') }}</td>
+                                    <td colspan="4" class="px-4 py-3 font-semibold">{{ __('accounting::accounting.totals') }}</td>
                                     <td class="px-4 py-3 text-right font-mono font-bold text-success-600 dark:text-success-400">
                                         {{ $this->formatCurrency($partner['total_debit']) }}
                                     </td>
@@ -93,7 +121,7 @@
                                     <td></td>
                                 </tr>
                                 <tr class="bg-primary-50 dark:bg-primary-900/20">
-                                    <td colspan="5" class="px-4 py-3 font-semibold">{{ __('accounting::accounting.closing_balance') }}</td>
+                                    <td colspan="6" class="px-4 py-3 font-semibold">{{ __('accounting::accounting.closing_balance') }}</td>
                                     <td class="px-4 py-3 text-right font-mono font-bold text-xl {{ $partner['closing_balance'] >= 0 ? 'text-success-600 dark:text-success-400' : 'text-danger-600 dark:text-danger-400' }}">
                                         {{ $this->formatCurrency($partner['closing_balance']) }}
                                     </td>

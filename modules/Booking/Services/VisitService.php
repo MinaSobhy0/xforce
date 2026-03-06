@@ -9,6 +9,8 @@ use Modules\Patients\Models\Patient;
 use Modules\Core\Models\Branch;
 use Modules\Billing\Models\Invoice;
 use Modules\Billing\Models\InvoiceLine;
+use Modules\Packages\Models\Package;
+use Modules\Packages\Models\PackageSubscription;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
 
@@ -223,9 +225,13 @@ class VisitService
             ->with('product')
             ->get();
 
+        // Get pending packages
+        $pendingPackages = $visit->pendingPackages;
+
         // Calculate totals
         $subtotalMinor = 0;
         $lines = [];
+        $createdSubscriptions = [];
 
         // Add service lines
         foreach ($billableAppointments as $apt) {
@@ -262,6 +268,26 @@ class VisitService
             $prod->markAsInvoiced();
         }
 
+        // Add package lines and create subscriptions
+        foreach ($pendingPackages as $package) {
+            $priceMinor = $package->pivot->package_price_minor;
+            $subtotalMinor += $priceMinor;
+
+            // Create the package subscription (active immediately)
+            $subscription = $this->createPackageSubscription($visit, $package);
+            $createdSubscriptions[] = $subscription;
+
+            $lines[] = [
+                'line_type' => 'package',
+                'description' => $package->translated_name ?? $package->name,
+                'quantity' => 1,
+                'unit_price_minor' => $priceMinor,
+                'discount_minor' => 0,
+                'total_minor' => $priceMinor,
+                'package_subscription_id' => $subscription->id,
+            ];
+        }
+
         // Create invoice using InvoiceService
         $invoice = Invoice::create([
             'tenant_id' => $visit->tenant_id,
@@ -293,13 +319,58 @@ class VisitService
                 'service_id' => $lineData['service_id'] ?? null,
                 'product_id' => $lineData['product_id'] ?? null,
                 'appointment_id' => $lineData['appointment_id'] ?? null,
+                'package_subscription_id' => $lineData['package_subscription_id'] ?? null,
             ]);
         }
+
+        // Link subscriptions to invoice
+        foreach ($createdSubscriptions as $subscription) {
+            $subscription->update(['invoice_id' => $invoice->id]);
+        }
+
+        // Clear pending packages from visit
+        $visit->pendingPackages()->detach();
 
         // Issue invoice
         $invoice->issue();
 
         return $invoice;
+    }
+
+    /**
+     * Create a package subscription for a visit
+     */
+    protected function createPackageSubscription(Visit $visit, Package $package): PackageSubscription
+    {
+        $priceMinor = $package->pivot->package_price_minor;
+        $paymentOption = $package->pivot->payment_option ?? 'full';
+
+        // Calculate deposit and balance
+        $depositMinor = $priceMinor; // Default to full payment
+        $balanceMinor = 0;
+
+        if ($paymentOption === 'deposit') {
+            $depositPercent = $package->min_deposit_percent ?? 100;
+            $depositMinor = (int) ceil($priceMinor * $depositPercent / 100);
+            $balanceMinor = $priceMinor - $depositMinor;
+        }
+
+        return PackageSubscription::create([
+            'tenant_id' => $visit->tenant_id,
+            'patient_id' => $visit->patient_id,
+            'package_id' => $package->id,
+            'branch_id' => $visit->branch_id,
+            'package_price_minor' => $priceMinor,
+            'deposit_paid_minor' => $depositMinor,
+            'balance_remaining_minor' => $balanceMinor,
+            'recognized_revenue_minor' => 0,
+            'unrecognized_revenue_minor' => $priceMinor,
+            'status' => PackageSubscription::STATUS_ACTIVE,
+            'activation_rule' => PackageSubscription::ACTIVATION_IMMEDIATE,
+            'purchased_at' => now(),
+            'expires_at' => now()->addDays($package->validity_days ?? 365),
+            'created_by_user_id' => auth()->id(),
+        ]);
     }
 
     /**
@@ -339,6 +410,33 @@ class VisitService
             ->whereIn('status', [Visit::STATUS_COMPLETED, Visit::STATUS_INVOICED])
             ->orderByDesc('check_in_at')
             ->limit($limit)
+            ->get();
+    }
+
+    /**
+     * Add a package to a visit for purchase at checkout
+     */
+    public function addPackageToVisit(Visit $visit, Package $package, string $paymentOption = 'full'): void
+    {
+        $visit->addPendingPackage($package, $paymentOption);
+    }
+
+    /**
+     * Remove a package from a visit
+     */
+    public function removePackageFromVisit(Visit $visit, int $packageId): void
+    {
+        $visit->pendingPackages()->detach($packageId);
+    }
+
+    /**
+     * Get available packages for a patient to purchase
+     */
+    public function getAvailablePackagesForPatient(Patient $patient): Collection
+    {
+        return Package::query()
+            ->where('is_active', true)
+            ->orderBy('name')
             ->get();
     }
 }

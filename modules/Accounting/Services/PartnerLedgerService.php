@@ -56,6 +56,15 @@ class PartnerLedgerService
                 $totalDebit += $line->debit_minor;
                 $totalCredit += $line->credit_minor;
 
+                // Get source document info
+                $sourceType = null;
+                $sourceCode = null;
+                if ($line->journalEntry->source_type && $line->journalEntry->source_id) {
+                    $sourceType = class_basename($line->journalEntry->source_type);
+                    $source = $line->journalEntry->source;
+                    $sourceCode = $source?->code ?? $source?->id;
+                }
+
                 $transactionData[] = [
                     'date' => $line->journalEntry->date->format('Y-m-d'),
                     'reference' => $line->journalEntry->code,
@@ -63,6 +72,10 @@ class PartnerLedgerService
                     'debit' => $line->debit_minor,
                     'credit' => $line->credit_minor,
                     'balance' => $closingBalance,
+                    'source_type' => $sourceType,
+                    'source_code' => $sourceCode,
+                    'account_code' => $line->account?->code,
+                    'account_name' => $line->account?->translated_name,
                 ];
             }
 
@@ -192,7 +205,7 @@ class PartnerLedgerService
                 $q->whereBetween('date', [$startDate, $endDate])
                     ->where('status', 'posted');
             })
-            ->with(['journalEntry', 'account'])
+            ->with(['journalEntry.source', 'account'])
             ->orderBy(
                 JournalEntry::select('date')
                     ->whereColumn('journal_entries.id', 'journal_entry_lines.journal_entry_id')

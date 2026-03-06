@@ -427,13 +427,25 @@ class AppointmentResource extends Resource
 
                 Infolists\Components\Section::make(__('booking::appointments.sections.patient'))
                     ->schema([
-                        Infolists\Components\Grid::make(2)
+                        Infolists\Components\Grid::make(3)
                             ->schema([
                                 Infolists\Components\TextEntry::make('patient.full_name')
                                     ->label(__('booking::appointments.fields.patient')),
 
                                 Infolists\Components\TextEntry::make('patient.phone')
                                     ->label(__('patients::patients.fields.phone')),
+
+                                Infolists\Components\TextEntry::make('patient.balance_minor')
+                                    ->label(__('patients::patients.balance.title'))
+                                    ->formatStateUsing(fn ($state) => $state != 0 ? number_format(abs($state) / 100, 2) . ' ' . current_currency() : '-')
+                                    ->badge()
+                                    ->color(fn (Appointment $record): string => $record->patient?->balance_status_color ?? 'gray')
+                                    ->suffix(fn (Appointment $record) => match(true) {
+                                        ($record->patient?->balance_minor ?? 0) > 0 => ' ' . __('patients::patients.balance.owes'),
+                                        ($record->patient?->balance_minor ?? 0) < 0 => ' ' . __('patients::patients.balance.credit'),
+                                        default => '',
+                                    })
+                                    ->visible(fn (Appointment $record) => ($record->patient?->balance_minor ?? 0) != 0),
                             ]),
                     ]),
 

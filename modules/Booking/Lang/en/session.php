@@ -238,6 +238,11 @@ return [
         'cannot_start_session' => 'Cannot start session for this service',
         'not_qualified_for_service' => 'You are not qualified to perform this service',
         'error' => 'An error occurred',
+        'no_visit' => 'No active visit found',
+        'package_already_pending' => 'This package is already pending purchase',
+        'package_added' => 'Package added to checkout',
+        'package_added_body' => ':package will be invoiced at checkout',
+        'package_removed' => 'Package removed from checkout',
     ],
 
     // Pre-treatment checklist

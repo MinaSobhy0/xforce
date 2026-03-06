@@ -431,4 +431,69 @@ class Patient extends BaseModel implements Authenticatable
                 ->orWhereNull('last_visit_at');
         });
     }
+
+    /**
+     * Get patient's balance from accounting entries.
+     * Positive = patient owes money
+     * Negative = patient has credit (overpaid)
+     */
+    public function getBalanceMinorAttribute(): int
+    {
+        return \Modules\Accounting\Models\JournalEntryLine::query()
+            ->where('partner_type', self::class)
+            ->where('partner_id', $this->id)
+            ->whereHas('account', fn($q) => $q->where('type', 'receivable'))
+            ->whereHas('journalEntry', fn($q) => $q->where('status', 'posted'))
+            ->sum(\Illuminate\Support\Facades\DB::raw('debit_minor - credit_minor'));
+    }
+
+    /**
+     * Get formatted balance.
+     */
+    public function getFormattedBalanceAttribute(): string
+    {
+        return format_money($this->balance_minor);
+    }
+
+    /**
+     * Check if patient has outstanding balance.
+     */
+    public function hasOutstandingBalance(): bool
+    {
+        return $this->balance_minor > 0;
+    }
+
+    /**
+     * Check if patient has credit (overpaid).
+     */
+    public function hasCredit(): bool
+    {
+        return $this->balance_minor < 0;
+    }
+
+    /**
+     * Get balance status color for UI.
+     */
+    public function getBalanceStatusColorAttribute(): string
+    {
+        if ($this->balance_minor > 0) {
+            return 'danger'; // Owes money
+        } elseif ($this->balance_minor < 0) {
+            return 'success'; // Has credit
+        }
+        return 'gray'; // Zero balance
+    }
+
+    /**
+     * Get balance status label.
+     */
+    public function getBalanceStatusLabelAttribute(): string
+    {
+        if ($this->balance_minor > 0) {
+            return __('patients::patients.balance.owes');
+        } elseif ($this->balance_minor < 0) {
+            return __('patients::patients.balance.credit');
+        }
+        return __('patients::patients.balance.settled');
+    }
 }

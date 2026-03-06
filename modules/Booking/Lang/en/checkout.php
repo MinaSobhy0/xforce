@@ -16,6 +16,7 @@ return [
         'completed_sessions' => 'Completed Sessions',
         'cancelled_sessions' => 'Cancelled Sessions',
         'products' => 'Products Sold',
+        'packages' => 'Package Purchases',
         'summary' => 'Invoice Summary',
     ],
 
@@ -32,6 +33,9 @@ return [
     'summary' => [
         'subtotal' => 'Subtotal',
         'package_sessions' => 'Package Sessions (:count)',
+        'packages' => 'Package Purchases',
+        'paying_now' => 'Paying Now',
+        'balance_later' => 'Balance Due Later',
         'overall_discount' => 'Overall Discount',
         'discount' => 'Discount',
         'total' => 'Total',
@@ -48,6 +52,16 @@ return [
     'stats' => [
         'total_services' => 'Services',
         'products_sold' => 'Products',
+        'packages' => 'Packages',
+    ],
+
+    'labels' => [
+        'payment_option' => 'Payment Option',
+    ],
+
+    'payment_options' => [
+        'full' => 'Pay Full',
+        'deposit' => 'Pay Deposit',
     ],
 
     'actions' => [
@@ -55,6 +69,7 @@ return [
         'view_patient' => 'View Patient',
         'confirm_checkout' => 'Complete Checkout',
         'generate_invoice' => 'Generate Invoice',
+        'remove_package' => 'Remove Package',
     ],
 
     'modals' => [
@@ -72,6 +87,8 @@ return [
         'invoice_created' => 'Invoice :code has been created',
         'checkout_error' => 'Checkout failed',
         'empty_visit' => 'No billable items in this visit. Complete or add services before checkout.',
+        'balance_remaining' => 'Balance of :amount :currency will be added to the invoice for later payment.',
+        'package_removed' => 'Package removed from checkout',
     ],
 
     'invoice_notes' => [

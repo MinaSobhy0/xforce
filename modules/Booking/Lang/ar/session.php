@@ -238,6 +238,11 @@ return [
         'cannot_start_session' => 'لا يمكن بدء جلسة لهذه الخدمة',
         'not_qualified_for_service' => 'أنت غير مؤهل لتقديم هذه الخدمة',
         'error' => 'حدث خطأ',
+        'no_visit' => 'لا توجد زيارة نشطة',
+        'package_already_pending' => 'هذه الباقة مضافة مسبقاً للشراء',
+        'package_added' => 'تمت إضافة الباقة للدفع',
+        'package_added_body' => 'سيتم فوترة :package عند الدفع',
+        'package_removed' => 'تمت إزالة الباقة من الدفع',
     ],
 
     // Pre-treatment checklist

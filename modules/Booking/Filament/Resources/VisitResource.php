@@ -249,6 +249,18 @@ class VisitResource extends Resource
                             ->label(__('booking::visits.fields.patient'))
                             ->url(fn (Visit $record) => \Modules\Patients\Filament\Resources\PatientResource::getUrl('view', ['record' => $record->patient_id])),
 
+                        Infolists\Components\TextEntry::make('patient.balance_minor')
+                            ->label(__('patients::patients.balance.title'))
+                            ->formatStateUsing(fn ($state) => $state != 0 ? number_format(abs($state) / 100, 2) . ' ' . current_currency() : '-')
+                            ->badge()
+                            ->color(fn (Visit $record): string => $record->patient?->balance_status_color ?? 'gray')
+                            ->suffix(fn (Visit $record) => match(true) {
+                                ($record->patient?->balance_minor ?? 0) > 0 => ' ' . __('patients::patients.balance.owes'),
+                                ($record->patient?->balance_minor ?? 0) < 0 => ' ' . __('patients::patients.balance.credit'),
+                                default => '',
+                            })
+                            ->visible(fn (Visit $record) => ($record->patient?->balance_minor ?? 0) != 0),
+
                         Infolists\Components\TextEntry::make('status')
                             ->label(__('booking::visits.fields.status'))
                             ->badge()

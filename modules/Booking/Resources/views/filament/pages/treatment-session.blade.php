@@ -99,6 +99,15 @@
                             </div>
                         @endif
 
+                        {{-- Patient Balance Badge --}}
+                        @if($patient?->balance_minor != 0)
+                            <div class="px-2 sm:px-3 py-1 {{ $patient->balance_minor > 0 ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300' : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' }} rounded-full font-medium flex items-center gap-1 text-xs sm:text-sm">
+                                <x-heroicon-o-banknotes class="w-3 h-3 sm:w-4 sm:h-4" />
+                                {{ number_format(abs($patient->balance_minor) / 100, 2) }}
+                                <span class="hidden sm:inline">{{ $patient->balance_minor > 0 ? __('patients::patients.balance.owes') : __('patients::patients.balance.credit') }}</span>
+                            </div>
+                        @endif
+
                         {{-- Session Timer --}}
                         @if($sessionData?->session_started_at)
                             <div

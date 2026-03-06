@@ -12,6 +12,7 @@ use Modules\Patients\Models\Patient;
 use Modules\Core\Models\Branch;
 use Modules\Billing\Models\Invoice;
 use Modules\Auth\Models\User;
+use Modules\Packages\Models\Package;
 use Carbon\Carbon;
 
 class Visit extends BaseModel
@@ -132,6 +133,89 @@ class Visit extends BaseModel
     public function soldProducts(): HasMany
     {
         return $this->hasMany(SessionProduct::class)->where('usage_type', 'sold');
+    }
+
+    /**
+     * Packages pending purchase during this visit.
+     */
+    public function pendingPackages(): BelongsToMany
+    {
+        return $this->belongsToMany(Package::class, 'visit_pending_packages')
+            ->withPivot(['package_price_minor', 'payment_option'])
+            ->withTimestamps();
+    }
+
+    /**
+     * Add a package to pending purchases for this visit.
+     */
+    public function addPendingPackage(Package $package, string $paymentOption = 'full'): void
+    {
+        if (!$this->pendingPackages()->where('package_id', $package->id)->exists()) {
+            $this->pendingPackages()->attach($package->id, [
+                'tenant_id' => $this->tenant_id,
+                'package_price_minor' => $package->effective_price_minor,
+                'payment_option' => $paymentOption,
+            ]);
+        }
+    }
+
+    /**
+     * Remove a package from pending purchases.
+     */
+    public function removePendingPackage(Package $package): void
+    {
+        $this->pendingPackages()->detach($package->id);
+    }
+
+    /**
+     * Update payment option for a pending package.
+     */
+    public function updatePendingPackagePaymentOption(int $packageId, string $paymentOption): void
+    {
+        $this->pendingPackages()->updateExistingPivot($packageId, [
+            'payment_option' => $paymentOption,
+        ]);
+    }
+
+    /**
+     * Check if a package is pending purchase.
+     */
+    public function hasPendingPackage(int $packageId): bool
+    {
+        return $this->pendingPackages()->where('package_id', $packageId)->exists();
+    }
+
+    /**
+     * Get total for pending packages based on payment options.
+     */
+    public function getPendingPackagesTotalMinor(): int
+    {
+        $total = 0;
+        foreach ($this->pendingPackages as $package) {
+            $total += $package->pivot->package_price_minor;
+        }
+        return $total;
+    }
+
+    /**
+     * Get total deposit amount for pending packages.
+     */
+    public function getPendingPackagesDepositMinor(): int
+    {
+        $total = 0;
+        foreach ($this->pendingPackages as $package) {
+            $priceMinor = $package->pivot->package_price_minor;
+            $paymentOption = $package->pivot->payment_option;
+
+            if ($paymentOption === 'full') {
+                $total += $priceMinor;
+            } else {
+                // Use min_deposit_percent from package
+                $depositPercent = $package->min_deposit_percent ?? 100;
+                $total += (int) ceil($priceMinor * $depositPercent / 100);
+            }
+        }
+        return $total;
     }
 
     /**
@@ -312,7 +396,7 @@ class Visit extends BaseModel
     }
 
     /**
-     * Calculate total from appointments and products
+     * Calculate total from appointments, products, and pending packages
      */
     public function calculateTotal(): int
     {
@@ -325,7 +409,10 @@ class Visit extends BaseModel
             ->selectRaw('SUM((unit_price_minor - COALESCE(discount_minor, 0)) * quantity) as total')
             ->value('total') ?? 0;
 
-        $this->total_minor = $appointmentsTotal + $productsTotal;
+        // Include full package prices (invoice shows full amount, payment may be partial)
+        $packagesTotal = $this->getPendingPackagesTotalMinor();
+
+        $this->total_minor = $appointmentsTotal + $productsTotal + $packagesTotal;
         $this->save();
 
         return $this->total_minor;

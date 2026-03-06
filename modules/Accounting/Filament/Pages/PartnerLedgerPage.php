@@ -40,6 +40,12 @@ class PartnerLedgerPage extends Page implements HasForms
     public array $partnerData = [];
     public array $stats = [];
 
+    // Allow query string parameters
+    protected $queryString = [
+        'partner_type' => ['except' => ''],
+        'partner_id' => ['except' => ''],
+    ];
+
     public static function getNavigationLabel(): string
     {
         return __('accounting::accounting.partner_ledger');
@@ -52,8 +58,18 @@ class PartnerLedgerPage extends Page implements HasForms
 
     public function mount(): void
     {
-        $this->start_date = now()->startOfMonth()->format('Y-m-d');
+        // Query string parameters are automatically populated by Livewire via $queryString
+
+        // Set default date range - use fiscal year start or 3 months back
+        if ($this->partner_id) {
+            // For specific partner, show 2 years of history
+            $this->start_date = now()->subYears(2)->startOfYear()->format('Y-m-d');
+        } else {
+            // For general view, show last 3 months to capture recent activity
+            $this->start_date = now()->subMonths(3)->startOfMonth()->format('Y-m-d');
+        }
         $this->end_date = now()->format('Y-m-d');
+
         $this->loadReportData();
     }
 

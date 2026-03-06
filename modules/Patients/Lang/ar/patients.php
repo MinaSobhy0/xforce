@@ -220,4 +220,17 @@ return [
         'recent_visitors' => 'الزوار الأخيرون',
         'visited_last_days' => 'زاروا خلال آخر :days يوم',
     ],
+
+    // الرصيد
+    'balance' => [
+        'title' => 'الرصيد',
+        'owes' => 'مستحق',
+        'credit' => 'رصيد دائن',
+        'settled' => 'مسدد',
+        'outstanding_balance' => 'الرصيد المستحق',
+        'patient_has_balance' => 'هذا المريض لديه رصيد مستحق',
+        'patient_has_credit' => 'هذا المريض لديه رصيد دائن',
+        'pay_balance' => 'دفع الرصيد',
+        'view_ledger' => 'عرض كشف الحساب',
+    ],
 ];
