@@ -34,6 +34,7 @@ return [
     ],
 
     'uncategorized' => 'خدمات أخرى',
+    'legend' => 'الدليل',
 
     'appointment_details' => 'تفاصيل الموعد',
     'appointments' => 'المواعيد',

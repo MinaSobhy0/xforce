@@ -34,6 +34,7 @@ return [
     ],
 
     'uncategorized' => 'Other Services',
+    'legend' => 'Legend',
 
     'appointment_details' => 'Appointment Details',
     'appointments' => 'Appointments',

@@ -5,8 +5,8 @@
             {{ $this->form }}
         </x-filament::section>
 
-        {{-- Calendar Navigation & Legend --}}
-        <div class="flex flex-wrap items-center justify-between gap-4">
+        {{-- Desktop: Calendar Navigation & Legend (hidden on mobile) --}}
+        <div class="hidden md:flex flex-wrap items-center justify-between gap-4">
             <div class="flex items-center gap-2">
                 {{-- Navigation --}}
                 <x-filament::icon-button
@@ -85,9 +85,99 @@
             </div>
         </div>
 
+        {{-- Mobile: Compact Navigation (visible only on mobile) --}}
+        <div class="md:hidden space-y-3">
+            {{-- Row 1: Navigation arrows, date picker, today button --}}
+            <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-1">
+                    <x-filament::icon-button
+                        icon="heroicon-o-chevron-left"
+                        wire:click="previous"
+                        color="gray"
+                        size="sm"
+                    />
+                    <div class="w-32">
+                        <x-filament::input.wrapper>
+                            <x-filament::input
+                                type="date"
+                                wire:model.live="selectedDate"
+                                class="text-center text-sm"
+                            />
+                        </x-filament::input.wrapper>
+                    </div>
+                    <x-filament::icon-button
+                        icon="heroicon-o-chevron-right"
+                        wire:click="next"
+                        color="gray"
+                        size="sm"
+                    />
+                </div>
+                @unless($this->isToday())
+                    <x-filament::button wire:click="today" size="xs" color="primary">
+                        {{ __('booking::calendar.today') }}
+                    </x-filament::button>
+                @endunless
+            </div>
+
+            {{-- Row 2: View mode buttons --}}
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-1">
+                    <x-filament::button wire:click="setViewMode('day')" size="xs" :color="$viewMode === 'day' ? 'primary' : 'gray'">
+                        {{ __('booking::calendar.view.day') }}
+                    </x-filament::button>
+                    <x-filament::button wire:click="setViewMode('week')" size="xs" :color="$viewMode === 'week' ? 'primary' : 'gray'">
+                        {{ __('booking::calendar.view.week') }}
+                    </x-filament::button>
+                    <x-filament::button wire:click="setViewMode('month')" size="xs" :color="$viewMode === 'month' ? 'primary' : 'gray'">
+                        {{ __('booking::calendar.view.month') }}
+                    </x-filament::button>
+                </div>
+                <x-filament::button tag="a" href="{{ route('filament.tenant.pages.room-calendar') }}" size="xs" color="gray" icon="heroicon-o-building-office">
+                </x-filament::button>
+            </div>
+
+            {{-- Row 3: Collapsible Legend --}}
+            <div x-data="{ showLegend: false }">
+                <button
+                    @click="showLegend = !showLegend"
+                    type="button"
+                    class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400"
+                >
+                    <span>{{ __('booking::calendar.legend') }}</span>
+                    <x-heroicon-o-chevron-down class="w-3 h-3 transition-transform" x-bind:class="showLegend ? 'rotate-180' : ''" />
+                </button>
+                <div
+                    x-show="showLegend"
+                    x-transition
+                    class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs"
+                >
+                    <div class="flex items-center gap-1">
+                        <span class="inline-block w-2.5 h-2.5 rounded" style="background-color: #3b82f6;"></span>
+                        <span class="text-gray-500 dark:text-gray-400">{{ __('booking::calendar.status.scheduled') }}</span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <span class="inline-block w-2.5 h-2.5 rounded" style="background-color: #8b5cf6;"></span>
+                        <span class="text-gray-500 dark:text-gray-400">{{ __('booking::calendar.status.confirmed') }}</span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <span class="inline-block w-2.5 h-2.5 rounded" style="background-color: #f59e0b;"></span>
+                        <span class="text-gray-500 dark:text-gray-400">{{ __('booking::calendar.status.checked_in') }}</span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <span class="inline-block w-2.5 h-2.5 rounded" style="background-color: #6366f1;"></span>
+                        <span class="text-gray-500 dark:text-gray-400">{{ __('booking::calendar.status.in_progress') }}</span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <span class="inline-block w-2.5 h-2.5 rounded" style="background-color: #10b981;"></span>
+                        <span class="text-gray-500 dark:text-gray-400">{{ __('booking::calendar.status.completed') }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         {{-- Calendar Container --}}
         <x-filament::section>
-            <div id="calendar" class="min-h-[600px]" wire:ignore></div>
+            <div id="calendar" class="min-h-[400px] md:min-h-[600px]" wire:ignore></div>
         </x-filament::section>
 
     </div>
@@ -177,6 +267,55 @@
             overflow: hidden !important;
             text-overflow: ellipsis !important;
             max-width: 100% !important;
+        }
+
+        /* Mobile-specific FullCalendar styles */
+        @media (max-width: 767px) {
+            .fc {
+                font-size: 0.75rem;
+            }
+            .fc-col-header-cell-cushion {
+                padding: 4px 2px;
+                font-size: 0.7rem;
+            }
+            .fc-daygrid-day-number {
+                padding: 4px;
+                font-size: 0.7rem;
+            }
+            .fc-timegrid-slot {
+                height: 2.2em;
+            }
+            .fc-timegrid-slot-label {
+                font-size: 0.65rem;
+                padding: 0 2px !important;
+            }
+            .fc-timegrid-axis {
+                width: 36px !important;
+            }
+            .fc-timegrid-axis-cushion {
+                padding: 0 2px !important;
+            }
+            .fc-event {
+                padding: 1px 2px !important;
+                font-size: 0.55rem;
+            }
+            .fc-daygrid-day-frame {
+                min-height: 50px;
+            }
+            .fc-daygrid-event {
+                margin: 0 1px;
+            }
+            .fc-timegrid-event {
+                margin: 0 1px;
+            }
+            .fc-daygrid-more-link {
+                font-size: 0.6rem;
+            }
+            /* Hide scroll bar but allow scrolling */
+            #calendar {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
         }
     </style>
     @endassets

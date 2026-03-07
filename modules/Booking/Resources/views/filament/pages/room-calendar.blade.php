@@ -6,8 +6,8 @@
         $currentTimePosition = $this->getCurrentTimePosition();
     @endphp
 
-    {{-- Filters & Legend --}}
-    <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+    {{-- Desktop: Filters & Legend (hidden on mobile) --}}
+    <div class="hidden md:flex flex-wrap items-center justify-between gap-4 mb-4">
         <div class="flex items-center gap-2">
             {{-- Previous Day Button --}}
             <x-filament::icon-button
@@ -84,6 +84,83 @@
         >
             {{ __('booking::room_calendar.back_to_calendar') }}
         </x-filament::button>
+    </div>
+
+    {{-- Mobile: Compact Navigation (visible only on mobile) --}}
+    <div class="md:hidden space-y-3 mb-4">
+        {{-- Row 1: Navigation arrows, date picker, today button --}}
+        <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-1">
+                <x-filament::icon-button
+                    icon="heroicon-o-chevron-left"
+                    wire:click="previousDay"
+                    color="gray"
+                    size="sm"
+                />
+                <div class="w-32">
+                    <x-filament::input.wrapper>
+                        <x-filament::input
+                            type="date"
+                            wire:model.live="selectedDate"
+                            class="text-center text-sm"
+                        />
+                    </x-filament::input.wrapper>
+                </div>
+                <x-filament::icon-button
+                    icon="heroicon-o-chevron-right"
+                    wire:click="nextDay"
+                    color="gray"
+                    size="sm"
+                />
+            </div>
+            <div class="flex items-center gap-1">
+                @unless($this->isToday())
+                    <x-filament::button wire:click="goToToday" size="xs" color="primary">
+                        {{ __('booking::room_calendar.today') }}
+                    </x-filament::button>
+                @endunless
+                <x-filament::button tag="a" href="{{ route('filament.tenant.pages.calendar') }}" size="xs" color="gray" icon="heroicon-o-calendar-days">
+                </x-filament::button>
+            </div>
+        </div>
+
+        {{-- Row 2: Collapsible Legend --}}
+        <div x-data="{ showLegend: false }">
+            <button
+                @click="showLegend = !showLegend"
+                type="button"
+                class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400"
+            >
+                <span>{{ __('booking::calendar.legend') }}</span>
+                <x-heroicon-o-chevron-down class="w-3 h-3 transition-transform" x-bind:class="showLegend ? 'rotate-180' : ''" />
+            </button>
+            <div
+                x-show="showLegend"
+                x-transition
+                class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs"
+            >
+                <div class="flex items-center gap-1">
+                    <span class="inline-block w-2.5 h-2.5 rounded" style="background-color: #3b82f6;"></span>
+                    <span class="text-gray-500 dark:text-gray-400">{{ __('booking::room_calendar.legend.scheduled') }}</span>
+                </div>
+                <div class="flex items-center gap-1">
+                    <span class="inline-block w-2.5 h-2.5 rounded" style="background-color: #6366f1;"></span>
+                    <span class="text-gray-500 dark:text-gray-400">{{ __('booking::room_calendar.legend.confirmed') }}</span>
+                </div>
+                <div class="flex items-center gap-1">
+                    <span class="inline-block w-2.5 h-2.5 rounded" style="background-color: #f59e0b;"></span>
+                    <span class="text-gray-500 dark:text-gray-400">{{ __('booking::room_calendar.legend.checked_in') }}</span>
+                </div>
+                <div class="flex items-center gap-1">
+                    <span class="inline-block w-2.5 h-2.5 rounded" style="background-color: #a855f7;"></span>
+                    <span class="text-gray-500 dark:text-gray-400">{{ __('booking::room_calendar.legend.in_progress') }}</span>
+                </div>
+                <div class="flex items-center gap-1">
+                    <span class="inline-block w-2.5 h-2.5 rounded" style="background-color: #22c55e;"></span>
+                    <span class="text-gray-500 dark:text-gray-400">{{ __('booking::room_calendar.legend.completed') }}</span>
+                </div>
+            </div>
+        </div>
     </div>
 
     {{-- Calendar Grid --}}
@@ -199,7 +276,7 @@
     </div>
 
     {{-- Summary Stats --}}
-    <div class="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div class="mt-4 md:mt-6 grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
         @php
             $allAppointments = $this->getAppointments();
             $totalAppointments = $allAppointments->count();
@@ -208,24 +285,24 @@
             $avgDuration = $totalAppointments > 0 ? round($allAppointments->avg('duration_minutes')) : 0;
         @endphp
 
-        <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-            <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ $totalAppointments }}</div>
-            <div class="text-sm text-gray-500 dark:text-gray-400">{{ __('booking::room_calendar.stats.total_bookings') }}</div>
+        <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-3 md:p-4">
+            <div class="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">{{ $totalAppointments }}</div>
+            <div class="text-xs md:text-sm text-gray-500 dark:text-gray-400">{{ __('booking::room_calendar.stats.total_bookings') }}</div>
         </div>
 
-        <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-            <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ $occupiedRooms }} / {{ $totalRooms }}</div>
-            <div class="text-sm text-gray-500 dark:text-gray-400">{{ __('booking::room_calendar.stats.rooms_used') }}</div>
+        <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-3 md:p-4">
+            <div class="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">{{ $occupiedRooms }} / {{ $totalRooms }}</div>
+            <div class="text-xs md:text-sm text-gray-500 dark:text-gray-400">{{ __('booking::room_calendar.stats.rooms_used') }}</div>
         </div>
 
-        <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-            <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ $totalRooms - $occupiedRooms }}</div>
-            <div class="text-sm text-gray-500 dark:text-gray-400">{{ __('booking::room_calendar.stats.rooms_available') }}</div>
+        <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-3 md:p-4">
+            <div class="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">{{ $totalRooms - $occupiedRooms }}</div>
+            <div class="text-xs md:text-sm text-gray-500 dark:text-gray-400">{{ __('booking::room_calendar.stats.rooms_available') }}</div>
         </div>
 
-        <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-            <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ $avgDuration }} min</div>
-            <div class="text-sm text-gray-500 dark:text-gray-400">{{ __('booking::room_calendar.stats.avg_duration') }}</div>
+        <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-3 md:p-4">
+            <div class="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">{{ $avgDuration }} min</div>
+            <div class="text-xs md:text-sm text-gray-500 dark:text-gray-400">{{ __('booking::room_calendar.stats.avg_duration') }}</div>
         </div>
     </div>
 
