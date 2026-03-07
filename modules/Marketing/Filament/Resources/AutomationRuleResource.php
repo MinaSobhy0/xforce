@@ -299,8 +299,8 @@ class AutomationRuleResource extends Resource
                             $record->template,
                             $patient,
                             $variables,
-                            'test',
-                            'rule-' . $record->id
+                            'automation_rule_test',
+                            $record->id
                         );
 
                         if ($log->status === 'sent') {
