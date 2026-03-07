@@ -10,8 +10,9 @@ use Modules\Marketing\Models\NotificationLog;
 class WhatsAppService
 {
     protected string $apiVersion;
-    protected ?string $phoneNumberId;
+    protected ?string $phoneNumber;
     protected ?string $accessToken;
+    protected ?string $accountSid;
     protected ?string $provider;
     protected bool $enabled;
 
@@ -31,18 +32,21 @@ class WhatsAppService
 
         // For Meta (Official WhatsApp Business API)
         if ($this->provider === 'meta') {
-            $this->phoneNumberId = PlatformSetting::get('whatsapp_phone_number', '');
+            $this->phoneNumber = PlatformSetting::get('whatsapp_phone_number', '');
             $this->accessToken = PlatformSetting::get('whatsapp_api_key', '');
+            $this->accountSid = null;
         }
         // For Twilio
         elseif ($this->provider === 'twilio') {
-            $this->phoneNumberId = PlatformSetting::get('whatsapp_phone_number', '');
+            $this->phoneNumber = PlatformSetting::get('whatsapp_phone_number', '');
+            $this->accountSid = PlatformSetting::get('whatsapp_api_key', ''); // Twilio Account SID
             $this->accessToken = PlatformSetting::get('whatsapp_api_secret', ''); // Twilio Auth Token
         }
         // Fallback to env config if not set in platform settings
         else {
-            $this->phoneNumberId = config('marketing.whatsapp.phone_number_id');
+            $this->phoneNumber = config('marketing.whatsapp.phone_number_id');
             $this->accessToken = config('marketing.whatsapp.access_token');
+            $this->accountSid = null;
         }
     }
 
@@ -51,9 +55,16 @@ class WhatsAppService
      */
     public function isEnabled(): bool
     {
-        return $this->enabled
-            && $this->phoneNumberId
-            && $this->accessToken;
+        if (!$this->enabled || !$this->phoneNumber || !$this->accessToken) {
+            return false;
+        }
+
+        // Twilio also requires account SID
+        if ($this->provider === 'twilio' && !$this->accountSid) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -76,9 +87,67 @@ class WhatsAppService
             ];
         }
 
+        // Route to appropriate provider
+        if ($this->provider === 'twilio') {
+            return $this->sendViaTwilio($to, $message);
+        }
+
+        return $this->sendViaMeta($to, $message);
+    }
+
+    /**
+     * Send message via Twilio WhatsApp API.
+     */
+    protected function sendViaTwilio(string $to, string $message): array
+    {
+        try {
+            $formattedTo = $this->formatPhoneNumber($to);
+            $formattedFrom = $this->formatPhoneNumber($this->phoneNumber);
+
+            $response = Http::withBasicAuth($this->accountSid, $this->accessToken)
+                ->asForm()
+                ->post("https://api.twilio.com/2010-04-01/Accounts/{$this->accountSid}/Messages.json", [
+                    'From' => "whatsapp:{$formattedFrom}",
+                    'To' => "whatsapp:{$formattedTo}",
+                    'Body' => $message,
+                ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                return [
+                    'success' => true,
+                    'message_id' => $data['sid'] ?? null,
+                    'response' => $data,
+                ];
+            }
+
+            $error = $response->json();
+            return [
+                'success' => false,
+                'error' => $error['message'] ?? 'Unknown error',
+                'response' => $error,
+            ];
+        } catch (\Exception $e) {
+            Log::error('Twilio WhatsApp send failed', [
+                'to' => $to,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Send message via Meta WhatsApp Business API.
+     */
+    protected function sendViaMeta(string $to, string $message): array
+    {
         try {
             $response = Http::withToken($this->accessToken)
-                ->post($this->getApiUrl('/messages'), [
+                ->post($this->getMetaApiUrl('/messages'), [
                     'messaging_product' => 'whatsapp',
                     'recipient_type' => 'individual',
                     'to' => $this->formatPhoneNumber($to),
@@ -118,6 +187,8 @@ class WhatsAppService
 
     /**
      * Send a template message (required for business-initiated conversations).
+     * Note: Twilio uses Content Templates which work differently.
+     * For Twilio, we fall back to regular text message with the rendered content.
      */
     public function sendTemplateMessage(
         string $to,
@@ -132,6 +203,22 @@ class WhatsAppService
             ];
         }
 
+        // For Twilio, templates are handled via Content API or we send as text
+        // Since our templates are stored in the database with content, we'll use text
+        if ($this->provider === 'twilio') {
+            // Extract body text from components if available
+            $bodyText = $templateName; // Fallback to template name
+            foreach ($components as $component) {
+                if (($component['type'] ?? '') === 'body' && !empty($component['parameters'])) {
+                    $texts = array_map(fn($p) => $p['text'] ?? '', $component['parameters']);
+                    $bodyText = implode(' ', array_filter($texts));
+                    break;
+                }
+            }
+            return $this->sendViaTwilio($to, $bodyText);
+        }
+
+        // Meta API
         try {
             $payload = [
                 'messaging_product' => 'whatsapp',
@@ -151,7 +238,7 @@ class WhatsAppService
             }
 
             $response = Http::withToken($this->accessToken)
-                ->post($this->getApiUrl('/messages'), $payload);
+                ->post($this->getMetaApiUrl('/messages'), $payload);
 
             if ($response->successful()) {
                 $data = $response->json();
@@ -202,6 +289,8 @@ class WhatsAppService
 
     /**
      * Send an interactive message with buttons.
+     * Note: Twilio doesn't support interactive messages the same way.
+     * For Twilio, we send as plain text.
      */
     public function sendInteractiveMessage(string $to, array $interactive): array
     {
@@ -212,6 +301,13 @@ class WhatsAppService
             ];
         }
 
+        // For Twilio, extract body text and send as regular message
+        if ($this->provider === 'twilio') {
+            $bodyText = $interactive['body']['text'] ?? '';
+            return $this->sendViaTwilio($to, $bodyText);
+        }
+
+        // Meta API
         try {
             $payload = [
                 'messaging_product' => 'whatsapp',
@@ -222,7 +318,7 @@ class WhatsAppService
             ];
 
             $response = Http::withToken($this->accessToken)
-                ->post($this->getApiUrl('/messages'), $payload);
+                ->post($this->getMetaApiUrl('/messages'), $payload);
 
             if ($response->successful()) {
                 $data = $response->json();
@@ -336,30 +432,31 @@ class WhatsAppService
 
     /**
      * Format phone number for WhatsApp API.
+     * Expects phone in international format like +201234567890
      */
     protected function formatPhoneNumber(string $phone): string
     {
-        // Remove any non-numeric characters
-        $phone = preg_replace('/[^0-9]/', '', $phone);
+        // Remove any non-numeric characters except +
+        $phone = preg_replace('/[^0-9+]/', '', $phone);
+
+        // If starts with +, remove it (APIs expect just numbers)
+        if (str_starts_with($phone, '+')) {
+            $phone = substr($phone, 1);
+        }
 
         // If starts with 0, assume Egyptian number and add country code
         if (str_starts_with($phone, '0')) {
-            $phone = '2' . $phone;
+            $phone = '20' . substr($phone, 1);
         }
 
-        // Ensure it starts with country code
-        if (!str_starts_with($phone, '2')) {
-            $phone = '2' . $phone;
-        }
-
-        return $phone;
+        return '+' . $phone;
     }
 
     /**
-     * Get API URL.
+     * Get Meta Graph API URL.
      */
-    protected function getApiUrl(string $endpoint = ''): string
+    protected function getMetaApiUrl(string $endpoint = ''): string
     {
-        return "https://graph.facebook.com/{$this->apiVersion}/{$this->phoneNumberId}{$endpoint}";
+        return "https://graph.facebook.com/{$this->apiVersion}/{$this->phoneNumber}{$endpoint}";
     }
 }
