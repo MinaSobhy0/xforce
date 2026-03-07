@@ -4,6 +4,7 @@ namespace Modules\Inventory\Models;
 
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Modules\Inventory\Events\PurchaseOrderReceived;
+use Modules\Inventory\Services\StockMoveService;
 use XLinic\Framework\Core\Model\BaseModel;
 
 class PurchaseOrderLine extends BaseModel
@@ -142,7 +143,7 @@ class PurchaseOrderLine extends BaseModel
      * @param string|null $locationId Destination location ID (null for default)
      * @param string|null $notes Optional notes
      */
-    public function receiveItems(int $quantity, ?string $locationId = null, ?string $notes = null): ?StockMovement
+    public function receiveItems(int $quantity, ?string $locationId = null, ?string $notes = null): ?StockTransfer
     {
         if ($quantity <= 0) {
             return null;
@@ -160,30 +161,35 @@ class PurchaseOrderLine extends BaseModel
         $this->quantity_received += $quantity;
         $this->save();
 
-        $movement = null;
+        $transfer = null;
 
-        // Only create stock movements for storable products
+        // Only create stock transfers for storable products
         // Consumable products are not tracked in inventory
         if ($this->product && $this->product->tracksInventory()) {
-            // Get or create stock level for this product at the branch/location
-            $stockLevel = StockLevel::getOrCreate(
-                $this->product_id,
-                $this->purchaseOrder->branch_id,
-                $locationId,
-                $this->tenant_id
-            );
+            // Get the destination location
+            $destinationLocation = $locationId
+                ? StockLocation::find($locationId)
+                : StockLocation::getDefaultLocation($this->purchaseOrder->branch_id);
 
-            // Increase stock
-            $movement = $stockLevel->increase(
-                $quantity,
-                StockMovement::TYPE_PURCHASE_RECEIVE,
-                'purchase_order',
-                $this->purchase_order_id,
-                $notes ?? "Received from PO #{$this->purchaseOrder->order_number}"
-            );
+            if (!$destinationLocation) {
+                // Fallback: create default location
+                $destinationLocation = StockLocation::getDefaultLocation($this->purchaseOrder->branch_id);
+            }
 
-            // Create journal entry for stock receipt (only for storable)
-            $this->createReceiptJournalEntry($movement, $quantity);
+            if ($destinationLocation) {
+                // Use StockMoveService for Odoo-like transfer (Supplier → Internal)
+                // StockMoveService automatically creates journal entries for stock movements
+                $stockMoveService = app(StockMoveService::class);
+                $transfer = $stockMoveService->createPurchaseReceipt(
+                    $this->product,
+                    $destinationLocation,
+                    $quantity,
+                    'purchase_order',
+                    $this->purchase_order_id,
+                    $notes ?? "Received from PO #{$this->purchaseOrder->order_number}",
+                    $this->unit_price_minor // Pass PO unit price for cost tracking
+                );
+            }
         }
 
         // Dispatch event for asset creation (applies to both types)
@@ -192,14 +198,14 @@ class PurchaseOrderLine extends BaseModel
         // Update the order status
         $this->purchaseOrder->receive();
 
-        return $movement;
+        return $transfer;
     }
 
     /**
      * Create journal entry for stock receipt.
      * Uses product-specific accounts.
      */
-    protected function createReceiptJournalEntry(StockMovement $movement, int $quantity): void
+    protected function createReceiptJournalEntry(StockTransfer $transfer, int $quantity): void
     {
         try {
             $product = $this->product;

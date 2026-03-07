@@ -3,6 +3,7 @@
 namespace Modules\Inventory\Models;
 
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Modules\Inventory\Services\StockMoveService;
 use XLinic\Framework\Core\Model\BaseModel;
 
 class InventoryAdjustmentLine extends BaseModel
@@ -104,6 +105,7 @@ class InventoryAdjustmentLine extends BaseModel
 
     /**
      * Apply the stock change to inventory.
+     * Odoo-like: Uses transfers between Inventory Adjustment Location and Internal Location
      */
     public function applyStockChange(): void
     {
@@ -111,30 +113,34 @@ class InventoryAdjustmentLine extends BaseModel
             return;
         }
 
-        $adjustment = $this->inventoryAdjustment;
-        $stockLevel = StockLevel::getOrCreate(
-            $this->product_id,
-            $adjustment->branch_id,
-            $adjustment->location_id // Use the adjustment's location
-        );
-
-        if ($this->isPositiveAdjustment()) {
-            $stockLevel->increase(
-                abs($this->difference_qty),
-                StockMovement::TYPE_ADJUSTMENT,
-                'inventory_adjustment',
-                $adjustment->id,
-                "Inventory adjustment: {$adjustment->reference}"
-            );
-        } else {
-            $stockLevel->decrease(
-                abs($this->difference_qty),
-                StockMovement::TYPE_ADJUSTMENT,
-                'inventory_adjustment',
-                $adjustment->id,
-                "Inventory adjustment: {$adjustment->reference}"
-            );
+        // Only for storable products
+        if (!$this->product || !$this->product->tracksInventory()) {
+            return;
         }
+
+        $adjustment = $this->inventoryAdjustment;
+
+        // Get the internal location for this adjustment
+        $internalLocation = $adjustment->location_id
+            ? StockLocation::find($adjustment->location_id)
+            : StockLocation::getDefaultLocation($adjustment->branch_id);
+
+        if (!$internalLocation) {
+            return;
+        }
+
+        // Use StockMoveService for Odoo-like adjustment
+        // Gain: Inventory Adjustment Location → Internal Location
+        // Loss: Internal Location → Inventory Adjustment Location
+        $stockMoveService = app(StockMoveService::class);
+        $stockMoveService->createAdjustment(
+            $this->product,
+            $internalLocation,
+            $this->difference_qty, // positive = gain, negative = loss
+            'inventory_adjustment',
+            $adjustment->id,
+            "Inventory adjustment: {$adjustment->reference}"
+        );
     }
 
     /*

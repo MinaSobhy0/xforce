@@ -16,7 +16,9 @@ use Modules\Patients\Models\Patient;
 use Modules\Booking\Models\Appointment;
 use Modules\Accounting\Models\JournalEntry;
 use Modules\Inventory\Models\StockLevel;
+use Modules\Inventory\Models\StockLocation;
 use Modules\Inventory\Models\StockMovement;
+use Modules\Inventory\Services\StockMoveService;
 use Modules\TreatmentPlans\Models\TreatmentPlan;
 
 class Invoice extends BaseModel
@@ -317,8 +319,10 @@ class Invoice extends BaseModel
      * Deduct stock for all product lines in this invoice.
      *
      * Odoo-like behavior:
-     * - Storable products: Stock is deducted and tracked, journal entry created
+     * - Storable products: Stock is deducted and tracked, journal entry created automatically
      * - Consumable products: No stock deduction (assumed always available)
+     *
+     * Note: Journal entries are created automatically by StockMoveService.
      */
     protected function deductStockForProductLines(): void
     {
@@ -328,7 +332,27 @@ class Invoice extends BaseModel
             ->with('product')
             ->get();
 
-        $inventoryAccountingService = app(\Modules\Inventory\Services\InventoryAccountingService::class);
+        if ($productLines->isEmpty()) {
+            return;
+        }
+
+        $stockMoveService = app(StockMoveService::class);
+
+        // Use treatment default location (store location) for sales
+        $sourceLocation = StockLocation::getTreatmentDefaultLocation($this->branch_id);
+
+        if (!$sourceLocation) {
+            // Fallback to default stock location
+            $sourceLocation = StockLocation::getDefaultLocation($this->branch_id);
+        }
+
+        if (!$sourceLocation) {
+            \Log::warning('No stock location found for invoice stock deduction', [
+                'invoice_id' => $this->id,
+                'branch_id' => $this->branch_id,
+            ]);
+            return;
+        }
 
         foreach ($productLines as $line) {
             // Only deduct stock for storable products
@@ -336,31 +360,16 @@ class Invoice extends BaseModel
                 continue;
             }
 
-            $stockLevel = StockLevel::getOrCreate($line->product_id, $this->branch_id);
-
-            $movement = $stockLevel->decrease(
+            // Use StockMoveService for Odoo-like transfer (Internal → Customer)
+            // StockMoveService automatically creates journal entries for stock movements
+            $stockMoveService->createSaleDelivery(
+                $line->product,
+                $sourceLocation,
                 (int) $line->quantity,
-                StockMovement::TYPE_INVOICE_SALE,
                 'invoice',
                 $this->id,
                 "Sale: Invoice #{$this->code}"
             );
-
-            // Create journal entry for the stock consumption (COGS)
-            // Value = quantity * cost price
-            $costValueMinor = (int) $line->quantity * ($line->product->cost_price_minor ?? 0);
-            if ($costValueMinor > 0) {
-                $journalEntry = $inventoryAccountingService->createStockConsumptionEntry(
-                    $movement,
-                    $costValueMinor / 100, // Convert to major for the service
-                    "COGS: {$line->product->name} x {$line->quantity} - Invoice #{$this->code}"
-                );
-
-                // Link journal entry to stock movement
-                if ($journalEntry) {
-                    $movement->update(['journal_entry_id' => $journalEntry->id]);
-                }
-            }
         }
     }
 

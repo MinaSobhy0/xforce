@@ -35,7 +35,9 @@ use Modules\Services\Models\ParameterPreset;
 use Modules\Equipment\Models\Equipment;
 use Modules\Inventory\Models\Product;
 use Modules\Inventory\Models\StockLevel;
+use Modules\Inventory\Models\StockLocation;
 use Modules\Inventory\Models\StockMovement;
+use Modules\Inventory\Services\StockMoveService;
 use Modules\Booking\Models\SessionConsumable;
 use Modules\Booking\Models\SessionProduct;
 use Modules\Booking\Models\Visit;
@@ -762,7 +764,18 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                 $planAppointment->item->treatmentPlan->checkAndMarkComplete();
             }
 
-            // Process consumables - deduct from inventory and create stock movements
+            // Get the treatment default location for this branch
+            $branchId = $this->appointment->branch_id;
+            $sourceLocation = StockLocation::getTreatmentDefaultLocation($branchId);
+
+            if (!$sourceLocation) {
+                // Fallback to default stock location
+                $sourceLocation = StockLocation::getDefaultLocation($branchId);
+            }
+
+            $stockMoveService = app(StockMoveService::class);
+
+            // Process consumables - deduct from inventory using Odoo-like transfers
             $pendingConsumables = SessionConsumable::where('appointment_id', $this->appointment->id)
                 ->where('is_deducted', false)
                 ->with('product')
@@ -772,18 +785,15 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                 $stockMovementId = null;
 
                 // Only create stock movement for storable products that track inventory
-                if ($consumable->product && $consumable->product->tracksInventory()) {
-                    $stockLevel = StockLevel::getOrCreate(
-                        $consumable->product_id,
-                        $consumable->branch_id ?? $this->appointment->branch_id
-                    );
-
+                if ($consumable->product && $consumable->product->tracksInventory() && $sourceLocation) {
                     // Use base_quantity if set, otherwise fall back to quantity
                     $quantityToDeduct = (int) ($consumable->base_quantity ?? $consumable->quantity);
 
-                    $movement = $stockLevel->decrease(
+                    // Odoo-like: Transfer from Treatment Location → Customer Location
+                    $movement = $stockMoveService->createConsumption(
+                        $consumable->product,
+                        $sourceLocation,
                         $quantityToDeduct,
-                        StockMovement::TYPE_APPOINTMENT_CONSUME,
                         SessionConsumable::class,
                         (string) $consumable->id,
                         'Consumed during appointment #' . $this->appointment->id
@@ -800,39 +810,8 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                 ]);
             }
 
-            // Process products - deduct from inventory and create stock movements
-            $pendingProducts = SessionProduct::where('appointment_id', $this->appointment->id)
-                ->where('is_deducted', false)
-                ->with('product')
-                ->get();
-
-            foreach ($pendingProducts as $sessionProduct) {
-                $stockMovementId = null;
-
-                // Only create stock movement for storable products that track inventory
-                if ($sessionProduct->product && $sessionProduct->product->tracksInventory()) {
-                    $stockLevel = StockLevel::getOrCreate(
-                        $sessionProduct->product_id,
-                        $sessionProduct->branch_id ?? $this->appointment->branch_id
-                    );
-
-                    $movement = $stockLevel->decrease(
-                        (int) $sessionProduct->quantity,
-                        StockMovement::TYPE_APPOINTMENT_CONSUME,
-                        SessionProduct::class,
-                        (string) $sessionProduct->id,
-                        'Used during appointment #' . $this->appointment->id
-                    );
-
-                    $stockMovementId = $movement->id;
-                }
-
-                $sessionProduct->update([
-                    'is_deducted' => true,
-                    'deducted_at' => now(),
-                    'stock_movement_id' => $stockMovementId,
-                ]);
-            }
+            // NOTE: Product stock moves are NOT created here.
+            // They are created when the invoice is generated (sale delivery).
         });
 
         Notification::make()
@@ -2340,9 +2319,36 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
 
     public function getAvailableProducts(): Collection
     {
-        return Product::query()
+        $branchId = $this->appointment?->branch_id;
+
+        // Use the treatment default location (is_treatment_default flag)
+        // This is the store location for selling products to patients
+        $stockLocation = $branchId
+            ? StockLocation::getTreatmentDefaultLocation($branchId)
+            : null;
+
+        $products = Product::query()
             ->where('is_active', true)
             ->get();
+
+        // Add stock quantity to each product
+        if ($stockLocation) {
+            $locationId = $stockLocation->id;
+
+            // Get all stock levels for this location in one query
+            $stockLevels = StockLevel::where('location_id', $locationId)
+                ->pluck('quantity_on_hand', 'product_id');
+
+            $products->each(function ($product) use ($stockLevels) {
+                $product->stock_qty = $stockLevels[$product->id] ?? 0;
+            });
+        } else {
+            $products->each(function ($product) {
+                $product->stock_qty = 0;
+            });
+        }
+
+        return $products;
     }
 
     public function addProduct(): void

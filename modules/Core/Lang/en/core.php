@@ -82,6 +82,8 @@ return [
     'branch_details' => 'Branch Details',
     'main_branch' => 'Main Branch',
     'main_branch_help' => 'This is the primary branch for the clinic',
+    'default_treatment_location' => 'Default Treatment Location',
+    'default_treatment_location_help' => 'Stock location used for consumables during treatment sessions',
     'main' => 'Main',
     'contact_information' => 'Contact Information',
     'address' => 'Address',

@@ -221,4 +221,67 @@ class StockLevel extends BaseModel
     {
         return $this->location?->getTranslation('name', app()->getLocale());
     }
+
+    /**
+     * Get or create stock level using location_id as primary key.
+     * This is the Odoo-like method where stock is tracked per location.
+     *
+     * @param string $productId
+     * @param string $locationId The physical location ID
+     * @param string|null $tenantId
+     * @return self
+     */
+    public static function getOrCreateByLocation(
+        string $productId,
+        string $locationId,
+        ?string $tenantId = null
+    ): self {
+        $location = StockLocation::find($locationId);
+
+        if (!$location) {
+            throw new \InvalidArgumentException("Location not found: {$locationId}");
+        }
+
+        return static::firstOrCreate(
+            [
+                'product_id' => $productId,
+                'location_id' => $locationId,
+            ],
+            [
+                'tenant_id' => $tenantId ?? $location->tenant_id ?? app('currentTenant')?->id,
+                'branch_id' => $location->branch_id,
+                'quantity_on_hand' => 0,
+                'quantity_reserved' => 0,
+                'quantity_on_order' => 0,
+            ]
+        );
+    }
+
+    /**
+     * Get total stock for a product across all physical locations in a branch.
+     */
+    public static function getTotalInBranch(string $productId, string $branchId): int
+    {
+        return static::where('product_id', $productId)
+            ->whereHas('location', function ($query) use ($branchId) {
+                $query->where('branch_id', $branchId)
+                    ->where('location_type', StockLocation::TYPE_INTERNAL);
+            })
+            ->sum('quantity_on_hand');
+    }
+
+    /**
+     * Get all stock levels for a product grouped by location.
+     */
+    public static function getByProduct(string $productId, ?string $branchId = null): \Illuminate\Database\Eloquent\Collection
+    {
+        $query = static::where('product_id', $productId)
+            ->with('location');
+
+        if ($branchId) {
+            $query->whereHas('location', fn($q) => $q->where('branch_id', $branchId));
+        }
+
+        return $query->get();
+    }
 }

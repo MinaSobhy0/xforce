@@ -948,7 +948,7 @@
                     x-data="{
                         search: '',
                         open: false,
-                        items: @js($this->getAvailableProducts()->map(fn($p) => ['id' => $p->id, 'name' => $p->getTranslation('name', app()->getLocale()), 'price' => $p->sell_price])->values()->toArray()),
+                        items: @js($this->getAvailableProducts()->map(fn($p) => ['id' => $p->id, 'name' => $p->getTranslation('name', app()->getLocale()), 'price' => $p->sell_price, 'stock' => $p->stock_qty ?? 0])->values()->toArray()),
                         get filtered() {
                             if (!this.search) return this.items;
                             return this.items.filter(item => item.name.toLowerCase().includes(this.search.toLowerCase()));
@@ -957,7 +957,7 @@
                             $wire.set('newProductId', id);
                             this.open = false;
                             const item = this.items.find(i => i.id == id);
-                            this.search = item ? item.name + ' - ' + item.price.toFixed(2) : '';
+                            this.search = item ? item.name + ' - ' + item.price.toFixed(2) + ' (Stock: ' + item.stock + ')' : '';
                         },
                         clear() {
                             this.search = '';
@@ -978,9 +978,12 @@
                         />
                         <div x-show="open && filtered.length > 0" x-cloak class="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded shadow-lg max-h-48 overflow-y-auto">
                             <template x-for="item in filtered" :key="item.id">
-                                <button type="button" @click="select(item.id)" class="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex justify-between">
+                                <button type="button" @click="select(item.id)" class="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex justify-between items-center">
                                     <span x-text="item.name"></span>
-                                    <span class="text-gray-500" x-text="item.price.toFixed(2)"></span>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs px-1.5 py-0.5 rounded" :class="item.stock > 0 ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'" x-text="'Stock: ' + item.stock"></span>
+                                        <span class="text-gray-500" x-text="item.price.toFixed(2)"></span>
+                                    </div>
                                 </button>
                             </template>
                         </div>

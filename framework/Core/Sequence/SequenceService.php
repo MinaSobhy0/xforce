@@ -17,7 +17,8 @@ class SequenceService
      */
     public function next(string $code, array $options = []): string
     {
-        $tenantId = $this->tenantManager->getCurrentTenantId();
+        // Use tenant_id from options if provided, otherwise from TenantManager
+        $tenantId = $options['tenant_id'] ?? $this->tenantManager->getCurrentTenantId();
         $prefix = $options['prefix'] ?? strtoupper($code);
         $format = $options['format'] ?? '{prefix}-{number:6}';
         $startAt = $options['start_at'] ?? 1;

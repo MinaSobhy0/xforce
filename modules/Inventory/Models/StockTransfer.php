@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Modules\Auth\Models\User;
 use Modules\Core\Models\Branch;
+use Modules\Inventory\Services\StockMoveService;
 use XLinic\Framework\Core\Model\BaseModel;
 use XLinic\Framework\Core\Model\Traits\HasSequence;
 use XLinic\Framework\Core\Model\Traits\HasActivity;
@@ -26,12 +27,15 @@ class StockTransfer extends BaseModel
         'tenant_id',
         'branch_id',
         'transfer_number',
+        'transfer_type',
         'status',
         'source_location_id',
         'destination_location_id',
         'scheduled_date',
         'effective_date',
         'notes',
+        'reference_type',
+        'reference_id',
         'created_by',
         'confirmed_by',
     ];
@@ -45,6 +49,30 @@ class StockTransfer extends BaseModel
 
     protected $attributes = [
         'status' => 'draft',
+        'transfer_type' => 'internal',
+    ];
+
+    // Transfer type constants (Odoo-like)
+    public const TYPE_RECEIPT = 'receipt';       // Purchase receipt (Supplier → Internal)
+    public const TYPE_DELIVERY = 'delivery';     // Sale delivery (Internal → Customer)
+    public const TYPE_INTERNAL = 'internal';     // Internal transfer (Internal → Internal)
+    public const TYPE_RETURN_IN = 'return_in';   // Customer return (Customer → Internal)
+    public const TYPE_RETURN_OUT = 'return_out'; // Supplier return (Internal → Supplier)
+
+    public const TRANSFER_TYPES = [
+        self::TYPE_RECEIPT => 'Receipt',
+        self::TYPE_DELIVERY => 'Delivery',
+        self::TYPE_INTERNAL => 'Internal Transfer',
+        self::TYPE_RETURN_IN => 'Customer Return',
+        self::TYPE_RETURN_OUT => 'Supplier Return',
+    ];
+
+    public const TYPE_COLORS = [
+        self::TYPE_RECEIPT => 'success',
+        self::TYPE_DELIVERY => 'info',
+        self::TYPE_INTERNAL => 'warning',
+        self::TYPE_RETURN_IN => 'primary',
+        self::TYPE_RETURN_OUT => 'danger',
     ];
 
     // Status constants
@@ -204,6 +232,7 @@ class StockTransfer extends BaseModel
 
     /**
      * Process the transfer (move the stock).
+     * Odoo-like: Uses StockMoveService for internal transfers
      */
     public function process(): bool
     {
@@ -212,6 +241,10 @@ class StockTransfer extends BaseModel
         }
 
         return DB::transaction(function () {
+            $stockMoveService = app(StockMoveService::class);
+            $sourceLocation = $this->sourceLocation;
+            $destinationLocation = $this->destinationLocation;
+
             foreach ($this->lines as $line) {
                 if ($line->quantity_planned <= 0) {
                     continue;
@@ -230,14 +263,18 @@ class StockTransfer extends BaseModel
                 $line->quantity_done = $quantityToTransfer;
                 $line->save();
 
-                // Create stock movements for location transfer
-                StockMovement::createLocationTransfer(
-                    $line->product_id,
-                    $this->source_location_id,
-                    $this->destination_location_id,
-                    $quantityToTransfer,
-                    "Transfer #{$this->transfer_number}"
-                );
+                // Use StockMoveService for internal transfer
+                if ($line->product && $line->product->tracksInventory()) {
+                    $stockMoveService->createInternalTransfer(
+                        $line->product,
+                        $sourceLocation,
+                        $destinationLocation,
+                        $quantityToTransfer,
+                        'stock_transfer',
+                        $this->id,
+                        "Transfer #{$this->transfer_number}"
+                    );
+                }
             }
 
             $this->status = self::STATUS_DONE;

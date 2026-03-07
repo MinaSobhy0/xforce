@@ -71,6 +71,12 @@ class StockTransferResource extends Resource
 
                         Forms\Components\Select::make('source_location_id')
                             ->label(__('inventory::inventory.fields.source_location'))
+                            ->relationship('sourceLocation', 'code')
+                            ->getOptionLabelFromRecordUsing(fn (StockLocation $record) =>
+                                $record->code
+                                    ? "{$record->code} - " . $record->getTranslation('name', app()->getLocale())
+                                    : $record->getTranslation('name', app()->getLocale())
+                            )
                             ->options(function ($get) {
                                 $branchId = $get('branch_id');
                                 if (!$branchId) return [];
@@ -79,7 +85,11 @@ class StockTransferResource extends Resource
                                     ->active()
                                     ->orderBy('sort_order')
                                     ->get()
-                                    ->pluck('indented_name', 'id');
+                                    ->mapWithKeys(fn ($loc) => [
+                                        $loc->id => $loc->code
+                                            ? "{$loc->code} - " . $loc->getTranslation('name', app()->getLocale())
+                                            : $loc->getTranslation('name', app()->getLocale())
+                                    ]);
                             })
                             ->default(function () {
                                 $branchId = BranchContext::currentId();
@@ -97,6 +107,12 @@ class StockTransferResource extends Resource
 
                         Forms\Components\Select::make('destination_location_id')
                             ->label(__('inventory::inventory.fields.destination_location'))
+                            ->relationship('destinationLocation', 'code')
+                            ->getOptionLabelFromRecordUsing(fn (StockLocation $record) =>
+                                $record->code
+                                    ? "{$record->code} - " . $record->getTranslation('name', app()->getLocale())
+                                    : $record->getTranslation('name', app()->getLocale())
+                            )
                             ->options(function ($get) {
                                 $branchId = $get('branch_id');
                                 $sourceId = $get('source_location_id');
@@ -107,7 +123,11 @@ class StockTransferResource extends Resource
                                     ->active()
                                     ->orderBy('sort_order')
                                     ->get()
-                                    ->pluck('indented_name', 'id');
+                                    ->mapWithKeys(fn ($loc) => [
+                                        $loc->id => $loc->code
+                                            ? "{$loc->code} - " . $loc->getTranslation('name', app()->getLocale())
+                                            : $loc->getTranslation('name', app()->getLocale())
+                                    ]);
                             })
                             ->required()
                             ->searchable()
@@ -179,13 +199,27 @@ class StockTransferResource extends Resource
                     ->sortable()
                     ->toggleable(),
 
-                Tables\Columns\TextColumn::make('sourceLocation.code')
+                Tables\Columns\TextColumn::make('source_location_id')
                     ->label(__('inventory::inventory.fields.source_location'))
-                    ->description(fn (StockTransfer $record) => $record->sourceLocation?->getTranslation('name', app()->getLocale())),
+                    ->formatStateUsing(function ($state, StockTransfer $record) {
+                        $location = $record->sourceLocation;
+                        if (!$location) {
+                            return $state; // Return ID if relationship not found
+                        }
+                        $name = $location->getTranslation('name', app()->getLocale());
+                        return $location->code ? "{$location->code} - {$name}" : $name;
+                    }),
 
-                Tables\Columns\TextColumn::make('destinationLocation.code')
+                Tables\Columns\TextColumn::make('destination_location_id')
                     ->label(__('inventory::inventory.fields.destination_location'))
-                    ->description(fn (StockTransfer $record) => $record->destinationLocation?->getTranslation('name', app()->getLocale())),
+                    ->formatStateUsing(function ($state, StockTransfer $record) {
+                        $location = $record->destinationLocation;
+                        if (!$location) {
+                            return $state; // Return ID if relationship not found
+                        }
+                        $name = $location->getTranslation('name', app()->getLocale());
+                        return $location->code ? "{$location->code} - {$name}" : $name;
+                    }),
 
                 Tables\Columns\TextColumn::make('status')
                     ->label(__('inventory::inventory.fields.status'))

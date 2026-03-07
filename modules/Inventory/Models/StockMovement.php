@@ -18,6 +18,8 @@ class StockMovement extends BaseModel
         'quantity',
         'quantity_before',
         'quantity_after',
+        'unit_cost_minor',
+        'remaining_quantity',
         'reference_type',
         'reference_id',
         'source_branch_id',
@@ -33,6 +35,8 @@ class StockMovement extends BaseModel
         'quantity' => 'integer',
         'quantity_before' => 'integer',
         'quantity_after' => 'integer',
+        'unit_cost_minor' => 'integer',
+        'remaining_quantity' => 'integer',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];

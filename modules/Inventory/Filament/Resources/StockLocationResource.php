@@ -121,8 +121,13 @@ class StockLocationResource extends Resource
                         Forms\Components\Toggle::make('is_return_location')
                             ->label(__('inventory::inventory.fields.is_return_location'))
                             ->default(false),
+
+                        Forms\Components\Toggle::make('is_treatment_default')
+                            ->label(__('inventory::inventory.fields.is_treatment_default'))
+                            ->helperText(__('inventory::inventory.fields.is_treatment_default_help'))
+                            ->default(false),
                     ])
-                    ->columns(3),
+                    ->columns(4),
             ]);
     }
 
@@ -167,6 +172,11 @@ class StockLocationResource extends Resource
                     ->label(__('inventory::inventory.fields.is_scrap_location'))
                     ->boolean()
                     ->toggleable(isToggledHiddenByDefault: true),
+
+                Tables\Columns\IconColumn::make('is_treatment_default')
+                    ->label(__('inventory::inventory.fields.is_treatment_default'))
+                    ->boolean()
+                    ->toggleable(),
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->label(__('inventory::inventory.fields.created_at'))

@@ -2,13 +2,21 @@
 
 namespace Modules\Inventory\Listeners;
 
+use Illuminate\Support\Facades\DB;
 use Modules\Booking\Events\AppointmentCompleted;
 use Modules\Booking\Models\SessionConsumable;
-use Modules\Inventory\Models\StockLevel;
-use Modules\Inventory\Models\StockMovement;
+use Modules\Inventory\Models\StockLocation;
+use Modules\Inventory\Services\StockMoveService;
 
 class DeductStockOnAppointmentCompleted
 {
+    protected StockMoveService $stockMoveService;
+
+    public function __construct(StockMoveService $stockMoveService)
+    {
+        $this->stockMoveService = $stockMoveService;
+    }
+
     /**
      * Handle the event.
      *
@@ -16,7 +24,7 @@ class DeductStockOnAppointmentCompleted
      * It uses the SessionConsumable records which are auto-populated from service/category.
      *
      * Odoo-like behavior:
-     * - Storable products: Stock is deducted and tracked
+     * - Storable products: Stock is deducted via transfer (Treatment Location → Customer Location)
      * - Consumable products: No stock deduction (assumed always available)
      */
     public function handle(AppointmentCompleted $event): void
@@ -39,14 +47,16 @@ class DeductStockOnAppointmentCompleted
             return;
         }
 
-        foreach ($consumables as $consumable) {
-            $this->deductStock($consumable, $appointment);
-        }
+        DB::transaction(function () use ($consumables, $appointment) {
+            foreach ($consumables as $consumable) {
+                $this->deductStock($consumable, $appointment);
+            }
+        });
     }
 
     /**
      * Deduct stock for a session consumable.
-     * Only storable products have their stock deducted.
+     * Uses Odoo-like transfer: Treatment Location → Customer Location
      */
     protected function deductStock(SessionConsumable $consumable, $appointment): void
     {
@@ -63,26 +73,35 @@ class DeductStockOnAppointmentCompleted
         // Get branch - use consumable's branch if set, otherwise appointment's branch
         $branchId = $consumable->branch_id ?? $appointment->branch_id;
 
-        // Get or create stock level
-        $stockLevel = StockLevel::getOrCreate(
-            $consumable->product_id,
-            $branchId,
-            $appointment->tenant_id
-        );
+        // Get the treatment location (source for consumption)
+        $sourceLocation = StockLocation::getTreatmentDefaultLocation($branchId);
 
-        // Check if we have enough stock
-        $availableQty = $stockLevel->available_quantity ?? $stockLevel->quantity_on_hand;
+        if (!$sourceLocation) {
+            // Fallback to default stock location
+            $sourceLocation = StockLocation::getDefaultLocation($branchId);
+        }
+
+        if (!$sourceLocation) {
+            \Log::warning('No source location found for appointment consumption', [
+                'appointment_id' => $appointment->id,
+                'branch_id' => $branchId,
+                'consumable_id' => $consumable->id,
+            ]);
+            return;
+        }
+
         $requiredQty = (int) ceil($consumable->quantity);
 
-        // Deduct stock (allow negative for tracking purposes, business logic can handle alerts)
-        $movement = $stockLevel->decrease(
+        // Use StockMoveService for Odoo-like transfer (Treatment → Customer)
+        $movement = $this->stockMoveService->createConsumption(
+            $consumable->product,
+            $sourceLocation,
             $requiredQty,
-            StockMovement::TYPE_APPOINTMENT_CONSUME,
-            'appointment',
-            $appointment->id,
+            'session_consumable',
+            $consumable->id,
             sprintf(
-                'Auto-deducted for session: %s - %s',
-                $consumable->product?->getTranslation('name', 'en') ?? 'Unknown',
+                'Auto-deducted for session: %s - Appointment #%s',
+                $consumable->product->getTranslation('name', 'en') ?? 'Unknown',
                 $appointment->id
             )
         );

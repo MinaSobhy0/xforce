@@ -196,6 +196,8 @@ return [
         'location_type' => 'نوع الموقع',
         'is_scrap_location' => 'موقع الهالك',
         'is_return_location' => 'موقع المرتجعات',
+        'is_treatment_default' => 'افتراضي للجلسات',
+        'is_treatment_default_help' => 'استخدم هذا الموقع لخصم المستهلكات والمنتجات المباعة تلقائياً خلال جلسات العلاج',
         'source_location' => 'الموقع المصدر',
         'destination_location' => 'الموقع الوجهة',
         'transfer_number' => 'رقم التحويل',

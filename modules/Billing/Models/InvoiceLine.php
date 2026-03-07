@@ -78,6 +78,9 @@ class InvoiceLine extends BaseModel
             if ($line->treatment_plan_item_id && $line->wasRecentlyCreated) {
                 $line->treatmentPlanItem?->increment('invoiced_quantity', (int) $line->quantity);
             }
+
+            // Note: Stock transfers are created when the invoice is ISSUED,
+            // not when lines are created. See Invoice::deductStockForProductLines()
         });
 
         static::deleted(function (InvoiceLine $line) {

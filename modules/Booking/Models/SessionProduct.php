@@ -7,8 +7,10 @@ use XLinic\Framework\Core\Model\Traits\HasTenancy;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Modules\Inventory\Models\Product;
 use Modules\Inventory\Models\StockLevel;
+use Modules\Inventory\Models\StockLocation;
 use Modules\Inventory\Models\StockMovement;
 use Modules\Inventory\Models\Uom;
+use Modules\Inventory\Services\StockMoveService;
 use Modules\Core\Models\Branch;
 use Modules\Auth\Models\User;
 
@@ -287,6 +289,7 @@ class SessionProduct extends BaseModel
     /**
      * Return product to inventory.
      * Used when a sold product is cancelled at checkout.
+     * Odoo-like: Creates reverse transfer (Customer → Treatment Location)
      */
     public function returnToInventory(): void
     {
@@ -295,17 +298,28 @@ class SessionProduct extends BaseModel
             return;
         }
 
-        // Get stock level for product and branch
-        $stockLevel = StockLevel::getOrCreate(
-            $this->product_id,
-            $this->branch_id,
-            $this->tenant_id
-        );
+        // Only for storable products
+        if (!$this->product || !$this->product->tracksInventory()) {
+            return;
+        }
 
-        // Increase stock
-        $stockLevel->increase(
+        // Get the treatment default location for this branch
+        $destinationLocation = StockLocation::getTreatmentDefaultLocation($this->branch_id);
+
+        if (!$destinationLocation) {
+            $destinationLocation = StockLocation::getDefaultLocation($this->branch_id);
+        }
+
+        if (!$destinationLocation) {
+            return;
+        }
+
+        // Use StockMoveService for Odoo-like return (Customer → Treatment Location)
+        $stockMoveService = app(StockMoveService::class);
+        $stockMoveService->createCustomerReturn(
+            $this->product,
+            $destinationLocation,
             (int) $this->quantity,
-            StockMovement::TYPE_IN,
             'session_product_return',
             (string) $this->id,
             'Product returned from cancelled checkout - Appointment #' . $this->appointment_id
@@ -315,6 +329,7 @@ class SessionProduct extends BaseModel
         $this->update([
             'is_deducted' => false,
             'deducted_at' => null,
+            'stock_movement_id' => null,
         ]);
     }
 }

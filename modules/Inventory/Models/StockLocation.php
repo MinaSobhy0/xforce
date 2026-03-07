@@ -28,6 +28,7 @@ class StockLocation extends BaseModel
         'level',
         'is_scrap_location',
         'is_return_location',
+        'is_treatment_default',
         'is_active',
         'sort_order',
     ];
@@ -36,6 +37,7 @@ class StockLocation extends BaseModel
         'name' => 'array',
         'is_scrap_location' => 'boolean',
         'is_return_location' => 'boolean',
+        'is_treatment_default' => 'boolean',
         'is_active' => 'boolean',
         'level' => 'integer',
         'sort_order' => 'integer',
@@ -48,6 +50,7 @@ class StockLocation extends BaseModel
         'level' => 0,
         'is_scrap_location' => false,
         'is_return_location' => false,
+        'is_treatment_default' => false,
         'is_active' => true,
         'sort_order' => 0,
     ];
@@ -85,6 +88,14 @@ class StockLocation extends BaseModel
         // Update parent_path and level on save
         static::saving(function (self $location) {
             $location->updateHierarchy();
+
+            // Ensure only one treatment default location per branch
+            if ($location->is_treatment_default && $location->branch_id) {
+                static::where('branch_id', $location->branch_id)
+                    ->where('id', '!=', $location->id ?? 0)
+                    ->where('is_treatment_default', true)
+                    ->update(['is_treatment_default' => false]);
+            }
         });
 
         // Update children's parent_path when parent changes
@@ -355,5 +366,122 @@ class StockLocation extends BaseModel
         return static::where('branch_id', $branchId)
             ->where('is_scrap_location', true)
             ->first();
+    }
+
+    /**
+     * Get the default treatment location for a branch.
+     * Used for auto-deducting consumables during treatment sessions.
+     */
+    public static function getTreatmentDefaultLocation(string $branchId): ?self
+    {
+        return static::where('branch_id', $branchId)
+            ->where('is_treatment_default', true)
+            ->where('is_active', true)
+            ->first();
+    }
+
+    // =========================================================================
+    // VIRTUAL LOCATION HELPERS (Odoo-like)
+    // =========================================================================
+
+    /**
+     * Get the supplier virtual location for a branch.
+     * Used as source location for purchase receipts.
+     */
+    public static function getSupplierLocation(string $branchId): ?self
+    {
+        return static::where('branch_id', $branchId)
+            ->where('location_type', self::TYPE_SUPPLIER)
+            ->first();
+    }
+
+    /**
+     * Get the customer virtual location for a branch.
+     * Used as destination for sales/consumption.
+     */
+    public static function getCustomerLocation(string $branchId): ?self
+    {
+        return static::where('branch_id', $branchId)
+            ->where('location_type', self::TYPE_CUSTOMER)
+            ->first();
+    }
+
+    /**
+     * Get the inventory adjustment virtual location for a branch.
+     * Used for inventory gains/losses.
+     */
+    public static function getInventoryAdjustmentLocation(string $branchId): ?self
+    {
+        return static::where('branch_id', $branchId)
+            ->where('location_type', self::TYPE_INVENTORY)
+            ->first();
+    }
+
+    /**
+     * Check if this is a physical location (holds actual stock).
+     */
+    public function isPhysical(): bool
+    {
+        return $this->location_type === self::TYPE_INTERNAL;
+    }
+
+    /**
+     * Scope to physical locations only (internal type).
+     */
+    public function scopePhysical(Builder $query): Builder
+    {
+        return $query->where('location_type', self::TYPE_INTERNAL);
+    }
+
+    /**
+     * Scope to virtual locations only (non-internal types).
+     */
+    public function scopeVirtualLocations(Builder $query): Builder
+    {
+        return $query->whereIn('location_type', [
+            self::TYPE_SUPPLIER,
+            self::TYPE_CUSTOMER,
+            self::TYPE_INVENTORY,
+        ]);
+    }
+
+    /**
+     * Get or create all required virtual locations for a branch.
+     * Called during branch/tenant provisioning.
+     */
+    public static function ensureVirtualLocations(string $branchId, ?string $tenantId = null): void
+    {
+        $virtualLocations = [
+            [
+                'code' => 'Partner/Vendors',
+                'name' => ['en' => 'Vendors', 'ar' => 'الموردين'],
+                'location_type' => self::TYPE_SUPPLIER,
+            ],
+            [
+                'code' => 'Partner/Customers',
+                'name' => ['en' => 'Customers', 'ar' => 'العملاء'],
+                'location_type' => self::TYPE_CUSTOMER,
+            ],
+            [
+                'code' => 'Virtual/Adjustment',
+                'name' => ['en' => 'Inventory Adjustment', 'ar' => 'تسوية المخزون'],
+                'location_type' => self::TYPE_INVENTORY,
+            ],
+        ];
+
+        foreach ($virtualLocations as $location) {
+            static::firstOrCreate(
+                [
+                    'branch_id' => $branchId,
+                    'code' => $location['code'],
+                ],
+                [
+                    'tenant_id' => $tenantId,
+                    'name' => $location['name'],
+                    'location_type' => $location['location_type'],
+                    'is_active' => true,
+                ]
+            );
+        }
     }
 }

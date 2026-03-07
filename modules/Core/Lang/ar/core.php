@@ -83,6 +83,8 @@ return [
     'branch_details' => 'تفاصيل الفرع',
     'main_branch' => 'الفرع الرئيسي',
     'main_branch_help' => 'هذا هو الفرع الرئيسي للعيادة',
+    'default_treatment_location' => 'موقع المخزون الافتراضي للجلسات',
+    'default_treatment_location_help' => 'موقع المخزون المستخدم للمستهلكات أثناء جلسات العلاج',
     'main' => 'رئيسي',
     'contact_information' => 'معلومات الاتصال',
     'address' => 'العنوان',

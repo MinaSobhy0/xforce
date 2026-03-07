@@ -196,6 +196,8 @@ return [
         'location_type' => 'Location Type',
         'is_scrap_location' => 'Scrap Location',
         'is_return_location' => 'Return Location',
+        'is_treatment_default' => 'Treatment Default',
+        'is_treatment_default_help' => 'Use this location for auto-deducting consumables and sold products during treatment sessions',
         'source_location' => 'Source Location',
         'destination_location' => 'Destination Location',
         'transfer_number' => 'Transfer Number',

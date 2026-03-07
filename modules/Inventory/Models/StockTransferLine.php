@@ -10,15 +10,19 @@ class StockTransferLine extends BaseModel
     protected $table = 'stock_transfer_lines';
 
     protected $fillable = [
+        'tenant_id',
         'stock_transfer_id',
         'product_id',
         'quantity_planned',
         'quantity_done',
+        'unit_cost_minor',
+        'stock_movement_id',
     ];
 
     protected $casts = [
         'quantity_planned' => 'integer',
         'quantity_done' => 'integer',
+        'unit_cost_minor' => 'integer',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -42,6 +46,14 @@ class StockTransferLine extends BaseModel
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    /**
+     * Get the stock movement.
+     */
+    public function stockMovement(): BelongsTo
+    {
+        return $this->belongsTo(StockMovement::class);
     }
 
     /**
