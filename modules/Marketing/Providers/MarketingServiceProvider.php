@@ -10,6 +10,7 @@ use Modules\Marketing\Services\MessageQuotaService;
 use Modules\Marketing\Services\NotificationService;
 use Modules\Marketing\Services\CampaignService;
 use Modules\Marketing\Console\ProcessScheduledCampaignsCommand;
+use Modules\Marketing\Console\ProcessAppointmentRemindersCommand;
 
 class MarketingServiceProvider extends ServiceProvider
 {
@@ -31,6 +32,7 @@ class MarketingServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([
                 ProcessScheduledCampaignsCommand::class,
+                ProcessAppointmentRemindersCommand::class,
             ]);
         }
     }

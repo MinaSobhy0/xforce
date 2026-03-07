@@ -51,3 +51,9 @@ Schedule::command('campaigns:process-scheduled')
     ->everyMinute()
     ->withoutOverlapping()
     ->runInBackground();
+
+// Marketing Automation - Process appointment reminders every minute
+Schedule::command('automation:process-reminders')
+    ->everyMinute()
+    ->withoutOverlapping()
+    ->runInBackground();
