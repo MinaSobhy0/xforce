@@ -270,6 +270,9 @@ class AccountingIntegrationService
         // Get payment journal (Cash, Bank, Card, etc.)
         $paymentJournal = $payment->journal;
         if (!$paymentJournal) {
+            \Log::warning('AccountingIntegrationService: Payment has no journal', [
+                'payment_id' => $payment->id,
+            ]);
             return null;
         }
 
@@ -288,10 +291,27 @@ class AccountingIntegrationService
             : $this->getAccountByJournalType($paymentJournal->type);
 
         if (!$arAccount || !$debitAccount) {
+            \Log::warning('AccountingIntegrationService: Missing AR or debit account for payment', [
+                'payment_id' => $payment->id,
+                'ar_account' => $arAccount?->id,
+                'debit_account' => $debitAccount?->id,
+            ]);
             return null;
         }
 
+        // Get details from invoice if available, otherwise from payment directly
         $invoice = $payment->invoice;
+        $patient = $invoice?->patient ?? $payment->patient;
+        $patientId = $invoice?->patient_id ?? $payment->patient_id;
+        $branchId = $invoice?->branch_id ?? $payment->branch_id;
+
+        // Build description
+        $description = "Payment {$payment->code}";
+        if ($invoice) {
+            $description .= " for Invoice {$invoice->code}";
+        } elseif ($payment->appointment_id) {
+            $description .= " for Appointment";
+        }
 
         // Create journal entry
         $entry = JournalEntry::create([
@@ -299,7 +319,7 @@ class AccountingIntegrationService
             'journal_id' => $paymentJournal->id,
             'date' => $payment->paid_at ?? now(),
             'reference' => $payment->code,
-            'description' => "Payment {$payment->code} for Invoice {$invoice?->code}",
+            'description' => $description,
             'source_type' => Payment::class,
             'source_id' => $payment->id,
         ]);
@@ -311,9 +331,9 @@ class AccountingIntegrationService
             'debit_minor' => $payment->amount_minor,
             'credit_minor' => 0,
             'description' => "Payment received via {$paymentJournal->name}",
-            'branch_id' => $invoice?->branch_id,
-            'partner_type' => $invoice?->patient_id ? Patient::class : null,
-            'partner_id' => $invoice?->patient_id,
+            'branch_id' => $branchId,
+            'partner_type' => $patientId ? Patient::class : null,
+            'partner_id' => $patientId,
         ]);
 
         // Credit: Accounts Receivable
@@ -322,15 +342,22 @@ class AccountingIntegrationService
             'account_id' => $arAccount->id,
             'debit_minor' => 0,
             'credit_minor' => $payment->amount_minor,
-            'description' => "Customer: {$invoice?->patient?->full_name}",
-            'branch_id' => $invoice?->branch_id,
-            'partner_type' => $invoice?->patient_id ? Patient::class : null,
-            'partner_id' => $invoice?->patient_id,
+            'description' => "Customer: {$patient?->full_name}",
+            'branch_id' => $branchId,
+            'partner_type' => $patientId ? Patient::class : null,
+            'partner_id' => $patientId,
         ]);
 
         // Recalculate and post
         $entry->recalculateTotals();
         $entry->post();
+
+        \Log::info('AccountingIntegrationService: Payment journal entry created', [
+            'payment_id' => $payment->id,
+            'payment_code' => $payment->code,
+            'entry_id' => $entry->id,
+            'amount_minor' => $payment->amount_minor,
+        ]);
 
         return $entry;
     }

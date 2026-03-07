@@ -124,15 +124,20 @@ class Payment extends BaseModel
             // Handle invoice payment (receive)
             if ($payment->invoice) {
                 $payment->invoice->recordPayment($payment->amount_minor);
-                // Create journal entry for invoice payment
-                app(\Modules\Billing\Services\AccountingIntegrationService::class)
-                    ->createPaymentJournalEntry($payment);
             }
 
             // Handle vendor bill payment (send)
             if ($payment->vendorBill) {
                 $payment->vendorBill->recordPayment($payment->amount_minor);
-                // Create journal entry for vendor bill payment
+            }
+
+            // Create journal entry for all payments
+            if ($payment->type === self::TYPE_RECEIVE) {
+                // Receive payment (from patient) - DR Cash/Bank, CR Accounts Receivable
+                app(\Modules\Billing\Services\AccountingIntegrationService::class)
+                    ->createPaymentJournalEntry($payment);
+            } elseif ($payment->type === self::TYPE_SEND && $payment->vendorBill) {
+                // Send payment (to vendor) - DR Accounts Payable, CR Cash/Bank
                 app(\Modules\Inventory\Services\InventoryAccountingService::class)
                     ->createVendorPaymentJournalEntry($payment->vendorBill, $payment->amount_minor, $payment->journal?->type ?? 'cash');
             }
