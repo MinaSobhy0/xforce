@@ -20,6 +20,18 @@ class CategoryTreePage extends Page
 
     protected static string $view = 'services::filament.pages.category-tree';
 
+    public static function canAccess(): bool
+    {
+        $user = auth()->user();
+        if (!$user) return false;
+
+        if (method_exists($user, 'hasRole') && $user->hasRole(['super-admin', 'super_admin', 'tenant-owner', 'tenant_owner', 'owner', 'admin'])) {
+            return true;
+        }
+
+        return $user->can('service_categories.view') || !\Spatie\Permission\Models\Permission::where('name', 'service_categories.view')->where('guard_name', 'web')->exists();
+    }
+
     public function getTitle(): string|Htmlable
     {
         return __('services::services.category_tree.title');
