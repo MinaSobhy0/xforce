@@ -232,11 +232,11 @@ class TenantService
             'schema_name' => $schemaName,
         ]);
 
-        // Run tenant seeders
-        $this->runTenantSeeders($tenant);
-
-        // Create default branch for the tenant
+        // Create default branch for the tenant FIRST (seeders need it)
         $this->createDefaultBranch($tenant);
+
+        // Run tenant seeders (after branch exists for StockLocationSeeder, etc.)
+        $this->runTenantSeeders($tenant);
 
         // Create owner user if contact_email is set
         if ($tenant->contact_email) {
