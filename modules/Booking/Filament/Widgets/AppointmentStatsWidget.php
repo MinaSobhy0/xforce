@@ -13,6 +13,18 @@ class AppointmentStatsWidget extends BaseWidget
 
     protected static bool $isLazy = false;
 
+    public static function canView(): bool
+    {
+        $user = auth()->user();
+        if (!$user) return false;
+
+        if (method_exists($user, 'hasRole') && $user->hasRole(['super-admin', 'super_admin', 'tenant-owner', 'tenant_owner', 'owner', 'admin'])) {
+            return true;
+        }
+
+        return $user->can('appointments.view') || !\Spatie\Permission\Models\Permission::where('name', 'appointments.view')->where('guard_name', 'web')->exists();
+    }
+
     protected function getStats(): array
     {
         $today = Appointment::whereDate('date', today());

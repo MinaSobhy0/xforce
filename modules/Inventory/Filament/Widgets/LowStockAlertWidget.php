@@ -16,6 +16,18 @@ class LowStockAlertWidget extends BaseWidget
 
     protected int|string|array $columnSpan = 'full';
 
+    public static function canView(): bool
+    {
+        $user = auth()->user();
+        if (!$user) return false;
+
+        if (method_exists($user, 'hasRole') && $user->hasRole(['super-admin', 'super_admin', 'tenant-owner', 'tenant_owner', 'owner', 'admin'])) {
+            return true;
+        }
+
+        return $user->can('products.view') || !\Spatie\Permission\Models\Permission::where('name', 'products.view')->where('guard_name', 'web')->exists();
+    }
+
     public function getTableHeading(): string
     {
         return __('inventory::inventory.widgets.low_stock_alerts');

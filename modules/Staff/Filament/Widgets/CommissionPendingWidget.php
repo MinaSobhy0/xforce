@@ -13,6 +13,18 @@ class CommissionPendingWidget extends BaseWidget
 
     protected static bool $isLazy = false;
 
+    public static function canView(): bool
+    {
+        $user = auth()->user();
+        if (!$user) return false;
+
+        if (method_exists($user, 'hasRole') && $user->hasRole(['super-admin', 'super_admin', 'tenant-owner', 'tenant_owner', 'owner', 'admin'])) {
+            return true;
+        }
+
+        return $user->can('commission_plans.view') || !\Spatie\Permission\Models\Permission::where('name', 'commission_plans.view')->where('guard_name', 'web')->exists();
+    }
+
     protected function getStats(): array
     {
         $pendingCount = StaffCommissionRecord::pending()->count();
