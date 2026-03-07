@@ -164,6 +164,7 @@ class CalendarPage extends Page implements HasForms, HasActions, HasInfolists
                 'textColor' => $categoryColor,
                 'extendedProps' => [
                     'isGroup' => true,
+                    'borderColor' => $categoryColor,
                     'category' => $categoryName,
                     'count' => $count,
                     'appointments' => $appointmentsList,
@@ -180,12 +181,8 @@ class CalendarPage extends Page implements HasForms, HasActions, HasInfolists
         $patientName = $appointment->patient?->full_name;
         $time = $appointment->start_time->format('H:i');
 
-        // Order: Phone, Patient Name, Time
-        $title = $phone ?: '';
-        if ($patientName) {
-            $title .= ($title ? "\n" : '') . $patientName;
-        }
-        $title .= ($title ? "\n" : '') . $time;
+        // Simple single-line title for fallback (custom eventContent handles display)
+        $title = $phone ?: $patientName ?: $time;
 
         $colors = $this->getStatusColors($appointment->status);
 
@@ -199,6 +196,7 @@ class CalendarPage extends Page implements HasForms, HasActions, HasInfolists
             'textColor' => $colors['text'],
             'extendedProps' => [
                 'isGroup' => false,
+                'borderColor' => $colors['border'],
                 'code' => $appointment->code,
                 'status' => $appointment->status,
                 'patient' => $appointment->patient?->full_name,

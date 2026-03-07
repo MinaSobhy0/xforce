@@ -101,14 +101,14 @@
         .fc-event {
             cursor: pointer;
             padding: 2px 6px !important;
-            border-radius: 6px;
+            border-radius: 6px !important;
             font-size: 0.65rem;
             border: none !important;
-            border-left: 3px solid !important;
             box-shadow: 0 1px 2px rgba(0,0,0,0.05);
             transition: all 0.2s ease;
             overflow: hidden !important;
             max-width: 100% !important;
+            box-sizing: border-box !important;
         }
         .fc-event:hover {
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
@@ -118,6 +118,7 @@
             padding: 1px 0;
             overflow: hidden !important;
             max-width: 100% !important;
+            box-sizing: border-box !important;
         }
         .fc-event-title, .fc-event-title-container {
             font-weight: 500;
@@ -126,12 +127,29 @@
             text-overflow: ellipsis !important;
             display: block !important;
             max-width: 100% !important;
+            box-sizing: border-box !important;
+        }
+        .fc-event-time {
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            flex-shrink: 0 !important;
         }
         .fc-timegrid-event .fc-event-main {
             overflow: hidden !important;
+            box-sizing: border-box !important;
         }
         .fc-timegrid-event-harness {
             overflow: hidden !important;
+        }
+        .fc-timegrid-event {
+            margin: 0 2px;
+            overflow: hidden !important;
+            box-sizing: border-box !important;
+        }
+        .fc-timegrid-event .fc-event-main-frame {
+            overflow: hidden !important;
+            box-sizing: border-box !important;
         }
         .fc-daygrid-event-dot { display: none; }
         .fc-daygrid-event {
@@ -140,6 +158,7 @@
             white-space: nowrap !important;
             text-overflow: ellipsis !important;
             max-width: calc(100% - 4px) !important;
+            box-sizing: border-box !important;
         }
         .fc-daygrid-event-harness {
             overflow: hidden !important;
@@ -147,14 +166,17 @@
         .fc-daygrid-day-events {
             overflow: hidden !important;
         }
-        .fc-timegrid-event {
-            margin: 0 2px;
-            overflow: hidden !important;
-        }
         .fc-timegrid-slot { height: 2.5em; }
         .fc-col-header-cell-cushion, .fc-daygrid-day-number { padding: 8px; font-weight: 500; }
         .fc-h-event .fc-event-main-frame {
             overflow: hidden !important;
+            box-sizing: border-box !important;
+        }
+        /* Ensure all text content stays within bounds */
+        .fc-event * {
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            max-width: 100% !important;
         }
     </style>
     @endassets
@@ -193,6 +215,46 @@
                     return dayName + ' ' + day + '/' + month;
                 },
                 events: @json($this->getAppointments()),
+                eventContent: function(arg) {
+                    // Custom render for better overflow control
+                    const event = arg.event;
+                    const props = event.extendedProps || {};
+
+                    // For grouped events (month view), use default rendering
+                    if (props.isGroup) {
+                        return null; // Use default
+                    }
+
+                    // For individual appointments, create custom HTML
+                    const container = document.createElement('div');
+                    container.style.cssText = 'overflow:hidden;width:100%;height:100%;padding:2px 4px;box-sizing:border-box;';
+
+                    // Phone line
+                    if (props.phone) {
+                        const phoneLine = document.createElement('div');
+                        phoneLine.style.cssText = 'font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;';
+                        phoneLine.textContent = props.phone;
+                        container.appendChild(phoneLine);
+                    }
+
+                    // Patient name line
+                    if (props.patient) {
+                        const nameLine = document.createElement('div');
+                        nameLine.style.cssText = 'font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;opacity:0.9;';
+                        nameLine.textContent = props.patient;
+                        container.appendChild(nameLine);
+                    }
+
+                    // Time line
+                    if (props.time) {
+                        const timeLine = document.createElement('div');
+                        timeLine.style.cssText = 'font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;opacity:0.8;';
+                        timeLine.textContent = props.time;
+                        container.appendChild(timeLine);
+                    }
+
+                    return { domNodes: [container] };
+                },
                 eventClick: function(info) {
                     // Don't navigate for grouped events
                     if (info.event.extendedProps.isGroup) {
@@ -217,6 +279,13 @@
                     window.location.href = '/admin/create-booking?date=' + startDate + '&start_time=' + startTime;
                 },
                 eventDidMount: function(info) {
+                    // Add left border styling like room calendar
+                    const el = info.el;
+                    const borderColor = info.event.extendedProps.borderColor || info.event.borderColor || '#6b7280';
+                    el.style.setProperty('border', 'none', 'important');
+                    el.style.setProperty('border-left', '3px solid ' + borderColor, 'important');
+                    el.style.setProperty('border-radius', '6px', 'important');
+
                     let title = '';
 
                     // Check if this is a grouped event (month view)
