@@ -382,11 +382,20 @@ class RoleResource extends Resource
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make()
-                    ->hidden(fn ($record) => $record->is_system),
+                    ->hidden(fn ($record) => $record->is_system || in_array($record->name, ['super-admin', 'super_admin'])),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->before(function ($records) {
+                            // Filter out protected roles
+                            $protectedRoles = ['super-admin', 'super_admin'];
+                            foreach ($records as $record) {
+                                if ($record->is_system || in_array($record->name, $protectedRoles)) {
+                                    throw new \Exception(__('auth::auth.errors.cannot_delete_system_role'));
+                                }
+                            }
+                        }),
                 ]),
             ])
             ->defaultSort('level');

@@ -15,7 +15,7 @@ class EditRole extends BaseEditRecord
     {
         return [
             Actions\DeleteAction::make()
-                ->hidden(fn () => $this->record->is_system),
+                ->hidden(fn () => $this->record->is_system || in_array($this->record->name, ['super-admin', 'super_admin'])),
         ];
     }
 

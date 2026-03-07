@@ -460,4 +460,9 @@ return [
         'role_permissions' => 'Role & Permissions',
         '2fa_enabled' => '2FA Enabled',
     ],
+
+    // Errors
+    'errors' => [
+        'cannot_delete_system_role' => 'Cannot delete system roles or super-admin role.',
+    ],
 ];
