@@ -111,15 +111,15 @@ class ViewTreatmentPlan extends BaseViewRecord
 
                             Forms\Components\Placeholder::make('total')
                                 ->label(__('treatment_plans::treatment_plans.financials.total'))
-                                ->content(fn () => format_money($this->record->total_minor)),
+                                ->content(fn () => format_money($this->record->total_minor ?? 0)),
 
                             Forms\Components\Placeholder::make('paid')
                                 ->label(__('treatment_plans::treatment_plans.financials.paid'))
-                                ->content(fn () => format_money($this->record->paid_minor)),
+                                ->content(fn () => format_money($this->record->paid_minor ?? 0)),
 
                             Forms\Components\Placeholder::make('remaining')
                                 ->label(__('treatment_plans::treatment_plans.financials.remaining'))
-                                ->content(fn () => format_money($this->record->remaining_minor)),
+                                ->content(fn () => format_money($this->record->remaining_minor ?? 0)),
                         ])
                         ->columns(5),
 
@@ -215,7 +215,7 @@ class ViewTreatmentPlan extends BaseViewRecord
                                             return __('billing::billing.record_payment.max_from_gift_card', ['amount' => format_money($card->remaining_value_minor)]);
                                         }
                                     }
-                                    return __('treatment_plans::treatment_plans.financials.remaining') . ': ' . format_money($this->record->remaining_minor);
+                                    return __('treatment_plans::treatment_plans.financials.remaining') . ': ' . format_money($this->record->remaining_minor ?? 0);
                                 }),
 
                             Forms\Components\DateTimePicker::make('paid_at')
