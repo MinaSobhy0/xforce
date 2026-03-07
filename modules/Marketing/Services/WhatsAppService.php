@@ -2,6 +2,7 @@
 
 namespace Modules\Marketing\Services;
 
+use App\Models\PlatformSetting;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Modules\Marketing\Models\NotificationLog;
@@ -11,12 +12,38 @@ class WhatsAppService
     protected string $apiVersion;
     protected ?string $phoneNumberId;
     protected ?string $accessToken;
+    protected ?string $provider;
+    protected bool $enabled;
 
     public function __construct()
     {
+        $this->loadSettings();
+    }
+
+    /**
+     * Load settings from PlatformSetting (SuperAdmin configuration).
+     */
+    protected function loadSettings(): void
+    {
+        $this->enabled = (bool) PlatformSetting::get('whatsapp_enabled', false);
+        $this->provider = PlatformSetting::get('whatsapp_provider', 'meta');
         $this->apiVersion = config('marketing.whatsapp.api_version', 'v18.0');
-        $this->phoneNumberId = config('marketing.whatsapp.phone_number_id');
-        $this->accessToken = config('marketing.whatsapp.access_token');
+
+        // For Meta (Official WhatsApp Business API)
+        if ($this->provider === 'meta') {
+            $this->phoneNumberId = PlatformSetting::get('whatsapp_phone_number', '');
+            $this->accessToken = PlatformSetting::get('whatsapp_api_key', '');
+        }
+        // For Twilio
+        elseif ($this->provider === 'twilio') {
+            $this->phoneNumberId = PlatformSetting::get('whatsapp_phone_number', '');
+            $this->accessToken = PlatformSetting::get('whatsapp_api_secret', ''); // Twilio Auth Token
+        }
+        // Fallback to env config if not set in platform settings
+        else {
+            $this->phoneNumberId = config('marketing.whatsapp.phone_number_id');
+            $this->accessToken = config('marketing.whatsapp.access_token');
+        }
     }
 
     /**
@@ -24,9 +51,17 @@ class WhatsAppService
      */
     public function isEnabled(): bool
     {
-        return config('marketing.whatsapp.enabled', false)
+        return $this->enabled
             && $this->phoneNumberId
             && $this->accessToken;
+    }
+
+    /**
+     * Get the current provider.
+     */
+    public function getProvider(): string
+    {
+        return $this->provider ?? 'meta';
     }
 
     /**

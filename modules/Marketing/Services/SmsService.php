@@ -2,16 +2,41 @@
 
 namespace Modules\Marketing\Services;
 
+use App\Models\PlatformSetting;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class SmsService
 {
+    protected bool $enabled;
     protected string $provider;
+    protected ?string $apiKey;
+    protected ?string $apiSecret;
+    protected ?string $senderId;
 
     public function __construct()
     {
-        $this->provider = config('marketing.sms.provider', 'twilio');
+        $this->loadSettings();
+    }
+
+    /**
+     * Load settings from PlatformSetting (SuperAdmin configuration).
+     */
+    protected function loadSettings(): void
+    {
+        $this->enabled = (bool) PlatformSetting::get('sms_enabled', false);
+        $this->provider = PlatformSetting::get('sms_provider', 'twilio');
+        $this->apiKey = PlatformSetting::get('sms_api_key', '');      // Twilio Account SID / API Key
+        $this->apiSecret = PlatformSetting::get('sms_api_secret', ''); // Twilio Auth Token / API Secret
+        $this->senderId = PlatformSetting::get('sms_sender_id', '');   // From number / Sender ID
+    }
+
+    /**
+     * Refresh settings (useful after settings update).
+     */
+    public function refreshSettings(): void
+    {
+        $this->loadSettings();
     }
 
     /**
@@ -19,16 +44,17 @@ class SmsService
      */
     public function isEnabled(): bool
     {
-        if (!config('marketing.sms.enabled', false)) {
-            return false;
-        }
+        return $this->enabled
+            && $this->apiKey
+            && $this->apiSecret;
+    }
 
-        return match ($this->provider) {
-            'twilio' => $this->isTwilioConfigured(),
-            'vonage' => $this->isVonageConfigured(),
-            'victorylink' => $this->isVictoryLinkConfigured(),
-            default => false,
-        };
+    /**
+     * Get the current provider.
+     */
+    public function getProvider(): string
+    {
+        return $this->provider;
     }
 
     /**
@@ -39,7 +65,7 @@ class SmsService
         if (!$this->isEnabled()) {
             return [
                 'success' => false,
-                'error' => 'SMS is not configured',
+                'error' => 'SMS is not configured. Please configure SMS settings in Platform → Integrations.',
             ];
         }
 
@@ -47,7 +73,9 @@ class SmsService
             'twilio' => $this->sendViaTwilio($to, $message),
             'vonage' => $this->sendViaVonage($to, $message),
             'victorylink' => $this->sendViaVictoryLink($to, $message),
-            default => ['success' => false, 'error' => 'Unknown SMS provider'],
+            'cequens' => $this->sendViaCequens($to, $message),
+            'messagebird' => $this->sendViaMessageBird($to, $message),
+            default => ['success' => false, 'error' => "Unknown SMS provider: {$this->provider}"],
         };
     }
 
@@ -57,34 +85,45 @@ class SmsService
     protected function sendViaTwilio(string $to, string $message): array
     {
         try {
-            $sid = config('marketing.sms.twilio.sid');
-            $token = config('marketing.sms.twilio.token');
-            $from = config('marketing.sms.twilio.from');
-
-            $response = Http::withBasicAuth($sid, $token)
+            $response = Http::withBasicAuth($this->apiKey, $this->apiSecret)
                 ->asForm()
-                ->post("https://api.twilio.com/2010-04-01/Accounts/{$sid}/Messages.json", [
+                ->post("https://api.twilio.com/2010-04-01/Accounts/{$this->apiKey}/Messages.json", [
                     'To' => $this->formatPhoneNumber($to),
-                    'From' => $from,
+                    'From' => $this->senderId,
                     'Body' => $message,
                 ]);
 
             if ($response->successful()) {
                 $data = $response->json();
+
+                Log::info('SMS sent via Twilio', [
+                    'to' => $to,
+                    'sid' => $data['sid'] ?? null,
+                    'status' => $data['status'] ?? null,
+                ]);
+
                 return [
                     'success' => true,
                     'message_id' => $data['sid'] ?? null,
+                    'status' => $data['status'] ?? null,
                     'response' => $data,
                 ];
             }
 
+            $error = $response->json('message', 'Unknown Twilio error');
+            Log::error('Twilio SMS failed', [
+                'to' => $to,
+                'error' => $error,
+                'response' => $response->json(),
+            ]);
+
             return [
                 'success' => false,
-                'error' => $response->json('message', 'Unknown error'),
+                'error' => $error,
                 'response' => $response->json(),
             ];
         } catch (\Exception $e) {
-            Log::error('Twilio SMS failed', [
+            Log::error('Twilio SMS exception', [
                 'to' => $to,
                 'error' => $e->getMessage(),
             ]);
@@ -102,15 +141,11 @@ class SmsService
     protected function sendViaVonage(string $to, string $message): array
     {
         try {
-            $apiKey = config('marketing.sms.vonage.api_key');
-            $apiSecret = config('marketing.sms.vonage.api_secret');
-            $from = config('marketing.sms.vonage.from');
-
             $response = Http::post('https://rest.nexmo.com/sms/json', [
-                'api_key' => $apiKey,
-                'api_secret' => $apiSecret,
+                'api_key' => $this->apiKey,
+                'api_secret' => $this->apiSecret,
                 'to' => $this->formatPhoneNumber($to),
-                'from' => $from,
+                'from' => $this->senderId,
                 'text' => $message,
             ]);
 
@@ -128,14 +163,14 @@ class SmsService
 
                 return [
                     'success' => false,
-                    'error' => $messageData['error-text'] ?? 'Unknown error',
+                    'error' => $messageData['error-text'] ?? 'Unknown Vonage error',
                     'response' => $data,
                 ];
             }
 
             return [
                 'success' => false,
-                'error' => 'Request failed',
+                'error' => 'Vonage request failed',
                 'response' => $response->json(),
             ];
         } catch (\Exception $e) {
@@ -157,14 +192,10 @@ class SmsService
     protected function sendViaVictoryLink(string $to, string $message): array
     {
         try {
-            $username = config('marketing.sms.victorylink.username');
-            $password = config('marketing.sms.victorylink.password');
-            $senderId = config('marketing.sms.victorylink.sender_id');
-
             $response = Http::get('https://smsvas.vlserv.com/KannelSending/service.asmx/SendSMS', [
-                'username' => $username,
-                'password' => $password,
-                'senderid' => $senderId,
+                'username' => $this->apiKey,
+                'password' => $this->apiSecret,
+                'senderid' => $this->senderId,
                 'mobileno' => $this->formatPhoneNumber($to),
                 'message' => $message,
             ]);
@@ -188,10 +219,95 @@ class SmsService
 
             return [
                 'success' => false,
-                'error' => 'Request failed',
+                'error' => 'VictoryLink request failed',
             ];
         } catch (\Exception $e) {
             Log::error('VictoryLink SMS failed', [
+                'to' => $to,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Send via Cequens (MENA provider).
+     */
+    protected function sendViaCequens(string $to, string $message): array
+    {
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => "Bearer {$this->apiSecret}",
+                'Content-Type' => 'application/json',
+            ])->post('https://apis.cequens.com/sms/v1/messages', [
+                'senderName' => $this->senderId,
+                'messageType' => 'text',
+                'messageText' => $message,
+                'recipients' => $this->formatPhoneNumber($to),
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                return [
+                    'success' => true,
+                    'message_id' => $data['messageId'] ?? null,
+                    'response' => $data,
+                ];
+            }
+
+            return [
+                'success' => false,
+                'error' => $response->json('message', 'Cequens request failed'),
+                'response' => $response->json(),
+            ];
+        } catch (\Exception $e) {
+            Log::error('Cequens SMS failed', [
+                'to' => $to,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Send via MessageBird.
+     */
+    protected function sendViaMessageBird(string $to, string $message): array
+    {
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => "AccessKey {$this->apiKey}",
+                'Content-Type' => 'application/json',
+            ])->post('https://rest.messagebird.com/messages', [
+                'originator' => $this->senderId,
+                'recipients' => [$this->formatPhoneNumber($to)],
+                'body' => $message,
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                return [
+                    'success' => true,
+                    'message_id' => $data['id'] ?? null,
+                    'response' => $data,
+                ];
+            }
+
+            return [
+                'success' => false,
+                'error' => $response->json('errors.0.description', 'MessageBird request failed'),
+                'response' => $response->json(),
+            ];
+        } catch (\Exception $e) {
+            Log::error('MessageBird SMS failed', [
                 'to' => $to,
                 'error' => $e->getMessage(),
             ]);
@@ -222,32 +338,24 @@ class SmsService
     }
 
     /**
-     * Check Twilio configuration.
+     * Validate phone number format.
      */
-    protected function isTwilioConfigured(): bool
+    public function validatePhoneNumber(string $phone): bool
     {
-        return config('marketing.sms.twilio.sid')
-            && config('marketing.sms.twilio.token')
-            && config('marketing.sms.twilio.from');
+        $phone = preg_replace('/[^0-9]/', '', $phone);
+        return strlen($phone) >= 10 && strlen($phone) <= 15;
     }
 
     /**
-     * Check Vonage configuration.
+     * Get configuration status for display.
      */
-    protected function isVonageConfigured(): bool
+    public function getStatus(): array
     {
-        return config('marketing.sms.vonage.api_key')
-            && config('marketing.sms.vonage.api_secret')
-            && config('marketing.sms.vonage.from');
-    }
-
-    /**
-     * Check VictoryLink configuration.
-     */
-    protected function isVictoryLinkConfigured(): bool
-    {
-        return config('marketing.sms.victorylink.username')
-            && config('marketing.sms.victorylink.password')
-            && config('marketing.sms.victorylink.sender_id');
+        return [
+            'enabled' => $this->enabled,
+            'provider' => $this->provider,
+            'configured' => $this->isEnabled(),
+            'sender_id' => $this->senderId ? substr($this->senderId, 0, 4) . '***' : null,
+        ];
     }
 }
