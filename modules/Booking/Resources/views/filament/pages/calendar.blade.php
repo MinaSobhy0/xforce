@@ -326,21 +326,8 @@
         if (calendarEl && !calendarEl.dataset.initialized) {
             calendarEl.dataset.initialized = 'true';
 
-            // Mobile detection
-            const isMobile = window.innerWidth < 768;
-            // Set mobile flag and refresh events if mobile (since initial load didn't have flag)
-            if (isMobile) {
-                $wire.set('isMobileView', true);
-            }
-
             const viewMode = $wire.viewMode;
-            // On mobile, use dayGrid views (grouped) instead of timeGrid
-            let initialView;
-            if (isMobile) {
-                initialView = viewMode === 'day' ? 'dayGridDay' : viewMode === 'week' ? 'dayGridWeek' : 'dayGridMonth';
-            } else {
-                initialView = viewMode === 'day' ? 'timeGridDay' : viewMode === 'week' ? 'timeGridWeek' : 'dayGridMonth';
-            }
+            const initialView = viewMode === 'day' ? 'timeGridDay' : viewMode === 'week' ? 'timeGridWeek' : 'dayGridMonth';
 
             const calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: initialView,
@@ -354,7 +341,7 @@
                 editable: false,
                 selectable: true,
                 selectMirror: true,
-                dayMaxEvents: isMobile ? 3 : 4,
+                dayMaxEvents: 4,
                 weekends: true,
                 locale: '{{ app()->getLocale() }}',
                 direction: '{{ app()->getLocale() === "ar" ? "rtl" : "ltr" }}',
@@ -480,25 +467,11 @@
 
             calendar.render();
             window.bookingCalendar = calendar;
-            window.bookingCalendarIsMobile = isMobile;
-
-            // If mobile, refresh events after a short delay to get grouped data
-            if (isMobile) {
-                setTimeout(() => {
-                    $wire.call('updatedSelectedDate');
-                }, 100);
-            }
 
             $wire.on('calendarViewChanged', (data) => {
                 const mode = data.mode || data;
                 const events = data.events || [];
-                const mobile = window.bookingCalendarIsMobile;
-                let view;
-                if (mobile) {
-                    view = mode === 'day' ? 'dayGridDay' : mode === 'week' ? 'dayGridWeek' : 'dayGridMonth';
-                } else {
-                    view = mode === 'day' ? 'timeGridDay' : mode === 'week' ? 'timeGridWeek' : 'dayGridMonth';
-                }
+                const view = mode === 'day' ? 'timeGridDay' : mode === 'week' ? 'timeGridWeek' : 'dayGridMonth';
                 window.bookingCalendar.changeView(view);
                 window.bookingCalendar.removeAllEvents();
                 events.forEach(event => window.bookingCalendar.addEvent(event));
@@ -510,17 +483,6 @@
                 window.bookingCalendar.gotoDate(date);
                 window.bookingCalendar.removeAllEvents();
                 events.forEach(event => window.bookingCalendar.addEvent(event));
-            });
-
-            // Handle window resize
-            window.addEventListener('resize', function() {
-                const nowMobile = window.innerWidth < 768;
-                if (nowMobile !== window.bookingCalendarIsMobile) {
-                    window.bookingCalendarIsMobile = nowMobile;
-                    $wire.set('isMobileView', nowMobile);
-                    // Refresh events with new grouping
-                    $wire.call('updatedSelectedDate');
-                }
             });
         }
     </script>
