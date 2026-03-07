@@ -65,12 +65,11 @@ class BalanceSheetPage extends Page implements HasForms
                         DatePicker::make('as_of_date')
                             ->label(__('accounting::accounting.as_of_date'))
                             ->default(now())
-                            ->reactive()
+                            ->live()
                             ->afterStateUpdated(fn () => $this->loadBalanceSheet()),
                     ])
                     ->columns(1),
-            ])
-            ->statePath('data');
+            ]);
     }
 
     public function loadBalanceSheet(): void
