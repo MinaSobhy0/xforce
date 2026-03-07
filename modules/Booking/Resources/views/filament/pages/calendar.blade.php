@@ -327,7 +327,7 @@
             calendarEl.dataset.initialized = 'true';
 
             const viewMode = $wire.viewMode;
-            const initialView = viewMode === 'day' ? 'timeGridDay' : viewMode === 'week' ? 'timeGridWeek' : 'dayGridMonth';
+            const initialView = viewMode === 'day' ? 'timeGridDay' : viewMode === 'week' ? 'dayGridWeek' : 'dayGridMonth';
 
             const calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: initialView,
@@ -471,7 +471,7 @@
             $wire.on('calendarViewChanged', (data) => {
                 const mode = data.mode || data;
                 const events = data.events || [];
-                const view = mode === 'day' ? 'timeGridDay' : mode === 'week' ? 'timeGridWeek' : 'dayGridMonth';
+                const view = mode === 'day' ? 'timeGridDay' : mode === 'week' ? 'dayGridWeek' : 'dayGridMonth';
                 window.bookingCalendar.changeView(view);
                 window.bookingCalendar.removeAllEvents();
                 events.forEach(event => window.bookingCalendar.addEvent(event));

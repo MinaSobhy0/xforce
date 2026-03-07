@@ -115,12 +115,12 @@ class CalendarPage extends Page implements HasForms, HasActions, HasInfolists
 
         $appointments = $query->ordered()->get();
 
-        // For month view, group by date and category
-        if ($this->viewMode === 'month') {
+        // For month and week views, group by date and category
+        if (in_array($this->viewMode, ['month', 'week'])) {
             return $this->getGroupedAppointments($appointments);
         }
 
-        // For day/week view, return individual appointments
+        // For day view, return individual appointments
         return $appointments->map(function (Appointment $appointment) {
             return $this->formatAppointmentEvent($appointment);
         })->toArray();
