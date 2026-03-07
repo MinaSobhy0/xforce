@@ -220,9 +220,15 @@
                     const event = arg.event;
                     const props = event.extendedProps || {};
 
-                    // For grouped events (month view), use default rendering
+                    // For grouped events (month view), render category name with count
                     if (props.isGroup) {
-                        return null; // Use default
+                        const container = document.createElement('div');
+                        container.style.cssText = 'overflow:hidden;width:100%;padding:2px 4px;box-sizing:border-box;';
+                        const titleLine = document.createElement('div');
+                        titleLine.style.cssText = 'font-size:11px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+                        titleLine.textContent = event.title;
+                        container.appendChild(titleLine);
+                        return { domNodes: [container] };
                     }
 
                     // For individual appointments, create custom HTML
