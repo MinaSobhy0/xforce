@@ -58,7 +58,7 @@ class StockLocationSeeder extends Seeder
     }
 
     /**
-     * Seed default locations for a branch.
+     * Seed default stock location for a branch.
      */
     protected function seedLocationsForBranch(int|string $branchId): void
     {
@@ -72,120 +72,24 @@ class StockLocationSeeder extends Seeder
             return;
         }
 
-        $locations = [
-            // Warehouse (View - Container)
-            [
-                'code' => 'WH',
-                'name' => ['en' => 'Warehouse', 'ar' => 'المستودع'],
-                'location_type' => StockLocation::TYPE_VIEW,
-                'parent_path' => null,
-                'level' => 0,
-                'sort_order' => 1,
-                'children' => [
-                    [
-                        'code' => 'WH/STOCK',
-                        'name' => ['en' => 'Stock', 'ar' => 'المخزون'],
-                        'location_type' => StockLocation::TYPE_INTERNAL,
-                        'sort_order' => 1,
-                    ],
-                    [
-                        'code' => 'WH/INPUT',
-                        'name' => ['en' => 'Receiving Zone', 'ar' => 'منطقة الاستلام'],
-                        'location_type' => StockLocation::TYPE_INTERNAL,
-                        'sort_order' => 2,
-                    ],
-                ],
-            ],
-            // Partners (View - Container for virtual locations)
-            [
-                'code' => 'PARTNERS',
-                'name' => ['en' => 'Partners', 'ar' => 'الشركاء'],
-                'location_type' => StockLocation::TYPE_VIEW,
-                'parent_path' => null,
-                'level' => 0,
-                'sort_order' => 2,
-                'children' => [
-                    [
-                        'code' => 'PARTNERS/SUPPLIERS',
-                        'name' => ['en' => 'Suppliers', 'ar' => 'الموردين'],
-                        'location_type' => StockLocation::TYPE_SUPPLIER,
-                        'sort_order' => 1,
-                    ],
-                    [
-                        'code' => 'PARTNERS/CUSTOMERS',
-                        'name' => ['en' => 'Customers', 'ar' => 'العملاء'],
-                        'location_type' => StockLocation::TYPE_CUSTOMER,
-                        'sort_order' => 2,
-                    ],
-                ],
-            ],
-            // Virtual (View - Container for adjustment locations)
-            [
-                'code' => 'VIRTUAL',
-                'name' => ['en' => 'Virtual Locations', 'ar' => 'المواقع الافتراضية'],
-                'location_type' => StockLocation::TYPE_VIEW,
-                'parent_path' => null,
-                'level' => 0,
-                'sort_order' => 3,
-                'children' => [
-                    [
-                        'code' => 'VIRTUAL/INVENTORY',
-                        'name' => ['en' => 'Inventory Adjustment', 'ar' => 'تسوية المخزون'],
-                        'location_type' => StockLocation::TYPE_INVENTORY,
-                        'sort_order' => 1,
-                    ],
-                    [
-                        'code' => 'VIRTUAL/SCRAP',
-                        'name' => ['en' => 'Scrap', 'ar' => 'الهالك'],
-                        'location_type' => StockLocation::TYPE_INVENTORY,
-                        'is_scrap_location' => true,
-                        'sort_order' => 2,
-                    ],
-                ],
-            ],
-        ];
-
-        foreach ($locations as $locationData) {
-            $this->createLocation($branchId, $locationData);
-        }
-
-        Log::info("StockLocationSeeder: Created default locations for branch {$branchId}");
-    }
-
-    /**
-     * Create a location and its children recursively.
-     */
-    protected function createLocation(int|string $branchId, array $data, ?int $parentId = null, ?string $parentPath = null): int
-    {
-        $children = $data['children'] ?? [];
-        unset($data['children']);
-
-        $insertData = [
+        // Create a single default stock location for the branch
+        $this->connection->table('stock_locations')->insert([
             'tenant_id' => $this->tenantId,
             'branch_id' => $branchId,
-            'parent_id' => $parentId,
-            'code' => $data['code'],
-            'name' => json_encode($data['name']),
-            'location_type' => $data['location_type'],
-            'parent_path' => $parentPath,
-            'level' => $data['level'] ?? ($parentId ? 1 : 0),
-            'is_scrap_location' => $data['is_scrap_location'] ?? false,
-            'is_return_location' => $data['is_return_location'] ?? false,
+            'parent_id' => null,
+            'code' => 'WH/STOCK',
+            'name' => json_encode(['en' => 'Stock', 'ar' => 'المخزون']),
+            'location_type' => StockLocation::TYPE_INTERNAL,
+            'parent_path' => null,
+            'level' => 0,
+            'is_scrap_location' => false,
+            'is_return_location' => false,
             'is_active' => true,
-            'sort_order' => $data['sort_order'] ?? 0,
+            'sort_order' => 1,
             'created_at' => now(),
             'updated_at' => now(),
-        ];
+        ]);
 
-        $locationId = $this->connection->table('stock_locations')->insertGetId($insertData);
-
-        // Create child locations
-        $newParentPath = $parentPath ? $parentPath . '/' . $data['code'] : $data['code'];
-        foreach ($children as $childData) {
-            $childData['level'] = ($data['level'] ?? 0) + 1;
-            $this->createLocation($branchId, $childData, $locationId, $newParentPath);
-        }
-
-        return $locationId;
+        Log::info("StockLocationSeeder: Created default stock location for branch {$branchId}");
     }
 }
