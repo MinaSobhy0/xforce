@@ -119,18 +119,28 @@ class NotificationService
         ]);
 
         // Send based on channel (skip quota check since we already checked)
-        $result = $this->send(
-            $template->channel,
-            $recipientAddress,
-            $rendered['content'],
-            $rendered['subject'],
-            [
-                'whatsapp_template_name' => $template->whatsapp_template_name,
-                'variables' => $variables,
-                'skip_quota_check' => true,
-                'tenant_id' => $patient->tenant_id,
-            ]
-        );
+        // For WhatsApp with buttons, use interactive message
+        if ($template->channel === MessageTemplate::CHANNEL_WHATSAPP && $template->hasButtons()) {
+            $result = $this->whatsAppService->sendMessageWithButtons(
+                $recipientAddress,
+                $template,
+                $variables,
+                $patient->language ?? app()->getLocale()
+            );
+        } else {
+            $result = $this->send(
+                $template->channel,
+                $recipientAddress,
+                $rendered['content'],
+                $rendered['subject'],
+                [
+                    'whatsapp_template_name' => $template->whatsapp_template_name,
+                    'variables' => $variables,
+                    'skip_quota_check' => true,
+                    'tenant_id' => $patient->tenant_id,
+                ]
+            );
+        }
 
         // Update log with result
         if ($result['success']) {
