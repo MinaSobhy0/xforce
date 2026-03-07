@@ -29,9 +29,12 @@ class TenantSeed extends Command
             return 1;
         }
 
-        $tenant = Tenant::where('id', $tenantIdentifier)
-            ->orWhere('slug', $tenantIdentifier)
-            ->first();
+        // Check if identifier is numeric (ID) or string (slug)
+        if (is_numeric($tenantIdentifier)) {
+            $tenant = Tenant::find($tenantIdentifier);
+        } else {
+            $tenant = Tenant::where('slug', $tenantIdentifier)->first();
+        }
 
         if (!$tenant) {
             $this->error("Tenant not found: {$tenantIdentifier}");

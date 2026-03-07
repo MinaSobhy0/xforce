@@ -5,9 +5,10 @@ namespace App\Console\Commands;
 use App\Models\SubscriptionPlan;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Modules\Core\Models\Tenant;
+use Modules\Core\Models\TenantStatus;
+use Modules\Core\Services\TenantService;
 
 class TenantCreate extends Command
 {
@@ -21,6 +22,12 @@ class TenantCreate extends Command
                             {--skip-owner : Skip creating owner user}';
 
     protected $description = 'Create a new tenant with database schema and owner user';
+
+    public function __construct(
+        protected TenantService $tenantService
+    ) {
+        parent::__construct();
+    }
 
     public function handle(): int
     {
@@ -47,58 +54,26 @@ class TenantCreate extends Command
         }
 
         try {
-            DB::beginTransaction();
-
-            // Create tenant record
-            $tenant = Tenant::create([
+            // Use TenantService to create tenant with proper schema and migrations
+            $tenant = $this->tenantService->create([
                 'name' => $name,
                 'slug' => $slug,
                 'domain' => $slug . '.x-linic.com',
-                'database_name' => 'tenant_' . str_replace('-', '_', $slug),
-                'status' => 'trial',
-                'subscription_plan_id' => $plan?->id,
-                'subscription_status' => 'trial',
-                'trial_ends_at' => now()->addDays((int) $this->option('trial-days')),
                 'contact_email' => $this->option('email'),
-                'owner_user_id' => $this->option('owner-id'),
-                'timezone' => 'Africa/Cairo',
-                'locale' => 'ar',
-                'currency' => 'EGP',
+                'status' => TenantStatus::ACTIVE,
+                'settings' => [
+                    'subscription_plan_id' => $plan?->id,
+                    'trial_ends_at' => now()->addDays((int) $this->option('trial-days'))->toISOString(),
+                ],
             ]);
 
-            $this->info("Tenant record created with ID: {$tenant->id}");
+            $this->info("Tenant created with ID: {$tenant->id}");
 
-            // Create PostgreSQL schema for tenant
-            $schemaName = 'tenant_' . str_replace('-', '_', $slug);
-            DB::statement("CREATE SCHEMA IF NOT EXISTS \"{$schemaName}\"");
-            $this->info("Database schema '{$schemaName}' created.");
-
-            // Run migrations for the tenant schema
-            $this->info("Running migrations for tenant schema...");
-            $this->call('tenant:migrate', ['--tenant' => $tenant->id]);
-
-            // Create owner user if email provided and not skipped
-            $ownerEmail = $this->option('email');
+            // Get owner credentials if created
             $ownerPassword = null;
-            $ownerId = null;
-
-            if ($ownerEmail && !$this->option('skip-owner')) {
-                $ownerPassword = $this->option('password') ?: Str::random(12);
-                $ownerId = $this->createOwnerUser($tenant, $schemaName, $ownerEmail, $ownerPassword);
-
-                if ($ownerId) {
-                    // Update tenant with owner_user_id
-                    $tenant->update(['owner_user_id' => $ownerId]);
-                    $this->info("Owner user created: {$ownerEmail}");
-                }
+            if ($tenant->contact_email && !$this->option('skip-owner')) {
+                $ownerPassword = $this->option('password') ?: ($tenant->settings['initial_owner_password'] ?? null);
             }
-
-            // Optionally seed default data
-            if ($this->confirm('Do you want to seed default data for this tenant?', true)) {
-                $this->call('tenant:seed', ['--tenant' => $tenant->id]);
-            }
-
-            DB::commit();
 
             $this->newLine();
             $this->info("Tenant created successfully!");
@@ -109,20 +84,19 @@ class TenantCreate extends Command
                     ['Name', $tenant->name],
                     ['Slug', $tenant->slug],
                     ['Domain', $tenant->domain],
-                    ['Schema', $schemaName],
-                    ['Status', $tenant->status],
+                    ['Schema', $tenant->database_name],
+                    ['Status', $tenant->status->value],
                     ['Plan', $plan?->code ?? 'None'],
-                    ['Trial Ends', $tenant->trial_ends_at?->format('Y-m-d')],
                 ]
             );
 
-            if ($ownerEmail && $ownerId) {
+            if ($tenant->contact_email && $ownerPassword) {
                 $this->newLine();
                 $this->info("Owner Account Credentials:");
                 $this->table(
                     ['Property', 'Value'],
                     [
-                        ['Email', $ownerEmail],
+                        ['Email', $tenant->contact_email],
                         ['Password', $ownerPassword],
                         ['Login URL', "https://{$slug}.x-linic.com/admin"],
                     ]
@@ -133,63 +107,21 @@ class TenantCreate extends Command
             return 0;
 
         } catch (\Exception $e) {
-            DB::rollBack();
             $this->error("Failed to create tenant: " . $e->getMessage());
-            return 1;
-        }
-    }
 
-    /**
-     * Create the owner user in the tenant schema.
-     */
-    protected function createOwnerUser(Tenant $tenant, string $schemaName, string $email, string $password): ?int
-    {
-        try {
-            // Switch to tenant schema
-            DB::statement("SET search_path TO \"{$schemaName}\"");
-
-            $nameParts = explode('@', $email);
-            $name = ucfirst($nameParts[0]);
-
-            // Insert user directly using raw SQL to avoid model complications
-            $userId = DB::table('users')->insertGetId([
-                'tenant_id' => $tenant->id,
-                'first_name' => $name,
-                'last_name' => 'Admin',
-                'email' => $email,
-                'username' => $nameParts[0],
-                'password' => Hash::make($password),
-                'status' => 'active',
-                'language' => $tenant->locale ?? 'ar',
-                'timezone' => $tenant->timezone ?? 'Africa/Cairo',
-                'email_verified_at' => now(),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-            // Assign super_admin role if roles table exists
+            // Try to clean up if tenant was partially created
             try {
-                $superAdminRole = DB::table('roles')->where('name', 'super_admin')->first();
-                if ($superAdminRole) {
-                    DB::table('model_has_roles')->insert([
-                        'role_id' => $superAdminRole->id,
-                        'model_type' => 'Modules\\Auth\\Models\\User',
-                        'model_id' => $userId,
-                    ]);
+                $partialTenant = Tenant::where('slug', $slug)->first();
+                if ($partialTenant) {
+                    DB::statement("DROP SCHEMA IF EXISTS \"{$partialTenant->database_name}\" CASCADE");
+                    $partialTenant->forceDelete();
+                    $this->warn("Cleaned up partial tenant data.");
                 }
-            } catch (\Exception $e) {
-                // Roles table might not exist yet, skip role assignment
+            } catch (\Exception $cleanupError) {
+                $this->warn("Could not clean up: " . $cleanupError->getMessage());
             }
 
-            // Reset search path
-            DB::statement("SET search_path TO public");
-
-            return $userId;
-
-        } catch (\Exception $e) {
-            DB::statement("SET search_path TO public");
-            $this->warn("Could not create owner user: " . $e->getMessage());
-            return null;
+            return 1;
         }
     }
 }
