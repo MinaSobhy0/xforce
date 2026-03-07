@@ -362,8 +362,85 @@ class WhatsAppService
             return $this->sendTextMessage($to, $rendered['content']);
         }
 
+        // For Twilio, append action links to the message
+        if ($this->provider === 'twilio') {
+            $rendered = $template->render($variables, $locale);
+            $messageWithLinks = $this->appendButtonLinks($rendered['content'], $template, $variables, $locale);
+            return $this->sendViaTwilio($to, $messageWithLinks);
+        }
+
         $interactive = $template->buildInteractivePayload($variables, $locale);
         return $this->sendInteractiveMessage($to, $interactive);
+    }
+
+    /**
+     * Append button action links to message text (for Twilio).
+     */
+    protected function appendButtonLinks(
+        string $content,
+        \Modules\Marketing\Models\MessageTemplate $template,
+        array $variables,
+        ?string $locale = null
+    ): string {
+        $buttons = $template->getButtons();
+        if (empty($buttons)) {
+            return $content;
+        }
+
+        $appointmentId = $variables['appointment_id'] ?? null;
+        if (!$appointmentId) {
+            return $content;
+        }
+
+        $links = [];
+        $locale = $locale ?? app()->getLocale();
+
+        foreach ($buttons as $button) {
+            $action = $button['action'] ?? '';
+            $label = $button['label'] ?? '';
+
+            // Generate signed URL for the action
+            $url = $this->generateActionUrl($action, $appointmentId);
+            if ($url) {
+                $links[] = "🔗 {$label}: {$url}";
+            }
+        }
+
+        if (!empty($links)) {
+            $content .= "\n\n" . implode("\n", $links);
+        }
+
+        return $content;
+    }
+
+    /**
+     * Generate a signed URL for appointment action.
+     */
+    protected function generateActionUrl(string $action, string $appointmentId): ?string
+    {
+        $validActions = ['confirm_appointment', 'reschedule_appointment', 'cancel_appointment'];
+        if (!in_array($action, $validActions)) {
+            return null;
+        }
+
+        // Map action to route action name
+        $routeAction = match ($action) {
+            'confirm_appointment' => 'confirm',
+            'reschedule_appointment' => 'reschedule',
+            'cancel_appointment' => 'cancel',
+            default => null,
+        };
+
+        if (!$routeAction) {
+            return null;
+        }
+
+        // Generate signed URL that expires in 7 days
+        return \Illuminate\Support\Facades\URL::temporarySignedRoute(
+            'appointment.action',
+            now()->addDays(7),
+            ['appointment' => $appointmentId, 'action' => $routeAction]
+        );
     }
 
     /**

@@ -132,4 +132,19 @@ return [
     'booking_success' => 'تم الحجز',
     'booking_success_body' => 'تم إنشاء الموعد :code بنجاح',
     'booking_error' => 'فشل الحجز',
+
+    // Appointment action messages (via signed URL)
+    'messages' => [
+        'invalid_link' => 'رابط غير صالح',
+        'link_expired_description' => 'انتهت صلاحية هذا الرابط أو أنه غير صالح. يرجى التواصل مع العيادة للمساعدة.',
+        'cannot_modify' => 'لا يمكن تعديل الموعد',
+        'appointment_already_processed' => 'تم إكمال هذا الموعد أو إلغاؤه بالفعل.',
+        'invalid_action' => 'إجراء غير صالح',
+        'already_confirmed' => 'تم التأكيد مسبقاً',
+        'confirmed_success' => 'تم تأكيد الموعد!',
+        'cancelled_success' => 'تم إلغاء الموعد',
+        'cancelled_description' => 'تم إلغاء موعدك. إذا كنت بحاجة لحجز موعد جديد، يرجى التواصل مع العيادة.',
+        'reschedule_contact' => 'طلب إعادة جدولة',
+        'reschedule_description' => 'لإعادة جدولة موعدك، يرجى التواصل معنا على: :phone',
+    ],
 ];

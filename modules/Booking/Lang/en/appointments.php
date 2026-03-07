@@ -132,4 +132,19 @@ return [
     'booking_success' => 'Appointment Booked',
     'booking_success_body' => 'Appointment :code has been created successfully',
     'booking_error' => 'Booking Failed',
+
+    // Appointment action messages (via signed URL)
+    'messages' => [
+        'invalid_link' => 'Invalid Link',
+        'link_expired_description' => 'This link has expired or is invalid. Please contact the clinic for assistance.',
+        'cannot_modify' => 'Cannot Modify Appointment',
+        'appointment_already_processed' => 'This appointment has already been completed or cancelled.',
+        'invalid_action' => 'Invalid Action',
+        'already_confirmed' => 'Already Confirmed',
+        'confirmed_success' => 'Appointment Confirmed!',
+        'cancelled_success' => 'Appointment Cancelled',
+        'cancelled_description' => 'Your appointment has been cancelled. If you need to book a new appointment, please contact the clinic.',
+        'reschedule_contact' => 'Reschedule Request',
+        'reschedule_description' => 'To reschedule your appointment, please contact us at: :phone',
+    ],
 ];
