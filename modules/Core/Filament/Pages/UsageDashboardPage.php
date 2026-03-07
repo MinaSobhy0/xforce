@@ -32,13 +32,13 @@ class UsageDashboardPage extends Page
             return true;
         }
 
-        // Check reports.view permission (usage dashboard is a type of report)
-        if ($user->can('reports.view')) {
+        // Check settings.view permission (usage dashboard is in Settings group)
+        if ($user->can('settings.view')) {
             return true;
         }
 
         // If permission doesn't exist, allow access (fallback)
-        $permissionExists = \Spatie\Permission\Models\Permission::where('name', 'reports.view')
+        $permissionExists = \Spatie\Permission\Models\Permission::where('name', 'settings.view')
             ->where('guard_name', 'web')
             ->exists();
 

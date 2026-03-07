@@ -21,6 +21,32 @@ abstract class BaseReportPage extends Page implements HasForms
 
     protected static ?string $navigationGroup = 'Reports';
 
+    public static function canAccess(): bool
+    {
+        $user = auth()->user();
+
+        if (!$user) {
+            return false;
+        }
+
+        // Super admin and key roles have full access
+        if (method_exists($user, 'hasRole') && $user->hasRole(['super-admin', 'super_admin', 'tenant-owner', 'tenant_owner', 'owner', 'admin'])) {
+            return true;
+        }
+
+        // Check reports.view permission
+        if ($user->can('reports.view')) {
+            return true;
+        }
+
+        // If permission doesn't exist, allow access (fallback)
+        $permissionExists = \Spatie\Permission\Models\Permission::where('name', 'reports.view')
+            ->where('guard_name', 'web')
+            ->exists();
+
+        return !$permissionExists;
+    }
+
     public ?string $start_date = null;
     public ?string $end_date = null;
     public ?string $branch_id = null;
