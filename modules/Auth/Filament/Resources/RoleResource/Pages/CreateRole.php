@@ -28,17 +28,20 @@ class CreateRole extends CreateRecord
 
         foreach ($permissions as $resource => $actions) {
             foreach ($actions as $action => $granted) {
+                $permName = "{$resource}.{$action}";
+                // Always create permission record so it exists for checking
+                Permission::firstOrCreate(
+                    ['name' => $permName, 'guard_name' => 'web']
+                );
                 if ($granted) {
-                    $permName = "{$resource}.{$action}";
-                    // Create permission if doesn't exist
-                    Permission::firstOrCreate(
-                        ['name' => $permName, 'guard_name' => 'web']
-                    );
                     $permissionNames[] = $permName;
                 }
             }
         }
 
         $this->record->syncPermissions($permissionNames);
+
+        // Clear permission cache
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
     }
 }

@@ -21,6 +21,32 @@ class GeneralSettingsPage extends Page implements Forms\Contracts\HasForms
 
     protected static ?int $navigationSort = 60;
 
+    public static function canAccess(): bool
+    {
+        $user = auth()->user();
+
+        if (!$user) {
+            return false;
+        }
+
+        // Super admin and key roles have full access
+        if (method_exists($user, 'hasRole') && $user->hasRole(['super-admin', 'super_admin', 'tenant-owner', 'tenant_owner', 'owner', 'admin'])) {
+            return true;
+        }
+
+        // Check settings.view permission
+        if ($user->can('settings.view')) {
+            return true;
+        }
+
+        // If permission doesn't exist, allow access (fallback)
+        $permissionExists = \Spatie\Permission\Models\Permission::where('name', 'settings.view')
+            ->where('guard_name', 'web')
+            ->exists();
+
+        return !$permissionExists;
+    }
+
     public ?array $data = [];
 
     public static function getNavigationLabel(): string
