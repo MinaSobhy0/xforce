@@ -21,7 +21,7 @@ class ViewEquipment extends BaseViewRecord
                 ->label(__('equipment::equipment.template.apply'))
                 ->icon('heroicon-o-document-duplicate')
                 ->color('info')
-                ->visible(fn (Equipment $record) => $record->tracking_enabled && $record->parameter_template_id)
+                ->visible(fn (Equipment $record) => $record->tracking_enabled && $record->parameter_template_id && $this->canEditEquipment())
                 ->requiresConfirmation()
                 ->modalDescription(__('equipment::equipment.template.apply_confirm'))
                 ->action(function (Equipment $record) {
@@ -37,6 +37,7 @@ class ViewEquipment extends BaseViewRecord
                 ->label(__('equipment::equipment.log_maintenance'))
                 ->icon('heroicon-o-wrench-screwdriver')
                 ->color('warning')
+                ->visible(fn () => $this->canEditEquipment())
                 ->form([
                     \Filament\Forms\Components\Select::make('type')
                         ->label(__('equipment::equipment.maintenance_type'))
@@ -65,5 +66,23 @@ class ViewEquipment extends BaseViewRecord
                     ]);
                 }),
         ];
+    }
+
+    /**
+     * Check if user can edit equipment (has equipment.edit permission)
+     */
+    protected function canEditEquipment(): bool
+    {
+        $user = auth()->user();
+        if (!$user) {
+            return false;
+        }
+
+        // Super admin and key roles always have access
+        if (method_exists($user, 'hasRole') && $user->hasRole(['super-admin', 'super_admin', 'tenant-owner', 'tenant_owner', 'owner', 'admin'])) {
+            return true;
+        }
+
+        return $user->can('equipment.edit');
     }
 }
