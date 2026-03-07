@@ -8,6 +8,7 @@ use Modules\Patients\Filament\Resources\PatientResource\RelationManagers;
 use Modules\Patients\Filament\Forms\Components\FitzpatrickTypeSelector;
 use Modules\Patients\Models\Patient;
 use Modules\Patients\Models\PatientMedicalHistory;
+use Modules\Core\Support\CountryCodes;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -120,17 +121,31 @@ class PatientResource extends Resource
                                 Forms\Components\Section::make(__('patients::patients.labels.contact_info'))
                                     ->columns(3)
                                     ->schema([
-                                        Forms\Components\TextInput::make('phone')
-                                            ->label(__('patients::patients.fields.phone'))
-                                            ->tel()
-                                            ->required()
-                                            ->maxLength(20)
-                                            ->unique(
-                                                table: Patient::class,
-                                                column: 'phone',
-                                                ignoreRecord: true,
-                                                modifyRuleUsing: fn ($rule) => $rule->whereNull('deleted_at'),
-                                            ),
+                                        Forms\Components\Grid::make(5)
+                                            ->columnSpan(1)
+                                            ->schema([
+                                                Forms\Components\Select::make('phone_country_code')
+                                                    ->label(__('patients::patients.fields.phone_country_code'))
+                                                    ->options(CountryCodes::compactOptions())
+                                                    ->default(fn () => self::getDefaultCountryCode())
+                                                    ->searchable()
+                                                    ->native(false)
+                                                    ->required()
+                                                    ->columnSpan(2),
+
+                                                Forms\Components\TextInput::make('phone')
+                                                    ->label(__('patients::patients.fields.phone'))
+                                                    ->tel()
+                                                    ->required()
+                                                    ->maxLength(20)
+                                                    ->unique(
+                                                        table: Patient::class,
+                                                        column: 'phone',
+                                                        ignoreRecord: true,
+                                                        modifyRuleUsing: fn ($rule) => $rule->whereNull('deleted_at'),
+                                                    )
+                                                    ->columnSpan(3),
+                                            ]),
 
                                         Forms\Components\TextInput::make('secondary_phone')
                                             ->label(__('patients::patients.fields.secondary_phone'))
@@ -362,10 +377,11 @@ class PatientResource extends Resource
                     ->searchable(['first_name', 'last_name'])
                     ->sortable(['first_name']),
 
-                Tables\Columns\TextColumn::make('phone')
+                Tables\Columns\TextColumn::make('international_phone')
                     ->label(__('patients::patients.fields.phone'))
-                    ->searchable()
-                    ->copyable(),
+                    ->searchable(['phone'])
+                    ->copyable()
+                    ->description(fn ($record) => $record->phone),
 
                 Tables\Columns\TextColumn::make('email')
                     ->label(__('patients::patients.fields.email'))
@@ -513,5 +529,23 @@ class PatientResource extends Resource
             'Phone' => $record->phone,
             'Email' => $record->email,
         ];
+    }
+
+    /**
+     * Get the default country code based on tenant's country setting.
+     */
+    protected static function getDefaultCountryCode(): string
+    {
+        // Try to get from current tenant's country
+        $tenant = filament()->getTenant();
+        if ($tenant && $tenant->country) {
+            $countryCode = CountryCodes::getByName($tenant->country);
+            if ($countryCode) {
+                return $countryCode;
+            }
+        }
+
+        // Default to Egypt
+        return CountryCodes::default();
     }
 }

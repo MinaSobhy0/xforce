@@ -34,6 +34,7 @@ return [
         'full_name' => 'الاسم الكامل',
         'email' => 'البريد الإلكتروني',
         'phone' => 'الهاتف',
+        'phone_country_code' => 'كود الدولة',
         'secondary_phone' => 'هاتف ثانوي',
         'date_of_birth' => 'تاريخ الميلاد',
         'age' => 'العمر',

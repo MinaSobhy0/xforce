@@ -50,9 +50,10 @@ class ViewPatient extends BaseViewRecord
                         Components\TextEntry::make('full_name')
                             ->label(__('patients::patients.fields.full_name')),
 
-                        Components\TextEntry::make('phone')
+                        Components\TextEntry::make('international_phone')
                             ->label(__('patients::patients.fields.phone'))
-                            ->copyable(),
+                            ->copyable()
+                            ->default(fn ($record) => $record->phone),
 
                         Components\TextEntry::make('email')
                             ->label(__('patients::patients.fields.email'))

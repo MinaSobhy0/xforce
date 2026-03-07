@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Modules\Auth\Models\User;
 use Modules\Booking\Events\AppointmentCompleted;
+use Modules\Booking\Events\AppointmentConfirmed;
 use Modules\Core\Models\Branch;
 use Modules\Core\Models\Room;
 use Modules\Packages\Models\PackageSubscription;
@@ -412,7 +413,13 @@ class Appointment extends BaseModel
     // State actions
     public function confirm(): bool
     {
-        return $this->transitionTo(self::STATUS_CONFIRMED);
+        $result = $this->transitionTo(self::STATUS_CONFIRMED);
+
+        if ($result) {
+            AppointmentConfirmed::dispatch($this);
+        }
+
+        return $result;
     }
 
     public function checkIn(): bool

@@ -34,6 +34,7 @@ return [
         'full_name' => 'Full Name',
         'email' => 'Email',
         'phone' => 'Phone',
+        'phone_country_code' => 'Country Code',
         'secondary_phone' => 'Secondary Phone',
         'date_of_birth' => 'Date of Birth',
         'age' => 'Age',

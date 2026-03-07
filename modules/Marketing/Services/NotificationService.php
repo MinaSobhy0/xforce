@@ -65,7 +65,7 @@ class NotificationService
         // Determine recipient address
         $recipientAddress = match ($template->channel) {
             MessageTemplate::CHANNEL_EMAIL => $patient->email,
-            default => $patient->phone,
+            default => $patient->international_phone ?? $patient->phone,
         };
 
         if (!$recipientAddress) {

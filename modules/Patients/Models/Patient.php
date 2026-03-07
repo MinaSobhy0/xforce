@@ -42,6 +42,7 @@ class Patient extends BaseModel implements Authenticatable
         'last_name',
         'email',
         'phone',
+        'phone_country_code',
         'secondary_phone',
         'date_of_birth',
         'gender',
@@ -132,6 +133,29 @@ class Patient extends BaseModel implements Authenticatable
     public function getDisplayNameAttribute(): string
     {
         return $this->code ? "{$this->full_name} ({$this->code})" : $this->full_name;
+    }
+
+    /**
+     * Get the international phone number (with country code).
+     */
+    public function getInternationalPhoneAttribute(): ?string
+    {
+        if (!$this->phone) {
+            return null;
+        }
+
+        $phone = preg_replace('/[^0-9]/', '', $this->phone);
+        $countryCode = $this->phone_country_code ?? '+20';
+
+        // Remove leading zeros
+        $phone = ltrim($phone, '0');
+
+        // Ensure country code starts with +
+        if (!str_starts_with($countryCode, '+')) {
+            $countryCode = '+' . $countryCode;
+        }
+
+        return $countryCode . $phone;
     }
 
     /**
