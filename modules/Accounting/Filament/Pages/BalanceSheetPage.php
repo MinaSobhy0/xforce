@@ -100,9 +100,15 @@ class BalanceSheetPage extends Page implements HasForms
         }
     }
 
-    protected function getAccountBalances(string $type, Carbon $asOfDate): array
+    protected function getAccountBalances(string $category, Carbon $asOfDate): array
     {
-        $accounts = ChartOfAccount::where('type', $type)
+        // Get account types that belong to this category
+        $typesInCategory = array_keys(array_filter(
+            ChartOfAccount::TYPE_CATEGORY,
+            fn ($cat) => $cat === $category
+        ));
+
+        $accounts = ChartOfAccount::whereIn('type', $typesInCategory)
             ->where('is_active', true)
             ->orderBy('code')
             ->get();
@@ -117,16 +123,16 @@ class BalanceSheetPage extends Page implements HasForms
                 })
                 ->sum(DB::raw('debit_minor - credit_minor'));
 
-            // Liabilities and equity have credit balances
-            if (in_array($type, ['liability', 'equity'])) {
+            // Liabilities and equity have credit balances (normal balance is credit)
+            if (in_array($category, ['liability', 'equity'])) {
                 $balance = -$balance;
             }
 
             if ($balance != 0) {
                 $balances[] = [
                     'code' => $account->code,
-                    'name' => $account->name,
-                    'amount' => abs($balance),
+                    'name' => $account->getTranslation('name', app()->getLocale()) ?? $account->name,
+                    'amount' => $balance,
                 ];
             }
         }
@@ -136,14 +142,26 @@ class BalanceSheetPage extends Page implements HasForms
 
     protected function calculateRetainedEarnings(Carbon $asOfDate): int
     {
-        $revenues = JournalEntryLine::whereHas('account', fn ($q) => $q->where('type', 'revenue'))
+        // Get income account types
+        $incomeTypes = array_keys(array_filter(
+            ChartOfAccount::TYPE_CATEGORY,
+            fn ($cat) => $cat === 'income'
+        ));
+
+        // Get expense account types
+        $expenseTypes = array_keys(array_filter(
+            ChartOfAccount::TYPE_CATEGORY,
+            fn ($cat) => $cat === 'expense'
+        ));
+
+        $revenues = JournalEntryLine::whereHas('account', fn ($q) => $q->whereIn('type', $incomeTypes))
             ->whereHas('journalEntry', function ($q) use ($asOfDate) {
                 $q->where('date', '<=', $asOfDate)
                     ->where('status', 'posted');
             })
             ->sum(DB::raw('credit_minor - debit_minor'));
 
-        $expenses = JournalEntryLine::whereHas('account', fn ($q) => $q->where('type', 'expense'))
+        $expenses = JournalEntryLine::whereHas('account', fn ($q) => $q->whereIn('type', $expenseTypes))
             ->whereHas('journalEntry', function ($q) use ($asOfDate) {
                 $q->where('date', '<=', $asOfDate)
                     ->where('status', 'posted');
