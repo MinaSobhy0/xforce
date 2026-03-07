@@ -4,13 +4,17 @@ namespace App\Filament\SuperAdmin\Pages;
 
 use App\Models\PlatformSetting;
 use Filament\Forms;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\Artisan;
 
-class IntegrationSettings extends Page
+class IntegrationSettings extends Page implements HasForms
 {
+    use InteractsWithForms;
+
     protected static ?string $navigationIcon = 'heroicon-o-puzzle-piece';
 
     protected static ?string $navigationLabel = 'Integrations';
@@ -30,8 +34,8 @@ class IntegrationSettings extends Page
     public function mount(): void
     {
         $this->whatsappData = [
-            'whatsapp_enabled' => PlatformSetting::get('whatsapp_enabled', false),
-            'whatsapp_provider' => PlatformSetting::get('whatsapp_provider', 'twilio'),
+            'whatsapp_enabled' => (bool) PlatformSetting::get('whatsapp_enabled', false),
+            'whatsapp_provider' => PlatformSetting::get('whatsapp_provider', 'meta'),
             'whatsapp_api_key' => PlatformSetting::get('whatsapp_api_key', ''),
             'whatsapp_api_secret' => PlatformSetting::get('whatsapp_api_secret', ''),
             'whatsapp_phone_number' => PlatformSetting::get('whatsapp_phone_number', ''),
@@ -39,7 +43,7 @@ class IntegrationSettings extends Page
         ];
 
         $this->smsData = [
-            'sms_enabled' => PlatformSetting::get('sms_enabled', false),
+            'sms_enabled' => (bool) PlatformSetting::get('sms_enabled', false),
             'sms_provider' => PlatformSetting::get('sms_provider', 'twilio'),
             'sms_api_key' => PlatformSetting::get('sms_api_key', ''),
             'sms_api_secret' => PlatformSetting::get('sms_api_secret', ''),
@@ -82,6 +86,13 @@ class IntegrationSettings extends Page
             'stripe_secret' => PlatformSetting::get('stripe_secret', ''),
             'stripe_webhook_secret' => PlatformSetting::get('stripe_webhook_secret', ''),
         ];
+
+        // Fill all forms with their data
+        $this->whatsappForm->fill($this->whatsappData);
+        $this->smsForm->fill($this->smsData);
+        $this->emailForm->fill($this->emailData);
+        $this->storageForm->fill($this->storageData);
+        $this->paymentForm->fill($this->paymentData);
     }
 
     public function whatsappForm(Form $form): Form
@@ -385,12 +396,16 @@ class IntegrationSettings extends Page
 
     public function saveWhatsapp(): void
     {
+        $data = $this->whatsappForm->getState();
         $booleanFields = ['whatsapp_enabled'];
 
-        foreach ($this->whatsappData as $key => $value) {
+        foreach ($data as $key => $value) {
             $type = in_array($key, $booleanFields) ? 'boolean' : 'string';
             PlatformSetting::set($key, $value, 'whatsapp', $type);
         }
+
+        // Update local state
+        $this->whatsappData = $data;
 
         Notification::make()
             ->title('WhatsApp settings saved')
@@ -400,12 +415,16 @@ class IntegrationSettings extends Page
 
     public function saveSms(): void
     {
+        $data = $this->smsForm->getState();
         $booleanFields = ['sms_enabled'];
 
-        foreach ($this->smsData as $key => $value) {
+        foreach ($data as $key => $value) {
             $type = in_array($key, $booleanFields) ? 'boolean' : 'string';
             PlatformSetting::set($key, $value, 'sms', $type);
         }
+
+        // Update local state
+        $this->smsData = $data;
 
         Notification::make()
             ->title('SMS settings saved')
@@ -415,12 +434,16 @@ class IntegrationSettings extends Page
 
     public function saveEmail(): void
     {
+        $data = $this->emailForm->getState();
         $integerFields = ['smtp_port'];
 
-        foreach ($this->emailData as $key => $value) {
+        foreach ($data as $key => $value) {
             $type = in_array($key, $integerFields) ? 'integer' : 'string';
             PlatformSetting::set($key, $value, 'email', $type);
         }
+
+        // Update local state
+        $this->emailData = $data;
 
         // Clear config cache to apply new mail settings
         Artisan::call('config:clear');
@@ -456,9 +479,14 @@ class IntegrationSettings extends Page
 
     public function saveStorage(): void
     {
-        foreach ($this->storageData as $key => $value) {
+        $data = $this->storageForm->getState();
+
+        foreach ($data as $key => $value) {
             PlatformSetting::set($key, $value, 'storage', 'string');
         }
+
+        // Update local state
+        $this->storageData = $data;
 
         // Clear config cache to apply new storage settings
         Artisan::call('config:clear');
@@ -471,9 +499,14 @@ class IntegrationSettings extends Page
 
     public function savePayment(): void
     {
-        foreach ($this->paymentData as $key => $value) {
+        $data = $this->paymentForm->getState();
+
+        foreach ($data as $key => $value) {
             PlatformSetting::set($key, $value, 'payment', 'string');
         }
+
+        // Update local state
+        $this->paymentData = $data;
 
         Notification::make()
             ->title('Payment settings saved')
