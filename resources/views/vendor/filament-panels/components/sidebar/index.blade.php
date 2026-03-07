@@ -10,28 +10,67 @@
     // Quick Access items configuration - only for tenant panel
     $quickAccessItems = [];
     if ($panelId === 'tenant') {
-        $quickAccessItems = [
-            [
+        $user = auth()->user();
+
+        // Helper to check permission (mimics ChecksResourcePermissions logic)
+        $canAccess = function(string $permission) use ($user) {
+            if (!$user) {
+                return false;
+            }
+
+            // Super admin and key roles have full access
+            if (method_exists($user, 'hasRole') && $user->hasRole(['super-admin', 'super_admin', 'tenant-owner', 'tenant_owner', 'owner', 'admin'])) {
+                return true;
+            }
+
+            // Check the specific permission
+            if ($user->can($permission)) {
+                return true;
+            }
+
+            // If permission doesn't exist yet, allow access (fallback)
+            $permissionExists = \Spatie\Permission\Models\Permission::where('name', $permission)
+                ->where('guard_name', 'web')
+                ->exists();
+
+            return !$permissionExists;
+        };
+
+        // Today (Reception) - requires visits.view permission
+        if ($canAccess('visits.view')) {
+            $quickAccessItems[] = [
                 'label' => __('Today'),
                 'icon' => 'heroicon-o-calendar',
                 'url' => route('filament.tenant.pages.reception'),
-            ],
-            [
+            ];
+        }
+
+        // Book - requires appointments.create permission
+        if ($canAccess('appointments.create')) {
+            $quickAccessItems[] = [
                 'label' => __('Book'),
                 'icon' => 'heroicon-o-plus-circle',
                 'url' => route('filament.tenant.pages.create-booking'),
-            ],
-            [
+            ];
+        }
+
+        // Patients - requires patients.view permission
+        if ($canAccess('patients.view')) {
+            $quickAccessItems[] = [
                 'label' => __('Patients'),
                 'icon' => 'heroicon-o-users',
                 'url' => route('filament.tenant.resources.patients.index'),
-            ],
-            [
+            ];
+        }
+
+        // Calendar - requires appointments.view permission
+        if ($canAccess('appointments.view')) {
+            $quickAccessItems[] = [
                 'label' => __('Calendar'),
                 'icon' => 'heroicon-o-calendar-days',
                 'url' => route('filament.tenant.pages.calendar'),
-            ],
-        ];
+            ];
+        }
     }
 @endphp
 
