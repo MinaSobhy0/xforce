@@ -1,6 +1,11 @@
 <?php
 
 return [
+    'navigation' => [
+        'invoices' => 'الفواتير',
+        'payments' => 'المدفوعات',
+    ],
+
     'invoice' => 'فاتورة',
     'invoices' => 'الفواتير',
     'payment' => 'دفعة',

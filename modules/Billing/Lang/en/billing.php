@@ -1,6 +1,11 @@
 <?php
 
 return [
+    'navigation' => [
+        'invoices' => 'Invoices',
+        'payments' => 'Payments',
+    ],
+
     'invoice' => 'Invoice',
     'invoices' => 'Invoices',
     'payment' => 'Payment',
