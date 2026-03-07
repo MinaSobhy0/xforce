@@ -8,6 +8,8 @@ use Modules\Marketing\Services\SmsService;
 use Modules\Marketing\Services\EmailService;
 use Modules\Marketing\Services\MessageQuotaService;
 use Modules\Marketing\Services\NotificationService;
+use Modules\Marketing\Services\CampaignService;
+use Modules\Marketing\Console\ProcessScheduledCampaignsCommand;
 
 class MarketingServiceProvider extends ServiceProvider
 {
@@ -20,7 +22,17 @@ class MarketingServiceProvider extends ServiceProvider
         $this->registerTranslations();
         $this->registerConfig();
         $this->registerViews();
+        $this->registerCommands();
         $this->loadMigrationsFrom(module_path($this->moduleName, 'Database/Migrations'));
+    }
+
+    protected function registerCommands(): void
+    {
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                ProcessScheduledCampaignsCommand::class,
+            ]);
+        }
     }
 
     public function register(): void
@@ -51,6 +63,12 @@ class MarketingServiceProvider extends ServiceProvider
                 $app->make(SmsService::class),
                 $app->make(EmailService::class),
                 $app->make(MessageQuotaService::class)
+            );
+        });
+
+        $this->app->singleton(CampaignService::class, function ($app) {
+            return new CampaignService(
+                $app->make(NotificationService::class)
             );
         });
     }
@@ -85,6 +103,7 @@ class MarketingServiceProvider extends ServiceProvider
             EmailService::class,
             MessageQuotaService::class,
             NotificationService::class,
+            CampaignService::class,
         ];
     }
 }

@@ -8,9 +8,12 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Filament\Notifications\Notification;
 use Modules\Marketing\Filament\Resources\CampaignResource\Pages;
 use Modules\Marketing\Filament\Resources\CampaignResource\RelationManagers;
+use Modules\Marketing\Jobs\ProcessCampaignRecipientsJob;
 use Modules\Marketing\Models\Campaign;
+use Modules\Marketing\Services\CampaignService;
 use XLinic\Framework\Core\Filament\RelationManagers\ActivityLogRelationManager;
 use Modules\Marketing\Models\MessageTemplate;
 
@@ -236,8 +239,33 @@ class CampaignResource extends Resource
                     ])
                     ->action(function (Campaign $record, array $data) {
                         $record->schedule(new \DateTime($data['scheduled_at']));
+                        Notification::make()
+                            ->title(__('marketing::marketing.messages.campaign_scheduled'))
+                            ->success()
+                            ->send();
                     })
                     ->visible(fn (Campaign $record) => $record->status === Campaign::STATUS_DRAFT),
+
+                Tables\Actions\Action::make('start_now')
+                    ->label(__('marketing::marketing.actions.start_now'))
+                    ->icon('heroicon-o-play')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->action(function (Campaign $record) {
+                        $campaignService = app(CampaignService::class);
+                        if ($campaignService->startCampaign($record)) {
+                            // Dispatch job to process recipients
+                            ProcessCampaignRecipientsJob::dispatch($record);
+                            Notification::make()
+                                ->title(__('marketing::marketing.messages.campaign_started'))
+                                ->success()
+                                ->send();
+                        }
+                    })
+                    ->visible(fn (Campaign $record) => in_array($record->status, [
+                        Campaign::STATUS_DRAFT,
+                        Campaign::STATUS_SCHEDULED,
+                    ])),
 
                 Tables\Actions\Action::make('pause')
                     ->label(__('marketing::marketing.actions.pause'))
@@ -251,7 +279,15 @@ class CampaignResource extends Resource
                     ->label(__('marketing::marketing.actions.resume'))
                     ->icon('heroicon-o-play')
                     ->color('success')
-                    ->action(fn (Campaign $record) => $record->resume())
+                    ->action(function (Campaign $record) {
+                        $record->resume();
+                        // Dispatch job to continue processing
+                        ProcessCampaignRecipientsJob::dispatch($record);
+                        Notification::make()
+                            ->title(__('marketing::marketing.messages.campaign_resumed'))
+                            ->success()
+                            ->send();
+                    })
                     ->visible(fn (Campaign $record) => $record->status === Campaign::STATUS_PAUSED),
 
                 Tables\Actions\Action::make('cancel')

@@ -45,3 +45,9 @@ Schedule::command('assets:depreciate')
     ->monthlyOn(1, '03:00')
     ->withoutOverlapping()
     ->runInBackground();
+
+// Marketing Campaigns - Process scheduled campaigns every minute
+Schedule::command('campaigns:process-scheduled')
+    ->everyMinute()
+    ->withoutOverlapping()
+    ->runInBackground();
