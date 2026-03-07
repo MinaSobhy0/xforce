@@ -42,6 +42,21 @@ return [
         'import' => 'استيراد',
     ],
 
+    // Permission groups
+    'permission_groups' => [
+        'patients_booking' => 'المرضى والحجوزات',
+        'services_packages' => 'الخدمات والباقات',
+        'billing_payments' => 'الفواتير والمدفوعات',
+        'inventory_products' => 'المخزون والمنتجات',
+        'equipment_assets' => 'المعدات والأصول',
+        'staff_hr' => 'الموظفين والموارد البشرية',
+        'attendance_timeoff' => 'الحضور والإجازات',
+        'marketing_loyalty' => 'التسويق والولاء',
+        'memberships_giftcards' => 'العضويات وبطاقات الهدايا',
+        'accounting' => 'المحاسبة',
+        'settings_admin' => 'الإعدادات والإدارة',
+    ],
+
     // Resources for permission management
     'resources' => [
         // Patients & Booking

@@ -208,6 +208,21 @@ return [
         'import' => 'Import',
     ],
 
+    // Permission groups
+    'permission_groups' => [
+        'patients_booking' => 'Patients & Booking',
+        'services_packages' => 'Services & Packages',
+        'billing_payments' => 'Billing & Payments',
+        'inventory_products' => 'Inventory & Products',
+        'equipment_assets' => 'Equipment & Assets',
+        'staff_hr' => 'Staff & HR',
+        'attendance_timeoff' => 'Attendance & Time Off',
+        'marketing_loyalty' => 'Marketing & Loyalty',
+        'memberships_giftcards' => 'Memberships & Gift Cards',
+        'accounting' => 'Accounting',
+        'settings_admin' => 'Settings & Administration',
+    ],
+
     // Resources for permission management
     'resources' => [
         // Patients & Booking
