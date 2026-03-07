@@ -6,6 +6,7 @@ use Illuminate\Support\ServiceProvider;
 use Modules\Marketing\Services\WhatsAppService;
 use Modules\Marketing\Services\SmsService;
 use Modules\Marketing\Services\EmailService;
+use Modules\Marketing\Services\MessageQuotaService;
 use Modules\Marketing\Services\NotificationService;
 
 class MarketingServiceProvider extends ServiceProvider
@@ -39,11 +40,16 @@ class MarketingServiceProvider extends ServiceProvider
             return new EmailService();
         });
 
+        $this->app->singleton(MessageQuotaService::class, function ($app) {
+            return new MessageQuotaService();
+        });
+
         $this->app->singleton(NotificationService::class, function ($app) {
             return new NotificationService(
                 $app->make(WhatsAppService::class),
                 $app->make(SmsService::class),
-                $app->make(EmailService::class)
+                $app->make(EmailService::class),
+                $app->make(MessageQuotaService::class)
             );
         });
     }
@@ -71,6 +77,7 @@ class MarketingServiceProvider extends ServiceProvider
             WhatsAppService::class,
             SmsService::class,
             EmailService::class,
+            MessageQuotaService::class,
             NotificationService::class,
         ];
     }
