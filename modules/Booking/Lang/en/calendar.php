@@ -36,8 +36,11 @@ return [
     'uncategorized' => 'Other Services',
 
     'appointment_details' => 'Appointment Details',
+    'appointments' => 'Appointments',
     'open_full_view' => 'Open Full View',
     'close' => 'Close',
+    'unknown_patient' => 'Unknown Patient',
+    'no_appointments' => 'No appointments found',
 
     'modal' => [
         'patient' => 'Patient',

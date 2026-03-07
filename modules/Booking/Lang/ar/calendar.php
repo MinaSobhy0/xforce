@@ -36,8 +36,11 @@ return [
     'uncategorized' => 'خدمات أخرى',
 
     'appointment_details' => 'تفاصيل الموعد',
+    'appointments' => 'المواعيد',
     'open_full_view' => 'فتح العرض الكامل',
     'close' => 'إغلاق',
+    'unknown_patient' => 'مريض غير معروف',
+    'no_appointments' => 'لا توجد مواعيد',
 
     'modal' => [
         'patient' => 'المريض',

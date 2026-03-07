@@ -43,6 +43,9 @@ class CalendarPage extends Page implements HasForms, HasActions, HasInfolists
     public string $viewMode = 'week';
     public ?string $selectedAppointmentId = null;
     public bool $showModal = false;
+    public bool $showGroupModal = false;
+    public array $selectedGroupAppointments = [];
+    public ?string $selectedGroupCategory = null;
 
     public static function getNavigationLabel(): string
     {
@@ -324,5 +327,26 @@ class CalendarPage extends Page implements HasForms, HasActions, HasInfolists
 
         return Appointment::with(['patient', 'service.category', 'practitioner', 'branch', 'room'])
             ->find($this->selectedAppointmentId);
+    }
+
+    public function showGroupAppointments(array $appointments, string $category): void
+    {
+        $this->selectedGroupAppointments = $appointments;
+        $this->selectedGroupCategory = $category;
+        $this->showGroupModal = true;
+    }
+
+    public function closeGroupModal(): void
+    {
+        $this->showGroupModal = false;
+        $this->selectedGroupAppointments = [];
+        $this->selectedGroupCategory = null;
+    }
+
+    public function viewAppointmentFromGroup(string $appointmentId): void
+    {
+        $this->closeGroupModal();
+        $this->selectedAppointmentId = $appointmentId;
+        $this->showModal = true;
     }
 }

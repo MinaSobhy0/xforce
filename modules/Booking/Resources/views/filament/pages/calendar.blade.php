@@ -262,10 +262,16 @@
                     return { domNodes: [container] };
                 },
                 eventClick: function(info) {
-                    // Don't navigate for grouped events
-                    if (info.event.extendedProps.isGroup) {
+                    const props = info.event.extendedProps || {};
+
+                    // For grouped events, show all appointments in modal
+                    if (props.isGroup) {
+                        const appointments = props.appointments || [];
+                        const category = props.category || '';
+                        $wire.call('showGroupAppointments', appointments, category);
                         return;
                     }
+
                     // Show appointment details in modal (ID is a UUID string)
                     const appointmentId = info.event.id;
                     if (appointmentId && !appointmentId.startsWith('group_')) {
@@ -444,6 +450,138 @@
                         </div>
                     @endif
                 @endif
+            </div>
+        </div>
+    </div>
+
+    {{-- Group Appointments Modal --}}
+    <div
+        x-data="{ open: @entangle('showGroupModal') }"
+        x-show="open"
+        x-cloak
+        class="fixed inset-0 z-50 overflow-y-auto"
+        aria-labelledby="group-modal-title"
+        role="dialog"
+        aria-modal="true"
+    >
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            {{-- Background overlay --}}
+            <div
+                x-show="open"
+                x-transition:enter="ease-out duration-300"
+                x-transition:enter-start="opacity-0"
+                x-transition:enter-end="opacity-100"
+                x-transition:leave="ease-in duration-200"
+                x-transition:leave-start="opacity-100"
+                x-transition:leave-end="opacity-0"
+                class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+                @click="open = false"
+            ></div>
+
+            {{-- Spacer for centering --}}
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+            {{-- Modal panel --}}
+            <div
+                x-show="open"
+                x-transition:enter="ease-out duration-300"
+                x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                x-transition:leave="ease-in duration-200"
+                x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                class="inline-block align-bottom bg-white dark:bg-gray-900 rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full"
+            >
+                {{-- Header --}}
+                <div class="bg-gray-50 dark:bg-gray-800 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                            {{ $selectedGroupCategory ?? __('booking::calendar.appointments') }}
+                            @if(count($selectedGroupAppointments) > 0)
+                                <span class="text-sm font-normal text-gray-500">({{ count($selectedGroupAppointments) }})</span>
+                            @endif
+                        </h3>
+                        <button
+                            type="button"
+                            @click="open = false"
+                            class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+                        >
+                            <x-heroicon-o-x-mark class="w-5 h-5" />
+                        </button>
+                    </div>
+                </div>
+
+                {{-- Content --}}
+                <div class="px-4 py-4 max-h-[60vh] overflow-y-auto">
+                    @if(count($selectedGroupAppointments) > 0)
+                        <div class="space-y-3">
+                            @foreach($selectedGroupAppointments as $apt)
+                                <div
+                                    wire:click="viewAppointmentFromGroup('{{ $apt['id'] }}')"
+                                    class="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                >
+                                    <div class="flex items-start justify-between">
+                                        <div class="flex-1 min-w-0">
+                                            <div class="flex items-center gap-2">
+                                                <span class="text-sm font-semibold text-gray-900 dark:text-white">
+                                                    {{ $apt['time'] ?? '' }}
+                                                </span>
+                                                @if(isset($apt['status']))
+                                                    @php
+                                                        $statusColors = match($apt['status']) {
+                                                            'scheduled' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+                                                            'confirmed' => 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+                                                            'checked_in' => 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
+                                                            'in_progress' => 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200',
+                                                            'completed' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+                                                            default => 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200',
+                                                        };
+                                                    @endphp
+                                                    <span class="px-2 py-0.5 text-xs font-medium rounded-full {{ $statusColors }}">
+                                                        {{ ucfirst(str_replace('_', ' ', $apt['status'])) }}
+                                                    </span>
+                                                @endif
+                                            </div>
+                                            <p class="mt-1 text-sm font-medium text-gray-900 dark:text-white truncate">
+                                                {{ $apt['patient'] ?? __('booking::calendar.unknown_patient') }}
+                                            </p>
+                                            @if(!empty($apt['phone']))
+                                                <p class="text-sm text-gray-500 dark:text-gray-400">
+                                                    {{ $apt['phone'] }}
+                                                </p>
+                                            @endif
+                                            @if(!empty($apt['service']))
+                                                <p class="text-sm text-gray-500 dark:text-gray-400">
+                                                    {{ $apt['service'] }}
+                                                </p>
+                                            @endif
+                                            @if(!empty($apt['practitioner']))
+                                                <p class="text-xs text-gray-400 dark:text-gray-500">
+                                                    {{ __('booking::calendar.practitioner') }}: {{ $apt['practitioner'] }}
+                                                </p>
+                                            @endif
+                                        </div>
+                                        <x-heroicon-o-chevron-right class="w-5 h-5 text-gray-400 flex-shrink-0" />
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <p class="text-center text-gray-500 py-4">
+                            {{ __('booking::calendar.no_appointments') }}
+                        </p>
+                    @endif
+                </div>
+
+                {{-- Footer --}}
+                <div class="bg-gray-50 dark:bg-gray-800 px-4 py-3 border-t border-gray-200 dark:border-gray-700 flex justify-end">
+                    <x-filament::button
+                        color="gray"
+                        x-on:click="open = false"
+                    >
+                        {{ __('booking::calendar.close') }}
+                    </x-filament::button>
+                </div>
             </div>
         </div>
     </div>
