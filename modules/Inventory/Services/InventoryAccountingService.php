@@ -269,16 +269,22 @@ class InventoryAccountingService
 
     /**
      * Get stock input account (Accounts Payable / Goods Received).
-     * Uses system default account.
+     * Uses product's stock valuation account, falls back to system default.
      */
     protected function getStockInputAccount(Product $product): ?ChartOfAccount
     {
+        // First try product's stock valuation account
+        if ($product->stock_valuation_account_id) {
+            return $product->stockValuationAccount;
+        }
+
+        // Fallback to system default
         $defaultAccount = $this->defaultAccounts->getStockInputAccount();
         if ($defaultAccount) {
             return $defaultAccount;
         }
 
-        \Log::warning('Stock input account not configured in defaults', [
+        \Log::warning('Stock input account not configured', [
             'product_id' => $product->id,
         ]);
 
@@ -287,16 +293,22 @@ class InventoryAccountingService
 
     /**
      * Get stock output account (Cost of Goods Sold).
-     * Uses system default account.
+     * Uses product's stock valuation account, falls back to system default.
      */
     protected function getStockOutputAccount(Product $product): ?ChartOfAccount
     {
+        // First try product's stock valuation account
+        if ($product->stock_valuation_account_id) {
+            return $product->stockValuationAccount;
+        }
+
+        // Fallback to system default
         $defaultAccount = $this->defaultAccounts->getStockOutputAccount();
         if ($defaultAccount) {
             return $defaultAccount;
         }
 
-        \Log::warning('Stock output account not configured in defaults', [
+        \Log::warning('Stock output account not configured', [
             'product_id' => $product->id,
         ]);
 

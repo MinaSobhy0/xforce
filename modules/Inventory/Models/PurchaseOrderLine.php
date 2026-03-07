@@ -274,7 +274,7 @@ class PurchaseOrderLine extends BaseModel
 
     /**
      * Create reverse journal entry for stock reversal.
-     * Uses default accounts from system configuration.
+     * Uses product's stock valuation account, falls back to system defaults.
      */
     protected function createReversalJournalEntry(StockMovement $movement, int $quantity): void
     {
@@ -282,9 +282,9 @@ class PurchaseOrderLine extends BaseModel
             $product = $this->product;
             $defaultAccounts = app(\Modules\Accounting\Services\DefaultAccountsService::class);
 
-            // Get accounts from defaults
+            // Use product's stock valuation account, fallback to defaults
             $stockValuationAccount = $product->stockValuationAccount ?? $defaultAccounts->getStockValuationAccount();
-            $stockInputAccount = $defaultAccounts->getStockInputAccount();
+            $stockInputAccount = $product->stockValuationAccount ?? $defaultAccounts->getStockInputAccount();
 
             if (!$stockValuationAccount || !$stockInputAccount) {
                 \Illuminate\Support\Facades\Log::warning('Missing accounts for reversal journal entry', [
