@@ -24,6 +24,7 @@ return [
     'account' => 'الحساب',
     'refresh' => 'تحديث',
     'export_pdf' => 'تصدير PDF',
+    'view_ledger' => 'عرض الأستاذ',
 
     // Table headers
     'account_code' => 'رمز الحساب',

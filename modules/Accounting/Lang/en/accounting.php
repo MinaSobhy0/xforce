@@ -24,6 +24,7 @@ return [
     'account' => 'Account',
     'refresh' => 'Refresh',
     'export_pdf' => 'Export PDF',
+    'view_ledger' => 'View Ledger',
 
     // Table headers
     'account_code' => 'Account Code',

@@ -20,48 +20,31 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($assets as $row)
-                            <tr class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer"
-                                wire:click="toggleAccount('{{ $row['id'] }}')">
-                                <td class="px-4 py-3 font-mono">
-                                    <span class="inline-flex items-center gap-1">
-                                        <x-heroicon-s-chevron-right class="w-4 h-4 transition-transform {{ $this->isExpanded($row['id']) ? 'rotate-90' : '' }}" />
-                                        {{ $row['code'] }}
-                                    </span>
+                        @forelse($assets as $group)
+                            {{-- Type Header --}}
+                            <tr class="bg-gray-100 dark:bg-gray-800">
+                                <td colspan="2" class="px-4 py-2 font-semibold text-gray-700 dark:text-gray-300">
+                                    {{ $group['type_label'] }}
                                 </td>
-                                <td class="px-4 py-3">{{ $row['name'] }}</td>
-                                <td class="px-4 py-3 text-right font-mono">{{ $this->formatCurrency($row['amount']) }}</td>
+                                <td class="px-4 py-2 text-right font-semibold text-gray-700 dark:text-gray-300 font-mono">
+                                    {{ $this->formatCurrency($group['subtotal']) }}
+                                </td>
                             </tr>
-                            @if($this->isExpanded($row['id']))
-                                <tr class="bg-gray-50 dark:bg-gray-900">
-                                    <td colspan="3" class="px-4 py-2">
-                                        <div class="ml-6 overflow-x-auto">
-                                            <table class="w-full text-xs">
-                                                <thead>
-                                                    <tr class="text-gray-500 dark:text-gray-400">
-                                                        <th class="px-2 py-1 text-left">{{ __('accounting::accounting.date') }}</th>
-                                                        <th class="px-2 py-1 text-left">{{ __('accounting::accounting.reference') }}</th>
-                                                        <th class="px-2 py-1 text-left">{{ __('accounting::accounting.description') }}</th>
-                                                        <th class="px-2 py-1 text-right">{{ __('accounting::accounting.debit') }}</th>
-                                                        <th class="px-2 py-1 text-right">{{ __('accounting::accounting.credit') }}</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    @foreach($this->getAccountLines($row['id']) as $line)
-                                                        <tr class="border-t border-gray-200 dark:border-gray-700">
-                                                            <td class="px-2 py-1">{{ $line['date'] }}</td>
-                                                            <td class="px-2 py-1">{{ $line['reference'] }}</td>
-                                                            <td class="px-2 py-1">{{ $line['description'] }}</td>
-                                                            <td class="px-2 py-1 text-right font-mono">{{ $line['debit'] ? $this->formatCurrency($line['debit']) : '-' }}</td>
-                                                            <td class="px-2 py-1 text-right font-mono">{{ $line['credit'] ? $this->formatCurrency($line['credit']) : '-' }}</td>
-                                                        </tr>
-                                                    @endforeach
-                                                </tbody>
-                                            </table>
-                                        </div>
+                            {{-- Accounts in this type --}}
+                            @foreach($group['accounts'] as $account)
+                                <tr class="border-b border-gray-100 dark:border-gray-800 hover:bg-primary-50 dark:hover:bg-primary-900/20 cursor-pointer"
+                                    wire:click="openGeneralLedger('{{ $account['id'] }}')"
+                                    title="{{ __('accounting::accounting.view_ledger') }}">
+                                    <td class="px-4 py-2 font-mono pl-8">{{ $account['code'] }}</td>
+                                    <td class="px-4 py-2">
+                                        <span class="inline-flex items-center gap-1">
+                                            {{ $account['name'] }}
+                                            <x-heroicon-m-arrow-top-right-on-square class="w-3 h-3 text-gray-400" />
+                                        </span>
                                     </td>
+                                    <td class="px-4 py-2 text-right font-mono">{{ $this->formatCurrency($account['amount']) }}</td>
                                 </tr>
-                            @endif
+                            @endforeach
                         @empty
                             <tr>
                                 <td colspan="3" class="px-4 py-8 text-center text-gray-500">
@@ -97,48 +80,31 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @forelse($liabilities as $row)
-                                <tr class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer"
-                                    wire:click="toggleAccount('{{ $row['id'] }}')">
-                                    <td class="px-4 py-3 font-mono">
-                                        <span class="inline-flex items-center gap-1">
-                                            <x-heroicon-s-chevron-right class="w-4 h-4 transition-transform {{ $this->isExpanded($row['id']) ? 'rotate-90' : '' }}" />
-                                            {{ $row['code'] }}
-                                        </span>
+                            @forelse($liabilities as $group)
+                                {{-- Type Header --}}
+                                <tr class="bg-gray-100 dark:bg-gray-800">
+                                    <td colspan="2" class="px-4 py-2 font-semibold text-gray-700 dark:text-gray-300">
+                                        {{ $group['type_label'] }}
                                     </td>
-                                    <td class="px-4 py-3">{{ $row['name'] }}</td>
-                                    <td class="px-4 py-3 text-right font-mono">{{ $this->formatCurrency($row['amount']) }}</td>
+                                    <td class="px-4 py-2 text-right font-semibold text-gray-700 dark:text-gray-300 font-mono">
+                                        {{ $this->formatCurrency($group['subtotal']) }}
+                                    </td>
                                 </tr>
-                                @if($this->isExpanded($row['id']))
-                                    <tr class="bg-gray-50 dark:bg-gray-900">
-                                        <td colspan="3" class="px-4 py-2">
-                                            <div class="ml-6 overflow-x-auto">
-                                                <table class="w-full text-xs">
-                                                    <thead>
-                                                        <tr class="text-gray-500 dark:text-gray-400">
-                                                            <th class="px-2 py-1 text-left">{{ __('accounting::accounting.date') }}</th>
-                                                            <th class="px-2 py-1 text-left">{{ __('accounting::accounting.reference') }}</th>
-                                                            <th class="px-2 py-1 text-left">{{ __('accounting::accounting.description') }}</th>
-                                                            <th class="px-2 py-1 text-right">{{ __('accounting::accounting.debit') }}</th>
-                                                            <th class="px-2 py-1 text-right">{{ __('accounting::accounting.credit') }}</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        @foreach($this->getAccountLines($row['id']) as $line)
-                                                            <tr class="border-t border-gray-200 dark:border-gray-700">
-                                                                <td class="px-2 py-1">{{ $line['date'] }}</td>
-                                                                <td class="px-2 py-1">{{ $line['reference'] }}</td>
-                                                                <td class="px-2 py-1">{{ $line['description'] }}</td>
-                                                                <td class="px-2 py-1 text-right font-mono">{{ $line['debit'] ? $this->formatCurrency($line['debit']) : '-' }}</td>
-                                                                <td class="px-2 py-1 text-right font-mono">{{ $line['credit'] ? $this->formatCurrency($line['credit']) : '-' }}</td>
-                                                            </tr>
-                                                        @endforeach
-                                                    </tbody>
-                                                </table>
-                                            </div>
+                                {{-- Accounts in this type --}}
+                                @foreach($group['accounts'] as $account)
+                                    <tr class="border-b border-gray-100 dark:border-gray-800 hover:bg-primary-50 dark:hover:bg-primary-900/20 cursor-pointer"
+                                        wire:click="openGeneralLedger('{{ $account['id'] }}')"
+                                        title="{{ __('accounting::accounting.view_ledger') }}">
+                                        <td class="px-4 py-2 font-mono pl-8">{{ $account['code'] }}</td>
+                                        <td class="px-4 py-2">
+                                            <span class="inline-flex items-center gap-1">
+                                                {{ $account['name'] }}
+                                                <x-heroicon-m-arrow-top-right-on-square class="w-3 h-3 text-gray-400" />
+                                            </span>
                                         </td>
+                                        <td class="px-4 py-2 text-right font-mono">{{ $this->formatCurrency($account['amount']) }}</td>
                                     </tr>
-                                @endif
+                                @endforeach
                             @empty
                                 <tr>
                                     <td colspan="3" class="px-4 py-8 text-center text-gray-500">
@@ -173,48 +139,31 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @forelse($equity as $row)
-                                <tr class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer"
-                                    wire:click="toggleAccount('{{ $row['id'] }}')">
-                                    <td class="px-4 py-3 font-mono">
-                                        <span class="inline-flex items-center gap-1">
-                                            <x-heroicon-s-chevron-right class="w-4 h-4 transition-transform {{ $this->isExpanded($row['id']) ? 'rotate-90' : '' }}" />
-                                            {{ $row['code'] }}
-                                        </span>
+                            @forelse($equity as $group)
+                                {{-- Type Header --}}
+                                <tr class="bg-gray-100 dark:bg-gray-800">
+                                    <td colspan="2" class="px-4 py-2 font-semibold text-gray-700 dark:text-gray-300">
+                                        {{ $group['type_label'] }}
                                     </td>
-                                    <td class="px-4 py-3">{{ $row['name'] }}</td>
-                                    <td class="px-4 py-3 text-right font-mono">{{ $this->formatCurrency($row['amount']) }}</td>
+                                    <td class="px-4 py-2 text-right font-semibold text-gray-700 dark:text-gray-300 font-mono">
+                                        {{ $this->formatCurrency($group['subtotal']) }}
+                                    </td>
                                 </tr>
-                                @if($this->isExpanded($row['id']))
-                                    <tr class="bg-gray-50 dark:bg-gray-900">
-                                        <td colspan="3" class="px-4 py-2">
-                                            <div class="ml-6 overflow-x-auto">
-                                                <table class="w-full text-xs">
-                                                    <thead>
-                                                        <tr class="text-gray-500 dark:text-gray-400">
-                                                            <th class="px-2 py-1 text-left">{{ __('accounting::accounting.date') }}</th>
-                                                            <th class="px-2 py-1 text-left">{{ __('accounting::accounting.reference') }}</th>
-                                                            <th class="px-2 py-1 text-left">{{ __('accounting::accounting.description') }}</th>
-                                                            <th class="px-2 py-1 text-right">{{ __('accounting::accounting.debit') }}</th>
-                                                            <th class="px-2 py-1 text-right">{{ __('accounting::accounting.credit') }}</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        @foreach($this->getAccountLines($row['id']) as $line)
-                                                            <tr class="border-t border-gray-200 dark:border-gray-700">
-                                                                <td class="px-2 py-1">{{ $line['date'] }}</td>
-                                                                <td class="px-2 py-1">{{ $line['reference'] }}</td>
-                                                                <td class="px-2 py-1">{{ $line['description'] }}</td>
-                                                                <td class="px-2 py-1 text-right font-mono">{{ $line['debit'] ? $this->formatCurrency($line['debit']) : '-' }}</td>
-                                                                <td class="px-2 py-1 text-right font-mono">{{ $line['credit'] ? $this->formatCurrency($line['credit']) : '-' }}</td>
-                                                            </tr>
-                                                        @endforeach
-                                                    </tbody>
-                                                </table>
-                                            </div>
+                                {{-- Accounts in this type --}}
+                                @foreach($group['accounts'] as $account)
+                                    <tr class="border-b border-gray-100 dark:border-gray-800 hover:bg-primary-50 dark:hover:bg-primary-900/20 cursor-pointer"
+                                        wire:click="openGeneralLedger('{{ $account['id'] }}')"
+                                        title="{{ __('accounting::accounting.view_ledger') }}">
+                                        <td class="px-4 py-2 font-mono pl-8">{{ $account['code'] }}</td>
+                                        <td class="px-4 py-2">
+                                            <span class="inline-flex items-center gap-1">
+                                                {{ $account['name'] }}
+                                                <x-heroicon-m-arrow-top-right-on-square class="w-3 h-3 text-gray-400" />
+                                            </span>
                                         </td>
+                                        <td class="px-4 py-2 text-right font-mono">{{ $this->formatCurrency($account['amount']) }}</td>
                                     </tr>
-                                @endif
+                                @endforeach
                             @empty
                                 <tr>
                                     <td colspan="3" class="px-4 py-8 text-center text-gray-500">

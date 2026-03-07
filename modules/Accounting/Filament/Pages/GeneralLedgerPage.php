@@ -58,7 +58,14 @@ class GeneralLedgerPage extends Page implements HasForms
     {
         $this->start_date = now()->startOfMonth()->format('Y-m-d');
         $this->end_date = now()->format('Y-m-d');
-        $this->loadAllAccountBalances();
+
+        // Check for account_id in query string
+        if (request()->has('account_id')) {
+            $this->account_id = request()->get('account_id');
+            $this->loadSingleAccountLedger();
+        } else {
+            $this->loadAllAccountBalances();
+        }
     }
 
     public function form(Form $form): Form
@@ -69,12 +76,12 @@ class GeneralLedgerPage extends Page implements HasForms
                     ->schema([
                         DatePicker::make('start_date')
                             ->label(__('accounting::accounting.start_date'))
-                            ->reactive()
+                            ->live()
                             ->afterStateUpdated(fn () => $this->applyFilters()),
 
                         DatePicker::make('end_date')
                             ->label(__('accounting::accounting.end_date'))
-                            ->reactive()
+                            ->live()
                             ->afterStateUpdated(fn () => $this->applyFilters()),
 
                         Select::make('account_type')
@@ -87,7 +94,7 @@ class GeneralLedgerPage extends Page implements HasForms
                                 'revenue' => __('accounting::accounting.revenue'),
                                 'expense' => __('accounting::accounting.expenses'),
                             ])
-                            ->reactive()
+                            ->live()
                             ->afterStateUpdated(fn () => $this->applyFilters()),
 
                         Select::make('account_id')
@@ -100,12 +107,11 @@ class GeneralLedgerPage extends Page implements HasForms
                             )
                             ->searchable()
                             ->placeholder(__('accounting::accounting.all_accounts'))
-                            ->reactive()
+                            ->live()
                             ->afterStateUpdated(fn () => $this->applyFilters()),
                     ])
                     ->columns(4),
-            ])
-            ->statePath('data');
+            ]);
     }
 
     public function applyFilters(): void

@@ -39,7 +39,6 @@ class BalanceSheetPage extends Page implements HasForms
     public int $totalAssets = 0;
     public int $totalLiabilities = 0;
     public int $totalEquity = 0;
-    public array $expandedAccounts = [];
 
     public static function getNavigationLabel(): string
     {
@@ -79,24 +78,24 @@ class BalanceSheetPage extends Page implements HasForms
 
         // Assets
         $this->assets = $this->getAccountBalances('asset', $asOfDate);
-        $this->totalAssets = array_sum(array_column($this->assets, 'amount'));
+        $this->totalAssets = array_sum(array_column($this->assets, 'subtotal'));
 
         // Liabilities
         $this->liabilities = $this->getAccountBalances('liability', $asOfDate);
-        $this->totalLiabilities = array_sum(array_column($this->liabilities, 'amount'));
+        $this->totalLiabilities = array_sum(array_column($this->liabilities, 'subtotal'));
 
         // Equity
         $this->equity = $this->getAccountBalances('equity', $asOfDate);
-        $this->totalEquity = array_sum(array_column($this->equity, 'amount'));
+        $this->totalEquity = array_sum(array_column($this->equity, 'subtotal'));
 
         // Add retained earnings (revenues - expenses)
         $retainedEarnings = $this->calculateRetainedEarnings($asOfDate);
         if ($retainedEarnings != 0) {
             $this->equity[] = [
-                'id' => 'retained_earnings',
-                'code' => 'RE',
-                'name' => __('accounting::accounting.retained_earnings'),
-                'amount' => $retainedEarnings,
+                'type' => 'retained_earnings',
+                'type_label' => __('accounting::accounting.retained_earnings'),
+                'accounts' => [],
+                'subtotal' => $retainedEarnings,
             ];
             $this->totalEquity += $retainedEarnings;
         }
@@ -112,10 +111,11 @@ class BalanceSheetPage extends Page implements HasForms
 
         $accounts = ChartOfAccount::whereIn('type', $typesInCategory)
             ->where('is_active', true)
+            ->orderBy('type')
             ->orderBy('code')
             ->get();
 
-        $balances = [];
+        $groupedBalances = [];
 
         foreach ($accounts as $account) {
             $balance = JournalEntryLine::where('account_id', $account->id)
@@ -131,16 +131,31 @@ class BalanceSheetPage extends Page implements HasForms
             }
 
             if ($balance != 0) {
-                $balances[] = [
+                $type = $account->type;
+                $typeLabel = ChartOfAccount::TYPES_FLAT[$type] ?? $type;
+
+                if (!isset($groupedBalances[$type])) {
+                    $groupedBalances[$type] = [
+                        'type' => $type,
+                        'type_label' => __('accounting::accounting.account_types.' . $type, [], app()->getLocale()) !== 'accounting::accounting.account_types.' . $type
+                            ? __('accounting::accounting.account_types.' . $type)
+                            : $typeLabel,
+                        'accounts' => [],
+                        'subtotal' => 0,
+                    ];
+                }
+
+                $groupedBalances[$type]['accounts'][] = [
                     'id' => $account->id,
                     'code' => $account->code,
                     'name' => $account->getTranslation('name', app()->getLocale()) ?? $account->name,
                     'amount' => $balance,
                 ];
+                $groupedBalances[$type]['subtotal'] += $balance;
             }
         }
 
-        return $balances;
+        return array_values($groupedBalances);
     }
 
     protected function calculateRetainedEarnings(Carbon $asOfDate): int
@@ -201,84 +216,8 @@ class BalanceSheetPage extends Page implements HasForms
         return number_format($amountMinor / 100, 2) . ' EGP';
     }
 
-    public function toggleAccount($accountId): void
+    public function openGeneralLedger($accountId): void
     {
-        if (in_array($accountId, $this->expandedAccounts)) {
-            $this->expandedAccounts = array_values(array_diff($this->expandedAccounts, [$accountId]));
-        } else {
-            $this->expandedAccounts[] = $accountId;
-        }
-    }
-
-    public function isExpanded($accountId): bool
-    {
-        return in_array($accountId, $this->expandedAccounts);
-    }
-
-    public function getAccountLines($accountId): array
-    {
-        if ($accountId === 'retained_earnings') {
-            return $this->getRetainedEarningsLines();
-        }
-
-        $asOfDate = Carbon::parse($this->as_of_date ?? now());
-
-        $lines = JournalEntryLine::where('account_id', $accountId)
-            ->whereHas('journalEntry', function ($q) use ($asOfDate) {
-                $q->where('date', '<=', $asOfDate)
-                    ->where('status', 'posted');
-            })
-            ->with('journalEntry')
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        return $lines->map(function ($line) {
-            return [
-                'date' => $line->journalEntry->date->format('Y-m-d'),
-                'reference' => $line->journalEntry->reference,
-                'description' => $line->description ?? $line->journalEntry->description,
-                'debit' => $line->debit_minor,
-                'credit' => $line->credit_minor,
-            ];
-        })->toArray();
-    }
-
-    protected function getRetainedEarningsLines(): array
-    {
-        $asOfDate = Carbon::parse($this->as_of_date ?? now());
-
-        // Get income account types
-        $incomeTypes = array_keys(array_filter(
-            ChartOfAccount::TYPE_CATEGORY,
-            fn ($cat) => $cat === 'income'
-        ));
-
-        // Get expense account types
-        $expenseTypes = array_keys(array_filter(
-            ChartOfAccount::TYPE_CATEGORY,
-            fn ($cat) => $cat === 'expense'
-        ));
-
-        $allTypes = array_merge($incomeTypes, $expenseTypes);
-
-        $lines = JournalEntryLine::whereHas('account', fn ($q) => $q->whereIn('type', $allTypes))
-            ->whereHas('journalEntry', function ($q) use ($asOfDate) {
-                $q->where('date', '<=', $asOfDate)
-                    ->where('status', 'posted');
-            })
-            ->with(['journalEntry', 'account'])
-            ->orderBy('created_at', 'desc')
-            ->limit(50)
-            ->get();
-
-        return $lines->map(function ($line) {
-            return [
-                'date' => $line->journalEntry->date->format('Y-m-d'),
-                'reference' => $line->journalEntry->reference,
-                'description' => ($line->account->getTranslation('name', app()->getLocale()) ?? $line->account->name) . ' - ' . ($line->description ?? $line->journalEntry->description),
-                'debit' => $line->debit_minor,
-                'credit' => $line->credit_minor,
-            ];
-        })->toArray();
+        $this->redirect(GeneralLedgerPage::getUrl(['account_id' => $accountId]));
     }
 }
