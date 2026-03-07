@@ -58,8 +58,33 @@ class AttendanceResource extends Resource
                             ->schema([
                                 Forms\Components\Select::make('staff_profile_id')
                                     ->label(__('attendance::attendance.staff_profile'))
-                                    ->relationship('staffProfile', 'id')
-                                    ->getOptionLabelFromRecordUsing(fn (StaffProfile $record) => $record->user?->name ?? $record->id)
+                                    ->options(function () {
+                                        $user = auth()->user();
+
+                                        // Check if user has HR/admin permissions
+                                        $isAdmin = $user->hasRole(['super-admin', 'super_admin', 'tenant-owner', 'tenant_owner', 'owner', 'admin'])
+                                            || $user->can('staff.view');
+
+                                        if ($isAdmin) {
+                                            // Admin can see all staff
+                                            return StaffProfile::with('user')
+                                                ->get()
+                                                ->mapWithKeys(fn ($staff) => [$staff->id => $staff->user?->name ?? "Staff #{$staff->id}"]);
+                                        }
+
+                                        // Normal user can only see themselves
+                                        $ownStaffProfile = StaffProfile::where('user_id', $user->id)->first();
+                                        if ($ownStaffProfile) {
+                                            return [$ownStaffProfile->id => $user->name];
+                                        }
+
+                                        return [];
+                                    })
+                                    ->default(function () {
+                                        $user = auth()->user();
+                                        $ownStaffProfile = StaffProfile::where('user_id', $user->id)->first();
+                                        return $ownStaffProfile?->id;
+                                    })
                                     ->searchable()
                                     ->preload()
                                     ->required()
