@@ -530,35 +530,6 @@
                     </div>
                 </x-filament::section>
 
-                {{-- Quick Stats --}}
-                <div class="grid grid-cols-{{ $this->getPendingPackages()->isNotEmpty() ? '3' : '2' }} gap-4">
-                    <div class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-center">
-                        <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                            {{ $visit?->appointments?->count() ?? 0 }}
-                        </div>
-                        <div class="text-xs text-blue-600 dark:text-blue-400">
-                            {{ __('booking::checkout.stats.total_services') }}
-                        </div>
-                    </div>
-                    <div class="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-xl text-center">
-                        <div class="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                            {{ $this->getSoldProducts()->count() }}
-                        </div>
-                        <div class="text-xs text-purple-600 dark:text-purple-400">
-                            {{ __('booking::checkout.stats.products_sold') }}
-                        </div>
-                    </div>
-                    @if($this->getPendingPackages()->isNotEmpty())
-                        <div class="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl text-center">
-                            <div class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
-                                {{ $this->getPendingPackages()->count() }}
-                            </div>
-                            <div class="text-xs text-indigo-600 dark:text-indigo-400">
-                                {{ __('booking::checkout.stats.packages') }}
-                            </div>
-                        </div>
-                    @endif
-                </div>
             </div>
         </div>
     </div>

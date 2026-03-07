@@ -71,7 +71,7 @@ class InventoryAccountingService
 
     /**
      * Create journal entry for stock consumption/sale.
-     * Debit: Cost of Goods Sold
+     * Debit: Expense Account (COGS) - from product's expense_account_id
      * Credit: Inventory Asset
      */
     public function createStockConsumptionEntry(
@@ -82,15 +82,15 @@ class InventoryAccountingService
         $product = $movement->product;
 
         $stockValuationAccount = $this->getStockValuationAccount($product);
-        $stockOutputAccount = $this->getStockOutputAccount($product);
+        $expenseAccount = $this->getExpenseAccount($product);
 
-        if (!$stockValuationAccount || !$stockOutputAccount) {
+        if (!$stockValuationAccount || !$expenseAccount) {
             return null;
         }
 
         $lines = [
             [
-                'account_code' => $stockOutputAccount->code,
+                'account_code' => $expenseAccount->code,
                 'debit' => $valueMajor * 100,
                 'credit' => 0,
             ],
@@ -318,6 +318,31 @@ class InventoryAccountingService
     }
 
     /**
+     * Get expense account for a product (for consumable products).
+     * Uses product's configured account with fallback to defaults.
+     */
+    protected function getExpenseAccount(Product $product): ?ChartOfAccount
+    {
+        // First try product-specific account
+        if ($product->expense_account_id) {
+            return $product->expenseAccount;
+        }
+
+        // Fallback to system default
+        $defaultAccount = $this->defaultAccounts->getExpenseAccount();
+        if ($defaultAccount) {
+            return $defaultAccount;
+        }
+
+        \Log::warning('Product missing expense_account and no default configured', [
+            'product_id' => $product->id,
+            'product_sku' => $product->sku,
+        ]);
+
+        return null;
+    }
+
+    /**
      * Calculate inventory value for a product.
      */
     public function calculateInventoryValue(Product $product, ?string $branchId = null): int
@@ -357,7 +382,7 @@ class InventoryAccountingService
      */
     public function createVendorBillJournalEntry(VendorBill $bill): ?JournalEntry
     {
-        $bill->load('lines.product.stockValuationAccount', 'supplier');
+        $bill->load('lines.product.stockValuationAccount', 'lines.product.expenseAccount', 'supplier');
 
         // Get Accounts Payable account from defaults
         $apAccount = $this->defaultAccounts->getSupplierPayableAccount();
@@ -387,10 +412,17 @@ class InventoryAccountingService
             $afterDiscount = max(0, $subtotal);
             $totalAmount += $afterDiscount;
 
-            // Get the appropriate account for this line
+            // Get the appropriate account for this line based on product type
             $debitAccount = null;
             if ($product) {
-                $debitAccount = $this->getStockValuationAccount($product);
+                // Storable products: Debit Inventory (Stock Valuation Account)
+                // Consumable products: Debit Expense Account directly
+                if ($product->tracksInventory()) {
+                    $debitAccount = $this->getStockValuationAccount($product);
+                } else {
+                    // Consumable - use expense account
+                    $debitAccount = $this->getExpenseAccount($product);
+                }
             }
 
             // Fallback to line's account
@@ -398,9 +430,13 @@ class InventoryAccountingService
                 $debitAccount = $line->account;
             }
 
-            // Fallback to default stock valuation
+            // Fallback to default stock valuation (for storable) or expense (for consumable)
             if (!$debitAccount) {
-                $debitAccount = $this->defaultAccounts->getStockValuationAccount();
+                if ($product && !$product->tracksInventory()) {
+                    $debitAccount = $this->defaultAccounts->getExpenseAccount();
+                } else {
+                    $debitAccount = $this->defaultAccounts->getStockValuationAccount();
+                }
             }
 
             if (!$debitAccount) {
