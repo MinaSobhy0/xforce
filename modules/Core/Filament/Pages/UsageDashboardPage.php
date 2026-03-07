@@ -268,7 +268,7 @@ class UsageDashboardPage extends Page
         // Calculate this month's stats
         $startOfMonth = now()->startOfMonth();
         $appointmentsThisMonth = DB::table('appointments')
-            ->where('scheduled_at', '>=', $startOfMonth)
+            ->where('date', '>=', $startOfMonth)
             ->count();
 
         $newPatientsThisMonth = DB::table('patients')
