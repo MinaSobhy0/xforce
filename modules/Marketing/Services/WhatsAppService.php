@@ -440,11 +440,15 @@ class WhatsAppService
         $tenantId = $appointment?->tenant_id;
 
         // Generate signed URL that expires in 7 days
+        // Use the current request's host for tenant-specific URL
+        $baseUrl = request()->getSchemeAndHttpHost();
         $signedUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
             'appointment.action',
             now()->addDays(7),
             ['appointment' => $appointmentId, 'action' => $routeAction]
         );
+        // Replace the APP_URL domain with the current tenant domain
+        $signedUrl = preg_replace('/^https?:\/\/[^\/]+/', $baseUrl, $signedUrl);
 
         // Create short link
         $shortLink = \Modules\Marketing\Models\ShortLink::createFor(

@@ -70,7 +70,9 @@ class ShortLink extends Model
      */
     public function getShortUrlAttribute(): string
     {
-        return url("/l/{$this->code}");
+        // Use the current request's host to generate URL on same domain
+        $baseUrl = request()->getSchemeAndHttpHost();
+        return "{$baseUrl}/l/{$this->code}";
     }
 
     /**
