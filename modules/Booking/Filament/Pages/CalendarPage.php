@@ -46,6 +46,7 @@ class CalendarPage extends Page implements HasForms, HasActions, HasInfolists
     public bool $showGroupModal = false;
     public array $selectedGroupAppointments = [];
     public ?string $selectedGroupCategory = null;
+    public bool $isMobileView = false;
 
     public static function getNavigationLabel(): string
     {
@@ -115,15 +116,20 @@ class CalendarPage extends Page implements HasForms, HasActions, HasInfolists
 
         $appointments = $query->ordered()->get();
 
-        // For month view, group by date and category
-        if ($this->viewMode === 'month') {
+        // For month view OR mobile view (week/day), group by date and category
+        if ($this->viewMode === 'month' || ($this->isMobileView && in_array($this->viewMode, ['week', 'day']))) {
             return $this->getGroupedAppointments($appointments);
         }
 
-        // For day/week view, return individual appointments
+        // For desktop day/week view, return individual appointments
         return $appointments->map(function (Appointment $appointment) {
             return $this->formatAppointmentEvent($appointment);
         })->toArray();
+    }
+
+    public function setMobileView(bool $isMobile): void
+    {
+        $this->isMobileView = $isMobile;
     }
 
     protected function getGroupedAppointments($appointments): array
