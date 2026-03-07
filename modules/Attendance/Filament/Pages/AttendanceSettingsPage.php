@@ -21,6 +21,18 @@ class AttendanceSettingsPage extends Page
 
     protected static string $view = 'attendance::filament.pages.attendance-settings';
 
+    public static function canAccess(): bool
+    {
+        $user = auth()->user();
+        if (!$user) return false;
+
+        if (method_exists($user, 'hasRole') && $user->hasRole(['super-admin', 'super_admin', 'tenant-owner', 'tenant_owner', 'owner', 'admin'])) {
+            return true;
+        }
+
+        return $user->can('attendance_rules.view') || !\Spatie\Permission\Models\Permission::where('name', 'attendance_rules.view')->where('guard_name', 'web')->exists();
+    }
+
     public ?array $geofenceData = [];
     public ?array $qrStaticData = [];
     public ?array $qrDynamicData = [];

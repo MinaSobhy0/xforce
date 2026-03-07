@@ -23,7 +23,7 @@ class PractitionerTimeOffResource extends Resource
 
     protected static ?string $moduleCode = 'booking';
 
-    protected static ?string $permissionKey = 'staff';
+    protected static ?string $permissionKey = 'practitioner_time_off';
 
     protected static ?string $navigationIcon = 'heroicon-o-calendar';
 

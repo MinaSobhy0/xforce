@@ -2,6 +2,7 @@
 
 namespace Modules\Booking\Filament\Resources;
 
+use App\Traits\ChecksResourcePermissions;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -15,7 +16,13 @@ use Modules\Booking\Models\TimeOffType;
 
 class TimeOffAllocationResource extends Resource
 {
+    use ChecksResourcePermissions;
+
     protected static ?string $model = TimeOffAllocation::class;
+
+    protected static ?string $moduleCode = 'booking';
+
+    protected static ?string $permissionKey = 'time_off_allocations';
 
     protected static ?string $navigationIcon = 'heroicon-o-calculator';
 

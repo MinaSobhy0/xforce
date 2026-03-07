@@ -23,7 +23,7 @@ class AttendanceResource extends Resource
 
     protected static ?string $moduleCode = 'attendance';
 
-    protected static ?string $permissionKey = 'attendances';
+    protected static ?string $permissionKey = 'attendance';
 
     protected static ?string $navigationIcon = 'heroicon-o-clock';
 

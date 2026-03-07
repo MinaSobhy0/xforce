@@ -2,6 +2,7 @@
 
 namespace Modules\Booking\Filament\Resources;
 
+use App\Traits\ChecksResourcePermissions;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -12,7 +13,13 @@ use Modules\Booking\Models\TimeOffType;
 
 class TimeOffTypeResource extends Resource
 {
+    use ChecksResourcePermissions;
+
     protected static ?string $model = TimeOffType::class;
+
+    protected static ?string $moduleCode = 'booking';
+
+    protected static ?string $permissionKey = 'time_off_types';
 
     protected static ?string $navigationIcon = 'heroicon-o-tag';
 
