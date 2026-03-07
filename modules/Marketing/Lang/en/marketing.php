@@ -112,6 +112,7 @@ return [
         'button_label' => 'Button Label',
         'button_action' => 'Action',
         'custom_payload' => 'Custom Payload',
+        'test_patient' => 'Select Patient',
     ],
 
     'button_types' => [
@@ -246,6 +247,9 @@ return [
         'retry' => 'Retry',
         'activate' => 'Activate',
         'deactivate' => 'Deactivate',
+        'test' => 'Test',
+        'test_rule' => 'Test Automation Rule',
+        'send_test' => 'Send Test',
     ],
 
     'helpers' => [
@@ -265,6 +269,11 @@ return [
         'campaign_paused' => 'Campaign paused',
         'campaign_resumed' => 'Campaign resumed',
         'campaign_cancelled' => 'Campaign cancelled',
+        'patient_not_found' => 'Patient not found',
+        'no_template' => 'No template configured for this rule',
+        'test_sent' => 'Test message sent successfully',
+        'test_sent_to' => 'Test message sent to :phone',
+        'test_failed' => 'Test message failed',
     ],
 
     'widgets' => [

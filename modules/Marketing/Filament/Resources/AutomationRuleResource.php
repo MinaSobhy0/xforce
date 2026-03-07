@@ -5,12 +5,15 @@ namespace Modules\Marketing\Filament\Resources;
 use App\Traits\ChecksResourcePermissions;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Modules\Marketing\Filament\Resources\AutomationRuleResource\Pages;
 use Modules\Marketing\Models\AutomationRule;
 use Modules\Marketing\Models\MessageTemplate;
+use Modules\Marketing\Services\NotificationService;
+use Modules\Patients\Models\Patient;
 
 class AutomationRuleResource extends Resource
 {
@@ -236,6 +239,86 @@ class AutomationRuleResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\Action::make('test')
+                    ->label(__('marketing::marketing.actions.test'))
+                    ->icon('heroicon-o-paper-airplane')
+                    ->color('info')
+                    ->form([
+                        Forms\Components\Select::make('patient_id')
+                            ->label(__('marketing::marketing.fields.test_patient'))
+                            ->options(fn () => Patient::query()
+                                ->whereNotNull('phone')
+                                ->limit(50)
+                                ->get()
+                                ->pluck('display_name', 'id'))
+                            ->searchable()
+                            ->getSearchResultsUsing(fn (string $search) => Patient::query()
+                                ->where(fn ($q) => $q
+                                    ->where('first_name', 'ilike', "%{$search}%")
+                                    ->orWhere('last_name', 'ilike', "%{$search}%")
+                                    ->orWhere('phone', 'like', "%{$search}%"))
+                                ->whereNotNull('phone')
+                                ->limit(20)
+                                ->get()
+                                ->pluck('display_name', 'id'))
+                            ->required(),
+                    ])
+                    ->action(function (AutomationRule $record, array $data) {
+                        $patient = Patient::find($data['patient_id']);
+
+                        if (!$patient) {
+                            Notification::make()
+                                ->title(__('marketing::marketing.messages.patient_not_found'))
+                                ->danger()
+                                ->send();
+                            return;
+                        }
+
+                        if (!$record->template) {
+                            Notification::make()
+                                ->title(__('marketing::marketing.messages.no_template'))
+                                ->danger()
+                                ->send();
+                            return;
+                        }
+
+                        $notificationService = app(NotificationService::class);
+
+                        // Build test variables
+                        $variables = [
+                            'appointment_date' => now()->addDay()->format('d/m/Y'),
+                            'appointment_time' => '10:00 AM',
+                            'service_name' => 'Test Service',
+                            'practitioner_name' => 'Dr. Test',
+                            'branch_name' => 'Main Branch',
+                            'invoice_number' => 'INV-TEST-001',
+                            'invoice_total' => '500.00 EGP',
+                        ];
+
+                        $log = $notificationService->sendTemplate(
+                            $record->template,
+                            $patient,
+                            $variables,
+                            'test',
+                            'rule-' . $record->id
+                        );
+
+                        if ($log->status === 'sent') {
+                            Notification::make()
+                                ->title(__('marketing::marketing.messages.test_sent'))
+                                ->body(__('marketing::marketing.messages.test_sent_to', ['phone' => $patient->international_phone]))
+                                ->success()
+                                ->send();
+                        } else {
+                            Notification::make()
+                                ->title(__('marketing::marketing.messages.test_failed'))
+                                ->body($log->error_message)
+                                ->danger()
+                                ->send();
+                        }
+                    })
+                    ->modalHeading(__('marketing::marketing.actions.test_rule'))
+                    ->modalSubmitActionLabel(__('marketing::marketing.actions.send_test')),
                 Tables\Actions\Action::make('toggle')
                     ->label(fn (AutomationRule $record) => $record->is_active
                         ? __('marketing::marketing.actions.deactivate')

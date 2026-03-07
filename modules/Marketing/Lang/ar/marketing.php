@@ -112,6 +112,7 @@ return [
         'button_label' => 'نص الزر',
         'button_action' => 'الإجراء',
         'custom_payload' => 'بيانات مخصصة',
+        'test_patient' => 'اختر المريض',
     ],
 
     'button_types' => [
@@ -246,6 +247,9 @@ return [
         'retry' => 'إعادة المحاولة',
         'activate' => 'تفعيل',
         'deactivate' => 'إلغاء التفعيل',
+        'test' => 'اختبار',
+        'test_rule' => 'اختبار قاعدة الأتمتة',
+        'send_test' => 'إرسال اختبار',
     ],
 
     'helpers' => [
@@ -265,6 +269,11 @@ return [
         'campaign_paused' => 'تم إيقاف الحملة',
         'campaign_resumed' => 'تم استئناف الحملة',
         'campaign_cancelled' => 'تم إلغاء الحملة',
+        'patient_not_found' => 'المريض غير موجود',
+        'no_template' => 'لا يوجد قالب مكوّن لهذه القاعدة',
+        'test_sent' => 'تم إرسال الرسالة التجريبية بنجاح',
+        'test_sent_to' => 'تم إرسال الرسالة التجريبية إلى :phone',
+        'test_failed' => 'فشل إرسال الرسالة التجريبية',
     ],
 
     'widgets' => [
