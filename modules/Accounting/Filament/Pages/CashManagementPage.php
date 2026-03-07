@@ -31,6 +31,11 @@ class CashManagementPage extends Page implements HasForms
 
     protected static ?int $navigationSort = 10;
 
+    public static function canAccess(): bool
+    {
+        return \Modules\Accounting\Filament\Pages\Concerns\ChecksAccountingPermissions::check('journal_entries.view');
+    }
+
     // Selected account
     public ?string $selected_account_id = null;
 

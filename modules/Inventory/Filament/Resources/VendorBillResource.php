@@ -29,7 +29,7 @@ class VendorBillResource extends Resource
 
     protected static ?string $moduleCode = 'inventory';
 
-    protected static ?string $permissionKey = 'vendor-bills';
+    protected static ?string $permissionKey = 'vendor_bills';
 
     protected static ?string $navigationIcon = 'heroicon-o-document-minus';
 
@@ -141,10 +141,17 @@ class VendorBillResource extends Resource
                                                         $set('description', $product->getTranslation('name', app()->getLocale()));
                                                         $set('unit_price_minor', $product->cost_price_minor / 100);
                                                         $defaultTax = TaxRate::getDefault(TaxRate::TYPE_PURCHASE);
-                                                        $set('tax_rates', $defaultTax ? [(string) $defaultTax->rate] : ['14']);
-                                                        // Set expense account from product or fallback to first expense account
-                                                        if ($product->expense_account_id) {
-                                                            $set('account_id', $product->expense_account_id);
+                                                        $set('tax_rates', $defaultTax ? [(string) $defaultTax->rate] : []);
+                                                        // Set account based on product type:
+                                                        // - Storable products: use stock valuation account (inventory asset)
+                                                        // - Consumable products: use expense account
+                                                        if ($product->tracksInventory()) {
+                                                            $accountId = $product->stock_valuation_account_id;
+                                                        } else {
+                                                            $accountId = $product->expense_account_id;
+                                                        }
+                                                        if ($accountId) {
+                                                            $set('account_id', $accountId);
                                                         }
                                                     }
                                                 }
@@ -160,13 +167,11 @@ class VendorBillResource extends Resource
                                         Forms\Components\Select::make('account_id')
                                             ->label(__('inventory::inventory.fields.account'))
                                             ->options(
-                                                ChartOfAccount::where('type', ChartOfAccount::TYPE_EXPENSE)
-                                                    ->where('is_active', true)
+                                                ChartOfAccount::where('is_active', true)
                                                     ->orderBy('code')
                                                     ->get()
                                                     ->mapWithKeys(fn ($a) => [$a->id => "[{$a->code}] " . $a->getTranslation('name', app()->getLocale())])
                                             )
-                                            ->default(fn () => ChartOfAccount::where('type', ChartOfAccount::TYPE_EXPENSE)->where('is_active', true)->orderBy('code')->first()?->id)
                                             ->searchable()
                                             ->preload()
                                             ->required()
@@ -233,7 +238,7 @@ class VendorBillResource extends Resource
                                             })
                                             ->default(function () {
                                                 $default = TaxRate::getDefault(TaxRate::TYPE_PURCHASE);
-                                                return $default ? [(string) $default->rate] : ['14'];
+                                                return $default ? [(string) $default->rate] : [];
                                             })
                                             ->columnSpan(['default' => 4, 'md' => 3]),
                                     ])

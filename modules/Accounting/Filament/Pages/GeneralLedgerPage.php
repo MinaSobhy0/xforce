@@ -27,6 +27,11 @@ class GeneralLedgerPage extends Page implements HasForms
 
     protected static ?int $navigationSort = 13;
 
+    public static function canAccess(): bool
+    {
+        return \Modules\Accounting\Filament\Pages\Concerns\ChecksAccountingPermissions::check('journal_entries.view');
+    }
+
     public ?string $start_date = null;
     public ?string $end_date = null;
     public ?string $account_id = null;

@@ -22,6 +22,11 @@ class DefaultAccountsPage extends Page implements Forms\Contracts\HasForms
 
     protected static ?int $navigationSort = 90;
 
+    public static function canAccess(): bool
+    {
+        return \Modules\Accounting\Filament\Pages\Concerns\ChecksAccountingPermissions::check('chart_of_accounts.view');
+    }
+
     public ?array $data = [];
 
     public static function getNavigationLabel(): string

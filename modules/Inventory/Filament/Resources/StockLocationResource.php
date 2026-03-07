@@ -3,6 +3,7 @@
 namespace Modules\Inventory\Filament\Resources;
 
 use App\Services\BranchContext;
+use App\Traits\ChecksResourcePermissions;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -15,6 +16,8 @@ use Modules\Inventory\Models\StockLocation;
 
 class StockLocationResource extends Resource
 {
+    use ChecksResourcePermissions;
+
     protected static ?string $model = StockLocation::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-map-pin';
@@ -22,6 +25,10 @@ class StockLocationResource extends Resource
     protected static ?string $navigationGroup = 'Inventory';
 
     protected static ?int $navigationSort = 55;
+
+    protected static ?string $moduleCode = 'inventory';
+
+    protected static ?string $permissionKey = 'stock_locations';
 
     public static function getNavigationLabel(): string
     {

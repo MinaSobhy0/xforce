@@ -27,6 +27,11 @@ class BalanceSheetPage extends Page implements HasForms
 
     protected static ?int $navigationSort = 12;
 
+    public static function canAccess(): bool
+    {
+        return \Modules\Accounting\Filament\Pages\Concerns\ChecksAccountingPermissions::check('journal_entries.view');
+    }
+
     public ?string $as_of_date = null;
     public array $assets = [];
     public array $liabilities = [];

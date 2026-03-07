@@ -3,6 +3,7 @@
 namespace Modules\Inventory\Filament\Resources;
 
 use App\Services\BranchContext;
+use App\Traits\ChecksResourcePermissions;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -18,6 +19,8 @@ use Modules\Inventory\Models\Product;
 
 class StockTransferResource extends Resource
 {
+    use ChecksResourcePermissions;
+
     protected static ?string $model = StockTransfer::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-arrows-up-down';
@@ -25,6 +28,10 @@ class StockTransferResource extends Resource
     protected static ?string $navigationGroup = 'Inventory';
 
     protected static ?int $navigationSort = 60;
+
+    protected static ?string $moduleCode = 'inventory';
+
+    protected static ?string $permissionKey = 'stock_transfers';
 
     public static function getNavigationLabel(): string
     {
