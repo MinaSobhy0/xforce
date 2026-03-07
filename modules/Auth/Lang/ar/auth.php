@@ -38,28 +38,98 @@ return [
         'create' => 'إنشاء',
         'edit' => 'تعديل',
         'delete' => 'حذف',
+        'export' => 'تصدير',
+        'import' => 'استيراد',
     ],
 
     // Resources for permission management
     'resources' => [
+        // Patients & Booking
         'patients' => 'المرضى',
         'appointments' => 'المواعيد',
+        'visits' => 'الزيارات',
+        'waitlist' => 'قائمة الانتظار',
+        'treatment_plans' => 'خطط العلاج',
+        'prescriptions' => 'الوصفات الطبية',
+
+        // Services & Packages
+        'services' => 'الخدمات',
+        'service_categories' => 'فئات الخدمات',
+        'packages' => 'الباقات',
+        'consent_templates' => 'قوالب الموافقة',
+        'parameter_templates' => 'قوالب المعايير',
+
+        // Billing & Payments
         'invoices' => 'الفواتير',
         'payments' => 'المدفوعات',
-        'services' => 'الخدمات',
+        'tax_rates' => 'معدلات الضريبة',
+
+        // Inventory & Products
         'products' => 'المنتجات',
+        'product_categories' => 'فئات المنتجات',
+        'suppliers' => 'الموردين',
+        'purchase_orders' => 'أوامر الشراء',
+        'vendor_bills' => 'فواتير الموردين',
+        'stock_movements' => 'حركات المخزون',
+        'stock_locations' => 'مواقع المخزون',
+        'stock_transfers' => 'تحويلات المخزون',
+        'inventory_adjustments' => 'تسويات المخزون',
+        'uoms' => 'وحدات القياس',
+
+        // Equipment & Assets
         'equipment' => 'المعدات',
+        'equipment_parameter_templates' => 'معايير المعدات',
+        'assets' => 'الأصول',
+        'asset_types' => 'أنواع الأصول',
+
+        // Staff & HR
         'staff' => 'الموظفين',
+        'commission_plans' => 'خطط العمولة',
         'payroll' => 'الرواتب',
-        'reports' => 'التقارير',
+        'payslips' => 'كشوف الرواتب',
+        'salary_structures' => 'هياكل الرواتب',
+        'salary_rules' => 'قواعد الرواتب',
+
+        // Attendance & Time Off
+        'attendance' => 'الحضور',
+        'attendance_rules' => 'قواعد الحضور',
+        'attendance_violations' => 'مخالفات الحضور',
+        'time_off_types' => 'أنواع الإجازات',
+        'time_off_allocations' => 'رصيد الإجازات',
+        'practitioner_time_off' => 'إجازات الممارسين',
+
+        // Marketing & Loyalty
         'campaigns' => 'الحملات',
-        'packages' => 'الباقات',
+        'message_templates' => 'قوالب الرسائل',
+        'automation_rules' => 'قواعد الأتمتة',
+        'notification_logs' => 'سجل الإشعارات',
+        'loyalty_rules' => 'قواعد الولاء',
+        'loyalty_transactions' => 'معاملات الولاء',
+        'referral_programs' => 'برامج الإحالة',
+
+        // Memberships & Gift Cards
         'memberships' => 'العضويات',
         'gift_cards' => 'بطاقات الهدايا',
+        'gift_card_templates' => 'قوالب بطاقات الهدايا',
+
+        // Accounting
+        'chart_of_accounts' => 'دليل الحسابات',
+        'journal_entries' => 'القيود المحاسبية',
+        'journals' => 'اليوميات',
+        'fiscal_periods' => 'الفترات المالية',
+
+        // Settings & Administration
         'users' => 'المستخدمين',
         'roles' => 'الأدوار',
+        'access_policies' => 'سياسات الوصول',
         'branches' => 'الفروع',
+        'rooms' => 'الغرف',
+        'work_schedules' => 'جداول العمل',
+        'booking_rules' => 'قواعد الحجز',
+        'blackout_dates' => 'تواريخ الحظر',
+        'medicine_catalogs' => 'دليل الأدوية',
         'settings' => 'الإعدادات',
+        'reports' => 'التقارير',
     ],
 
     // Fields

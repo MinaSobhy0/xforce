@@ -204,28 +204,98 @@ return [
         'create' => 'Create',
         'edit' => 'Edit',
         'delete' => 'Delete',
+        'export' => 'Export',
+        'import' => 'Import',
     ],
 
     // Resources for permission management
     'resources' => [
+        // Patients & Booking
         'patients' => 'Patients',
         'appointments' => 'Appointments',
+        'visits' => 'Visits',
+        'waitlist' => 'Waitlist',
+        'treatment_plans' => 'Treatment Plans',
+        'prescriptions' => 'Prescriptions',
+
+        // Services & Packages
+        'services' => 'Services',
+        'service_categories' => 'Service Categories',
+        'packages' => 'Packages',
+        'consent_templates' => 'Consent Templates',
+        'parameter_templates' => 'Parameter Templates',
+
+        // Billing & Payments
         'invoices' => 'Invoices',
         'payments' => 'Payments',
-        'services' => 'Services',
+        'tax_rates' => 'Tax Rates',
+
+        // Inventory & Products
         'products' => 'Products',
+        'product_categories' => 'Product Categories',
+        'suppliers' => 'Suppliers',
+        'purchase_orders' => 'Purchase Orders',
+        'vendor_bills' => 'Vendor Bills',
+        'stock_movements' => 'Stock Movements',
+        'stock_locations' => 'Stock Locations',
+        'stock_transfers' => 'Stock Transfers',
+        'inventory_adjustments' => 'Inventory Adjustments',
+        'uoms' => 'Units of Measure',
+
+        // Equipment & Assets
         'equipment' => 'Equipment',
-        'staff' => 'Staff',
-        'payroll' => 'Payroll',
-        'reports' => 'Reports',
+        'equipment_parameter_templates' => 'Equipment Parameters',
+        'assets' => 'Assets',
+        'asset_types' => 'Asset Types',
+
+        // Staff & HR
+        'staff' => 'Staff Profiles',
+        'commission_plans' => 'Commission Plans',
+        'payroll' => 'Payroll Runs',
+        'payslips' => 'Payslips',
+        'salary_structures' => 'Salary Structures',
+        'salary_rules' => 'Salary Rules',
+
+        // Attendance & Time Off
+        'attendance' => 'Attendance',
+        'attendance_rules' => 'Attendance Rules',
+        'attendance_violations' => 'Attendance Violations',
+        'time_off_types' => 'Time Off Types',
+        'time_off_allocations' => 'Time Off Allocations',
+        'practitioner_time_off' => 'Practitioner Time Off',
+
+        // Marketing & Loyalty
         'campaigns' => 'Campaigns',
-        'packages' => 'Packages',
+        'message_templates' => 'Message Templates',
+        'automation_rules' => 'Automation Rules',
+        'notification_logs' => 'Notification Logs',
+        'loyalty_rules' => 'Loyalty Rules',
+        'loyalty_transactions' => 'Loyalty Transactions',
+        'referral_programs' => 'Referral Programs',
+
+        // Memberships & Gift Cards
         'memberships' => 'Memberships',
         'gift_cards' => 'Gift Cards',
+        'gift_card_templates' => 'Gift Card Templates',
+
+        // Accounting
+        'chart_of_accounts' => 'Chart of Accounts',
+        'journal_entries' => 'Journal Entries',
+        'journals' => 'Journals',
+        'fiscal_periods' => 'Fiscal Periods',
+
+        // Settings & Administration
         'users' => 'Users',
         'roles' => 'Roles',
+        'access_policies' => 'Access Policies',
         'branches' => 'Branches',
+        'rooms' => 'Rooms',
+        'work_schedules' => 'Work Schedules',
+        'booking_rules' => 'Booking Rules',
+        'blackout_dates' => 'Blackout Dates',
+        'medicine_catalogs' => 'Medicine Catalog',
         'settings' => 'Settings',
+        'reports' => 'Reports',
     ],
 
     // Branch Role Fields

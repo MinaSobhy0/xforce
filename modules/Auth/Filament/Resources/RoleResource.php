@@ -89,7 +89,7 @@ class RoleResource extends Resource
                                 ->color('success')
                                 ->action(function (Forms\Set $set) {
                                     foreach (static::getResourcePermissions() as $resource => $label) {
-                                        foreach (['view', 'create', 'edit', 'delete'] as $action) {
+                                        foreach (['view', 'create', 'edit', 'delete', 'export', 'import'] as $action) {
                                             $set("permissions.{$resource}.{$action}", true);
                                         }
                                     }
@@ -100,7 +100,7 @@ class RoleResource extends Resource
                                 ->color('danger')
                                 ->action(function (Forms\Set $set) {
                                     foreach (static::getResourcePermissions() as $resource => $label) {
-                                        foreach (['view', 'create', 'edit', 'delete'] as $action) {
+                                        foreach (['view', 'create', 'edit', 'delete', 'export', 'import'] as $action) {
                                             $set("permissions.{$resource}.{$action}", false);
                                         }
                                     }
@@ -136,8 +136,16 @@ class RoleResource extends Resource
                     Forms\Components\Checkbox::make("permissions.{$resource}.delete")
                         ->label(__('auth::auth.permissions.delete'))
                         ->inline(),
+
+                    Forms\Components\Checkbox::make("permissions.{$resource}.export")
+                        ->label(__('auth::auth.permissions.export'))
+                        ->inline(),
+
+                    Forms\Components\Checkbox::make("permissions.{$resource}.import")
+                        ->label(__('auth::auth.permissions.import'))
+                        ->inline(),
                 ])
-                ->columns(4);
+                ->columns(6);
         }
 
         return $schema;
@@ -146,24 +154,92 @@ class RoleResource extends Resource
     public static function getResourcePermissions(): array
     {
         return [
+            // Patients & Booking
             'patients' => __('auth::auth.resources.patients'),
             'appointments' => __('auth::auth.resources.appointments'),
+            'visits' => __('auth::auth.resources.visits'),
+            'waitlist' => __('auth::auth.resources.waitlist'),
+            'treatment_plans' => __('auth::auth.resources.treatment_plans'),
+            'prescriptions' => __('auth::auth.resources.prescriptions'),
+
+            // Services & Packages
+            'services' => __('auth::auth.resources.services'),
+            'service_categories' => __('auth::auth.resources.service_categories'),
+            'packages' => __('auth::auth.resources.packages'),
+            'consent_templates' => __('auth::auth.resources.consent_templates'),
+            'parameter_templates' => __('auth::auth.resources.parameter_templates'),
+
+            // Billing & Payments
             'invoices' => __('auth::auth.resources.invoices'),
             'payments' => __('auth::auth.resources.payments'),
-            'services' => __('auth::auth.resources.services'),
+            'tax_rates' => __('auth::auth.resources.tax_rates'),
+
+            // Inventory & Products
             'products' => __('auth::auth.resources.products'),
+            'product_categories' => __('auth::auth.resources.product_categories'),
+            'suppliers' => __('auth::auth.resources.suppliers'),
+            'purchase_orders' => __('auth::auth.resources.purchase_orders'),
+            'vendor_bills' => __('auth::auth.resources.vendor_bills'),
+            'stock_movements' => __('auth::auth.resources.stock_movements'),
+            'stock_locations' => __('auth::auth.resources.stock_locations'),
+            'stock_transfers' => __('auth::auth.resources.stock_transfers'),
+            'inventory_adjustments' => __('auth::auth.resources.inventory_adjustments'),
+            'uoms' => __('auth::auth.resources.uoms'),
+
+            // Equipment & Assets
             'equipment' => __('auth::auth.resources.equipment'),
+            'equipment_parameter_templates' => __('auth::auth.resources.equipment_parameter_templates'),
+            'assets' => __('auth::auth.resources.assets'),
+            'asset_types' => __('auth::auth.resources.asset_types'),
+
+            // Staff & HR
             'staff' => __('auth::auth.resources.staff'),
+            'commission_plans' => __('auth::auth.resources.commission_plans'),
             'payroll' => __('auth::auth.resources.payroll'),
-            'reports' => __('auth::auth.resources.reports'),
+            'payslips' => __('auth::auth.resources.payslips'),
+            'salary_structures' => __('auth::auth.resources.salary_structures'),
+            'salary_rules' => __('auth::auth.resources.salary_rules'),
+
+            // Attendance & Time Off
+            'attendance' => __('auth::auth.resources.attendance'),
+            'attendance_rules' => __('auth::auth.resources.attendance_rules'),
+            'attendance_violations' => __('auth::auth.resources.attendance_violations'),
+            'time_off_types' => __('auth::auth.resources.time_off_types'),
+            'time_off_allocations' => __('auth::auth.resources.time_off_allocations'),
+            'practitioner_time_off' => __('auth::auth.resources.practitioner_time_off'),
+
+            // Marketing & Loyalty
             'campaigns' => __('auth::auth.resources.campaigns'),
-            'packages' => __('auth::auth.resources.packages'),
+            'message_templates' => __('auth::auth.resources.message_templates'),
+            'automation_rules' => __('auth::auth.resources.automation_rules'),
+            'notification_logs' => __('auth::auth.resources.notification_logs'),
+            'loyalty_rules' => __('auth::auth.resources.loyalty_rules'),
+            'loyalty_transactions' => __('auth::auth.resources.loyalty_transactions'),
+            'referral_programs' => __('auth::auth.resources.referral_programs'),
+
+            // Memberships & Gift Cards
             'memberships' => __('auth::auth.resources.memberships'),
             'gift_cards' => __('auth::auth.resources.gift_cards'),
+            'gift_card_templates' => __('auth::auth.resources.gift_card_templates'),
+
+            // Accounting
+            'chart_of_accounts' => __('auth::auth.resources.chart_of_accounts'),
+            'journal_entries' => __('auth::auth.resources.journal_entries'),
+            'journals' => __('auth::auth.resources.journals'),
+            'fiscal_periods' => __('auth::auth.resources.fiscal_periods'),
+
+            // Settings & Administration
             'users' => __('auth::auth.resources.users'),
             'roles' => __('auth::auth.resources.roles'),
+            'access_policies' => __('auth::auth.resources.access_policies'),
             'branches' => __('auth::auth.resources.branches'),
+            'rooms' => __('auth::auth.resources.rooms'),
+            'work_schedules' => __('auth::auth.resources.work_schedules'),
+            'booking_rules' => __('auth::auth.resources.booking_rules'),
+            'blackout_dates' => __('auth::auth.resources.blackout_dates'),
+            'medicine_catalogs' => __('auth::auth.resources.medicine_catalogs'),
             'settings' => __('auth::auth.resources.settings'),
+            'reports' => __('auth::auth.resources.reports'),
         ];
     }
 
@@ -239,7 +315,7 @@ class RoleResource extends Resource
             $permissions = $role->permissions->pluck('name')->toArray();
 
             foreach (static::getResourcePermissions() as $resource => $label) {
-                foreach (['view', 'create', 'edit', 'delete'] as $action) {
+                foreach (['view', 'create', 'edit', 'delete', 'export', 'import'] as $action) {
                     $permName = "{$resource}.{$action}";
                     $data['permissions'][$resource][$action] = in_array($permName, $permissions);
                 }
