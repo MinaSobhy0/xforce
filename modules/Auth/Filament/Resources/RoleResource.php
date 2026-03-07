@@ -119,7 +119,37 @@ class RoleResource extends Resource
         $schema = [];
 
         foreach ($groups as $groupKey => $group) {
-            $fieldsets = [];
+            $groupResources = array_keys($group['resources']);
+
+            // Group actions (Grant All / Revoke All for this group)
+            $groupActions = Forms\Components\Actions::make([
+                Forms\Components\Actions\Action::make("grant_all_{$groupKey}")
+                    ->label(__('auth::auth.actions.grant_all'))
+                    ->icon('heroicon-o-check-circle')
+                    ->color('success')
+                    ->size('xs')
+                    ->action(function (Forms\Set $set) use ($groupResources) {
+                        foreach ($groupResources as $resource) {
+                            foreach (['view', 'create', 'edit', 'delete', 'export', 'import'] as $action) {
+                                $set("permissions.{$resource}.{$action}", true);
+                            }
+                        }
+                    }),
+                Forms\Components\Actions\Action::make("revoke_all_{$groupKey}")
+                    ->label(__('auth::auth.actions.revoke_all'))
+                    ->icon('heroicon-o-x-circle')
+                    ->color('danger')
+                    ->size('xs')
+                    ->action(function (Forms\Set $set) use ($groupResources) {
+                        foreach ($groupResources as $resource) {
+                            foreach (['view', 'create', 'edit', 'delete', 'export', 'import'] as $action) {
+                                $set("permissions.{$resource}.{$action}", false);
+                            }
+                        }
+                    }),
+            ])->columnSpanFull();
+
+            $fieldsets = [$groupActions];
 
             foreach ($group['resources'] as $resource => $label) {
                 $fieldsets[] = Forms\Components\Fieldset::make($label)
