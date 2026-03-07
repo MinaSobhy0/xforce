@@ -216,7 +216,7 @@ class VisitService
                 $q->where('is_package_session', false)
                     ->orWhereNull('is_package_session');
             })
-            ->with('service')
+            ->with('service.category')
             ->get();
 
         // Get sold products
@@ -238,6 +238,9 @@ class VisitService
             $lineTotal = $apt->net_price ?? $apt->price_minor ?? 0;
             $subtotalMinor += $lineTotal;
 
+            // Get revenue account from service category
+            $accountId = $apt->service?->category?->service_revenue_account_id;
+
             $lines[] = [
                 'line_type' => 'service',
                 'description' => $apt->service?->translated_name ?? 'Service',
@@ -246,6 +249,7 @@ class VisitService
                 'discount_minor' => $apt->discount_minor ?? 0,
                 'total_minor' => $lineTotal,
                 'service_id' => $apt->service_id,
+                'account_id' => $accountId,
                 'appointment_id' => $apt->id,
             ];
         }
@@ -253,6 +257,9 @@ class VisitService
         // Add product lines
         foreach ($soldProducts as $prod) {
             $subtotalMinor += $prod->total_price_minor;
+
+            // Get income account from product
+            $accountId = $prod->product?->income_account_id;
 
             $lines[] = [
                 'line_type' => 'product',
@@ -262,6 +269,7 @@ class VisitService
                 'discount_minor' => $prod->discount_minor ?? 0,
                 'total_minor' => $prod->total_price_minor,
                 'product_id' => $prod->product_id,
+                'account_id' => $accountId,
             ];
 
             // Mark product as invoiced
@@ -318,6 +326,7 @@ class VisitService
                 'total_minor' => $lineData['total_minor'],
                 'service_id' => $lineData['service_id'] ?? null,
                 'product_id' => $lineData['product_id'] ?? null,
+                'account_id' => $lineData['account_id'] ?? null,
                 'appointment_id' => $lineData['appointment_id'] ?? null,
                 'package_subscription_id' => $lineData['package_subscription_id'] ?? null,
             ]);

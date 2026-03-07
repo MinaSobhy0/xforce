@@ -362,17 +362,31 @@ class VendorBill extends BaseModel
         ]);
 
         foreach ($po->lines as $poLine) {
+            // Determine account based on product type:
+            // - Storable products: use stock valuation account (inventory asset)
+            // - Consumable products: use expense account
+            $accountId = null;
+            $product = $poLine->product;
+            if ($product) {
+                if ($product->tracksInventory()) {
+                    $accountId = $product->stock_valuation_account_id;
+                } else {
+                    $accountId = $product->expense_account_id;
+                }
+            }
+
             VendorBillLine::create([
                 'tenant_id' => $po->tenant_id,
                 'vendor_bill_id' => $bill->id,
                 'product_id' => $poLine->product_id,
                 'purchase_order_line_id' => $poLine->id,
-                'description' => $poLine->product?->getTranslation('name', app()->getLocale()) ?? 'Product',
+                'description' => $product?->getTranslation('name', app()->getLocale()) ?? 'Product',
                 'quantity' => $poLine->quantity_received ?: $poLine->quantity,
                 'unit_price_minor' => $poLine->unit_price_minor,
                 'discount_minor' => $poLine->discount_minor ?? 0,
                 'discount_type' => $poLine->discount_type ?? 'fixed',
                 'tax_rates' => $poLine->tax_rates ?? [],
+                'account_id' => $accountId,
             ]);
         }
 

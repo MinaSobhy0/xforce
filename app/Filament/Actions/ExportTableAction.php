@@ -26,6 +26,36 @@ class ExportTableAction extends Action
         $this->icon('heroicon-o-arrow-down-tray');
         $this->color('gray');
 
+        // Check export permission based on resource's permission key
+        $this->visible(function (Component $livewire): bool {
+            $user = auth()->user();
+            if (!$user) return false;
+
+            // Super admin and key roles always have access
+            if (method_exists($user, 'hasRole') && $user->hasRole(['super-admin', 'super_admin', 'tenant-owner', 'tenant_owner', 'owner', 'admin'])) {
+                return true;
+            }
+
+            // Get permission key from resource
+            $resourceClass = $livewire::getResource();
+            $permissionKey = $resourceClass::$permissionKey ?? null;
+
+            if (!$permissionKey) {
+                // Fallback: derive from resource name
+                $permissionKey = strtolower(str_replace('Resource', '', class_basename($resourceClass)));
+            }
+
+            $permission = "{$permissionKey}.export";
+
+            // Check permission
+            if ($user->can($permission)) {
+                return true;
+            }
+
+            // If permission doesn't exist, hide by default (more restrictive)
+            return false;
+        });
+
         $this->action(function (Component $livewire): BinaryFileResponse {
             $table = $livewire->getTable();
             $columns = $this->getExportableColumns($table->getVisibleColumns());

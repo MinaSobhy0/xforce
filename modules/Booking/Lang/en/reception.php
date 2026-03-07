@@ -104,6 +104,9 @@ return [
         'marked_no_show' => 'Marked as No-show',
         'marked_no_show_body' => ':patient marked as no-show',
         'no_invoice' => 'No invoice found for this appointment',
+        'no_visit' => 'No visit found for this appointment',
+        'subscription_not_found' => 'Package subscription not found',
+        'invoice_creation_failed' => 'Failed to create invoice for package',
     ],
 
     // Patient Flow
@@ -148,4 +151,8 @@ return [
     'unassigned' => 'Unassigned',
     'no_room' => 'No room',
     'unknown_patient' => 'Unknown Patient',
+
+    // Package
+    'package_balance_due' => 'Package Balance Due',
+    'package_paid' => 'Package Paid',
 ];

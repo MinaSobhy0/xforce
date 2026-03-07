@@ -105,7 +105,7 @@ class InvoiceCalculationService
     public function getDefaultTaxRate(): float
     {
         $taxRate = TaxRate::getDefault();
-        return $taxRate?->rate ?? config('billing.default_tax_rate', 14);
+        return $taxRate?->rate ?? config('billing.default_tax_rate', 0);
     }
 
     /**
@@ -114,7 +114,7 @@ class InvoiceCalculationService
     public function getDefaultTaxRates(): array
     {
         $taxRate = TaxRate::getDefault();
-        return $taxRate ? [(string) $taxRate->rate] : ['14'];
+        return $taxRate ? [(string) $taxRate->rate] : [];
     }
 
     /**
@@ -268,9 +268,13 @@ class InvoiceCalculationService
             $taxRates
         );
 
+        // Get revenue account from service category
+        $accountId = $service?->category?->service_revenue_account_id;
+
         return $invoice->lines()->create([
             'tenant_id' => $invoice->tenant_id,
             'service_id' => $appointment->service_id,
+            'account_id' => $accountId,
             'appointment_id' => $appointment->id,
             'treatment_plan_item_id' => $appointment->treatmentPlanAppointment?->treatment_plan_item_id,
             'line_type' => InvoiceLine::LINE_TYPE_SERVICE,
@@ -305,9 +309,13 @@ class InvoiceCalculationService
             $taxRates
         );
 
+        // Get income account from product
+        $accountId = $product?->income_account_id;
+
         $invoiceLine = $invoice->lines()->create([
             'tenant_id' => $invoice->tenant_id,
             'product_id' => $product?->id,
+            'account_id' => $accountId,
             'session_product_id' => $sessionProduct->id,
             'line_type' => InvoiceLine::LINE_TYPE_PRODUCT,
             'description' => $product?->name ?? 'Product',

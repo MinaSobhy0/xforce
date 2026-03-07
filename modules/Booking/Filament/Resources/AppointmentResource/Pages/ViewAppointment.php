@@ -14,6 +14,7 @@ use Filament\Forms;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Filament\Notifications\Notification;
+use Filament\Notifications\Actions\Action as NotificationAction;
 use App\Filament\Resources\Pages\BaseViewRecord;
 
 class ViewAppointment extends BaseViewRecord
@@ -166,7 +167,48 @@ class ViewAppointment extends BaseViewRecord
                 ->color('warning')
                 ->requiresConfirmation()
                 ->visible(fn (): bool => $this->record->canTransitionTo(Appointment::STATUS_CHECKED_IN))
-                ->action(fn () => $this->record->checkIn()),
+                ->action(function () {
+                    $this->record->checkIn();
+
+                    // Check if this is a package session with unpaid balance
+                    if ($this->record->isPackageSession() && $this->record->packageSubscription) {
+                        $subscription = $this->record->packageSubscription;
+
+                        if ($subscription->hasBalance()) {
+                            $packageName = $subscription->package?->getTranslation('name', app()->getLocale()) ?? 'Package';
+                            $balance = format_money($subscription->balance_remaining_minor);
+                            $patientName = $this->record->patient?->full_name ?? 'Patient';
+
+                            Notification::make()
+                                ->title(__('booking::appointments.notifications.package_balance_due'))
+                                ->body(__('booking::appointments.notifications.package_balance_message', [
+                                    'patient' => $patientName,
+                                    'package' => $packageName,
+                                    'balance' => $balance,
+                                ]))
+                                ->warning()
+                                ->persistent()
+                                ->actions([
+                                    NotificationAction::make('pay')
+                                        ->label(__('booking::appointments.actions.pay_balance'))
+                                        ->url(route('filament.tenant.resources.package-subscriptions.view', $subscription->id))
+                                        ->button()
+                                        ->color('success'),
+                                    NotificationAction::make('dismiss')
+                                        ->label(__('booking::appointments.actions.dismiss'))
+                                        ->close(),
+                                ])
+                                ->send();
+
+                            return;
+                        }
+                    }
+
+                    Notification::make()
+                        ->title(__('booking::appointments.messages.checked_in'))
+                        ->success()
+                        ->send();
+                }),
 
             Actions\Action::make('checkout')
                 ->label(__('booking::checkout.actions.confirm_checkout'))

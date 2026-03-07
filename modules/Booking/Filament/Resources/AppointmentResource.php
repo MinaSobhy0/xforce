@@ -19,6 +19,8 @@ use Filament\Tables\Table;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
 use Illuminate\Database\Eloquent\Builder;
+use Filament\Notifications\Notification;
+use Filament\Notifications\Actions\Action as NotificationAction;
 use XLinic\Framework\Core\Filament\RelationManagers\ActivityLogRelationManager;
 
 class AppointmentResource extends Resource
@@ -371,7 +373,48 @@ class AppointmentResource extends Resource
                         ->color('warning')
                         ->requiresConfirmation()
                         ->visible(fn (Appointment $record): bool => $record->canTransitionTo(Appointment::STATUS_CHECKED_IN))
-                        ->action(fn (Appointment $record) => $record->checkIn()),
+                        ->action(function (Appointment $record) {
+                            $record->checkIn();
+
+                            // Check if this is a package session with unpaid balance
+                            if ($record->isPackageSession() && $record->packageSubscription) {
+                                $subscription = $record->packageSubscription;
+
+                                if ($subscription->hasBalance()) {
+                                    $packageName = $subscription->package?->getTranslation('name', app()->getLocale()) ?? 'Package';
+                                    $balance = format_money($subscription->balance_remaining_minor);
+                                    $patientName = $record->patient?->full_name ?? 'Patient';
+
+                                    Notification::make()
+                                        ->title(__('booking::appointments.notifications.package_balance_due'))
+                                        ->body(__('booking::appointments.notifications.package_balance_message', [
+                                            'patient' => $patientName,
+                                            'package' => $packageName,
+                                            'balance' => $balance,
+                                        ]))
+                                        ->warning()
+                                        ->persistent()
+                                        ->actions([
+                                            NotificationAction::make('pay')
+                                                ->label(__('booking::appointments.actions.pay_balance'))
+                                                ->url(route('filament.tenant.resources.package-subscriptions.view', $subscription->id))
+                                                ->button()
+                                                ->color('success'),
+                                            NotificationAction::make('dismiss')
+                                                ->label(__('booking::appointments.actions.dismiss'))
+                                                ->close(),
+                                        ])
+                                        ->send();
+
+                                    return;
+                                }
+                            }
+
+                            Notification::make()
+                                ->title(__('booking::appointments.messages.checked_in'))
+                                ->success()
+                                ->send();
+                        }),
 
                     Tables\Actions\Action::make('cancel')
                         ->label(__('booking::appointments.actions.cancel'))
@@ -515,6 +558,61 @@ class AppointmentResource extends Resource
                             ]),
                     ]),
 
+                Infolists\Components\Section::make(__('booking::appointments.sections.invoice'))
+                    ->schema([
+                        Infolists\Components\Grid::make(4)
+                            ->schema([
+                                Infolists\Components\TextEntry::make('effective_invoice_code')
+                                    ->label(__('billing::billing.fields.invoice_code'))
+                                    ->state(fn (Appointment $record) => $record->effective_invoice?->code)
+                                    ->placeholder('-')
+                                    ->url(fn (Appointment $record) => $record->effective_invoice
+                                        ? route('filament.tenant.resources.invoices.view', ['record' => $record->effective_invoice->id])
+                                        : null),
+
+                                Infolists\Components\TextEntry::make('effective_invoice_status')
+                                    ->label(__('billing::billing.fields.status'))
+                                    ->state(fn (Appointment $record) => $record->effective_invoice?->status)
+                                    ->badge()
+                                    ->formatStateUsing(fn ($state) => $state ? __('billing::billing.statuses.' . $state) : '-')
+                                    ->color(fn (Appointment $record): string => $record->effective_invoice?->status_color ?? 'gray')
+                                    ->placeholder('-'),
+
+                                Infolists\Components\TextEntry::make('effective_invoice_total')
+                                    ->label(__('billing::billing.fields.total'))
+                                    ->state(fn (Appointment $record) => $record->effective_invoice?->total_minor)
+                                    ->money(current_currency(), divideBy: 100)
+                                    ->placeholder('-'),
+
+                                Infolists\Components\TextEntry::make('effective_invoice_paid')
+                                    ->label(__('billing::billing.fields.paid'))
+                                    ->state(fn (Appointment $record) => $record->effective_invoice?->paid_minor)
+                                    ->money(current_currency(), divideBy: 100)
+                                    ->color('success')
+                                    ->placeholder('-'),
+                            ]),
+
+                        Infolists\Components\Grid::make(2)
+                            ->schema([
+                                Infolists\Components\TextEntry::make('effective_invoice_remaining')
+                                    ->label(__('billing::billing.fields.remaining'))
+                                    ->state(fn (Appointment $record) => $record->effective_invoice
+                                        ? max(0, $record->effective_invoice->total_minor - $record->effective_invoice->paid_minor)
+                                        : null)
+                                    ->money(current_currency(), divideBy: 100)
+                                    ->color(fn (Appointment $record) => ($record->effective_invoice && ($record->effective_invoice->total_minor - $record->effective_invoice->paid_minor) > 0) ? 'danger' : 'success')
+                                    ->placeholder('-'),
+
+                                Infolists\Components\TextEntry::make('effective_invoice_issued_at')
+                                    ->label(__('billing::billing.fields.issued_at'))
+                                    ->state(fn (Appointment $record) => $record->effective_invoice?->issued_at)
+                                    ->dateTime()
+                                    ->placeholder('-'),
+                            ]),
+                    ])
+                    ->visible(fn (Appointment $record): bool => $record->effective_invoice !== null)
+                    ->collapsible(),
+
                 Infolists\Components\Section::make(__('booking::appointments.sections.visit'))
                     ->schema([
                         Infolists\Components\Grid::make(4)
@@ -623,6 +721,6 @@ class AppointmentResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->with(['patient', 'service', 'practitioner', 'branch', 'room']);
+            ->with(['patient', 'service', 'practitioner', 'branch', 'room', 'invoice', 'packageSubscription.invoice']);
     }
 }

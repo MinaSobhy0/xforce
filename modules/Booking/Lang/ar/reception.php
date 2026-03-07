@@ -104,6 +104,9 @@ return [
         'marked_no_show' => 'تم التحديد كغائب',
         'marked_no_show_body' => 'تم تحديد :patient كغائب',
         'no_invoice' => 'لا توجد فاتورة لهذا الموعد',
+        'no_visit' => 'لا توجد زيارة لهذا الموعد',
+        'subscription_not_found' => 'اشتراك الباقة غير موجود',
+        'invoice_creation_failed' => 'فشل في إنشاء فاتورة للباقة',
     ],
 
     // Patient Flow
@@ -148,4 +151,8 @@ return [
     'unassigned' => 'غير معين',
     'no_room' => 'بدون غرفة',
     'unknown_patient' => 'مريض غير معروف',
+
+    // Package
+    'package_balance_due' => 'رصيد الباقة مستحق',
+    'package_paid' => 'الباقة مدفوعة',
 ];

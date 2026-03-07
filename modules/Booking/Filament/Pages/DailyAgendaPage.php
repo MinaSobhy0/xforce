@@ -16,6 +16,8 @@ use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
 use Filament\Tables;
 use Illuminate\Database\Eloquent\Builder;
+use Filament\Notifications\Notification;
+use Filament\Notifications\Actions\Action as NotificationAction;
 
 class DailyAgendaPage extends Page implements HasForms, HasTable
 {
@@ -135,7 +137,49 @@ class DailyAgendaPage extends Page implements HasForms, HasTable
                     ->color('warning')
                     ->requiresConfirmation()
                     ->visible(fn (Appointment $record): bool => $record->canTransitionTo(Appointment::STATUS_CHECKED_IN))
-                    ->action(fn (Appointment $record) => $record->checkIn()),
+                    ->action(function (Appointment $record) {
+                        $record->checkIn();
+
+                        // Check if this is a package session with unpaid balance
+                        if ($record->isPackageSession() && $record->packageSubscription) {
+                            $subscription = $record->packageSubscription;
+
+                            if ($subscription->hasBalance()) {
+                                $packageName = $subscription->package?->getTranslation('name', app()->getLocale()) ?? 'Package';
+                                $balance = format_money($subscription->balance_remaining_minor);
+                                $patientName = $record->patient?->full_name ?? 'Patient';
+
+                                Notification::make()
+                                    ->title(__('booking::appointments.notifications.package_balance_due'))
+                                    ->body(__('booking::appointments.notifications.package_balance_message', [
+                                        'patient' => $patientName,
+                                        'package' => $packageName,
+                                        'balance' => $balance,
+                                    ]))
+                                    ->warning()
+                                    ->persistent()
+                                    ->actions([
+                                        NotificationAction::make('pay')
+                                            ->label(__('booking::appointments.actions.pay_balance'))
+                                            ->url(route('filament.tenant.resources.package-subscriptions.view', $subscription->id))
+                                            ->button()
+                                            ->color('success'),
+                                        NotificationAction::make('dismiss')
+                                            ->label(__('booking::appointments.actions.dismiss'))
+                                            ->close(),
+                                    ])
+                                    ->send();
+
+                                return;
+                            }
+                        }
+
+                        // Regular check-in success notification
+                        Notification::make()
+                            ->title(__('booking::appointments.messages.checked_in'))
+                            ->success()
+                            ->send();
+                    }),
 
                 Tables\Actions\Action::make('start')
                     ->label(__('booking::appointments.actions.start'))

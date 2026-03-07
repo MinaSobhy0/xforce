@@ -3,8 +3,8 @@
 return [
     'name' => 'Billing',
 
-    // Default tax settings
-    'default_tax_rate' => 14,
+    // Default tax settings (0 = no tax, use TaxRate model for configurable rates)
+    'default_tax_rate' => 0,
     'tax_inclusive' => false,
 
     // Auto invoice settings

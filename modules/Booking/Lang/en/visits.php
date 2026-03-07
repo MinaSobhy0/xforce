@@ -48,6 +48,8 @@ return [
         'appointments' => 'Appointments',
         'products' => 'Products Sold',
         'billing' => 'Billing Summary',
+        'invoice_payments' => 'Invoice & Payments',
+        'payments' => 'Payment History',
     ],
 
     'filters' => [

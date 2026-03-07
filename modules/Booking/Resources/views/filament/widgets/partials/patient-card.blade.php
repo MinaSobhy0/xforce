@@ -11,12 +11,19 @@
     $hasBalance = $appointment->remaining_balance > 0;
     $canRecordPayment = in_array($appointment->status, ['checked_in', 'in_progress']) && $hasBalance;
 
-    // Check if appointment is completed with unpaid invoice
-    // Include draft status since auto-created invoices start as draft
+    // Package balance check
+    $packageSubscription = $appointment->isPackageSession() ? $appointment->packageSubscription : null;
+    $hasPackageBalance = $packageSubscription && $packageSubscription->hasBalance();
+    $packageBalanceAmount = $packageSubscription?->balance_remaining_minor ?? 0;
+    $packageName = $packageSubscription?->package?->getTranslation('name', app()->getLocale()) ?? '';
+
+    // Check if appointment is completed and has a visit that can be checked out
+    // Visit-based checkout: go to visit checkout page
+    $currentVisit = $appointment->current_visit;
     $canCheckout = $showCheckout
         && $appointment->status === 'completed'
-        && $appointment->invoice
-        && in_array($appointment->invoice->status, ['draft', 'issued', 'partially_paid']);
+        && $currentVisit
+        && $currentVisit->status === 'open';
 
     // Status colors and labels
     $statusConfig = [
@@ -84,6 +91,49 @@
                 </span>
             @endif
         </div>
+
+        {{-- Package Info/Balance --}}
+        @if($packageSubscription)
+            @if($hasPackageBalance)
+                {{-- Has balance due - amber warning, clickable --}}
+                <button
+                   type="button"
+                   wire:click="goToPackageInvoice('{{ $packageSubscription->id }}')"
+                   class="w-full flex items-center gap-2 p-2 rounded-lg bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors text-left">
+                    <div class="flex-shrink-0">
+                        <x-heroicon-o-exclamation-triangle class="w-5 h-5 text-amber-500" />
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-xs font-semibold text-amber-800 dark:text-amber-200">
+                            {{ __('booking::reception.package_balance_due') }}
+                        </p>
+                        <p class="text-xs text-amber-600 dark:text-amber-300 truncate">
+                            {{ $packageName }}: <span class="font-bold">{{ number_format($packageBalanceAmount / 100, 2) }} {{ current_currency() }}</span>
+                        </p>
+                    </div>
+                    <x-heroicon-o-arrow-right class="w-4 h-4 text-amber-500 flex-shrink-0" />
+                </button>
+            @else
+                {{-- Fully paid - green success, clickable to view invoice --}}
+                <button
+                   type="button"
+                   wire:click="goToPackageInvoice('{{ $packageSubscription->id }}')"
+                   class="w-full flex items-center gap-2 p-2 rounded-lg bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors text-left">
+                    <div class="flex-shrink-0">
+                        <x-heroicon-o-check-circle class="w-5 h-5 text-green-500" />
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-xs font-semibold text-green-800 dark:text-green-200">
+                            {{ __('booking::reception.package_paid') }}
+                        </p>
+                        <p class="text-xs text-green-600 dark:text-green-300 truncate">
+                            {{ $packageName }}: <span class="font-bold">0.00 {{ current_currency() }}</span>
+                        </p>
+                    </div>
+                    <x-heroicon-o-arrow-right class="w-4 h-4 text-green-500 flex-shrink-0" />
+                </button>
+            @endif
+        @endif
 
         {{-- Service --}}
         @if($appointment->service)

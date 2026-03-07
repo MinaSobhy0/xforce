@@ -52,7 +52,7 @@ class LinesRelationManager extends RelationManager
                                 $set('description', $service->name);
                                 $set('unit_price_minor', $service->base_price_minor / 100);
                                 $defaultTax = TaxRate::getDefault(TaxRate::TYPE_SALES);
-                                $set('tax_rates', $defaultTax ? [(string) $defaultTax->rate] : ['14']);
+                                $set('tax_rates', $defaultTax ? [(string) $defaultTax->rate] : []);
                             }
                         }
                     }),
@@ -128,7 +128,7 @@ class LinesRelationManager extends RelationManager
                     })
                     ->default(function () {
                         $default = TaxRate::getDefault(TaxRate::TYPE_SALES);
-                        return $default ? [(string) $default->rate] : ['14'];
+                        return $default ? [(string) $default->rate] : [];
                     }),
             ]);
     }

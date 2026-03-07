@@ -145,4 +145,6 @@ return [
         'package_sold_body' => ':package sold to :patient',
         'error' => 'Error',
     ],
+
+    'invoice_notes' => 'Package: :package - Valid for :days days',
 ];

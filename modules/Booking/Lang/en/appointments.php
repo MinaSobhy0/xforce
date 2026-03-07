@@ -53,6 +53,7 @@ return [
         'patient' => 'Patient Information',
         'schedule' => 'Schedule',
         'pricing' => 'Pricing',
+        'invoice' => 'Invoice',
         'visit' => 'Visit Information',
         'notes' => 'Notes',
         'timestamps' => 'Timestamps',
@@ -85,6 +86,13 @@ return [
         'cancel' => 'Cancel',
         'no_show' => 'Mark No-Show',
         'reschedule' => 'Reschedule',
+        'pay_balance' => 'Pay Balance',
+        'dismiss' => 'Dismiss',
+    ],
+
+    'notifications' => [
+        'package_balance_due' => 'Package Balance Due',
+        'package_balance_message' => ':patient has an outstanding balance of :balance for package ":package".',
     ],
 
     'minutes' => 'min',
@@ -135,6 +143,7 @@ return [
 
     // Appointment action messages (via signed URL)
     'messages' => [
+        'checked_in' => 'Patient checked in successfully',
         'invalid_link' => 'Invalid Link',
         'link_expired_description' => 'This link has expired or is invalid. Please contact the clinic for assistance.',
         'cannot_modify' => 'Cannot Modify Appointment',

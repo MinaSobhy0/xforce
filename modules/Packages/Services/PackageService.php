@@ -91,9 +91,8 @@ class PackageService
                 'created_by_user_id' => $createdByUserId,
             ]);
 
-            // Create invoice for the package
+            // Create invoice for the package (also links invoice to subscription)
             $invoice = $this->createPackageInvoice($subscription, $createdByUserId);
-            $subscription->update(['invoice_id' => $invoice->id]);
 
             // Create journal entry for deferred revenue
             $this->createPackageSaleJournalEntry($subscription, $invoice);
@@ -104,37 +103,55 @@ class PackageService
 
     /**
      * Create an invoice for a package subscription.
-     * Creates one line per package item with individual pricing.
+     * Creates a line item for each service in the package using the configured price
+     * and unearned revenue account from the service category.
      */
     public function createPackageInvoice(
         PackageSubscription $subscription,
         ?int $createdByUserId = null
     ): Invoice {
-        $package = $subscription->package;
+        $package = $subscription->package()->with('items.service.category')->first();
         $taxRates = $this->invoiceService->getDefaultTaxRates();
 
-        // Calculate totals from items
-        $items = $package->items()->with('service')->get();
+        // Calculate totals from all items
         $subtotalMinor = 0;
-        $totalTaxMinor = 0;
+        $taxMinor = 0;
         $totalMinor = 0;
 
-        $lineCalculations = [];
-        foreach ($items as $item) {
+        $lineData = [];
+        foreach ($package->items as $item) {
+            $lineTotal = $item->total_price_minor; // quantity * unit_price_minor
             $lineCalc = $this->invoiceService->calculateLine(
-                $item->unit_price_minor,
-                $item->quantity,
+                $lineTotal,
+                1,
                 0,
                 'fixed',
                 $taxRates
             );
-            $lineCalculations[] = [
-                'item' => $item,
-                'calculation' => $lineCalc,
-            ];
+
             $subtotalMinor += $lineCalc['subtotal_minor'];
-            $totalTaxMinor += $lineCalc['tax_minor'];
+            $taxMinor += $lineCalc['tax_minor'];
             $totalMinor += $lineCalc['total_minor'];
+
+            // Get unearned revenue account from service category
+            $unearnedAccountId = $item->service?->category?->unearned_revenue_account_id;
+
+            $lineData[] = [
+                'tenant_id' => $subscription->tenant_id,
+                'service_id' => $item->service_id,
+                'account_id' => $unearnedAccountId,
+                'line_type' => InvoiceLine::LINE_TYPE_PACKAGE,
+                'description' => $item->service?->translated_name ?? $package->translated_name,
+                'quantity' => $item->quantity,
+                'unit_price_minor' => $item->unit_price_minor,
+                'discount_minor' => 0,
+                'discount_type' => 'fixed',
+                'tax_rates' => $taxRates,
+                'tax_minor' => $lineCalc['tax_minor'],
+                'total_minor' => $lineCalc['total_minor'],
+                'package_subscription_id' => $subscription->id,
+                'sort_order' => $item->sort_order ?? 0,
+            ];
         }
 
         // Create invoice
@@ -145,44 +162,22 @@ class PackageService
             'type' => Invoice::TYPE_STANDARD,
             'subtotal_minor' => $subtotalMinor,
             'discount_minor' => 0,
-            'tax_minor' => $totalTaxMinor,
+            'tax_minor' => $taxMinor,
             'total_minor' => $totalMinor,
-            'notes' => "Package: {$package->translated_name} - Valid for {$package->validity_days} days",
+            'notes' => __('packages::packages.invoice_notes', [
+                'package' => $package->translated_name,
+                'days' => $package->validity_days,
+            ]),
             'created_by_user_id' => $createdByUserId,
         ]);
 
-        // Create one line per package item
-        foreach ($lineCalculations as $lineData) {
-            $item = $lineData['item'];
-            $lineCalc = $lineData['calculation'];
-
-            // Build description with service name and consumption type
-            $serviceName = $item->service?->translated_name ?? 'Service';
-            $unitLabel = $item->isSessionBased() ? 'sessions' : 'pulses';
-            $quantity = $item->quantity;
-
-            if ($item->isPulseBased() && $item->pulses_per_session) {
-                $totalUnits = $quantity * $item->pulses_per_session;
-                $description = "{$serviceName} ({$quantity} sessions × {$item->pulses_per_session} = {$totalUnits} pulses)";
-            } else {
-                $description = "{$serviceName} ({$quantity} {$unitLabel})";
-            }
-
-            $invoice->lines()->create([
-                'tenant_id' => $subscription->tenant_id,
-                'line_type' => InvoiceLine::LINE_TYPE_PACKAGE,
-                'service_id' => $item->service_id,
-                'description' => $description,
-                'quantity' => $item->quantity,
-                'unit_price_minor' => $item->unit_price_minor,
-                'discount_minor' => 0,
-                'discount_type' => 'fixed',
-                'tax_rates' => $taxRates,
-                'tax_minor' => $lineCalc['tax_minor'],
-                'total_minor' => $lineCalc['total_minor'],
-                'package_subscription_id' => $subscription->id,
-            ]);
+        // Create line items for each service
+        foreach ($lineData as $data) {
+            $invoice->lines()->create($data);
         }
+
+        // Link invoice to subscription
+        $subscription->update(['invoice_id' => $invoice->id]);
 
         return $invoice;
     }
@@ -192,7 +187,7 @@ class PackageService
      *
      * When package is sold:
      *   DR: Cash/Accounts Receivable (amount received/owed)
-     *   CR: Unearned Revenue/Deferred Revenue (package price)
+     *   CR: Unearned Revenue/Deferred Revenue (per service category)
      *
      * Note: The invoice is NOT issued yet - we defer revenue recognition.
      * The invoice journal entry is handled separately when invoice is issued.
@@ -208,19 +203,16 @@ class PackageService
             return null;
         }
 
-        // Get accounts
-        $unearnedRevenueAccount = $this->defaultAccounts->getPackageUnearnedRevenueAccount();
+        // Get default accounts
+        $defaultUnearnedAccount = $this->defaultAccounts->getPackageUnearnedRevenueAccount();
         $arAccount = $this->defaultAccounts->getPatientReceivableAccount();
 
-        if (!$unearnedRevenueAccount || !$arAccount) {
-            \Log::warning('PackageService: Required accounts not found');
+        if (!$arAccount) {
+            \Log::warning('PackageService: Accounts Receivable account not found');
             return null;
         }
 
-        // Store the unearned revenue account on the subscription
-        $subscription->update(['unearned_revenue_account_id' => $unearnedRevenueAccount->id]);
-
-        $package = $subscription->package;
+        $package = $subscription->package()->with('items.service.category')->first();
         $patient = $subscription->patient;
 
         // Create journal entry
@@ -252,17 +244,32 @@ class PackageService
             'partner_id' => $subscription->patient_id,
         ]);
 
-        // Credit: Unearned Revenue (package price before tax)
-        $entry->lines()->create([
-            'tenant_id' => $subscription->tenant_id,
-            'account_id' => $unearnedRevenueAccount->id,
-            'debit_minor' => 0,
-            'credit_minor' => $subscription->package_price_minor,
-            'description' => "Package: {$package->translated_name}",
-            'branch_id' => $subscription->branch_id,
-            'partner_type' => Patient::class,
-            'partner_id' => $subscription->patient_id,
-        ]);
+        // Credit: Unearned Revenue per service category
+        foreach ($package->items as $item) {
+            $unearnedAccountId = $item->service?->category?->unearned_revenue_account_id
+                ?? $defaultUnearnedAccount?->id;
+
+            if (!$unearnedAccountId) {
+                \Log::warning('PackageService: No unearned revenue account for service', [
+                    'service_id' => $item->service_id,
+                    'service_name' => $item->service?->translated_name,
+                ]);
+                continue;
+            }
+
+            $itemTotal = $item->total_price_minor; // quantity * unit_price_minor
+
+            $entry->lines()->create([
+                'tenant_id' => $subscription->tenant_id,
+                'account_id' => $unearnedAccountId,
+                'debit_minor' => 0,
+                'credit_minor' => $itemTotal,
+                'description' => "Service: {$item->service?->translated_name}",
+                'branch_id' => $subscription->branch_id,
+                'partner_type' => Patient::class,
+                'partner_id' => $subscription->patient_id,
+            ]);
+        }
 
         // Credit: Tax Payable (if applicable)
         if ($taxAmount > 0) {

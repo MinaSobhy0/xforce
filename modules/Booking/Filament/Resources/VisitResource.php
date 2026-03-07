@@ -427,14 +427,81 @@ class VisitResource extends Resource
                             ->weight('bold')
                             ->size(Infolists\Components\TextEntry\TextEntrySize::Large),
 
-                        Infolists\Components\TextEntry::make('invoice.code')
+                        Infolists\Components\TextEntry::make('effective_invoice_code')
                             ->label(__('booking::visits.fields.invoice'))
-                            ->url(fn (Visit $record) => $record->invoice_id
-                                ? \Modules\Billing\Filament\Resources\InvoiceResource::getUrl('view', ['record' => $record->invoice_id])
+                            ->state(fn (Visit $record) => $record->effective_invoice?->code)
+                            ->url(fn (Visit $record) => $record->effective_invoice
+                                ? \Modules\Billing\Filament\Resources\InvoiceResource::getUrl('view', ['record' => $record->effective_invoice->id])
                                 : null
                             )
                             ->color('success')
                             ->placeholder('-'),
+                    ]),
+
+                Infolists\Components\Section::make(__('booking::visits.sections.invoice_payments'))
+                    ->visible(fn (Visit $record) => $record->effective_invoice !== null)
+                    ->columns(4)
+                    ->schema([
+                        Infolists\Components\TextEntry::make('effective_invoice_status')
+                            ->label(__('billing::billing.fields.status'))
+                            ->state(fn (Visit $record) => $record->effective_invoice?->status)
+                            ->badge()
+                            ->formatStateUsing(fn ($state) => $state ? __('billing::billing.statuses.' . $state) : '-')
+                            ->color(fn (Visit $record): string => $record->effective_invoice?->status_color ?? 'gray'),
+
+                        Infolists\Components\TextEntry::make('effective_invoice_total')
+                            ->label(__('billing::billing.fields.total'))
+                            ->state(fn (Visit $record) => $record->effective_invoice?->total_minor)
+                            ->money(fn () => current_currency(), divideBy: 100),
+
+                        Infolists\Components\TextEntry::make('effective_invoice_paid')
+                            ->label(__('billing::billing.fields.paid'))
+                            ->state(fn (Visit $record) => $record->effective_invoice?->paid_minor)
+                            ->money(fn () => current_currency(), divideBy: 100)
+                            ->color('success'),
+
+                        Infolists\Components\TextEntry::make('effective_invoice_remaining')
+                            ->label(__('billing::billing.fields.remaining'))
+                            ->state(fn (Visit $record) => $record->effective_invoice
+                                ? max(0, $record->effective_invoice->total_minor - $record->effective_invoice->paid_minor)
+                                : 0)
+                            ->money(fn () => current_currency(), divideBy: 100)
+                            ->color(fn (Visit $record) => ($record->effective_invoice && ($record->effective_invoice->total_minor - $record->effective_invoice->paid_minor) > 0) ? 'danger' : 'success'),
+                    ]),
+
+                Infolists\Components\Section::make(__('booking::visits.sections.payments'))
+                    ->visible(fn (Visit $record) => $record->effective_invoice?->payments->isNotEmpty())
+                    ->schema([
+                        Infolists\Components\RepeatableEntry::make('effective_invoice_payments')
+                            ->hiddenLabel()
+                            ->state(fn (Visit $record) => $record->effective_invoice?->payments?->toArray() ?? [])
+                            ->schema([
+                                Infolists\Components\TextEntry::make('code')
+                                    ->label(__('billing::billing.fields.code'))
+                                    ->weight('bold'),
+
+                                Infolists\Components\TextEntry::make('journal.display_name')
+                                    ->label(__('billing::billing.relation.method')),
+
+                                Infolists\Components\TextEntry::make('amount_minor')
+                                    ->label(__('billing::billing.fields.amount'))
+                                    ->money(fn () => current_currency(), divideBy: 100)
+                                    ->color('success'),
+
+                                Infolists\Components\TextEntry::make('paid_at')
+                                    ->label(__('billing::billing.fields.paid_at'))
+                                    ->dateTime('M d, Y H:i'),
+
+                                Infolists\Components\TextEntry::make('reference_number')
+                                    ->label(__('billing::billing.fields.reference'))
+                                    ->placeholder('-'),
+
+                                Infolists\Components\TextEntry::make('receivedBy.name')
+                                    ->label(__('billing::billing.relation.received_by'))
+                                    ->placeholder('-'),
+                            ])
+                            ->columns(6)
+                            ->contained(false),
                     ]),
             ]);
     }
@@ -466,8 +533,11 @@ class VisitResource extends Resource
                 'appointments.practitioner',
                 'appointments.treatmentPlanAppointment',
                 'appointments.sessionData',
+                'appointments.packageSubscription.invoice.payments.journal',
+                'appointments.packageSubscription.invoice.payments.receivedBy',
                 'soldProducts.product',
-                'invoice',
+                'invoice.payments.journal',
+                'invoice.payments.receivedBy',
             ]);
     }
 }

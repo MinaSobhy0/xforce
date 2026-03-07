@@ -48,6 +48,8 @@ return [
         'appointments' => 'المواعيد',
         'products' => 'المنتجات المباعة',
         'billing' => 'ملخص الفوترة',
+        'invoice_payments' => 'الفاتورة والمدفوعات',
+        'payments' => 'سجل المدفوعات',
     ],
 
     'filters' => [

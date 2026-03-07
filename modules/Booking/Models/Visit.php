@@ -119,6 +119,30 @@ class Visit extends BaseModel
         return $this->belongsTo(Invoice::class);
     }
 
+    /**
+     * Get the effective invoice for this visit.
+     * Returns the visit's invoice, or for package-only visits, the package subscription's invoice.
+     */
+    public function getEffectiveInvoiceAttribute(): ?Invoice
+    {
+        // First check direct invoice
+        if ($this->invoice) {
+            return $this->invoice;
+        }
+
+        // For visits with only package appointments, get the first package subscription's invoice
+        $packageAppointments = $this->appointments->filter(fn ($apt) => $apt->isPackageSession());
+        if ($packageAppointments->isNotEmpty()) {
+            foreach ($packageAppointments as $apt) {
+                if ($apt->packageSubscription?->invoice) {
+                    return $apt->packageSubscription->invoice;
+                }
+            }
+        }
+
+        return null;
+    }
+
     public function appointments(): BelongsToMany
     {
         return $this->belongsToMany(Appointment::class, 'visit_appointments')

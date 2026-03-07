@@ -110,8 +110,8 @@ class RevenueRecognitionService
      * Create revenue recognition journal entry when a session is used.
      *
      * When session is delivered:
-     *   DR: Unearned Revenue (decrease liability)
-     *   CR: Service Revenue (increase income)
+     *   DR: Unearned Revenue (decrease liability) - from service category
+     *   CR: Service Revenue (increase income) - from service category
      */
     public function recognizeSessionRevenue(
         PackageSubscription $subscription,
@@ -125,12 +125,30 @@ class RevenueRecognitionService
             return null;
         }
 
-        // Get accounts
-        $unearnedRevenueAccount = $subscription->unearned_revenue_account_id
-            ? \Modules\Accounting\Models\ChartOfAccount::find($subscription->unearned_revenue_account_id)
-            : $this->defaultAccounts->getPackageUnearnedRevenueAccount();
+        // Get accounts from service category, fall back to defaults
+        $service = $usage->service()->with('category')->first();
+        $category = $service?->category;
 
-        $revenueAccount = $this->defaultAccounts->getPackageRevenueAccount();
+        // Unearned Revenue: service category -> subscription -> default
+        $unearnedRevenueAccount = null;
+        if ($category?->unearned_revenue_account_id) {
+            $unearnedRevenueAccount = \Modules\Accounting\Models\ChartOfAccount::find($category->unearned_revenue_account_id);
+        }
+        if (!$unearnedRevenueAccount && $subscription->unearned_revenue_account_id) {
+            $unearnedRevenueAccount = \Modules\Accounting\Models\ChartOfAccount::find($subscription->unearned_revenue_account_id);
+        }
+        if (!$unearnedRevenueAccount) {
+            $unearnedRevenueAccount = $this->defaultAccounts->getPackageUnearnedRevenueAccount();
+        }
+
+        // Service Revenue: service category -> default
+        $revenueAccount = null;
+        if ($category?->service_revenue_account_id) {
+            $revenueAccount = \Modules\Accounting\Models\ChartOfAccount::find($category->service_revenue_account_id);
+        }
+        if (!$revenueAccount) {
+            $revenueAccount = $this->defaultAccounts->getPackageRevenueAccount();
+        }
 
         if (!$unearnedRevenueAccount || !$revenueAccount) {
             \Log::warning('RevenueRecognitionService: Required accounts not found', [

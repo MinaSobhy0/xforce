@@ -145,4 +145,6 @@ return [
         'session_used' => 'تم استخدام الجلسة بنجاح',
         'no_active_packages' => 'لا توجد باقات نشطة',
     ],
+
+    'invoice_notes' => 'الباقة: :package - صالحة لمدة :days يوم',
 ];

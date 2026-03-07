@@ -11,6 +11,7 @@ use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Pages\Page;
 use Filament\Notifications\Notification;
+use Filament\Notifications\Actions\Action as NotificationAction;
 use Filament\Actions\Action;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -589,6 +590,40 @@ class DoctorDashboard extends Page implements HasForms
         }
 
         $appointment->checkIn();
+
+        // Check if this is a package session with unpaid balance
+        if ($appointment->isPackageSession() && $appointment->packageSubscription) {
+            $subscription = $appointment->packageSubscription;
+
+            if ($subscription->hasBalance()) {
+                $packageName = $subscription->package?->getTranslation('name', app()->getLocale()) ?? 'Package';
+                $balance = format_money($subscription->balance_remaining_minor);
+                $patientName = $appointment->patient?->full_name ?? 'Patient';
+
+                Notification::make()
+                    ->title(__('booking::appointments.notifications.package_balance_due'))
+                    ->body(__('booking::appointments.notifications.package_balance_message', [
+                        'patient' => $patientName,
+                        'package' => $packageName,
+                        'balance' => $balance,
+                    ]))
+                    ->warning()
+                    ->persistent()
+                    ->actions([
+                        NotificationAction::make('pay')
+                            ->label(__('booking::appointments.actions.pay_balance'))
+                            ->url(route('filament.tenant.resources.package-subscriptions.view', $subscription->id))
+                            ->button()
+                            ->color('success'),
+                        NotificationAction::make('dismiss')
+                            ->label(__('booking::appointments.actions.dismiss'))
+                            ->close(),
+                    ])
+                    ->send();
+
+                return;
+            }
+        }
 
         Notification::make()
             ->title(__('booking::dashboard.messages.patient_checked_in'))

@@ -317,7 +317,7 @@ class Invoice extends BaseModel
      * Deduct stock for all product lines in this invoice.
      *
      * Odoo-like behavior:
-     * - Storable products: Stock is deducted and tracked
+     * - Storable products: Stock is deducted and tracked, journal entry created
      * - Consumable products: No stock deduction (assumed always available)
      */
     protected function deductStockForProductLines(): void
@@ -328,6 +328,8 @@ class Invoice extends BaseModel
             ->with('product')
             ->get();
 
+        $inventoryAccountingService = app(\Modules\Inventory\Services\InventoryAccountingService::class);
+
         foreach ($productLines as $line) {
             // Only deduct stock for storable products
             if (!$line->product || !$line->product->tracksInventory()) {
@@ -336,13 +338,29 @@ class Invoice extends BaseModel
 
             $stockLevel = StockLevel::getOrCreate($line->product_id, $this->branch_id);
 
-            $stockLevel->decrease(
+            $movement = $stockLevel->decrease(
                 (int) $line->quantity,
                 StockMovement::TYPE_INVOICE_SALE,
                 'invoice',
                 $this->id,
                 "Sale: Invoice #{$this->code}"
             );
+
+            // Create journal entry for the stock consumption (COGS)
+            // Value = quantity * cost price
+            $costValueMinor = (int) $line->quantity * ($line->product->cost_price_minor ?? 0);
+            if ($costValueMinor > 0) {
+                $journalEntry = $inventoryAccountingService->createStockConsumptionEntry(
+                    $movement,
+                    $costValueMinor / 100, // Convert to major for the service
+                    "COGS: {$line->product->name} x {$line->quantity} - Invoice #{$this->code}"
+                );
+
+                // Link journal entry to stock movement
+                if ($journalEntry) {
+                    $movement->update(['journal_entry_id' => $journalEntry->id]);
+                }
+            }
         }
     }
 
@@ -440,6 +458,54 @@ class Invoice extends BaseModel
             $this->transitionTo(self::STATUS_PAID);
         } elseif ($this->paid_minor > 0 && $this->status !== self::STATUS_PARTIALLY_PAID) {
             $this->transitionTo(self::STATUS_PARTIALLY_PAID);
+        }
+
+        // Update package subscription balance if this invoice has package lines
+        $this->updatePackageSubscriptionBalances($amountMinor);
+    }
+
+    /**
+     * Update package subscription balances when payment is recorded.
+     */
+    protected function updatePackageSubscriptionBalances(int $paymentAmount): void
+    {
+        // Get unique package subscription IDs from invoice lines
+        $subscriptionIds = $this->lines()
+            ->whereNotNull('package_subscription_id')
+            ->pluck('package_subscription_id')
+            ->unique()
+            ->values();
+
+        if ($subscriptionIds->isEmpty()) {
+            return;
+        }
+
+        // For each subscription, update the balance
+        foreach ($subscriptionIds as $subscriptionId) {
+            $subscription = \Modules\Packages\Models\PackageSubscription::find($subscriptionId);
+            if ($subscription) {
+                // Calculate the payment to apply to this subscription
+                $packageLineTotal = $this->lines()
+                    ->where('package_subscription_id', $subscriptionId)
+                    ->sum('total_minor');
+
+                $invoiceTotal = $this->total_minor;
+
+                if ($invoiceTotal > 0 && $packageLineTotal > 0) {
+                    // Proportional payment for this subscription's lines
+                    $proportionalPayment = (int) round(($packageLineTotal / $invoiceTotal) * $paymentAmount);
+
+                    // Apply payment to balance (capped at remaining balance)
+                    $paymentToApply = min($proportionalPayment, $subscription->balance_remaining_minor);
+
+                    if ($paymentToApply > 0) {
+                        $subscription->update([
+                            'balance_remaining_minor' => $subscription->balance_remaining_minor - $paymentToApply,
+                            'deposit_paid_minor' => $subscription->deposit_paid_minor + $paymentToApply,
+                        ]);
+                    }
+                }
+            }
         }
     }
 

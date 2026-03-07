@@ -137,6 +137,51 @@ class PatientFlowWidget extends Widget implements HasForms
         }
 
         if ($appointment->checkIn()) {
+            // Check if this is a package session with unpaid balance
+            if ($appointment->isPackageSession() && $appointment->packageSubscription) {
+                $subscription = $appointment->packageSubscription;
+
+                if ($subscription->hasBalance()) {
+                    $packageName = $subscription->package?->getTranslation('name', app()->getLocale()) ?? 'Package';
+                    $balance = format_money($subscription->balance_remaining_minor);
+                    $patientName = $appointment->patient?->full_name ?? 'Patient';
+
+                    $notification = \Filament\Notifications\Notification::make()
+                        ->title(__('booking::appointments.notifications.package_balance_due'))
+                        ->body(__('booking::appointments.notifications.package_balance_message', [
+                            'patient' => $patientName,
+                            'package' => $packageName,
+                            'balance' => $balance,
+                        ]))
+                        ->warning()
+                        ->persistent();
+
+                    // Add pay action only if invoice exists
+                    if ($subscription->invoice_id) {
+                        $notification->actions([
+                            \Filament\Notifications\Actions\Action::make('pay')
+                                ->label(__('booking::appointments.actions.pay_balance'))
+                                ->url(route('filament.tenant.resources.invoices.view', ['record' => $subscription->invoice_id]))
+                                ->button()
+                                ->color('success'),
+                            \Filament\Notifications\Actions\Action::make('dismiss')
+                                ->label(__('booking::appointments.actions.dismiss'))
+                                ->close(),
+                        ]);
+                    } else {
+                        $notification->actions([
+                            \Filament\Notifications\Actions\Action::make('dismiss')
+                                ->label(__('booking::appointments.actions.dismiss'))
+                                ->close(),
+                        ]);
+                    }
+
+                    $notification->send();
+
+                    return;
+                }
+            }
+
             \Filament\Notifications\Notification::make()
                 ->title(__('booking::reception.messages.checked_in'))
                 ->body(__('booking::reception.messages.checked_in_body', [
@@ -383,22 +428,78 @@ class PatientFlowWidget extends Widget implements HasForms
     }
 
     /**
-     * Navigate to invoice page for checkout.
+     * Navigate to visit checkout page.
      */
     public function goToCheckout(string $appointmentId): void
     {
-        $appointment = Appointment::with('invoice')->find($appointmentId);
+        $appointment = Appointment::with('visits')->find($appointmentId);
 
-        if (!$appointment || !$appointment->invoice) {
+        if (!$appointment) {
             \Filament\Notifications\Notification::make()
-                ->title(__('booking::reception.messages.no_invoice'))
+                ->title(__('booking::reception.messages.appointment_not_found'))
+                ->danger()
+                ->send();
+            return;
+        }
+
+        // Get the current visit for this appointment
+        $visit = $appointment->current_visit;
+
+        if (!$visit) {
+            \Filament\Notifications\Notification::make()
+                ->title(__('booking::reception.messages.no_visit'))
                 ->danger()
                 ->send();
             return;
         }
 
         $this->redirect(
-            route('filament.tenant.resources.invoices.view', ['record' => $appointment->invoice->id])
+            \Modules\Booking\Filament\Pages\Checkout::getUrl(['visit_id' => $visit->id])
+        );
+    }
+
+    /**
+     * Navigate to package subscription invoice for balance payment.
+     * Creates the invoice if it doesn't exist.
+     */
+    public function goToPackageInvoice(string $subscriptionId): void
+    {
+        $subscription = \Modules\Packages\Models\PackageSubscription::with('invoice')->find($subscriptionId);
+
+        if (!$subscription) {
+            \Filament\Notifications\Notification::make()
+                ->title(__('booking::reception.messages.subscription_not_found'))
+                ->danger()
+                ->send();
+            return;
+        }
+
+        // Check if invoice exists (not deleted)
+        $invoiceExists = $subscription->invoice_id &&
+            \Modules\Billing\Models\Invoice::where('id', $subscription->invoice_id)->exists();
+
+        // If no invoice exists or was deleted, create a new one
+        if (!$invoiceExists) {
+            try {
+                // Clear old invoice_id if it was deleted
+                if ($subscription->invoice_id) {
+                    $subscription->update(['invoice_id' => null]);
+                }
+
+                $packageService = app(\Modules\Packages\Services\PackageService::class);
+                $packageService->createPackageInvoice($subscription, auth()->id());
+                $subscription->refresh();
+            } catch (\Exception $e) {
+                \Filament\Notifications\Notification::make()
+                    ->title(__('booking::reception.messages.invoice_creation_failed'))
+                    ->danger()
+                    ->send();
+                return;
+            }
+        }
+
+        $this->redirect(
+            route('filament.tenant.resources.invoices.view', ['record' => $subscription->invoice_id])
         );
     }
 }

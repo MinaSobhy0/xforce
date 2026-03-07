@@ -53,6 +53,7 @@ return [
         'patient' => 'معلومات المريض',
         'schedule' => 'الجدولة',
         'pricing' => 'التسعير',
+        'invoice' => 'الفاتورة',
         'visit' => 'معلومات الزيارة',
         'notes' => 'الملاحظات',
         'timestamps' => 'التواريخ',
@@ -85,6 +86,13 @@ return [
         'cancel' => 'إلغاء',
         'no_show' => 'لم يحضر',
         'reschedule' => 'إعادة جدولة',
+        'pay_balance' => 'دفع الرصيد',
+        'dismiss' => 'تجاهل',
+    ],
+
+    'notifications' => [
+        'package_balance_due' => 'رصيد الباقة مستحق',
+        'package_balance_message' => ':patient لديه رصيد مستحق بقيمة :balance لباقة ":package".',
     ],
 
     'minutes' => 'دقيقة',
@@ -135,6 +143,7 @@ return [
 
     // Appointment action messages (via signed URL)
     'messages' => [
+        'checked_in' => 'تم تسجيل وصول المريض بنجاح',
         'invalid_link' => 'رابط غير صالح',
         'link_expired_description' => 'انتهت صلاحية هذا الرابط أو أنه غير صالح. يرجى التواصل مع العيادة للمساعدة.',
         'cannot_modify' => 'لا يمكن تعديل الموعد',

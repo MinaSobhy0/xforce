@@ -2,6 +2,7 @@
 
 namespace Modules\Booking\Livewire;
 
+use App\Services\BranchContext;
 use Livewire\Component;
 use Modules\Packages\Models\PackageSubscription;
 use Modules\Packages\Models\Package;
@@ -74,17 +75,28 @@ class PatientPackages extends Component
             return;
         }
 
-        $package = Package::find($this->newPackageId);
+        $package = Package::with('items')->find($this->newPackageId);
         if (!$package) {
             return;
         }
 
+        // Calculate effective price from package items
+        $priceMinor = $package->effective_price_minor;
+
         $subscription = PackageSubscription::create([
             'patient_id' => $this->patientId,
             'package_id' => $this->newPackageId,
+            'branch_id' => BranchContext::currentId(),
+            'package_price_minor' => $priceMinor,
+            'deposit_paid_minor' => 0,
+            'balance_remaining_minor' => $priceMinor,
+            'recognized_revenue_minor' => 0,
+            'unrecognized_revenue_minor' => $priceMinor,
             'status' => PackageSubscription::STATUS_ACTIVE,
+            'activation_rule' => PackageSubscription::ACTIVATION_IMMEDIATE,
             'purchased_at' => now(),
-            'expires_at' => now()->addDays($package->validity_days),
+            'expires_at' => now()->addDays($package->validity_days ?? 365),
+            'created_by_user_id' => auth()->id(),
         ]);
 
         // Auto-create treatment plan from package subscription

@@ -26,6 +26,7 @@ class StockMovement extends BaseModel
         'destination_location_id',
         'notes',
         'created_by',
+        'journal_entry_id',
     ];
 
     protected $casts = [
@@ -134,6 +135,14 @@ class StockMovement extends BaseModel
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(\Modules\Auth\Models\User::class, 'created_by');
+    }
+
+    /**
+     * Get the linked journal entry.
+     */
+    public function journalEntry(): BelongsTo
+    {
+        return $this->belongsTo(\Modules\Accounting\Models\JournalEntry::class, 'journal_entry_id');
     }
 
     /**

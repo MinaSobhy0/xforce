@@ -170,7 +170,7 @@ class ViewInvoice extends BaseViewRecord
                                         $set('unit_price', $service->base_price_minor / 100);
                                         $set('account_id', $service->account_id ?? ChartOfAccount::where('type', ChartOfAccount::TYPE_INCOME)->where('is_active', true)->first()?->id);
                                         $defaultTax = TaxRate::getDefault(TaxRate::TYPE_SALES);
-                                        $set('tax_rates', $defaultTax ? [(string) $defaultTax->rate] : ['14']);
+                                        $set('tax_rates', $defaultTax ? [(string) $defaultTax->rate] : []);
                                     }
                                 }
                             })
@@ -248,7 +248,7 @@ class ViewInvoice extends BaseViewRecord
                             })
                             ->default(function () {
                                 $default = TaxRate::getDefault(TaxRate::TYPE_SALES);
-                                return $default ? [(string) $default->rate] : ['14'];
+                                return $default ? [(string) $default->rate] : [];
                             })
                             ->columnSpan(1),
 
@@ -301,7 +301,7 @@ class ViewInvoice extends BaseViewRecord
             'unit_price' => 0,
             'discount_type' => 'fixed',
             'discount' => 0,
-            'tax_rates' => $defaultTax ? [(string) $defaultTax->rate] : ['14'],
+            'tax_rates' => $defaultTax ? [(string) $defaultTax->rate] : [],
         ];
     }
 

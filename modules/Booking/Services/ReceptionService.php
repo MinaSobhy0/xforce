@@ -121,7 +121,7 @@ class ReceptionService
         $date = $date ?? today();
 
         $query = Appointment::query()
-            ->with(['patient', 'service', 'practitioner', 'room', 'invoice'])
+            ->with(['patient', 'service', 'practitioner', 'room', 'invoice', 'packageSubscription.package', 'visits'])
             ->forDate($date)
             ->ordered();
 
@@ -285,12 +285,12 @@ class ReceptionService
             ->orderBy('name')
             ->get();
 
-        // Get appointments that are in rooms (checked_in with room_id)
+        // Get appointments that are in rooms (checked_in or in_progress with room_id)
         $query = Appointment::query()
-            ->with(['patient', 'service', 'practitioner', 'room'])
+            ->with(['patient', 'service', 'practitioner', 'room', 'packageSubscription.package'])
             ->forDate($date)
             ->whereNotNull('room_id')
-            ->where('status', Appointment::STATUS_CHECKED_IN)
+            ->whereIn('status', [Appointment::STATUS_CHECKED_IN, Appointment::STATUS_IN_PROGRESS])
             ->ordered();
 
         if ($branchId) {

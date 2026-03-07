@@ -248,6 +248,26 @@ class Appointment extends BaseModel
     }
 
     /**
+     * Get the effective invoice for this appointment.
+     * For package sessions, returns the package subscription's invoice.
+     * For regular appointments, returns the direct invoice.
+     */
+    public function getEffectiveInvoiceAttribute(): ?\Modules\Billing\Models\Invoice
+    {
+        // First check direct invoice
+        if ($this->invoice) {
+            return $this->invoice;
+        }
+
+        // For package sessions, check the package subscription's invoice
+        if ($this->isPackageSession() && $this->packageSubscription?->invoice) {
+            return $this->packageSubscription->invoice;
+        }
+
+        return null;
+    }
+
+    /**
      * Get total consumables cost for this appointment.
      */
     public function getTotalConsumablesCostAttribute(): int

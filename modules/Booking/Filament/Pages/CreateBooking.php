@@ -1353,13 +1353,24 @@ class CreateBooking extends Page implements HasForms
                             'search_path' => $searchPath,
                         ]);
 
+                        // Load items to calculate effective price
+                        $package->load('items');
+                        $priceMinor = $package->effective_price_minor;
+
                         $subscription = PackageSubscription::create([
                             'patient_id' => $data['patient_id'],
                             'package_id' => $package->id,
+                            'branch_id' => $data['branch_id'],
+                            'package_price_minor' => $priceMinor,
+                            'deposit_paid_minor' => 0,
+                            'balance_remaining_minor' => $priceMinor,
+                            'recognized_revenue_minor' => 0,
+                            'unrecognized_revenue_minor' => $priceMinor,
                             'status' => PackageSubscription::STATUS_ACTIVE,
+                            'activation_rule' => PackageSubscription::ACTIVATION_IMMEDIATE,
                             'purchased_at' => now(),
-                            'expires_at' => now()->addDays($package->validity_days),
-                            'amount_paid_minor' => $package->base_price_minor,
+                            'expires_at' => now()->addDays($package->validity_days ?? 365),
+                            'created_by_user_id' => auth()->id(),
                         ]);
                         $newPackageSubscriptions[$item['new_package_id']] = $subscription->id;
                     }
