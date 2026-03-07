@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Modules\Marketing\Http\Controllers\WhatsAppWebhookController;
 
 /*
 |--------------------------------------------------------------------------
@@ -13,20 +14,13 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-// WhatsApp webhook for status updates
-Route::post('webhooks/whatsapp', function () {
-    // TODO: Implement WhatsApp webhook handler
-    return response()->json(['status' => 'ok']);
-})->name('marketing.webhooks.whatsapp');
+// WhatsApp webhook routes
+Route::prefix('webhooks/whatsapp')->group(function () {
+    // POST - Handle incoming messages and status updates
+    Route::post('/', [WhatsAppWebhookController::class, 'handle'])
+        ->name('marketing.webhooks.whatsapp');
 
-// WhatsApp webhook verification (GET request from Meta)
-Route::get('webhooks/whatsapp', function (\Illuminate\Http\Request $request) {
-    $verifyToken = config('marketing.whatsapp.webhook_verify_token');
-
-    if ($request->get('hub_mode') === 'subscribe' &&
-        $request->get('hub_verify_token') === $verifyToken) {
-        return response($request->get('hub_challenge'));
-    }
-
-    return response('Forbidden', 403);
-})->name('marketing.webhooks.whatsapp.verify');
+    // GET - Webhook verification from Meta
+    Route::get('/', [WhatsAppWebhookController::class, 'verify'])
+        ->name('marketing.webhooks.whatsapp.verify');
+});

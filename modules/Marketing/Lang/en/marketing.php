@@ -23,6 +23,7 @@ return [
         'template_details' => 'Template Details',
         'content' => 'Content',
         'whatsapp_settings' => 'WhatsApp Settings',
+        'interactive_buttons' => 'Interactive Buttons',
         'settings' => 'Settings',
         'campaign_details' => 'Campaign Details',
         'message_settings' => 'Message Settings',
@@ -101,6 +102,36 @@ return [
         'operator' => 'Operator',
         'value' => 'Value',
         'priority' => 'Priority',
+        'header_type' => 'Header Type',
+        'header_text_en' => 'Header Text (English)',
+        'header_text_ar' => 'Header Text (Arabic)',
+        'header_media_url' => 'Media URL',
+        'header_filename' => 'Filename',
+        'footer' => 'Footer',
+        'buttons' => 'Buttons',
+        'button_label' => 'Button Label',
+        'button_action' => 'Action',
+        'custom_payload' => 'Custom Payload',
+    ],
+
+    'button_types' => [
+        'quick_reply' => 'Quick Reply',
+        'url' => 'URL',
+        'phone' => 'Phone Call',
+    ],
+
+    'button_actions' => [
+        'confirm_appointment' => 'Confirm Appointment',
+        'reschedule_appointment' => 'Reschedule Appointment',
+        'cancel_appointment' => 'Cancel Appointment',
+        'custom' => 'Custom Action',
+    ],
+
+    'header_types' => [
+        'none' => 'None',
+        'text' => 'Text',
+        'image' => 'Image',
+        'document' => 'Document',
     ],
 
     'channels' => [
@@ -222,6 +253,10 @@ return [
         'whatsapp_template' => 'The template name as registered with Meta Business. Required for business-initiated messages.',
         'scheduled_at' => 'Leave empty to save as draft. Set a date to schedule the campaign.',
         'priority' => 'Higher priority rules are evaluated first. Use this when multiple rules could match the same trigger.',
+        'interactive_buttons' => 'Add interactive buttons to WhatsApp messages. Maximum 3 buttons allowed.',
+        'footer_limit' => 'Maximum 60 characters',
+        'button_label_limit' => 'Maximum 20 characters',
+        'custom_payload' => 'Custom data to send when button is clicked',
     ],
 
     'messages' => [
@@ -251,5 +286,11 @@ return [
         'whatsapp' => 'WhatsApp',
         'sms' => 'SMS',
         'email' => 'Email',
+    ],
+
+    'button_responses' => [
+        'appointment_confirmed' => 'Thank you! Your appointment has been confirmed. We look forward to seeing you.',
+        'reschedule_requested' => 'We received your reschedule request. Our team will contact you shortly to arrange a new appointment time.',
+        'appointment_cancelled' => 'Your appointment has been cancelled. If you need to book a new appointment, please contact us.',
     ],
 ];

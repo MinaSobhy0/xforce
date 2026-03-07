@@ -23,6 +23,7 @@ return [
         'template_details' => 'تفاصيل القالب',
         'content' => 'المحتوى',
         'whatsapp_settings' => 'إعدادات واتساب',
+        'interactive_buttons' => 'الأزرار التفاعلية',
         'settings' => 'الإعدادات',
         'campaign_details' => 'تفاصيل الحملة',
         'message_settings' => 'إعدادات الرسالة',
@@ -101,6 +102,36 @@ return [
         'operator' => 'المشغل',
         'value' => 'القيمة',
         'priority' => 'الأولوية',
+        'header_type' => 'نوع الرأس',
+        'header_text_en' => 'نص الرأس (الإنجليزية)',
+        'header_text_ar' => 'نص الرأس (العربية)',
+        'header_media_url' => 'رابط الوسائط',
+        'header_filename' => 'اسم الملف',
+        'footer' => 'التذييل',
+        'buttons' => 'الأزرار',
+        'button_label' => 'نص الزر',
+        'button_action' => 'الإجراء',
+        'custom_payload' => 'بيانات مخصصة',
+    ],
+
+    'button_types' => [
+        'quick_reply' => 'رد سريع',
+        'url' => 'رابط',
+        'phone' => 'اتصال هاتفي',
+    ],
+
+    'button_actions' => [
+        'confirm_appointment' => 'تأكيد الموعد',
+        'reschedule_appointment' => 'إعادة جدولة الموعد',
+        'cancel_appointment' => 'إلغاء الموعد',
+        'custom' => 'إجراء مخصص',
+    ],
+
+    'header_types' => [
+        'none' => 'بدون',
+        'text' => 'نص',
+        'image' => 'صورة',
+        'document' => 'مستند',
     ],
 
     'channels' => [
@@ -222,6 +253,10 @@ return [
         'whatsapp_template' => 'اسم القالب المسجل لدى Meta Business. مطلوب للرسائل التي يبدأها العمل.',
         'scheduled_at' => 'اتركه فارغاً للحفظ كمسودة. حدد تاريخاً لجدولة الحملة.',
         'priority' => 'القواعد ذات الأولوية الأعلى تُقيّم أولاً. استخدم هذا عندما تتطابق عدة قواعد مع نفس المحفز.',
+        'interactive_buttons' => 'أضف أزرار تفاعلية لرسائل واتساب. الحد الأقصى 3 أزرار.',
+        'footer_limit' => 'الحد الأقصى 60 حرف',
+        'button_label_limit' => 'الحد الأقصى 20 حرف',
+        'custom_payload' => 'بيانات مخصصة تُرسل عند النقر على الزر',
     ],
 
     'messages' => [
@@ -251,5 +286,11 @@ return [
         'whatsapp' => 'واتساب',
         'sms' => 'رسالة نصية',
         'email' => 'بريد إلكتروني',
+    ],
+
+    'button_responses' => [
+        'appointment_confirmed' => 'شكراً لك! تم تأكيد موعدك. نتطلع لرؤيتك.',
+        'reschedule_requested' => 'تم استلام طلب إعادة الجدولة. سيتواصل معك فريقنا قريباً لترتيب موعد جديد.',
+        'appointment_cancelled' => 'تم إلغاء موعدك. إذا كنت بحاجة لحجز موعد جديد، يرجى التواصل معنا.',
     ],
 ];

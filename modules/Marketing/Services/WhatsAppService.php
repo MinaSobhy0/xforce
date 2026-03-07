@@ -166,6 +166,118 @@ class WhatsAppService
     }
 
     /**
+     * Send an interactive message with buttons.
+     */
+    public function sendInteractiveMessage(string $to, array $interactive): array
+    {
+        if (!$this->isEnabled()) {
+            return [
+                'success' => false,
+                'error' => 'WhatsApp is not configured',
+            ];
+        }
+
+        try {
+            $payload = [
+                'messaging_product' => 'whatsapp',
+                'recipient_type' => 'individual',
+                'to' => $this->formatPhoneNumber($to),
+                'type' => 'interactive',
+                'interactive' => $interactive,
+            ];
+
+            $response = Http::withToken($this->accessToken)
+                ->post($this->getApiUrl('/messages'), $payload);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                return [
+                    'success' => true,
+                    'message_id' => $data['messages'][0]['id'] ?? null,
+                    'response' => $data,
+                ];
+            }
+
+            return [
+                'success' => false,
+                'error' => $response->json('error.message', 'Unknown error'),
+                'response' => $response->json(),
+            ];
+        } catch (\Exception $e) {
+            Log::error('WhatsApp interactive message send failed', [
+                'to' => $to,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Send a message using a template with buttons (interactive message).
+     */
+    public function sendMessageWithButtons(
+        string $to,
+        \Modules\Marketing\Models\MessageTemplate $template,
+        array $variables,
+        ?string $locale = null
+    ): array {
+        if (!$template->hasButtons()) {
+            // Fall back to text message if no buttons
+            $rendered = $template->render($variables, $locale);
+            return $this->sendTextMessage($to, $rendered['content']);
+        }
+
+        $interactive = $template->buildInteractivePayload($variables, $locale);
+        return $this->sendInteractiveMessage($to, $interactive);
+    }
+
+    /**
+     * Parse incoming button click from webhook.
+     */
+    public function parseButtonCallback(array $payload): ?array
+    {
+        $messages = $payload['entry'][0]['changes'][0]['value']['messages'] ?? [];
+
+        if (empty($messages)) {
+            return null;
+        }
+
+        $message = $messages[0];
+
+        // Check if this is an interactive reply (button click)
+        if (($message['type'] ?? '') !== 'interactive') {
+            return null;
+        }
+
+        $interactive = $message['interactive'] ?? [];
+
+        if (($interactive['type'] ?? '') !== 'button_reply') {
+            return null;
+        }
+
+        $buttonReply = $interactive['button_reply'] ?? [];
+        $buttonId = $buttonReply['id'] ?? '';
+
+        // Parse the button ID to get action and reference
+        $parsed = \Modules\Marketing\Models\MessageTemplate::parseButtonCallback($buttonId);
+
+        return [
+            'from' => $message['from'] ?? null,
+            'message_id' => $message['id'] ?? null,
+            'button_id' => $buttonId,
+            'button_title' => $buttonReply['title'] ?? null,
+            'action' => $parsed['action'],
+            'reference_id' => $parsed['reference_id'],
+            'template_code' => $parsed['template_code'],
+            'timestamp' => $message['timestamp'] ?? null,
+        ];
+    }
+
+    /**
      * Get message status from webhook payload.
      */
     public function parseWebhookStatus(array $payload): ?array

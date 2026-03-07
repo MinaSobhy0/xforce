@@ -145,6 +145,71 @@ class MessageTemplateResource extends Resource
                     ->visible(fn (Forms\Get $get) => $get('channel') === 'whatsapp')
                     ->collapsible(),
 
+                Forms\Components\Section::make(__('marketing::marketing.sections.interactive_buttons'))
+                    ->description(__('marketing::marketing.helpers.interactive_buttons'))
+                    ->schema([
+                        Forms\Components\Select::make('header_type')
+                            ->label(__('marketing::marketing.fields.header_type'))
+                            ->options(MessageTemplate::headerTypes())
+                            ->default('none')
+                            ->live(),
+
+                        Forms\Components\Grid::make(2)
+                            ->schema([
+                                Forms\Components\TextInput::make('header_content.en')
+                                    ->label(__('marketing::marketing.fields.header_text_en'))
+                                    ->visible(fn (Forms\Get $get) => $get('header_type') === 'text'),
+
+                                Forms\Components\TextInput::make('header_content.ar')
+                                    ->label(__('marketing::marketing.fields.header_text_ar'))
+                                    ->visible(fn (Forms\Get $get) => $get('header_type') === 'text'),
+                            ]),
+
+                        Forms\Components\TextInput::make('header_content.url')
+                            ->label(__('marketing::marketing.fields.header_media_url'))
+                            ->url()
+                            ->visible(fn (Forms\Get $get) => in_array($get('header_type'), ['image', 'document'])),
+
+                        Forms\Components\TextInput::make('header_content.filename')
+                            ->label(__('marketing::marketing.fields.header_filename'))
+                            ->visible(fn (Forms\Get $get) => $get('header_type') === 'document'),
+
+                        Forms\Components\TextInput::make('footer')
+                            ->label(__('marketing::marketing.fields.footer'))
+                            ->maxLength(60)
+                            ->helperText(__('marketing::marketing.helpers.footer_limit')),
+
+                        Forms\Components\Repeater::make('buttons_json')
+                            ->label(__('marketing::marketing.fields.buttons'))
+                            ->schema([
+                                Forms\Components\TextInput::make('label')
+                                    ->label(__('marketing::marketing.fields.button_label'))
+                                    ->required()
+                                    ->maxLength(20)
+                                    ->helperText(__('marketing::marketing.helpers.button_label_limit')),
+
+                                Forms\Components\Select::make('action')
+                                    ->label(__('marketing::marketing.fields.button_action'))
+                                    ->options(MessageTemplate::buttonActions())
+                                    ->required()
+                                    ->live(),
+
+                                Forms\Components\TextInput::make('custom_payload')
+                                    ->label(__('marketing::marketing.fields.custom_payload'))
+                                    ->visible(fn (Forms\Get $get) => $get('action') === 'custom')
+                                    ->helperText(__('marketing::marketing.helpers.custom_payload')),
+                            ])
+                            ->columns(3)
+                            ->maxItems(3)
+                            ->defaultItems(0)
+                            ->reorderable()
+                            ->collapsible()
+                            ->itemLabel(fn (array $state): ?string => $state['label'] ?? null),
+                    ])
+                    ->visible(fn (Forms\Get $get) => $get('channel') === 'whatsapp')
+                    ->collapsible()
+                    ->collapsed(),
+
                 Forms\Components\Section::make(__('marketing::marketing.sections.settings'))
                     ->schema([
                         Forms\Components\Toggle::make('is_active')
