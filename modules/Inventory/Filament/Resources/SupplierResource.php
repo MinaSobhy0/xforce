@@ -21,7 +21,7 @@ class SupplierResource extends Resource
 
     protected static ?string $moduleCode = 'inventory';
 
-    protected static ?string $permissionKey = 'products';
+    protected static ?string $permissionKey = 'suppliers';
 
     protected static ?string $navigationIcon = 'heroicon-o-building-storefront';
 

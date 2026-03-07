@@ -25,7 +25,7 @@ class PurchaseOrderResource extends Resource
 
     protected static ?string $moduleCode = 'inventory';
 
-    protected static ?string $permissionKey = 'products';
+    protected static ?string $permissionKey = 'purchase_orders';
 
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-list';
 
@@ -140,7 +140,7 @@ class PurchaseOrderResource extends Resource
                                             if ($product) {
                                                 $set('unit_price_minor', $product->cost_price_minor / 100);
                                                 $defaultTax = \Modules\Billing\Models\TaxRate::getDefault(\Modules\Billing\Models\TaxRate::TYPE_PURCHASE);
-                                                $set('tax_rates', $defaultTax ? [(string) $defaultTax->rate] : ['14']);
+                                                $set('tax_rates', $defaultTax ? [(string) $defaultTax->rate] : []);
                                             }
                                         }
                                     })
@@ -222,7 +222,7 @@ class PurchaseOrderResource extends Resource
                                     })
                                     ->default(function () {
                                         $default = \Modules\Billing\Models\TaxRate::getDefault(\Modules\Billing\Models\TaxRate::TYPE_PURCHASE);
-                                        return $default ? [(string) $default->rate] : ['14'];
+                                        return $default ? [(string) $default->rate] : [];
                                     })
                                     ->live(onBlur: true)
                                     ->columnSpan(['default' => 4, 'md' => 3]),

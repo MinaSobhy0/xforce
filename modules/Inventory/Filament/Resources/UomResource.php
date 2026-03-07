@@ -20,7 +20,7 @@ class UomResource extends Resource
 
     protected static ?string $moduleCode = 'inventory';
 
-    protected static ?string $permissionKey = 'products';
+    protected static ?string $permissionKey = 'uoms';
 
     protected static ?string $navigationIcon = 'heroicon-o-scale';
 

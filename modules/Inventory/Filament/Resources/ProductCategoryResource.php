@@ -20,7 +20,7 @@ class ProductCategoryResource extends Resource
 
     protected static ?string $moduleCode = 'inventory';
 
-    protected static ?string $permissionKey = 'products';
+    protected static ?string $permissionKey = 'product_categories';
 
     protected static ?string $navigationIcon = 'heroicon-o-folder';
 

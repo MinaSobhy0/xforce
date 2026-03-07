@@ -25,7 +25,7 @@ class InventoryAdjustmentResource extends Resource
 
     protected static ?string $moduleCode = 'inventory';
 
-    protected static ?string $permissionKey = 'products';
+    protected static ?string $permissionKey = 'inventory_adjustments';
 
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-check';
 
