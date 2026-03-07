@@ -34,10 +34,9 @@ return new class extends Migration
             $table->timestamps();
 
             $table->foreign('invoice_id')->references('id')->on('invoices')->cascadeOnDelete();
-            $table->foreign('service_id')->references('id')->on('services')->nullOnDelete();
-            $table->foreign('product_id')->references('id')->on('products')->nullOnDelete();
-            $table->foreign('session_product_id')->references('id')->on('session_products')->nullOnDelete();
-            $table->foreign('account_id')->references('id')->on('chart_of_accounts')->nullOnDelete();
+            // Note: Foreign keys for services, products, session_products, and chart_of_accounts
+            // are added in a separate migration (2026_03_07_100000_add_invoice_lines_foreign_keys.php)
+            // because those tables are created in modules that run later in the migration order.
         });
     }
 

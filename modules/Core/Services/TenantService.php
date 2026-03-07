@@ -21,8 +21,8 @@ class TenantService
 
     public function create(array $data): Tenant
     {
-        return DB::transaction(function () use ($data) {
-            // Create tenant record
+        // Step 1: Create tenant record in a transaction
+        $tenant = DB::transaction(function () use ($data) {
             $tenant = Tenant::create([
                 'name' => $data['name'],
                 'slug' => $data['slug'] ?? Str::slug($data['name']),
@@ -34,9 +34,6 @@ class TenantService
                 'settings' => $data['settings'] ?? [],
                 'features' => $data['features'] ?? [],
             ]);
-
-            // Create tenant database schema
-            $this->createTenantDatabase($tenant);
 
             // Initialize tenant usage tracking
             TenantUsage::create([
@@ -52,13 +49,25 @@ class TenantService
                 'reports_generated' => 0,
             ]);
 
-            // Set tenant as active if requested
-            if (($data['status'] ?? TenantStatus::PENDING) === TenantStatus::ACTIVE) {
-                $this->activate($tenant);
-            }
-
             return $tenant;
         });
+
+        // Step 2: Create tenant database schema (outside transaction so schema is visible immediately)
+        try {
+            $this->createTenantDatabase($tenant);
+        } catch (\Exception $e) {
+            // Rollback: delete tenant record if database creation fails
+            $tenant->usage?->forceDelete();
+            $tenant->forceDelete();
+            throw $e;
+        }
+
+        // Step 3: Activate if requested
+        if (($data['status'] ?? TenantStatus::PENDING) === TenantStatus::ACTIVE) {
+            $this->activate($tenant);
+        }
+
+        return $tenant;
     }
 
     public function update(Tenant $tenant, array $data): Tenant
@@ -149,12 +158,25 @@ class TenantService
             'schema_name' => $schemaName,
         ]);
 
-        // Create schema in the main database
-        DB::statement("CREATE SCHEMA IF NOT EXISTS \"{$schemaName}\"");
+        // Create schema in the main database using explicit connection
+        // Schema operations must auto-commit to be visible to other connections
+        $pgsqlConn = DB::connection('pgsql');
+        $pgsqlConn->statement("CREATE SCHEMA IF NOT EXISTS \"{$schemaName}\"");
 
         // Grant permissions to the database user
         $dbUser = config('database.connections.pgsql.username');
-        DB::statement("GRANT ALL ON SCHEMA \"{$schemaName}\" TO \"{$dbUser}\"");
+        $pgsqlConn->statement("GRANT ALL ON SCHEMA \"{$schemaName}\" TO \"{$dbUser}\"");
+
+        // Verify schema was created
+        $schemaExists = $pgsqlConn->selectOne("
+            SELECT EXISTS (
+                SELECT 1 FROM information_schema.schemata WHERE schema_name = ?
+            ) as exists
+        ", [$schemaName])->exists;
+
+        if (!$schemaExists) {
+            throw new \RuntimeException("Failed to create schema: {$schemaName}");
+        }
 
         Log::info('Schema created successfully', ['schema_name' => $schemaName]);
 
@@ -202,55 +224,8 @@ class TenantService
             'search_path' => $result[0]->search_path ?? 'unknown',
         ]);
 
-        // Run migrations for tenant using the tenant connection
-        $this->tenantManager->runForTenant($tenant, function () use ($connectionName, $schemaName) {
-            // Get all tenant migration files sorted by timestamp
-            $migrationFiles = $this->getTenantMigrationFiles();
-
-            Log::info('Running tenant migrations', [
-                'schema_name' => $schemaName,
-                'connection' => $connectionName,
-                'file_count' => count($migrationFiles),
-            ]);
-
-            // Run each migration file in timestamp order
-            $successCount = 0;
-            $errorCount = 0;
-
-            foreach ($migrationFiles as $file) {
-                $relativePath = str_replace(base_path() . '/', '', $file);
-
-                try {
-                    $exitCode = Artisan::call('migrate', [
-                        '--database' => $connectionName,
-                        '--path' => $relativePath,
-                        '--force' => true,
-                    ]);
-
-                    if ($exitCode === 0) {
-                        $successCount++;
-                    } else {
-                        $errorCount++;
-                        Log::error('Migration failed', [
-                            'file' => basename($file),
-                            'output' => Artisan::output(),
-                        ]);
-                    }
-                } catch (\Exception $e) {
-                    $errorCount++;
-                    Log::error('Migration exception', [
-                        'file' => basename($file),
-                        'error' => $e->getMessage(),
-                    ]);
-                    throw $e; // Re-throw to stop provisioning
-                }
-            }
-
-            Log::info('Migrations completed', [
-                'success' => $successCount,
-                'errors' => $errorCount,
-            ]);
-        });
+        // Run migrations for tenant using direct SQL approach
+        $this->runTenantMigrations($tenant, $connectionName, $schemaName);
 
         Log::info('Tenant database provisioning completed', [
             'tenant_id' => $tenant->id,
@@ -854,12 +829,110 @@ class TenantService
     }
 
     /**
+     * Run migrations for a tenant using direct database operations.
+     */
+    protected function runTenantMigrations(Tenant $tenant, string $connectionName, string $schemaName): void
+    {
+        Log::info('Running tenant migrations via direct execution', [
+            'tenant_id' => $tenant->id,
+            'schema_name' => $schemaName,
+        ]);
+
+        // Get the connection for this tenant
+        $connection = DB::connection($connectionName);
+
+        // Ensure we're using the correct schema
+        $connection->statement("SET search_path TO \"{$schemaName}\"");
+
+        // Create migrations table if it doesn't exist (use fully qualified name)
+        $migrationsTableExists = $connection->selectOne("
+            SELECT EXISTS (
+                SELECT FROM pg_tables
+                WHERE schemaname = ? AND tablename = 'migrations'
+            ) as exists
+        ", [$schemaName])->exists;
+
+        if (!$migrationsTableExists) {
+            $connection->statement("
+                CREATE TABLE \"{$schemaName}\".migrations (
+                    id SERIAL PRIMARY KEY,
+                    migration VARCHAR(255) NOT NULL,
+                    batch INTEGER NOT NULL
+                )
+            ");
+            Log::info('Created migrations table in tenant schema');
+        }
+
+        // Get already run migrations (use fully qualified table name)
+        $ranMigrations = $connection->select("SELECT migration FROM \"{$schemaName}\".migrations");
+        $ranMigrations = array_map(fn($r) => $r->migration, $ranMigrations);
+
+        // Get all migration files
+        $migrationFiles = $this->getTenantMigrationFiles();
+        $batchResult = $connection->selectOne("SELECT COALESCE(MAX(batch), 0) as max_batch FROM \"{$schemaName}\".migrations");
+        $batch = ($batchResult->max_batch ?? 0) + 1;
+
+        $successCount = 0;
+        $errorCount = 0;
+
+        foreach ($migrationFiles as $file) {
+            $migrationName = pathinfo($file, PATHINFO_FILENAME);
+
+            // Skip if already run
+            if (in_array($migrationName, $ranMigrations)) {
+                continue;
+            }
+
+            try {
+                // Include and run the migration
+                $migration = require $file;
+
+                if (is_object($migration) && method_exists($migration, 'up')) {
+                    // Set the connection for Schema operations within migration
+                    $originalConnection = config('database.default');
+                    config(['database.default' => $connectionName]);
+
+                    // Ensure schema path is set before running migration
+                    $connection->statement("SET search_path TO \"{$schemaName}\"");
+
+                    $migration->up();
+
+                    // Reset to original connection
+                    config(['database.default' => $originalConnection]);
+
+                    // Record the migration (use fully qualified table name)
+                    $connection->statement(
+                        "INSERT INTO \"{$schemaName}\".migrations (migration, batch) VALUES (?, ?)",
+                        [$migrationName, $batch]
+                    );
+
+                    $successCount++;
+                    Log::debug('Migration completed', ['migration' => $migrationName]);
+                }
+            } catch (\Exception $e) {
+                $errorCount++;
+                Log::error('Migration failed', [
+                    'migration' => $migrationName,
+                    'error' => $e->getMessage(),
+                ]);
+                throw $e;
+            }
+        }
+
+        Log::info('Tenant migrations completed', [
+            'success' => $successCount,
+            'errors' => $errorCount,
+            'skipped' => count($migrationFiles) - $successCount - $errorCount,
+        ]);
+    }
+
+    /**
      * Get all tenant migration files (excludes platform-only migrations).
+     * Files are sorted globally by timestamp to ensure correct dependency order.
      */
     protected function getTenantMigrationFiles(): array
     {
         $files = [];
-        $modulesPath = base_path('modules');
 
         // Migrations that should NOT run in tenant schemas (platform-only or data migrations)
         $platformOnlyPatterns = [
@@ -871,43 +944,44 @@ class TenantService
             'create_gift_card_journal',
         ];
 
+        // Collect migrations from all modules
+        $modulesPath = base_path('modules');
         if (is_dir($modulesPath)) {
-            $modules = scandir($modulesPath);
-            foreach ($modules as $module) {
+            $allModules = scandir($modulesPath);
+            foreach ($allModules as $module) {
                 if ($module === '.' || $module === '..') {
                     continue;
                 }
 
-                // Check Database/Migrations first (preferred)
                 $migrationsDir = base_path("modules/{$module}/Database/Migrations");
                 if (!is_dir($migrationsDir)) {
-                    $migrationsDir = base_path("modules/{$module}/Migrations");
+                    continue;
                 }
 
-                if (is_dir($migrationsDir)) {
-                    $migrationFiles = glob($migrationsDir . '/*.php');
-                    foreach ($migrationFiles as $file) {
-                        $filename = basename($file);
+                $migrationFiles = glob($migrationsDir . '/*.php');
+                foreach ($migrationFiles as $file) {
+                    $filename = basename($file);
 
-                        // Skip platform-only migrations
-                        $skip = false;
-                        foreach ($platformOnlyPatterns as $pattern) {
-                            if (str_contains($filename, $pattern)) {
-                                $skip = true;
-                                Log::info('Skipping platform-only migration', ['file' => $filename]);
-                                break;
-                            }
+                    // Skip platform-only migrations
+                    $skip = false;
+                    foreach ($platformOnlyPatterns as $pattern) {
+                        if (str_contains($filename, $pattern)) {
+                            $skip = true;
+                            Log::debug('Skipping platform-only migration', ['file' => $filename]);
+                            break;
                         }
+                    }
 
-                        if (!$skip) {
-                            $files[] = $file;
-                        }
+                    if (!$skip) {
+                        $files[] = $file;
                     }
                 }
             }
         }
 
-        // Sort files by filename (timestamp) to ensure proper migration order
+        // Sort ALL migrations globally by filename (timestamp) to ensure correct dependency order
+        // Migrations are named like: 2024_01_01_000000_create_xxx_table.php
+        // This ensures tables are created in the correct order across all modules
         usort($files, function ($a, $b) {
             return basename($a) <=> basename($b);
         });

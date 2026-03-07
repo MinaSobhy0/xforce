@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('visits', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('tenant_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('tenant_id')->index(); // No FK - tenants table is in public schema
             $table->foreignId('branch_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('patient_id')->constrained()->cascadeOnDelete();
             $table->string('code')->unique();
