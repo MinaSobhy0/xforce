@@ -490,7 +490,7 @@
                 x-transition:leave="ease-in duration-200"
                 x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
                 x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                class="inline-block align-bottom bg-white dark:bg-gray-900 rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full"
+                class="inline-block align-bottom bg-white dark:bg-gray-900 rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full"
             >
                 {{-- Header --}}
                 <div class="bg-gray-50 dark:bg-gray-800 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
@@ -514,53 +514,66 @@
                 {{-- Content --}}
                 <div class="px-4 py-4 max-h-[60vh] overflow-y-auto">
                     @if(count($selectedGroupAppointments) > 0)
-                        <div class="space-y-3">
+                        <div class="space-y-2">
                             @foreach($selectedGroupAppointments as $apt)
+                                @php
+                                    $statusColors = match($apt['status'] ?? '') {
+                                        'scheduled' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+                                        'confirmed' => 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+                                        'checked_in' => 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
+                                        'in_progress' => 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200',
+                                        'completed' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+                                        default => 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200',
+                                    };
+                                @endphp
                                 <div
                                     wire:click="viewAppointmentFromGroup('{{ $apt['id'] }}')"
                                     class="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                                 >
-                                    <div class="flex items-start justify-between">
+                                    <div class="flex items-center gap-4">
+                                        {{-- Time --}}
+                                        <div class="w-16 flex-shrink-0">
+                                            <span class="text-sm font-bold text-gray-900 dark:text-white">
+                                                {{ $apt['time'] ?? '' }}
+                                            </span>
+                                        </div>
+
+                                        {{-- Patient & Phone --}}
                                         <div class="flex-1 min-w-0">
-                                            <div class="flex items-center gap-2">
-                                                <span class="text-sm font-semibold text-gray-900 dark:text-white">
-                                                    {{ $apt['time'] ?? '' }}
-                                                </span>
-                                                @if(isset($apt['status']))
-                                                    @php
-                                                        $statusColors = match($apt['status']) {
-                                                            'scheduled' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-                                                            'confirmed' => 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
-                                                            'checked_in' => 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
-                                                            'in_progress' => 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200',
-                                                            'completed' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-                                                            default => 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200',
-                                                        };
-                                                    @endphp
-                                                    <span class="px-2 py-0.5 text-xs font-medium rounded-full {{ $statusColors }}">
-                                                        {{ ucfirst(str_replace('_', ' ', $apt['status'])) }}
-                                                    </span>
-                                                @endif
-                                            </div>
-                                            <p class="mt-1 text-sm font-medium text-gray-900 dark:text-white truncate">
+                                            <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
                                                 {{ $apt['patient'] ?? __('booking::calendar.unknown_patient') }}
                                             </p>
                                             @if(!empty($apt['phone']))
-                                                <p class="text-sm text-gray-500 dark:text-gray-400">
+                                                <p class="text-xs text-gray-500 dark:text-gray-400">
                                                     {{ $apt['phone'] }}
                                                 </p>
                                             @endif
+                                        </div>
+
+                                        {{-- Service --}}
+                                        <div class="flex-1 min-w-0 hidden sm:block">
                                             @if(!empty($apt['service']))
-                                                <p class="text-sm text-gray-500 dark:text-gray-400">
+                                                <p class="text-sm text-gray-600 dark:text-gray-300 truncate">
                                                     {{ $apt['service'] }}
                                                 </p>
                                             @endif
                                             @if(!empty($apt['practitioner']))
-                                                <p class="text-xs text-gray-400 dark:text-gray-500">
-                                                    {{ __('booking::calendar.practitioner') }}: {{ $apt['practitioner'] }}
+                                                <p class="text-xs text-gray-400 dark:text-gray-500 truncate">
+                                                    {{ $apt['practitioner'] }}
                                                 </p>
                                             @endif
                                         </div>
+
+                                        {{-- Status --}}
+                                        <div class="flex-shrink-0">
+                                            @if(isset($apt['status']))
+                                                <span class="px-2 py-1 text-xs font-medium rounded-full {{ $statusColors }}">
+                                                    {{ ucfirst(str_replace('_', ' ', $apt['status'])) }}
+                                                </span>
+                                            @endif
+                                        </div>
+
+                                        {{-- Arrow --}}
                                         <x-heroicon-o-chevron-right class="w-5 h-5 text-gray-400 flex-shrink-0" />
                                     </div>
                                 </div>
