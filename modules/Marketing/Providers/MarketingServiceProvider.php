@@ -19,6 +19,7 @@ class MarketingServiceProvider extends ServiceProvider
     {
         $this->registerTranslations();
         $this->registerConfig();
+        $this->registerViews();
         $this->loadMigrationsFrom(module_path($this->moduleName, 'Database/Migrations'));
     }
 
@@ -69,6 +70,11 @@ class MarketingServiceProvider extends ServiceProvider
     protected function registerTranslations(): void
     {
         $this->loadTranslationsFrom(module_path($this->moduleName, 'Lang'), $this->moduleNameLower);
+    }
+
+    protected function registerViews(): void
+    {
+        $this->loadViewsFrom(module_path($this->moduleName, 'Resources/views'), $this->moduleNameLower);
     }
 
     public function provides(): array

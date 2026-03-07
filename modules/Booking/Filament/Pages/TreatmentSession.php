@@ -34,6 +34,8 @@ use Modules\Services\Models\Service;
 use Modules\Services\Models\ParameterPreset;
 use Modules\Equipment\Models\Equipment;
 use Modules\Inventory\Models\Product;
+use Modules\Inventory\Models\StockLevel;
+use Modules\Inventory\Models\StockMovement;
 use Modules\Booking\Models\SessionConsumable;
 use Modules\Booking\Models\SessionProduct;
 use Modules\Booking\Models\Visit;
@@ -760,22 +762,77 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                 $planAppointment->item->treatmentPlan->checkAndMarkComplete();
             }
 
-            // Mark consumables as deducted
-            SessionConsumable::where('appointment_id', $this->appointment->id)
+            // Process consumables - deduct from inventory and create stock movements
+            $pendingConsumables = SessionConsumable::where('appointment_id', $this->appointment->id)
                 ->where('is_deducted', false)
-                ->update([
+                ->with('product')
+                ->get();
+
+            foreach ($pendingConsumables as $consumable) {
+                $stockMovementId = null;
+
+                // Only create stock movement for storable products that track inventory
+                if ($consumable->product && $consumable->product->tracksInventory()) {
+                    $stockLevel = StockLevel::getOrCreate(
+                        $consumable->product_id,
+                        $consumable->branch_id ?? $this->appointment->branch_id
+                    );
+
+                    // Use base_quantity if set, otherwise fall back to quantity
+                    $quantityToDeduct = (int) ($consumable->base_quantity ?? $consumable->quantity);
+
+                    $movement = $stockLevel->decrease(
+                        $quantityToDeduct,
+                        StockMovement::TYPE_APPOINTMENT_CONSUME,
+                        SessionConsumable::class,
+                        (string) $consumable->id,
+                        'Consumed during appointment #' . $this->appointment->id
+                    );
+
+                    $stockMovementId = $movement->id;
+                }
+
+                $consumable->update([
                     'is_deducted' => true,
                     'deducted_at' => now(),
                     'deducted_by' => auth()->id(),
+                    'stock_movement_id' => $stockMovementId,
                 ]);
+            }
 
-            // Mark products as deducted
-            SessionProduct::where('appointment_id', $this->appointment->id)
+            // Process products - deduct from inventory and create stock movements
+            $pendingProducts = SessionProduct::where('appointment_id', $this->appointment->id)
                 ->where('is_deducted', false)
-                ->update([
+                ->with('product')
+                ->get();
+
+            foreach ($pendingProducts as $sessionProduct) {
+                $stockMovementId = null;
+
+                // Only create stock movement for storable products that track inventory
+                if ($sessionProduct->product && $sessionProduct->product->tracksInventory()) {
+                    $stockLevel = StockLevel::getOrCreate(
+                        $sessionProduct->product_id,
+                        $sessionProduct->branch_id ?? $this->appointment->branch_id
+                    );
+
+                    $movement = $stockLevel->decrease(
+                        (int) $sessionProduct->quantity,
+                        StockMovement::TYPE_APPOINTMENT_CONSUME,
+                        SessionProduct::class,
+                        (string) $sessionProduct->id,
+                        'Used during appointment #' . $this->appointment->id
+                    );
+
+                    $stockMovementId = $movement->id;
+                }
+
+                $sessionProduct->update([
                     'is_deducted' => true,
                     'deducted_at' => now(),
+                    'stock_movement_id' => $stockMovementId,
                 ]);
+            }
         });
 
         Notification::make()

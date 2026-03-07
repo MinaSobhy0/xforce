@@ -304,4 +304,9 @@ return [
         'reschedule_requested' => 'We received your reschedule request. Our team will contact you shortly to arrange a new appointment time.',
         'appointment_cancelled' => 'Your appointment has been cancelled. If you need to book a new appointment, please contact us.',
     ],
+
+    'short_links' => [
+        'not_found' => 'This link is not valid or has been removed.',
+        'expired' => 'This link has expired. Please contact the clinic for assistance.',
+    ],
 ];

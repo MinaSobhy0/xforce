@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Modules\Marketing\Http\Controllers\ShortLinkController;
 
 /*
 |--------------------------------------------------------------------------
@@ -11,3 +12,6 @@ use Illuminate\Support\Facades\Route;
 | contains the "web" middleware group. Now create something great!
 |
 */
+
+// Short link redirect
+Route::get('/l/{code}', [ShortLinkController::class, 'redirect'])->name('short-link.redirect');

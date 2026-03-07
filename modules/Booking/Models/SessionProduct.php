@@ -48,6 +48,7 @@ class SessionProduct extends BaseModel
         'invoice_line_id',
         'is_deducted',
         'deducted_at',
+        'stock_movement_id',
         'created_by',
     ];
 
@@ -137,6 +138,14 @@ class SessionProduct extends BaseModel
     public function uom(): BelongsTo
     {
         return $this->belongsTo(Uom::class);
+    }
+
+    /**
+     * Get the stock movement record for this product.
+     */
+    public function stockMovement(): BelongsTo
+    {
+        return $this->belongsTo(StockMovement::class);
     }
 
     /**

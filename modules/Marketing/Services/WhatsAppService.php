@@ -414,7 +414,7 @@ class WhatsAppService
     }
 
     /**
-     * Generate a signed URL for appointment action.
+     * Generate a short URL for appointment action.
      */
     protected function generateActionUrl(string $action, string $appointmentId): ?string
     {
@@ -436,11 +436,22 @@ class WhatsAppService
         }
 
         // Generate signed URL that expires in 7 days
-        return \Illuminate\Support\Facades\URL::temporarySignedRoute(
+        $signedUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
             'appointment.action',
             now()->addDays(7),
             ['appointment' => $appointmentId, 'action' => $routeAction]
         );
+
+        // Create short link
+        $shortLink = \Modules\Marketing\Models\ShortLink::createFor(
+            $signedUrl,
+            null,
+            $routeAction,
+            (int) $appointmentId,
+            7
+        );
+
+        return $shortLink->short_url;
     }
 
     /**
