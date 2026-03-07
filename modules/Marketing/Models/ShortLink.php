@@ -48,8 +48,15 @@ class ShortLink extends Model
         ?int $appointmentId = null,
         ?int $expiresInDays = 7
     ): self {
+        // Get tenant_id from various sources
+        $tenantId = $tenantId
+            ?? tenant()?->id
+            ?? session('tenant_id')
+            ?? \Modules\Core\Models\Tenant::current()?->id
+            ?? 1; // Fallback for single-tenant context
+
         return static::create([
-            'tenant_id' => $tenantId ?? tenant()?->id,
+            'tenant_id' => $tenantId,
             'code' => static::generateCode(),
             'target_url' => $targetUrl,
             'action' => $action,

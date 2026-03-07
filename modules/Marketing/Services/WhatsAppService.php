@@ -435,6 +435,10 @@ class WhatsAppService
             return null;
         }
 
+        // Get tenant_id from appointment
+        $appointment = \Modules\Booking\Models\Appointment::find($appointmentId);
+        $tenantId = $appointment?->tenant_id;
+
         // Generate signed URL that expires in 7 days
         $signedUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
             'appointment.action',
@@ -445,7 +449,7 @@ class WhatsAppService
         // Create short link
         $shortLink = \Modules\Marketing\Models\ShortLink::createFor(
             $signedUrl,
-            null,
+            $tenantId,
             $routeAction,
             (int) $appointmentId,
             7
