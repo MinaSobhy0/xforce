@@ -257,7 +257,7 @@ class UsageDashboardPage extends Page
         }
 
         // Calculate real counts from database
-        $usersCount = DB::table('users')->where('is_active', true)->count();
+        $usersCount = DB::table('users')->count();
         $branchesCount = DB::table('branches')->count();
         $patientsCount = DB::table('patients')->count();
         $servicesCount = DB::table('services')->count();
