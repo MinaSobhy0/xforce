@@ -184,6 +184,14 @@
                 weekends: true,
                 locale: '{{ app()->getLocale() }}',
                 direction: '{{ app()->getLocale() === "ar" ? "rtl" : "ltr" }}',
+                dayHeaderContent: function(arg) {
+                    const date = arg.date;
+                    const locale = '{{ app()->getLocale() }}' === 'ar' ? 'ar-EG' : 'en-GB';
+                    const dayName = date.toLocaleDateString(locale, { weekday: 'short' });
+                    const day = date.getDate();
+                    const month = date.getMonth() + 1;
+                    return dayName + ' ' + day + '/' + month;
+                },
                 events: @json($this->getAppointments()),
                 eventClick: function(info) {
                     // Don't navigate for grouped events

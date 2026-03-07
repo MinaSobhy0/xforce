@@ -223,7 +223,7 @@ class RoomCalendar extends Page implements HasForms, HasActions, HasInfolists
         $appointments = $this->getAppointments();
 
         return $appointments->first(function ($appointment) use ($roomId, $slotTime) {
-            if ($appointment->room_id !== $roomId) {
+            if ((int) $appointment->room_id !== (int) $roomId) {
                 return false;
             }
 
