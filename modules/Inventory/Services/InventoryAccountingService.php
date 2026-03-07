@@ -120,7 +120,7 @@ class InventoryAccountingService
     public function createAdjustmentJournalEntry(InventoryAdjustment $adjustment): ?JournalEntry
     {
         // Reload lines to ensure we have fresh data
-        $adjustment->load('lines.product.stockValuationAccount', 'lines.product.stockInputAccount', 'lines.product.stockOutputAccount');
+        $adjustment->load('lines.product.stockValuationAccount');
 
         // Check if there are any actual changes
         $hasChanges = $adjustment->lines->contains(fn ($line) => !$line->isNoChange());
@@ -268,50 +268,36 @@ class InventoryAccountingService
     }
 
     /**
-     * Get stock input account for a product (Accounts Payable / Goods Received).
-     * Uses product's configured account with fallback to defaults.
+     * Get stock input account (Accounts Payable / Goods Received).
+     * Uses system default account.
      */
     protected function getStockInputAccount(Product $product): ?ChartOfAccount
     {
-        // First try product-specific account
-        if ($product->stock_input_account_id) {
-            return $product->stockInputAccount;
-        }
-
-        // Fallback to system default
         $defaultAccount = $this->defaultAccounts->getStockInputAccount();
         if ($defaultAccount) {
             return $defaultAccount;
         }
 
-        \Log::warning('Product missing stock_input_account and no default configured', [
+        \Log::warning('Stock input account not configured in defaults', [
             'product_id' => $product->id,
-            'product_sku' => $product->sku,
         ]);
 
         return null;
     }
 
     /**
-     * Get stock output account for a product (Cost of Goods Sold).
-     * Uses product's configured account with fallback to defaults.
+     * Get stock output account (Cost of Goods Sold).
+     * Uses system default account.
      */
     protected function getStockOutputAccount(Product $product): ?ChartOfAccount
     {
-        // First try product-specific account
-        if ($product->stock_output_account_id) {
-            return $product->stockOutputAccount;
-        }
-
-        // Fallback to system default
         $defaultAccount = $this->defaultAccounts->getStockOutputAccount();
         if ($defaultAccount) {
             return $defaultAccount;
         }
 
-        \Log::warning('Product missing stock_output_account and no default configured', [
+        \Log::warning('Stock output account not configured in defaults', [
             'product_id' => $product->id,
-            'product_sku' => $product->sku,
         ]);
 
         return null;

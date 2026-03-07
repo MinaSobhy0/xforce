@@ -46,8 +46,6 @@ class Product extends BaseModel
         'barcode',
         'image_url',
         // Accounting fields
-        'stock_input_account_id',
-        'stock_output_account_id',
         'stock_valuation_account_id',
         'income_account_id',
         'expense_account_id',
@@ -157,22 +155,6 @@ class Product extends BaseModel
     public function purchaseOrderLines(): HasMany
     {
         return $this->hasMany(PurchaseOrderLine::class);
-    }
-
-    /**
-     * Get stock input account (used when receiving stock).
-     */
-    public function stockInputAccount(): BelongsTo
-    {
-        return $this->belongsTo(ChartOfAccount::class, 'stock_input_account_id');
-    }
-
-    /**
-     * Get stock output account (used when consuming/selling stock).
-     */
-    public function stockOutputAccount(): BelongsTo
-    {
-        return $this->belongsTo(ChartOfAccount::class, 'stock_output_account_id');
     }
 
     /**

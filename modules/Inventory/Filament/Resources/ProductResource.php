@@ -277,26 +277,6 @@ class ProductResource extends Resource
                                             ->preload()
                                             ->helperText('Inventory asset account (Balance Sheet)'),
 
-                                        Forms\Components\Select::make('stock_input_account_id')
-                                            ->label(__('inventory::inventory.fields.stock_input_account'))
-                                            ->options(fn () => ChartOfAccount::where('is_active', true)
-                                                ->orderBy('code')
-                                                ->get()
-                                                ->mapWithKeys(fn ($a) => [$a->id => "[{$a->code}] " . $a->getTranslation('name', app()->getLocale())]))
-                                            ->searchable()
-                                            ->preload()
-                                            ->helperText('Account for stock receipts (e.g., Goods Received Not Invoiced)'),
-
-                                        Forms\Components\Select::make('stock_output_account_id')
-                                            ->label(__('inventory::inventory.fields.stock_output_account'))
-                                            ->options(fn () => ChartOfAccount::where('is_active', true)
-                                                ->orderBy('code')
-                                                ->get()
-                                                ->mapWithKeys(fn ($a) => [$a->id => "[{$a->code}] " . $a->getTranslation('name', app()->getLocale())]))
-                                            ->searchable()
-                                            ->preload()
-                                            ->helperText('Account for stock consumption (e.g., Cost of Goods Sold)'),
-
                                         Forms\Components\Select::make('income_account_id')
                                             ->label('Income Account')
                                             ->options(fn () => ChartOfAccount::where('is_active', true)

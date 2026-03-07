@@ -201,65 +201,7 @@ class PurchaseOrderLine extends BaseModel
         return $transfer;
     }
 
-    /**
-     * Create journal entry for stock receipt.
-     * Uses product-specific accounts.
-     */
-    protected function createReceiptJournalEntry(StockTransfer $transfer, int $quantity): void
-    {
-        try {
-            $product = $this->product;
-
-            // Get product accounts
-            $stockValuationAccount = $product->stockValuationAccount;
-            $stockInputAccount = $product->stockInputAccount;
-
-            if (!$stockValuationAccount || !$stockInputAccount) {
-                \Illuminate\Support\Facades\Log::warning('Product missing accounts for receipt journal entry', [
-                    'product_id' => $product->id,
-                    'has_valuation' => (bool) $stockValuationAccount,
-                    'has_input' => (bool) $stockInputAccount,
-                ]);
-                return;
-            }
-
-            $accountingService = app(\Modules\Accounting\Services\AccountingIntegrationService::class);
-
-            // Calculate value in minor units
-            $valueMinor = $quantity * $this->unit_price_minor;
-            $productName = $product->getTranslation('name', 'en') ?? $product->sku;
-
-            // Receipt entry: Debit Inventory (valuation), Credit Stock Input (AP)
-            $lines = [
-                [
-                    'account_code' => $stockValuationAccount->code,
-                    'debit' => $valueMinor,
-                    'credit' => 0,
-                    'description' => "Stock receipt: {$productName}",
-                ],
-                [
-                    'account_code' => $stockInputAccount->code,
-                    'debit' => 0,
-                    'credit' => $valueMinor,
-                    'description' => "Stock receipt: {$productName}",
-                ],
-            ];
-
-            $accountingService->createJournalEntry(
-                now(),
-                "Stock receipt: PO #{$this->purchaseOrder->order_number} - {$productName} x {$quantity}",
-                $lines,
-                'purchase_order',
-                $this->purchase_order_id,
-                true
-            );
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::warning('Failed to create stock receipt journal entry', [
-                'error' => $e->getMessage(),
-                'purchase_order_line_id' => $this->id,
-            ]);
-        }
-    }
+    // Note: Receipt journal entries are now created automatically by StockMoveService
 
     /**
      * Get unit price in major units.
@@ -332,19 +274,20 @@ class PurchaseOrderLine extends BaseModel
 
     /**
      * Create reverse journal entry for stock reversal.
-     * Uses product-specific accounts.
+     * Uses default accounts from system configuration.
      */
     protected function createReversalJournalEntry(StockMovement $movement, int $quantity): void
     {
         try {
             $product = $this->product;
+            $defaultAccounts = app(\Modules\Accounting\Services\DefaultAccountsService::class);
 
-            // Get product accounts
-            $stockValuationAccount = $product->stockValuationAccount;
-            $stockInputAccount = $product->stockInputAccount;
+            // Get accounts from defaults
+            $stockValuationAccount = $product->stockValuationAccount ?? $defaultAccounts->getStockValuationAccount();
+            $stockInputAccount = $defaultAccounts->getStockInputAccount();
 
             if (!$stockValuationAccount || !$stockInputAccount) {
-                \Illuminate\Support\Facades\Log::warning('Product missing accounts for reversal journal entry', [
+                \Illuminate\Support\Facades\Log::warning('Missing accounts for reversal journal entry', [
                     'product_id' => $product->id,
                     'has_valuation' => (bool) $stockValuationAccount,
                     'has_input' => (bool) $stockInputAccount,
