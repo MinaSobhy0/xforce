@@ -2,9 +2,9 @@
 
 namespace Modules\Equipment\Filament\Resources\EquipmentResource\RelationManagers;
 
+use App\Filament\Resources\RelationManagers\BaseRelationManager;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Notifications\Notification;
@@ -12,7 +12,7 @@ use Modules\Equipment\Models\Equipment;
 use Modules\Equipment\Models\EquipmentTrackingParameter;
 use Modules\Equipment\Models\EquipmentParameterTemplate;
 
-class TrackingParametersRelationManager extends RelationManager
+class TrackingParametersRelationManager extends BaseRelationManager
 {
     protected static string $relationship = 'trackingParameters';
 
@@ -218,11 +218,13 @@ class TrackingParametersRelationManager extends RelationManager
                         $data['tenant_id'] = app('currentTenant')?->id;
                         $data['source'] = 'manual';
                         return $data;
-                    }),
+                    })
+                    ->visible(fn (): bool => $this->canEditParentResource()),
                 Tables\Actions\Action::make('import_from_template')
                     ->label(__('equipment::equipment.template.import'))
                     ->icon('heroicon-o-document-duplicate')
                     ->color('info')
+                    ->visible(fn (): bool => $this->canEditParentResource())
                     ->form([
                         Forms\Components\Select::make('template_id')
                             ->label(__('equipment::equipment.template.select'))
@@ -248,8 +250,10 @@ class TrackingParametersRelationManager extends RelationManager
                     }),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->visible(fn (): bool => $this->canEditParentResource()),
+                Tables\Actions\DeleteAction::make()
+                    ->visible(fn (): bool => $this->canEditParentResource()),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

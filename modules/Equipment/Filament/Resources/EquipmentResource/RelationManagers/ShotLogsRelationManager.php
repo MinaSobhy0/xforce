@@ -2,13 +2,13 @@
 
 namespace Modules\Equipment\Filament\Resources\EquipmentResource\RelationManagers;
 
+use App\Filament\Resources\RelationManagers\BaseRelationManager;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 
-class ShotLogsRelationManager extends RelationManager
+class ShotLogsRelationManager extends BaseRelationManager
 {
     protected static string $relationship = 'shotLogs';
 
@@ -81,6 +81,7 @@ class ShotLogsRelationManager extends RelationManager
             ])
             ->headerActions([
                 Tables\Actions\CreateAction::make()
+                    ->visible(fn (): bool => $this->canEditParentResource())
                     ->after(function ($record) {
                         // Update equipment total shots
                         $equipment = $this->getOwnerRecord();
@@ -90,6 +91,7 @@ class ShotLogsRelationManager extends RelationManager
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\DeleteAction::make()
+                    ->visible(fn (): bool => $this->canEditParentResource())
                     ->before(function ($record) {
                         // Decrement equipment total shots when deleting
                         $equipment = $this->getOwnerRecord();

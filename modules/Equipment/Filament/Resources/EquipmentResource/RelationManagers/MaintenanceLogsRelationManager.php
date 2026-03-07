@@ -2,14 +2,14 @@
 
 namespace Modules\Equipment\Filament\Resources\EquipmentResource\RelationManagers;
 
+use App\Filament\Resources\RelationManagers\BaseRelationManager;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Modules\Equipment\Models\EquipmentMaintenanceLog;
 
-class MaintenanceLogsRelationManager extends RelationManager
+class MaintenanceLogsRelationManager extends BaseRelationManager
 {
     protected static string $relationship = 'maintenanceLogs';
 
@@ -95,11 +95,14 @@ class MaintenanceLogsRelationManager extends RelationManager
                     ->options(EquipmentMaintenanceLog::TYPES),
             ])
             ->headerActions([
-                Tables\Actions\CreateAction::make(),
+                Tables\Actions\CreateAction::make()
+                    ->visible(fn (): bool => $this->canEditParentResource()),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->visible(fn (): bool => $this->canEditParentResource()),
+                Tables\Actions\DeleteAction::make()
+                    ->visible(fn (): bool => $this->canEditParentResource()),
             ])
             ->defaultSort('performed_at', 'desc');
     }

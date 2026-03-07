@@ -292,6 +292,7 @@ class EquipmentResource extends Resource
                         ->label(__('equipment::equipment.log_maintenance'))
                         ->icon('heroicon-o-wrench-screwdriver')
                         ->color('warning')
+                        ->visible(fn (): bool => static::canEdit(new Equipment()))
                         ->form([
                             Forms\Components\Select::make('type')
                                 ->label(__('equipment::equipment.maintenance_type'))
