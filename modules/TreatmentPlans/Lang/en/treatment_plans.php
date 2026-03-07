@@ -146,6 +146,7 @@ return [
         'cannot_transition' => 'Cannot change status to :status.',
         'deposit_collected' => 'Deposit collected successfully.',
         'deposit_amount' => 'Amount: :amount',
+        'deposit_from_gift_card' => 'Deposit from gift card :code',
         'invoice_generated' => 'Invoice generated successfully.',
         'invoice_code' => 'Invoice Code: :code',
     ],
@@ -240,5 +241,9 @@ return [
         'apply_deposits' => 'Apply Available Deposits',
         'available_deposits' => 'Available deposits: :amount',
         'to_invoice' => 'to invoice',
+        'plan_summary' => 'Plan Summary',
+        'payment_details' => 'Payment Details',
+        'total' => 'Total',
+        'remaining' => 'Remaining',
     ],
 ];

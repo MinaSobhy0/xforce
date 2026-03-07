@@ -146,6 +146,7 @@ return [
         'cannot_transition' => 'لا يمكن تغيير الحالة إلى :status.',
         'deposit_collected' => 'تم تحصيل العربون بنجاح.',
         'deposit_amount' => 'المبلغ: :amount',
+        'deposit_from_gift_card' => 'عربون من بطاقة الهدايا :code',
         'invoice_generated' => 'تم إنشاء الفاتورة بنجاح.',
         'invoice_code' => 'رقم الفاتورة: :code',
     ],
@@ -240,5 +241,9 @@ return [
         'apply_deposits' => 'تطبيق العرابين المتاحة',
         'available_deposits' => 'العرابين المتاحة: :amount',
         'to_invoice' => 'للفوترة',
+        'plan_summary' => 'ملخص الخطة',
+        'payment_details' => 'تفاصيل الدفع',
+        'total' => 'الإجمالي',
+        'remaining' => 'المتبقي',
     ],
 ];
