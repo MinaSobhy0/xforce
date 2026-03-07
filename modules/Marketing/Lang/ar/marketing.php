@@ -113,6 +113,7 @@ return [
         'button_action' => 'الإجراء',
         'custom_payload' => 'بيانات مخصصة',
         'test_patient' => 'اختر المريض',
+        'test_appointment' => 'اختر الموعد (لروابط الإجراءات)',
     ],
 
     'button_types' => [
@@ -261,6 +262,7 @@ return [
         'footer_limit' => 'الحد الأقصى 60 حرف',
         'button_label_limit' => 'الحد الأقصى 20 حرف',
         'custom_payload' => 'بيانات مخصصة تُرسل عند النقر على الزر',
+        'test_appointment' => 'اختر موعد لتضمين روابط الإجراءات (تأكيد/إلغاء) في الرسالة التجريبية',
     ],
 
     'messages' => [

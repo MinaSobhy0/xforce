@@ -113,6 +113,7 @@ return [
         'button_action' => 'Action',
         'custom_payload' => 'Custom Payload',
         'test_patient' => 'Select Patient',
+        'test_appointment' => 'Select Appointment (for action links)',
     ],
 
     'button_types' => [
@@ -261,6 +262,7 @@ return [
         'footer_limit' => 'Maximum 60 characters',
         'button_label_limit' => 'Maximum 20 characters',
         'custom_payload' => 'Custom data to send when button is clicked',
+        'test_appointment' => 'Select an appointment to include action links (confirm/cancel) in the test message',
     ],
 
     'messages' => [

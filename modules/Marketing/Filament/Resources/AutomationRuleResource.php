@@ -262,6 +262,19 @@ class AutomationRuleResource extends Resource
                                 ->get()
                                 ->pluck('display_name', 'id'))
                             ->required(),
+                        Forms\Components\Select::make('appointment_id')
+                            ->label(__('marketing::marketing.fields.test_appointment'))
+                            ->options(fn (Forms\Get $get) => \Modules\Booking\Models\Appointment::query()
+                                ->when($get('patient_id'), fn ($q, $id) => $q->where('patient_id', $id))
+                                ->where('start_time', '>=', now())
+                                ->orderBy('start_time')
+                                ->limit(20)
+                                ->get()
+                                ->mapWithKeys(fn ($apt) => [
+                                    $apt->id => $apt->start_time->format('d/m/Y H:i') . ' - ' . ($apt->service?->name ?? 'N/A')
+                                ]))
+                            ->helperText(__('marketing::marketing.helpers.test_appointment'))
+                            ->visible(fn (AutomationRule $record) => $record->template?->hasButtons()),
                     ])
                     ->action(function (AutomationRule $record, array $data) {
                         $patient = Patient::find($data['patient_id']);
@@ -294,6 +307,11 @@ class AutomationRuleResource extends Resource
                             'invoice_number' => 'INV-TEST-001',
                             'invoice_total' => '500.00 EGP',
                         ];
+
+                        // Add appointment_id if provided (needed for action links)
+                        if (!empty($data['appointment_id'])) {
+                            $variables['appointment_id'] = $data['appointment_id'];
+                        }
 
                         $log = $notificationService->sendTemplate(
                             $record->template,
