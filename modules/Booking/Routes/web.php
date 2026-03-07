@@ -1,7 +1,6 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Modules\Booking\Http\Controllers\AppointmentActionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -9,7 +8,4 @@ use Modules\Booking\Http\Controllers\AppointmentActionController;
 |--------------------------------------------------------------------------
 */
 
-// Appointment action via signed URL (confirm, cancel, reschedule)
-Route::get('/appointment/{appointment}/{action}', [AppointmentActionController::class, 'handle'])
-    ->name('appointment.action')
-    ->middleware('signed');
+// Appointment action route moved to routes/web.php for proper loading

@@ -33,3 +33,9 @@ Route::get('/tenant-storage/{path}', [TenantMediaController::class, 'show'])
     ->where('path', '.*')
     ->name('tenant.storage');
 
+// Appointment action via signed URL (confirm, cancel, reschedule)
+Route::get('/appointment/{appointment}/{action}', function (\Illuminate\Http\Request $request, $appointment, $action) {
+    $appointmentModel = \Modules\Booking\Models\Appointment::findOrFail($appointment);
+    return app(\Modules\Booking\Http\Controllers\AppointmentActionController::class)->handle($request, $appointmentModel, $action);
+})->name('appointment.action');
+
