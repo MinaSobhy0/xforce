@@ -786,13 +786,9 @@ class StockMoveService
 
             switch ($transfer->transfer_type) {
                 case StockTransfer::TYPE_RECEIPT:
-                    // Purchase receipt: Debit Inventory, Credit Stock Input
-                    $this->accountingService->createStockReceiptEntry(
-                        $movement,
-                        $valueMajor,
-                        "Stock receipt: {$productName} x {$movement->quantity} (Transfer #{$transfer->transfer_number})"
-                    );
-                    break;
+                    // No journal entry - vendor bill will create it
+                    // (Debit Inventory, Credit Accounts Payable)
+                    return;
 
                 case StockTransfer::TYPE_DELIVERY:
                     // Sale delivery: Debit COGS, Credit Inventory
@@ -805,7 +801,7 @@ class StockMoveService
 
                 case StockTransfer::TYPE_INTERNAL:
                     // Internal transfers don't need journal entries (same value, different location)
-                    break;
+                    return;
 
                 case StockTransfer::TYPE_RETURN_IN:
                     // Customer return: Debit Inventory, Credit COGS (reverse of sale)
@@ -817,13 +813,8 @@ class StockMoveService
                     break;
 
                 case StockTransfer::TYPE_RETURN_OUT:
-                    // Supplier return: Debit Stock Input, Credit Inventory (reverse of purchase)
-                    $this->accountingService->createStockConsumptionEntry(
-                        $movement,
-                        $valueMajor,
-                        "Supplier return: {$productName} x {$movement->quantity}"
-                    );
-                    break;
+                    // No journal entry - vendor bill credit note will handle it
+                    return;
             }
 
             Log::info('Stock movement journal entry created', [
