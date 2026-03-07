@@ -459,6 +459,10 @@ return [
         'account_status' => 'Account Status',
         'role_permissions' => 'Role & Permissions',
         '2fa_enabled' => '2FA Enabled',
+        // Staff profile actions
+        'create_staff_profile' => 'Create Staff Profile',
+        'view_staff_profile' => 'View Staff Profile',
+        'staff_profile_created' => 'Staff profile created successfully',
     ],
 
     // Errors

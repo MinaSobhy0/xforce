@@ -4,7 +4,9 @@ namespace Modules\Auth\Filament\Resources\UserResource\Pages;
 
 use Modules\Auth\Filament\Resources\UserResource;
 use Modules\Auth\Models\UserStatus;
+use Modules\Staff\Models\StaffProfile;
 use Filament\Actions;
+use Filament\Forms;
 use App\Filament\Resources\Pages\BaseViewRecord;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Hash;
@@ -165,6 +167,75 @@ class ViewUser extends BaseViewRecord
                     $this->refreshFormData(['two_factor_enabled']);
                 })
                 ->visible(fn () => $this->getRecord()->two_factor_enabled),
+
+            Actions\Action::make('createStaffProfile')
+                ->label(__('auth::auth.user_resource.create_staff_profile'))
+                ->icon('heroicon-o-briefcase')
+                ->color('success')
+                ->form([
+                    Forms\Components\Select::make('branch_id')
+                        ->label(__('staff::staff.fields.branch'))
+                        ->options(fn () => \Modules\Core\Models\Branch::where('is_active', true)->pluck('name', 'id'))
+                        ->required()
+                        ->default(fn () => \Modules\Core\Models\Branch::where('is_main', true)->first()?->id),
+
+                    Forms\Components\TextInput::make('employee_number')
+                        ->label(__('staff::staff.fields.employee_number'))
+                        ->default(fn () => 'EMP-' . str_pad(StaffProfile::count() + 1, 4, '0', STR_PAD_LEFT)),
+
+                    Forms\Components\TextInput::make('job_title')
+                        ->label(__('staff::staff.fields.job_title'))
+                        ->default(fn () => $this->getRecord()->job_title),
+
+                    Forms\Components\DatePicker::make('hire_date')
+                        ->label(__('staff::staff.fields.hire_date'))
+                        ->default(now()),
+
+                    Forms\Components\TextInput::make('base_salary')
+                        ->label(__('staff::staff.fields.base_salary'))
+                        ->numeric()
+                        ->prefix('EGP')
+                        ->default(0),
+                ])
+                ->action(function (array $data) {
+                    $user = $this->getRecord();
+
+                    $staffProfile = StaffProfile::create([
+                        'tenant_id' => $user->tenant_id,
+                        'user_id' => $user->id,
+                        'branch_id' => $data['branch_id'],
+                        'employee_number' => $data['employee_number'],
+                        'job_title' => $data['job_title'],
+                        'hire_date' => $data['hire_date'],
+                        'base_salary_minor' => (int) (($data['base_salary'] ?? 0) * 100),
+                        'is_active' => true,
+                    ]);
+
+                    activity()
+                        ->causedBy(auth()->user())
+                        ->performedOn($staffProfile)
+                        ->log('Staff profile created from user');
+
+                    Notification::make()
+                        ->title(__('auth::auth.user_resource.staff_profile_created'))
+                        ->success()
+                        ->send();
+
+                    // Redirect to staff profile
+                    return redirect()->to(
+                        \Modules\Staff\Filament\Resources\StaffProfileResource::getUrl('view', ['record' => $staffProfile])
+                    );
+                })
+                ->visible(fn () => !StaffProfile::where('user_id', $this->getRecord()->id)->exists()),
+
+            Actions\Action::make('viewStaffProfile')
+                ->label(__('auth::auth.user_resource.view_staff_profile'))
+                ->icon('heroicon-o-briefcase')
+                ->color('info')
+                ->url(fn () => \Modules\Staff\Filament\Resources\StaffProfileResource::getUrl('view', [
+                    'record' => StaffProfile::where('user_id', $this->getRecord()->id)->first(),
+                ]))
+                ->visible(fn () => StaffProfile::where('user_id', $this->getRecord()->id)->exists()),
 
             Actions\DeleteAction::make(),
         ];

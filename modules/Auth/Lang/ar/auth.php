@@ -459,6 +459,10 @@ return [
         'account_status' => 'حالة الحساب',
         'role_permissions' => 'الأدوار والصلاحيات',
         '2fa_enabled' => 'المصادقة الثنائية مُفعّلة',
+        // إجراءات ملف الموظف
+        'create_staff_profile' => 'إنشاء ملف موظف',
+        'view_staff_profile' => 'عرض ملف الموظف',
+        'staff_profile_created' => 'تم إنشاء ملف الموظف بنجاح',
     ],
 
     // الأخطاء
