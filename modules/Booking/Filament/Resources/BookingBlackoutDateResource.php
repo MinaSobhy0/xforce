@@ -19,7 +19,7 @@ class BookingBlackoutDateResource extends Resource
 
     protected static ?string $model = BookingBlackoutDate::class;
     protected static ?string $moduleCode = 'booking';
-    protected static ?string $permissionKey = 'booking_blackouts';
+    protected static ?string $permissionKey = 'blackout_dates';
 
     protected static ?string $navigationIcon = 'heroicon-o-calendar-days';
     protected static ?string $navigationGroup = 'Settings';
