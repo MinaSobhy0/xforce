@@ -65,17 +65,16 @@ class ProfitLossPage extends Page implements HasForms
                     ->schema([
                         DatePicker::make('start_date')
                             ->label(__('accounting::accounting.start_date'))
-                            ->reactive()
+                            ->live()
                             ->afterStateUpdated(fn () => $this->loadProfitLoss()),
 
                         DatePicker::make('end_date')
                             ->label(__('accounting::accounting.end_date'))
-                            ->reactive()
+                            ->live()
                             ->afterStateUpdated(fn () => $this->loadProfitLoss()),
                     ])
                     ->columns(2),
-            ])
-            ->statePath('data');
+            ]);
     }
 
     public function loadProfitLoss(): void
@@ -83,61 +82,83 @@ class ProfitLossPage extends Page implements HasForms
         $startDate = Carbon::parse($this->start_date);
         $endDate = Carbon::parse($this->end_date);
 
-        // Revenue accounts (type = 'revenue')
-        $revenueAccounts = ChartOfAccount::where('type', 'revenue')
-            ->where('is_active', true)
-            ->orderBy('code')
-            ->get();
+        // Get income account types from TYPE_CATEGORY
+        $incomeTypes = array_keys(array_filter(
+            ChartOfAccount::TYPE_CATEGORY,
+            fn ($cat) => $cat === 'income'
+        ));
 
-        $this->revenues = [];
-        $this->totalRevenue = 0;
+        // Get expense account types from TYPE_CATEGORY
+        $expenseTypes = array_keys(array_filter(
+            ChartOfAccount::TYPE_CATEGORY,
+            fn ($cat) => $cat === 'expense'
+        ));
 
-        foreach ($revenueAccounts as $account) {
-            $balance = JournalEntryLine::where('account_id', $account->id)
-                ->whereHas('journalEntry', function ($q) use ($startDate, $endDate) {
-                    $q->whereBetween('date', [$startDate, $endDate])
-                        ->where('status', 'posted');
-                })
-                ->sum(DB::raw('credit_minor - debit_minor'));
+        // Load revenues grouped by type
+        $this->revenues = $this->getGroupedAccountBalances($incomeTypes, $startDate, $endDate, 'credit');
+        $this->totalRevenue = array_sum(array_column($this->revenues, 'subtotal'));
 
-            if ($balance != 0) {
-                $this->revenues[] = [
-                    'code' => $account->code,
-                    'name' => $account->name,
-                    'amount' => $balance,
-                ];
-                $this->totalRevenue += $balance;
-            }
-        }
-
-        // Expense accounts (type = 'expense')
-        $expenseAccounts = ChartOfAccount::where('type', 'expense')
-            ->where('is_active', true)
-            ->orderBy('code')
-            ->get();
-
-        $this->expenses = [];
-        $this->totalExpenses = 0;
-
-        foreach ($expenseAccounts as $account) {
-            $balance = JournalEntryLine::where('account_id', $account->id)
-                ->whereHas('journalEntry', function ($q) use ($startDate, $endDate) {
-                    $q->whereBetween('date', [$startDate, $endDate])
-                        ->where('status', 'posted');
-                })
-                ->sum(DB::raw('debit_minor - credit_minor'));
-
-            if ($balance != 0) {
-                $this->expenses[] = [
-                    'code' => $account->code,
-                    'name' => $account->name,
-                    'amount' => $balance,
-                ];
-                $this->totalExpenses += $balance;
-            }
-        }
+        // Load expenses grouped by type
+        $this->expenses = $this->getGroupedAccountBalances($expenseTypes, $startDate, $endDate, 'debit');
+        $this->totalExpenses = array_sum(array_column($this->expenses, 'subtotal'));
 
         $this->netIncome = $this->totalRevenue - $this->totalExpenses;
+    }
+
+    protected function getGroupedAccountBalances(array $types, Carbon $startDate, Carbon $endDate, string $normalBalance): array
+    {
+        $accounts = ChartOfAccount::whereIn('type', $types)
+            ->where('is_active', true)
+            ->orderBy('type')
+            ->orderBy('code')
+            ->get();
+
+        $groupedBalances = [];
+
+        foreach ($accounts as $account) {
+            // Calculate balance based on normal balance type
+            if ($normalBalance === 'credit') {
+                $balance = JournalEntryLine::where('account_id', $account->id)
+                    ->whereHas('journalEntry', function ($q) use ($startDate, $endDate) {
+                        $q->whereBetween('date', [$startDate, $endDate])
+                            ->where('status', 'posted');
+                    })
+                    ->sum(DB::raw('credit_minor - debit_minor'));
+            } else {
+                $balance = JournalEntryLine::where('account_id', $account->id)
+                    ->whereHas('journalEntry', function ($q) use ($startDate, $endDate) {
+                        $q->whereBetween('date', [$startDate, $endDate])
+                            ->where('status', 'posted');
+                    })
+                    ->sum(DB::raw('debit_minor - credit_minor'));
+            }
+
+            if ($balance != 0) {
+                $type = $account->type;
+                $typeLabel = ChartOfAccount::TYPES_FLAT[$type] ?? $type;
+
+                if (!isset($groupedBalances[$type])) {
+                    $groupedBalances[$type] = [
+                        'type' => $type,
+                        'type_label' => __('accounting::accounting.account_types.' . $type, [], app()->getLocale()) !== 'accounting::accounting.account_types.' . $type
+                            ? __('accounting::accounting.account_types.' . $type)
+                            : $typeLabel,
+                        'accounts' => [],
+                        'subtotal' => 0,
+                    ];
+                }
+
+                $groupedBalances[$type]['accounts'][] = [
+                    'id' => $account->id,
+                    'code' => $account->code,
+                    'name' => $account->getTranslation('name', app()->getLocale()) ?? $account->name,
+                    'amount' => $balance,
+                ];
+                $groupedBalances[$type]['subtotal'] += $balance;
+            }
+        }
+
+        return array_values($groupedBalances);
     }
 
     protected function getHeaderActions(): array
@@ -168,5 +189,14 @@ class ProfitLossPage extends Page implements HasForms
     protected function formatCurrency(int $amountMinor): string
     {
         return number_format($amountMinor / 100, 2) . ' EGP';
+    }
+
+    public function openGeneralLedger($accountId): void
+    {
+        $this->redirect(GeneralLedgerPage::getUrl([
+            'account_id' => $accountId,
+            'start_date' => $this->start_date,
+            'end_date' => $this->end_date,
+        ]));
     }
 }

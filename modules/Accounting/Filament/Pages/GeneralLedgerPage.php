@@ -56,8 +56,9 @@ class GeneralLedgerPage extends Page implements HasForms
 
     public function mount(): void
     {
-        $this->start_date = now()->startOfMonth()->format('Y-m-d');
-        $this->end_date = now()->format('Y-m-d');
+        // Check for date range in query string, otherwise use defaults
+        $this->start_date = request()->get('start_date', now()->startOfMonth()->format('Y-m-d'));
+        $this->end_date = request()->get('end_date', now()->format('Y-m-d'));
 
         // Check for account_id in query string
         if (request()->has('account_id')) {
