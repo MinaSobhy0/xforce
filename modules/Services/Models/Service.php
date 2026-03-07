@@ -42,6 +42,7 @@ class Service extends BaseModel
         'duration_minutes',
         'buffer_minutes',
         'base_price_minor',
+        'max_discount_percent',
         'recommended_sessions',
         'session_interval_days',
         'fitzpatrick_min',
@@ -52,6 +53,7 @@ class Service extends BaseModel
         'equipment_required',
         'consumables_required',
         'is_active',
+        'is_consultation',
         'requires_consent',
         'is_bookable_online',
         'time_slot_restrictions',
@@ -73,11 +75,13 @@ class Service extends BaseModel
         'duration_minutes' => 'integer',
         'buffer_minutes' => 'integer',
         'base_price_minor' => 'integer',
+        'max_discount_percent' => 'integer',
         'recommended_sessions' => 'integer',
         'session_interval_days' => 'integer',
         'fitzpatrick_min' => 'integer',
         'fitzpatrick_max' => 'integer',
         'is_active' => 'boolean',
+        'is_consultation' => 'boolean',
         'requires_consent' => 'boolean',
         'is_bookable_online' => 'boolean',
         'time_slot_restrictions' => 'array',
@@ -317,6 +321,16 @@ class Service extends BaseModel
     public function scopeBookableOnline($query)
     {
         return $query->where('is_bookable_online', true)->where('is_active', true);
+    }
+
+    public function scopeConsultations($query)
+    {
+        return $query->where('is_consultation', true);
+    }
+
+    public function scopeTreatments($query)
+    {
+        return $query->where('is_consultation', false);
     }
 
     public function scopeInCategory($query, string $categoryId)

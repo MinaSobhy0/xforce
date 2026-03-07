@@ -370,9 +370,9 @@ class Invoice extends BaseModel
             return false;
         }
 
-        // If was issued, reverse the journal entry and restore stock
+        // If was issued, delete the journal entry and restore stock
         if ($this->status === self::STATUS_ISSUED) {
-            $this->reverseJournalEntries();
+            $this->deleteJournalEntries();
             $this->restoreStockForProductLines();
         }
 
@@ -386,16 +386,16 @@ class Invoice extends BaseModel
     }
 
     /**
-     * Reverse all journal entries for this invoice.
+     * Delete all journal entries for this invoice.
+     * Used when resetting to draft - the invoice was never really issued.
      */
-    protected function reverseJournalEntries(): void
+    protected function deleteJournalEntries(): void
     {
-        $journalEntries = $this->journalEntries()->get();
-
-        foreach ($journalEntries as $entry) {
-            // Create reversing entry
-            $entry->reverse("Reversed: Invoice {$this->code} reset to draft");
-        }
+        $this->journalEntries()->each(function ($entry) {
+            // Delete the lines first, then the entry
+            $entry->lines()->delete();
+            $entry->delete();
+        });
     }
 
     /**

@@ -63,7 +63,7 @@ class ServiceResource extends Resource
                     ->tabs([
                         Forms\Components\Tabs\Tab::make('Basic Info')
                             ->schema([
-                                Forms\Components\Grid::make(3)
+                                Forms\Components\Grid::make(4)
                                     ->schema([
                                         Forms\Components\TextInput::make('code')
                                             ->label('Code')
@@ -82,6 +82,11 @@ class ServiceResource extends Resource
                                         Forms\Components\Toggle::make('is_active')
                                             ->label(__('services::services.fields.is_active'))
                                             ->default(true),
+
+                                        Forms\Components\Toggle::make('is_consultation')
+                                            ->label(__('services::services.fields.is_consultation'))
+                                            ->helperText(__('services::services.fields.is_consultation_help'))
+                                            ->default(false),
                                     ]),
 
                                 Forms\Components\Section::make('Name & Description')
@@ -124,7 +129,7 @@ class ServiceResource extends Resource
 
                                 Forms\Components\Section::make('Scheduling & Pricing')
                                     ->schema([
-                                        Forms\Components\Grid::make(4)
+                                        Forms\Components\Grid::make(5)
                                             ->schema([
                                                 Forms\Components\TextInput::make('duration_minutes')
                                                     ->label(__('services::services.fields.duration'))
@@ -147,6 +152,14 @@ class ServiceResource extends Resource
                                                     ->prefix(current_currency())
                                                     ->formatStateUsing(fn ($state) => $state ? $state / 100 : null)
                                                     ->dehydrateStateUsing(fn ($state) => $state ? (int) ($state * 100) : 0),
+
+                                                Forms\Components\TextInput::make('max_discount_percent')
+                                                    ->label(__('services::services.fields.max_discount'))
+                                                    ->numeric()
+                                                    ->minValue(0)
+                                                    ->maxValue(100)
+                                                    ->suffix('%')
+                                                    ->helperText(__('services::services.fields.max_discount_help')),
 
                                                 Forms\Components\TextInput::make('sort_order')
                                                     ->label('Sort Order')
@@ -546,6 +559,17 @@ class ServiceResource extends Resource
                     ->label(__('services::services.fields.base_price'))
                     ->sortable(['base_price_minor']),
 
+                Tables\Columns\TextColumn::make('max_discount_percent')
+                    ->label(__('services::services.fields.max_discount'))
+                    ->suffix('%')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                Tables\Columns\IconColumn::make('is_consultation')
+                    ->label(__('services::services.fields.is_consultation'))
+                    ->boolean()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 Tables\Columns\IconColumn::make('requires_consent')
                     ->label('Consent')
                     ->boolean(),
@@ -574,6 +598,9 @@ class ServiceResource extends Resource
 
                 Tables\Filters\TernaryFilter::make('is_bookable_online')
                     ->label('Online Booking'),
+
+                Tables\Filters\TernaryFilter::make('is_consultation')
+                    ->label(__('services::services.fields.is_consultation')),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
