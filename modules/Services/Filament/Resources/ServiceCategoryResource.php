@@ -220,8 +220,7 @@ class ServiceCategoryResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('translated_name')
                     ->label(__('services::services.fields.name'))
-                    ->searchable(['name'])
-                    ->sortable(),
+                    ->searchable(['name']),
 
                 Tables\Columns\TextColumn::make('parent.translated_name')
                     ->label(__('services::services.fields.parent_category'))
