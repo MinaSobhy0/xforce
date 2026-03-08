@@ -745,6 +745,7 @@ class ImportTableAction extends Action
                 ->label(__('core::import.modal.form.file.label'))
                 ->placeholder(__('core::import.modal.form.file.placeholder'))
                 ->acceptedFileTypes([
+                    // CSV types
                     'text/csv',
                     'text/x-csv',
                     'application/csv',
@@ -752,8 +753,16 @@ class ImportTableAction extends Action
                     'text/comma-separated-values',
                     'text/x-comma-separated-values',
                     'text/plain',
+                    // Excel types
                     'application/vnd.ms-excel',
                     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    'application/excel',
+                    'application/x-excel',
+                    'application/x-msexcel',
+                    'application/vnd.ms-excel.sheet.macroEnabled.12',
+                    'application/vnd.ms-excel.sheet.binary.macroEnabled.12',
+                    // Fallback for unknown types
+                    'application/octet-stream',
                 ])
                 ->rules(['required', 'extensions:csv,txt,xlsx,xls'])
                 ->afterStateUpdated(function (FileUpload $component, Component $livewire, Forms\Set $set, ?TemporaryUploadedFile $state) {
