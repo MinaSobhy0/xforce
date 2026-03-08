@@ -65,7 +65,7 @@ return [
 
     'temporary_file_upload' => [
         'disk' => 'local',
-        'rules' => ['file', 'max:10240', 'mimes:jpg,jpeg,png,gif,webp'], // 10MB for camera photos
+        'rules' => ['file', 'max:10240', 'mimes:jpg,jpeg,png,gif,webp,csv,txt,xlsx,xls'], // 10MB - images and documents
         'directory' => 'livewire-tmp',
         'middleware' => null,  // No throttle to avoid upload issues
         'preview_mimes' => [   // Supported file types for temporary pre-signed file URLs...
