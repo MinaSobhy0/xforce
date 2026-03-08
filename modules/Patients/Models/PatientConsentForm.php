@@ -67,7 +67,7 @@ class PatientConsentForm extends BaseModel
      */
     public function consentTemplate(): BelongsTo
     {
-        return $this->belongsTo(\Modules\Treatments\Models\ConsentTemplate::class, 'consent_template_id');
+        return $this->belongsTo(\Modules\Services\Models\ConsentTemplate::class, 'consent_template_id');
     }
 
     /**
