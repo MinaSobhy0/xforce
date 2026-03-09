@@ -569,6 +569,8 @@ class CreateBooking extends Page implements HasForms
                                                                     ->live(onBlur: true)
                                                                     ->dehydrateStateUsing(fn ($state) => (int) (((float) $state) * 100))
                                                                     ->formatStateUsing(fn ($state) => $state ? number_format($state / 100, 2) : '')
+                                                                    // Package services have fixed price (prepaid)
+                                                                    ->disabled(fn (Get $get) => $get('source_type') === 'package')
                                                                     ->columnSpan(2),
 
                                                                 Forms\Components\TextInput::make('discount_minor')
@@ -577,6 +579,8 @@ class CreateBooking extends Page implements HasForms
                                                                     ->prefix(current_currency())
                                                                     ->default(0)
                                                                     ->live(onBlur: true)
+                                                                    // Package services have no discount (prepaid)
+                                                                    ->disabled(fn (Get $get) => $get('source_type') === 'package')
                                                                     ->dehydrateStateUsing(fn ($state) => (int) (((float) $state) * 100))
                                                                     ->formatStateUsing(fn ($state) => $state ? number_format($state / 100, 2) : '0.00')
                                                                     ->helperText(function (Get $get) {
@@ -754,6 +758,7 @@ class CreateBooking extends Page implements HasForms
                                                     })
                                                     ->searchable()
                                                     ->live()
+                                                    ->afterStateUpdated(fn ($state, $livewire) => $state ? $livewire->selectNewPackageForBooking($state) : null)
                                                     ->required(fn (Get $get) => $get('booking_type') === 'package' && $get('package_mode') === 'new')
                                                     ->visible(fn (Get $get) => $get('package_mode') === 'new')
                                                     ->columnSpanFull(),
@@ -1418,6 +1423,65 @@ class CreateBooking extends Page implements HasForms
             ->success()
             ->duration(2000)
             ->send();
+    }
+
+    /**
+     * Select a new package for booking (called when selecting package to buy)
+     * Loads all package services into the cart with package pricing
+     */
+    public function selectNewPackageForBooking(string $packageId): void
+    {
+        // Clear any previous slot selections
+        $this->availableSlots = [];
+        $this->bookingItems = [];
+
+        try {
+            $package = Package::with(['items.service'])->find($packageId);
+
+            if ($package) {
+                $services = [];
+
+                foreach ($package->items as $item) {
+                    if (!$item->service) {
+                        continue;
+                    }
+
+                    // Package services show 0 price (prepaid via package purchase)
+                    $services[] = [
+                        'service_id' => $item->service_id,
+                        'duration_override' => $item->service->duration_minutes,
+                        'price_minor' => 0, // Package sessions are pre-paid
+                        'discount_minor' => 0,
+                        'max_discount_percent' => 100,
+                        'source_type' => 'package',
+                        'source_item_id' => $item->id,
+                        'existing_appointment_id' => null,
+                        'existing_appointment_date' => null,
+                        'existing_appointment_time' => null,
+                    ];
+                }
+
+                // Update form data - use service mode for cart display
+                $this->data['booking_type'] = 'service';
+                $this->data['new_package_id'] = $packageId;
+                $this->data['services'] = !empty($services) ? $services : [['service_id' => null, 'duration_override' => null, 'price_minor' => null]];
+
+                // Refresh the form with new data
+                $this->form->fill($this->data);
+
+                Notification::make()
+                    ->title(__('booking::booking.messages.package_selected'))
+                    ->body(__('booking::booking.messages.services_loaded_to_cart'))
+                    ->success()
+                    ->duration(2000)
+                    ->send();
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning('Error loading new package services', [
+                'package_id' => $packageId,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**
