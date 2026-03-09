@@ -147,4 +147,54 @@ return [
     ],
 
     'invoice_notes' => 'Package: :package - Valid for :days days',
+
+    // Package Subscriptions Resource
+    'subscriptions' => [
+        'navigation_label' => 'Subscriptions',
+        'model_label' => 'Subscription',
+        'plural_label' => 'Subscriptions',
+
+        'sections' => [
+            'details' => 'Subscription Details',
+            'usage' => 'Usage Summary',
+            'payment' => 'Payment Information',
+            'services' => 'Package Services',
+        ],
+
+        'fields' => [
+            'usage' => 'Usage',
+            'balance' => 'Balance',
+            'package_price' => 'Package Price',
+            'paid' => 'Paid',
+            'payment_progress' => 'Payment Progress',
+            'total_sessions' => 'Total',
+            'used' => 'Used',
+            'booked' => 'Booked',
+            'remaining' => 'Remaining',
+            'frozen_until' => 'Freeze Until',
+            'branch' => 'Branch',
+            'quantity_used' => 'Quantity',
+            'unit_type' => 'Type',
+            'appointment_date' => 'Appointment Date',
+            'used_at' => 'Used At',
+            'date' => 'Date',
+            'time' => 'Time',
+            'practitioner' => 'Practitioner',
+            'is_package_session' => 'Package Session',
+        ],
+
+        'filters' => [
+            'expiring_soon' => 'Expiring Soon (30 days)',
+            'has_balance' => 'Has Balance Due',
+        ],
+
+        'relations' => [
+            'usages' => 'Session Usage History',
+            'appointments' => 'Appointments',
+        ],
+
+        'actions' => [
+            'view_appointment' => 'View',
+        ],
+    ],
 ];

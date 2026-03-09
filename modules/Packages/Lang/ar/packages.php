@@ -147,4 +147,54 @@ return [
     ],
 
     'invoice_notes' => 'الباقة: :package - صالحة لمدة :days يوم',
+
+    // Package Subscriptions Resource
+    'subscriptions' => [
+        'navigation_label' => 'الاشتراكات',
+        'model_label' => 'اشتراك',
+        'plural_label' => 'الاشتراكات',
+
+        'sections' => [
+            'details' => 'تفاصيل الاشتراك',
+            'usage' => 'ملخص الاستخدام',
+            'payment' => 'معلومات الدفع',
+            'services' => 'خدمات الباقة',
+        ],
+
+        'fields' => [
+            'usage' => 'الاستخدام',
+            'balance' => 'الرصيد',
+            'package_price' => 'سعر الباقة',
+            'paid' => 'المدفوع',
+            'payment_progress' => 'تقدم الدفع',
+            'total_sessions' => 'الإجمالي',
+            'used' => 'مستخدم',
+            'booked' => 'محجوز',
+            'remaining' => 'متبقي',
+            'frozen_until' => 'تجميد حتى',
+            'branch' => 'الفرع',
+            'quantity_used' => 'الكمية',
+            'unit_type' => 'النوع',
+            'appointment_date' => 'تاريخ الموعد',
+            'used_at' => 'تاريخ الاستخدام',
+            'date' => 'التاريخ',
+            'time' => 'الوقت',
+            'practitioner' => 'الممارس',
+            'is_package_session' => 'جلسة باقة',
+        ],
+
+        'filters' => [
+            'expiring_soon' => 'تنتهي قريباً (30 يوم)',
+            'has_balance' => 'لديه رصيد مستحق',
+        ],
+
+        'relations' => [
+            'usages' => 'سجل استخدام الجلسات',
+            'appointments' => 'المواعيد',
+        ],
+
+        'actions' => [
+            'view_appointment' => 'عرض',
+        ],
+    ],
 ];
