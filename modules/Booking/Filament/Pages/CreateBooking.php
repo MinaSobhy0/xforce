@@ -499,6 +499,8 @@ class CreateBooking extends Page implements HasForms
                                                                             }
                                                                         }
                                                                     })
+                                                                    // Package/treatment plan services cannot be changed
+                                                                    ->disabled(fn (Get $get) => in_array($get('source_type'), ['package', 'treatment_plan']))
                                                                     ->columnSpan(4),
 
                                                                 Forms\Components\TextInput::make('duration_override')
@@ -1385,13 +1387,13 @@ class CreateBooking extends Page implements HasForms
                         ->orderBy('date')
                         ->first();
 
-                    // Package services are typically pre-paid, so price shown is 0 or the package item price
+                    // Show actual service price (display format - major units)
                     $services[] = [
                         'service_id' => $item->service_id,
                         'duration_override' => $item->service->duration_minutes,
-                        'price_minor' => 0, // Package sessions are pre-paid
+                        'price_minor' => $item->service->base_price_minor / 100,
                         'discount_minor' => 0,
-                        'max_discount_percent' => 100,
+                        'max_discount_percent' => 0, // No discount allowed for package
                         'source_type' => 'package',
                         'source_item_id' => $item->id,
                         'existing_appointment_id' => $scheduledAppointment?->id,
@@ -1446,13 +1448,13 @@ class CreateBooking extends Page implements HasForms
                         continue;
                     }
 
-                    // Package services show 0 price (prepaid via package purchase)
+                    // Show actual service price (display format - major units)
                     $services[] = [
                         'service_id' => $item->service_id,
                         'duration_override' => $item->service->duration_minutes,
-                        'price_minor' => 0, // Package sessions are pre-paid
+                        'price_minor' => $item->service->base_price_minor / 100,
                         'discount_minor' => 0,
-                        'max_discount_percent' => 100,
+                        'max_discount_percent' => 0, // No discount allowed for package
                         'source_type' => 'package',
                         'source_item_id' => $item->id,
                         'existing_appointment_id' => null,
