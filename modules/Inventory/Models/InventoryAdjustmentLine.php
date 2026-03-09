@@ -132,11 +132,13 @@ class InventoryAdjustmentLine extends BaseModel
         // Use StockMoveService for Odoo-like adjustment
         // Gain: Inventory Adjustment Location → Internal Location
         // Loss: Internal Location → Inventory Adjustment Location
+        // Uses product's sales_uom (stock UOM) by default
         $stockMoveService = app(StockMoveService::class);
         $stockMoveService->createAdjustment(
             $this->product,
             $internalLocation,
             $this->difference_qty, // positive = gain, negative = loss
+            null, // uom_id - null uses product's sales_uom
             'inventory_adjustment',
             $adjustment->id,
             "Inventory adjustment: {$adjustment->reference}"

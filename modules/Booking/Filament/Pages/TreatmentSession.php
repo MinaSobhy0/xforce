@@ -790,10 +790,12 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                     $quantityToDeduct = (int) ($consumable->base_quantity ?? $consumable->quantity);
 
                     // Odoo-like: Transfer from Treatment Location → Customer Location
+                    // Uses product's sales_uom (stock UOM) by default
                     $movement = $stockMoveService->createConsumption(
                         $consumable->product,
                         $sourceLocation,
                         $quantityToDeduct,
+                        null, // uom_id - null uses product's sales_uom (stock UOM)
                         SessionConsumable::class,
                         (string) $consumable->id,
                         'Consumed during appointment #' . $this->appointment->id

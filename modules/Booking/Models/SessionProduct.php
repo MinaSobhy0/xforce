@@ -315,11 +315,13 @@ class SessionProduct extends BaseModel
         }
 
         // Use StockMoveService for Odoo-like return (Customer → Treatment Location)
+        // Uses product's sales_uom (stock UOM) by default
         $stockMoveService = app(StockMoveService::class);
         $stockMoveService->createCustomerReturn(
             $this->product,
             $destinationLocation,
             (int) $this->quantity,
+            null, // uom_id - null uses product's sales_uom
             'session_product_return',
             (string) $this->id,
             'Product returned from cancelled checkout - Appointment #' . $this->appointment_id

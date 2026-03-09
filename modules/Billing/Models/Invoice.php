@@ -362,10 +362,12 @@ class Invoice extends BaseModel
 
             // Use StockMoveService for Odoo-like transfer (Internal → Customer)
             // StockMoveService automatically creates journal entries for stock movements
+            // Uses product's sales_uom (stock UOM) by default
             $stockMoveService->createSaleDelivery(
                 $line->product,
                 $sourceLocation,
                 (int) $line->quantity,
+                null, // uom_id - null uses product's sales_uom
                 'invoice',
                 $this->id,
                 "Sale: Invoice #{$this->code}"

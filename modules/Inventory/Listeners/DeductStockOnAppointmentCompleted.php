@@ -93,10 +93,12 @@ class DeductStockOnAppointmentCompleted
         $requiredQty = (int) ceil($consumable->quantity);
 
         // Use StockMoveService for Odoo-like transfer (Treatment → Customer)
+        // Uses product's sales_uom (stock UOM) by default
         $movement = $this->stockMoveService->createConsumption(
             $consumable->product,
             $sourceLocation,
             $requiredQty,
+            null, // uom_id - null uses product's sales_uom
             'session_consumable',
             $consumable->id,
             sprintf(

@@ -264,12 +264,14 @@ class StockTransfer extends BaseModel
                 $line->save();
 
                 // Use StockMoveService for internal transfer
+                // Uses line's UOM if set, otherwise product's sales_uom
                 if ($line->product && $line->product->tracksInventory()) {
                     $stockMoveService->createInternalTransfer(
                         $line->product,
                         $sourceLocation,
                         $destinationLocation,
                         $quantityToTransfer,
+                        $line->uom_id, // Use line's UOM for conversion
                         'stock_transfer',
                         $this->id,
                         "Transfer #{$this->transfer_number}"
