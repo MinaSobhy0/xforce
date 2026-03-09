@@ -80,7 +80,7 @@ class ViewPackageSubscription extends ViewRecord
                 ->icon('heroicon-o-calendar')
                 ->color('primary')
                 ->visible(fn () => $this->record->isActive() && $this->record->sessions_remaining > 0)
-                ->url(fn () => route('filament.admin.pages.create-booking', [
+                ->url(fn () => route('filament.tenant.pages.create-booking', [
                     'patient_id' => $this->record->patient_id,
                     'package_subscription_id' => $this->record->id,
                 ])),

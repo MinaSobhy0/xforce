@@ -20,7 +20,7 @@ class PackageSubscriptionResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-ticket';
 
-    protected static ?string $navigationGroup = 'Packages';
+    protected static ?string $navigationGroup = 'Inventory';
 
     protected static ?int $navigationSort = 20;
 
@@ -243,7 +243,7 @@ class PackageSubscriptionResource extends Resource
                             ->schema([
                                 Infolists\Components\TextEntry::make('patient.full_name')
                                     ->label(__('packages::packages.fields.patient'))
-                                    ->url(fn (PackageSubscription $record) => route('filament.admin.resources.patients.view', $record->patient_id)),
+                                    ->url(fn (PackageSubscription $record) => route('filament.tenant.resources.patients.view', ['record' => $record->patient_id])),
 
                                 Infolists\Components\TextEntry::make('package.translated_name')
                                     ->label(__('packages::packages.fields.package')),
@@ -277,80 +277,100 @@ class PackageSubscriptionResource extends Resource
                             ]),
                     ]),
 
-                Infolists\Components\Section::make(__('packages::packages.subscriptions.sections.usage'))
-                    ->schema([
-                        Infolists\Components\Grid::make(4)
-                            ->schema([
-                                Infolists\Components\TextEntry::make('consumption_total')
-                                    ->label(__('packages::packages.subscriptions.fields.total_sessions'))
-                                    ->getStateUsing(fn (PackageSubscription $record) =>
-                                        $record->consumption_total . ' ' . ($record->package?->isPulseBased() ? __('packages::packages.labels.pulses') : __('packages::packages.labels.sessions'))
-                                    ),
-
-                                Infolists\Components\TextEntry::make('consumption_used')
-                                    ->label(__('packages::packages.subscriptions.fields.used'))
-                                    ->color('danger'),
-
-                                Infolists\Components\TextEntry::make('sessions_booked')
-                                    ->label(__('packages::packages.subscriptions.fields.booked'))
-                                    ->color('warning'),
-
-                                Infolists\Components\TextEntry::make('consumption_remaining')
-                                    ->label(__('packages::packages.subscriptions.fields.remaining'))
-                                    ->color('success'),
-                            ]),
-
-                        Infolists\Components\TextEntry::make('usage_progress')
-                            ->label(__('packages::packages.fields.progress'))
-                            ->getStateUsing(fn (PackageSubscription $record) => $record->usage_progress . '%')
-                            ->badge()
-                            ->color(fn (PackageSubscription $record) => match (true) {
-                                $record->usage_progress >= 100 => 'success',
-                                $record->usage_progress >= 75 => 'warning',
-                                default => 'gray',
-                            }),
-                    ]),
-
                 Infolists\Components\Section::make(__('packages::packages.subscriptions.sections.payment'))
                     ->schema([
+                        Infolists\Components\Grid::make(2)
+                            ->schema([
+                                Infolists\Components\TextEntry::make('invoice.code')
+                                    ->label(__('packages::packages.subscriptions.fields.invoice'))
+                                    ->url(fn (PackageSubscription $record) => $record->invoice_id
+                                        ? route('filament.tenant.resources.invoices.view', ['record' => $record->invoice_id])
+                                        : null)
+                                    ->color('primary')
+                                    ->visible(fn (PackageSubscription $record) => $record->invoice_id !== null),
+
+                                Infolists\Components\TextEntry::make('invoice.status')
+                                    ->label(__('packages::packages.fields.status'))
+                                    ->badge()
+                                    ->formatStateUsing(fn ($state) => \Modules\Billing\Models\Invoice::STATUSES[$state] ?? $state)
+                                    ->color(fn ($state) => \Modules\Billing\Models\Invoice::STATUS_COLORS[$state] ?? 'gray')
+                                    ->visible(fn (PackageSubscription $record) => $record->invoice_id !== null),
+                            ]),
+
                         Infolists\Components\Grid::make(4)
                             ->schema([
-                                Infolists\Components\TextEntry::make('formatted_price')
-                                    ->label(__('packages::packages.subscriptions.fields.package_price')),
+                                Infolists\Components\TextEntry::make('invoice.total_minor')
+                                    ->label(__('packages::packages.subscriptions.fields.package_price'))
+                                    ->getStateUsing(fn (PackageSubscription $record) =>
+                                        format_money($record->invoice?->total_minor ?? $record->package_price_minor)
+                                    ),
 
-                                Infolists\Components\TextEntry::make('total_paid')
+                                Infolists\Components\TextEntry::make('invoice.paid_minor')
                                     ->label(__('packages::packages.subscriptions.fields.paid'))
-                                    ->formatStateUsing(fn ($state) => format_money($state))
+                                    ->getStateUsing(fn (PackageSubscription $record) =>
+                                        format_money($record->invoice?->paid_minor ?? $record->total_paid)
+                                    )
                                     ->color('success'),
 
-                                Infolists\Components\TextEntry::make('formatted_balance')
+                                Infolists\Components\TextEntry::make('invoice.balance')
                                     ->label(__('packages::packages.subscriptions.fields.balance'))
-                                    ->color(fn (PackageSubscription $record) => $record->hasBalance() ? 'danger' : 'success'),
+                                    ->getStateUsing(function (PackageSubscription $record) {
+                                        if ($record->invoice) {
+                                            return format_money($record->invoice->total_minor - $record->invoice->paid_minor);
+                                        }
+                                        return $record->formatted_balance;
+                                    })
+                                    ->color(fn (PackageSubscription $record) =>
+                                        ($record->invoice ? ($record->invoice->total_minor - $record->invoice->paid_minor) > 0 : $record->hasBalance())
+                                            ? 'danger' : 'success'
+                                    ),
 
                                 Infolists\Components\TextEntry::make('payment_progress')
                                     ->label(__('packages::packages.subscriptions.fields.payment_progress'))
-                                    ->getStateUsing(fn (PackageSubscription $record) => $record->payment_progress . '%')
+                                    ->getStateUsing(function (PackageSubscription $record) {
+                                        if ($record->invoice && $record->invoice->total_minor > 0) {
+                                            return round(($record->invoice->paid_minor / $record->invoice->total_minor) * 100, 1) . '%';
+                                        }
+                                        return $record->payment_progress . '%';
+                                    })
                                     ->badge()
-                                    ->color(fn (PackageSubscription $record) => $record->isFullyPaid() ? 'success' : 'warning'),
+                                    ->color(function (PackageSubscription $record) {
+                                        if ($record->invoice) {
+                                            return $record->invoice->paid_minor >= $record->invoice->total_minor ? 'success' : 'warning';
+                                        }
+                                        return $record->isFullyPaid() ? 'success' : 'warning';
+                                    }),
                             ]),
                     ]),
 
                 Infolists\Components\Section::make(__('packages::packages.subscriptions.sections.services'))
                     ->schema([
-                        Infolists\Components\RepeatableEntry::make('package.items')
+                        Infolists\Components\RepeatableEntry::make('items_with_usage')
                             ->label('')
                             ->schema([
-                                Infolists\Components\TextEntry::make('service.translated_name')
+                                Infolists\Components\TextEntry::make('service_name')
                                     ->label(__('packages::packages.fields.service')),
 
-                                Infolists\Components\TextEntry::make('quantity')
-                                    ->label(__('packages::packages.fields.quantity'))
-                                    ->suffix(fn ($record) => ' ' . ($record->consumption_type === 'pulses' ? __('packages::packages.labels.pulses') : __('packages::packages.labels.sessions'))),
+                                Infolists\Components\TextEntry::make('total_units')
+                                    ->label(__('packages::packages.subscriptions.fields.total_sessions'))
+                                    ->suffix(fn ($record) => ' ' . ($record->is_pulse_based ? __('packages::packages.labels.pulses') : __('packages::packages.labels.sessions'))),
 
-                                Infolists\Components\TextEntry::make('formatted_unit_price')
+                                Infolists\Components\TextEntry::make('used')
+                                    ->label(__('packages::packages.subscriptions.fields.used'))
+                                    ->color('danger'),
+
+                                Infolists\Components\TextEntry::make('booked')
+                                    ->label(__('packages::packages.subscriptions.fields.booked'))
+                                    ->color('warning'),
+
+                                Infolists\Components\TextEntry::make('remaining')
+                                    ->label(__('packages::packages.subscriptions.fields.remaining'))
+                                    ->color('success'),
+
+                                Infolists\Components\TextEntry::make('unit_price')
                                     ->label(__('packages::packages.fields.unit_price')),
                             ])
-                            ->columns(3),
+                            ->columns(6),
                     ]),
 
                 Infolists\Components\Section::make(__('packages::packages.fields.notes'))
@@ -369,6 +389,7 @@ class PackageSubscriptionResource extends Resource
         return [
             RelationManagers\UsagesRelationManager::class,
             RelationManagers\AppointmentsRelationManager::class,
+            RelationManagers\PaymentsRelationManager::class,
         ];
     }
 

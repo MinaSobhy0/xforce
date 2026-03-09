@@ -60,7 +60,7 @@ class AppointmentsRelationManager extends RelationManager
                 Tables\Actions\Action::make('view')
                     ->label(__('packages::packages.subscriptions.actions.view_appointment'))
                     ->icon('heroicon-o-eye')
-                    ->url(fn ($record) => route('filament.admin.resources.appointments.view', $record->id)),
+                    ->url(fn ($record) => route('filament.tenant.resources.appointments.view', ['record' => $record->id])),
             ])
             ->bulkActions([])
             ->defaultSort('date', 'desc');

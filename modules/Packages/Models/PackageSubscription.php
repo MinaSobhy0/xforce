@@ -125,6 +125,14 @@ class PackageSubscription extends BaseModel
         return $this->belongsTo(Invoice::class);
     }
 
+    /**
+     * Get payments for this subscription's invoice.
+     */
+    public function payments(): HasMany
+    {
+        return $this->hasMany(\Modules\Billing\Models\Payment::class, 'invoice_id', 'invoice_id');
+    }
+
     public function usages(): HasMany
     {
         return $this->hasMany(PackageSessionUsage::class, 'subscription_id');
@@ -515,6 +523,31 @@ class PackageSubscription extends BaseModel
     public function getFormattedPriceAttribute(): string
     {
         return format_money($this->package_price_minor);
+    }
+
+    /**
+     * Get package items with usage data for this subscription.
+     */
+    public function getItemsWithUsageAttribute(): \Illuminate\Support\Collection
+    {
+        if (!$this->package) {
+            return collect();
+        }
+
+        return $this->package->items->map(function ($item) {
+            return (object) [
+                'service_name' => $item->service?->translated_name ?? '-',
+                'service_id' => $item->service_id,
+                'quantity' => $item->quantity,
+                'consumption_type' => $item->consumption_type,
+                'unit_price' => $item->formatted_unit_price,
+                'total_units' => $item->total_units,
+                'used' => $this->getSessionsUsedByService($item->service_id),
+                'booked' => $this->getSessionsBookedByService($item->service_id),
+                'remaining' => $this->getSessionsRemainingByService($item->service_id),
+                'is_pulse_based' => $item->isPulseBased(),
+            ];
+        });
     }
 
     public function recordPayment(int $amountMinor): void

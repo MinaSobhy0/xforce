@@ -11,8 +11,10 @@
     $hasBalance = $appointment->remaining_balance > 0;
     $canRecordPayment = in_array($appointment->status, ['checked_in', 'in_progress']) && $hasBalance;
 
-    // Package balance check
-    $packageSubscription = $appointment->isPackageSession() ? $appointment->packageSubscription : null;
+    // Package balance check - show badge if appointment has package_subscription_id OR isPackageSession
+    $packageSubscription = ($appointment->package_subscription_id || $appointment->isPackageSession())
+        ? $appointment->packageSubscription
+        : null;
     $hasPackageBalance = $packageSubscription && $packageSubscription->hasBalance();
     $packageBalanceAmount = $packageSubscription?->balance_remaining_minor ?? 0;
     $packageName = $packageSubscription?->package?->getTranslation('name', app()->getLocale()) ?? '';

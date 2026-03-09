@@ -153,6 +153,11 @@ class CreateBooking extends Page implements HasForms
     {
         return $form
             ->schema([
+                // Hidden fields for package state - MUST be outside conditional sections
+                Forms\Components\Hidden::make('_package_mode'),
+                Forms\Components\Hidden::make('_package_subscription_id'),
+                Forms\Components\Hidden::make('_new_package_id'),
+
                 // Main content area - two columns
                 Forms\Components\Grid::make(['default' => 1, 'lg' => 3])
                     ->schema([
@@ -704,6 +709,9 @@ class CreateBooking extends Page implements HasForms
                                                         Forms\Components\Hidden::make('existing_appointment_id'),
                                                         Forms\Components\Hidden::make('existing_appointment_date'),
                                                         Forms\Components\Hidden::make('existing_appointment_time'),
+                                                        // Package IDs stored per service
+                                                        Forms\Components\Hidden::make('from_package'),
+                                                        Forms\Components\Hidden::make('new_package_id'),
                                                     ])
                                                     ->addActionLabel(__('booking::booking.actions.add_service'))
                                                     ->deleteAction(
@@ -820,6 +828,7 @@ class CreateBooking extends Page implements HasForms
                                                     ->default('existing')
                                                     ->inline()
                                                     ->live()
+                                                    ->dehydrated()
                                                     ->columnSpanFull(),
 
                                                 // Patient's Existing Packages - now shown in patient_info two-column layout
@@ -827,7 +836,8 @@ class CreateBooking extends Page implements HasForms
                                                 // The visible package pills are rendered in patient_info placeholder
 
                                                 // Hidden field to store selected subscription
-                                                Forms\Components\Hidden::make('package_subscription_id'),
+                                                Forms\Components\Hidden::make('package_subscription_id')
+                                                    ->dehydrated(),
 
                                                 // Buy New Package - Dropdown
                                                 Forms\Components\Select::make('new_package_id')
@@ -842,6 +852,7 @@ class CreateBooking extends Page implements HasForms
                                                     })
                                                     ->searchable()
                                                     ->live()
+                                                    ->dehydrated()
                                                     ->afterStateUpdated(fn ($state, $livewire) => $state ? $livewire->selectNewPackageForBooking($state) : null)
                                                     ->required(fn (Get $get) => $get('booking_type') === 'package' && $get('package_mode') === 'new')
                                                     ->visible(fn (Get $get) => $get('package_mode') === 'new')
@@ -864,7 +875,8 @@ class CreateBooking extends Page implements HasForms
                                                 Forms\Components\Hidden::make('package_service_id'),
                                                 Forms\Components\Hidden::make('new_package_service_id'),
                                             ])
-                                            ->visible(fn (Get $get) => $get('booking_type') === 'package'),
+                                            ->visible(fn (Get $get) => $get('booking_type') === 'package')
+                                            ->dehydrated(),
 
                                         // Treatment Plan Selection (for treatment plan booking)
                                         Forms\Components\Fieldset::make(__('booking::booking.fields.treatment_plan'))
@@ -1043,12 +1055,19 @@ class CreateBooking extends Page implements HasForms
         $dateTo = $data['date_to'] ?? null;
         $bookingType = $data['booking_type'] ?? 'service';
 
+        // Use hidden fields as fallback (they persist outside conditional sections)
+        $packageMode = $data['package_mode'] ?? $data['_package_mode'] ?? null;
+        $packageSubscriptionId = $data['package_subscription_id'] ?? $data['_package_subscription_id'] ?? null;
+        $newPackageId = $data['new_package_id'] ?? $data['_new_package_id'] ?? null;
+
         \Log::warning('generateSlots called', [
             'booking_type' => $bookingType,
-            'package_mode' => $data['package_mode'] ?? null,
-            'package_subscription_id' => $data['package_subscription_id'] ?? null,
+            'package_mode' => $packageMode,
+            'package_subscription_id' => $packageSubscriptionId,
             'package_service_id' => $data['package_service_id'] ?? null,
-            'new_package_id' => $data['new_package_id'] ?? null,
+            'new_package_id' => $newPackageId,
+            'services_count' => count($data['services'] ?? []),
+            'first_service_source_type' => $data['services'][0]['source_type'] ?? null,
         ]);
 
         if (!$branchId || !$dateFrom || !$dateTo) {
@@ -1062,6 +1081,7 @@ class CreateBooking extends Page implements HasForms
         // Get service IDs based on booking type
         $serviceIds = [];
         $durations = [];
+        $serviceSourceTypes = []; // Track source_type per service
         $treatmentPlanItemId = null;
 
         if ($bookingType === 'service') {
@@ -1070,6 +1090,7 @@ class CreateBooking extends Page implements HasForms
                 if (!empty($service['service_id'])) {
                     $serviceIds[] = $service['service_id'];
                     $durations[$service['service_id']] = $service['duration_override'] ?? null;
+                    $serviceSourceTypes[$service['service_id']] = $service['source_type'] ?? null;
                 }
             }
         } elseif ($bookingType === 'package') {
@@ -1129,15 +1150,39 @@ class CreateBooking extends Page implements HasForms
                     $slot['service_name'] = Service::find($serviceId)?->translated_name;
 
                     // Handle package info based on mode
-                    if ($bookingType === 'package') {
-                        $packageMode = $data['package_mode'] ?? 'existing';
-                        if ($packageMode === 'existing') {
-                            $slot['from_package'] = $data['package_subscription_id'] ?? null;
+                    // First check service-level package IDs, then fall back to form-level
+                    $serviceSourceType = $serviceSourceTypes[$serviceId] ?? null;
+                    $isPackageService = $serviceSourceType === 'package' || $serviceSourceType === 'treatment_plan';
+
+                    // Get service-level package IDs
+                    $serviceFromPackage = null;
+                    $serviceNewPackageId = null;
+                    foreach ($services as $service) {
+                        if (($service['service_id'] ?? null) == $serviceId) {
+                            $serviceFromPackage = $service['from_package'] ?? null;
+                            $serviceNewPackageId = $service['new_package_id'] ?? null;
+                            break;
+                        }
+                    }
+
+                    // Use service-level package IDs if available
+                    if ($serviceFromPackage) {
+                        $slot['from_package'] = $serviceFromPackage;
+                        $slot['new_package_id'] = null;
+                    } elseif ($serviceNewPackageId) {
+                        $slot['from_package'] = null;
+                        $slot['new_package_id'] = $serviceNewPackageId;
+                    } elseif ($bookingType === 'package' || !empty($packageSubscriptionId) || $isPackageService) {
+                        if ($packageMode === 'existing' || !empty($packageSubscriptionId)) {
+                            $slot['from_package'] = $packageSubscriptionId;
                             $slot['new_package_id'] = null;
                         } else {
                             $slot['from_package'] = null;
-                            $slot['new_package_id'] = $data['new_package_id'] ?? null;
+                            $slot['new_package_id'] = $newPackageId;
                         }
+                    } elseif (!empty($newPackageId)) {
+                        $slot['from_package'] = null;
+                        $slot['new_package_id'] = $newPackageId;
                     } else {
                         $slot['from_package'] = null;
                         $slot['new_package_id'] = null;
@@ -1238,6 +1283,21 @@ class CreateBooking extends Page implements HasForms
         $dateTo = $data['date_to'] ?? null;
         $bookingType = $data['booking_type'] ?? 'service';
 
+        // Use hidden fields as fallback (they persist outside conditional sections)
+        $packageMode = $data['package_mode'] ?? $data['_package_mode'] ?? null;
+        $packageSubscriptionId = $data['package_subscription_id'] ?? $data['_package_subscription_id'] ?? null;
+        $newPackageId = $data['new_package_id'] ?? $data['_new_package_id'] ?? null;
+
+        \Log::warning('generateSlotsForService called', [
+            'service_id' => $serviceId,
+            'booking_type' => $bookingType,
+            'package_mode' => $packageMode,
+            'package_subscription_id' => $packageSubscriptionId,
+            'new_package_id' => $newPackageId,
+            'services_count' => count($data['services'] ?? []),
+            'services_raw' => $data['services'] ?? [],
+        ]);
+
         if (!$branchId || !$dateFrom || !$dateTo) {
             Notification::make()
                 ->title(__('booking::booking.validation.branch_date_required'))
@@ -1253,19 +1313,53 @@ class CreateBooking extends Page implements HasForms
 
         // Get package/treatment plan context if applicable
         $fromPackage = null;
-        $newPackageId = null;
+        $slotNewPackageId = null;  // Renamed to avoid shadowing
         $treatmentPlanItemId = null;
 
-        if ($bookingType === 'package') {
-            $packageMode = $data['package_mode'] ?? 'existing';
-            if ($packageMode === 'existing') {
-                $fromPackage = $data['package_subscription_id'] ?? null;
+        // Check if the service is from a package (via services array)
+        $services = $data['services'] ?? [];
+        $serviceSourceType = null;
+        $serviceFromPackage = null;
+        $serviceNewPackageId = null;
+        foreach ($services as $service) {
+            if (($service['service_id'] ?? null) == $serviceId) {
+                $serviceSourceType = $service['source_type'] ?? null;
+                $serviceFromPackage = $service['from_package'] ?? null;
+                $serviceNewPackageId = $service['new_package_id'] ?? null;
+                break;
+            }
+        }
+        $isPackageService = $serviceSourceType === 'package';
+
+        \Log::warning('generateSlotsForService - service found', [
+            'serviceSourceType' => $serviceSourceType,
+            'serviceFromPackage' => $serviceFromPackage,
+            'serviceNewPackageId' => $serviceNewPackageId,
+            'isPackageService' => $isPackageService,
+        ]);
+
+        // Use service-level package IDs if available, otherwise fall back to form-level
+        if ($serviceFromPackage) {
+            $fromPackage = $serviceFromPackage;
+            $slotNewPackageId = null;
+        } elseif ($serviceNewPackageId) {
+            $fromPackage = null;
+            $slotNewPackageId = $serviceNewPackageId;
+        } elseif ($bookingType === 'package' || $isPackageService || !empty($packageSubscriptionId) || !empty($newPackageId)) {
+            if ($packageMode === 'existing' || !empty($packageSubscriptionId)) {
+                $fromPackage = $packageSubscriptionId;
             } else {
-                $newPackageId = $data['new_package_id'] ?? null;
+                $fromPackage = null;
+                $slotNewPackageId = $newPackageId;  // Use form-level value
             }
         } elseif ($bookingType === 'treatment_plan') {
             $treatmentPlanItemId = $data['treatment_plan_item_id'] ?? null;
         }
+
+        \Log::warning('generateSlotsForService - package IDs resolved', [
+            'fromPackage' => $fromPackage,
+            'slotNewPackageId' => $slotNewPackageId,
+        ]);
 
         // Iterate through each date in the range
         $currentDate = $startDate->copy();
@@ -1281,7 +1375,7 @@ class CreateBooking extends Page implements HasForms
                 $slot['service_id'] = $serviceId;
                 $slot['service_name'] = Service::find($serviceId)?->translated_name;
                 $slot['from_package'] = $fromPackage;
-                $slot['new_package_id'] = $newPackageId;
+                $slot['new_package_id'] = $slotNewPackageId;
                 $slot['treatment_plan_item_id'] = $treatmentPlanItemId;
                 $allSlots[] = $slot;
             }
@@ -1485,6 +1579,9 @@ class CreateBooking extends Page implements HasForms
                         'existing_appointment_id' => $scheduledAppointment?->id,
                         'existing_appointment_date' => $scheduledAppointment?->date?->format('Y-m-d'),
                         'existing_appointment_time' => $scheduledAppointment?->start_time,
+                        // Store package subscription ID directly in service item
+                        'from_package' => $subscriptionId,
+                        'new_package_id' => null,
                     ];
                 }
 
@@ -1492,6 +1589,9 @@ class CreateBooking extends Page implements HasForms
                 $this->data['booking_type'] = 'service'; // Use service mode for cart display
                 $this->data['package_mode'] = 'existing';
                 $this->data['package_subscription_id'] = $subscriptionId;
+                // Also set hidden fields that persist outside conditional sections
+                $this->data['_package_mode'] = 'existing';
+                $this->data['_package_subscription_id'] = $subscriptionId;
                 $this->data['services'] = !empty($services) ? $services : [['service_id' => null, 'duration_override' => null, 'price_minor' => null]];
 
                 // Refresh the form with new data
@@ -1549,12 +1649,19 @@ class CreateBooking extends Page implements HasForms
                         'existing_appointment_id' => null,
                         'existing_appointment_date' => null,
                         'existing_appointment_time' => null,
+                        // Store package ID directly in service item
+                        'from_package' => null,
+                        'new_package_id' => $packageId,
                     ];
                 }
 
                 // Update form data - use service mode for cart display
                 $this->data['booking_type'] = 'service';
+                $this->data['package_mode'] = 'new';
                 $this->data['new_package_id'] = $packageId;
+                // Also set hidden fields that persist outside conditional sections
+                $this->data['_package_mode'] = 'new';
+                $this->data['_new_package_id'] = $packageId;
                 $this->data['services'] = !empty($services) ? $services : [['service_id' => null, 'duration_override' => null, 'price_minor' => null]];
 
                 // Refresh the form with new data

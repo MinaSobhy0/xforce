@@ -150,7 +150,7 @@ return [
 
     // Package Subscriptions Resource
     'subscriptions' => [
-        'navigation_label' => 'Subscriptions',
+        'navigation_label' => 'Package Subscriptions',
         'model_label' => 'Subscription',
         'plural_label' => 'Subscriptions',
 
@@ -181,6 +181,14 @@ return [
             'time' => 'Time',
             'practitioner' => 'Practitioner',
             'is_package_session' => 'Package Session',
+            'invoice' => 'Invoice',
+            'payments_count' => 'Payments',
+            'payments' => 'payments',
+            'payment_number' => 'Payment #',
+            'paid_at' => 'Paid At',
+            'amount' => 'Amount',
+            'payment_method' => 'Payment Method',
+            'reference' => 'Reference',
         ],
 
         'filters' => [
@@ -191,10 +199,12 @@ return [
         'relations' => [
             'usages' => 'Session Usage History',
             'appointments' => 'Appointments',
+            'payments' => 'Payments',
         ],
 
         'actions' => [
             'view_appointment' => 'View',
+            'view_invoice' => 'View Invoice',
         ],
     ],
 ];

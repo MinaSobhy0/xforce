@@ -150,7 +150,7 @@ return [
 
     // Package Subscriptions Resource
     'subscriptions' => [
-        'navigation_label' => 'الاشتراكات',
+        'navigation_label' => 'اشتراكات الباقات',
         'model_label' => 'اشتراك',
         'plural_label' => 'الاشتراكات',
 
@@ -181,6 +181,14 @@ return [
             'time' => 'الوقت',
             'practitioner' => 'الممارس',
             'is_package_session' => 'جلسة باقة',
+            'invoice' => 'الفاتورة',
+            'payments_count' => 'المدفوعات',
+            'payments' => 'مدفوعات',
+            'payment_number' => 'رقم الدفعة',
+            'paid_at' => 'تاريخ الدفع',
+            'amount' => 'المبلغ',
+            'payment_method' => 'طريقة الدفع',
+            'reference' => 'المرجع',
         ],
 
         'filters' => [
@@ -191,10 +199,12 @@ return [
         'relations' => [
             'usages' => 'سجل استخدام الجلسات',
             'appointments' => 'المواعيد',
+            'payments' => 'المدفوعات',
         ],
 
         'actions' => [
             'view_appointment' => 'عرض',
+            'view_invoice' => 'عرض الفاتورة',
         ],
     ],
 ];
