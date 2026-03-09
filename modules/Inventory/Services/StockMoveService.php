@@ -10,6 +10,7 @@ use Modules\Inventory\Models\StockLocation;
 use Modules\Inventory\Models\StockMovement;
 use Modules\Inventory\Models\StockTransfer;
 use Modules\Inventory\Models\StockTransferLine;
+use Modules\Inventory\Models\Uom;
 
 /**
  * Odoo-like Stock Move Service
@@ -76,10 +77,17 @@ class StockMoveService
 
             // Create transfer lines
             foreach ($lines as $line) {
+                // Get product to determine default UOM
+                $product = Product::find($line['product_id']);
+
+                // Use provided UOM or default to product's sales_uom (stock UOM)
+                $uomId = $line['uom_id'] ?? $product?->sales_uom_id;
+
                 StockTransferLine::create([
                     'tenant_id' => $tenantId,
                     'stock_transfer_id' => $transfer->id,
                     'product_id' => $line['product_id'],
+                    'uom_id' => $uomId,
                     'quantity_planned' => $line['quantity'],
                     'quantity_done' => $autoProcess ? $line['quantity'] : 0,
                     'unit_cost_minor' => $line['unit_cost_minor'] ?? 0,
@@ -144,6 +152,7 @@ class StockMoveService
 
     /**
      * Create a stock movement from a transfer line.
+     * Converts quantity from line's UOM to stock UOM (product's sales_uom).
      */
     protected function createMovementFromTransfer(
         StockTransfer $transfer,
@@ -163,6 +172,15 @@ class StockMoveService
             default => StockMovement::TYPE_ADJUSTMENT,
         };
 
+        // Get product for UOM conversion and cost tracking
+        $product = Product::find($line->product_id);
+
+        // Convert quantity from line's UOM to stock UOM (sales_uom)
+        $stockQuantity = $this->convertToStockUom($quantity, $line->uom_id, $product);
+
+        // Get stock UOM ID (product's sales_uom)
+        $stockUomId = $product?->sales_uom_id;
+
         // Get quantity before for audit trail
         $quantityBefore = 0;
         if ($destinationLocation->isPhysical()) {
@@ -177,10 +195,8 @@ class StockMoveService
             $quantityBefore = $srcLevel?->quantity_on_hand ?? 0;
         }
 
-        // Get product for cost tracking
-        $product = Product::find($line->product_id);
-
         // Determine unit cost based on transfer type and valuation method
+        // Note: unit_cost is always per stock UOM unit
         if ($unitCostMinor === null && $product) {
             $isReceipt = in_array($transfer->transfer_type, [
                 StockTransfer::TYPE_RECEIPT,
@@ -197,16 +213,18 @@ class StockMoveService
         }
 
         // Create the movement record with cost tracking
+        // quantity is always in stock UOM
         $movement = StockMovement::create([
             'tenant_id' => $transfer->tenant_id,
             'product_id' => $line->product_id,
+            'uom_id' => $stockUomId,
             'branch_id' => $transfer->branch_id,
             'movement_type' => $movementType,
-            'quantity' => $quantity,
+            'quantity' => $stockQuantity,
             'quantity_before' => $quantityBefore,
             'quantity_after' => $quantityBefore,
             'unit_cost_minor' => $unitCostMinor ?? 0,
-            'remaining_quantity' => $this->isReceiptType($transfer->transfer_type) ? $quantity : null,
+            'remaining_quantity' => $this->isReceiptType($transfer->transfer_type) ? $stockQuantity : null,
             'source_location_id' => $sourceLocation->id,
             'destination_location_id' => $destinationLocation->id,
             'reference_type' => 'stock_transfer',
@@ -215,7 +233,7 @@ class StockMoveService
             'created_by' => auth()->id(),
         ]);
 
-        // Execute the movement (update stock levels)
+        // Execute the movement (update stock levels) - uses stock UOM quantity
         $this->executeMove($movement, $sourceLocation, $destinationLocation);
 
         // Link movement to transfer line
@@ -231,6 +249,53 @@ class StockMoveService
         $this->createJournalEntryForMovement($movement, $transfer, $line);
 
         return $movement;
+    }
+
+    /**
+     * Convert quantity from a given UOM to stock UOM (product's sales_uom).
+     *
+     * @param float $quantity Quantity in the source UOM
+     * @param int|null $sourceUomId Source UOM ID
+     * @param Product|null $product The product (for getting stock UOM)
+     * @return int Quantity in stock UOM (rounded)
+     */
+    protected function convertToStockUom(float $quantity, ?int $sourceUomId, ?Product $product): int
+    {
+        if (!$product) {
+            return (int) round($quantity);
+        }
+
+        $stockUom = $product->salesUom;
+
+        // If no UOMs defined, return quantity as-is
+        if (!$stockUom) {
+            return (int) round($quantity);
+        }
+
+        // If no source UOM or same as stock UOM, return as-is
+        if (!$sourceUomId || $sourceUomId === $stockUom->id) {
+            return (int) round($quantity);
+        }
+
+        // Get source UOM
+        $sourceUom = Uom::find($sourceUomId);
+        if (!$sourceUom) {
+            return (int) round($quantity);
+        }
+
+        // Verify same category
+        if ($sourceUom->category_id !== $stockUom->category_id) {
+            Log::warning('UOM category mismatch during conversion', [
+                'source_uom_id' => $sourceUomId,
+                'stock_uom_id' => $stockUom->id,
+                'product_id' => $product->id,
+            ]);
+            return (int) round($quantity);
+        }
+
+        // Convert and round to integer
+        $convertedQuantity = $sourceUom->convertTo($quantity, $stockUom);
+        return (int) round($convertedQuantity);
     }
 
     /**
@@ -326,16 +391,18 @@ class StockMoveService
      *
      * @param Product $product
      * @param StockLocation $destinationLocation
-     * @param int $quantity
+     * @param float $quantity Quantity in the specified UOM
+     * @param int|null $uomId UOM for the quantity (must be in same category as product's sales_uom). Defaults to product's sales_uom.
      * @param string|null $referenceType
      * @param string|null $referenceId
      * @param string|null $notes
-     * @param int|null $unitCostMinor Purchase unit cost (for AVCO/FIFO tracking)
+     * @param int|null $unitCostMinor Purchase unit cost per stock UOM (for AVCO/FIFO tracking)
      */
     public function createPurchaseReceipt(
         Product $product,
         StockLocation $destinationLocation,
-        int $quantity,
+        float $quantity,
+        ?int $uomId = null,
         ?string $referenceType = null,
         ?string $referenceId = null,
         ?string $notes = null,
@@ -356,6 +423,9 @@ class StockMoveService
             throw new \RuntimeException('Supplier location not found for branch');
         }
 
+        // Use provided UOM or default to product's sales_uom
+        $uomId = $uomId ?? $product->sales_uom_id;
+
         // Use provided cost or fall back to product cost
         $cost = $unitCostMinor ?? $product->cost_price_minor;
 
@@ -363,7 +433,12 @@ class StockMoveService
             StockTransfer::TYPE_RECEIPT,
             $supplierLocation,
             $destinationLocation,
-            [['product_id' => $product->id, 'quantity' => $quantity, 'unit_cost_minor' => $cost]],
+            [[
+                'product_id' => $product->id,
+                'quantity' => $quantity,
+                'uom_id' => $uomId,
+                'unit_cost_minor' => $cost,
+            ]],
             $referenceType,
             $referenceId,
             $notes,
@@ -377,11 +452,20 @@ class StockMoveService
 
     /**
      * Create sale delivery: Internal Location → Customer Location
+     *
+     * @param Product $product
+     * @param StockLocation $sourceLocation
+     * @param float $quantity Quantity in the specified UOM
+     * @param int|null $uomId UOM for the quantity. Defaults to product's sales_uom.
+     * @param string|null $referenceType
+     * @param string|null $referenceId
+     * @param string|null $notes
      */
     public function createSaleDelivery(
         Product $product,
         StockLocation $sourceLocation,
-        int $quantity,
+        float $quantity,
+        ?int $uomId = null,
         ?string $referenceType = null,
         ?string $referenceId = null,
         ?string $notes = null
@@ -401,11 +485,17 @@ class StockMoveService
             throw new \RuntimeException('Customer location not found for branch');
         }
 
+        $uomId = $uomId ?? $product->sales_uom_id;
+
         return $this->createTransfer(
             StockTransfer::TYPE_DELIVERY,
             $sourceLocation,
             $customerLocation,
-            [['product_id' => $product->id, 'quantity' => $quantity]],
+            [[
+                'product_id' => $product->id,
+                'quantity' => $quantity,
+                'uom_id' => $uomId,
+            ]],
             $referenceType,
             $referenceId,
             $notes,
@@ -419,11 +509,20 @@ class StockMoveService
 
     /**
      * Create consumption: Internal Location → Customer Location
+     *
+     * @param Product $product
+     * @param StockLocation $sourceLocation
+     * @param float $quantity Quantity in the specified UOM
+     * @param int|null $uomId UOM for the quantity. Defaults to product's sales_uom.
+     * @param string|null $referenceType
+     * @param string|null $referenceId
+     * @param string|null $notes
      */
     public function createConsumption(
         Product $product,
         StockLocation $sourceLocation,
-        int $quantity,
+        float $quantity,
+        ?int $uomId = null,
         ?string $referenceType = null,
         ?string $referenceId = null,
         ?string $notes = null
@@ -433,6 +532,7 @@ class StockMoveService
             $product,
             $sourceLocation,
             $quantity,
+            $uomId,
             $referenceType,
             $referenceId,
             $notes
@@ -445,11 +545,20 @@ class StockMoveService
 
     /**
      * Create customer return: Customer Location → Internal Location
+     *
+     * @param Product $product
+     * @param StockLocation $destinationLocation
+     * @param float $quantity Quantity in the specified UOM
+     * @param int|null $uomId UOM for the quantity. Defaults to product's sales_uom.
+     * @param string|null $referenceType
+     * @param string|null $referenceId
+     * @param string|null $notes
      */
     public function createCustomerReturn(
         Product $product,
         StockLocation $destinationLocation,
-        int $quantity,
+        float $quantity,
+        ?int $uomId = null,
         ?string $referenceType = null,
         ?string $referenceId = null,
         ?string $notes = null
@@ -469,11 +578,17 @@ class StockMoveService
             throw new \RuntimeException('Customer location not found for branch');
         }
 
+        $uomId = $uomId ?? $product->sales_uom_id;
+
         return $this->createTransfer(
             StockTransfer::TYPE_RETURN_IN,
             $customerLocation,
             $destinationLocation,
-            [['product_id' => $product->id, 'quantity' => $quantity]],
+            [[
+                'product_id' => $product->id,
+                'quantity' => $quantity,
+                'uom_id' => $uomId,
+            ]],
             $referenceType,
             $referenceId,
             $notes,
@@ -489,11 +604,20 @@ class StockMoveService
      * Create inventory adjustment.
      * Positive quantity = gain (Inventory → Internal)
      * Negative quantity = loss (Internal → Inventory)
+     *
+     * @param Product $product
+     * @param StockLocation $location
+     * @param float $quantityDiff Quantity difference in the specified UOM
+     * @param int|null $uomId UOM for the quantity. Defaults to product's sales_uom.
+     * @param string|null $referenceType
+     * @param string|null $referenceId
+     * @param string|null $notes
      */
     public function createAdjustment(
         Product $product,
         StockLocation $location,
-        int $quantityDiff,
+        float $quantityDiff,
+        ?int $uomId = null,
         ?string $referenceType = null,
         ?string $referenceId = null,
         ?string $notes = null
@@ -502,7 +626,7 @@ class StockMoveService
             throw new \InvalidArgumentException('Cannot create stock transfer for non-storable product');
         }
 
-        if ($quantityDiff === 0) {
+        if ($quantityDiff == 0) {
             throw new \InvalidArgumentException('Quantity difference cannot be zero');
         }
 
@@ -517,13 +641,19 @@ class StockMoveService
             throw new \RuntimeException('Inventory adjustment location not found for branch');
         }
 
+        $uomId = $uomId ?? $product->sales_uom_id;
+
         if ($quantityDiff > 0) {
             // Gain: Inventory Adjustment Location → Internal Location
             return $this->createTransfer(
                 StockTransfer::TYPE_RECEIPT,
                 $adjustmentLocation,
                 $location,
-                [['product_id' => $product->id, 'quantity' => $quantityDiff]],
+                [[
+                    'product_id' => $product->id,
+                    'quantity' => $quantityDiff,
+                    'uom_id' => $uomId,
+                ]],
                 $referenceType,
                 $referenceId,
                 $notes ?? 'Inventory gain',
@@ -535,7 +665,11 @@ class StockMoveService
                 StockTransfer::TYPE_DELIVERY,
                 $location,
                 $adjustmentLocation,
-                [['product_id' => $product->id, 'quantity' => abs($quantityDiff)]],
+                [[
+                    'product_id' => $product->id,
+                    'quantity' => abs($quantityDiff),
+                    'uom_id' => $uomId,
+                ]],
                 $referenceType,
                 $referenceId,
                 $notes ?? 'Inventory loss',
@@ -550,11 +684,20 @@ class StockMoveService
 
     /**
      * Create waste/scrap: Internal Location → Scrap Location
+     *
+     * @param Product $product
+     * @param StockLocation $sourceLocation
+     * @param float $quantity Quantity in the specified UOM
+     * @param int|null $uomId UOM for the quantity. Defaults to product's sales_uom.
+     * @param string|null $referenceType
+     * @param string|null $referenceId
+     * @param string|null $notes
      */
     public function createWaste(
         Product $product,
         StockLocation $sourceLocation,
-        int $quantity,
+        float $quantity,
+        ?int $uomId = null,
         ?string $referenceType = null,
         ?string $referenceId = null,
         ?string $notes = null
@@ -569,11 +712,17 @@ class StockMoveService
             throw new \RuntimeException('Scrap location not found for branch');
         }
 
+        $uomId = $uomId ?? $product->sales_uom_id;
+
         return $this->createTransfer(
             StockTransfer::TYPE_INTERNAL,
             $sourceLocation,
             $scrapLocation,
-            [['product_id' => $product->id, 'quantity' => $quantity]],
+            [[
+                'product_id' => $product->id,
+                'quantity' => $quantity,
+                'uom_id' => $uomId,
+            ]],
             $referenceType,
             $referenceId,
             $notes,
@@ -587,12 +736,22 @@ class StockMoveService
 
     /**
      * Create internal transfer: Internal Location A → Internal Location B
+     *
+     * @param Product $product
+     * @param StockLocation $sourceLocation
+     * @param StockLocation $destinationLocation
+     * @param float $quantity Quantity in the specified UOM
+     * @param int|null $uomId UOM for the quantity. Defaults to product's sales_uom.
+     * @param string|null $referenceType
+     * @param string|null $referenceId
+     * @param string|null $notes
      */
     public function createInternalTransfer(
         Product $product,
         StockLocation $sourceLocation,
         StockLocation $destinationLocation,
-        int $quantity,
+        float $quantity,
+        ?int $uomId = null,
         ?string $referenceType = null,
         ?string $referenceId = null,
         ?string $notes = null
@@ -605,11 +764,17 @@ class StockMoveService
             throw new \InvalidArgumentException('Internal transfers require physical locations');
         }
 
+        $uomId = $uomId ?? $product->sales_uom_id;
+
         return $this->createTransfer(
             StockTransfer::TYPE_INTERNAL,
             $sourceLocation,
             $destinationLocation,
-            [['product_id' => $product->id, 'quantity' => $quantity]],
+            [[
+                'product_id' => $product->id,
+                'quantity' => $quantity,
+                'uom_id' => $uomId,
+            ]],
             $referenceType,
             $referenceId,
             $notes,
@@ -623,10 +788,16 @@ class StockMoveService
 
     /**
      * Create a batch delivery for multiple products (e.g., from invoice).
+     *
+     * @param StockLocation $sourceLocation
+     * @param array $products Array of ['product' => Product, 'quantity' => float, 'uom_id' => int|null]
+     * @param string|null $referenceType
+     * @param string|null $referenceId
+     * @param string|null $notes
      */
     public function createBatchDelivery(
         StockLocation $sourceLocation,
-        array $products, // [['product' => Product, 'quantity' => int], ...]
+        array $products,
         ?string $referenceType = null,
         ?string $referenceId = null,
         ?string $notes = null
@@ -650,6 +821,7 @@ class StockMoveService
                 $lines[] = [
                     'product_id' => $product->id,
                     'quantity' => $item['quantity'],
+                    'uom_id' => $item['uom_id'] ?? $product->sales_uom_id,
                 ];
             }
         }
@@ -672,10 +844,16 @@ class StockMoveService
 
     /**
      * Create a batch receipt for multiple products (e.g., from PO).
+     *
+     * @param StockLocation $destinationLocation
+     * @param array $products Array of ['product' => Product, 'quantity' => float, 'uom_id' => int|null, 'unit_cost_minor' => int|null]
+     * @param string|null $referenceType
+     * @param string|null $referenceId
+     * @param string|null $notes
      */
     public function createBatchReceipt(
         StockLocation $destinationLocation,
-        array $products, // [['product' => Product, 'quantity' => int], ...]
+        array $products,
         ?string $referenceType = null,
         ?string $referenceId = null,
         ?string $notes = null
@@ -699,6 +877,8 @@ class StockMoveService
                 $lines[] = [
                     'product_id' => $product->id,
                     'quantity' => $item['quantity'],
+                    'uom_id' => $item['uom_id'] ?? $product->sales_uom_id,
+                    'unit_cost_minor' => $item['unit_cost_minor'] ?? $product->cost_price_minor,
                 ];
             }
         }

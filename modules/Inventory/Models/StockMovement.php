@@ -13,6 +13,7 @@ class StockMovement extends BaseModel
     protected $fillable = [
         'tenant_id',
         'product_id',
+        'uom_id',
         'branch_id',
         'movement_type',
         'quantity',
@@ -91,6 +92,14 @@ class StockMovement extends BaseModel
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    /**
+     * Get the UOM (always stock UOM).
+     */
+    public function uom(): BelongsTo
+    {
+        return $this->belongsTo(Uom::class);
     }
 
     /**

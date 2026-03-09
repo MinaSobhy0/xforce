@@ -13,6 +13,7 @@ class StockTransferLine extends BaseModel
         'tenant_id',
         'stock_transfer_id',
         'product_id',
+        'uom_id',
         'quantity_planned',
         'quantity_done',
         'unit_cost_minor',
@@ -46,6 +47,14 @@ class StockTransferLine extends BaseModel
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    /**
+     * Get the UOM used for this line.
+     */
+    public function uom(): BelongsTo
+    {
+        return $this->belongsTo(Uom::class);
     }
 
     /**
@@ -96,5 +105,41 @@ class StockTransferLine extends BaseModel
             ->first();
 
         return $stockLevel?->quantity_on_hand ?? 0;
+    }
+
+    /**
+     * Convert quantity to stock UOM (product's sales_uom).
+     *
+     * @param float $quantity Quantity in the line's UOM
+     * @return float Quantity in stock UOM
+     */
+    public function convertToStockUom(float $quantity): float
+    {
+        $product = $this->product;
+        $lineUom = $this->uom;
+        $stockUom = $product?->salesUom;
+
+        // If no UOMs defined or same UOM, return as-is
+        if (!$lineUom || !$stockUom || $lineUom->id === $stockUom->id) {
+            return $quantity;
+        }
+
+        return $lineUom->convertTo($quantity, $stockUom);
+    }
+
+    /**
+     * Get quantity_done converted to stock UOM.
+     */
+    public function getQuantityDoneInStockUomAttribute(): float
+    {
+        return $this->convertToStockUom((float) $this->quantity_done);
+    }
+
+    /**
+     * Get the UOM abbreviation for display.
+     */
+    public function getUomAbbreviationAttribute(): string
+    {
+        return $this->uom?->abbreviation ?? $this->product?->unitAbbreviation ?? 'pcs';
     }
 }
