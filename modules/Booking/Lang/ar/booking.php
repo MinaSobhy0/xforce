@@ -83,6 +83,9 @@ return [
         'summary' => 'ملخص الحجز',
         'notes' => 'ملاحظات',
         'source' => 'مصدر الحجز',
+        'discount' => 'الخصم',
+        'max_discount' => 'الحد الأقصى للخصم',
+        'total' => 'الإجمالي',
     ],
 
     // Package modes
@@ -105,6 +108,9 @@ return [
         'expires_in' => 'تنتهي خلال :days يوم',
         'expires' => 'تنتهي :date',
         'from_package' => 'من الباقة',
+        'from_treatment_plan' => 'من خطة العلاج',
+        'already_booked' => 'محجوز بالفعل',
+        'cart_total' => 'إجمالي السلة',
         'patient' => 'المريض',
         'appointments' => 'المواعيد',
         'appointments_count' => 'موعد/مواعيد',
@@ -204,6 +210,7 @@ return [
         'package_selected' => 'تم اختيار الباقة',
         'treatment_plan_selected' => 'تم اختيار خطة العلاج',
         'select_service_to_book' => 'الآن اختر خدمة من الخيارات أدناه',
+        'services_loaded_to_cart' => 'تم تحميل الخدمات إلى السلة',
     ],
 
     // Validation
@@ -214,6 +221,7 @@ return [
         'slot_required' => 'الرجاء اختيار وقت واحد على الأقل',
         'branch_date_required' => 'الرجاء اختيار فرع وتاريخ أولاً',
         'service_branch_required' => 'الرجاء اختيار خدمة وفرع أولاً',
+        'discount_exceeds_max' => 'لا يمكن أن يتجاوز الخصم :max% (:amount)',
     ],
 
     // Minutes

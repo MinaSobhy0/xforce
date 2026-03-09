@@ -469,6 +469,7 @@ class CreateBooking extends Page implements HasForms
                                                 Forms\Components\Repeater::make('services')
                                                     ->label('')
                                                     ->schema([
+                                                        // Row 1: Service, Duration, Slot info, Select Slot button
                                                         Forms\Components\Grid::make(12)
                                                             ->schema([
                                                                 Forms\Components\Select::make('service_id')
@@ -479,7 +480,7 @@ class CreateBooking extends Page implements HasForms
                                                                             ->ordered()
                                                                             ->get()
                                                                             ->mapWithKeys(fn (Service $s) => [
-                                                                                $s->id => "{$s->translated_name} ({$s->duration_minutes} min - {$s->formatted_price})"
+                                                                                $s->id => "{$s->translated_name} ({$s->duration_minutes} min)"
                                                                             ]);
                                                                     })
                                                                     ->searchable()
@@ -492,10 +493,12 @@ class CreateBooking extends Page implements HasForms
                                                                             if ($service) {
                                                                                 $set('duration_override', $service->duration_minutes);
                                                                                 $set('price_minor', $service->base_price_minor);
+                                                                                $set('discount_minor', 0);
+                                                                                $set('max_discount_percent', $service->max_discount_percent ?? 100);
                                                                             }
                                                                         }
                                                                     })
-                                                                    ->columnSpan(5),
+                                                                    ->columnSpan(4),
 
                                                                 Forms\Components\TextInput::make('duration_override')
                                                                     ->label(__('booking::booking.fields.duration'))
@@ -532,7 +535,7 @@ class CreateBooking extends Page implements HasForms
                                                                             '<span class="text-amber-600 text-sm">' . __('booking::booking.messages.no_slot_selected') . '</span>'
                                                                         );
                                                                     })
-                                                                    ->columnSpan(3),
+                                                                    ->columnSpan(4),
 
                                                                 // Select Slot Button
                                                                 Forms\Components\Actions::make([
@@ -555,8 +558,112 @@ class CreateBooking extends Page implements HasForms
                                                                 ->visible(fn (Get $get): bool => filled($get('service_id'))),
                                                             ]),
 
-                                                        // Hidden field for price
-                                                        Forms\Components\Hidden::make('price_minor'),
+                                                        // Row 2: Price, Discount, Total, Source indicator
+                                                        Forms\Components\Grid::make(12)
+                                                            ->schema([
+                                                                Forms\Components\TextInput::make('price_minor')
+                                                                    ->label(__('booking::booking.fields.price'))
+                                                                    ->numeric()
+                                                                    ->prefix(current_currency())
+                                                                    ->live(onBlur: true)
+                                                                    ->dehydrateStateUsing(fn ($state) => (int) (((float) $state) * 100))
+                                                                    ->formatStateUsing(fn ($state) => $state ? number_format($state / 100, 2) : '')
+                                                                    ->columnSpan(2),
+
+                                                                Forms\Components\TextInput::make('discount_minor')
+                                                                    ->label(__('booking::booking.fields.discount'))
+                                                                    ->numeric()
+                                                                    ->prefix(current_currency())
+                                                                    ->default(0)
+                                                                    ->live(onBlur: true)
+                                                                    ->dehydrateStateUsing(fn ($state) => (int) (((float) $state) * 100))
+                                                                    ->formatStateUsing(fn ($state) => $state ? number_format($state / 100, 2) : '0.00')
+                                                                    ->helperText(function (Get $get) {
+                                                                        $maxPercent = $get('max_discount_percent') ?? 100;
+                                                                        $priceMinor = $get('price_minor') ?? 0;
+                                                                        if ($maxPercent < 100 && $priceMinor > 0) {
+                                                                            $maxAmount = ($priceMinor * $maxPercent) / 100;
+                                                                            return __('booking::booking.fields.max_discount') . ': ' . $maxPercent . '% (' . number_format($maxAmount / 100, 2) . ')';
+                                                                        }
+                                                                        return null;
+                                                                    })
+                                                                    ->rules([
+                                                                        fn (Get $get): \Closure => function (string $attribute, $value, \Closure $fail) use ($get) {
+                                                                            $priceMinor = $get('price_minor') ?? 0;
+                                                                            $maxPercent = $get('max_discount_percent') ?? 100;
+                                                                            $discountMinor = ((float) $value) * 100;
+                                                                            $maxDiscountMinor = ($priceMinor * $maxPercent) / 100;
+
+                                                                            if ($discountMinor > $maxDiscountMinor && $maxPercent < 100) {
+                                                                                $fail(__('booking::booking.validation.discount_exceeds_max', [
+                                                                                    'max' => $maxPercent,
+                                                                                    'amount' => number_format($maxDiscountMinor / 100, 2),
+                                                                                ]));
+                                                                            }
+                                                                        },
+                                                                    ])
+                                                                    ->columnSpan(2),
+
+                                                                // Total (calculated)
+                                                                Forms\Components\Placeholder::make('total_display')
+                                                                    ->label(__('booking::booking.fields.total'))
+                                                                    ->content(function (Get $get) {
+                                                                        $priceMinor = $get('price_minor') ?? 0;
+                                                                        $discountMinor = ((float) ($get('discount_minor') ?? 0)) * 100;
+                                                                        $total = max(0, $priceMinor - $discountMinor);
+                                                                        return new HtmlString(
+                                                                            '<span class="font-semibold text-lg">' .
+                                                                            number_format($total / 100, 2) . ' ' . current_currency() .
+                                                                            '</span>'
+                                                                        );
+                                                                    })
+                                                                    ->columnSpan(2),
+
+                                                                // Source indicator (treatment plan / package / manual)
+                                                                Forms\Components\Placeholder::make('source_info')
+                                                                    ->label('')
+                                                                    ->content(function (Get $get) {
+                                                                        $sourceType = $get('source_type');
+                                                                        $existingDate = $get('existing_appointment_date');
+                                                                        $existingTime = $get('existing_appointment_time');
+
+                                                                        $html = '';
+
+                                                                        // Source badge
+                                                                        if ($sourceType === 'treatment_plan') {
+                                                                            $html .= '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 mr-2">' .
+                                                                                '<svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>' .
+                                                                                __('booking::booking.labels.from_treatment_plan') .
+                                                                                '</span>';
+                                                                        } elseif ($sourceType === 'package') {
+                                                                            $html .= '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 mr-2">' .
+                                                                                '<svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"></path></svg>' .
+                                                                                __('booking::booking.labels.from_package') .
+                                                                                '</span>';
+                                                                        }
+
+                                                                        // Existing appointment warning
+                                                                        if ($existingDate) {
+                                                                            $date = Carbon::parse($existingDate)->format('M d, Y');
+                                                                            $html .= '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">' .
+                                                                                '<svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>' .
+                                                                                __('booking::booking.labels.already_booked') . ': ' . $date . ' ' . ($existingTime ?? '') .
+                                                                                '</span>';
+                                                                        }
+
+                                                                        return $html ? new HtmlString($html) : '';
+                                                                    })
+                                                                    ->columnSpan(6),
+                                                            ])
+                                                            ->visible(fn (Get $get): bool => filled($get('service_id'))),
+
+                                                        // Hidden fields for tracking
+                                                        Forms\Components\Hidden::make('max_discount_percent'),
+                                                        Forms\Components\Hidden::make('source_type'),
+                                                        Forms\Components\Hidden::make('source_item_id'),
+                                                        Forms\Components\Hidden::make('existing_appointment_id'),
+                                                        Forms\Components\Hidden::make('existing_appointment_date'),
+                                                        Forms\Components\Hidden::make('existing_appointment_time'),
                                                     ])
                                                     ->addActionLabel(__('booking::booking.actions.add_service'))
                                                     ->deleteAction(
@@ -575,6 +682,26 @@ class CreateBooking extends Page implements HasForms
                                                             ? Service::find($state['service_id'])?->translated_name
                                                             : null
                                                     )
+                                                    ->columnSpanFull(),
+
+                                                // Cart Total
+                                                Forms\Components\Placeholder::make('cart_total')
+                                                    ->label('')
+                                                    ->content(function (Get $get) {
+                                                        $services = $get('services') ?? [];
+                                                        $total = 0;
+                                                        foreach ($services as $service) {
+                                                            $price = $service['price_minor'] ?? 0;
+                                                            $discount = ((float) ($service['discount_minor'] ?? 0)) * 100;
+                                                            $total += max(0, $price - $discount);
+                                                        }
+                                                        return new HtmlString(
+                                                            '<div class="flex justify-end border-t pt-3 mt-2">' .
+                                                            '<span class="text-gray-600 mr-2">' . __('booking::booking.labels.cart_total') . ':</span>' .
+                                                            '<span class="font-bold text-xl text-primary-600">' . number_format($total / 100, 2) . ' ' . current_currency() . '</span>' .
+                                                            '</div>'
+                                                        );
+                                                    })
                                                     ->columnSpanFull(),
                                             ])
                                             ->visible(fn (Get $get) => $get('booking_type') === 'service'),
@@ -1206,20 +1333,79 @@ class CreateBooking extends Page implements HasForms
 
     /**
      * Select a package subscription for booking (called from patient info card)
+     * Loads all available services from the package into the cart
      */
     public function selectPackageForBooking(string $subscriptionId): void
     {
-        // Switch to package booking mode
-        $this->data['booking_type'] = 'package';
-        $this->data['package_mode'] = 'existing';
-        $this->data['package_subscription_id'] = $subscriptionId;
-
         // Clear any previous slot selections
         $this->availableSlots = [];
+        $this->bookingItems = [];
+
+        try {
+            $subscription = PackageSubscription::with([
+                'package.items.service',
+            ])->find($subscriptionId);
+
+            if ($subscription && $subscription->isActive()) {
+                $services = [];
+
+                foreach ($subscription->package->items as $item) {
+                    if (!$item->service) {
+                        continue;
+                    }
+
+                    // Check remaining sessions for this service
+                    $remaining = $subscription->getSessionsRemainingByService($item->service_id);
+                    if ($remaining <= 0) {
+                        continue;
+                    }
+
+                    // Check for existing booked (but not completed) appointments
+                    $scheduledAppointment = Appointment::where('package_subscription_id', $subscriptionId)
+                        ->where('service_id', $item->service_id)
+                        ->where('is_package_session', true)
+                        ->whereIn('status', [
+                            Appointment::STATUS_SCHEDULED,
+                            Appointment::STATUS_CONFIRMED,
+                        ])
+                        ->orderBy('date')
+                        ->first();
+
+                    // Package services are typically pre-paid, so price shown is 0 or the package item price
+                    $services[] = [
+                        'service_id' => $item->service_id,
+                        'duration_override' => $item->service->duration_minutes,
+                        'price_minor' => 0, // Package sessions are pre-paid
+                        'discount_minor' => 0,
+                        'max_discount_percent' => 100,
+                        'source_type' => 'package',
+                        'source_item_id' => $item->id,
+                        'existing_appointment_id' => $scheduledAppointment?->id,
+                        'existing_appointment_date' => $scheduledAppointment?->date?->format('Y-m-d'),
+                        'existing_appointment_time' => $scheduledAppointment?->start_time,
+                    ];
+                }
+
+                // Update form data
+                $this->data['booking_type'] = 'service'; // Use service mode for cart display
+                $this->data['package_mode'] = 'existing';
+                $this->data['package_subscription_id'] = $subscriptionId;
+                $this->data['services'] = !empty($services) ? $services : [['service_id' => null, 'duration_override' => null, 'price_minor' => null]];
+
+                // Refresh the form with new data
+                $this->form->fill($this->data);
+            }
+        } catch (\Exception $e) {
+            // Log error but don't fail
+            \Illuminate\Support\Facades\Log::warning('Error loading package services', [
+                'subscription_id' => $subscriptionId,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         Notification::make()
             ->title(__('booking::booking.messages.package_selected'))
-            ->body(__('booking::booking.messages.select_service_to_book'))
+            ->body(__('booking::booking.messages.services_loaded_to_cart'))
             ->success()
             ->duration(2000)
             ->send();
@@ -1227,38 +1413,87 @@ class CreateBooking extends Page implements HasForms
 
     /**
      * Select a treatment plan for booking (called from patient info card)
+     * Loads all bookable services into the cart with pricing and existing booking info
      */
     public function selectTreatmentPlanForBooking(string $planId): void
     {
-        // Switch to treatment plan booking mode
-        $this->data['booking_type'] = 'treatment_plan';
-        $this->data['treatment_plan_id'] = $planId;
-
         // Clear any previous slot selections
         $this->availableSlots = [];
+        $this->bookingItems = [];
 
-        // Try to auto-select the first bookable item
         try {
-            $plan = TreatmentPlan::with('items.service')->find($planId);
+            $plan = TreatmentPlan::with([
+                'items.service',
+                'items.planAppointments.appointment',
+            ])->find($planId);
+
             if ($plan) {
-                $bookableItem = $plan->items->first(fn ($item) => $item->canBook());
-                if ($bookableItem) {
-                    $this->data['treatment_plan_item_id'] = $bookableItem->id;
+                $services = [];
+                $firstBookableItem = null;
+
+                foreach ($plan->items as $item) {
+                    if (!$item->canBook() || !$item->service) {
+                        continue;
+                    }
+
+                    if (!$firstBookableItem) {
+                        $firstBookableItem = $item;
+                    }
+
+                    // Check for existing scheduled (but not completed) appointment
+                    $scheduledAppointment = $item->planAppointments()
+                        ->whereHas('appointment', function ($query) {
+                            $query->whereIn('status', [
+                                Appointment::STATUS_SCHEDULED,
+                                Appointment::STATUS_CONFIRMED,
+                            ]);
+                        })
+                        ->with('appointment')
+                        ->first();
+
+                    $services[] = [
+                        'service_id' => $item->service_id,
+                        'duration_override' => $item->service->duration_minutes,
+                        'price_minor' => $item->unit_price_minor ?? $item->service->base_price_minor,
+                        'discount_minor' => 0,
+                        'max_discount_percent' => $item->service->max_discount_percent ?? 100,
+                        'source_type' => 'treatment_plan',
+                        'source_item_id' => $item->id,
+                        'existing_appointment_id' => $scheduledAppointment?->appointment_id,
+                        'existing_appointment_date' => $scheduledAppointment?->appointment?->date?->format('Y-m-d'),
+                        'existing_appointment_time' => $scheduledAppointment?->appointment?->start_time,
+                    ];
+                }
+
+                // Update form data
+                $this->data['booking_type'] = 'service'; // Use service mode for cart display
+                $this->data['treatment_plan_id'] = $planId;
+                $this->data['services'] = !empty($services) ? $services : [['service_id' => null, 'duration_override' => null, 'price_minor' => null]];
+
+                if ($firstBookableItem) {
+                    $this->data['treatment_plan_item_id'] = $firstBookableItem->id;
 
                     // Set suggested dates based on item's next suggested date
-                    if ($bookableItem->next_suggested_date) {
-                        $this->data['date_from'] = $bookableItem->next_suggested_date->format('Y-m-d');
-                        $this->data['date_to'] = $bookableItem->next_suggested_date->addWeeks(2)->format('Y-m-d');
+                    if ($firstBookableItem->next_suggested_date) {
+                        $this->data['date_from'] = $firstBookableItem->next_suggested_date->format('Y-m-d');
+                        $this->data['date_to'] = $firstBookableItem->next_suggested_date->copy()->addWeeks(2)->format('Y-m-d');
                     }
                 }
+
+                // Refresh the form with new data
+                $this->form->fill($this->data);
             }
         } catch (\Exception $e) {
-            // Silently fail if treatment plans not fully set up
+            // Log error but don't fail
+            \Illuminate\Support\Facades\Log::warning('Error loading treatment plan services', [
+                'plan_id' => $planId,
+                'error' => $e->getMessage(),
+            ]);
         }
 
         Notification::make()
             ->title(__('booking::booking.messages.treatment_plan_selected'))
-            ->body(__('booking::booking.messages.select_service_to_book'))
+            ->body(__('booking::booking.messages.services_loaded_to_cart'))
             ->success()
             ->duration(2000)
             ->send();

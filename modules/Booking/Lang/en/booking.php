@@ -83,6 +83,9 @@ return [
         'summary' => 'Booking Summary',
         'notes' => 'Notes',
         'source' => 'Booking Source',
+        'discount' => 'Discount',
+        'max_discount' => 'Max discount',
+        'total' => 'Total',
     ],
 
     // Package modes
@@ -105,6 +108,9 @@ return [
         'expires_in' => 'Expires in :days days',
         'expires' => 'Expires :date',
         'from_package' => 'From Package',
+        'from_treatment_plan' => 'From Treatment Plan',
+        'already_booked' => 'Already booked',
+        'cart_total' => 'Cart Total',
         'patient' => 'Patient',
         'appointments' => 'Appointments',
         'appointments_count' => 'appointment(s)',
@@ -204,6 +210,7 @@ return [
         'package_selected' => 'Package Selected',
         'treatment_plan_selected' => 'Treatment Plan Selected',
         'select_service_to_book' => 'Now select a service from the options below',
+        'services_loaded_to_cart' => 'Services have been loaded to the cart',
     ],
 
     // Validation
@@ -214,6 +221,7 @@ return [
         'slot_required' => 'Please select at least one time slot',
         'branch_date_required' => 'Please select a branch and date first',
         'service_branch_required' => 'Please select a service and branch first',
+        'discount_exceeds_max' => 'Discount cannot exceed :max% (:amount)',
     ],
 
     // Minutes
