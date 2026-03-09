@@ -589,22 +589,26 @@ class CreateBooking extends Page implements HasForms
                                                                         }
                                                                         return null;
                                                                     })
-                                                                    ->rules([
-                                                                        fn (Get $get): \Closure => function (string $attribute, $value, \Closure $fail) use ($get) {
-                                                                            // All values in display format (major units)
-                                                                            $price = (float) ($get('price_minor') ?? 0);
-                                                                            $maxPercent = (float) ($get('max_discount_percent') ?? 100);
-                                                                            $discount = (float) $value;
-                                                                            $maxDiscount = ($price * $maxPercent) / 100;
+                                                                    ->afterStateUpdated(function ($state, Get $get, Set $set) {
+                                                                        // Validate discount doesn't exceed max
+                                                                        $price = (float) ($get('price_minor') ?? 0);
+                                                                        $maxPercent = (float) ($get('max_discount_percent') ?? 100);
+                                                                        $discount = (float) ($state ?? 0);
+                                                                        $maxDiscount = ($price * $maxPercent) / 100;
 
-                                                                            if ($discount > $maxDiscount && $maxPercent < 100) {
-                                                                                $fail(__('booking::booking.validation.discount_exceeds_max', [
+                                                                        if ($discount > $maxDiscount && $maxPercent < 100) {
+                                                                            // Cap the discount to max allowed
+                                                                            $set('discount_minor', $maxDiscount);
+                                                                            Notification::make()
+                                                                                ->title(__('booking::booking.validation.discount_exceeds_max', [
                                                                                     'max' => $maxPercent,
                                                                                     'amount' => number_format($maxDiscount, 2),
-                                                                                ]));
-                                                                            }
-                                                                        },
-                                                                    ])
+                                                                                ]))
+                                                                                ->warning()
+                                                                                ->duration(3000)
+                                                                                ->send();
+                                                                        }
+                                                                    })
                                                                     ->columnSpan(2),
 
                                                                 // Total (calculated)
