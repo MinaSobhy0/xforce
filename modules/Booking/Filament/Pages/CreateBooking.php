@@ -750,7 +750,7 @@ class CreateBooking extends Page implements HasForms
                                                             }
                                                         }
 
-                                                        // Get package price if new package
+                                                        // Get package price
                                                         if ($hasPackageItems && $newPackageId) {
                                                             $hasNewPackage = true;
                                                             $package = Package::find($newPackageId);
@@ -759,21 +759,24 @@ class CreateBooking extends Page implements HasForms
                                                             }
                                                         } elseif ($hasPackageItems && $packageSubscriptionId) {
                                                             $hasExistingPackage = true;
+                                                            // Get the subscription's purchase price
+                                                            $subscription = PackageSubscription::find($packageSubscriptionId);
+                                                            if ($subscription) {
+                                                                $packagePrice = $subscription->package_price_minor / 100;
+                                                            }
                                                         }
 
                                                         // Build HTML output
                                                         $html = '<div class="border-t pt-3 mt-2 space-y-1">';
 
                                                         // Show package line if applicable
-                                                        if ($hasNewPackage) {
+                                                        if ($hasNewPackage || $hasExistingPackage) {
+                                                            $priceLabel = $hasExistingPackage
+                                                                ? __('booking::booking.labels.package_price') . ' <span class="text-green-600 text-xs">(' . __('booking::booking.labels.prepaid') . ')</span>'
+                                                                : __('booking::booking.labels.package_price');
                                                             $html .= '<div class="flex justify-between text-sm">' .
-                                                                '<span class="text-gray-600">' . __('booking::booking.labels.package_price') . ':</span>' .
+                                                                '<span class="text-gray-600">' . $priceLabel . ':</span>' .
                                                                 '<span class="font-medium">' . number_format($packagePrice, 2) . ' ' . current_currency() . '</span>' .
-                                                                '</div>';
-                                                        } elseif ($hasExistingPackage) {
-                                                            $html .= '<div class="flex justify-between text-sm">' .
-                                                                '<span class="text-gray-600">' . __('booking::booking.labels.package_price') . ':</span>' .
-                                                                '<span class="font-medium text-green-600">' . __('booking::booking.labels.prepaid') . '</span>' .
                                                                 '</div>';
                                                         }
 
