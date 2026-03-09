@@ -579,8 +579,8 @@ class CreateBooking extends Page implements HasForms
                                                                     ->dehydrateStateUsing(fn ($state) => (int) (((float) $state) * 100))
                                                                     ->formatStateUsing(fn ($state) => $state ? number_format($state / 100, 2) : '0.00')
                                                                     ->helperText(function (Get $get) {
-                                                                        $maxPercent = $get('max_discount_percent') ?? 100;
-                                                                        $priceMinor = $get('price_minor') ?? 0;
+                                                                        $maxPercent = (float) ($get('max_discount_percent') ?? 100);
+                                                                        $priceMinor = (float) ($get('price_minor') ?? 0);
                                                                         if ($maxPercent < 100 && $priceMinor > 0) {
                                                                             $maxAmount = ($priceMinor * $maxPercent) / 100;
                                                                             return __('booking::booking.fields.max_discount') . ': ' . $maxPercent . '% (' . number_format($maxAmount / 100, 2) . ')';
@@ -589,8 +589,8 @@ class CreateBooking extends Page implements HasForms
                                                                     })
                                                                     ->rules([
                                                                         fn (Get $get): \Closure => function (string $attribute, $value, \Closure $fail) use ($get) {
-                                                                            $priceMinor = $get('price_minor') ?? 0;
-                                                                            $maxPercent = $get('max_discount_percent') ?? 100;
+                                                                            $priceMinor = (float) ($get('price_minor') ?? 0);
+                                                                            $maxPercent = (float) ($get('max_discount_percent') ?? 100);
                                                                             $discountMinor = ((float) $value) * 100;
                                                                             $maxDiscountMinor = ($priceMinor * $maxPercent) / 100;
 
@@ -608,8 +608,8 @@ class CreateBooking extends Page implements HasForms
                                                                 Forms\Components\Placeholder::make('total_display')
                                                                     ->label(__('booking::booking.fields.total'))
                                                                     ->content(function (Get $get) {
-                                                                        $priceMinor = $get('price_minor') ?? 0;
-                                                                        $discountMinor = ((float) ($get('discount_minor') ?? 0)) * 100;
+                                                                        $priceMinor = (float) ($get('price_minor') ?? 0);
+                                                                        $discountMinor = (float) ($get('discount_minor') ?? 0) * 100;
                                                                         $total = max(0, $priceMinor - $discountMinor);
                                                                         return new HtmlString(
                                                                             '<span class="font-semibold text-lg">' .
@@ -691,8 +691,8 @@ class CreateBooking extends Page implements HasForms
                                                         $services = $get('services') ?? [];
                                                         $total = 0;
                                                         foreach ($services as $service) {
-                                                            $price = $service['price_minor'] ?? 0;
-                                                            $discount = ((float) ($service['discount_minor'] ?? 0)) * 100;
+                                                            $price = (float) ($service['price_minor'] ?? 0);
+                                                            $discount = (float) ($service['discount_minor'] ?? 0) * 100;
                                                             $total += max(0, $price - $discount);
                                                         }
                                                         return new HtmlString(
