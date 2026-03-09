@@ -112,6 +112,7 @@ return [
         'already_booked' => 'محجوز بالفعل',
         'cart_total' => 'إجمالي السلة',
         'package_price' => 'سعر الباقة',
+        'services_total' => 'الخدمات',
         'prepaid' => 'مدفوع مسبقاً',
         'patient' => 'المريض',
         'appointments' => 'المواعيد',

@@ -112,6 +112,7 @@ return [
         'already_booked' => 'Already booked',
         'cart_total' => 'Cart Total',
         'package_price' => 'Package Price',
+        'services_total' => 'Services',
         'prepaid' => 'Prepaid',
         'patient' => 'Patient',
         'appointments' => 'Appointments',

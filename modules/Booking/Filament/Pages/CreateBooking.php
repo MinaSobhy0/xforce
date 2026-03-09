@@ -730,51 +730,71 @@ class CreateBooking extends Page implements HasForms
                                                     ->content(function (Get $get) {
                                                         $services = $get('services') ?? [];
                                                         $newPackageId = $get('new_package_id');
+                                                        $packageSubscriptionId = $get('package_subscription_id');
 
-                                                        // Check if this is a package booking
-                                                        $isPackageBooking = false;
+                                                        // Separate package items from regular services
+                                                        $hasPackageItems = false;
+                                                        $hasNewPackage = false;
+                                                        $hasExistingPackage = false;
+                                                        $servicesTotal = 0;
+                                                        $packagePrice = 0;
+
                                                         foreach ($services as $service) {
                                                             if (($service['source_type'] ?? null) === 'package') {
-                                                                $isPackageBooking = true;
-                                                                break;
+                                                                $hasPackageItems = true;
+                                                            } else {
+                                                                // Regular service - add to total
+                                                                $price = (float) ($service['price_minor'] ?? 0);
+                                                                $discount = (float) ($service['discount_minor'] ?? 0);
+                                                                $servicesTotal += max(0, $price - $discount);
                                                             }
                                                         }
 
-                                                        if ($isPackageBooking && $newPackageId) {
-                                                            // Show package price for new package
+                                                        // Get package price if new package
+                                                        if ($hasPackageItems && $newPackageId) {
+                                                            $hasNewPackage = true;
                                                             $package = Package::find($newPackageId);
                                                             if ($package) {
                                                                 $packagePrice = $package->effective_price_minor / 100;
-                                                                return new HtmlString(
-                                                                    '<div class="flex justify-end border-t pt-3 mt-2">' .
-                                                                    '<span class="text-gray-600 mr-2">' . __('booking::booking.labels.package_price') . ':</span>' .
-                                                                    '<span class="font-bold text-xl text-primary-600">' . number_format($packagePrice, 2) . ' ' . current_currency() . '</span>' .
-                                                                    '</div>'
-                                                                );
                                                             }
-                                                        } elseif ($isPackageBooking) {
-                                                            // Existing package - already paid
-                                                            return new HtmlString(
-                                                                '<div class="flex justify-end border-t pt-3 mt-2">' .
-                                                                '<span class="text-gray-600 mr-2">' . __('booking::booking.labels.cart_total') . ':</span>' .
-                                                                '<span class="font-bold text-xl text-green-600">' . __('booking::booking.labels.prepaid') . '</span>' .
-                                                                '</div>'
-                                                            );
+                                                        } elseif ($hasPackageItems && $packageSubscriptionId) {
+                                                            $hasExistingPackage = true;
                                                         }
 
-                                                        // Regular service booking - sum prices
-                                                        $total = 0;
-                                                        foreach ($services as $service) {
-                                                            $price = (float) ($service['price_minor'] ?? 0);
-                                                            $discount = (float) ($service['discount_minor'] ?? 0);
-                                                            $total += max(0, $price - $discount);
+                                                        // Build HTML output
+                                                        $html = '<div class="border-t pt-3 mt-2 space-y-1">';
+
+                                                        // Show package line if applicable
+                                                        if ($hasNewPackage) {
+                                                            $html .= '<div class="flex justify-between text-sm">' .
+                                                                '<span class="text-gray-600">' . __('booking::booking.labels.package_price') . ':</span>' .
+                                                                '<span class="font-medium">' . number_format($packagePrice, 2) . ' ' . current_currency() . '</span>' .
+                                                                '</div>';
+                                                        } elseif ($hasExistingPackage) {
+                                                            $html .= '<div class="flex justify-between text-sm">' .
+                                                                '<span class="text-gray-600">' . __('booking::booking.labels.package_price') . ':</span>' .
+                                                                '<span class="font-medium text-green-600">' . __('booking::booking.labels.prepaid') . '</span>' .
+                                                                '</div>';
                                                         }
-                                                        return new HtmlString(
-                                                            '<div class="flex justify-end border-t pt-3 mt-2">' .
-                                                            '<span class="text-gray-600 mr-2">' . __('booking::booking.labels.cart_total') . ':</span>' .
-                                                            '<span class="font-bold text-xl text-primary-600">' . number_format($total, 2) . ' ' . current_currency() . '</span>' .
-                                                            '</div>'
-                                                        );
+
+                                                        // Show services line if there are regular services
+                                                        if ($servicesTotal > 0) {
+                                                            $html .= '<div class="flex justify-between text-sm">' .
+                                                                '<span class="text-gray-600">' . __('booking::booking.labels.services_total') . ':</span>' .
+                                                                '<span class="font-medium">' . number_format($servicesTotal, 2) . ' ' . current_currency() . '</span>' .
+                                                                '</div>';
+                                                        }
+
+                                                        // Grand total
+                                                        $grandTotal = $packagePrice + $servicesTotal;
+                                                        $html .= '<div class="flex justify-between pt-2 border-t mt-2">' .
+                                                            '<span class="text-gray-600 font-medium">' . __('booking::booking.labels.cart_total') . ':</span>' .
+                                                            '<span class="font-bold text-xl text-primary-600">' . number_format($grandTotal, 2) . ' ' . current_currency() . '</span>' .
+                                                            '</div>';
+
+                                                        $html .= '</div>';
+
+                                                        return new HtmlString($html);
                                                     })
                                                     ->columnSpanFull(),
                                             ])
