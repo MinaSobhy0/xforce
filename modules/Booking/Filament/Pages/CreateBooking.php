@@ -640,20 +640,43 @@ class CreateBooking extends Page implements HasForms
                                                                         $sourceType = $get('source_type');
                                                                         $existingDate = $get('existing_appointment_date');
                                                                         $existingTime = $get('existing_appointment_time');
+                                                                        $packageSessions = $get('package_sessions');
+                                                                        $packageSessionsRemaining = $get('package_sessions_remaining');
+                                                                        $consumptionType = $get('package_consumption_type');
+                                                                        $pulsesPerSession = $get('package_pulses_per_session');
 
                                                                         $html = '';
 
-                                                                        // Source badge
+                                                                        // Source badge with sessions/pulses info
                                                                         if ($sourceType === 'treatment_plan') {
                                                                             $html .= '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 mr-2">' .
                                                                                 '<svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>' .
                                                                                 __('booking::booking.labels.from_treatment_plan') .
                                                                                 '</span>';
                                                                         } elseif ($sourceType === 'package') {
+                                                                            // Package badge
                                                                             $html .= '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 mr-2">' .
                                                                                 '<svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"></path></svg>' .
                                                                                 __('booking::booking.labels.from_package') .
                                                                                 '</span>';
+
+                                                                            // Sessions/Pulses badge
+                                                                            if ($packageSessions) {
+                                                                                $remaining = $packageSessionsRemaining ?? $packageSessions;
+                                                                                $unitLabel = $consumptionType === 'pulses' ? __('booking::booking.labels.pulses') : __('booking::booking.labels.sessions');
+
+                                                                                // Calculate total pulses if pulse-based
+                                                                                if ($consumptionType === 'pulses' && $pulsesPerSession) {
+                                                                                    $totalPulses = $packageSessions * $pulsesPerSession;
+                                                                                    $html .= '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 mr-2">' .
+                                                                                        $packageSessions . ' ' . __('booking::booking.labels.sessions') . ' × ' . $pulsesPerSession . ' = ' . $totalPulses . ' ' . $unitLabel .
+                                                                                        '</span>';
+                                                                                } else {
+                                                                                    $html .= '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 mr-2">' .
+                                                                                        $remaining . '/' . $packageSessions . ' ' . $unitLabel .
+                                                                                        '</span>';
+                                                                                }
+                                                                            }
                                                                         }
 
                                                                         // Existing appointment warning
@@ -675,6 +698,10 @@ class CreateBooking extends Page implements HasForms
                                                         Forms\Components\Hidden::make('max_discount_percent'),
                                                         Forms\Components\Hidden::make('source_type'),
                                                         Forms\Components\Hidden::make('source_item_id'),
+                                                        Forms\Components\Hidden::make('package_sessions'),
+                                                        Forms\Components\Hidden::make('package_sessions_remaining'),
+                                                        Forms\Components\Hidden::make('package_consumption_type'),
+                                                        Forms\Components\Hidden::make('package_pulses_per_session'),
                                                         Forms\Components\Hidden::make('existing_appointment_id'),
                                                         Forms\Components\Hidden::make('existing_appointment_date'),
                                                         Forms\Components\Hidden::make('existing_appointment_time'),
@@ -1387,15 +1414,19 @@ class CreateBooking extends Page implements HasForms
                         ->orderBy('date')
                         ->first();
 
-                    // Show actual service price (display format - major units)
+                    // Use package item's unit_price_minor (display format - major units)
                     $services[] = [
                         'service_id' => $item->service_id,
                         'duration_override' => $item->service->duration_minutes,
-                        'price_minor' => $item->service->base_price_minor / 100,
+                        'price_minor' => $item->unit_price_minor / 100,
                         'discount_minor' => 0,
                         'max_discount_percent' => 0, // No discount allowed for package
                         'source_type' => 'package',
                         'source_item_id' => $item->id,
+                        'package_sessions' => $item->quantity,
+                        'package_sessions_remaining' => $remaining,
+                        'package_consumption_type' => $item->consumption_type,
+                        'package_pulses_per_session' => $item->pulses_per_session,
                         'existing_appointment_id' => $scheduledAppointment?->id,
                         'existing_appointment_date' => $scheduledAppointment?->date?->format('Y-m-d'),
                         'existing_appointment_time' => $scheduledAppointment?->start_time,
@@ -1448,15 +1479,18 @@ class CreateBooking extends Page implements HasForms
                         continue;
                     }
 
-                    // Show actual service price (display format - major units)
+                    // Use package item's unit_price_minor (display format - major units)
                     $services[] = [
                         'service_id' => $item->service_id,
                         'duration_override' => $item->service->duration_minutes,
-                        'price_minor' => $item->service->base_price_minor / 100,
+                        'price_minor' => $item->unit_price_minor / 100,
                         'discount_minor' => 0,
                         'max_discount_percent' => 0, // No discount allowed for package
                         'source_type' => 'package',
                         'source_item_id' => $item->id,
+                        'package_sessions' => $item->quantity,
+                        'package_consumption_type' => $item->consumption_type,
+                        'package_pulses_per_session' => $item->pulses_per_session,
                         'existing_appointment_id' => null,
                         'existing_appointment_date' => null,
                         'existing_appointment_time' => null,

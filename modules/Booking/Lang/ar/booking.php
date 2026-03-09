@@ -132,6 +132,7 @@ return [
         'usage_progress' => 'تقدم الاستخدام',
         'select_package_to_purchase' => 'اختر باقة للشراء',
         'sessions' => 'جلسات',
+        'pulses' => 'نبضات',
         'click_to_select' => 'انقر للاختيار',
         'click_practitioner' => 'انقر على الممارس للحجز',
         'slots' => 'أوقات',

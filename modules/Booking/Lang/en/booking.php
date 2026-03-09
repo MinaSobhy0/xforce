@@ -132,6 +132,7 @@ return [
         'usage_progress' => 'Usage Progress',
         'select_package_to_purchase' => 'Select a Package to Purchase',
         'sessions' => 'sessions',
+        'pulses' => 'pulses',
         'click_to_select' => 'Click to select',
         'click_practitioner' => 'Click practitioner to book',
         'slots' => 'slots',
