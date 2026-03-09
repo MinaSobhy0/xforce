@@ -111,6 +111,8 @@ return [
         'from_treatment_plan' => 'من خطة العلاج',
         'already_booked' => 'محجوز بالفعل',
         'cart_total' => 'إجمالي السلة',
+        'package_price' => 'سعر الباقة',
+        'prepaid' => 'مدفوع مسبقاً',
         'patient' => 'المريض',
         'appointments' => 'المواعيد',
         'appointments_count' => 'موعد/مواعيد',

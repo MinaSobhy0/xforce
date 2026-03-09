@@ -571,8 +571,8 @@ class CreateBooking extends Page implements HasForms
                                                                     ->live(onBlur: true)
                                                                     ->dehydrateStateUsing(fn ($state) => (int) (((float) $state) * 100))
                                                                     ->formatStateUsing(fn ($state) => $state ? number_format($state / 100, 2) : '')
-                                                                    // Package services have fixed price (prepaid)
-                                                                    ->disabled(fn (Get $get) => $get('source_type') === 'package')
+                                                                    // Hide for package services (price is at package level)
+                                                                    ->hidden(fn (Get $get) => $get('source_type') === 'package')
                                                                     ->columnSpan(2),
 
                                                                 Forms\Components\TextInput::make('discount_minor')
@@ -581,13 +581,10 @@ class CreateBooking extends Page implements HasForms
                                                                     ->prefix(current_currency())
                                                                     ->default(0)
                                                                     ->live(onBlur: true)
-                                                                    // Package services have no discount (prepaid)
-                                                                    ->disabled(fn (Get $get) => $get('source_type') === 'package')
                                                                     ->dehydrateStateUsing(fn ($state) => (int) (((float) $state) * 100))
                                                                     ->formatStateUsing(fn ($state) => $state ? number_format($state / 100, 2) : '0.00')
                                                                     ->helperText(function (Get $get) {
                                                                         $maxPercent = (float) ($get('max_discount_percent') ?? 100);
-                                                                        // price_minor is in display format (major units like 4000)
                                                                         $price = (float) ($get('price_minor') ?? 0);
                                                                         if ($maxPercent < 100 && $price > 0) {
                                                                             $maxAmount = ($price * $maxPercent) / 100;
@@ -615,13 +612,14 @@ class CreateBooking extends Page implements HasForms
                                                                                 ->send();
                                                                         }
                                                                     })
+                                                                    // Hide for package services (no discount for packages)
+                                                                    ->hidden(fn (Get $get) => $get('source_type') === 'package')
                                                                     ->columnSpan(2),
 
-                                                                // Total (calculated)
+                                                                // Total (calculated) - hide for packages
                                                                 Forms\Components\Placeholder::make('total_display')
                                                                     ->label(__('booking::booking.fields.total'))
                                                                     ->content(function (Get $get) {
-                                                                        // All values in display format (major units)
                                                                         $price = (float) ($get('price_minor') ?? 0);
                                                                         $discount = (float) ($get('discount_minor') ?? 0);
                                                                         $total = max(0, $price - $discount);
@@ -631,6 +629,7 @@ class CreateBooking extends Page implements HasForms
                                                                             '</span>'
                                                                         );
                                                                     })
+                                                                    ->hidden(fn (Get $get) => $get('source_type') === 'package')
                                                                     ->columnSpan(2),
 
                                                                 // Source indicator (treatment plan / package / manual)
@@ -730,9 +729,42 @@ class CreateBooking extends Page implements HasForms
                                                     ->label('')
                                                     ->content(function (Get $get) {
                                                         $services = $get('services') ?? [];
+                                                        $newPackageId = $get('new_package_id');
+
+                                                        // Check if this is a package booking
+                                                        $isPackageBooking = false;
+                                                        foreach ($services as $service) {
+                                                            if (($service['source_type'] ?? null) === 'package') {
+                                                                $isPackageBooking = true;
+                                                                break;
+                                                            }
+                                                        }
+
+                                                        if ($isPackageBooking && $newPackageId) {
+                                                            // Show package price for new package
+                                                            $package = Package::find($newPackageId);
+                                                            if ($package) {
+                                                                $packagePrice = $package->effective_price_minor / 100;
+                                                                return new HtmlString(
+                                                                    '<div class="flex justify-end border-t pt-3 mt-2">' .
+                                                                    '<span class="text-gray-600 mr-2">' . __('booking::booking.labels.package_price') . ':</span>' .
+                                                                    '<span class="font-bold text-xl text-primary-600">' . number_format($packagePrice, 2) . ' ' . current_currency() . '</span>' .
+                                                                    '</div>'
+                                                                );
+                                                            }
+                                                        } elseif ($isPackageBooking) {
+                                                            // Existing package - already paid
+                                                            return new HtmlString(
+                                                                '<div class="flex justify-end border-t pt-3 mt-2">' .
+                                                                '<span class="text-gray-600 mr-2">' . __('booking::booking.labels.cart_total') . ':</span>' .
+                                                                '<span class="font-bold text-xl text-green-600">' . __('booking::booking.labels.prepaid') . '</span>' .
+                                                                '</div>'
+                                                            );
+                                                        }
+
+                                                        // Regular service booking - sum prices
                                                         $total = 0;
                                                         foreach ($services as $service) {
-                                                            // All values in display format (major units)
                                                             $price = (float) ($service['price_minor'] ?? 0);
                                                             $discount = (float) ($service['discount_minor'] ?? 0);
                                                             $total += max(0, $price - $discount);

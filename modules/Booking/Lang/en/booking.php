@@ -111,6 +111,8 @@ return [
         'from_treatment_plan' => 'From Treatment Plan',
         'already_booked' => 'Already booked',
         'cart_total' => 'Cart Total',
+        'package_price' => 'Package Price',
+        'prepaid' => 'Prepaid',
         'patient' => 'Patient',
         'appointments' => 'Appointments',
         'appointments_count' => 'appointment(s)',
