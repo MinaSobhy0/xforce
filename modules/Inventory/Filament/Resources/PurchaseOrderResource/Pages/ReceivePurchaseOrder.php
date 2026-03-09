@@ -28,7 +28,7 @@ class ReceivePurchaseOrder extends Page
             ? json_decode($record, true)['id'] ?? $record
             : (is_object($record) ? $record->getKey() : $record);
 
-        $this->record = PurchaseOrder::with('lines.product')->findOrFail($recordId);
+        $this->record = PurchaseOrder::with(['lines.product', 'lines.uom'])->findOrFail($recordId);
 
         if (!$this->record->canReceive()) {
             Notification::make()
@@ -45,6 +45,7 @@ class ReceivePurchaseOrder extends Page
                 return [
                     'id' => $line->id,
                     'product_name' => $line->product?->getTranslation('name', app()->getLocale()),
+                    'uom_name' => $line->uom?->getTranslation('name', app()->getLocale()) ?? $line->uom?->name,
                     'ordered' => $line->quantity,
                     'received' => $line->quantity_received,
                     'remaining' => $line->remaining_quantity,
@@ -95,6 +96,12 @@ class ReceivePurchaseOrder extends Page
                                     ->dehydrated(false)
                                     ->columnSpan(3),
 
+                                Forms\Components\TextInput::make('uom_name')
+                                    ->label(__('inventory::inventory.fields.uom'))
+                                    ->disabled()
+                                    ->dehydrated(false)
+                                    ->columnSpan(1),
+
                                 Forms\Components\TextInput::make('ordered')
                                     ->label(__('inventory::inventory.fields.ordered'))
                                     ->disabled()
@@ -119,7 +126,7 @@ class ReceivePurchaseOrder extends Page
                                     ->minValue(0)
                                     ->columnSpan(1),
                             ])
-                            ->columns(8)
+                            ->columns(9)
                             ->addable(false)
                             ->deletable(false)
                             ->reorderable(false),

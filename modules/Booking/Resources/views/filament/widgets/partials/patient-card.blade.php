@@ -10,6 +10,7 @@
     $canChangeRoomOrDoctor = $this->canChangeRoomOrDoctor($appointment);
     $hasBalance = $appointment->remaining_balance > 0;
     $canRecordPayment = in_array($appointment->status, ['checked_in', 'in_progress']) && $hasBalance;
+    $canRecordPackagePayment = in_array($appointment->status, ['checked_in', 'in_progress']);
 
     // Package balance check - show badge if appointment has package_subscription_id OR isPackageSession
     $packageSubscription = ($appointment->package_subscription_id || $appointment->isPackageSession())
@@ -44,27 +45,30 @@
 @endphp
 
 <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all overflow-hidden">
-    {{-- Header with Time and Wait Time --}}
-    <div class="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-700">
-        <div class="flex items-center gap-2">
-            <span class="text-sm font-bold text-primary-600 dark:text-primary-400">
-                {{ $appointment->start_time?->format('H:i') }}
-            </span>
-            <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full {{ $statusInfo['color'] }}">
-                <x-dynamic-component :component="$statusInfo['icon']" class="w-3 h-3" />
-                {{ $statusInfo['label'] }}
-            </span>
+    {{-- Clickable Card Area - Opens Appointment --}}
+    <a href="{{ route('filament.tenant.resources.appointments.view', ['record' => $appointment->id]) }}"
+       class="block cursor-pointer">
+        {{-- Header with Time and Wait Time --}}
+        <div class="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+            <div class="flex items-center gap-2">
+                <span class="text-sm font-bold text-primary-600 dark:text-primary-400">
+                    {{ $appointment->start_time?->format('H:i') }}
+                </span>
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full {{ $statusInfo['color'] }}">
+                    <x-dynamic-component :component="$statusInfo['icon']" class="w-3 h-3" />
+                    {{ $statusInfo['label'] }}
+                </span>
+            </div>
+            @if($waitTime)
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-bold rounded-full {{ $waitClass }}">
+                    <x-heroicon-o-clock class="w-3 h-3" />
+                    {{ $waitTime['formatted'] }}
+                </span>
+            @endif
         </div>
-        @if($waitTime)
-            <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-bold rounded-full {{ $waitClass }}">
-                <x-heroicon-o-clock class="w-3 h-3" />
-                {{ $waitTime['formatted'] }}
-            </span>
-        @endif
-    </div>
 
-    {{-- Body --}}
-    <div class="p-3 space-y-2">
+        {{-- Body --}}
+        <div class="p-3 space-y-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
         {{-- Patient Name --}}
         <div class="flex items-center gap-2">
             <div class="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center flex-shrink-0">
@@ -75,7 +79,9 @@
                     {{ $appointment->patient?->full_name ?? __('booking::reception.unknown_patient') }}
                 </div>
                 @if($appointment->patient?->phone)
-                    <a href="tel:{{ $appointment->patient->phone }}" class="text-xs text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400">
+                    <a href="tel:{{ $appointment->patient->phone }}"
+                       onclick="event.stopPropagation();"
+                       class="text-xs text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400">
                         {{ $appointment->patient->phone }}
                     </a>
                 @endif
@@ -94,13 +100,14 @@
             @endif
         </div>
 
-        {{-- Package Info/Balance --}}
+        {{-- Package Info/Balance - Stop propagation to prevent card click --}}
         @if($packageSubscription)
             @if($hasPackageBalance)
                 {{-- Has balance due - amber warning, clickable --}}
                 <button
                    type="button"
                    wire:click="goToPackageInvoice('{{ $packageSubscription->id }}')"
+                   onclick="event.preventDefault(); event.stopPropagation();"
                    class="w-full flex items-center gap-2 p-2 rounded-lg bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors text-left">
                     <div class="flex-shrink-0">
                         <x-heroicon-o-exclamation-triangle class="w-5 h-5 text-amber-500" />
@@ -120,6 +127,7 @@
                 <button
                    type="button"
                    wire:click="goToPackageInvoice('{{ $packageSubscription->id }}')"
+                   onclick="event.preventDefault(); event.stopPropagation();"
                    class="w-full flex items-center gap-2 p-2 rounded-lg bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors text-left">
                     <div class="flex-shrink-0">
                         <x-heroicon-o-check-circle class="w-5 h-5 text-green-500" />
@@ -152,6 +160,7 @@
                 <button
                     type="button"
                     wire:click="openRoomModal('{{ $appointment->id }}')"
+                    onclick="event.preventDefault(); event.stopPropagation();"
                     class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-md border transition-colors cursor-pointer
                         {{ $appointment->room
                             ? 'bg-cyan-50 text-cyan-700 dark:bg-cyan-900/50 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800 hover:bg-cyan-100 dark:hover:bg-cyan-900'
@@ -166,6 +175,7 @@
                 <button
                     type="button"
                     wire:click="openDoctorModal('{{ $appointment->id }}')"
+                    onclick="event.preventDefault(); event.stopPropagation();"
                     class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-md border transition-colors cursor-pointer
                         {{ $appointment->practitioner
                             ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900'
@@ -191,9 +201,10 @@
             @endif
         </div>
     </div>
+    </a>
 
     {{-- Action Buttons --}}
-    @if(($showCheckIn && $canCheckIn) || ($showPayment && $canRecordPayment) || $canCheckout)
+    @if(($showCheckIn && $canCheckIn) || ($showPayment && $canRecordPayment) || ($showPayment && $canRecordPackagePayment && $hasPackageBalance) || $canCheckout)
         <div class="px-3 pb-4 space-y-2">
             {{-- Check-in Button --}}
             @if($showCheckIn && $canCheckIn)
@@ -214,11 +225,22 @@
                 </x-filament::button>
             @endif
 
-            {{-- Record Payment Button (shows for checked_in and in_progress) --}}
+            {{-- Record Payment Button (shows for checked_in and in_progress with balance) --}}
             @if($showPayment && $canRecordPayment)
                 <x-filament::button
                     :href="route('filament.tenant.resources.appointments.view', ['record' => $appointment->id])"
                     tag="a"
+                    color="success"
+                    size="sm"
+                    class="w-full"
+                    icon="heroicon-o-banknotes"
+                >
+                    {{ __('booking::reception.actions.record_payment') }}
+                </x-filament::button>
+            {{-- Record Package Payment Button (shows for package appointments with balance due) --}}
+            @elseif($showPayment && $canRecordPackagePayment && $hasPackageBalance)
+                <x-filament::button
+                    wire:click="goToPackageInvoice('{{ $packageSubscription->id }}')"
                     color="success"
                     size="sm"
                     class="w-full"
