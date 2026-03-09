@@ -1589,11 +1589,21 @@ class CreateBooking extends Page implements HasForms
             $plan = TreatmentPlan::with([
                 'items.service',
                 'items.planAppointments.appointment',
+                'packageSubscription.package.items',
             ])->find($planId);
 
             if ($plan) {
                 $services = [];
                 $firstBookableItem = null;
+                $isFromPackage = $plan->isFromPackage();
+                $packageItems = [];
+
+                // If from package, index package items by service_id for lookup
+                if ($isFromPackage && $plan->packageSubscription) {
+                    foreach ($plan->packageSubscription->package->items as $pkgItem) {
+                        $packageItems[$pkgItem->service_id] = $pkgItem;
+                    }
+                }
 
                 foreach ($plan->items as $item) {
                     if (!$item->canBook() || !$item->service) {
@@ -1615,15 +1625,29 @@ class CreateBooking extends Page implements HasForms
                         ->with('appointment')
                         ->first();
 
+                    // Get remaining sessions if from package
+                    $remaining = null;
+                    if ($isFromPackage && $plan->packageSubscription) {
+                        $remaining = $plan->packageSubscription->getSessionsRemainingByService($item->service_id);
+                    }
+
+                    // Get package item info if from package
+                    $pkgItem = $packageItems[$item->service_id] ?? null;
+
                     $services[] = [
                         'service_id' => $item->service_id,
                         'duration_override' => $item->service->duration_minutes,
-                        // Price in display format (major units) - dehydrateStateUsing converts back to minor
-                        'price_minor' => ($item->unit_price_minor ?? $item->service->base_price_minor) / 100,
+                        'price_minor' => $pkgItem ? ($pkgItem->unit_price_minor / 100) : (($item->unit_price_minor ?? $item->service->base_price_minor) / 100),
                         'discount_minor' => 0,
-                        'max_discount_percent' => $item->service->max_discount_percent ?? 100,
-                        'source_type' => 'treatment_plan',
+                        'max_discount_percent' => $isFromPackage ? 0 : ($item->service->max_discount_percent ?? 100),
+                        // If from package, treat as package source
+                        'source_type' => $isFromPackage ? 'package' : 'treatment_plan',
                         'source_item_id' => $item->id,
+                        // Package session info
+                        'package_sessions' => $pkgItem?->quantity,
+                        'package_sessions_remaining' => $remaining,
+                        'package_consumption_type' => $pkgItem?->consumption_type,
+                        'package_pulses_per_session' => $pkgItem?->pulses_per_session,
                         'existing_appointment_id' => $scheduledAppointment?->appointment_id,
                         'existing_appointment_date' => $scheduledAppointment?->appointment?->date?->format('Y-m-d'),
                         'existing_appointment_time' => $scheduledAppointment?->appointment?->start_time,
@@ -1634,6 +1658,11 @@ class CreateBooking extends Page implements HasForms
                 $this->data['booking_type'] = 'service'; // Use service mode for cart display
                 $this->data['treatment_plan_id'] = $planId;
                 $this->data['services'] = !empty($services) ? $services : [['service_id' => null, 'duration_override' => null, 'price_minor' => null]];
+
+                // If treatment plan is from package, also set the package subscription
+                if ($isFromPackage && $plan->packageSubscription) {
+                    $this->data['package_subscription_id'] = $plan->package_subscription_id;
+                }
 
                 if ($firstBookableItem) {
                     $this->data['treatment_plan_item_id'] = $firstBookableItem->id;
