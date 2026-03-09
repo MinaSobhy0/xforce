@@ -6,6 +6,14 @@
 
 .fi-sidebar-rail {
     position: relative;
+    max-height: 100vh;
+    overflow-y: auto;
+}
+
+/* Make the rail navigation scrollable */
+.fi-sidebar-rail nav {
+    overflow-y: auto;
+    max-height: calc(100vh - 120px);
 }
 
 /* Subtle gradient overlay for depth */
@@ -63,6 +71,15 @@
 .fi-sidebar-panel {
     position: relative;
     background: linear-gradient(180deg, #f9fafb 0%, #f3f4f6 100%);
+    max-height: 100vh;
+    overflow-y: auto;
+}
+
+/* Make the panel navigation scrollable */
+.fi-sidebar-panel nav,
+.fi-sidebar-panel > div {
+    overflow-y: auto;
+    max-height: calc(100vh - 80px);
 }
 
 .dark .fi-sidebar-panel {

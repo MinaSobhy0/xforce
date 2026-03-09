@@ -488,7 +488,7 @@
         ])
     }}
 >
-    <div style="height: 100%; display: flex;">
+    <div style="height: 100vh; display: flex; overflow: hidden;">
         {{-- Icon Rail (Left Sidebar) - LIGHT --}}
         <div class="fi-sidebar-rail-light" style="width: 85px; height: 100%; display: flex; flex-direction: column; flex-shrink: 0;">
             {{-- Logo Area --}}
@@ -564,7 +564,7 @@
             x-transition:leave-start="opacity-100 translate-x-0"
             x-transition:leave-end="opacity-0 -translate-x-4"
             class="fi-sidebar-menu-panel"
-            style="width: 260px; height: 100%; display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden; box-shadow: 4px 0 15px rgba(0, 0, 0, 0.05);"
+            style="width: 260px; height: 100%; max-height: 100vh; display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden; box-shadow: 4px 0 15px rgba(0, 0, 0, 0.05);"
         >
             {{-- Panel Header --}}
             <header class="fi-panel-header">
@@ -598,7 +598,7 @@
             @endif
 
             {{-- Menu Items --}}
-            <nav class="fi-sidebar-panel-nav" style="flex: 1; overflow-y: auto; padding: 12px;">
+            <nav class="fi-sidebar-panel-nav" style="flex: 1; overflow-y: auto; padding: 12px; min-height: 0; max-height: calc(100vh - 180px);">
                 @foreach ($navigation as $group)
                     <ul
                         x-show="activeGroup === '{{ $group->getLabel() }}'"
