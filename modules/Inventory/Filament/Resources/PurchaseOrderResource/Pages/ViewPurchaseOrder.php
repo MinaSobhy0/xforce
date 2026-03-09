@@ -24,7 +24,7 @@ class ViewPurchaseOrder extends BaseViewRecord
                 ->label(__('inventory::inventory.actions.send'))
                 ->icon('heroicon-o-paper-airplane')
                 ->color('info')
-                ->visible(fn () => $this->record->canTransitionTo(PurchaseOrder::STATUS_SENT) && !$this->record->vendor_bill_id)
+                ->visible(fn () => $this->record->canTransitionTo(PurchaseOrder::STATUS_SENT))
                 ->requiresConfirmation()
                 ->action(function () {
                     if ($this->record->send(auth()->id())) {
@@ -40,7 +40,7 @@ class ViewPurchaseOrder extends BaseViewRecord
                 ->label(__('inventory::inventory.actions.receive'))
                 ->icon('heroicon-o-inbox-arrow-down')
                 ->color('success')
-                ->visible(fn () => $this->record->canReceive() && !$this->record->vendor_bill_id)
+                ->visible(fn () => $this->record->canReceive())
                 ->url(fn () => $this->getResource()::getUrl('receive', ['record' => $this->record->getKey()])),
 
             Actions\Action::make('cancel')
@@ -80,8 +80,13 @@ class ViewPurchaseOrder extends BaseViewRecord
                 ->icon('heroicon-o-document-minus')
                 ->color('primary')
                 ->visible(function () {
-                    // Must have received items
-                    if (!$this->record->isReceived() && !$this->record->areAllItemsReceived()) {
+                    // PO must be confirmed (sent) or later - not draft or cancelled
+                    $validStatuses = [
+                        PurchaseOrder::STATUS_SENT,
+                        PurchaseOrder::STATUS_PARTIALLY_RECEIVED,
+                        PurchaseOrder::STATUS_RECEIVED,
+                    ];
+                    if (!in_array($this->record->status, $validStatuses)) {
                         return false;
                     }
                     // No bill linked yet
@@ -93,16 +98,8 @@ class ViewPurchaseOrder extends BaseViewRecord
                     return !$bill || $bill->status === VendorBill::STATUS_CANCELLED;
                 })
                 ->requiresConfirmation()
-                ->modalDescription('This will create a vendor bill from this purchase order.')
+                ->modalDescription('This will create a vendor bill from this purchase order. You can receive items before or after creating the bill.')
                 ->action(function () {
-                    // Fix status if all items received but status is not "received"
-                    if (!$this->record->isReceived() && $this->record->areAllItemsReceived()) {
-                        $this->record->status = PurchaseOrder::STATUS_RECEIVED;
-                        $this->record->received_date = $this->record->received_date ?? now();
-                        $this->record->received_by = $this->record->received_by ?? auth()->id();
-                        $this->record->save();
-                    }
-
                     $bill = VendorBill::createFromPurchaseOrder($this->record);
 
                     Notification::make()
