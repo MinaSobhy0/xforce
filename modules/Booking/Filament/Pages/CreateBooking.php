@@ -492,7 +492,8 @@ class CreateBooking extends Page implements HasForms
                                                                             $service = Service::find($state);
                                                                             if ($service) {
                                                                                 $set('duration_override', $service->duration_minutes);
-                                                                                $set('price_minor', $service->base_price_minor);
+                                                                                // Set price in display format (major units) - dehydrateStateUsing converts back to minor
+                                                                                $set('price_minor', $service->base_price_minor / 100);
                                                                                 $set('discount_minor', 0);
                                                                                 $set('max_discount_percent', $service->max_discount_percent ?? 100);
                                                                             }
@@ -580,24 +581,26 @@ class CreateBooking extends Page implements HasForms
                                                                     ->formatStateUsing(fn ($state) => $state ? number_format($state / 100, 2) : '0.00')
                                                                     ->helperText(function (Get $get) {
                                                                         $maxPercent = (float) ($get('max_discount_percent') ?? 100);
-                                                                        $priceMinor = (float) ($get('price_minor') ?? 0);
-                                                                        if ($maxPercent < 100 && $priceMinor > 0) {
-                                                                            $maxAmount = ($priceMinor * $maxPercent) / 100;
-                                                                            return __('booking::booking.fields.max_discount') . ': ' . $maxPercent . '% (' . number_format($maxAmount / 100, 2) . ')';
+                                                                        // price_minor is in display format (major units like 4000)
+                                                                        $price = (float) ($get('price_minor') ?? 0);
+                                                                        if ($maxPercent < 100 && $price > 0) {
+                                                                            $maxAmount = ($price * $maxPercent) / 100;
+                                                                            return __('booking::booking.fields.max_discount') . ': ' . $maxPercent . '% (' . number_format($maxAmount, 2) . ')';
                                                                         }
                                                                         return null;
                                                                     })
                                                                     ->rules([
                                                                         fn (Get $get): \Closure => function (string $attribute, $value, \Closure $fail) use ($get) {
-                                                                            $priceMinor = (float) ($get('price_minor') ?? 0);
+                                                                            // All values in display format (major units)
+                                                                            $price = (float) ($get('price_minor') ?? 0);
                                                                             $maxPercent = (float) ($get('max_discount_percent') ?? 100);
-                                                                            $discountMinor = ((float) $value) * 100;
-                                                                            $maxDiscountMinor = ($priceMinor * $maxPercent) / 100;
+                                                                            $discount = (float) $value;
+                                                                            $maxDiscount = ($price * $maxPercent) / 100;
 
-                                                                            if ($discountMinor > $maxDiscountMinor && $maxPercent < 100) {
+                                                                            if ($discount > $maxDiscount && $maxPercent < 100) {
                                                                                 $fail(__('booking::booking.validation.discount_exceeds_max', [
                                                                                     'max' => $maxPercent,
-                                                                                    'amount' => number_format($maxDiscountMinor / 100, 2),
+                                                                                    'amount' => number_format($maxDiscount, 2),
                                                                                 ]));
                                                                             }
                                                                         },
@@ -608,12 +611,13 @@ class CreateBooking extends Page implements HasForms
                                                                 Forms\Components\Placeholder::make('total_display')
                                                                     ->label(__('booking::booking.fields.total'))
                                                                     ->content(function (Get $get) {
-                                                                        $priceMinor = (float) ($get('price_minor') ?? 0);
-                                                                        $discountMinor = (float) ($get('discount_minor') ?? 0) * 100;
-                                                                        $total = max(0, $priceMinor - $discountMinor);
+                                                                        // All values in display format (major units)
+                                                                        $price = (float) ($get('price_minor') ?? 0);
+                                                                        $discount = (float) ($get('discount_minor') ?? 0);
+                                                                        $total = max(0, $price - $discount);
                                                                         return new HtmlString(
                                                                             '<span class="font-semibold text-lg">' .
-                                                                            number_format($total / 100, 2) . ' ' . current_currency() .
+                                                                            number_format($total, 2) . ' ' . current_currency() .
                                                                             '</span>'
                                                                         );
                                                                     })
@@ -691,14 +695,15 @@ class CreateBooking extends Page implements HasForms
                                                         $services = $get('services') ?? [];
                                                         $total = 0;
                                                         foreach ($services as $service) {
+                                                            // All values in display format (major units)
                                                             $price = (float) ($service['price_minor'] ?? 0);
-                                                            $discount = (float) ($service['discount_minor'] ?? 0) * 100;
+                                                            $discount = (float) ($service['discount_minor'] ?? 0);
                                                             $total += max(0, $price - $discount);
                                                         }
                                                         return new HtmlString(
                                                             '<div class="flex justify-end border-t pt-3 mt-2">' .
                                                             '<span class="text-gray-600 mr-2">' . __('booking::booking.labels.cart_total') . ':</span>' .
-                                                            '<span class="font-bold text-xl text-primary-600">' . number_format($total / 100, 2) . ' ' . current_currency() . '</span>' .
+                                                            '<span class="font-bold text-xl text-primary-600">' . number_format($total, 2) . ' ' . current_currency() . '</span>' .
                                                             '</div>'
                                                         );
                                                     })
@@ -1454,7 +1459,8 @@ class CreateBooking extends Page implements HasForms
                     $services[] = [
                         'service_id' => $item->service_id,
                         'duration_override' => $item->service->duration_minutes,
-                        'price_minor' => $item->unit_price_minor ?? $item->service->base_price_minor,
+                        // Price in display format (major units) - dehydrateStateUsing converts back to minor
+                        'price_minor' => ($item->unit_price_minor ?? $item->service->base_price_minor) / 100,
                         'discount_minor' => 0,
                         'max_discount_percent' => $item->service->max_discount_percent ?? 100,
                         'source_type' => 'treatment_plan',
