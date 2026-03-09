@@ -139,7 +139,7 @@ return [
         'internal_notes' => 'Internal Notes',
         'items' => 'Items',
         'ordered' => 'Ordered',
-        'already_received' => 'Already Received',
+        'already_received' => 'Received',
         'receive_now' => 'Receive Now',
         'adjustment_type' => 'Adjustment Type',
         'adjustment_date' => 'Adjustment Date',

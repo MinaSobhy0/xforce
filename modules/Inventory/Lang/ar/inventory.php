@@ -139,7 +139,7 @@ return [
         'internal_notes' => 'ملاحظات داخلية',
         'items' => 'العناصر',
         'ordered' => 'مطلوب',
-        'already_received' => 'مستلم مسبقاً',
+        'already_received' => 'مستلم',
         'receive_now' => 'استلام الآن',
         'adjustment_type' => 'نوع التسوية',
         'adjustment_date' => 'تاريخ التسوية',
