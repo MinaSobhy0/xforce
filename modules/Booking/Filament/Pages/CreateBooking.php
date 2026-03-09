@@ -1595,7 +1595,7 @@ class CreateBooking extends Page implements HasForms
             if ($plan) {
                 $services = [];
                 $firstBookableItem = null;
-                $isFromPackage = $plan->isFromPackage();
+                $isFromPackage = $plan->hasPackageSubscription();
                 $packageItems = [];
 
                 // If from package, index package items by service_id for lookup
