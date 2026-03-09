@@ -15,6 +15,7 @@ class PurchaseOrderLine extends BaseModel
         'tenant_id',
         'purchase_order_id',
         'product_id',
+        'uom_id',
         'quantity',
         'quantity_received',
         'unit_price_minor',
@@ -66,6 +67,14 @@ class PurchaseOrderLine extends BaseModel
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    /**
+     * Get the UOM.
+     */
+    public function uom(): BelongsTo
+    {
+        return $this->belongsTo(Uom::class);
     }
 
     /**
@@ -184,6 +193,7 @@ class PurchaseOrderLine extends BaseModel
                     $this->product,
                     $destinationLocation,
                     $quantity,
+                    $this->uom_id, // Pass the UOM from the PO line
                     'purchase_order',
                     $this->purchase_order_id,
                     $notes ?? "Received from PO #{$this->purchaseOrder->order_number}",

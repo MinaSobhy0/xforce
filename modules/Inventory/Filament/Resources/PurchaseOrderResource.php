@@ -13,6 +13,7 @@ use Modules\Core\Models\Branch;
 use Modules\Inventory\Models\PurchaseOrder;
 use Modules\Inventory\Models\Product;
 use Modules\Inventory\Models\Supplier;
+use Modules\Inventory\Models\Uom;
 use Modules\Inventory\Filament\Resources\PurchaseOrderResource\Pages;
 use Modules\Inventory\Filament\Resources\PurchaseOrderResource\RelationManagers;
 use XLinic\Framework\Core\Filament\RelationManagers\ActivityLogRelationManager;
@@ -125,7 +126,7 @@ class PurchaseOrderResource extends Resource
                         Forms\Components\Repeater::make('lines')
                             ->relationship()
                             ->schema([
-                                // Row 1: Product, Notes, Received
+                                // Row 1: Product, UOM, Notes, Received
                                 Forms\Components\Select::make('product_id')
                                     ->label(__('inventory::inventory.fields.product'))
                                     ->relationship('product', 'id')
@@ -141,15 +142,41 @@ class PurchaseOrderResource extends Resource
                                                 $set('unit_price_minor', $product->cost_price_minor / 100);
                                                 $defaultTax = \Modules\Billing\Models\TaxRate::getDefault(\Modules\Billing\Models\TaxRate::TYPE_PURCHASE);
                                                 $set('tax_rates', $defaultTax ? [(string) $defaultTax->rate] : []);
+                                                // Set default UOM to purchase_uom or sales_uom
+                                                $set('uom_id', $product->purchase_uom_id ?? $product->sales_uom_id);
                                             }
                                         }
                                     })
-                                    ->columnSpan(['default' => 12, 'md' => 4]),
+                                    ->columnSpan(['default' => 12, 'md' => 3]),
+
+                                Forms\Components\Select::make('uom_id')
+                                    ->label(__('inventory::inventory.fields.uom'))
+                                    ->options(function (Forms\Get $get) {
+                                        $productId = $get('product_id');
+                                        if (!$productId) {
+                                            return [];
+                                        }
+                                        $product = Product::find($productId);
+                                        if (!$product || !$product->salesUom) {
+                                            return Uom::where('is_active', true)
+                                                ->get()
+                                                ->mapWithKeys(fn (Uom $uom) => [$uom->id => $uom->display_name]);
+                                        }
+                                        // Only show UOMs from the same category
+                                        return Uom::where('is_active', true)
+                                            ->where('category_id', $product->salesUom->category_id)
+                                            ->get()
+                                            ->mapWithKeys(fn (Uom $uom) => [$uom->id => $uom->display_name]);
+                                    })
+                                    ->required()
+                                    ->searchable()
+                                    ->live()
+                                    ->columnSpan(['default' => 6, 'md' => 2]),
 
                                 Forms\Components\TextInput::make('notes')
                                     ->label(__('inventory::inventory.fields.notes'))
                                     ->maxLength(255)
-                                    ->columnSpan(['default' => 12, 'md' => 6]),
+                                    ->columnSpan(['default' => 12, 'md' => 5]),
 
                                 Forms\Components\TextInput::make('quantity_received')
                                     ->label(__('inventory::inventory.fields.received'))

@@ -16,6 +16,7 @@ use Modules\Inventory\Filament\Resources\StockTransferResource\Pages;
 use Modules\Inventory\Models\StockLocation;
 use Modules\Inventory\Models\StockTransfer;
 use Modules\Inventory\Models\Product;
+use Modules\Inventory\Models\Uom;
 
 class StockTransferResource extends Resource
 {
@@ -159,7 +160,40 @@ class StockTransferResource extends Resource
                                     ->searchable()
                                     ->preload()
                                     ->required()
+                                    ->live()
+                                    ->afterStateUpdated(function ($state, Forms\Set $set) {
+                                        if ($state) {
+                                            $product = Product::find($state);
+                                            if ($product) {
+                                                // Default to sales_uom (stock UOM)
+                                                $set('uom_id', $product->sales_uom_id);
+                                            }
+                                        }
+                                    })
                                     ->columnSpan(3),
+
+                                Forms\Components\Select::make('uom_id')
+                                    ->label(__('inventory::inventory.fields.uom'))
+                                    ->options(function (Forms\Get $get) {
+                                        $productId = $get('product_id');
+                                        if (!$productId) {
+                                            return [];
+                                        }
+                                        $product = Product::find($productId);
+                                        if (!$product || !$product->salesUom) {
+                                            return Uom::where('is_active', true)
+                                                ->get()
+                                                ->mapWithKeys(fn (Uom $uom) => [$uom->id => $uom->display_name]);
+                                        }
+                                        // Only show UOMs from the same category
+                                        return Uom::where('is_active', true)
+                                            ->where('category_id', $product->salesUom->category_id)
+                                            ->get()
+                                            ->mapWithKeys(fn (Uom $uom) => [$uom->id => $uom->display_name]);
+                                    })
+                                    ->required()
+                                    ->searchable()
+                                    ->columnSpan(1),
 
                                 Forms\Components\TextInput::make('quantity_planned')
                                     ->label(__('inventory::inventory.fields.quantity'))
@@ -177,7 +211,7 @@ class StockTransferResource extends Resource
                                     ->columnSpan(1)
                                     ->visibleOn('edit'),
                             ])
-                            ->columns(5)
+                            ->columns(6)
                             ->reorderable(false)
                             ->addActionLabel(__('inventory::inventory.actions.add_product'))
                             ->minItems(1),
