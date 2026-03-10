@@ -361,4 +361,19 @@ return [
         'other_visit_items' => 'Other items in visit :code',
         'visit_checkout_note' => 'Full invoice will be generated at checkout',
     ],
+
+    // View mode
+    'view_mode' => [
+        'title' => 'Viewing Completed Session',
+        'description' => 'This session has been completed and is read-only',
+        'completed_on' => 'Completed on',
+        'back_to_dashboard' => 'Back to Dashboard',
+    ],
+
+    // Previous sessions
+    'previous_sessions' => [
+        'title' => 'Previous Sessions',
+        'view' => 'View',
+        'no_previous' => 'No previous sessions for this service',
+    ],
 ];

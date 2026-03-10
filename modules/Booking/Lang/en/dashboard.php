@@ -6,6 +6,25 @@ return [
     'title' => 'Doctor Dashboard',
     'heading' => 'Today\'s Sessions',
 
+    // Admin selector
+    'admin' => [
+        'viewing_as' => 'Viewing dashboard for',
+        'viewing_other' => 'Viewing as another practitioner',
+        'select_practitioner' => 'Select Practitioner',
+    ],
+
+    // Date selector
+    'date' => [
+        'label' => 'Date',
+        'today' => 'Today',
+        'yesterday' => 'Yesterday',
+        'tomorrow' => 'Tomorrow',
+        'back_to_today' => 'Back to Today',
+        'past_date' => 'Viewing past date',
+        'past_appointment' => 'Past appointment',
+        'view_only' => 'View only',
+    ],
+
     // Statistics
     'stats' => [
         'waiting' => 'Waiting',
@@ -38,6 +57,13 @@ return [
         'check_in' => 'Check In',
         'confirm' => 'Confirm',
         'back_to_queue' => 'Back to Queue',
+        'view' => 'View',
+        'reschedule' => 'Reschedule',
+    ],
+
+    // Status labels
+    'status' => [
+        'missed' => 'Missed',
     ],
 
     // Tabs
@@ -136,5 +162,7 @@ return [
         'patient_checked_in' => 'Patient Checked In',
         'cannot_confirm' => 'Cannot Confirm Appointment',
         'appointment_confirmed' => 'Appointment Confirmed',
+        'cannot_reschedule' => 'Cannot Reschedule',
+        'appointment_already_started' => 'This appointment has already started or completed',
     ],
 ];

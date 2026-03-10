@@ -2,22 +2,31 @@
 
 namespace Modules\Booking\Filament\Widgets;
 
+use Carbon\Carbon;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
+use Livewire\Attributes\Reactive;
 use Modules\Booking\Models\Appointment;
 
 class DoctorDashboardStatsWidget extends BaseWidget
 {
     protected static ?string $pollingInterval = '30s';
 
+    #[Reactive]
+    public ?string $selectedPractitionerId = null;
+
+    #[Reactive]
+    public ?string $selectedDate = null;
+
     protected function getStats(): array
     {
-        $user = auth()->user();
-        $today = today();
+        // Use selected practitioner if provided, otherwise current user
+        $practitionerId = $this->selectedPractitionerId ?? auth()->id();
+        $date = $this->selectedDate ? Carbon::parse($this->selectedDate) : today();
 
         $appointments = Appointment::query()
-            ->forDate($today)
-            ->forPractitioner($user->id)
+            ->forDate($date)
+            ->forPractitioner($practitionerId)
             ->get();
 
         $waiting = $appointments->where('status', Appointment::STATUS_CHECKED_IN)->count();

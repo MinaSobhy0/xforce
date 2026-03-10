@@ -264,8 +264,19 @@ class AppointmentResource extends Resource
 
                 Tables\Columns\TextColumn::make('service.translated_name')
                     ->label(__('booking::appointments.fields.service'))
-                    ->searchable()
-                    ->sortable()
+                    ->searchable(query: function ($query, string $search) {
+                        $query->whereHas('service', function ($q) use ($search) {
+                            $q->whereRaw("name::text ILIKE ?", ["%{$search}%"]);
+                        });
+                    })
+                    ->sortable(query: function ($query, string $direction) {
+                        $query->orderBy(
+                            \Modules\Services\Models\Service::select('name')
+                                ->whereColumn('services.id', 'appointments.service_id')
+                                ->limit(1),
+                            $direction
+                        );
+                    })
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('practitioner.full_name')
@@ -415,6 +426,19 @@ class AppointmentResource extends Resource
                                 ->success()
                                 ->send();
                         }),
+
+                    Tables\Actions\Action::make('reschedule')
+                        ->label(__('booking::appointments.actions.reschedule'))
+                        ->icon('heroicon-o-calendar-days')
+                        ->color('info')
+                        ->visible(fn (Appointment $record): bool => in_array($record->status, [
+                            Appointment::STATUS_SCHEDULED,
+                            Appointment::STATUS_CONFIRMED,
+                            Appointment::STATUS_CHECKED_IN,
+                        ]))
+                        ->url(fn (Appointment $record): string =>
+                            \Modules\Booking\Filament\Pages\CreateBooking::getUrl() . '?reschedule_appointment_id=' . $record->id
+                        ),
 
                     Tables\Actions\Action::make('cancel')
                         ->label(__('booking::appointments.actions.cancel'))

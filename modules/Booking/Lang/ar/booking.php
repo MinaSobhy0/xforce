@@ -9,11 +9,13 @@ return [
     // Titles
     'title' => [
         'create_booking' => 'إنشاء حجز',
+        'reschedule_booking' => 'إعادة جدولة الموعد',
     ],
 
     // Headings
     'heading' => [
         'create_booking' => 'إنشاء حجز جديد',
+        'reschedule_booking' => 'إعادة جدولة الموعد',
     ],
 
     // Sections
@@ -110,6 +112,7 @@ return [
         'from_package' => 'من الباقة',
         'from_treatment_plan' => 'من خطة العلاج',
         'already_booked' => 'محجوز بالفعل',
+        'scheduled' => 'مجدول',
         'cart_total' => 'إجمالي السلة',
         'package_price' => 'سعر الباقة',
         'services_total' => 'الخدمات',
@@ -215,6 +218,9 @@ return [
         'treatment_plan_selected' => 'تم اختيار خطة العلاج',
         'select_service_to_book' => 'الآن اختر خدمة من الخيارات أدناه',
         'services_loaded_to_cart' => 'تم تحميل الخدمات إلى السلة',
+        'appointment_rescheduled' => 'تمت إعادة جدولة الموعد',
+        'rescheduled_success' => 'تمت إعادة جدولة الموعد بنجاح. تم إلغاء الموعد الأصلي.',
+        'rescheduled_to_new' => 'تمت إعادة الجدولة إلى موعد جديد',
     ],
 
     // Validation

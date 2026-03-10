@@ -68,6 +68,12 @@ class DoctorDashboard extends Page implements HasForms
     // Treatment plan form
     public ?array $treatmentPlanData = [];
 
+    // Admin practitioner selector
+    public ?string $selectedPractitionerId = null;
+
+    // Date selector
+    public ?string $selectedDate = null;
+
     public static function getNavigationLabel(): string
     {
         return __('booking::dashboard.navigation');
@@ -81,6 +87,14 @@ class DoctorDashboard extends Page implements HasForms
     public function getHeading(): string
     {
         return __('booking::dashboard.heading');
+    }
+
+    protected function getHeaderWidgetsData(): array
+    {
+        return [
+            'selectedPractitionerId' => $this->selectedPractitionerId,
+            'selectedDate' => $this->selectedDate,
+        ];
     }
 
     protected function getHeaderWidgets(): array
@@ -110,21 +124,135 @@ class DoctorDashboard extends Page implements HasForms
             'recommended_package_id' => null,
             'notes' => '',
         ];
+
+        // For admins, default to current user (they can change later)
+        // For non-admins, always use current user
+        $this->selectedPractitionerId = (string) auth()->id();
+
+        // Default to today's date
+        $this->selectedDate = today()->format('Y-m-d');
     }
 
     /**
-     * Get today's appointments for the current practitioner.
+     * Check if current user can select other practitioners (admin/manager/super_admin).
      */
-    public function getTodayAppointments(): Collection
+    public function canSelectPractitioner(): bool
     {
         $user = auth()->user();
+        return $user && $user->hasAnyRole(['super_admin', 'admin', 'manager']);
+    }
+
+    /**
+     * Get list of practitioners for the selector.
+     */
+    public function getPractitioners(): array
+    {
+        return User::query()
+            ->whereHas('roles', function ($q) {
+                $q->whereIn('name', ['doctor', 'nurse', 'technician']);
+            })
+            ->orderBy('first_name')
+            ->orderBy('last_name')
+            ->get()
+            ->mapWithKeys(fn ($user) => [$user->id => $user->full_name])
+            ->toArray();
+    }
+
+    /**
+     * Get the currently selected practitioner's name.
+     */
+    public function getSelectedPractitionerName(): ?string
+    {
+        if (!$this->selectedPractitionerId) {
+            return null;
+        }
+
+        $user = User::find($this->selectedPractitionerId);
+        return $user?->full_name;
+    }
+
+    /**
+     * Change the selected practitioner (for admins).
+     */
+    public function selectPractitioner(string $practitionerId): void
+    {
+        if (!$this->canSelectPractitioner()) {
+            return;
+        }
+
+        $this->selectedPractitionerId = $practitionerId;
+    }
+
+    /**
+     * Get appointments for the selected date and practitioner.
+     */
+    public function getAppointmentsForDate(): Collection
+    {
+        // Use selected practitioner for admins, current user for others
+        $practitionerId = $this->canSelectPractitioner()
+            ? ($this->selectedPractitionerId ?? auth()->id())
+            : auth()->id();
+
+        $date = $this->selectedDate ? Carbon::parse($this->selectedDate) : today();
 
         return Appointment::query()
             ->with(['patient', 'service', 'room', 'treatmentPlanAppointment.item', 'packageSubscription.package.items'])
-            ->forDate(today())
-            ->forPractitioner($user->id)
+            ->forDate($date)
+            ->forPractitioner($practitionerId)
             ->ordered()
             ->get();
+    }
+
+    /**
+     * Alias for backward compatibility.
+     */
+    public function getTodayAppointments(): Collection
+    {
+        return $this->getAppointmentsForDate();
+    }
+
+    /**
+     * Check if viewing a past date.
+     */
+    public function isViewingPastDate(): bool
+    {
+        if (!$this->selectedDate) {
+            return false;
+        }
+        // Compare date strings to avoid timezone issues
+        return $this->selectedDate < today()->format('Y-m-d');
+    }
+
+    /**
+     * Check if viewing today.
+     */
+    public function isViewingToday(): bool
+    {
+        if (!$this->selectedDate) {
+            return true;
+        }
+        // Compare date strings to avoid timezone issues
+        return $this->selectedDate === today()->format('Y-m-d');
+    }
+
+    /**
+     * Get the formatted selected date for display.
+     */
+    public function getFormattedSelectedDate(): string
+    {
+        $date = $this->selectedDate ? Carbon::parse($this->selectedDate) : today();
+
+        if ($date->isToday()) {
+            return __('booking::dashboard.date.today');
+        }
+        if ($date->isYesterday()) {
+            return __('booking::dashboard.date.yesterday');
+        }
+        if ($date->isTomorrow()) {
+            return __('booking::dashboard.date.tomorrow');
+        }
+
+        return $date->format('D, M j, Y');
     }
 
     /**
@@ -230,6 +358,44 @@ class DoctorDashboard extends Page implements HasForms
 
         // Redirect to the Treatment Session page
         $this->redirect(TreatmentSession::getUrl() . '?appointment_id=' . $appointment->id);
+    }
+
+    /**
+     * View a completed session (read-only).
+     */
+    public function viewSession(string $appointmentId): void
+    {
+        $appointment = Appointment::findOrFail($appointmentId);
+
+        // Redirect to the Treatment Session page in view mode
+        $this->redirect(TreatmentSession::getUrl() . '?appointment_id=' . $appointment->id . '&view_mode=1');
+    }
+
+    /**
+     * Reschedule an appointment - redirect to booking page with appointment data.
+     */
+    public function rescheduleAppointment(string $appointmentId): void
+    {
+        $appointment = Appointment::findOrFail($appointmentId);
+
+        // Only allow rescheduling for appointments that haven't started or completed
+        $allowedStatuses = [
+            Appointment::STATUS_SCHEDULED,
+            Appointment::STATUS_CONFIRMED,
+            Appointment::STATUS_CHECKED_IN,
+        ];
+
+        if (!in_array($appointment->status, $allowedStatuses)) {
+            Notification::make()
+                ->title(__('booking::dashboard.messages.cannot_reschedule'))
+                ->body(__('booking::dashboard.messages.appointment_already_started'))
+                ->danger()
+                ->send();
+            return;
+        }
+
+        // Redirect to the booking page with reschedule parameter
+        $this->redirect(CreateBooking::getUrl() . '?reschedule_appointment_id=' . $appointment->id);
     }
 
     /**

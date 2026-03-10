@@ -70,6 +70,10 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
     #[Url]
     public ?string $appointment_id = null;
 
+    // View mode for completed sessions
+    #[Url]
+    public ?string $view_mode = null;
+
     public ?Appointment $appointment = null;
     public ?Visit $visit = null;
     public ?Patient $patient = null;
@@ -155,8 +159,13 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
             return;
         }
 
-        // Ensure appointment is in progress
-        if ($this->appointment->status !== Appointment::STATUS_IN_PROGRESS) {
+        // Allow viewing completed sessions in view mode
+        $isViewMode = $this->view_mode === '1';
+        $isCompleted = $this->appointment->status === Appointment::STATUS_COMPLETED;
+        $isInProgress = $this->appointment->status === Appointment::STATUS_IN_PROGRESS;
+
+        // Ensure appointment is in progress OR completed (for view mode)
+        if (!$isInProgress && !($isViewMode && $isCompleted)) {
             Notification::make()
                 ->title(__('booking::session.messages.session_not_active'))
                 ->danger()
@@ -239,6 +248,63 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                 $visitService->addAppointment($this->visit, $this->appointment);
             }
         }
+    }
+
+    /**
+     * Check if the page is in view mode (read-only).
+     */
+    public function isViewMode(): bool
+    {
+        return $this->view_mode === '1' || $this->appointment?->status === Appointment::STATUS_COMPLETED;
+    }
+
+    /**
+     * Get previous sessions for the same patient and service.
+     */
+    public function getPreviousSessions(): Collection
+    {
+        if (!$this->appointment || !$this->patient) {
+            return collect();
+        }
+
+        return Appointment::query()
+            ->with(['service', 'practitioner', 'sessionData'])
+            ->where('patient_id', $this->patient->id)
+            ->where('status', Appointment::STATUS_COMPLETED)
+            ->where('id', '!=', $this->appointment->id)
+            ->orderByDesc('date')
+            ->orderByDesc('start_time')
+            ->limit(10)
+            ->get();
+    }
+
+    /**
+     * Get previous sessions for the same service.
+     */
+    public function getPreviousServiceSessions(): Collection
+    {
+        if (!$this->appointment || !$this->patient) {
+            return collect();
+        }
+
+        return Appointment::query()
+            ->with(['service', 'practitioner', 'sessionData'])
+            ->where('patient_id', $this->patient->id)
+            ->where('service_id', $this->appointment->service_id)
+            ->where('status', Appointment::STATUS_COMPLETED)
+            ->where('id', '!=', $this->appointment->id)
+            ->orderByDesc('date')
+            ->orderByDesc('start_time')
+            ->limit(5)
+            ->get();
+    }
+
+    /**
+     * View a specific previous session.
+     */
+    public function viewPreviousSession(int $appointmentId): void
+    {
+        $this->redirect(static::getUrl() . '?appointment_id=' . $appointmentId . '&view_mode=1');
     }
 
     protected function loadOrCreateSessionData(): void
@@ -452,6 +518,17 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
 
     protected function getHeaderActions(): array
     {
+        // In view mode, only show a back button
+        if ($this->isViewMode()) {
+            return [
+                Action::make('backToDashboard')
+                    ->label(__('booking::session.view_mode.back_to_dashboard'))
+                    ->icon('heroicon-o-arrow-left')
+                    ->color('gray')
+                    ->url(DoctorDashboard::getUrl()),
+            ];
+        }
+
         return [
             Action::make('addToTreatmentPlan')
                 ->label(__('booking::session.actions.add_to_plan'))

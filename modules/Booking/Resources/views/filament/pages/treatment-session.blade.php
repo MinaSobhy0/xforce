@@ -1,5 +1,36 @@
 <x-filament-panels::page>
     <div class="space-y-6">
+        {{-- View Mode Banner --}}
+        @if($this->isViewMode())
+            <div class="rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 p-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="flex-shrink-0 w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-800 flex items-center justify-center">
+                            <x-heroicon-o-eye class="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                        </div>
+                        <div>
+                            <div class="font-semibold text-amber-800 dark:text-amber-200">
+                                {{ __('booking::session.view_mode.title') }}
+                            </div>
+                            <div class="text-sm text-amber-600 dark:text-amber-400">
+                                {{ __('booking::session.view_mode.description') }}
+                                @if($appointment?->completed_at)
+                                    - {{ __('booking::session.view_mode.completed_on') }} {{ $appointment->completed_at->format('M d, Y H:i') }}
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                    <a
+                        href="{{ \Modules\Booking\Filament\Pages\DoctorDashboard::getUrl() }}"
+                        class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-100 dark:bg-amber-800 text-amber-700 dark:text-amber-300 font-medium text-sm hover:bg-amber-200 dark:hover:bg-amber-700 transition-colors"
+                    >
+                        <x-heroicon-o-arrow-left class="w-4 h-4" />
+                        {{ __('booking::session.view_mode.back_to_dashboard') }}
+                    </a>
+                </div>
+            </div>
+        @endif
+
         {{-- Appointment Info Bar --}}
         <div class="rounded-xl bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-700 p-3 sm:p-4">
             <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 lg:gap-4">
@@ -108,42 +139,63 @@
                             </div>
                         @endif
 
-                        {{-- Session Timer --}}
+                        {{-- Session Timer / Duration --}}
                         @if($sessionData?->session_started_at)
-                            <div
-                                x-data="{
-                                    startTime: {{ $sessionData->session_started_at->timestamp * 1000 }},
-                                    elapsed: 0,
-                                    timer: null,
-                                    init() {
-                                        this.updateElapsed();
-                                        this.timer = setInterval(() => this.updateElapsed(), 1000);
-                                    },
-                                    updateElapsed() {
-                                        this.elapsed = Math.floor((Date.now() - this.startTime) / 1000);
-                                    },
-                                    get hours() {
-                                        return Math.floor(this.elapsed / 3600);
-                                    },
-                                    get minutes() {
-                                        return Math.floor((this.elapsed % 3600) / 60);
-                                    },
-                                    get seconds() {
-                                        return this.elapsed % 60;
-                                    },
-                                    get display() {
-                                        if (this.hours > 0) {
-                                            return String(this.hours).padStart(2, '0') + ':' + String(this.minutes).padStart(2, '0') + ':' + String(this.seconds).padStart(2, '0');
+                            @if($this->isViewMode() && $appointment?->completed_at)
+                                {{-- View Mode: Show final duration --}}
+                                @php
+                                    $startTime = $sessionData->session_started_at;
+                                    $endTime = $appointment->completed_at;
+                                    $durationSeconds = $startTime->diffInSeconds($endTime);
+                                    $hours = floor($durationSeconds / 3600);
+                                    $minutes = floor(($durationSeconds % 3600) / 60);
+                                    $seconds = $durationSeconds % 60;
+                                    $durationDisplay = $hours > 0
+                                        ? sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds)
+                                        : sprintf('%02d:%02d', $minutes, $seconds);
+                                @endphp
+                                <div class="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-full font-medium text-xs sm:text-sm">
+                                    <x-heroicon-o-clock class="w-3 h-3 sm:w-4 sm:h-4" />
+                                    <span class="font-mono tabular-nums">{{ $durationDisplay }}</span>
+                                    <span class="text-xs text-gray-500">{{ __('booking::session.info.duration') }}</span>
+                                </div>
+                            @else
+                                {{-- Active Session: Running timer --}}
+                                <div
+                                    x-data="{
+                                        startTime: {{ $sessionData->session_started_at->timestamp * 1000 }},
+                                        elapsed: 0,
+                                        timer: null,
+                                        init() {
+                                            this.updateElapsed();
+                                            this.timer = setInterval(() => this.updateElapsed(), 1000);
+                                        },
+                                        updateElapsed() {
+                                            this.elapsed = Math.floor((Date.now() - this.startTime) / 1000);
+                                        },
+                                        get hours() {
+                                            return Math.floor(this.elapsed / 3600);
+                                        },
+                                        get minutes() {
+                                            return Math.floor((this.elapsed % 3600) / 60);
+                                        },
+                                        get seconds() {
+                                            return this.elapsed % 60;
+                                        },
+                                        get display() {
+                                            if (this.hours > 0) {
+                                                return String(this.hours).padStart(2, '0') + ':' + String(this.minutes).padStart(2, '0') + ':' + String(this.seconds).padStart(2, '0');
+                                            }
+                                            return String(this.minutes).padStart(2, '0') + ':' + String(this.seconds).padStart(2, '0');
                                         }
-                                        return String(this.minutes).padStart(2, '0') + ':' + String(this.seconds).padStart(2, '0');
-                                    }
-                                }"
-                                x-init="init()"
-                                class="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full font-medium text-xs sm:text-sm"
-                            >
-                                <x-heroicon-o-clock class="w-3 h-3 sm:w-4 sm:h-4" />
-                                <span x-text="display" class="font-mono tabular-nums"></span>
-                            </div>
+                                    }"
+                                    x-init="init()"
+                                    class="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full font-medium text-xs sm:text-sm"
+                                >
+                                    <x-heroicon-o-clock class="w-3 h-3 sm:w-4 sm:h-4" />
+                                    <span x-text="display" class="font-mono tabular-nums"></span>
+                                </div>
+                            @endif
                         @endif
                     </div>
                 </div>
@@ -664,7 +716,7 @@
                                                 <span class="text-xs text-gray-500">{{ \Modules\Equipment\Models\Equipment::CATEGORIES[$equipment['category']] ?? $equipment['category'] }}</span>
                                             @endif
                                         </div>
-                                        @if(!$equipment['is_preset'])
+                                        @if(!$equipment['is_preset'] && !$this->isViewMode())
                                             <button wire:click="removeEquipment('{{ $equipment['equipment_id'] }}')" class="p-1 text-gray-400 hover:text-red-500 rounded">
                                                 <x-heroicon-o-x-mark class="w-4 h-4" />
                                             </button>
@@ -792,20 +844,22 @@
                         </div>
                     @endif
 
-                    @php $availableEquipment = $this->getAvailableEquipment(); @endphp
-                    @if($availableEquipment->isNotEmpty())
-                        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                            <select wire:model="newEquipmentId" class="flex-1 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm">
-                                <option value="">{{ __('booking::session.equipment.add_equipment') }}</option>
-                                @foreach($availableEquipment as $eq)
-                                    <option value="{{ $eq->id }}">{{ $eq->name }}</option>
-                                @endforeach
-                            </select>
-                            <x-filament::button wire:click="addEquipment" size="sm" class="w-full sm:w-auto">
-                                <x-heroicon-o-plus class="w-4 h-4" />
-                                <span class="sm:hidden ml-1">{{ __('booking::session.consumables.add') }}</span>
-                            </x-filament::button>
-                        </div>
+                    @if(!$this->isViewMode())
+                        @php $availableEquipment = $this->getAvailableEquipment(); @endphp
+                        @if($availableEquipment->isNotEmpty())
+                            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                <select wire:model="newEquipmentId" class="flex-1 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm">
+                                    <option value="">{{ __('booking::session.equipment.add_equipment') }}</option>
+                                    @foreach($availableEquipment as $eq)
+                                        <option value="{{ $eq->id }}">{{ $eq->name }}</option>
+                                    @endforeach
+                                </select>
+                                <x-filament::button wire:click="addEquipment" size="sm" class="w-full sm:w-auto">
+                                    <x-heroicon-o-plus class="w-4 h-4" />
+                                    <span class="sm:hidden ml-1">{{ __('booking::session.consumables.add') }}</span>
+                                </x-filament::button>
+                            </div>
+                        @endif
                     @endif
                 </x-filament::section>
 
@@ -835,16 +889,16 @@
                                     {{ $label }}@if($unit) <span class="text-gray-400">({{ $unit }})</span>@endif
                                 </label>
                                 @if($type === 'select')
-                                    <select wire:model.live="parameterValues.{{ $key }}" wire:change="updateParameterValue('{{ $key }}', $event.target.value)" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm">
+                                    <select wire:model.live="parameterValues.{{ $key }}" wire:change="updateParameterValue('{{ $key }}', $event.target.value)" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm" @if($this->isViewMode()) disabled @endif>
                                         <option value="">-</option>
                                         @foreach($param['options'] ?? [] as $option)
                                             <option value="{{ $option['value'] }}">{{ is_array($option['label'] ?? '') ? ($option['label'][app()->getLocale()] ?? $option['label']['en'] ?? $option['value']) : ($option['label'] ?? $option['value']) }}</option>
                                         @endforeach
                                     </select>
                                 @elseif($type === 'boolean')
-                                    <input type="checkbox" wire:model.live="parameterValues.{{ $key }}" wire:change="updateParameterValue('{{ $key }}', $event.target.checked)" class="rounded border-gray-300 text-primary-600" />
+                                    <input type="checkbox" wire:model.live="parameterValues.{{ $key }}" wire:change="updateParameterValue('{{ $key }}', $event.target.checked)" class="rounded border-gray-300 text-primary-600" @if($this->isViewMode()) disabled @endif />
                                 @else
-                                    <input type="{{ in_array($type, ['number', 'decimal']) ? 'number' : 'text' }}" wire:model.blur="parameterValues.{{ $key }}" wire:change="updateParameterValue('{{ $key }}', $event.target.value)" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm" @if(isset($param['min'])) min="{{ $param['min'] }}" @endif @if(isset($param['max'])) max="{{ $param['max'] }}" @endif />
+                                    <input type="{{ in_array($type, ['number', 'decimal']) ? 'number' : 'text' }}" wire:model.blur="parameterValues.{{ $key }}" wire:change="updateParameterValue('{{ $key }}', $event.target.value)" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm" @if(isset($param['min'])) min="{{ $param['min'] }}" @endif @if(isset($param['max'])) max="{{ $param['max'] }}" @endif @if($this->isViewMode()) readonly @endif />
                                 @endif
                             </div>
                         @endforeach
@@ -867,51 +921,53 @@
                     </div>
                 </x-slot>
 
-                <div class="flex flex-col sm:flex-row gap-2 mb-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg"
-                    x-data="{
-                        search: '',
-                        open: false,
-                        items: @js($this->getAvailableConsumables()->map(fn($p) => ['id' => $p->id, 'name' => $p->getTranslation('name', app()->getLocale())])->values()->toArray()),
-                        get filtered() {
-                            if (!this.search) return this.items;
-                            return this.items.filter(item => item.name.toLowerCase().includes(this.search.toLowerCase()));
-                        },
-                        select(id) {
-                            $wire.set('newConsumableId', id);
-                            this.open = false;
-                            this.search = this.items.find(i => i.id == id)?.name || '';
-                        },
-                        clear() {
-                            this.search = '';
-                            this.open = false;
-                        }
-                    }"
-                    @click.outside="open = false"
-                    @consumable-added.window="clear()"
-                >
-                    <div class="flex-1 relative">
-                        <input
-                            type="text"
-                            x-model="search"
-                            @focus="open = true"
-                            @input="open = true"
-                            placeholder="{{ __('booking::session.consumables.select') }}"
-                            class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm"
-                        />
-                        <div x-show="open && filtered.length > 0" x-cloak class="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded shadow-lg max-h-48 overflow-y-auto">
-                            <template x-for="item in filtered" :key="item.id">
-                                <button type="button" @click="select(item.id)" class="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700" x-text="item.name"></button>
-                            </template>
+                @if(!$this->isViewMode())
+                    <div class="flex flex-col sm:flex-row gap-2 mb-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg"
+                        x-data="{
+                            search: '',
+                            open: false,
+                            items: @js($this->getAvailableConsumables()->map(fn($p) => ['id' => $p->id, 'name' => $p->getTranslation('name', app()->getLocale())])->values()->toArray()),
+                            get filtered() {
+                                if (!this.search) return this.items;
+                                return this.items.filter(item => item.name.toLowerCase().includes(this.search.toLowerCase()));
+                            },
+                            select(id) {
+                                $wire.set('newConsumableId', id);
+                                this.open = false;
+                                this.search = this.items.find(i => i.id == id)?.name || '';
+                            },
+                            clear() {
+                                this.search = '';
+                                this.open = false;
+                            }
+                        }"
+                        @click.outside="open = false"
+                        @consumable-added.window="clear()"
+                    >
+                        <div class="flex-1 relative">
+                            <input
+                                type="text"
+                                x-model="search"
+                                @focus="open = true"
+                                @input="open = true"
+                                placeholder="{{ __('booking::session.consumables.select') }}"
+                                class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm"
+                            />
+                            <div x-show="open && filtered.length > 0" x-cloak class="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded shadow-lg max-h-48 overflow-y-auto">
+                                <template x-for="item in filtered" :key="item.id">
+                                    <button type="button" @click="select(item.id)" class="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700" x-text="item.name"></button>
+                                </template>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <input type="number" wire:model="newConsumableQty" class="w-20 sm:w-16 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm text-center" min="0.1" step="0.1" placeholder="Qty" />
+                            <x-filament::button wire:click="addConsumable" size="sm" class="flex-1 sm:flex-none">
+                                <x-heroicon-o-plus class="w-4 h-4" />
+                                <span class="sm:hidden ml-1">{{ __('booking::session.consumables.add') }}</span>
+                            </x-filament::button>
                         </div>
                     </div>
-                    <div class="flex gap-2">
-                        <input type="number" wire:model="newConsumableQty" class="w-20 sm:w-16 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm text-center" min="0.1" step="0.1" placeholder="Qty" />
-                        <x-filament::button wire:click="addConsumable" size="sm" class="flex-1 sm:flex-none">
-                            <x-heroicon-o-plus class="w-4 h-4" />
-                            <span class="sm:hidden ml-1">{{ __('booking::session.consumables.add') }}</span>
-                        </x-filament::button>
-                    </div>
-                </div>
+                @endif
 
                 @if(count($sessionConsumables) > 0)
                     <div class="space-y-1">
@@ -921,9 +977,11 @@
                                     <span class="font-medium text-gray-900 dark:text-white">{{ $consumable['product_name'] }}</span>
                                     <span class="text-xs text-gray-500 ml-1">{{ $consumable['quantity'] }} {{ $consumable['unit'] }}</span>
                                 </div>
-                                <button type="button" wire:click="removeConsumable('{{ $consumable['id'] }}')" class="text-red-500 hover:text-red-700">
-                                    <x-heroicon-o-x-mark class="w-4 h-4" />
-                                </button>
+                                @if(!$this->isViewMode())
+                                    <button type="button" wire:click="removeConsumable('{{ $consumable['id'] }}')" class="text-red-500 hover:text-red-700">
+                                        <x-heroicon-o-x-mark class="w-4 h-4" />
+                                    </button>
+                                @endif
                             </div>
                         @endforeach
                     </div>
@@ -944,58 +1002,60 @@
                     </div>
                 </x-slot>
 
-                <div class="flex flex-col sm:flex-row gap-2 mb-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg"
-                    x-data="{
-                        search: '',
-                        open: false,
-                        items: @js($this->getAvailableProducts()->map(fn($p) => ['id' => $p->id, 'name' => $p->getTranslation('name', app()->getLocale()), 'price' => $p->sell_price, 'stock' => $p->stock_qty ?? 0])->values()->toArray()),
-                        get filtered() {
-                            if (!this.search) return this.items;
-                            return this.items.filter(item => item.name.toLowerCase().includes(this.search.toLowerCase()));
-                        },
-                        select(id) {
-                            $wire.set('newProductId', id);
-                            this.open = false;
-                            const item = this.items.find(i => i.id == id);
-                            this.search = item ? item.name + ' - ' + item.price.toFixed(2) + ' (Stock: ' + item.stock + ')' : '';
-                        },
-                        clear() {
-                            this.search = '';
-                            this.open = false;
-                        }
-                    }"
-                    @click.outside="open = false"
-                    @product-added.window="clear()"
-                >
-                    <div class="flex-1 relative">
-                        <input
-                            type="text"
-                            x-model="search"
-                            @focus="open = true"
-                            @input="open = true"
-                            placeholder="{{ __('booking::session.products.select') }}"
-                            class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm"
-                        />
-                        <div x-show="open && filtered.length > 0" x-cloak class="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded shadow-lg max-h-48 overflow-y-auto">
-                            <template x-for="item in filtered" :key="item.id">
-                                <button type="button" @click="select(item.id)" class="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex justify-between items-center">
-                                    <span x-text="item.name"></span>
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-xs px-1.5 py-0.5 rounded" :class="item.stock > 0 ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'" x-text="'Stock: ' + item.stock"></span>
-                                        <span class="text-gray-500" x-text="item.price.toFixed(2)"></span>
-                                    </div>
-                                </button>
-                            </template>
+                @if(!$this->isViewMode())
+                    <div class="flex flex-col sm:flex-row gap-2 mb-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg"
+                        x-data="{
+                            search: '',
+                            open: false,
+                            items: @js($this->getAvailableProducts()->map(fn($p) => ['id' => $p->id, 'name' => $p->getTranslation('name', app()->getLocale()), 'price' => $p->sell_price, 'stock' => $p->stock_qty ?? 0])->values()->toArray()),
+                            get filtered() {
+                                if (!this.search) return this.items;
+                                return this.items.filter(item => item.name.toLowerCase().includes(this.search.toLowerCase()));
+                            },
+                            select(id) {
+                                $wire.set('newProductId', id);
+                                this.open = false;
+                                const item = this.items.find(i => i.id == id);
+                                this.search = item ? item.name + ' - ' + item.price.toFixed(2) + ' (Stock: ' + item.stock + ')' : '';
+                            },
+                            clear() {
+                                this.search = '';
+                                this.open = false;
+                            }
+                        }"
+                        @click.outside="open = false"
+                        @product-added.window="clear()"
+                    >
+                        <div class="flex-1 relative">
+                            <input
+                                type="text"
+                                x-model="search"
+                                @focus="open = true"
+                                @input="open = true"
+                                placeholder="{{ __('booking::session.products.select') }}"
+                                class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm"
+                            />
+                            <div x-show="open && filtered.length > 0" x-cloak class="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded shadow-lg max-h-48 overflow-y-auto">
+                                <template x-for="item in filtered" :key="item.id">
+                                    <button type="button" @click="select(item.id)" class="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex justify-between items-center">
+                                        <span x-text="item.name"></span>
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-xs px-1.5 py-0.5 rounded" :class="item.stock > 0 ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'" x-text="'Stock: ' + item.stock"></span>
+                                            <span class="text-gray-500" x-text="item.price.toFixed(2)"></span>
+                                        </div>
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <input type="number" wire:model="newProductQty" class="w-20 sm:w-16 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm text-center" min="1" placeholder="Qty" />
+                            <x-filament::button wire:click="addProduct" size="sm" class="flex-1 sm:flex-none">
+                                <x-heroicon-o-plus class="w-4 h-4" />
+                                <span class="sm:hidden ml-1">{{ __('booking::session.products.add') }}</span>
+                            </x-filament::button>
                         </div>
                     </div>
-                    <div class="flex gap-2">
-                        <input type="number" wire:model="newProductQty" class="w-20 sm:w-16 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm text-center" min="1" placeholder="Qty" />
-                        <x-filament::button wire:click="addProduct" size="sm" class="flex-1 sm:flex-none">
-                            <x-heroicon-o-plus class="w-4 h-4" />
-                            <span class="sm:hidden ml-1">{{ __('booking::session.products.add') }}</span>
-                        </x-filament::button>
-                    </div>
-                </div>
+                @endif
 
                 @if(count($sessionProducts) > 0)
                     <div class="space-y-1">
@@ -1007,9 +1067,11 @@
                                 </div>
                                 <div class="flex items-center gap-2">
                                     <span class="text-gray-700 dark:text-gray-300">{{ number_format($product['total_price'], 2) }}</span>
-                                    <button type="button" wire:click="removeProduct('{{ $product['id'] }}')" class="text-red-500 hover:text-red-700">
-                                        <x-heroicon-o-x-mark class="w-4 h-4" />
-                                    </button>
+                                    @if(!$this->isViewMode())
+                                        <button type="button" wire:click="removeProduct('{{ $product['id'] }}')" class="text-red-500 hover:text-red-700">
+                                            <x-heroicon-o-x-mark class="w-4 h-4" />
+                                        </button>
+                                    @endif
                                 </div>
                             </div>
                         @endforeach
@@ -1064,6 +1126,7 @@
             @endif
 
             {{-- New Prescription Form --}}
+            @if(!$this->isViewMode())
             <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
                 <div class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">{{ __('prescriptions::prescription.sections.new_prescription') }}</div>
 
@@ -1229,6 +1292,7 @@
                     </div>
                 @endif
             </div>
+            @endif
         </x-filament::section>
 
         {{-- Session Notes --}}
@@ -1240,19 +1304,21 @@
                     </div>
                 </x-slot>
 
-                <div class="mb-4 p-2 sm:p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                    <div class="flex flex-col sm:flex-row gap-2">
-                        <textarea wire:model="noteContent" rows="2" class="flex-1 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm" placeholder="{{ __('booking::session.notes.placeholder') }}"></textarea>
-                        <div class="flex sm:flex-col gap-2 sm:gap-1">
-                            <select wire:model="noteType" class="flex-1 sm:flex-none border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-xs">
-                                @foreach(\Modules\Patients\Models\PatientNote::TYPES as $key => $label)
-                                    <option value="{{ $key }}">{{ $label }}</option>
-                                @endforeach
-                            </select>
-                            <x-filament::button wire:click="addNote" size="sm">{{ __('booking::session.notes.add') }}</x-filament::button>
+                @if(!$this->isViewMode())
+                    <div class="mb-4 p-2 sm:p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                        <div class="flex flex-col sm:flex-row gap-2">
+                            <textarea wire:model="noteContent" rows="2" class="flex-1 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm" placeholder="{{ __('booking::session.notes.placeholder') }}"></textarea>
+                            <div class="flex sm:flex-col gap-2 sm:gap-1">
+                                <select wire:model="noteType" class="flex-1 sm:flex-none border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-xs">
+                                    @foreach(\Modules\Patients\Models\PatientNote::TYPES as $key => $label)
+                                        <option value="{{ $key }}">{{ $label }}</option>
+                                    @endforeach
+                                </select>
+                                <x-filament::button wire:click="addNote" size="sm">{{ __('booking::session.notes.add') }}</x-filament::button>
+                            </div>
                         </div>
                     </div>
-                </div>
+                @endif
 
                 @php $notes = $this->getPatientNotes(); @endphp
                 @if($notes->isNotEmpty())
@@ -1282,47 +1348,49 @@
             </x-slot>
 
             {{-- Photo Upload Actions --}}
-            <div class="mb-3 flex flex-wrap gap-2 items-center"
-                x-data="{
-                    uploading: false,
-                    progress: 0
-                }"
-                x-on:livewire-upload-start="uploading = true"
-                x-on:livewire-upload-finish="uploading = false; $wire.processCameraPhoto()"
-                x-on:livewire-upload-error="uploading = false"
-                x-on:livewire-upload-progress="progress = $event.detail.progress"
-            >
-                {{-- Take Photo Button (Camera) --}}
-                <div class="relative">
-                    <input
-                        type="file"
-                        wire:model="cameraPhoto"
-                        accept="image/*"
-                        capture="environment"
-                        class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                    />
-                    <x-filament::button color="success" icon="heroicon-o-camera" x-bind:disabled="uploading">
-                        <span x-show="!uploading">{{ __('booking::session.photos.take_photo') }}</span>
-                        <span x-show="uploading" class="flex items-center gap-2">
-                            <x-filament::loading-indicator class="w-4 h-4" />
-                            <span x-text="progress + '%'"></span>
-                        </span>
-                    </x-filament::button>
-                </div>
-
-                {{-- Gallery/Upload Button --}}
-                {{ $this->uploadPhotoAction }}
-
-                {{-- Photo Type Selector --}}
-                <select
-                    wire:model="cameraPhotoType"
-                    class="text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg"
+            @if(!$this->isViewMode())
+                <div class="mb-3 flex flex-wrap gap-2 items-center"
+                    x-data="{
+                        uploading: false,
+                        progress: 0
+                    }"
+                    x-on:livewire-upload-start="uploading = true"
+                    x-on:livewire-upload-finish="uploading = false; $wire.processCameraPhoto()"
+                    x-on:livewire-upload-error="uploading = false"
+                    x-on:livewire-upload-progress="progress = $event.detail.progress"
                 >
-                    @foreach(\Modules\Patients\Models\PatientPhoto::TYPES as $key => $label)
-                        <option value="{{ $key }}">{{ $label }}</option>
-                    @endforeach
-                </select>
-            </div>
+                    {{-- Take Photo Button (Camera) --}}
+                    <div class="relative">
+                        <input
+                            type="file"
+                            wire:model="cameraPhoto"
+                            accept="image/*"
+                            capture="environment"
+                            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                        />
+                        <x-filament::button color="success" icon="heroicon-o-camera" x-bind:disabled="uploading">
+                            <span x-show="!uploading">{{ __('booking::session.photos.take_photo') }}</span>
+                            <span x-show="uploading" class="flex items-center gap-2">
+                                <x-filament::loading-indicator class="w-4 h-4" />
+                                <span x-text="progress + '%'"></span>
+                            </span>
+                        </x-filament::button>
+                    </div>
+
+                    {{-- Gallery/Upload Button --}}
+                    {{ $this->uploadPhotoAction }}
+
+                    {{-- Photo Type Selector --}}
+                    <select
+                        wire:model="cameraPhotoType"
+                        class="text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg"
+                    >
+                        @foreach(\Modules\Patients\Models\PatientPhoto::TYPES as $key => $label)
+                            <option value="{{ $key }}">{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            @endif
 
             @php $photos = $this->getPatientPhotos(); @endphp
             @if($photos->isNotEmpty())
@@ -1362,8 +1430,8 @@
                                     </div>
                                     <span class="text-xs text-gray-500">{{ $photo->taken_at?->format('M d') }}</span>
                                 </div>
-                                {{-- Delete button - only for photos from current appointment --}}
-                                @if($photo->appointment_id === $this->appointment?->id)
+                                {{-- Delete button - only for photos from current appointment and not in view mode --}}
+                                @if($photo->appointment_id === $this->appointment?->id && !$this->isViewMode())
                                     <button
                                         type="button"
                                         wire:click="deletePhoto('{{ $photo->id }}')"
@@ -1418,6 +1486,7 @@
             </x-filament::section>
 
             {{-- Create Treatment Plan --}}
+            @if(!$this->isViewMode())
             <x-filament::section collapsible>
                 <x-slot name="heading">
                     <div class="flex items-center gap-2">
@@ -1474,6 +1543,7 @@
                     <x-filament::button wire:click="createTreatmentPlan" class="w-full" size="sm">{{ __('booking::session.plan.create') }}</x-filament::button>
                 </div>
             </x-filament::section>
+            @endif
         </div>
 
         {{-- Invoice Section --}}
@@ -1527,7 +1597,7 @@
 
                                     {{-- Quantity --}}
                                     <td class="py-3 px-2 text-center">
-                                        @if($item['editable'] ?? true)
+                                        @if(($item['editable'] ?? true) && !$this->isViewMode())
                                             <input
                                                 type="number"
                                                 value="{{ $item['quantity'] }}"
@@ -1544,7 +1614,7 @@
 
                                     {{-- Unit Price --}}
                                     <td class="py-3 px-2 text-right">
-                                        @if($item['editable'] ?? true)
+                                        @if(($item['editable'] ?? true) && !$this->isViewMode())
                                             <div class="relative" wire:loading.class="opacity-50">
                                                 <input
                                                     type="number"
@@ -1566,7 +1636,7 @@
 
                                     {{-- Discount --}}
                                     <td class="py-3 px-2 text-right">
-                                        @if($item['editable'] ?? true)
+                                        @if(($item['editable'] ?? true) && !$this->isViewMode())
                                             <div class="flex items-center gap-1 justify-end">
                                                 <select
                                                     x-data
@@ -1629,51 +1699,55 @@
                                         @else
                                             <span class="text-gray-400">-</span>
                                         @endif
-                                        <button
-                                            type="button"
-                                            @click="showDiscountForm = !showDiscountForm"
-                                            class="p-1 text-gray-400 hover:text-primary-500 rounded"
-                                        >
-                                            <x-heroicon-o-plus-circle class="w-4 h-4" x-show="!showDiscountForm" />
-                                            <x-heroicon-o-minus-circle class="w-4 h-4" x-show="showDiscountForm" x-cloak />
-                                        </button>
+                                        @if(!$this->isViewMode())
+                                            <button
+                                                type="button"
+                                                @click="showDiscountForm = !showDiscountForm"
+                                                class="p-1 text-gray-400 hover:text-primary-500 rounded"
+                                            >
+                                                <x-heroicon-o-plus-circle class="w-4 h-4" x-show="!showDiscountForm" />
+                                                <x-heroicon-o-minus-circle class="w-4 h-4" x-show="showDiscountForm" x-cloak />
+                                            </button>
+                                        @endif
                                     </div>
                                 </div>
 
                                 {{-- Discount Form --}}
-                                <div x-show="showDiscountForm" x-cloak x-transition class="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-2">
-                                    <div class="grid grid-cols-2 gap-2">
-                                        <select
-                                            wire:model.live="overallDiscountType"
-                                            class="border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm"
-                                        >
-                                            <option value="none">{{ __('booking::session.invoice.no_discount') }}</option>
-                                            <option value="percent">{{ __('booking::session.invoice.percentage') }}</option>
-                                            <option value="fixed">{{ __('booking::session.invoice.fixed_amount') }}</option>
-                                        </select>
+                                @if(!$this->isViewMode())
+                                    <div x-show="showDiscountForm" x-cloak x-transition class="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-2">
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <select
+                                                wire:model.live="overallDiscountType"
+                                                class="border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm"
+                                            >
+                                                <option value="none">{{ __('booking::session.invoice.no_discount') }}</option>
+                                                <option value="percent">{{ __('booking::session.invoice.percentage') }}</option>
+                                                <option value="fixed">{{ __('booking::session.invoice.fixed_amount') }}</option>
+                                            </select>
+                                            <input
+                                                type="number"
+                                                wire:model.live="overallDiscountValue"
+                                                class="border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm"
+                                                placeholder="{{ $overallDiscountType === 'percent' ? '%' : current_currency() }}"
+                                                min="0"
+                                                @if($overallDiscountType === 'percent') max="100" @endif
+                                            />
+                                        </div>
                                         <input
-                                            type="number"
-                                            wire:model.live="overallDiscountValue"
-                                            class="border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm"
-                                            placeholder="{{ $overallDiscountType === 'percent' ? '%' : current_currency() }}"
-                                            min="0"
-                                            @if($overallDiscountType === 'percent') max="100" @endif
+                                            type="text"
+                                            wire:model.live="overallDiscountReason"
+                                            class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm"
+                                            placeholder="{{ __('booking::session.invoice.discount_reason_placeholder') }}"
                                         />
+                                        <x-filament::button
+                                            wire:click="applyOverallDiscount"
+                                            size="sm"
+                                            class="w-full"
+                                        >
+                                            {{ __('booking::session.invoice.apply_discount') }}
+                                        </x-filament::button>
                                     </div>
-                                    <input
-                                        type="text"
-                                        wire:model.live="overallDiscountReason"
-                                        class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm"
-                                        placeholder="{{ __('booking::session.invoice.discount_reason_placeholder') }}"
-                                    />
-                                    <x-filament::button
-                                        wire:click="applyOverallDiscount"
-                                        size="sm"
-                                        class="w-full"
-                                    >
-                                        {{ __('booking::session.invoice.apply_discount') }}
-                                    </x-filament::button>
-                                </div>
+                                @endif
                             </div>
 
                             {{-- Total --}}
@@ -1744,6 +1818,57 @@
                             @endif
                         </div>
                     </div>
+                </div>
+            </x-filament::section>
+        @endif
+
+        {{-- Previous Sessions Section --}}
+        @php $previousSessions = $this->getPreviousServiceSessions(); @endphp
+        @if($previousSessions->isNotEmpty())
+            <x-filament::section collapsible collapsed>
+                <x-slot name="heading">
+                    <div class="flex items-center gap-2">
+                        <x-heroicon-o-clock class="w-5 h-5 text-gray-500" />
+                        {{ __('booking::session.previous_sessions.title') }}
+                        <span class="text-xs text-gray-500">({{ $previousSessions->count() }})</span>
+                    </div>
+                </x-slot>
+
+                <div class="space-y-3">
+                    @foreach($previousSessions as $prevSession)
+                        <div class="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                            <div class="flex items-center gap-3">
+                                <div class="flex-shrink-0 w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                                    <x-heroicon-o-check-circle class="w-5 h-5 text-green-600 dark:text-green-400" />
+                                </div>
+                                <div>
+                                    <div class="font-medium text-gray-900 dark:text-white">
+                                        {{ $prevSession->date?->format('M d, Y') }}
+                                        <span class="text-sm text-gray-500 dark:text-gray-400">{{ $prevSession->start_time?->format('H:i') }}</span>
+                                    </div>
+                                    <div class="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                                        <span>{{ $prevSession->service?->translated_name }}</span>
+                                        @if($prevSession->practitioner)
+                                            <span class="text-gray-300 dark:text-gray-600">|</span>
+                                            <span>{{ $prevSession->practitioner->full_name }}</span>
+                                        @endif
+                                    </div>
+                                    @if($prevSession->sessionData?->clinical_notes)
+                                        <div class="text-xs text-gray-400 dark:text-gray-500 mt-1 truncate max-w-md">
+                                            {{ Str::limit($prevSession->sessionData->clinical_notes, 80) }}
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+                            <button
+                                wire:click="viewPreviousSession({{ $prevSession->id }})"
+                                class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 text-sm font-medium hover:bg-primary-200 dark:hover:bg-primary-900/50 transition-colors"
+                            >
+                                <x-heroicon-o-eye class="w-4 h-4" />
+                                {{ __('booking::session.previous_sessions.view') }}
+                            </button>
+                        </div>
+                    @endforeach
                 </div>
             </x-filament::section>
         @endif

@@ -217,6 +217,19 @@ class ViewAppointment extends BaseViewRecord
                 ->visible(fn (): bool => $this->record->current_visit?->canCheckout() ?? false)
                 ->url(fn (): string => Checkout::getUrl(['visit_id' => $this->record->current_visit?->id])),
 
+            Actions\Action::make('reschedule')
+                ->label(__('booking::appointments.actions.reschedule'))
+                ->icon('heroicon-o-calendar-days')
+                ->color('info')
+                ->visible(fn (): bool => in_array($this->record->status, [
+                    Appointment::STATUS_SCHEDULED,
+                    Appointment::STATUS_CONFIRMED,
+                    Appointment::STATUS_CHECKED_IN,
+                ]))
+                ->url(fn (): string =>
+                    \Modules\Booking\Filament\Pages\CreateBooking::getUrl() . '?reschedule_appointment_id=' . $this->record->id
+                ),
+
             Actions\Action::make('cancel')
                 ->label(__('booking::appointments.actions.cancel'))
                 ->icon('heroicon-o-x-circle')

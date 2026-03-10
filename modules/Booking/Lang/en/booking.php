@@ -9,11 +9,13 @@ return [
     // Titles
     'title' => [
         'create_booking' => 'Create Booking',
+        'reschedule_booking' => 'Reschedule Appointment',
     ],
 
     // Headings
     'heading' => [
         'create_booking' => 'Create New Booking',
+        'reschedule_booking' => 'Reschedule Appointment',
     ],
 
     // Sections
@@ -110,6 +112,7 @@ return [
         'from_package' => 'From Package',
         'from_treatment_plan' => 'From Treatment Plan',
         'already_booked' => 'Already booked',
+        'scheduled' => 'Scheduled',
         'cart_total' => 'Cart Total',
         'package_price' => 'Package Price',
         'services_total' => 'Services',
@@ -215,6 +218,9 @@ return [
         'treatment_plan_selected' => 'Treatment Plan Selected',
         'select_service_to_book' => 'Now select a service from the options below',
         'services_loaded_to_cart' => 'Services have been loaded to the cart',
+        'appointment_rescheduled' => 'Appointment Rescheduled',
+        'rescheduled_success' => 'The appointment has been rescheduled successfully. The original appointment has been cancelled.',
+        'rescheduled_to_new' => 'Rescheduled to a new appointment',
     ],
 
     // Validation

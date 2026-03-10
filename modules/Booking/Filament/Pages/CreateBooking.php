@@ -57,6 +57,10 @@ class CreateBooking extends Page implements HasForms
     public array $availableSlots = [];
     public array $bookingItems = [];
 
+    // Reschedule tracking
+    public ?int $rescheduleAppointmentId = null;
+    public ?Appointment $rescheduleAppointment = null;
+
     public static function getNavigationLabel(): string
     {
         return __('booking::booking.navigation.create_booking');
@@ -64,11 +68,17 @@ class CreateBooking extends Page implements HasForms
 
     public function getTitle(): string
     {
+        if ($this->rescheduleAppointment) {
+            return __('booking::booking.title.reschedule_booking');
+        }
         return __('booking::booking.title.create_booking');
     }
 
     public function getHeading(): string
     {
+        if ($this->rescheduleAppointment) {
+            return __('booking::booking.heading.reschedule_booking');
+        }
         return __('booking::booking.heading.create_booking');
     }
 
@@ -82,6 +92,7 @@ class CreateBooking extends Page implements HasForms
         $treatmentPlanItemIdFromQuery = request()->query('treatment_plan_item_id');
         $patientIdFromQuery = request()->query('patient_id');
         $packageSubscriptionIdFromQuery = request()->query('package_subscription_id');
+        $rescheduleAppointmentIdFromQuery = request()->query('reschedule_appointment_id');
 
         $dateFrom = $dateFromQuery ? Carbon::parse($dateFromQuery) : today();
         $bookingType = in_array($bookingTypeFromQuery, ['service', 'package', 'treatment_plan']) ? $bookingTypeFromQuery : 'service';
@@ -101,13 +112,74 @@ class CreateBooking extends Page implements HasForms
             'preferred_start_time' => $startTimeFromQuery,
         ];
 
-        // Handle patient from query
-        if ($patientIdFromQuery) {
+        // Handle reschedule - load all data from original appointment
+        if ($rescheduleAppointmentIdFromQuery) {
+            $this->rescheduleAppointmentId = (int) $rescheduleAppointmentIdFromQuery;
+            $this->rescheduleAppointment = Appointment::with(['patient', 'service', 'practitioner', 'room', 'packageSubscription.package', 'treatmentPlanAppointment.item.treatmentPlan'])
+                ->find($this->rescheduleAppointmentId);
+
+            if ($this->rescheduleAppointment) {
+                $appointment = $this->rescheduleAppointment;
+
+                // Set patient
+                $formData['patient_id'] = $appointment->patient_id;
+
+                // For reschedule, always use 'service' booking type to show the services repeater
+                // But track original treatment plan/package info for proper linking
+                $formData['booking_type'] = 'service';
+
+                // Set service data with source tracking
+                if ($appointment->service_id) {
+                    $serviceData = [
+                        'service_id' => $appointment->service_id,
+                        'duration_override' => $appointment->duration_minutes,
+                        'price_minor' => ($appointment->price_minor ?? 0) / 100, // Convert from piastres to EGP
+                    ];
+
+                    // Track package source
+                    if ($appointment->is_package_session && $appointment->package_subscription_id) {
+                        $formData['package_subscription_id'] = $appointment->package_subscription_id;
+                        $formData['package_mode'] = 'existing';
+                        $serviceData['source_type'] = 'package';
+                        $serviceData['from_package'] = $appointment->package_subscription_id;
+                    }
+                    // Track treatment plan source
+                    elseif ($appointment->treatmentPlanAppointment) {
+                        $formData['treatment_plan_id'] = $appointment->treatmentPlanAppointment->item->treatment_plan_id;
+                        $formData['treatment_plan_item_id'] = $appointment->treatmentPlanAppointment->treatment_plan_item_id;
+                        $serviceData['source_type'] = 'treatment_plan';
+                        $serviceData['source_item_id'] = $appointment->treatmentPlanAppointment->treatment_plan_item_id;
+                    }
+
+                    $formData['services'] = [$serviceData];
+                }
+
+                // Set dates - start from tomorrow for rescheduling
+                $formData['date_from'] = today()->format('Y-m-d');
+                $formData['date_to'] = today()->addWeeks(2)->format('Y-m-d');
+
+                // Set preferred time from original appointment
+                if ($appointment->start_time) {
+                    $formData['preferred_start_time'] = $appointment->start_time->format('H:i');
+                }
+
+                // Set notes
+                if ($appointment->notes) {
+                    $formData['notes'] = $appointment->notes;
+                }
+
+                // Set source
+                $formData['source'] = Appointment::SOURCE_RESCHEDULED;
+            }
+        }
+
+        // Handle patient from query (if not already set by reschedule)
+        if ($patientIdFromQuery && !isset($formData['patient_id'])) {
             $formData['patient_id'] = $patientIdFromQuery;
         }
 
         // Handle package subscription from query
-        if ($packageSubscriptionIdFromQuery) {
+        if ($packageSubscriptionIdFromQuery && !$this->rescheduleAppointment) {
             $subscription = PackageSubscription::with('package')->find($packageSubscriptionIdFromQuery);
             if ($subscription && $subscription->isActive()) {
                 $formData['package_subscription_id'] = $packageSubscriptionIdFromQuery;
@@ -119,8 +191,8 @@ class CreateBooking extends Page implements HasForms
             }
         }
 
-        // Handle treatment plan booking
-        if ($bookingType === 'treatment_plan' && $treatmentPlanIdFromQuery) {
+        // Handle treatment plan booking (if not already set by reschedule)
+        if ($bookingType === 'treatment_plan' && $treatmentPlanIdFromQuery && !$this->rescheduleAppointment) {
             $treatmentPlan = TreatmentPlan::with(['patient', 'items.service'])->find($treatmentPlanIdFromQuery);
 
             if ($treatmentPlan) {
@@ -352,7 +424,8 @@ class CreateBooking extends Page implements HasForms
                                                         $html .= '</div>';
                                                         $html .= '<div class="flex flex-wrap gap-1.5">';
                                                         foreach ($activePlans as $plan) {
-                                                            $isSelected = $currentBookingType === 'treatment_plan' && $selectedPlanId === $plan->id;
+                                                            // Check if this plan is selected (regardless of booking_type since we switch to 'service' mode)
+                                                            $isSelected = $selectedPlanId && (string) $selectedPlanId === (string) $plan->id;
                                                             $remainingSessions = $plan->total_recommended_sessions - $plan->total_completed_sessions;
                                                             $progress = round($plan->progress_percentage);
                                                             $pillStyle = $isSelected
@@ -411,8 +484,8 @@ class CreateBooking extends Page implements HasForms
                                                             }
                                                             $html .= '</div>';
                                                         }
-                                                    } elseif ($currentBookingType === 'treatment_plan' && $selectedPlanId) {
-                                                        // Show selected treatment plan items
+                                                    } elseif ($selectedPlanId) {
+                                                        // Show selected treatment plan items (regardless of booking_type)
                                                         $selectedPlan = $activePlans->firstWhere('id', $selectedPlanId);
                                                         if ($selectedPlan) {
                                                             $html .= '<div class="flex items-center gap-2 mb-2">';
@@ -422,25 +495,60 @@ class CreateBooking extends Page implements HasForms
 
                                                             $selectedItemId = $this->data['treatment_plan_item_id'] ?? null;
                                                             foreach ($selectedPlan->items as $item) {
-                                                                if ($item->canBook()) {
-                                                                    $isItemSelected = $selectedItemId === $item->id;
-                                                                    $nextDate = $item->next_suggested_date ? $item->next_suggested_date->format('M d') : '-';
-                                                                    $itemPillStyle = $isItemSelected
-                                                                        ? 'background-color: #22c55e; color: white; box-shadow: 0 0 0 2px #86efac;'
-                                                                        : 'background-color: #f3f4f6; color: #374151; border: 1px solid #e5e7eb;';
-                                                                    $itemBadgeStyle = $isItemSelected
-                                                                        ? 'background-color: #4ade80; color: white;'
-                                                                        : 'background-color: #e5e7eb; color: #374151;';
-
-                                                                    $html .= '<button type="button" wire:click="selectTreatmentPlanItem(\'' . $item->id . '\')" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all cursor-pointer" style="' . $itemPillStyle . '">';
-                                                                    if ($isItemSelected) {
-                                                                        $html .= '<svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>';
-                                                                    }
-                                                                    $html .= '<span class="truncate max-w-[120px]">' . e($item->service->translated_name) . '</span>';
-                                                                    $html .= '<span class="px-1.5 py-0.5 rounded-full text-[10px] font-semibold" style="' . $itemBadgeStyle . '">' . $item->remaining_sessions . '/' . $item->recommended_sessions . '</span>';
-                                                                    $html .= '<span class="text-[10px] opacity-75">' . $nextDate . '</span>';
-                                                                    $html .= '</button>';
+                                                                // Show all items with service, not just bookable ones
+                                                                if (!$item->service || $item->isCompleted() || $item->isCancelled()) {
+                                                                    continue;
                                                                 }
+
+                                                                $isItemSelected = (string) $selectedItemId === (string) $item->id;
+                                                                $canBook = $item->canBook();
+                                                                $hasScheduledAppointment = $item->scheduled_sessions_count > 0;
+                                                                $nextDate = $item->next_suggested_date ? $item->next_suggested_date->format('M d') : '-';
+
+                                                                // Get scheduled appointment date if exists
+                                                                $scheduledDate = null;
+                                                                if ($hasScheduledAppointment) {
+                                                                    $scheduledAppt = $item->planAppointments()
+                                                                        ->whereHas('appointment', function ($q) {
+                                                                            $q->whereIn('status', [
+                                                                                Appointment::STATUS_SCHEDULED,
+                                                                                Appointment::STATUS_CONFIRMED,
+                                                                                Appointment::STATUS_CHECKED_IN,
+                                                                            ]);
+                                                                        })
+                                                                        ->with('appointment')
+                                                                        ->first();
+                                                                    if ($scheduledAppt?->appointment?->date) {
+                                                                        $scheduledDate = $scheduledAppt->appointment->date->format('M d');
+                                                                    }
+                                                                }
+
+                                                                // Different styles based on selection and booking status
+                                                                if ($isItemSelected) {
+                                                                    $itemPillStyle = 'background-color: #22c55e; color: white; box-shadow: 0 0 0 2px #86efac;';
+                                                                    $itemBadgeStyle = 'background-color: #4ade80; color: white;';
+                                                                } elseif ($hasScheduledAppointment && !$canBook) {
+                                                                    $itemPillStyle = 'background-color: #fef3c7; color: #92400e; border: 1px solid #fcd34d;';
+                                                                    $itemBadgeStyle = 'background-color: #fde68a; color: #92400e;';
+                                                                } else {
+                                                                    $itemPillStyle = 'background-color: #f3f4f6; color: #374151; border: 1px solid #e5e7eb;';
+                                                                    $itemBadgeStyle = 'background-color: #e5e7eb; color: #374151;';
+                                                                }
+
+                                                                $html .= '<button type="button" wire:click="selectTreatmentPlanItem(\'' . $item->id . '\')" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all cursor-pointer" style="' . $itemPillStyle . '">';
+                                                                if ($isItemSelected) {
+                                                                    $html .= '<svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>';
+                                                                } elseif ($hasScheduledAppointment) {
+                                                                    $html .= '<svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>';
+                                                                }
+                                                                $html .= '<span class="truncate max-w-[120px]">' . e($item->service->translated_name) . '</span>';
+                                                                $html .= '<span class="px-1.5 py-0.5 rounded-full text-[10px] font-semibold" style="' . $itemBadgeStyle . '">' . $item->remaining_sessions . '/' . $item->recommended_sessions . '</span>';
+                                                                if ($scheduledDate) {
+                                                                    $html .= '<span class="text-[10px] opacity-75">' . $scheduledDate . '</span>';
+                                                                } else {
+                                                                    $html .= '<span class="text-[10px] opacity-75">' . $nextDate . '</span>';
+                                                                }
+                                                                $html .= '</button>';
                                                             }
                                                             $html .= '</div>';
                                                         }
@@ -497,8 +605,8 @@ class CreateBooking extends Page implements HasForms
                                                                             $service = Service::find($state);
                                                                             if ($service) {
                                                                                 $set('duration_override', $service->duration_minutes);
-                                                                                // Set price in display format (major units) - dehydrateStateUsing converts back to minor
-                                                                                $set('price_minor', $service->base_price_minor / 100);
+                                                                                // Convert from piastres to EGP for display
+                                                                                $set('price_minor', ($service->base_price_minor ?? 0) / 100);
                                                                                 $set('discount_minor', 0);
                                                                                 $set('max_discount_percent', $service->max_discount_percent ?? 100);
                                                                             }
@@ -574,8 +682,6 @@ class CreateBooking extends Page implements HasForms
                                                                     ->numeric()
                                                                     ->prefix(current_currency())
                                                                     ->live(onBlur: true)
-                                                                    ->dehydrateStateUsing(fn ($state) => (int) (((float) $state) * 100))
-                                                                    ->formatStateUsing(fn ($state) => $state ? number_format($state / 100, 2) : '')
                                                                     // Hide for package services (price is at package level)
                                                                     ->hidden(fn (Get $get) => $get('source_type') === 'package')
                                                                     ->columnSpan(2),
@@ -586,8 +692,6 @@ class CreateBooking extends Page implements HasForms
                                                                     ->prefix(current_currency())
                                                                     ->default(0)
                                                                     ->live(onBlur: true)
-                                                                    ->dehydrateStateUsing(fn ($state) => (int) (((float) $state) * 100))
-                                                                    ->formatStateUsing(fn ($state) => $state ? number_format($state / 100, 2) : '0.00')
                                                                     ->helperText(function (Get $get) {
                                                                         $maxPercent = (float) ($get('max_discount_percent') ?? 100);
                                                                         $price = (float) ($get('price_minor') ?? 0);
@@ -605,7 +709,6 @@ class CreateBooking extends Page implements HasForms
                                                                         $maxDiscount = ($price * $maxPercent) / 100;
 
                                                                         if ($discount > $maxDiscount && $maxPercent < 100) {
-                                                                            // Cap the discount to max allowed
                                                                             $set('discount_minor', $maxDiscount);
                                                                             Notification::make()
                                                                                 ->title(__('booking::booking.validation.discount_exceeds_max', [
@@ -758,19 +861,19 @@ class CreateBooking extends Page implements HasForms
                                                             }
                                                         }
 
-                                                        // Get package price
+                                                        // Get package price (convert from piastres to EGP)
                                                         if ($hasPackageItems && $newPackageId) {
                                                             $hasNewPackage = true;
                                                             $package = Package::find($newPackageId);
                                                             if ($package) {
-                                                                $packagePrice = $package->effective_price_minor / 100;
+                                                                $packagePrice = ($package->effective_price_minor ?? 0) / 100;
                                                             }
                                                         } elseif ($hasPackageItems && $packageSubscriptionId) {
                                                             $hasExistingPackage = true;
                                                             // Get the subscription's purchase price
                                                             $subscription = PackageSubscription::find($packageSubscriptionId);
                                                             if ($subscription) {
-                                                                $packagePrice = $subscription->package_price_minor / 100;
+                                                                $packagePrice = ($subscription->package_price_minor ?? 0) / 100;
                                                             }
                                                         }
 
@@ -1533,6 +1636,9 @@ class CreateBooking extends Page implements HasForms
         $this->availableSlots = [];
         $this->bookingItems = [];
 
+        // Get current form state
+        $this->data = $this->form->getState();
+
         try {
             $subscription = PackageSubscription::with([
                 'package.items.service',
@@ -1563,11 +1669,11 @@ class CreateBooking extends Page implements HasForms
                         ->orderBy('date')
                         ->first();
 
-                    // Use package item's unit_price_minor (display format - major units)
+                    // Convert price from piastres to EGP for display
                     $services[] = [
                         'service_id' => $item->service_id,
                         'duration_override' => $item->service->duration_minutes,
-                        'price_minor' => $item->unit_price_minor / 100,
+                        'price_minor' => ($item->unit_price_minor ?? 0) / 100, // EGP for display
                         'discount_minor' => 0,
                         'max_discount_percent' => 0, // No discount allowed for package
                         'source_type' => 'package',
@@ -1593,6 +1699,9 @@ class CreateBooking extends Page implements HasForms
                 $this->data['_package_mode'] = 'existing';
                 $this->data['_package_subscription_id'] = $subscriptionId;
                 $this->data['services'] = !empty($services) ? $services : [['service_id' => null, 'duration_override' => null, 'price_minor' => null]];
+                // Clear treatment plan selection when selecting package
+                $this->data['treatment_plan_id'] = null;
+                $this->data['treatment_plan_item_id'] = null;
 
                 // Refresh the form with new data
                 $this->form->fill($this->data);
@@ -1623,6 +1732,9 @@ class CreateBooking extends Page implements HasForms
         $this->availableSlots = [];
         $this->bookingItems = [];
 
+        // Get current form state
+        $this->data = $this->form->getState();
+
         try {
             $package = Package::with(['items.service'])->find($packageId);
 
@@ -1634,11 +1746,11 @@ class CreateBooking extends Page implements HasForms
                         continue;
                     }
 
-                    // Use package item's unit_price_minor (display format - major units)
+                    // Convert price from piastres to EGP for display
                     $services[] = [
                         'service_id' => $item->service_id,
                         'duration_override' => $item->service->duration_minutes,
-                        'price_minor' => $item->unit_price_minor / 100,
+                        'price_minor' => ($item->unit_price_minor ?? 0) / 100, // EGP for display
                         'discount_minor' => 0,
                         'max_discount_percent' => 0, // No discount allowed for package
                         'source_type' => 'package',
@@ -1663,6 +1775,9 @@ class CreateBooking extends Page implements HasForms
                 $this->data['_package_mode'] = 'new';
                 $this->data['_new_package_id'] = $packageId;
                 $this->data['services'] = !empty($services) ? $services : [['service_id' => null, 'duration_override' => null, 'price_minor' => null]];
+                // Clear treatment plan selection when selecting new package
+                $this->data['treatment_plan_id'] = null;
+                $this->data['treatment_plan_item_id'] = null;
 
                 // Refresh the form with new data
                 $this->form->fill($this->data);
@@ -1692,6 +1807,9 @@ class CreateBooking extends Page implements HasForms
         $this->availableSlots = [];
         $this->bookingItems = [];
 
+        // Get current form state
+        $this->data = $this->form->getState();
+
         try {
             $plan = TreatmentPlan::with([
                 'items.service',
@@ -1713,7 +1831,8 @@ class CreateBooking extends Page implements HasForms
                 }
 
                 foreach ($plan->items as $item) {
-                    if (!$item->canBook() || !$item->service) {
+                    // Skip items without service or that are completed/cancelled
+                    if (!$item->service || $item->isCompleted() || $item->isCancelled()) {
                         continue;
                     }
 
@@ -1741,15 +1860,31 @@ class CreateBooking extends Page implements HasForms
                     // Get package item info if from package
                     $pkgItem = $packageItems[$item->service_id] ?? null;
 
+                    // Determine price: from existing appointment > package item > treatment plan item > service default
+                    // DB stores piastres, convert to EGP for form display
+                    $priceInEgp = null;
+                    $durationMinutes = $item->service->duration_minutes;
+                    if ($scheduledAppointment?->appointment) {
+                        // Use price and duration from existing appointment
+                        $priceInEgp = ($scheduledAppointment->appointment->price_minor ?? 0) / 100;
+                        $durationMinutes = $scheduledAppointment->appointment->duration_minutes ?? $durationMinutes;
+                    } elseif ($pkgItem) {
+                        $priceInEgp = ($pkgItem->unit_price_minor ?? 0) / 100;
+                    } else {
+                        $priceInEgp = (($item->unit_price_minor ?? $item->service->base_price_minor) ?? 0) / 100;
+                    }
+
                     $services[] = [
                         'service_id' => $item->service_id,
-                        'duration_override' => $item->service->duration_minutes,
-                        'price_minor' => $pkgItem ? ($pkgItem->unit_price_minor / 100) : (($item->unit_price_minor ?? $item->service->base_price_minor) / 100),
+                        'duration_override' => $durationMinutes,
+                        'price_minor' => $priceInEgp, // EGP for display (will be converted back to piastres on save)
                         'discount_minor' => 0,
                         'max_discount_percent' => $isFromPackage ? 0 : ($item->service->max_discount_percent ?? 100),
                         // If from package, treat as package source
                         'source_type' => $isFromPackage ? 'package' : 'treatment_plan',
                         'source_item_id' => $item->id,
+                        // Package subscription tracking
+                        'from_package' => $isFromPackage ? $plan->package_subscription_id : null,
                         // Package session info
                         'package_sessions' => $pkgItem?->quantity,
                         'package_sessions_remaining' => $remaining,
@@ -1766,9 +1901,12 @@ class CreateBooking extends Page implements HasForms
                 $this->data['treatment_plan_id'] = $planId;
                 $this->data['services'] = !empty($services) ? $services : [['service_id' => null, 'duration_override' => null, 'price_minor' => null]];
 
-                // If treatment plan is from package, also set the package subscription
+                // Clear/set package subscription based on treatment plan source
                 if ($isFromPackage && $plan->packageSubscription) {
                     $this->data['package_subscription_id'] = $plan->package_subscription_id;
+                } else {
+                    // Clear package subscription if treatment plan is not from package
+                    $this->data['package_subscription_id'] = null;
                 }
 
                 if ($firstBookableItem) {
@@ -1947,6 +2085,8 @@ class CreateBooking extends Page implements HasForms
                     // Package fields
                     'package_subscription_id' => $packageSubscriptionId,
                     'is_package_session' => $isPackageSession,
+                    // Reschedule tracking
+                    'rescheduled_from_id' => $this->rescheduleAppointmentId,
                 ]);
 
                 $createdAppointments[] = $appointment;
@@ -2111,11 +2251,26 @@ class CreateBooking extends Page implements HasForms
 
             $count = count($createdAppointments);
 
-            Notification::make()
-                ->title(__('booking::booking.messages.booking_created'))
-                ->body(__('booking::booking.messages.appointments_created', ['count' => $count]))
-                ->success()
-                ->send();
+            // If this is a reschedule, cancel the original appointment
+            if ($this->rescheduleAppointment) {
+                $this->rescheduleAppointment->update([
+                    'status' => Appointment::STATUS_CANCELLED,
+                    'cancelled_at' => now(),
+                    'cancellation_reason' => __('booking::booking.messages.rescheduled_to_new'),
+                ]);
+
+                Notification::make()
+                    ->title(__('booking::booking.messages.appointment_rescheduled'))
+                    ->body(__('booking::booking.messages.rescheduled_success'))
+                    ->success()
+                    ->send();
+            } else {
+                Notification::make()
+                    ->title(__('booking::booking.messages.booking_created'))
+                    ->body(__('booking::booking.messages.appointments_created', ['count' => $count]))
+                    ->success()
+                    ->send();
+            }
 
             $this->redirect(route('filament.tenant.resources.appointments.index'));
 

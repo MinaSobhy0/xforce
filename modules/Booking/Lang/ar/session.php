@@ -361,4 +361,19 @@ return [
         'other_visit_items' => 'عناصر أخرى في الزيارة :code',
         'visit_checkout_note' => 'سيتم إنشاء الفاتورة الكاملة عند الدفع',
     ],
+
+    // View mode
+    'view_mode' => [
+        'title' => 'عرض جلسة مكتملة',
+        'description' => 'هذه الجلسة مكتملة وللعرض فقط',
+        'completed_on' => 'اكتملت في',
+        'back_to_dashboard' => 'العودة للوحة التحكم',
+    ],
+
+    // Previous sessions
+    'previous_sessions' => [
+        'title' => 'الجلسات السابقة',
+        'view' => 'عرض',
+        'no_previous' => 'لا توجد جلسات سابقة لهذه الخدمة',
+    ],
 ];

@@ -116,6 +116,7 @@ class Appointment extends BaseModel
     public const SOURCE_MOBILE_APP = 'mobile_app';
     public const SOURCE_REFERRAL = 'referral';
     public const SOURCE_SOCIAL_MEDIA = 'social_media';
+    public const SOURCE_RESCHEDULED = 'rescheduled';
 
     public const SOURCES = [
         self::SOURCE_WALK_IN => 'Walk-in',
@@ -124,6 +125,7 @@ class Appointment extends BaseModel
         self::SOURCE_MOBILE_APP => 'Mobile App',
         self::SOURCE_REFERRAL => 'Referral',
         self::SOURCE_SOCIAL_MEDIA => 'Social Media',
+        self::SOURCE_RESCHEDULED => 'Rescheduled',
     ];
 
     // Discount type constants

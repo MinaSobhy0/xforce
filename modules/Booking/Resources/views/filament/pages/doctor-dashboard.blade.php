@@ -1,4 +1,61 @@
 <x-filament-panels::page>
+    {{-- Dashboard Controls: Date & Practitioner Selector --}}
+    <div class="mb-6 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4">
+        <div class="flex flex-wrap items-center gap-4">
+            {{-- Date Selector --}}
+            <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                    <x-heroicon-o-calendar class="w-5 h-5" />
+                    <span class="font-medium">{{ __('booking::dashboard.date.label') }}:</span>
+                </div>
+                <input
+                    type="date"
+                    wire:model.live="selectedDate"
+                    class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm focus:border-primary-500 focus:ring-primary-500"
+                />
+                @if(!$this->isViewingToday())
+                    <button
+                        wire:click="$set('selectedDate', '{{ today()->format('Y-m-d') }}')"
+                        class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 text-xs font-medium hover:bg-primary-200 dark:hover:bg-primary-900/50 transition-colors"
+                    >
+                        <x-heroicon-o-arrow-uturn-left class="w-3 h-3" />
+                        {{ __('booking::dashboard.date.back_to_today') }}
+                    </button>
+                @endif
+                @if($this->isViewingPastDate())
+                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-xs font-medium">
+                        <x-heroicon-o-clock class="w-3 h-3" />
+                        {{ __('booking::dashboard.date.past_date') }}
+                    </span>
+                @endif
+            </div>
+
+            {{-- Admin Practitioner Selector --}}
+            @if($this->canSelectPractitioner())
+                <div class="flex items-center gap-2 border-l border-gray-200 dark:border-gray-700 pl-4">
+                    <div class="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                        <x-heroicon-o-user-circle class="w-5 h-5" />
+                        <span class="font-medium">{{ __('booking::dashboard.admin.viewing_as') }}:</span>
+                    </div>
+                    <select
+                        wire:model.live="selectedPractitionerId"
+                        class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white text-sm focus:border-primary-500 focus:ring-primary-500"
+                    >
+                        @foreach($this->getPractitioners() as $id => $name)
+                            <option value="{{ $id }}">{{ $name }}</option>
+                        @endforeach
+                    </select>
+                    @if($this->selectedPractitionerId != auth()->id())
+                        <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 text-xs font-medium">
+                            <x-heroicon-o-eye class="w-3 h-3" />
+                            {{ __('booking::dashboard.admin.viewing_other') }}
+                        </span>
+                    @endif
+                </div>
+            @endif
+        </div>
+    </div>
+
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {{-- Left Column: Appointment Queue --}}
         <div class="space-y-4">
@@ -107,6 +164,12 @@
                                         <div class="text-sm text-gray-500 dark:text-gray-400">
                                             {{ $appointment->start_time?->format('H:i') }} - {{ $appointment->service?->translated_name }}
                                         </div>
+                                        {{-- Past date indicator --}}
+                                        @if($this->isViewingPastDate())
+                                            <div class="text-xs text-gray-500 dark:text-gray-500 mt-1 italic">
+                                                {{ __('booking::dashboard.date.past_appointment') }}
+                                            </div>
+                                        @endif
                                         {{-- Check package session FIRST (higher priority) --}}
                                         @if($appointment->is_package_session && $appointment->packageSubscription)
                                             @php
@@ -147,7 +210,21 @@
                                             </div>
                                         @endif
                                     </div>
-                                    <div style="flex-shrink: 0; margin-left: 16px;">
+                                    <div style="flex-shrink: 0; margin-left: 16px; display: flex; align-items: center; gap: 8px;">
+                                        @if($this->isViewingPastDate())
+                                            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-xs font-medium">
+                                                <x-heroicon-o-x-circle class="w-3 h-3" />
+                                                {{ __('booking::dashboard.status.missed') }}
+                                            </span>
+                                        @endif
+                                        <button
+                                            wire:click="rescheduleAppointment('{{ $appointment->id }}')"
+                                            wire:loading.attr="disabled"
+                                            class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-xs font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                                        >
+                                            <x-heroicon-o-calendar-days class="w-3 h-3" />
+                                            {{ __('booking::dashboard.actions.reschedule') }}
+                                        </button>
                                         <button
                                             wire:click="startSession('{{ $appointment->id }}')"
                                             wire:loading.attr="disabled"
@@ -220,7 +297,21 @@
                                             </div>
                                         @endif
                                     </div>
-                                    <div style="flex-shrink: 0; margin-left: 16px;">
+                                    <div style="flex-shrink: 0; margin-left: 16px; display: flex; align-items: center; gap: 8px;">
+                                        @if($this->isViewingPastDate())
+                                            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-xs font-medium">
+                                                <x-heroicon-o-x-circle class="w-3 h-3" />
+                                                {{ __('booking::dashboard.status.missed') }}
+                                            </span>
+                                        @endif
+                                        <button
+                                            wire:click="rescheduleAppointment('{{ $appointment->id }}')"
+                                            wire:loading.attr="disabled"
+                                            class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-xs font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                                        >
+                                            <x-heroicon-o-calendar-days class="w-3 h-3" />
+                                            {{ __('booking::dashboard.actions.reschedule') }}
+                                        </button>
                                         <button
                                             wire:click="startSession('{{ $appointment->id }}')"
                                             wire:loading.attr="disabled"
@@ -311,7 +402,16 @@
                                             </div>
                                         @endif
                                     </div>
-                                    <x-heroicon-o-check-circle class="w-5 h-5 text-green-500" />
+                                    <div class="flex items-center gap-2">
+                                        <button
+                                            wire:click="viewSession('{{ $appointment->id }}')"
+                                            class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-xs font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                                        >
+                                            <x-heroicon-o-eye class="w-3 h-3" />
+                                            {{ __('booking::dashboard.actions.view') }}
+                                        </button>
+                                        <x-heroicon-o-check-circle class="w-5 h-5 text-green-500" />
+                                    </div>
                                 </div>
                             </div>
                         @endforeach

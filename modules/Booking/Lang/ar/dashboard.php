@@ -6,6 +6,25 @@ return [
     'title' => 'لوحة الطبيب',
     'heading' => 'جلسات اليوم',
 
+    // Admin selector
+    'admin' => [
+        'viewing_as' => 'عرض لوحة',
+        'viewing_other' => 'عرض كطبيب آخر',
+        'select_practitioner' => 'اختر الطبيب',
+    ],
+
+    // Date selector
+    'date' => [
+        'label' => 'التاريخ',
+        'today' => 'اليوم',
+        'yesterday' => 'أمس',
+        'tomorrow' => 'غداً',
+        'back_to_today' => 'العودة لليوم',
+        'past_date' => 'عرض تاريخ سابق',
+        'past_appointment' => 'موعد سابق',
+        'view_only' => 'عرض فقط',
+    ],
+
     // Statistics
     'stats' => [
         'waiting' => 'بالانتظار',
@@ -38,6 +57,13 @@ return [
         'check_in' => 'تسجيل حضور',
         'confirm' => 'تأكيد',
         'back_to_queue' => 'العودة للقائمة',
+        'view' => 'عرض',
+        'reschedule' => 'إعادة جدولة',
+    ],
+
+    // Status labels
+    'status' => [
+        'missed' => 'فائت',
     ],
 
     // Tabs
@@ -136,5 +162,7 @@ return [
         'patient_checked_in' => 'تم تسجيل حضور المريض',
         'cannot_confirm' => 'لا يمكن تأكيد الموعد',
         'appointment_confirmed' => 'تم تأكيد الموعد',
+        'cannot_reschedule' => 'لا يمكن إعادة الجدولة',
+        'appointment_already_started' => 'هذا الموعد بدأ بالفعل أو اكتمل',
     ],
 ];
