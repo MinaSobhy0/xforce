@@ -411,6 +411,8 @@ return [
         'address' => 'العنوان',
         'password' => 'كلمة المرور',
         'confirm_password' => 'تأكيد كلمة المرور',
+        'password_helper_edit' => 'اتركه فارغًا للاحتفاظ بكلمة المرور الحالية',
+        'password_confirmation_helper_edit' => 'مطلوب فقط عند تغيير كلمة المرور',
         'status' => 'الحالة',
         'email_verified' => 'البريد مُفعّل',
         'must_change_password' => 'يجب تغيير كلمة المرور',

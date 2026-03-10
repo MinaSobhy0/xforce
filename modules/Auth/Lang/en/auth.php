@@ -411,6 +411,8 @@ return [
         'address' => 'Address',
         'password' => 'Password',
         'confirm_password' => 'Confirm Password',
+        'password_helper_edit' => 'Leave empty to keep the current password',
+        'password_confirmation_helper_edit' => 'Only required if changing password',
         'status' => 'Status',
         'email_verified' => 'Email Verified',
         'must_change_password' => 'Must Change Password',

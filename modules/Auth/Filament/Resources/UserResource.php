@@ -127,14 +127,16 @@ class UserResource extends BaseResource
                                             ->required(fn (string $context): bool => $context === 'create')
                                             ->confirmed()
                                             ->minLength(8)
-                                            ->maxLength(255),
+                                            ->maxLength(255)
+                                            ->helperText(fn (string $context): ?string => $context === 'edit' ? __('auth::auth.user_resource.password_helper_edit') : null),
 
                                         Forms\Components\TextInput::make('password_confirmation')
                                             ->label(__('auth::auth.user_resource.confirm_password'))
                                             ->password()
                                             ->revealable()
                                             ->required(fn (string $context): bool => $context === 'create')
-                                            ->dehydrated(false),
+                                            ->dehydrated(false)
+                                            ->helperText(fn (string $context): ?string => $context === 'edit' ? __('auth::auth.user_resource.password_confirmation_helper_edit') : null),
                                     ]),
 
                                 Forms\Components\Grid::make(3)
