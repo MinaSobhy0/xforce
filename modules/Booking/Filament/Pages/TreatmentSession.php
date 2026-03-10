@@ -791,7 +791,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
 
                     // Odoo-like: Transfer from Treatment Location → Customer Location
                     // Uses product's sales_uom (stock UOM) by default
-                    $movement = $stockMoveService->createConsumption(
+                    $transfer = $stockMoveService->createConsumption(
                         $consumable->product,
                         $sourceLocation,
                         $quantityToDeduct,
@@ -801,7 +801,8 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                         'Consumed during appointment #' . $this->appointment->id
                     );
 
-                    $stockMovementId = $movement->id;
+                    // Get the stock_movement_id from the transfer's first line
+                    $stockMovementId = $transfer->lines->first()?->stock_movement_id;
                 }
 
                 $consumable->update([

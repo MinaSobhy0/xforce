@@ -30,8 +30,14 @@ class SlotGenerationService
         ?int $durationOverride = null,
         bool $isOnlineBooking = false
     ): Collection {
-        $service = Service::with(['qualifiedStaff', 'rooms', 'requiredEquipment'])
-            ->find($serviceId);
+        $service = Service::with([
+            'qualifiedStaff',
+            'rooms',
+            'requiredEquipment',
+            'category.qualifiedStaff',
+            'category.rooms',
+            'category.requiredEquipment',
+        ])->find($serviceId);
 
         if (!$service) {
             return collect();
@@ -231,10 +237,9 @@ class SlotGenerationService
                 $totalDuration
             );
 
-            // Check if equipment is required but not available
-            $requiredEquipment = $service->requiredEquipment()
-                ->wherePivot('is_mandatory', true)
-                ->get();
+            // Check if equipment is required but not available (cascades: Service → ServiceCategory)
+            $requiredEquipment = $service->getEffectiveEquipment()
+                ->where('pivot.is_mandatory', true);
 
             if ($requiredEquipment->isNotEmpty() && !$equipment) {
                 continue;
@@ -302,81 +307,97 @@ class SlotGenerationService
         $dayOfWeek = $datetime->dayOfWeek;
         $startTimeStr = $datetime->format('H:i');
 
-        return $practitioners->filter(function ($staffProfile) use ($branchId, $date, $datetime, $endTime, $dayOfWeek, $startTimeStr, $duration) {
-            // Check schedule assignment by staff_profile_id
-            $assignment = PractitionerScheduleAssignment::query()
-                ->forStaffProfile($staffProfile->id)
-                ->forBranch($branchId)
-                ->active()
-                ->currentlyEffective()
-                ->with('workSchedule')
-                ->first();
+        // Get configuration flags for doctor availability checks
+        $practitionerReq = $this->ruleEvaluator?->getPractitionerRequirements() ?? [];
+        $checkSchedule = $practitionerReq['check_schedule'] ?? true;
+        $checkTimeoff = $practitionerReq['check_timeoff'] ?? true;
+        $allowOverlap = $practitionerReq['allow_overlap'] ?? false;
 
-            if (!$assignment || !$assignment->isAvailableAt($dayOfWeek, $startTimeStr)) {
-                // Fall back to legacy PractitionerSchedule (uses user_id)
-                $schedule = PractitionerSchedule::query()
-                    ->forPractitioner($staffProfile->user_id)
+        return $practitioners->filter(function ($staffProfile) use ($branchId, $date, $datetime, $endTime, $dayOfWeek, $startTimeStr, $duration, $checkSchedule, $checkTimeoff, $allowOverlap) {
+            // Check schedule assignment by staff_profile_id (only if check_doctor_schedule is enabled)
+            if ($checkSchedule) {
+                $assignment = PractitionerScheduleAssignment::query()
+                    ->forStaffProfile($staffProfile->id)
                     ->forBranch($branchId)
-                    ->forDay($dayOfWeek)
-                    ->available()
+                    ->active()
+                    ->currentlyEffective()
+                    ->with('workSchedule')
                     ->first();
 
-                if (!$schedule) {
-                    return false;
-                }
+                if (!$assignment || !$assignment->isAvailableAt($dayOfWeek, $startTimeStr)) {
+                    // Fall back to legacy PractitionerSchedule (uses user_id)
+                    $schedule = PractitionerSchedule::query()
+                        ->forPractitioner($staffProfile->user_id)
+                        ->forBranch($branchId)
+                        ->forDay($dayOfWeek)
+                        ->available()
+                        ->first();
 
-                // Check if within schedule hours
-                if ($startTimeStr < $schedule->start_time || $endTime->format('H:i') > $schedule->end_time) {
-                    return false;
-                }
-
-                // Check break
-                if ($schedule->break_start && $schedule->break_end) {
-                    if ($startTimeStr < $schedule->break_end && $endTime->format('H:i') > $schedule->break_start) {
+                    if (!$schedule) {
                         return false;
+                    }
+
+                    // Check if within schedule hours
+                    if ($startTimeStr < $schedule->start_time || $endTime->format('H:i') > $schedule->end_time) {
+                        return false;
+                    }
+
+                    // Check break
+                    if ($schedule->break_start && $schedule->break_end) {
+                        if ($startTimeStr < $schedule->break_end && $endTime->format('H:i') > $schedule->break_start) {
+                            return false;
+                        }
                     }
                 }
             }
 
-            // Check time off (uses user_id)
-            $hasTimeOff = PractitionerTimeOff::query()
-                ->forPractitioner($staffProfile->user_id)
-                ->approved()
-                ->where(function ($q) use ($branchId) {
-                    $q->whereNull('branch_id')
-                        ->orWhere('branch_id', $branchId);
-                })
-                ->where('start_date', '<=', $date)
-                ->where(function ($q) use ($date) {
-                    $q->whereNull('end_date')
-                        ->orWhere('end_date', '>=', $date);
-                })
-                ->first();
+            // Check time off (only if check_doctor_timeoff is enabled)
+            if ($checkTimeoff) {
+                $hasTimeOff = PractitionerTimeOff::query()
+                    ->forPractitioner($staffProfile->user_id)
+                    ->approved()
+                    ->where(function ($q) use ($branchId) {
+                        $q->whereNull('branch_id')
+                            ->orWhere('branch_id', $branchId);
+                    })
+                    ->where('start_date', '<=', $date)
+                    ->where(function ($q) use ($date) {
+                        $q->whereNull('end_date')
+                            ->orWhere('end_date', '>=', $date);
+                    })
+                    ->first();
 
-            if ($hasTimeOff) {
-                if ($hasTimeOff->is_full_day) {
-                    return false;
-                }
-                // Check partial day
-                if ($hasTimeOff->start_time && $hasTimeOff->end_time) {
-                    if ($startTimeStr < $hasTimeOff->end_time && $endTime->format('H:i') > $hasTimeOff->start_time) {
+                if ($hasTimeOff) {
+                    if ($hasTimeOff->is_full_day) {
                         return false;
+                    }
+                    // Check partial day
+                    if ($hasTimeOff->start_time && $hasTimeOff->end_time) {
+                        if ($startTimeStr < $hasTimeOff->end_time && $endTime->format('H:i') > $hasTimeOff->start_time) {
+                            return false;
+                        }
                     }
                 }
             }
 
-            // Check conflicting appointments (uses user_id for practitioner_id)
-            $hasConflict = Appointment::query()
-                ->forPractitioner($staffProfile->user_id)
-                ->forDate($date)
-                ->active()
-                ->where(function ($q) use ($datetime, $endTime) {
-                    $q->whereRaw("start_time < ?", [$endTime->format('H:i:s')])
-                        ->whereRaw("COALESCE(end_time, start_time + (duration_minutes || ' minutes')::interval) > ?", [$datetime->format('H:i:s')]);
-                })
-                ->exists();
+            // Check conflicting appointments (skip if allow_doctor_overlap is enabled)
+            if (!$allowOverlap) {
+                $hasConflict = Appointment::query()
+                    ->forPractitioner($staffProfile->user_id)
+                    ->forDate($date)
+                    ->active()
+                    ->where(function ($q) use ($datetime, $endTime) {
+                        $q->whereRaw("start_time < ?", [$endTime->format('H:i:s')])
+                            ->whereRaw("COALESCE(end_time, start_time + (duration_minutes || ' minutes')::interval) > ?", [$datetime->format('H:i:s')]);
+                    })
+                    ->exists();
 
-            return !$hasConflict;
+                if ($hasConflict) {
+                    return false;
+                }
+            }
+
+            return true;
         })->values();
     }
 
@@ -389,7 +410,7 @@ class SlotGenerationService
         Carbon $datetime,
         int $duration
     ): ?Room {
-        $service = Service::find($serviceId);
+        $service = Service::with('category.rooms')->find($serviceId);
         if (!$service) {
             return null;
         }
@@ -403,12 +424,14 @@ class SlotGenerationService
         $strictRoom = $roomPreference['strict'] ?? false;
 
         if ($useServiceRooms) {
+            // Use getEffectiveRooms() which cascades: Service → ServiceCategory
+            $effectiveRooms = $service->getEffectiveRooms();
+
             // Try primary room first
-            $primaryRoom = $service->rooms()
-                ->wherePivot('is_primary', true)
-                ->where('rooms.branch_id', $branchId)
-                ->active()
-                ->bookable()
+            $primaryRoom = $effectiveRooms
+                ->where('pivot.is_primary', true)
+                ->where('branch_id', $branchId)
+                ->filter(fn($r) => $r->is_active && $r->is_bookable)
                 ->first();
 
             if ($primaryRoom && $this->isRoomAvailable($primaryRoom->id, $date, $datetime, $endTime)) {
@@ -416,13 +439,11 @@ class SlotGenerationService
             }
 
             // Try backup rooms in priority order
-            $backupRooms = $service->rooms()
-                ->wherePivot('is_primary', false)
-                ->where('rooms.branch_id', $branchId)
-                ->active()
-                ->bookable()
-                ->orderByPivot('priority')
-                ->get();
+            $backupRooms = $effectiveRooms
+                ->where('pivot.is_primary', false)
+                ->where('branch_id', $branchId)
+                ->filter(fn($r) => $r->is_active && $r->is_bookable)
+                ->sortBy('pivot.priority');
 
             foreach ($backupRooms as $room) {
                 if ($this->isRoomAvailable($room->id, $date, $datetime, $endTime)) {
@@ -477,7 +498,7 @@ class SlotGenerationService
         Carbon $datetime,
         int $duration
     ): ?Equipment {
-        $service = Service::find($serviceId);
+        $service = Service::with('category.requiredEquipment')->find($serviceId);
         if (!$service) {
             return null;
         }
@@ -490,12 +511,14 @@ class SlotGenerationService
         $useServiceEquipment = !$equipmentReq || $equipmentReq['source'] === 'service';
 
         if ($useServiceEquipment) {
-            // Get required equipment for this service at this branch
-            $requiredEquipment = $service->requiredEquipment()
-                ->wherePivot('is_mandatory', true)
-                ->where('equipment.branch_id', $branchId)
-                ->where('equipment.status', Equipment::STATUS_ACTIVE)
-                ->get();
+            // Use getEffectiveEquipment() which cascades: Service → ServiceCategory
+            $effectiveEquipment = $service->getEffectiveEquipment();
+
+            // Filter for mandatory equipment at this branch
+            $requiredEquipment = $effectiveEquipment
+                ->where('pivot.is_mandatory', true)
+                ->where('branch_id', $branchId)
+                ->filter(fn($e) => $e->status === Equipment::STATUS_ACTIVE);
 
             if ($requiredEquipment->isEmpty()) {
                 return null;
@@ -796,8 +819,17 @@ class SlotGenerationService
         $useServicePractitioners = !$practitionerReq || $practitionerReq['source'] === 'service';
 
         if ($useServicePractitioners) {
-            // Get qualified staff profiles for this service
-            return $service->qualifiedStaff()
+            // Use getEffectiveQualifiedStaff() which cascades: Service → ServiceCategory
+            $qualifiedStaff = $service->getEffectiveQualifiedStaff();
+
+            if ($qualifiedStaff->isEmpty()) {
+                return collect();
+            }
+
+            // Filter by branch and active status
+            $staffProfileIds = $qualifiedStaff->pluck('id')->toArray();
+
+            return \Modules\Staff\Models\StaffProfile::whereIn('id', $staffProfileIds)
                 ->with('user')
                 ->where('staff_profiles.is_active', true)
                 ->where(function ($query) use ($branchId) {

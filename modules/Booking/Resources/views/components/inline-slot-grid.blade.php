@@ -10,7 +10,7 @@
 @endphp
 
 <div class="space-y-4" x-data="{
-    view: 'compact',
+    view: 'cards',
     selectedDate: '{{ $firstDate }}',
     dates: {{ json_encode($dates) }}
 }">

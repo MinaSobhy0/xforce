@@ -426,8 +426,13 @@
     }
 
     /* Scrollbar styling */
+    .fi-sidebar-panel-nav {
+        scrollbar-width: thin;
+        scrollbar-color: #cbd5e1 transparent;
+    }
+
     .fi-sidebar-panel-nav::-webkit-scrollbar {
-        width: 4px;
+        width: 6px;
     }
 
     .fi-sidebar-panel-nav::-webkit-scrollbar-track {
@@ -435,12 +440,12 @@
     }
 
     .fi-sidebar-panel-nav::-webkit-scrollbar-thumb {
-        background: #e2e8f0;
+        background: #cbd5e1;
         border-radius: 4px;
     }
 
     .fi-sidebar-panel-nav::-webkit-scrollbar-thumb:hover {
-        background: #cbd5e1;
+        background: #94a3b8;
     }
 </style>
 
@@ -564,7 +569,7 @@
             x-transition:leave-start="opacity-100 translate-x-0"
             x-transition:leave-end="opacity-0 -translate-x-4"
             class="fi-sidebar-menu-panel"
-            style="width: 260px; height: 100%; max-height: 100vh; display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden; box-shadow: 4px 0 15px rgba(0, 0, 0, 0.05);"
+            style="width: 260px; height: 100vh; display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden; box-shadow: 4px 0 15px rgba(0, 0, 0, 0.05);"
         >
             {{-- Panel Header --}}
             <header class="fi-panel-header">
@@ -598,7 +603,7 @@
             @endif
 
             {{-- Menu Items --}}
-            <nav class="fi-sidebar-panel-nav" style="flex: 1; overflow-y: auto; padding: 12px; min-height: 0; max-height: calc(100vh - 180px);">
+            <nav class="fi-sidebar-panel-nav" style="overflow-y: auto; padding: 12px; padding-bottom: 20px; height: calc(100vh - 220px);">
                 @foreach ($navigation as $group)
                     <ul
                         x-show="activeGroup === '{{ $group->getLabel() }}'"

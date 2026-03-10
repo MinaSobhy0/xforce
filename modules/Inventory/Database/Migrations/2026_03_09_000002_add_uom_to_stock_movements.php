@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasColumn('stock_movements', 'uom_id')) {
+            return;
+        }
+
         Schema::table('stock_movements', function (Blueprint $table) {
             // UOM used in this movement (always the stock UOM / sales_uom)
             $table->foreignId('uom_id')->nullable()->after('product_id')->constrained('uoms')->nullOnDelete();

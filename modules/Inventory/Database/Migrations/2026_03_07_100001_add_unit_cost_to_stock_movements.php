@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasColumn('stock_movements', 'unit_cost_minor')) {
+            return;
+        }
+
         Schema::table('stock_movements', function (Blueprint $table) {
             // Track cost per unit for this movement (needed for FIFO/AVCO)
             $table->integer('unit_cost_minor')->default(0)->after('quantity_after');

@@ -14,15 +14,21 @@ return new class extends Migration
             $table->foreignId('product_id');
             $table->foreignId('branch_id');
             $table->string('movement_type', 30);
+            $table->foreignId('uom_id')->nullable();
             $table->integer('quantity'); // Positive for in, negative for out
             $table->integer('quantity_before');
             $table->integer('quantity_after');
+            $table->integer('unit_cost_minor')->default(0);
+            $table->integer('remaining_quantity')->nullable();
             $table->string('reference_type', 50)->nullable(); // appointment, purchase_order, etc.
             $table->foreignId('reference_id')->nullable();
             $table->foreignId('source_branch_id')->nullable(); // For transfers
             $table->foreignId('destination_branch_id')->nullable(); // For transfers
+            $table->foreignId('source_location_id')->nullable();
+            $table->foreignId('destination_location_id')->nullable();
             $table->text('notes')->nullable();
             $table->foreignId('created_by')->nullable();
+            $table->foreignId('journal_entry_id')->nullable();
             $table->timestamps();
 
             $table->foreign('product_id')

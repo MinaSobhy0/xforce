@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasColumn('stock_transfer_lines', 'uom_id')) {
+            return;
+        }
+
         Schema::table('stock_transfer_lines', function (Blueprint $table) {
             $table->foreignId('uom_id')->nullable()->after('product_id')->constrained('uoms')->nullOnDelete();
             // Store quantity in the selected UOM (for display/audit)
