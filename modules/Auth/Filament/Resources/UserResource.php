@@ -122,7 +122,6 @@ class UserResource extends BaseResource
                                             ->label(__('auth::auth.user_resource.password'))
                                             ->password()
                                             ->revealable()
-                                            ->dehydrateStateUsing(fn ($state) => filled($state) ? Hash::make($state) : null)
                                             ->dehydrated(fn ($state) => filled($state))
                                             ->required(fn (string $context): bool => $context === 'create')
                                             ->confirmed()

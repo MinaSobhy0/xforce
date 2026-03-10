@@ -29,7 +29,7 @@ class TenantPanelProvider extends PanelProvider
         return $panel
             ->id('tenant')
             ->path('admin')
-            ->login()
+            ->login(\App\Filament\Pages\Auth\Login::class)
             ->brandName(fn () => $this->getTenantBrandName())
             ->colors([
                 'primary' => Color::Indigo,
