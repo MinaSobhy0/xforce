@@ -319,6 +319,18 @@ class Tenant extends Model
             // Reset search path
             \DB::statement("SET search_path TO public");
 
+            // Calculate database size (in MB)
+            $dbSizeMb = $this->calculateDatabaseSize();
+
+            // Calculate file storage (in MB)
+            $fileStorage = $this->calculateFileStorage();
+
+            // Total storage = DB size + file storage
+            $counts['storage_mb'] = $dbSizeMb + ($fileStorage['total'] ?? 0);
+            $counts['storage_photos_mb'] = $fileStorage['photos'] ?? 0;
+            $counts['storage_documents_mb'] = $fileStorage['documents'] ?? 0;
+            $counts['storage_consent_mb'] = $fileStorage['consent'] ?? 0;
+
             // Update usage record
             $usage->update($counts);
             $usage->refresh();
@@ -336,6 +348,104 @@ class Tenant extends Model
         }
 
         return $usage;
+    }
+
+    /**
+     * Calculate PostgreSQL schema size in MB.
+     */
+    protected function calculateDatabaseSize(): int
+    {
+        try {
+            $result = \DB::select("
+                SELECT COALESCE(SUM(pg_total_relation_size(quote_ident(schemaname) || '.' || quote_ident(tablename))), 0) as size_bytes
+                FROM pg_tables
+                WHERE schemaname = ?
+            ", [$this->database_name]);
+
+            $sizeBytes = $result[0]->size_bytes ?? 0;
+            return (int) ceil($sizeBytes / (1024 * 1024)); // Convert to MB
+        } catch (\Exception $e) {
+            \Log::warning('Failed to calculate database size', [
+                'tenant_id' => $this->id,
+                'error' => $e->getMessage(),
+            ]);
+            return 0;
+        }
+    }
+
+    /**
+     * Calculate file storage usage in MB.
+     */
+    protected function calculateFileStorage(): array
+    {
+        $storage = [
+            'total' => 0,
+            'photos' => 0,
+            'documents' => 0,
+            'consent' => 0,
+        ];
+
+        // Tenant storage path
+        $basePath = storage_path("app/tenants/{$this->id}");
+
+        if (!is_dir($basePath)) {
+            return $storage;
+        }
+
+        try {
+            // Calculate photos storage
+            $photosPath = $basePath . '/photos';
+            if (is_dir($photosPath)) {
+                $storage['photos'] = $this->getDirectorySizeMb($photosPath);
+            }
+
+            // Calculate documents storage
+            $documentsPath = $basePath . '/documents';
+            if (is_dir($documentsPath)) {
+                $storage['documents'] = $this->getDirectorySizeMb($documentsPath);
+            }
+
+            // Calculate consent forms storage
+            $consentPath = $basePath . '/consent';
+            if (is_dir($consentPath)) {
+                $storage['consent'] = $this->getDirectorySizeMb($consentPath);
+            }
+
+            // Calculate total (including any other subdirectories)
+            $storage['total'] = $this->getDirectorySizeMb($basePath);
+
+        } catch (\Exception $e) {
+            \Log::warning('Failed to calculate file storage', [
+                'tenant_id' => $this->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return $storage;
+    }
+
+    /**
+     * Get directory size in MB.
+     */
+    protected function getDirectorySizeMb(string $path): int
+    {
+        $sizeBytes = 0;
+
+        if (!is_dir($path)) {
+            return 0;
+        }
+
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($path, \RecursiveDirectoryIterator::SKIP_DOTS)
+        );
+
+        foreach ($iterator as $file) {
+            if ($file->isFile()) {
+                $sizeBytes += $file->getSize();
+            }
+        }
+
+        return (int) ceil($sizeBytes / (1024 * 1024)); // Convert to MB
     }
 
     /**
