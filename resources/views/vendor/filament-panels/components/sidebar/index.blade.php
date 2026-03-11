@@ -202,13 +202,13 @@
 
     /* Menu Panel Styles - Dark Mode - Match main system gray */
     .dark .fi-sidebar-menu-panel {
-        background: #111827 !important;
-        border-right: 1px solid #374151 !important;
+        background: #030712 !important;
+        border-right: 1px solid #1f2937 !important;
     }
 
     .dark .fi-sidebar-menu-panel .fi-panel-header {
-        border-bottom: 1px solid #374151 !important;
-        background: #111827 !important;
+        border-bottom: 1px solid #1f2937 !important;
+        background: #030712 !important;
     }
 
     .dark .fi-sidebar-menu-panel .fi-panel-title {
