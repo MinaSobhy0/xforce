@@ -78,10 +78,12 @@
     /* Icon Rail Header */
     .fi-rail-header {
         border-bottom: 1px solid #e5e7eb;
+        box-sizing: border-box;
     }
 
     .dark .fi-rail-header {
-        border-bottom: 1px solid #374151;
+        border-bottom: 1px solid #27272a;
+        background: #18181b !important;
     }
 
     /* Logo */
@@ -146,7 +148,7 @@
 
     /* Icon Rail Styles - Dark Mode - Match main system gray */
     .dark .fi-sidebar-rail-light {
-        background: #030712 !important;
+        background: #09090b !important;
         border-right: 1px solid #374151 !important;
     }
 
@@ -192,6 +194,7 @@
         padding: 0 16px;
         border-bottom: 1px solid #e5e7eb;
         background: #ffffff;
+        box-sizing: border-box;
     }
 
     .fi-sidebar-menu-panel .fi-panel-title {
@@ -202,13 +205,13 @@
 
     /* Menu Panel Styles - Dark Mode - Match main system gray */
     .dark .fi-sidebar-menu-panel {
-        background: #030712 !important;
+        background: #09090b !important;
         border-right: 1px solid #1f2937 !important;
     }
 
     .dark .fi-sidebar-menu-panel .fi-panel-header {
         border-bottom: 1px solid #1f2937 !important;
-        background: #030712 !important;
+        background: #09090b !important;
     }
 
     .dark .fi-sidebar-menu-panel .fi-panel-title {
@@ -243,7 +246,7 @@
 
     .dark .fi-quick-access-section {
         border-bottom: 1px solid #374151 !important;
-        background: #030712 !important;
+        background: #09090b !important;
     }
 
     /* Quick Access Grid */
@@ -497,7 +500,7 @@
         {{-- Icon Rail (Left Sidebar) - LIGHT --}}
         <div class="fi-sidebar-rail-light" style="width: 85px; height: 100%; display: flex; flex-direction: column; flex-shrink: 0;">
             {{-- Logo Area --}}
-            <header class="fi-rail-header" style="height: 64px; display: flex; align-items: center; justify-content: center; padding: 4px;">
+            <header class="fi-rail-header" style="height: 65px; display: flex; align-items: center; justify-content: center; padding: 4px; box-sizing: border-box;">
                 @if ($homeUrl = filament()->getHomeUrl())
                     <a {{ \Filament\Support\generate_href_html($homeUrl) }} style="display: flex; align-items: center; justify-content: center;">
                         @php
