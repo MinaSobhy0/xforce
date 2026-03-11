@@ -524,7 +524,8 @@ class ImportTableAction extends Action
      */
     protected function resolveRecord(array $data, array $config, string $modelClass, string $importMode): ?Model
     {
-        $tenantId = tenant()?->id ?? session('tenant_id');
+        // Get tenant_id from multiple sources
+        $tenantId = tenant()?->id ?? session('tenant_id') ?? auth()->user()?->tenant_id;
 
         // Try to find existing record by unique fields
         $uniqueFields = $config['uniqueFields'] ?? [];
@@ -537,7 +538,9 @@ class ImportTableAction extends Action
                     $query->where('tenant_id', $tenantId);
                 }
 
-                $existing = $query->where($field, $data[$field])->first();
+                // Cast value to string for comparison (PostgreSQL strict typing)
+                $value = is_numeric($data[$field]) ? (string) $data[$field] : $data[$field];
+                $existing = $query->where($field, $value)->first();
                 if ($existing) {
                     return $existing;
                 }
@@ -589,9 +592,20 @@ class ImportTableAction extends Action
      */
     protected function fillRecord(Model $record, array $data, array $config): void
     {
+        // Detect if model has auto-generated sequence column
+        $sequenceColumn = null;
+        if (property_exists($record, 'sequenceColumn')) {
+            $sequenceColumn = $record->sequenceColumn;
+        }
+
         foreach ($data as $field => $value) {
             // Skip non-fillable fields
             if (!in_array($field, $config['fillable']) && !in_array($field, $config['translatable'])) {
+                continue;
+            }
+
+            // Skip auto-generated sequence column for new records
+            if ($sequenceColumn && $field === $sequenceColumn && !$record->exists) {
                 continue;
             }
 
