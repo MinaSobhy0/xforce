@@ -63,6 +63,7 @@ class PlatformSettings extends Page implements HasForms
             'primary_color' => PlatformSetting::get('primary_color', '#2563EB'),
             'footer_text' => PlatformSetting::get('footer_text', '© 2025 XLinic. All rights reserved.'),
             'platform_logo' => PlatformSetting::get('platform_logo'),
+            'platform_logo_dark' => PlatformSetting::get('platform_logo_dark'),
             'website_logo' => PlatformSetting::get('website_logo'),
             'favicon' => PlatformSetting::get('favicon'),
             'login_page_image' => PlatformSetting::get('login_page_image'),
@@ -266,16 +267,18 @@ class PlatformSettings extends Page implements HasForms
                                     ->maxLength(255),
 
                                 Forms\Components\FileUpload::make('platform_logo')
-                                    ->label('Platform Logo')
+                                    ->label('Platform Logo (Light Mode)')
                                     ->image()
                                     ->directory('platform/branding')
                                     ->disk('public')
-                                    ->imageEditor()
-                                    ->imageResizeMode('cover')
-                                    ->imageCropAspectRatio('3:1')
-                                    ->imageResizeTargetWidth('600')
-                                    ->imageResizeTargetHeight('200')
-                                    ->helperText('Used in admin panels. Recommended: 600x200px, PNG or SVG'),
+                                    ->helperText('Used in admin panels for light mode.'),
+
+                                Forms\Components\FileUpload::make('platform_logo_dark')
+                                    ->label('Platform Logo (Dark Mode)')
+                                    ->image()
+                                    ->directory('platform/branding')
+                                    ->disk('public')
+                                    ->helperText('Used in admin panels for dark mode. Use a light-colored logo.'),
 
                                 Forms\Components\FileUpload::make('website_logo')
                                     ->label('Website Logo')
@@ -459,6 +462,11 @@ class PlatformSettings extends Page implements HasForms
         if (!empty($data['platform_logo'])) {
             $logo = is_array($data['platform_logo']) ? reset($data['platform_logo']) : $data['platform_logo'];
             PlatformSetting::set('platform_logo', $logo, 'branding');
+        }
+
+        if (!empty($data['platform_logo_dark'])) {
+            $logoDark = is_array($data['platform_logo_dark']) ? reset($data['platform_logo_dark']) : $data['platform_logo_dark'];
+            PlatformSetting::set('platform_logo_dark', $logoDark, 'branding');
         }
 
         if (!empty($data['website_logo'])) {

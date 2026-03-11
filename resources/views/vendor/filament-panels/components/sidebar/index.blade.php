@@ -81,7 +81,7 @@
     }
 
     .dark .fi-rail-header {
-        border-bottom: 1px solid #334155;
+        border-bottom: 1px solid #374151;
     }
 
     /* Logo */
@@ -144,10 +144,10 @@
     }
 
 
-    /* Icon Rail Styles - Dark Mode */
+    /* Icon Rail Styles - Dark Mode - Match main system gray */
     .dark .fi-sidebar-rail-light {
-        background: #1e293b !important;
-        border-right: 1px solid #334155 !important;
+        background: #030712 !important;
+        border-right: 1px solid #374151 !important;
     }
 
     .dark .fi-sidebar-rail-light .fi-rail-btn {
@@ -175,7 +175,7 @@
     }
 
     .dark .fi-rail-footer {
-        border-top: 1px solid #334155;
+        border-top: 1px solid #374151;
     }
 
     /* Menu Panel Styles - Light Mode */
@@ -200,15 +200,15 @@
         color: #1f2937;
     }
 
-    /* Menu Panel Styles - Dark Mode */
+    /* Menu Panel Styles - Dark Mode - Match main system gray */
     .dark .fi-sidebar-menu-panel {
-        background: #1e293b !important;
-        border-right: 1px solid #334155 !important;
+        background: #111827 !important;
+        border-right: 1px solid #374151 !important;
     }
 
     .dark .fi-sidebar-menu-panel .fi-panel-header {
-        border-bottom: 1px solid #334155;
-        background: #1e293b;
+        border-bottom: 1px solid #374151 !important;
+        background: #111827 !important;
     }
 
     .dark .fi-sidebar-menu-panel .fi-panel-title {
@@ -231,8 +231,8 @@
     }
 
     .dark .fi-panel-close-btn:hover {
-        background: #334155;
-        color: #f1f5f9;
+        background: #1f2937 !important;
+        color: #f9fafb !important;
     }
 
     /* Quick Access Section */
@@ -242,8 +242,8 @@
     }
 
     .dark .fi-quick-access-section {
-        border-bottom: 1px solid #334155;
-        background: #263244;
+        border-bottom: 1px solid #374151 !important;
+        background: #030712 !important;
     }
 
     /* Quick Access Grid */
@@ -295,13 +295,13 @@
 
     /* Quick Access - Dark Mode */
     .dark .fi-quick-access-btn {
-        background: #334155;
-        border-color: #475569;
+        background: #1f2937 !important;
+        border-color: #374151 !important;
     }
 
     .dark .fi-quick-access-btn:hover {
-        background: #3f4f66;
-        border-color: #64748b;
+        background: #374151 !important;
+        border-color: #4b5563 !important;
     }
 
     .dark .fi-quick-access-btn .fi-qa-icon {
@@ -382,8 +382,8 @@
     }
 
     .dark .fi-menu-item:hover {
-        background: #334155;
-        color: #f1f5f9;
+        background: #1f2937 !important;
+        color: #f9fafb !important;
     }
 
     .dark .fi-menu-item.active {
@@ -404,8 +404,8 @@
     }
 
     .dark .fi-menu-item .fi-menu-badge {
-        background: #334155;
-        color: #94a3b8;
+        background: #1f2937 !important;
+        color: #9ca3af !important;
     }
 
     .dark .fi-menu-item.active .fi-menu-badge {
@@ -422,7 +422,7 @@
     }
 
     .dark .fi-submenu-list {
-        border-left-color: #475569;
+        border-left-color: #4b5563;
     }
 
     /* Scrollbar styling */
@@ -501,10 +501,21 @@
                 @if ($homeUrl = filament()->getHomeUrl())
                     <a {{ \Filament\Support\generate_href_html($homeUrl) }} style="display: flex; align-items: center; justify-content: center;">
                         @php
-                            $logo = \App\Models\PlatformSetting::get('platform_logo');
+                            $logoLight = \App\Models\PlatformSetting::get('platform_logo');
+                            $logoDark = \App\Models\PlatformSetting::get('platform_logo_dark');
                         @endphp
-                        @if($logo)
-                            <img src="{{ asset('storage/' . $logo) }}" alt="Logo" style="height: 32px; width: auto; object-fit: contain;" />
+                        @if($logoLight || $logoDark)
+                            {{-- Light mode logo --}}
+                            @if($logoLight)
+                                <img src="{{ asset('storage/' . $logoLight) }}" alt="Logo" class="dark:hidden" style="height: 32px; width: auto; object-fit: contain;" />
+                            @endif
+                            {{-- Dark mode logo --}}
+                            @if($logoDark)
+                                <img src="{{ asset('storage/' . $logoDark) }}" alt="Logo" class="hidden dark:block" style="height: 32px; width: auto; object-fit: contain;" />
+                            @elseif($logoLight)
+                                {{-- Fallback: use light logo with invert filter in dark mode --}}
+                                <img src="{{ asset('storage/' . $logoLight) }}" alt="Logo" class="hidden dark:block" style="height: 32px; width: auto; object-fit: contain; filter: brightness(0) invert(1);" />
+                            @endif
                         @else
                             <div class="fi-rail-logo" style="font-size: 18px; font-weight: 700; letter-spacing: -0.02em;">
                                 <span style="color: #6366f1;">X</span>Linic
