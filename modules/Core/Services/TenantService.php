@@ -286,6 +286,9 @@ class TenantService
                 // Payroll defaults
                 \Modules\Payroll\Database\Seeders\PayrollDefaultsSeeder::class,
 
+                // Staff - commission plans
+                \Modules\Staff\Database\Seeders\CommissionPlanSeeder::class,
+
                 // Service parameter templates
                 \Modules\Services\Database\Seeders\ParameterTemplatesSeeder::class,
 
@@ -303,6 +306,9 @@ class TenantService
 
                 // Marketing - automation rules
                 \Modules\Marketing\Database\Seeders\AutomationRuleSeeder::class,
+
+                // Loyalty - default rules and referral program
+                \Modules\Loyalty\Database\Seeders\LoyaltySeeder::class,
 
                 // Default medicines catalog
                 \Modules\Prescriptions\Database\Seeders\DefaultMedicinesSeeder::class,

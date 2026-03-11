@@ -204,6 +204,7 @@ return [
         'scheduled_date' => 'التاريخ المجدول',
         'effective_date' => 'تاريخ التنفيذ',
         'quantity_done' => 'الكمية المنفذة',
+        'excel_file' => 'ملف إكسل',
     ],
 
     'discount_types' => [
@@ -239,6 +240,10 @@ return [
         'confirm' => 'تأكيد',
         'process' => 'تنفيذ التحويل',
         'view_product' => 'عرض المنتج',
+        'download_template' => 'تحميل إكسل',
+        'upload_counts' => 'رفع الكميات',
+        'excel_actions' => 'إكسل',
+        'import' => 'استيراد',
     ],
 
     'messages' => [
@@ -279,6 +284,11 @@ return [
         'transfer_completed' => 'تم إكمال التحويل بنجاح',
         'transfer_cancelled' => 'تم إلغاء التحويل',
         'process_transfer_confirmation' => 'سيتم نقل المخزون بين المواقع. لا يمكن التراجع عن هذا الإجراء.',
+        'upload_description' => 'ارفع ملف إكسل بالكميات المعدودة. يجب أن يحتوي الملف على أعمدة رقم المنتج والكمية المعدودة.',
+        'import_success' => 'تم الاستيراد بنجاح',
+        'import_summary' => 'تم تحديث :updated منتج، تم تخطي :skipped',
+        'import_completed_with_errors' => 'تم الاستيراد مع بعض الأخطاء',
+        'import_failed' => 'فشل الاستيراد',
     ],
 
     'help' => [
@@ -365,6 +375,7 @@ return [
         'purchase_uom' => 'الوحدة المستخدمة عند الشراء (يجب أن تكون من نفس فئة وحدة البيع)',
         'product_type' => 'القابل للتخزين يتتبع المخزون، الاستهلاكي يُفترض توفره دائماً',
         'destination_location' => 'حدد مكان تخزين العناصر المستلمة',
+        'excel_upload' => 'ارفع ملف إكسل أو CSV (الحد الأقصى 5 ميجا). العمود الأخضر قابل للتعديل.',
     ],
 
     'widgets' => [
@@ -385,5 +396,25 @@ return [
         'units_issued' => 'الوحدات الصادرة اليوم',
         'month_net' => 'صافي الشهر',
         'net_change_this_month' => 'صافي التغير في المخزون هذا الشهر',
+    ],
+
+    // Excel Import/Export
+    'excel' => [
+        'product_id' => 'رقم المنتج',
+        'sku' => 'رمز المنتج',
+        'product_name' => 'اسم المنتج',
+        'theoretical_qty' => 'كمية النظام',
+        'counted_qty' => 'الكمية المعدودة',
+        'notes' => 'ملاحظات',
+        'error_not_draft' => 'لا يمكن الاستيراد إلى تسوية غير مسودة',
+        'error_row' => 'صف :row: :message',
+        'error_product_not_found' => 'صف :row: رقم المنتج :product_id غير موجود في هذه التسوية',
+        'error_negative_qty' => 'صف :row: الكمية المعدودة لا يمكن أن تكون سالبة',
+        'validation' => [
+            'product_id_required' => 'رقم المنتج مطلوب',
+            'counted_qty_required' => 'الكمية المعدودة مطلوبة',
+            'counted_qty_integer' => 'الكمية المعدودة يجب أن تكون رقماً صحيحاً',
+            'counted_qty_min' => 'الكمية المعدودة لا يمكن أن تكون سالبة',
+        ],
     ],
 ];

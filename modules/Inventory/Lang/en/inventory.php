@@ -204,6 +204,7 @@ return [
         'scheduled_date' => 'Scheduled Date',
         'effective_date' => 'Effective Date',
         'quantity_done' => 'Qty Done',
+        'excel_file' => 'Excel File',
     ],
 
     'discount_types' => [
@@ -239,6 +240,10 @@ return [
         'confirm' => 'Confirm',
         'process' => 'Process Transfer',
         'view_product' => 'View Product',
+        'download_template' => 'Download Excel',
+        'upload_counts' => 'Upload Counts',
+        'excel_actions' => 'Excel',
+        'import' => 'Import',
     ],
 
     'messages' => [
@@ -279,6 +284,11 @@ return [
         'transfer_completed' => 'Transfer completed successfully',
         'transfer_cancelled' => 'Transfer cancelled',
         'process_transfer_confirmation' => 'This will move the stock between locations. This action cannot be undone.',
+        'upload_description' => 'Upload an Excel file with counted quantities. The file should have Product ID and Counted Qty columns.',
+        'import_success' => 'Import completed successfully',
+        'import_summary' => ':updated products updated, :skipped skipped',
+        'import_completed_with_errors' => 'Import completed with some errors',
+        'import_failed' => 'Import failed',
     ],
 
     'help' => [
@@ -365,6 +375,7 @@ return [
         'purchase_uom' => 'Unit used when purchasing (must be same category as Sales UoM)',
         'product_type' => 'Storable tracks inventory, Consumable assumed always available',
         'destination_location' => 'Select where to store the received items',
+        'excel_upload' => 'Upload Excel or CSV file (max 5MB). Green column is editable.',
     ],
 
     'widgets' => [
@@ -385,5 +396,25 @@ return [
         'units_issued' => 'Units issued today',
         'month_net' => 'Month Net',
         'net_change_this_month' => 'Net stock change this month',
+    ],
+
+    // Excel Import/Export
+    'excel' => [
+        'product_id' => 'Product ID',
+        'sku' => 'SKU',
+        'product_name' => 'Product Name',
+        'theoretical_qty' => 'System Qty',
+        'counted_qty' => 'Counted Qty',
+        'notes' => 'Notes',
+        'error_not_draft' => 'Cannot import to a non-draft adjustment',
+        'error_row' => 'Row :row: :message',
+        'error_product_not_found' => 'Row :row: Product ID :product_id not found in this adjustment',
+        'error_negative_qty' => 'Row :row: Counted quantity cannot be negative',
+        'validation' => [
+            'product_id_required' => 'Product ID is required',
+            'counted_qty_required' => 'Counted quantity is required',
+            'counted_qty_integer' => 'Counted quantity must be a whole number',
+            'counted_qty_min' => 'Counted quantity cannot be negative',
+        ],
     ],
 ];
