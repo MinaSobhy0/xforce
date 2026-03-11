@@ -777,43 +777,7 @@ class ImportTableAction extends Action
     protected function getImportForm(): array
     {
         return [
-            // Show available columns before file upload
-            Forms\Components\Placeholder::make('available_columns')
-                ->label(__('core::import.modal.form.available_columns.label'))
-                ->content(function (): \Illuminate\Support\HtmlString {
-                    $columns = $this->getImporter()::getColumns();
-                    $required = [];
-                    $optional = [];
-
-                    foreach ($columns as $column) {
-                        $label = $column->getLabel();
-                        if ($column->isMappingRequired()) {
-                            $required[] = $label;
-                        } else {
-                            $optional[] = $label;
-                        }
-                    }
-
-                    $html = '<div class="text-sm space-y-2">';
-
-                    if (!empty($required)) {
-                        $html .= '<div><span class="font-semibold text-danger-600 dark:text-danger-400">' . __('core::import.modal.form.available_columns.required') . ':</span> ';
-                        $html .= implode(', ', $required);
-                        $html .= '</div>';
-                    }
-
-                    if (!empty($optional)) {
-                        $html .= '<div><span class="font-semibold text-gray-600 dark:text-gray-400">' . __('core::import.modal.form.available_columns.optional') . ':</span> ';
-                        $html .= implode(', ', $optional);
-                        $html .= '</div>';
-                    }
-
-                    $html .= '</div>';
-
-                    return new \Illuminate\Support\HtmlString($html);
-                }),
-
-            // Step 1: File Upload
+            // File Upload
             FileUpload::make('file')
                 ->label(__('core::import.modal.form.file.label'))
                 ->placeholder(__('core::import.modal.form.file.placeholder'))
@@ -935,9 +899,18 @@ class ImportTableAction extends Action
                     $columnOptions = array_combine($fileColumns, $fileColumns);
 
                     return array_map(
-                        fn(ImportColumn $column): Select => $column->getSelect()
-                            ->options(['' => __('core::import.modal.form.skip_column')] + $columnOptions)
-                            ->label($column->getLabel() . ($column->isMappingRequired() ? ' *' : '')),
+                        function (ImportColumn $column) use ($columnOptions): Select {
+                            $label = $column->getLabel();
+                            if ($column->isMappingRequired()) {
+                                $label = new \Illuminate\Support\HtmlString(
+                                    e($label) . ' <span class="text-danger-600 dark:text-danger-400">*</span>'
+                                );
+                            }
+
+                            return $column->getSelect()
+                                ->options(['' => __('core::import.modal.form.skip_column')] + $columnOptions)
+                                ->label($label);
+                        },
                         $this->getImporter()::getColumns(),
                     );
                 })
