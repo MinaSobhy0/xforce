@@ -125,15 +125,11 @@ class RevenueRecognitionService
             return null;
         }
 
-        // Get accounts from service category, fall back to defaults
-        $service = $usage->service()->with('category')->first();
-        $category = $service?->category;
+        // Get accounts from service (with category fallback), then subscription, then defaults
+        $service = $usage->service()->with('category.unearnedRevenueAccount', 'category.serviceRevenueAccount', 'unearnedRevenueAccount', 'serviceRevenueAccount')->first();
 
-        // Unearned Revenue: service category -> subscription -> default
-        $unearnedRevenueAccount = null;
-        if ($category?->unearned_revenue_account_id) {
-            $unearnedRevenueAccount = \Modules\Accounting\Models\ChartOfAccount::find($category->unearned_revenue_account_id);
-        }
+        // Unearned Revenue: service -> category -> subscription -> default
+        $unearnedRevenueAccount = $service?->getEffectiveUnearnedRevenueAccount();
         if (!$unearnedRevenueAccount && $subscription->unearned_revenue_account_id) {
             $unearnedRevenueAccount = \Modules\Accounting\Models\ChartOfAccount::find($subscription->unearned_revenue_account_id);
         }
@@ -141,11 +137,8 @@ class RevenueRecognitionService
             $unearnedRevenueAccount = $this->defaultAccounts->getPackageUnearnedRevenueAccount();
         }
 
-        // Service Revenue: service category -> default
-        $revenueAccount = null;
-        if ($category?->service_revenue_account_id) {
-            $revenueAccount = \Modules\Accounting\Models\ChartOfAccount::find($category->service_revenue_account_id);
-        }
+        // Service Revenue: service -> category -> default
+        $revenueAccount = $service?->getEffectiveServiceRevenueAccount();
         if (!$revenueAccount) {
             $revenueAccount = $this->defaultAccounts->getPackageRevenueAccount();
         }

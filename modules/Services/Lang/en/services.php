@@ -96,6 +96,10 @@ return [
         'custom_parameters_note' => 'Custom parameters can be managed after saving the service. Use the Service Parameters section to add individual parameters.',
         'presets_count' => ':count preset(s) configured for this service',
         'save_first_for_presets' => 'Save the service first to manage parameter presets',
+        'select_category_first' => 'Select a category to see default accounts',
+        'category_unearned_account' => 'Category Unearned Revenue: :account',
+        'category_revenue_account' => 'Category Service Revenue: :account',
+        'no_category_accounts' => 'No accounts configured on category. Configure them in the category settings.',
     ],
 
     'tabs' => [
@@ -129,7 +133,12 @@ return [
         'default_template' => 'Default Parameter Template',
         'default_template_description' => 'Services in this category will inherit this parameter template by default',
         'revenue_accounts' => 'Revenue Accounts',
-        'revenue_accounts_description' => 'Configure default accounting accounts for services in this category',
+        'revenue_accounts_description' => 'Override category accounts for this specific service. Leave empty to use category defaults.',
+    ],
+
+    'helpers' => [
+        'unearned_revenue_account' => 'Override category account. Leave empty to use category default.',
+        'service_revenue_account' => 'Override category account. Leave empty to use category default.',
     ],
 
     'staff' => [

@@ -8,6 +8,7 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Modules\Accounting\Models\ChartOfAccount;
 use Modules\Services\Models\Service;
 use Modules\Services\Models\ServiceCategory;
 use Modules\Services\Models\ConsentTemplate;
@@ -525,6 +526,71 @@ class ServiceResource extends Resource
                                             ->label(__('services::services.fields.blackout_dates'))
                                             ->placeholder('YYYY-MM-DD')
                                             ->helperText(__('services::services.fields.blackout_dates_help')),
+                                    ]),
+                            ]),
+
+                        Forms\Components\Tabs\Tab::make(__('services::services.tabs.accounting'))
+                            ->icon('heroicon-o-banknotes')
+                            ->schema([
+                                Forms\Components\Section::make(__('services::services.sections.revenue_accounts'))
+                                    ->description(__('services::services.sections.revenue_accounts_description'))
+                                    ->schema([
+                                        Forms\Components\Placeholder::make('category_accounts_info')
+                                            ->content(function ($record) {
+                                                if (!$record || !$record->category) {
+                                                    return __('services::services.messages.select_category_first');
+                                                }
+
+                                                $category = $record->category;
+                                                $info = [];
+
+                                                if ($category->unearned_revenue_account_id) {
+                                                    $account = $category->unearnedRevenueAccount;
+                                                    $info[] = __('services::services.messages.category_unearned_account', [
+                                                        'account' => $account ? "{$account->code} - {$account->name}" : '-'
+                                                    ]);
+                                                }
+
+                                                if ($category->service_revenue_account_id) {
+                                                    $account = $category->serviceRevenueAccount;
+                                                    $info[] = __('services::services.messages.category_revenue_account', [
+                                                        'account' => $account ? "{$account->code} - {$account->name}" : '-'
+                                                    ]);
+                                                }
+
+                                                return count($info) > 0
+                                                    ? implode("\n", $info)
+                                                    : __('services::services.messages.no_category_accounts');
+                                            })
+                                            ->columnSpanFull(),
+
+                                        Forms\Components\Select::make('unearned_revenue_account_id')
+                                            ->label(__('services::services.fields.unearned_revenue_account'))
+                                            ->relationship(
+                                                name: 'unearnedRevenueAccount',
+                                                titleAttribute: 'name',
+                                                modifyQueryUsing: fn ($query) => $query
+                                                    ->where('is_active', true)
+                                                    ->whereIn('type', [ChartOfAccount::TYPE_CURRENT_LIABILITY])
+                                            )
+                                            ->getOptionLabelFromRecordUsing(fn (ChartOfAccount $record) => "{$record->code} - {$record->name}")
+                                            ->searchable()
+                                            ->preload()
+                                            ->helperText(__('services::services.helpers.unearned_revenue_account')),
+
+                                        Forms\Components\Select::make('service_revenue_account_id')
+                                            ->label(__('services::services.fields.service_revenue_account'))
+                                            ->relationship(
+                                                name: 'serviceRevenueAccount',
+                                                titleAttribute: 'name',
+                                                modifyQueryUsing: fn ($query) => $query
+                                                    ->where('is_active', true)
+                                                    ->whereIn('type', [ChartOfAccount::TYPE_INCOME, ChartOfAccount::TYPE_OTHER_INCOME])
+                                            )
+                                            ->getOptionLabelFromRecordUsing(fn (ChartOfAccount $record) => "{$record->code} - {$record->name}")
+                                            ->searchable()
+                                            ->preload()
+                                            ->helperText(__('services::services.helpers.service_revenue_account')),
                                     ]),
                             ]),
                     ])

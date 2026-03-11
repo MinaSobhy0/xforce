@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Modules\Accounting\Models\ChartOfAccount;
 use Modules\Equipment\Models\Equipment;
 use Modules\Core\Models\Room;
 use Modules\Auth\Models\User;
@@ -31,6 +32,8 @@ class Service extends BaseModel
     protected $fillable = [
         'tenant_id',
         'category_id',
+        'unearned_revenue_account_id',
+        'service_revenue_account_id',
         'consent_template_id',
         'parameter_template_id',
         'parameter_mode',
@@ -136,6 +139,72 @@ class Service extends BaseModel
     public function category(): BelongsTo
     {
         return $this->belongsTo(ServiceCategory::class, 'category_id');
+    }
+
+    public function unearnedRevenueAccount(): BelongsTo
+    {
+        return $this->belongsTo(ChartOfAccount::class, 'unearned_revenue_account_id');
+    }
+
+    public function serviceRevenueAccount(): BelongsTo
+    {
+        return $this->belongsTo(ChartOfAccount::class, 'service_revenue_account_id');
+    }
+
+    /**
+     * Get the effective unearned revenue account.
+     * Priority: Service's own account -> Category's account -> System default
+     */
+    public function getEffectiveUnearnedRevenueAccount(): ?ChartOfAccount
+    {
+        // First try service's own account
+        if ($this->unearned_revenue_account_id) {
+            return $this->unearnedRevenueAccount;
+        }
+
+        // Fall back to category's account
+        if ($this->category && $this->category->unearned_revenue_account_id) {
+            return $this->category->unearnedRevenueAccount;
+        }
+
+        return null;
+    }
+
+    /**
+     * Get the effective service revenue account.
+     * Priority: Service's own account -> Category's account -> System default
+     */
+    public function getEffectiveServiceRevenueAccount(): ?ChartOfAccount
+    {
+        // First try service's own account
+        if ($this->service_revenue_account_id) {
+            return $this->serviceRevenueAccount;
+        }
+
+        // Fall back to category's account
+        if ($this->category && $this->category->service_revenue_account_id) {
+            return $this->category->serviceRevenueAccount;
+        }
+
+        return null;
+    }
+
+    /**
+     * Get the effective unearned revenue account ID.
+     */
+    public function getEffectiveUnearnedRevenueAccountId(): ?int
+    {
+        return $this->unearned_revenue_account_id
+            ?? $this->category?->unearned_revenue_account_id;
+    }
+
+    /**
+     * Get the effective service revenue account ID.
+     */
+    public function getEffectiveServiceRevenueAccountId(): ?int
+    {
+        return $this->service_revenue_account_id
+            ?? $this->category?->service_revenue_account_id;
     }
 
     public function consentTemplate(): BelongsTo

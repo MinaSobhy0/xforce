@@ -268,8 +268,8 @@ class InvoiceCalculationService
             $taxRates
         );
 
-        // Get revenue account from service category
-        $accountId = $service?->category?->service_revenue_account_id;
+        // Get revenue account (service's own account, fallback to category)
+        $accountId = $service?->getEffectiveServiceRevenueAccountId();
 
         return $invoice->lines()->create([
             'tenant_id' => $invoice->tenant_id,
