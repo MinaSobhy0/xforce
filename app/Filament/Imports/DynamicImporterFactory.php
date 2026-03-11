@@ -161,9 +161,17 @@ class DynamicImporterFactory
         $config = static::getConfig($modelClass);
         $columns = [];
 
+        // Fields to allow even if hidden (needed for import)
+        $allowHidden = ['password'];
+
         foreach ($config['fillable'] as $field) {
-            // Skip tenant_id and hidden fields
-            if ($field === 'tenant_id' || in_array($field, $config['hidden'])) {
+            // Skip tenant_id
+            if ($field === 'tenant_id') {
+                continue;
+            }
+
+            // Skip hidden fields except those in allowHidden list
+            if (in_array($field, $config['hidden']) && !in_array($field, $allowHidden)) {
                 continue;
             }
 
@@ -552,6 +560,16 @@ class DynamicImporterFactory
         // Mark as required if detected
         if ($isRequired) {
             $column->requiredMapping();
+        }
+
+        // Special handling for password field - hash it
+        if ($field === 'password') {
+            $column->fillRecordUsing(function ($record, $state) {
+                if ($state !== null && $state !== '') {
+                    $record->password = \Illuminate\Support\Facades\Hash::make($state);
+                }
+            });
+            return $column;
         }
 
         // Check if field has constants
