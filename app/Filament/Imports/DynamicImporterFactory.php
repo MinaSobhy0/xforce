@@ -620,7 +620,10 @@ class DynamicImporterFactory
         $required = [];
 
         // Common required field patterns
-        $commonRequired = ['name', 'email', 'code', 'sku', 'first_name', 'title'];
+        $commonRequired = [
+            'name', 'email', 'code', 'sku', 'first_name', 'last_name',
+            'title', 'username', 'phone', 'brand_name', 'generic_name',
+        ];
 
         $fillable = $model->getFillable();
         $translatable = property_exists($model, 'translatable') ? ($model->translatable ?? []) : [];
