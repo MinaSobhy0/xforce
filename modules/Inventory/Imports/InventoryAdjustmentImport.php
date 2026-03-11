@@ -11,6 +11,7 @@ use Maatwebsite\Excel\Concerns\WithValidation;
 use Maatwebsite\Excel\Concerns\SkipsEmptyRows;
 use Modules\Inventory\Models\InventoryAdjustment;
 use Modules\Inventory\Models\InventoryAdjustmentLine;
+use Modules\Inventory\Models\Uom;
 
 class InventoryAdjustmentImport implements ToCollection, WithHeadingRow, WithValidation, SkipsEmptyRows
 {
@@ -56,6 +57,7 @@ class InventoryAdjustmentImport implements ToCollection, WithHeadingRow, WithVal
         // Get product_id from row - handle both English and Arabic column names
         $productId = $row['product_id'] ?? $row['رقم_المنتج'] ?? null;
         $countedQty = $row['counted_qty'] ?? $row['الكمية_المحسوبة'] ?? null;
+        $uomValue = $row['uom'] ?? $row['الوحدة'] ?? null;
         $notes = $row['notes'] ?? $row['ملاحظات'] ?? null;
 
         if (empty($productId)) {
@@ -96,6 +98,18 @@ class InventoryAdjustmentImport implements ToCollection, WithHeadingRow, WithVal
 
         // Update the line
         $line->counted_qty = $countedQty;
+
+        // Update UOM if provided
+        if ($uomValue !== null && $uomValue !== '') {
+            $uom = Uom::where('abbreviation', $uomValue)
+                ->orWhereRaw("name->>'en' ILIKE ?", [$uomValue])
+                ->orWhereRaw("name->>'ar' ILIKE ?", [$uomValue])
+                ->first();
+            if ($uom) {
+                $line->uom_id = $uom->id;
+            }
+        }
+
         if ($notes !== null) {
             $line->notes = $notes;
         }

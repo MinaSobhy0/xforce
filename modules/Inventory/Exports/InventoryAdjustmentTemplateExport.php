@@ -29,13 +29,14 @@ class InventoryAdjustmentTemplateExport implements FromCollection, WithHeadings,
     public function collection(): Collection
     {
         return $this->adjustment->lines()
-            ->with('product')
+            ->with(['product', 'uom'])
             ->get()
             ->map(function ($line) {
                 return [
                     'product_id' => $line->product_id,
                     'sku' => $line->product?->sku ?? '',
                     'product_name' => $line->product?->name ?? '',
+                    'uom' => $line->uom?->abbreviation ?? '',
                     'theoretical_qty' => $line->theoretical_qty,
                     'counted_qty' => $line->counted_qty,
                     'notes' => $line->notes ?? '',
@@ -49,6 +50,7 @@ class InventoryAdjustmentTemplateExport implements FromCollection, WithHeadings,
             __('inventory::inventory.excel.product_id'),
             __('inventory::inventory.excel.sku'),
             __('inventory::inventory.excel.product_name'),
+            __('inventory::inventory.excel.uom'),
             __('inventory::inventory.excel.theoretical_qty'),
             __('inventory::inventory.excel.counted_qty'),
             __('inventory::inventory.excel.notes'),
@@ -61,9 +63,10 @@ class InventoryAdjustmentTemplateExport implements FromCollection, WithHeadings,
             'A' => 12,  // Product ID
             'B' => 15,  // SKU
             'C' => 40,  // Product Name
-            'D' => 15,  // Theoretical Qty
-            'E' => 15,  // Counted Qty
-            'F' => 30,  // Notes
+            'D' => 10,  // UOM
+            'E' => 15,  // Theoretical Qty
+            'F' => 15,  // Counted Qty
+            'G' => 30,  // Notes
         ];
     }
 
@@ -72,7 +75,7 @@ class InventoryAdjustmentTemplateExport implements FromCollection, WithHeadings,
         $lastRow = $sheet->getHighestRow();
 
         // Header styling
-        $sheet->getStyle('A1:F1')->applyFromArray([
+        $sheet->getStyle('A1:G1')->applyFromArray([
             'font' => [
                 'bold' => true,
                 'color' => ['rgb' => 'FFFFFF'],
@@ -89,16 +92,16 @@ class InventoryAdjustmentTemplateExport implements FromCollection, WithHeadings,
 
         // Data rows styling
         if ($lastRow > 1) {
-            // Read-only columns (A-D) - light gray background
-            $sheet->getStyle("A2:D{$lastRow}")->applyFromArray([
+            // Read-only columns (A-E: Product ID, SKU, Name, UOM, Theoretical) - light gray background
+            $sheet->getStyle("A2:E{$lastRow}")->applyFromArray([
                 'fill' => [
                     'fillType' => Fill::FILL_SOLID,
                     'startColor' => ['rgb' => 'F3F4F6'],
                 ],
             ]);
 
-            // Editable column (E - Counted Qty) - light green background
-            $sheet->getStyle("E2:E{$lastRow}")->applyFromArray([
+            // Editable column (F - Counted Qty) - light green background
+            $sheet->getStyle("F2:F{$lastRow}")->applyFromArray([
                 'fill' => [
                     'fillType' => Fill::FILL_SOLID,
                     'startColor' => ['rgb' => 'DCFCE7'],
@@ -108,8 +111,8 @@ class InventoryAdjustmentTemplateExport implements FromCollection, WithHeadings,
                 ],
             ]);
 
-            // Notes column (F) - light blue background
-            $sheet->getStyle("F2:F{$lastRow}")->applyFromArray([
+            // Notes column (G) - light blue background
+            $sheet->getStyle("G2:G{$lastRow}")->applyFromArray([
                 'fill' => [
                     'fillType' => Fill::FILL_SOLID,
                     'startColor' => ['rgb' => 'DBEAFE'],
@@ -117,7 +120,7 @@ class InventoryAdjustmentTemplateExport implements FromCollection, WithHeadings,
             ]);
 
             // Add borders
-            $sheet->getStyle("A1:F{$lastRow}")->applyFromArray([
+            $sheet->getStyle("A1:G{$lastRow}")->applyFromArray([
                 'borders' => [
                     'allBorders' => [
                         'borderStyle' => Border::BORDER_THIN,
@@ -126,8 +129,8 @@ class InventoryAdjustmentTemplateExport implements FromCollection, WithHeadings,
                 ],
             ]);
 
-            // Number format for quantity columns
-            $sheet->getStyle("D2:E{$lastRow}")->getNumberFormat()
+            // Number format for quantity columns (E and F)
+            $sheet->getStyle("E2:F{$lastRow}")->getNumberFormat()
                 ->setFormatCode('#,##0');
         }
 

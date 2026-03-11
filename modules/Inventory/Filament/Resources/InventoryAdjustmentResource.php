@@ -128,119 +128,19 @@ class InventoryAdjustmentResource extends Resource
                             ->columnSpanFull(),
                     ]),
 
-                Forms\Components\Section::make(__('inventory::inventory.sections.adjustment_lines'))
-                    ->description(__('inventory::inventory.messages.adjustment_lines_help'))
+                // Adjustment lines are managed via the RelationManager (paginated table) on edit page
+                // This placeholder shows summary information
+                Forms\Components\Section::make(__('inventory::inventory.sections.adjustment_summary'))
                     ->schema([
-                        Forms\Components\Repeater::make('lines')
-                            ->relationship()
-                            ->schema([
-                                Forms\Components\Hidden::make('product_id'),
-
-                                Forms\Components\Placeholder::make('product_display')
-                                    ->label(__('inventory::inventory.fields.product'))
-                                    ->content(function ($get) {
-                                        $productId = $get('product_id');
-                                        if (!$productId) return '-';
-                                        $product = \Modules\Inventory\Models\Product::find($productId);
-                                        if (!$product) return '-';
-                                        return "[{$product->sku}] " . $product->getTranslation('name', app()->getLocale());
-                                    })
-                                    ->columnSpan(3),
-
-                                Forms\Components\Select::make('uom_id')
-                                    ->label(__('inventory::inventory.fields.uom'))
-                                    ->options(function (Forms\Get $get) {
-                                        $productId = $get('product_id');
-                                        if (!$productId) return [];
-
-                                        $product = \Modules\Inventory\Models\Product::find($productId);
-                                        if (!$product || !$product->salesUom) return [];
-
-                                        // Get UOMs from the same category as the product's sales UOM
-                                        $categoryId = $product->salesUom->category_id;
-                                        return \Modules\Inventory\Models\Uom::where('category_id', $categoryId)
-                                            ->active()
-                                            ->get()
-                                            ->mapWithKeys(fn ($uom) => [
-                                                $uom->id => $uom->getTranslation('name', app()->getLocale()) . ' (' . $uom->abbreviation . ')'
-                                            ]);
-                                    })
-                                    ->default(function (Forms\Get $get) {
-                                        $productId = $get('product_id');
-                                        if (!$productId) return null;
-                                        $product = \Modules\Inventory\Models\Product::find($productId);
-                                        return $product?->sales_uom_id;
-                                    })
-                                    ->searchable()
-                                    ->preload()
-                                    ->columnSpan(2),
-
-                                Forms\Components\TextInput::make('theoretical_qty')
-                                    ->label(__('inventory::inventory.fields.theoretical_qty'))
-                                    ->numeric()
-                                    ->disabled()
-                                    ->dehydrated(true)
-                                    ->columnSpan(2),
-
-                                Forms\Components\TextInput::make('counted_qty')
-                                    ->label(__('inventory::inventory.fields.counted_qty'))
-                                    ->numeric()
-                                    ->required()
-                                    ->live(onBlur: true)
-                                    ->afterStateUpdated(function ($state, Forms\Get $get, Forms\Set $set) {
-                                        $theoretical = (float) ($get('theoretical_qty') ?? 0);
-                                        $counted = (float) ($state ?? 0);
-                                        $unitCost = (float) ($get('unit_cost_minor') ?? 0);
-
-                                        $difference = $counted - $theoretical;
-                                        $valueAdjustment = (int) ($difference * $unitCost);
-
-                                        $set('difference_qty', $difference);
-                                        $set('value_adjustment_minor', $valueAdjustment);
-                                    })
-                                    ->columnSpan(2),
-
-                                Forms\Components\Placeholder::make('difference_display')
-                                    ->label(__('inventory::inventory.fields.difference'))
-                                    ->content(function (Forms\Get $get) {
-                                        $theoretical = (float) ($get('theoretical_qty') ?? 0);
-                                        $counted = (float) ($get('counted_qty') ?? 0);
-                                        $diff = $counted - $theoretical;
-                                        $color = $diff > 0 ? 'text-green-600' : ($diff < 0 ? 'text-red-600' : 'text-gray-500');
-                                        $prefix = $diff > 0 ? '+' : '';
-                                        return new \Illuminate\Support\HtmlString(
-                                            "<span class=\"font-semibold {$color}\">{$prefix}{$diff}</span>"
-                                        );
-                                    })
-                                    ->columnSpan(1),
-
-                                Forms\Components\Hidden::make('difference_qty'),
-                                Forms\Components\Hidden::make('unit_cost_minor'),
-                                Forms\Components\Hidden::make('value_adjustment_minor'),
-                            ])
-                            ->columns(10)
-                            ->defaultItems(0)
-                            ->addable(fn (?InventoryAdjustment $record) => $record && $record->isDraft())
-                            ->addActionLabel(__('inventory::inventory.actions.add_product'))
-                            ->deletable(fn (?InventoryAdjustment $record) => $record && $record->isDraft())
-                            ->reorderable(false)
-                            ->itemLabel(fn (array $state): ?string =>
-                                isset($state['product_id'])
-                                    ? \Modules\Inventory\Models\Product::find($state['product_id'])?->sku ?? 'Product'
-                                    : null
-                            )
-                            ->disabled(fn (?InventoryAdjustment $record) => $record && !$record->isDraft()),
+                        Forms\Components\Placeholder::make('lines_count')
+                            ->label(__('inventory::inventory.fields.products'))
+                            ->content(fn (?InventoryAdjustment $record) => $record?->lines()->count() ?? 0),
 
                         Forms\Components\Placeholder::make('total_adjustment')
                             ->label(__('inventory::inventory.fields.total_value_adjustment'))
-                            ->content(function (Forms\Get $get) {
-                                $lines = $get('lines') ?? [];
-                                $total = 0;
-                                foreach ($lines as $line) {
-                                    $diff = ((float) ($line['counted_qty'] ?? 0)) - ((float) ($line['theoretical_qty'] ?? 0));
-                                    $unitCost = (float) ($line['unit_cost_minor'] ?? 0);
-                                    $total += $diff * $unitCost / 100;
-                                }
+                            ->content(function (?InventoryAdjustment $record) {
+                                if (!$record) return '-';
+                                $total = $record->total_value_adjustment;
                                 $color = $total > 0 ? 'text-green-600' : ($total < 0 ? 'text-red-600' : 'text-gray-500');
                                 $prefix = $total > 0 ? '+' : '';
                                 return new \Illuminate\Support\HtmlString(
@@ -248,6 +148,7 @@ class InventoryAdjustmentResource extends Resource
                                 );
                             }),
                     ])
+                    ->columns(2)
                     ->visible(fn (?InventoryAdjustment $record) => $record !== null),
             ]);
     }
@@ -490,7 +391,9 @@ class InventoryAdjustmentResource extends Resource
 
     public static function getRelations(): array
     {
-        return [];
+        return [
+            RelationManagers\LinesRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

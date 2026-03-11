@@ -55,6 +55,7 @@ return [
         'receive_items' => 'استلام العناصر',
         'adjustment_info' => 'معلومات التسوية',
         'adjustment_lines' => 'بنود التسوية',
+        'adjustment_summary' => 'ملخص التسوية',
         'stock_accounts' => 'حسابات المخزون',
         'validation_info' => 'معلومات التصديق',
         'accounting' => 'المحاسبة',
@@ -217,6 +218,7 @@ return [
         'has_stock' => 'يوجد مخزون',
         'incoming' => 'الوارد فقط',
         'outgoing' => 'الصادر فقط',
+        'has_difference' => 'يوجد فرق',
     ],
 
     'actions' => [
@@ -289,6 +291,13 @@ return [
         'import_summary' => 'تم تحديث :updated منتج، تم تخطي :skipped',
         'import_completed_with_errors' => 'تم الاستيراد مع بعض الأخطاء',
         'import_failed' => 'فشل الاستيراد',
+        'file_not_found' => 'الملف غير موجود',
+        'no_data_to_import' => 'لا توجد بيانات للاستيراد',
+        'missing_required_columns' => 'أعمدة مطلوبة مفقودة',
+        'required_columns_sku_counted' => 'الأعمدة المطلوبة: SKU و الكمية المعدودة',
+        'import_complete' => 'اكتمل الاستيراد',
+        'import_summary' => ':imported سطر مستورد، :updated محدث، :skipped تم تخطيه',
+        'update_existing_help' => 'تحديث الكميات للمنتجات الموجودة بالفعل في القائمة',
     ],
 
     'help' => [
@@ -403,6 +412,7 @@ return [
         'product_id' => 'رقم المنتج',
         'sku' => 'رمز المنتج',
         'product_name' => 'اسم المنتج',
+        'uom' => 'الوحدة',
         'theoretical_qty' => 'كمية النظام',
         'counted_qty' => 'الكمية المعدودة',
         'notes' => 'ملاحظات',

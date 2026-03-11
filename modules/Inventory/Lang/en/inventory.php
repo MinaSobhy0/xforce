@@ -55,6 +55,7 @@ return [
         'receive_items' => 'Receive Items',
         'adjustment_info' => 'Adjustment Information',
         'adjustment_lines' => 'Adjustment Lines',
+        'adjustment_summary' => 'Adjustment Summary',
         'stock_accounts' => 'Stock Accounts',
         'validation_info' => 'Validation Information',
         'accounting' => 'Accounting',
@@ -205,6 +206,7 @@ return [
         'effective_date' => 'Effective Date',
         'quantity_done' => 'Qty Done',
         'excel_file' => 'Excel File',
+        'update_existing' => 'Update Existing Lines',
     ],
 
     'discount_types' => [
@@ -217,6 +219,7 @@ return [
         'has_stock' => 'Has Stock',
         'incoming' => 'Incoming Only',
         'outgoing' => 'Outgoing Only',
+        'has_difference' => 'Has Difference',
     ],
 
     'actions' => [
@@ -289,6 +292,13 @@ return [
         'import_summary' => ':updated products updated, :skipped skipped',
         'import_completed_with_errors' => 'Import completed with some errors',
         'import_failed' => 'Import failed',
+        'file_not_found' => 'File not found',
+        'no_data_to_import' => 'No data to import',
+        'missing_required_columns' => 'Missing required columns',
+        'required_columns_sku_counted' => 'Required columns: SKU (or product_sku) and Counted Qty (or counted_qty)',
+        'import_complete' => 'Import Complete',
+        'import_summary' => ':imported lines imported, :updated updated, :skipped skipped',
+        'update_existing_help' => 'Update quantities for products already in the list',
     ],
 
     'help' => [
@@ -403,6 +413,7 @@ return [
         'product_id' => 'Product ID',
         'sku' => 'SKU',
         'product_name' => 'Product Name',
+        'uom' => 'UOM',
         'theoretical_qty' => 'System Qty',
         'counted_qty' => 'Counted Qty',
         'notes' => 'Notes',

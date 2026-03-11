@@ -7,16 +7,20 @@ use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Modules\Inventory\Models\InventoryAdjustment;
+use Illuminate\Database\Eloquent\Model;
 use Modules\Inventory\Models\InventoryAdjustmentLine;
 use Modules\Inventory\Models\Product;
 use Modules\Inventory\Models\StockLevel;
+use Modules\Inventory\Models\Uom;
 
 class LinesRelationManager extends RelationManager
 {
     protected static string $relationship = 'lines';
 
-    protected static ?string $recordTitleAttribute = 'product.name';
+    public static function getTitle(Model $ownerRecord, string $pageClass): string
+    {
+        return __('inventory::inventory.sections.adjustment_lines');
+    }
 
     public function form(Form $form): Form
     {
@@ -24,85 +28,105 @@ class LinesRelationManager extends RelationManager
             ->schema([
                 Forms\Components\Select::make('product_id')
                     ->label(__('inventory::inventory.fields.product'))
-                    ->options(fn () => Product::active()->pluck('name', 'id')->map(fn ($name) => is_array($name) ? ($name[app()->getLocale()] ?? $name['en'] ?? reset($name)) : $name))
+                    ->options(function () {
+                        return Product::query()
+                            ->where('product_type', 'storable')
+                            ->limit(100)
+                            ->get()
+                            ->mapWithKeys(fn ($product) => [
+                                $product->id => "[{$product->sku}] " . $product->getTranslation('name', app()->getLocale())
+                            ]);
+                    })
+                    ->searchable()
+                    ->getSearchResultsUsing(function (string $search) {
+                        return Product::query()
+                            ->where('product_type', 'storable')
+                            ->where(function ($query) use ($search) {
+                                $query->where('sku', 'ilike', "%{$search}%")
+                                    ->orWhereRaw("name->>'en' ILIKE ?", ["%{$search}%"])
+                                    ->orWhereRaw("name->>'ar' ILIKE ?", ["%{$search}%"]);
+                            })
+                            ->limit(50)
+                            ->get()
+                            ->mapWithKeys(fn ($product) => [
+                                $product->id => "[{$product->sku}] " . $product->getTranslation('name', app()->getLocale())
+                            ]);
+                    })
+                    ->required()
+                    ->live()
+                    ->afterStateUpdated(function ($state, Forms\Set $set) {
+                        if (!$state) return;
+
+                        $product = Product::find($state);
+                        if ($product) {
+                            $set('uom_id', $product->sales_uom_id);
+                            $set('unit_cost_minor', $product->cost_price_minor ?? 0);
+
+                            // Get theoretical qty from stock level
+                            $adjustment = $this->ownerRecord;
+                            $query = StockLevel::where('product_id', $product->id)
+                                ->where('branch_id', $adjustment->branch_id);
+
+                            if ($adjustment->location_id) {
+                                $query->where('location_id', $adjustment->location_id);
+                            }
+
+                            $stockLevel = $query->first();
+                            $theoreticalQty = $stockLevel?->quantity_on_hand ?? 0;
+                            $set('theoretical_qty', $theoreticalQty);
+                        }
+                    })
+                    ->disabled(fn (?InventoryAdjustmentLine $record) => $record !== null)
+                    ->columnSpan(2),
+
+                Forms\Components\Select::make('uom_id')
+                    ->label(__('inventory::inventory.fields.uom'))
+                    ->options(function (Forms\Get $get) {
+                        $productId = $get('product_id');
+                        if (!$productId) return [];
+
+                        $product = Product::find($productId);
+                        if (!$product || !$product->salesUom) return [];
+
+                        $categoryId = $product->salesUom->category_id;
+                        return Uom::where('category_id', $categoryId)
+                            ->active()
+                            ->get()
+                            ->mapWithKeys(fn ($uom) => [
+                                $uom->id => $uom->getTranslation('name', app()->getLocale()) . ' (' . $uom->abbreviation . ')'
+                            ]);
+                    })
                     ->searchable()
                     ->preload()
+                    ->columnSpan(1),
+
+                Forms\Components\TextInput::make('theoretical_qty')
+                    ->label(__('inventory::inventory.fields.theoretical_qty'))
+                    ->numeric()
+                    ->default(0)
+                    ->disabled()
+                    ->dehydrated(true)
+                    ->columnSpan(1),
+
+                Forms\Components\TextInput::make('counted_qty')
+                    ->label(__('inventory::inventory.fields.counted_qty'))
+                    ->numeric()
                     ->required()
-                    ->reactive()
-                    ->afterStateUpdated(function ($state, callable $set) {
-                        if ($state) {
-                            $product = Product::find($state);
-                            $adjustment = $this->getOwnerRecord();
+                    ->columnSpan(1),
 
-                            // Get current stock level
-                            $stockLevel = StockLevel::where('product_id', $state)
-                                ->where('branch_id', $adjustment->branch_id)
-                                ->first();
-
-                            $theoreticalQty = $stockLevel?->quantity_on_hand ?? 0;
-                            $unitCost = $product?->cost_price_minor ?? 0;
-
-                            $set('theoretical_qty', $theoreticalQty);
-                            $set('counted_qty', $theoreticalQty);
-                            $set('unit_cost_minor', $unitCost);
-                        }
-                    }),
-
-                Forms\Components\Grid::make(4)
-                    ->schema([
-                        Forms\Components\TextInput::make('theoretical_qty')
-                            ->label(__('inventory::inventory.fields.theoretical_qty'))
-                            ->numeric()
-                            ->disabled()
-                            ->dehydrated(true)
-                            ->helperText('System quantity'),
-
-                        Forms\Components\TextInput::make('counted_qty')
-                            ->label(__('inventory::inventory.fields.counted_qty'))
-                            ->numeric()
-                            ->required()
-                            ->reactive()
-                            ->afterStateUpdated(function ($state, callable $get, callable $set) {
-                                $theoretical = $get('theoretical_qty') ?? 0;
-                                $counted = $state ?? 0;
-                                $unitCost = $get('unit_cost_minor') ?? 0;
-
-                                $difference = $counted - $theoretical;
-                                $valueAdjustment = $difference * $unitCost;
-
-                                $set('difference_qty', $difference);
-                                $set('value_adjustment_minor', $valueAdjustment);
-                            })
-                            ->helperText('Physical count'),
-
-                        Forms\Components\TextInput::make('difference_qty')
-                            ->label(__('inventory::inventory.fields.difference'))
-                            ->numeric()
-                            ->disabled()
-                            ->dehydrated(true),
-
-                        Forms\Components\TextInput::make('unit_cost_minor')
-                            ->label(__('inventory::inventory.fields.unit_cost'))
-                            ->numeric()
-                            ->disabled()
-                            ->dehydrated(true)
-                            ->prefix(current_currency())
-                            ->formatStateUsing(fn ($state) => $state ? number_format($state / 100, 2) : null),
-                    ]),
-
+                Forms\Components\Hidden::make('difference_qty'),
+                Forms\Components\Hidden::make('unit_cost_minor'),
                 Forms\Components\Hidden::make('value_adjustment_minor'),
-
-                Forms\Components\Textarea::make('notes')
-                    ->label(__('inventory::inventory.fields.notes'))
-                    ->rows(2)
-                    ->columnSpanFull(),
-            ]);
+            ])
+            ->columns(5);
     }
 
     public function table(Table $table): Table
     {
+        $isEditable = $this->ownerRecord->isDraft();
+
         return $table
-            ->recordTitleAttribute('product.name')
+            ->recordTitleAttribute('product_id')
             ->columns([
                 Tables\Columns\TextColumn::make('product.sku')
                     ->label(__('inventory::inventory.fields.sku'))
@@ -111,60 +135,102 @@ class LinesRelationManager extends RelationManager
 
                 Tables\Columns\TextColumn::make('product.name')
                     ->label(__('inventory::inventory.fields.product'))
-                    ->getStateUsing(fn (InventoryAdjustmentLine $record) => $record->product?->getTranslation('name', app()->getLocale()))
-                    ->searchable(),
+                    ->getStateUsing(fn ($record) => $record->product?->getTranslation('name', app()->getLocale()))
+                    ->searchable(query: function ($query, $search) {
+                        $query->whereHas('product', function ($q) use ($search) {
+                            $q->whereRaw("name->>'en' ILIKE ?", ["%{$search}%"])
+                              ->orWhereRaw("name->>'ar' ILIKE ?", ["%{$search}%"]);
+                        });
+                    })
+                    ->wrap()
+                    ->limit(30),
+
+                Tables\Columns\SelectColumn::make('uom_id')
+                    ->label(__('inventory::inventory.fields.uom'))
+                    ->options(function ($record) {
+                        if (!$record->product || !$record->product->salesUom) {
+                            return Uom::active()->pluck('abbreviation', 'id')->toArray();
+                        }
+                        $categoryId = $record->product->salesUom->category_id;
+                        return Uom::where('category_id', $categoryId)
+                            ->active()
+                            ->pluck('abbreviation', 'id')
+                            ->toArray();
+                    })
+                    ->disabled(!$isEditable),
 
                 Tables\Columns\TextColumn::make('theoretical_qty')
                     ->label(__('inventory::inventory.fields.theoretical_qty'))
                     ->alignCenter(),
 
-                Tables\Columns\TextColumn::make('counted_qty')
+                Tables\Columns\TextInputColumn::make('counted_qty')
                     ->label(__('inventory::inventory.fields.counted_qty'))
-                    ->alignCenter(),
+                    ->type('number')
+                    ->rules(['required', 'numeric', 'min:0'])
+                    ->disabled(!$isEditable)
+                    ->alignCenter()
+                    ->afterStateUpdated(fn ($record) => $this->recalculate($record)),
 
                 Tables\Columns\TextColumn::make('difference_qty')
                     ->label(__('inventory::inventory.fields.difference'))
                     ->alignCenter()
-                    ->color(fn (InventoryAdjustmentLine $record) => match(true) {
-                        $record->difference_qty > 0 => 'success',
-                        $record->difference_qty < 0 => 'danger',
+                    ->color(fn ($state) => match(true) {
+                        $state > 0 => 'success',
+                        $state < 0 => 'danger',
                         default => 'gray',
                     })
                     ->formatStateUsing(fn ($state) => $state > 0 ? "+{$state}" : $state),
 
-                Tables\Columns\TextColumn::make('unit_cost')
-                    ->label(__('inventory::inventory.fields.unit_cost'))
-                    ->money(current_currency()),
-
                 Tables\Columns\TextColumn::make('value_adjustment')
                     ->label(__('inventory::inventory.fields.value_adjustment'))
                     ->money(current_currency())
-                    ->color(fn (InventoryAdjustmentLine $record) => match(true) {
+                    ->color(fn ($record) => match(true) {
                         $record->value_adjustment_minor > 0 => 'success',
                         $record->value_adjustment_minor < 0 => 'danger',
                         default => 'gray',
                     }),
             ])
-            ->filters([])
+            ->filters([
+                Tables\Filters\Filter::make('has_difference')
+                    ->label(__('inventory::inventory.filters.has_difference'))
+                    ->query(fn ($query) => $query->where('difference_qty', '!=', 0)),
+            ])
             ->headerActions([
                 Tables\Actions\CreateAction::make()
+                    ->visible($isEditable)
                     ->mutateFormDataUsing(function (array $data): array {
-                        $data['tenant_id'] = auth()->user()->tenant_id;
+                        $data['difference_qty'] = ($data['counted_qty'] ?? 0) - ($data['theoretical_qty'] ?? 0);
+                        $data['value_adjustment_minor'] = $data['difference_qty'] * ($data['unit_cost_minor'] ?? 0);
                         return $data;
                     })
-                    ->visible(fn () => $this->getOwnerRecord()->isDraft()),
+                    ->after(fn () => $this->ownerRecord->recalculateTotals()),
             ])
             ->actions([
                 Tables\Actions\EditAction::make()
-                    ->visible(fn () => $this->getOwnerRecord()->isDraft()),
+                    ->visible($isEditable)
+                    ->after(fn ($record) => $this->recalculate($record)),
                 Tables\Actions\DeleteAction::make()
-                    ->visible(fn () => $this->getOwnerRecord()->isDraft()),
+                    ->iconButton()
+                    ->visible($isEditable)
+                    ->after(fn () => $this->ownerRecord->recalculateTotals()),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
-                        ->visible(fn () => $this->getOwnerRecord()->isDraft()),
+                        ->visible($isEditable)
+                        ->after(fn () => $this->ownerRecord->recalculateTotals()),
                 ]),
-            ]);
+            ])
+            ->paginated([10, 25, 50, 100])
+            ->defaultPaginationPageOption(25)
+            ->defaultSort('product.sku');
+    }
+
+    protected function recalculate($record): void
+    {
+        $record->refresh();
+        $record->calculateDifference();
+        $record->save();
+        $this->ownerRecord->recalculateTotals();
     }
 }
