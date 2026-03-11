@@ -456,6 +456,56 @@ class UserResource extends BaseResource
                         ->requiresConfirmation()
                         ->action(fn ($records) => $records->each->update(['must_change_password' => true])),
 
+                    Tables\Actions\BulkAction::make('createStaffProfiles')
+                        ->label(__('auth::auth.user_resource.create_staff_profiles'))
+                        ->icon('heroicon-o-user-plus')
+                        ->color('info')
+                        ->requiresConfirmation()
+                        ->modalHeading(__('auth::auth.user_resource.create_staff_profiles'))
+                        ->modalDescription(__('auth::auth.user_resource.create_staff_profiles_description'))
+                        ->form([
+                            Forms\Components\Select::make('branch_id')
+                                ->label(__('auth::auth.user_resource.branch'))
+                                ->relationship('branch', 'name')
+                                ->options(fn () => \Modules\Core\Models\Branch::pluck('name', 'id'))
+                                ->searchable()
+                                ->preload(),
+                            Forms\Components\DatePicker::make('hire_date')
+                                ->label(__('auth::auth.user_resource.hire_date'))
+                                ->default(now()),
+                        ])
+                        ->action(function ($records, array $data) {
+                            $created = 0;
+                            $skipped = 0;
+
+                            foreach ($records as $user) {
+                                // Skip if user already has a staff profile
+                                if (\Modules\Staff\Models\StaffProfile::where('user_id', $user->id)->exists()) {
+                                    $skipped++;
+                                    continue;
+                                }
+
+                                \Modules\Staff\Models\StaffProfile::create([
+                                    'user_id' => $user->id,
+                                    'branch_id' => $data['branch_id'] ?? null,
+                                    'job_title' => $user->job_title,
+                                    'hire_date' => $data['hire_date'] ?? now(),
+                                    'is_active' => true,
+                                ]);
+                                $created++;
+                            }
+
+                            \Filament\Notifications\Notification::make()
+                                ->title(__('auth::auth.user_resource.staff_profiles_created'))
+                                ->body(__('auth::auth.user_resource.staff_profiles_created_body', [
+                                    'created' => $created,
+                                    'skipped' => $skipped,
+                                ]))
+                                ->success()
+                                ->send();
+                        })
+                        ->deselectRecordsAfterCompletion(),
+
                     Tables\Actions\RestoreBulkAction::make(),
                     Tables\Actions\ForceDeleteBulkAction::make()
                         ->before(function ($records) {

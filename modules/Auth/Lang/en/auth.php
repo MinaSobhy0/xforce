@@ -465,6 +465,12 @@ return [
         'create_staff_profile' => 'Create Staff Profile',
         'view_staff_profile' => 'View Staff Profile',
         'staff_profile_created' => 'Staff profile created successfully',
+        'create_staff_profiles' => 'Create Staff Profiles',
+        'create_staff_profiles_description' => 'Create staff profiles for selected users. Users who already have a staff profile will be skipped.',
+        'staff_profiles_created' => 'Staff Profiles Created',
+        'staff_profiles_created_body' => ':created profile(s) created, :skipped skipped (already exist)',
+        'branch' => 'Branch',
+        'hire_date' => 'Hire Date',
         // Protection messages
         'cannot_delete_admin' => 'Cannot delete super admin users',
     ],

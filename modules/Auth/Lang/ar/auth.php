@@ -465,6 +465,12 @@ return [
         'create_staff_profile' => 'إنشاء ملف موظف',
         'view_staff_profile' => 'عرض ملف الموظف',
         'staff_profile_created' => 'تم إنشاء ملف الموظف بنجاح',
+        'create_staff_profiles' => 'إنشاء ملفات الموظفين',
+        'create_staff_profiles_description' => 'إنشاء ملفات الموظفين للمستخدمين المحددين. سيتم تخطي المستخدمين الذين لديهم ملف موظف بالفعل.',
+        'staff_profiles_created' => 'تم إنشاء ملفات الموظفين',
+        'staff_profiles_created_body' => 'تم إنشاء :created ملف(ات)، تم تخطي :skipped (موجود مسبقاً)',
+        'branch' => 'الفرع',
+        'hire_date' => 'تاريخ التعيين',
         // رسائل الحماية
         'cannot_delete_admin' => 'لا يمكن حذف مستخدمي المشرف الأعلى',
     ],
