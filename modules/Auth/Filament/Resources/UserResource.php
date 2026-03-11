@@ -15,7 +15,6 @@ use Filament\Infolists\Infolist;
 use Modules\Auth\Filament\Resources\UserResource\Pages;
 use Modules\Auth\Filament\Resources\UserResource\RelationManagers;
 use Filament\Support\Enums\FontWeight;
-use Filament\Tables\Enums\FiltersLayout;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Hash;
 
@@ -375,7 +374,7 @@ class UserResource extends BaseResource
                 Tables\Filters\Filter::make('inactive_users')
                     ->label(__('auth::auth.user_resource.inactive_users'))
                     ->query(fn (Builder $query): Builder => $query->where('last_login_at', '<', now()->subDays(30))),
-            ], layout: FiltersLayout::AboveContent)
+            ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
