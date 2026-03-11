@@ -54,6 +54,18 @@ class TenantRoleSeeder extends Seeder
                 'display_name' => 'Receptionist',
                 'permissions' => ['users.view'],
             ],
+            'sales' => [
+                'display_name' => 'Sales',
+                'permissions' => [
+                    'users.view',
+                    'patients.view', 'patients.create', 'patients.edit',
+                    'appointments.view', 'appointments.create', 'appointments.edit',
+                    'invoices.view', 'invoices.create',
+                    'packages.view',
+                    'gift_cards.view', 'gift_cards.create',
+                    'memberships.view', 'memberships.create',
+                ],
+            ],
             'staff' => [
                 'display_name' => 'Staff',
                 'permissions' => ['users.view'],
