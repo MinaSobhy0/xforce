@@ -170,7 +170,7 @@ class Tenant extends Model
                     VALUES (?, ?, ?, true, true, ?, ?, ?, ?)
                 ", [
                     $tenant->id,
-                    $tenant->slug . '.xlinic.com',
+                    $tenant->slug . '.x-linic.com',
                     'subdomain',
                     'valid',
                     now(),
@@ -201,7 +201,7 @@ class Tenant extends Model
             if ($tenant->isDirty('slug')) {
                 $tenant->domains()
                     ->where('type', 'subdomain')
-                    ->update(['domain' => $tenant->slug . '.xlinic.com']);
+                    ->update(['domain' => $tenant->slug . '.x-linic.com']);
             }
 
             // Handle custom domain changes

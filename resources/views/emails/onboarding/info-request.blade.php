@@ -10,7 +10,7 @@ Please reply to this email with the requested information, and we'll continue pr
 <x-mail::panel>
 **Application Details:**
 - Clinic Name: {{ $request->clinic_name }}
-- Subdomain: {{ $request->slug }}.xlinic.com
+- Subdomain: {{ $request->slug }}.x-linic.com
 - Plan: {{ $request->plan?->code ?? 'Not specified' }}
 </x-mail::panel>
 

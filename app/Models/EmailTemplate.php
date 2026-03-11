@@ -112,14 +112,14 @@ class EmailTemplate extends Model
             'doctor_name' => $isArabic ? 'د. سارة أحمد' : 'Dr. Sarah Ahmed',
             'invoice_amount' => $isArabic ? '1,500.00 ج.م' : 'EGP 1,500.00',
             'invoice_number' => 'INV-2026-0001',
-            'invoice_url' => 'https://app.xlinic.com/invoices/xxx',
-            'login_url' => 'https://cairo-glow.xlinic.com/admin',
-            'booking_link' => 'https://cairo-glow.xlinic.com/book',
+            'invoice_url' => 'https://app.x-linic.com/invoices/xxx',
+            'login_url' => 'https://cairo-glow.x-linic.com/admin',
+            'booking_link' => 'https://cairo-glow.x-linic.com/book',
             'usage_summary' => $isArabic ? '85 مريض، 12 مستخدم، 500MB تخزين' : '85 patients, 12 users, 500MB storage',
             'platform_name' => 'XLinic',
             'support_email' => 'support@xlinic.com',
             'amount' => $isArabic ? '1,500.00 ج.م' : 'EGP 1,500.00',
-            'reset_link' => 'https://app.xlinic.com/reset-password/xxx',
+            'reset_link' => 'https://app.x-linic.com/reset-password/xxx',
         ];
     }
 
