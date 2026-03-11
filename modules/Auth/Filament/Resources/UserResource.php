@@ -374,6 +374,8 @@ class UserResource extends BaseResource
                 Tables\Filters\Filter::make('inactive_users')
                     ->label(__('auth::auth.user_resource.inactive_users'))
                     ->query(fn (Builder $query): Builder => $query->where('last_login_at', '<', now()->subDays(30))),
+
+                Tables\Filters\TrashedFilter::make(),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
@@ -409,6 +411,10 @@ class UserResource extends BaseResource
                     }),
 
                 Tables\Actions\DeleteAction::make()
+                    ->hidden(fn (User $record): bool => $record->hasRole('super_admin') || $record->id === 1),
+
+                Tables\Actions\RestoreAction::make(),
+                Tables\Actions\ForceDeleteAction::make()
                     ->hidden(fn (User $record): bool => $record->hasRole('super_admin') || $record->id === 1),
             ])
             ->bulkActions([
@@ -449,6 +455,22 @@ class UserResource extends BaseResource
                         ->color('warning')
                         ->requiresConfirmation()
                         ->action(fn ($records) => $records->each->update(['must_change_password' => true])),
+
+                    Tables\Actions\RestoreBulkAction::make(),
+                    Tables\Actions\ForceDeleteBulkAction::make()
+                        ->before(function ($records) {
+                            $protectedIds = $records->filter(fn ($user) => $user->hasRole('super_admin') || $user->id === 1)->pluck('id');
+                            if ($protectedIds->isNotEmpty()) {
+                                \Filament\Notifications\Notification::make()
+                                    ->title(__('auth::auth.user_resource.cannot_delete_admin'))
+                                    ->danger()
+                                    ->send();
+                            }
+                        })
+                        ->using(function ($records) {
+                            $records->reject(fn ($user) => $user->hasRole('super_admin') || $user->id === 1)
+                                ->each->forceDelete();
+                        }),
                 ]),
             ])
             ->defaultSort('created_at', 'desc');
@@ -526,6 +548,14 @@ class UserResource extends BaseResource
             RelationManagers\AppointmentsRelationManager::class,
             RelationManagers\CommissionsRelationManager::class,
         ];
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->withoutGlobalScopes([
+                \Illuminate\Database\Eloquent\SoftDeletingScope::class,
+            ]);
     }
 
     public static function getPages(): array
