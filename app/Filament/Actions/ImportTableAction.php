@@ -592,10 +592,17 @@ class ImportTableAction extends Action
      */
     protected function fillRecord(Model $record, array $data, array $config): void
     {
-        // Detect if model has auto-generated sequence column
+        // Detect if model has auto-generated sequence column (protected property)
         $sequenceColumn = null;
         if (property_exists($record, 'sequenceColumn')) {
-            $sequenceColumn = $record->sequenceColumn;
+            try {
+                $reflection = new \ReflectionClass($record);
+                $prop = $reflection->getProperty('sequenceColumn');
+                $prop->setAccessible(true);
+                $sequenceColumn = $prop->getValue($record);
+            } catch (\Exception $e) {
+                // Ignore if can't access
+            }
         }
 
         foreach ($data as $field => $value) {

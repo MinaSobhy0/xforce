@@ -660,9 +660,16 @@ class DynamicImporterFactory
             'created_by', 'updated_by', 'password', 'remember_token',
         ];
 
-        // Skip auto-generated sequence column
+        // Skip auto-generated sequence column (protected property, use reflection)
         if (property_exists($model, 'sequenceColumn')) {
-            $skipFields[] = $model->sequenceColumn;
+            try {
+                $reflection = new \ReflectionClass($model);
+                $prop = $reflection->getProperty('sequenceColumn');
+                $prop->setAccessible(true);
+                $skipFields[] = $prop->getValue($model);
+            } catch (\Exception $e) {
+                // Ignore if can't access
+            }
         }
 
         try {
