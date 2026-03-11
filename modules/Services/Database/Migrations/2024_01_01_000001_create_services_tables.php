@@ -39,6 +39,8 @@ return new class extends Migration
             $table->id();
             $table->foreignId('tenant_id')->index();
             $table->foreignId('category_id')->nullable()->index();
+            $table->foreignId('unearned_revenue_account_id')->nullable();
+            $table->foreignId('service_revenue_account_id')->nullable();
             $table->foreignId('consent_template_id')->nullable()->index();
             $table->foreignId('parameter_template_id')->nullable();
             $table->string('parameter_mode', 20)->default('none'); // none, template, custom
@@ -71,6 +73,16 @@ return new class extends Migration
             $table->foreign('category_id')
                 ->references('id')
                 ->on('service_categories')
+                ->nullOnDelete();
+
+            $table->foreign('unearned_revenue_account_id')
+                ->references('id')
+                ->on('chart_of_accounts')
+                ->nullOnDelete();
+
+            $table->foreign('service_revenue_account_id')
+                ->references('id')
+                ->on('chart_of_accounts')
                 ->nullOnDelete();
 
             $table->unique(['tenant_id', 'code']);
