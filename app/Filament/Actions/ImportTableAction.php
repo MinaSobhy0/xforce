@@ -926,11 +926,13 @@ class ImportTableAction extends Action
                     $set('columnMap', array_reduce(
                         $this->getImporter()::getColumns(),
                         function (array $carry, ImportColumn $column) use ($lowercaseColumnKeys, $lowercaseColumnValues) {
+                            // Lowercase the guesses for case-insensitive comparison
+                            $lowercaseGuesses = array_map('strtolower', $column->getGuesses());
                             $carry[$column->getName()] = $lowercaseColumnKeys[
                                 Arr::first(
                                     array_intersect(
                                         $lowercaseColumnValues,
-                                        $column->getGuesses(),
+                                        $lowercaseGuesses,
                                     ),
                                 )
                             ] ?? null;
@@ -986,11 +988,13 @@ class ImportTableAction extends Action
                     $set('columnMap', array_reduce(
                         $this->getImporter()::getColumns(),
                         function (array $carry, ImportColumn $column) use ($lowercaseColumnKeys, $lowercaseColumnValues) {
+                            // Lowercase the guesses for case-insensitive comparison
+                            $lowercaseGuesses = array_map('strtolower', $column->getGuesses());
                             $carry[$column->getName()] = $lowercaseColumnKeys[
                                 Arr::first(
                                     array_intersect(
                                         $lowercaseColumnValues,
-                                        $column->getGuesses(),
+                                        $lowercaseGuesses,
                                     ),
                                 )
                             ] ?? null;
