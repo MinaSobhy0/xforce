@@ -120,6 +120,7 @@ return [
         'default_template_description' => 'ستورث الخدمات في هذه الفئة قالب المعايير هذا بشكل افتراضي',
         'revenue_accounts' => 'حسابات الإيرادات',
         'revenue_accounts_description' => 'تجاوز حسابات الفئة لهذه الخدمة المحددة. اتركها فارغة لاستخدام حسابات الفئة الافتراضية.',
+        'category_defaults' => 'حسابات الفئة الافتراضية',
     ],
 
     'helpers' => [
@@ -259,6 +260,7 @@ return [
         'category_unearned_account' => 'حساب الإيرادات غير المكتسبة للفئة: :account',
         'category_revenue_account' => 'حساب إيرادات الخدمات للفئة: :account',
         'no_category_accounts' => 'لم يتم تكوين حسابات على الفئة. قم بتكوينها في إعدادات الفئة.',
+        'not_configured' => 'غير مكون',
     ],
 
     'category_tree' => [

@@ -100,6 +100,7 @@ return [
         'category_unearned_account' => 'Category Unearned Revenue: :account',
         'category_revenue_account' => 'Category Service Revenue: :account',
         'no_category_accounts' => 'No accounts configured on category. Configure them in the category settings.',
+        'not_configured' => 'Not configured',
     ],
 
     'tabs' => [
@@ -134,6 +135,7 @@ return [
         'default_template_description' => 'Services in this category will inherit this parameter template by default',
         'revenue_accounts' => 'Revenue Accounts',
         'revenue_accounts_description' => 'Override category accounts for this specific service. Leave empty to use category defaults.',
+        'category_defaults' => 'Category Defaults',
     ],
 
     'helpers' => [

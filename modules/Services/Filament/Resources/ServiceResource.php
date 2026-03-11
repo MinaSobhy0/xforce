@@ -535,34 +535,29 @@ class ServiceResource extends Resource
                                 Forms\Components\Section::make(__('services::services.sections.revenue_accounts'))
                                     ->description(__('services::services.sections.revenue_accounts_description'))
                                     ->schema([
-                                        Forms\Components\Placeholder::make('category_accounts_info')
-                                            ->content(function ($record) {
-                                                if (!$record || !$record->category) {
-                                                    return __('services::services.messages.select_category_first');
-                                                }
+                                        Forms\Components\Fieldset::make(__('services::services.sections.category_defaults'))
+                                            ->schema([
+                                                Forms\Components\Placeholder::make('category_unearned_info')
+                                                    ->label(__('services::services.fields.unearned_revenue_account'))
+                                                    ->content(function ($record) {
+                                                        if (!$record || !$record->category) {
+                                                            return '-';
+                                                        }
+                                                        $account = $record->category->unearnedRevenueAccount;
+                                                        return $account ? "{$account->code} - {$account->name}" : __('services::services.messages.not_configured');
+                                                    }),
 
-                                                $category = $record->category;
-                                                $info = [];
-
-                                                if ($category->unearned_revenue_account_id) {
-                                                    $account = $category->unearnedRevenueAccount;
-                                                    $info[] = __('services::services.messages.category_unearned_account', [
-                                                        'account' => $account ? "{$account->code} - {$account->name}" : '-'
-                                                    ]);
-                                                }
-
-                                                if ($category->service_revenue_account_id) {
-                                                    $account = $category->serviceRevenueAccount;
-                                                    $info[] = __('services::services.messages.category_revenue_account', [
-                                                        'account' => $account ? "{$account->code} - {$account->name}" : '-'
-                                                    ]);
-                                                }
-
-                                                return count($info) > 0
-                                                    ? implode("\n", $info)
-                                                    : __('services::services.messages.no_category_accounts');
-                                            })
-                                            ->columnSpanFull(),
+                                                Forms\Components\Placeholder::make('category_revenue_info')
+                                                    ->label(__('services::services.fields.service_revenue_account'))
+                                                    ->content(function ($record) {
+                                                        if (!$record || !$record->category) {
+                                                            return '-';
+                                                        }
+                                                        $account = $record->category->serviceRevenueAccount;
+                                                        return $account ? "{$account->code} - {$account->name}" : __('services::services.messages.not_configured');
+                                                    }),
+                                            ])
+                                            ->columns(2),
 
                                         Forms\Components\Select::make('unearned_revenue_account_id')
                                             ->label(__('services::services.fields.unearned_revenue_account'))
