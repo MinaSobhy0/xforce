@@ -378,9 +378,12 @@ class AccountingIntegrationService
             return ChartOfAccount::find($line->product->income_account_id);
         }
 
-        // If line has a service, use service revenue account
-        if ($line->service_id) {
-            return $this->defaultAccounts->getServiceRevenueAccount();
+        // If line has a service, use service's effective revenue account (service -> category -> default)
+        if ($line->service_id && $line->service) {
+            $serviceAccount = $line->service->getEffectiveServiceRevenueAccount();
+            if ($serviceAccount) {
+                return $serviceAccount;
+            }
         }
 
         // Default to service revenue
