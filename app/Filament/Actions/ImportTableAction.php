@@ -407,13 +407,20 @@ class ImportTableAction extends Action
             }
 
             // Special handling for Spatie roles/permissions (polymorphic relationships)
+            // Spatie expects role names or Role models, not just IDs
             if ($relationName === 'roles' && method_exists($record, 'syncRoles')) {
-                $record->syncRoles($ids);
+                $roleNames = \Spatie\Permission\Models\Role::whereIn('id', $ids)->pluck('name')->toArray();
+                if (!empty($roleNames)) {
+                    $record->syncRoles($roleNames);
+                }
                 continue;
             }
 
             if ($relationName === 'permissions' && method_exists($record, 'syncPermissions')) {
-                $record->syncPermissions($ids);
+                $permissionNames = \Spatie\Permission\Models\Permission::whereIn('id', $ids)->pluck('name')->toArray();
+                if (!empty($permissionNames)) {
+                    $record->syncPermissions($permissionNames);
+                }
                 continue;
             }
 
