@@ -613,34 +613,65 @@ class DynamicImporterFactory
     }
 
     /**
-     * Detect required fields from model.
+     * Detect required fields from model based on database schema.
      */
     protected static function detectRequiredFields(Model $model): array
     {
         $required = [];
-
-        // Common required field patterns
-        $commonRequired = [
-            'name', 'email', 'code', 'sku', 'first_name', 'last_name',
-            'title', 'username', 'phone', 'brand_name', 'generic_name',
-        ];
-
         $fillable = $model->getFillable();
         $translatable = property_exists($model, 'translatable') ? ($model->translatable ?? []) : [];
 
-        foreach ($fillable as $field) {
-            // Skip auto-generated and tenant fields
-            if (in_array($field, ['id', 'tenant_id', 'created_at', 'updated_at', 'deleted_at'])) {
-                continue;
-            }
+        // Skip these fields - they are auto-managed
+        $skipFields = [
+            'id', 'tenant_id', 'branch_id', 'created_at', 'updated_at', 'deleted_at',
+            'created_by', 'updated_by', 'password', 'remember_token',
+        ];
 
-            // Check if it's a common required field
-            if (in_array($field, $commonRequired)) {
-                $required[] = $field;
+        try {
+            // Get database schema information
+            $connection = $model->getConnection();
+            $table = $model->getTable();
+            $columns = $connection->getSchemaBuilder()->getColumns($table);
+
+            foreach ($columns as $column) {
+                $columnName = $column['name'];
+
+                // Skip if not fillable or in skip list
+                if (!in_array($columnName, $fillable) || in_array($columnName, $skipFields)) {
+                    continue;
+                }
+
+                // Skip translatable fields (handled separately)
+                if (in_array($columnName, $translatable)) {
+                    continue;
+                }
+
+                // Check if column is NOT NULL and has no default
+                $isNotNull = !$column['nullable'];
+                $hasDefault = $column['default'] !== null;
+
+                if ($isNotNull && !$hasDefault) {
+                    $required[] = $columnName;
+                }
+            }
+        } catch (\Exception $e) {
+            // Fallback to common required fields if schema detection fails
+            $commonRequired = [
+                'name', 'email', 'code', 'sku', 'first_name', 'last_name',
+                'title', 'username', 'brand_name', 'generic_name',
+            ];
+
+            foreach ($fillable as $field) {
+                if (in_array($field, $skipFields)) {
+                    continue;
+                }
+                if (in_array($field, $commonRequired)) {
+                    $required[] = $field;
+                }
             }
         }
 
-        // For translatable fields, at least one language should be required if name/title
+        // For translatable fields, at least one language should be required if field is required
         foreach ($translatable as $field) {
             if (in_array($field, ['name', 'title'])) {
                 $required[] = "{$field}_en"; // At least English is required
