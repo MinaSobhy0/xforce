@@ -502,8 +502,12 @@ class ImportTableAction extends Action
                     break;
 
                 default:
+                    // Check if cast is an enum class
+                    if (is_string($cast) && enum_exists($cast)) {
+                        $processed[$field] = DynamicImporterFactory::parseEnum($value, $cast);
+                    }
                     // Check for constants
-                    if (isset($config['constants'][$field])) {
+                    elseif (isset($config['constants'][$field])) {
                         $processed[$field] = DynamicImporterFactory::resolveConstant($value, $config['constants'][$field]);
                     } else {
                         $processed[$field] = $value;

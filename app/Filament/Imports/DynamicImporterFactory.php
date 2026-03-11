@@ -837,4 +837,43 @@ class DynamicImporterFactory
 
         return $state;
     }
+
+    /**
+     * Parse enum value (case-insensitive).
+     */
+    public static function parseEnum(mixed $state, string $enumClass): mixed
+    {
+        if ($state === null || $state === '') {
+            return null;
+        }
+
+        $state = trim((string) $state);
+
+        // Try exact match first
+        foreach ($enumClass::cases() as $case) {
+            if ($case->value === $state || $case->name === $state) {
+                return $case->value;
+            }
+        }
+
+        // Try case-insensitive match
+        $lowerState = strtolower($state);
+        foreach ($enumClass::cases() as $case) {
+            if (strtolower($case->value) === $lowerState || strtolower($case->name) === $lowerState) {
+                return $case->value;
+            }
+        }
+
+        // Try matching by label if the enum has a label method
+        if (method_exists($enumClass, 'label')) {
+            foreach ($enumClass::cases() as $case) {
+                if (strtolower($case->label()) === $lowerState) {
+                    return $case->value;
+                }
+            }
+        }
+
+        // Return lowercase as fallback (most enums use lowercase values)
+        return strtolower($state);
+    }
 }
