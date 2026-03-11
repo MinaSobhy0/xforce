@@ -145,7 +145,35 @@ class InventoryAdjustmentResource extends Resource
                                         if (!$product) return '-';
                                         return "[{$product->sku}] " . $product->getTranslation('name', app()->getLocale());
                                     })
-                                    ->columnSpan(4),
+                                    ->columnSpan(3),
+
+                                Forms\Components\Select::make('uom_id')
+                                    ->label(__('inventory::inventory.fields.uom'))
+                                    ->options(function (Forms\Get $get) {
+                                        $productId = $get('product_id');
+                                        if (!$productId) return [];
+
+                                        $product = \Modules\Inventory\Models\Product::find($productId);
+                                        if (!$product || !$product->salesUom) return [];
+
+                                        // Get UOMs from the same category as the product's sales UOM
+                                        $categoryId = $product->salesUom->category_id;
+                                        return \Modules\Inventory\Models\Uom::where('category_id', $categoryId)
+                                            ->active()
+                                            ->get()
+                                            ->mapWithKeys(fn ($uom) => [
+                                                $uom->id => $uom->getTranslation('name', app()->getLocale()) . ' (' . $uom->abbreviation . ')'
+                                            ]);
+                                    })
+                                    ->default(function (Forms\Get $get) {
+                                        $productId = $get('product_id');
+                                        if (!$productId) return null;
+                                        $product = \Modules\Inventory\Models\Product::find($productId);
+                                        return $product?->sales_uom_id;
+                                    })
+                                    ->searchable()
+                                    ->preload()
+                                    ->columnSpan(2),
 
                                 Forms\Components\TextInput::make('theoretical_qty')
                                     ->label(__('inventory::inventory.fields.theoretical_qty'))
@@ -184,7 +212,7 @@ class InventoryAdjustmentResource extends Resource
                                             "<span class=\"font-semibold {$color}\">{$prefix}{$diff}</span>"
                                         );
                                     })
-                                    ->columnSpan(2),
+                                    ->columnSpan(1),
 
                                 Forms\Components\Hidden::make('difference_qty'),
                                 Forms\Components\Hidden::make('unit_cost_minor'),
@@ -407,6 +435,10 @@ class InventoryAdjustmentResource extends Resource
                                     ->label(__('inventory::inventory.fields.product'))
                                     ->getStateUsing(fn ($record) => $record->product?->getTranslation('name', app()->getLocale())),
 
+                                Infolists\Components\TextEntry::make('uom.abbreviation')
+                                    ->label(__('inventory::inventory.fields.uom'))
+                                    ->placeholder('-'),
+
                                 Infolists\Components\TextEntry::make('theoretical_qty')
                                     ->label(__('inventory::inventory.fields.theoretical_qty'))
                                     ->alignCenter(),
@@ -434,7 +466,7 @@ class InventoryAdjustmentResource extends Resource
                                         default => 'gray',
                                     }),
                             ])
-                            ->columns(6),
+                            ->columns(7),
                     ]),
 
                 Infolists\Components\Section::make(__('inventory::inventory.sections.validation_info'))

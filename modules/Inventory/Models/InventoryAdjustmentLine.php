@@ -14,6 +14,7 @@ class InventoryAdjustmentLine extends BaseModel
         'tenant_id',
         'inventory_adjustment_id',
         'product_id',
+        'uom_id',
         'theoretical_qty',
         'counted_qty',
         'difference_qty',
@@ -46,6 +47,11 @@ class InventoryAdjustmentLine extends BaseModel
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class, 'product_id');
+    }
+
+    public function uom(): BelongsTo
+    {
+        return $this->belongsTo(Uom::class, 'uom_id');
     }
 
     /*
