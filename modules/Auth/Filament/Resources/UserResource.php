@@ -466,8 +466,8 @@ class UserResource extends BaseResource
                         ->form([
                             Forms\Components\Select::make('branch_id')
                                 ->label(__('auth::auth.user_resource.branch'))
-                                ->relationship('branch', 'name')
                                 ->options(fn () => \Modules\Core\Models\Branch::pluck('name', 'id'))
+                                ->default(fn () => current_branch_id())
                                 ->searchable()
                                 ->preload(),
                             Forms\Components\DatePicker::make('hire_date')
