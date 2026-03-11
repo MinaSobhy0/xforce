@@ -660,6 +660,11 @@ class DynamicImporterFactory
             'created_by', 'updated_by', 'password', 'remember_token',
         ];
 
+        // Skip auto-generated sequence column
+        if (property_exists($model, 'sequenceColumn')) {
+            $skipFields[] = $model->sequenceColumn;
+        }
+
         try {
             // Get database schema information
             $connection = $model->getConnection();
@@ -689,8 +694,9 @@ class DynamicImporterFactory
             }
         } catch (\Exception $e) {
             // Fallback to common required fields if schema detection fails
+            // Note: 'code' and 'sku' removed as they may be auto-generated
             $commonRequired = [
-                'name', 'email', 'code', 'sku', 'first_name', 'last_name',
+                'name', 'email', 'first_name', 'last_name',
                 'title', 'username', 'brand_name', 'generic_name',
             ];
 
