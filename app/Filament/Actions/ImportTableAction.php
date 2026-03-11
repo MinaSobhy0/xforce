@@ -104,7 +104,7 @@ class ImportTableAction extends Action
         ]);
 
         // Define the actual import action
-        $this->action(function (array $data): void {
+        $this->action(function (array $data, $action): void {
             // Validate required columns are mapped
             $missingRequired = $this->validateRequiredMappings($data['columnMap'] ?? []);
 
@@ -117,6 +117,8 @@ class ImportTableAction extends Action
                     ->danger()
                     ->persistent()
                     ->send();
+
+                $action->halt();
                 return;
             }
 
@@ -176,9 +178,10 @@ class ImportTableAction extends Action
 
         $columnMap = $data['columnMap'] ?? [];
         $importMode = $data['import_mode'] ?? 'create_and_update';
+        $sheetName = $data['sheet_name'] ?? null;
 
         // Read data from file
-        $rows = $this->readFileData($file);
+        $rows = $this->readFileData($file, $sheetName);
 
         if (empty($rows)) {
             Notification::make()
@@ -613,13 +616,13 @@ class ImportTableAction extends Action
     /**
      * Read data from uploaded file (CSV or Excel).
      */
-    protected function readFileData(TemporaryUploadedFile $file): array
+    protected function readFileData(TemporaryUploadedFile $file, ?string $sheetName = null): array
     {
         $extension = strtolower($file->getClientOriginalExtension());
         $filePath = $file->getRealPath();
 
         if (in_array($extension, ['xlsx', 'xls'])) {
-            return $this->readExcelData($filePath);
+            return $this->readExcelData($filePath, $sheetName);
         }
 
         return $this->readCsvData($file);
@@ -628,11 +631,20 @@ class ImportTableAction extends Action
     /**
      * Read data from Excel file.
      */
-    protected function readExcelData(string $filePath): array
+    protected function readExcelData(string $filePath, ?string $sheetName = null): array
     {
         try {
             $spreadsheet = IOFactory::load($filePath);
-            $worksheet = $spreadsheet->getActiveSheet();
+
+            if ($sheetName) {
+                $worksheet = $spreadsheet->getSheetByName($sheetName);
+            } else {
+                $worksheet = $spreadsheet->getActiveSheet();
+            }
+
+            if (!$worksheet) {
+                return [];
+            }
 
             $rows = [];
             $headers = [];
@@ -710,26 +722,61 @@ class ImportTableAction extends Action
     /**
      * Extract column headers from uploaded file (CSV or Excel).
      */
-    protected function getFileHeaders(TemporaryUploadedFile $file): array
+    protected function getFileHeaders(TemporaryUploadedFile $file, ?string $sheetName = null): array
     {
         $extension = strtolower($file->getClientOriginalExtension());
         $filePath = $file->getRealPath();
 
         if (in_array($extension, ['xlsx', 'xls'])) {
-            return $this->getExcelHeaders($filePath);
+            return $this->getExcelHeaders($filePath, $sheetName);
         }
 
         return $this->getCsvHeaders($file);
     }
 
     /**
-     * Get headers from Excel file.
+     * Check if file is an Excel file.
      */
-    protected function getExcelHeaders(string $filePath): array
+    protected function isExcelFile(?TemporaryUploadedFile $file): bool
+    {
+        if (!$file) {
+            return false;
+        }
+        $extension = strtolower($file->getClientOriginalExtension());
+        return in_array($extension, ['xlsx', 'xls']);
+    }
+
+    /**
+     * Get sheet names from Excel file.
+     */
+    protected function getExcelSheetNames(string $filePath): array
     {
         try {
             $spreadsheet = IOFactory::load($filePath);
-            $worksheet = $spreadsheet->getActiveSheet();
+            return $spreadsheet->getSheetNames();
+        } catch (\Exception $e) {
+            return [];
+        }
+    }
+
+    /**
+     * Get headers from Excel file.
+     */
+    protected function getExcelHeaders(string $filePath, ?string $sheetName = null): array
+    {
+        try {
+            $spreadsheet = IOFactory::load($filePath);
+
+            if ($sheetName) {
+                $worksheet = $spreadsheet->getSheetByName($sheetName);
+            } else {
+                $worksheet = $spreadsheet->getActiveSheet();
+            }
+
+            if (!$worksheet) {
+                return [];
+            }
+
             $headerRow = $worksheet->getRowIterator(1, 1)->current();
             $cellIterator = $headerRow->getCellIterator();
             $cellIterator->setIterateOnlyExistingCells(false);
@@ -849,6 +896,77 @@ class ImportTableAction extends Action
                 ->required()
                 ->live(),
 
+            // Sheet Selection (only for Excel files)
+            Select::make('sheet_name')
+                ->label(__('core::import.modal.form.sheet.label'))
+                ->placeholder(__('core::import.modal.form.sheet.placeholder'))
+                ->options(function (Forms\Get $get): array {
+                    $file = Arr::first((array)($get('file') ?? []));
+
+                    if (!$file instanceof TemporaryUploadedFile) {
+                        return [];
+                    }
+
+                    if (!$this->isExcelFile($file)) {
+                        return [];
+                    }
+
+                    $sheets = $this->getExcelSheetNames($file->getRealPath());
+                    return array_combine($sheets, $sheets);
+                })
+                ->afterStateUpdated(function (Forms\Set $set, Forms\Get $get, ?string $state) {
+                    $file = Arr::first((array)($get('file') ?? []));
+
+                    if (!$file instanceof TemporaryUploadedFile || !$state) {
+                        return;
+                    }
+
+                    // Re-map columns when sheet changes
+                    $fileColumns = $this->getFileHeaders($file, $state);
+
+                    if (empty($fileColumns)) {
+                        return;
+                    }
+
+                    $lowercaseColumnValues = array_map(Str::lower(...), $fileColumns);
+                    $lowercaseColumnKeys = array_combine(
+                        $lowercaseColumnValues,
+                        $fileColumns,
+                    );
+
+                    $set('columnMap', array_reduce(
+                        $this->getImporter()::getColumns(),
+                        function (array $carry, ImportColumn $column) use ($lowercaseColumnKeys, $lowercaseColumnValues) {
+                            $carry[$column->getName()] = $lowercaseColumnKeys[
+                                Arr::first(
+                                    array_intersect(
+                                        $lowercaseColumnValues,
+                                        $column->getGuesses(),
+                                    ),
+                                )
+                            ] ?? null;
+
+                            return $carry;
+                        },
+                        []
+                    ));
+                })
+                ->live()
+                ->visible(function (Forms\Get $get): bool {
+                    $file = Arr::first((array)($get('file') ?? []));
+
+                    if (!$file instanceof TemporaryUploadedFile) {
+                        return false;
+                    }
+
+                    if (!$this->isExcelFile($file)) {
+                        return false;
+                    }
+
+                    $sheets = $this->getExcelSheetNames($file->getRealPath());
+                    return count($sheets) > 1;
+                }),
+
             // Import Mode Selection
             Radio::make('import_mode')
                 ->label(__('core::import.modal.form.import_mode.label'))
@@ -890,7 +1008,9 @@ class ImportTableAction extends Action
                         return [];
                     }
 
-                    $fileColumns = $this->getFileHeaders($file);
+                    $sheetName = $get('sheet_name');
+
+                    $fileColumns = $this->getFileHeaders($file, $sheetName);
 
                     if (empty($fileColumns)) {
                         return [];

@@ -49,6 +49,7 @@ class DynamicImporterFactory
             'constants' => [],
             'hidden' => method_exists($model, 'getHidden') ? $model->getHidden() : [],
             'uniqueFields' => [],
+            'requiredFields' => static::detectRequiredFields($model),
         ];
 
         // Detect translatable fields
@@ -284,10 +285,12 @@ class DynamicImporterFactory
     {
         $columns = [];
         $baseLabel = static::getFieldLabel($field);
+        $requiredFields = $config['requiredFields'] ?? [];
 
         foreach (['en', 'ar'] as $lang) {
             $columnName = "{$field}_{$lang}";
             $label = $baseLabel . ' (' . strtoupper($lang) . ')';
+            $isRequired = in_array($columnName, $requiredFields);
 
             $column = ImportColumn::make($columnName)
                 ->label($label)
@@ -303,6 +306,11 @@ class DynamicImporterFactory
                 })
                 ->rules(['nullable', 'string'])
                 ->guess(static::getColumnGuesses($field, $lang));
+
+            // Mark as required if detected
+            if ($isRequired) {
+                $column->requiredMapping();
+            }
 
             $columns[] = $column;
         }
@@ -535,10 +543,16 @@ class DynamicImporterFactory
     {
         $label = static::getFieldLabel($field);
         $cast = $config['casts'][$field] ?? 'string';
+        $isRequired = in_array($field, $config['requiredFields'] ?? []);
 
         $column = ImportColumn::make($field)
             ->label($label)
             ->guess(static::getColumnGuesses($field));
+
+        // Mark as required if detected
+        if ($isRequired) {
+            $column->requiredMapping();
+        }
 
         // Check if field has constants
         $constants = $config['constants'][$field] ?? null;
@@ -579,9 +593,6 @@ class DynamicImporterFactory
                 break;
         }
 
-        // Don't mark fields as required here - let the model validation handle it
-        // The generic importer should be flexible and allow partial imports
-
         return $column;
     }
 
@@ -599,6 +610,41 @@ class DynamicImporterFactory
         }
 
         return Str::headline($field);
+    }
+
+    /**
+     * Detect required fields from model.
+     */
+    protected static function detectRequiredFields(Model $model): array
+    {
+        $required = [];
+
+        // Common required field patterns
+        $commonRequired = ['name', 'email', 'code', 'sku', 'first_name', 'title'];
+
+        $fillable = $model->getFillable();
+        $translatable = property_exists($model, 'translatable') ? ($model->translatable ?? []) : [];
+
+        foreach ($fillable as $field) {
+            // Skip auto-generated and tenant fields
+            if (in_array($field, ['id', 'tenant_id', 'created_at', 'updated_at', 'deleted_at'])) {
+                continue;
+            }
+
+            // Check if it's a common required field
+            if (in_array($field, $commonRequired)) {
+                $required[] = $field;
+            }
+        }
+
+        // For translatable fields, at least one language should be required if name/title
+        foreach ($translatable as $field) {
+            if (in_array($field, ['name', 'title'])) {
+                $required[] = "{$field}_en"; // At least English is required
+            }
+        }
+
+        return array_unique($required);
     }
 
     /**

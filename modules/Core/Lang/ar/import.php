@@ -32,6 +32,10 @@ return [
             'columns' => [
                 'label' => 'تعيين الأعمدة',
             ],
+            'sheet' => [
+                'label' => 'الورقة',
+                'placeholder' => 'اختر ورقة...',
+            ],
             'available_columns' => [
                 'label' => 'الحقول المتاحة',
                 'required' => 'مطلوب',

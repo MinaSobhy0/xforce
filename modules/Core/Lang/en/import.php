@@ -32,6 +32,10 @@ return [
             'columns' => [
                 'label' => 'Column Mapping',
             ],
+            'sheet' => [
+                'label' => 'Sheet',
+                'placeholder' => 'Select a sheet...',
+            ],
             'available_columns' => [
                 'label' => 'Available Fields',
                 'required' => 'Required',
