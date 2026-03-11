@@ -656,7 +656,8 @@ class ImportTableAction extends Action
 
                 $rowData = [];
                 foreach ($cellIterator as $cell) {
-                    $rowData[] = $cell->getValue();
+                    // Use getCalculatedValue() to get formula results instead of formula text
+                    $rowData[] = $cell->getCalculatedValue();
                 }
 
                 // First row is headers
@@ -783,7 +784,8 @@ class ImportTableAction extends Action
 
             $headers = [];
             foreach ($cellIterator as $cell) {
-                $value = $cell->getValue();
+                // Use getCalculatedValue() to get formula results instead of formula text
+                $value = $cell->getCalculatedValue();
                 if ($value !== null && $value !== '') {
                     $headers[] = (string) $value;
                 }
