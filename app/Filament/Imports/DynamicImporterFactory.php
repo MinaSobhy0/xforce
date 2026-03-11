@@ -458,8 +458,9 @@ class DynamicImporterFactory
             }
         }
 
-        // Apply tenant filter if model has tenant_id
-        if (in_array('tenant_id', $fillable)) {
+        // Apply tenant filter if model has tenant_id AND we have a valid tenant_id
+        // Skip if null since PostgreSQL schema-based isolation already scopes the data
+        if (in_array('tenant_id', $fillable) && $tenantId !== null) {
             $query->where('tenant_id', $tenantId);
         }
 
