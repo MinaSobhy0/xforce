@@ -408,11 +408,27 @@ class UserResource extends BaseResource
                         ]);
                     }),
 
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\DeleteAction::make()
+                    ->hidden(fn (User $record): bool => $record->hasRole('super_admin') || $record->id === 1),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->before(function ($records) {
+                            // Filter out super_admin users and user ID 1
+                            $protectedIds = $records->filter(fn ($user) => $user->hasRole('super_admin') || $user->id === 1)->pluck('id');
+                            if ($protectedIds->isNotEmpty()) {
+                                \Filament\Notifications\Notification::make()
+                                    ->title(__('auth::auth.user_resource.cannot_delete_admin'))
+                                    ->danger()
+                                    ->send();
+                            }
+                        })
+                        ->using(function ($records) {
+                            // Only delete non-protected users
+                            $records->reject(fn ($user) => $user->hasRole('super_admin') || $user->id === 1)
+                                ->each->delete();
+                        }),
 
                     Tables\Actions\BulkAction::make('activate')
                         ->label(__('auth::auth.user_resource.activate'))

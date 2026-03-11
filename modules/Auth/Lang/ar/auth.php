@@ -465,6 +465,8 @@ return [
         'create_staff_profile' => 'إنشاء ملف موظف',
         'view_staff_profile' => 'عرض ملف الموظف',
         'staff_profile_created' => 'تم إنشاء ملف الموظف بنجاح',
+        // رسائل الحماية
+        'cannot_delete_admin' => 'لا يمكن حذف مستخدمي المشرف الأعلى',
     ],
 
     // الأخطاء

@@ -465,6 +465,8 @@ return [
         'create_staff_profile' => 'Create Staff Profile',
         'view_staff_profile' => 'View Staff Profile',
         'staff_profile_created' => 'Staff profile created successfully',
+        // Protection messages
+        'cannot_delete_admin' => 'Cannot delete super admin users',
     ],
 
     // Errors
