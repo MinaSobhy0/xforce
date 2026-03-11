@@ -497,7 +497,7 @@
         {{-- Icon Rail (Left Sidebar) - LIGHT --}}
         <div class="fi-sidebar-rail-light" style="width: 85px; height: 100%; display: flex; flex-direction: column; flex-shrink: 0;">
             {{-- Logo Area --}}
-            <header class="fi-rail-header" style="height: 64px; display: flex; align-items: center; justify-content: center;">
+            <header class="fi-rail-header" style="height: 64px; display: flex; align-items: center; justify-content: center; padding: 4px;">
                 @if ($homeUrl = filament()->getHomeUrl())
                     <a {{ \Filament\Support\generate_href_html($homeUrl) }} style="display: flex; align-items: center; justify-content: center;">
                         @php
@@ -505,17 +505,25 @@
                             $logoDark = \App\Models\PlatformSetting::get('platform_logo_dark');
                         @endphp
                         @if($logoLight || $logoDark)
-                            {{-- Light mode logo --}}
-                            @if($logoLight)
-                                <img src="{{ asset('storage/' . $logoLight) }}" alt="Logo" class="dark:hidden" style="height: 32px; width: auto; object-fit: contain;" />
-                            @endif
-                            {{-- Dark mode logo --}}
-                            @if($logoDark)
-                                <img src="{{ asset('storage/' . $logoDark) }}" alt="Logo" class="hidden dark:block" style="height: 32px; width: auto; object-fit: contain;" />
-                            @elseif($logoLight)
-                                {{-- Fallback: use light logo with invert filter in dark mode --}}
-                                <img src="{{ asset('storage/' . $logoLight) }}" alt="Logo" class="hidden dark:block" style="height: 32px; width: auto; object-fit: contain; filter: brightness(0) invert(1);" />
-                            @endif
+                            <div x-data="{ isDark: document.documentElement.classList.contains('dark') }"
+                                 x-init="
+                                    const observer = new MutationObserver(() => {
+                                        isDark = document.documentElement.classList.contains('dark');
+                                    });
+                                    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+                                 ">
+                                {{-- Light mode logo --}}
+                                @if($logoLight)
+                                    <img x-show="!isDark" src="{{ asset('storage/' . $logoLight) }}" alt="Logo" style="height: 32px; width: auto; object-fit: contain;" />
+                                @endif
+                                {{-- Dark mode logo --}}
+                                @if($logoDark)
+                                    <img x-show="isDark" src="{{ asset('storage/' . $logoDark) }}" alt="Logo" style="height: 32px; width: auto; object-fit: contain;" />
+                                @elseif($logoLight)
+                                    {{-- Fallback: use light logo with invert filter in dark mode --}}
+                                    <img x-show="isDark" src="{{ asset('storage/' . $logoLight) }}" alt="Logo" style="height: 32px; width: auto; object-fit: contain; filter: brightness(0) invert(1);" />
+                                @endif
+                            </div>
                         @else
                             <div class="fi-rail-logo" style="font-size: 18px; font-weight: 700; letter-spacing: -0.02em;">
                                 <span style="color: #6366f1;">X</span>Linic
