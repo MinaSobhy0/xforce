@@ -1019,18 +1019,8 @@ class ImportTableAction extends Action
                     $columnOptions = array_combine($fileColumns, $fileColumns);
 
                     return array_map(
-                        function (ImportColumn $column) use ($columnOptions): Select {
-                            $label = $column->getLabel();
-                            if ($column->isMappingRequired()) {
-                                $label = new \Illuminate\Support\HtmlString(
-                                    e($label) . ' <span class="text-danger-600 dark:text-danger-400">*</span>'
-                                );
-                            }
-
-                            return $column->getSelect()
-                                ->options(['' => __('core::import.modal.form.skip_column')] + $columnOptions)
-                                ->label($label);
-                        },
+                        fn(ImportColumn $column): Select => $column->getSelect()
+                            ->options(['' => __('core::import.modal.form.skip_column')] + $columnOptions),
                         $this->getImporter()::getColumns(),
                     );
                 })
