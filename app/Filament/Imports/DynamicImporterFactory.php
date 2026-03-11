@@ -539,7 +539,17 @@ class DynamicImporterFactory
         // For staff/user models, try to find by combining first_name + last_name
         if (in_array('first_name', $fillable) && in_array('last_name', $fillable)) {
             $searchQuery = clone $query;
-            $found = $searchQuery->whereRaw("CONCAT(first_name, ' ', last_name) ILIKE ?", ["%{$value}%"])->first();
+            // Use TRIM to handle extra spaces and normalize the comparison
+            $found = $searchQuery->whereRaw("TRIM(CONCAT(TRIM(first_name), ' ', TRIM(last_name))) ILIKE ?", ["%{$value}%"])->first();
+            if ($found) {
+                return $found->id;
+            }
+            // Also try matching just first_name or last_name
+            $searchQuery = clone $query;
+            $found = $searchQuery->where(function ($q) use ($value) {
+                $q->whereRaw("TRIM(first_name) ILIKE ?", ["%{$value}%"])
+                  ->orWhereRaw("TRIM(last_name) ILIKE ?", ["%{$value}%"]);
+            })->first();
             if ($found) {
                 return $found->id;
             }
@@ -550,7 +560,9 @@ class DynamicImporterFactory
             $searchQuery = clone $query;
             $found = $searchQuery->whereHas('user', function ($q) use ($value) {
                 $q->where('email', 'ILIKE', $value)
-                  ->orWhereRaw("CONCAT(first_name, ' ', last_name) ILIKE ?", ["%{$value}%"]);
+                  ->orWhereRaw("TRIM(CONCAT(TRIM(first_name), ' ', TRIM(last_name))) ILIKE ?", ["%{$value}%"])
+                  ->orWhereRaw("TRIM(first_name) ILIKE ?", ["%{$value}%"])
+                  ->orWhereRaw("TRIM(last_name) ILIKE ?", ["%{$value}%"]);
             })->first();
             if ($found) {
                 return $found->id;
