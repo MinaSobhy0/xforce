@@ -105,8 +105,45 @@ class ImportTableAction extends Action
 
         // Define the actual import action
         $this->action(function (array $data): void {
+            // Validate required columns are mapped
+            $missingRequired = $this->validateRequiredMappings($data['columnMap'] ?? []);
+
+            if (!empty($missingRequired)) {
+                Notification::make()
+                    ->title(__('core::import.validation.missing_mappings'))
+                    ->body(__('core::import.validation.required_mapping_list', [
+                        'fields' => implode(', ', $missingRequired)
+                    ]))
+                    ->danger()
+                    ->persistent()
+                    ->send();
+                return;
+            }
+
             $this->processImport($data);
         });
+    }
+
+    /**
+     * Validate that all required columns are mapped.
+     *
+     * @return array List of missing required field labels
+     */
+    protected function validateRequiredMappings(array $columnMap): array
+    {
+        $missing = [];
+        $columns = $this->getImporter()::getColumns();
+
+        foreach ($columns as $column) {
+            if ($column->isMappingRequired()) {
+                $fieldName = $column->getName();
+                if (empty($columnMap[$fieldName])) {
+                    $missing[] = $column->getLabel();
+                }
+            }
+        }
+
+        return $missing;
     }
 
     /**
@@ -740,6 +777,42 @@ class ImportTableAction extends Action
     protected function getImportForm(): array
     {
         return [
+            // Show available columns before file upload
+            Forms\Components\Placeholder::make('available_columns')
+                ->label(__('core::import.modal.form.available_columns.label'))
+                ->content(function (): \Illuminate\Support\HtmlString {
+                    $columns = $this->getImporter()::getColumns();
+                    $required = [];
+                    $optional = [];
+
+                    foreach ($columns as $column) {
+                        $label = $column->getLabel();
+                        if ($column->isMappingRequired()) {
+                            $required[] = $label;
+                        } else {
+                            $optional[] = $label;
+                        }
+                    }
+
+                    $html = '<div class="text-sm space-y-2">';
+
+                    if (!empty($required)) {
+                        $html .= '<div><span class="font-semibold text-danger-600 dark:text-danger-400">' . __('core::import.modal.form.available_columns.required') . ':</span> ';
+                        $html .= implode(', ', $required);
+                        $html .= '</div>';
+                    }
+
+                    if (!empty($optional)) {
+                        $html .= '<div><span class="font-semibold text-gray-600 dark:text-gray-400">' . __('core::import.modal.form.available_columns.optional') . ':</span> ';
+                        $html .= implode(', ', $optional);
+                        $html .= '</div>';
+                    }
+
+                    $html .= '</div>';
+
+                    return new \Illuminate\Support\HtmlString($html);
+                }),
+
             // Step 1: File Upload
             FileUpload::make('file')
                 ->label(__('core::import.modal.form.file.label'))

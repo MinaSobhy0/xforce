@@ -32,6 +32,11 @@ return [
             'columns' => [
                 'label' => 'Column Mapping',
             ],
+            'available_columns' => [
+                'label' => 'Available Fields',
+                'required' => 'Required',
+                'optional' => 'Optional',
+            ],
             'skip_column' => '-- Skip this field --',
             'save_mapping' => [
                 'label' => 'Save this mapping for future use',
@@ -76,6 +81,7 @@ return [
     'validation' => [
         'missing_mappings' => 'Required Mappings Missing',
         'required_mapping' => 'The ":column" field is required and must be mapped to a column.',
+        'required_mapping_list' => 'Please map the following required fields: :fields',
         'field_required' => 'This field is required.',
         'field_string' => 'This field must be a string.',
         'field_max' => 'This field may not exceed :max characters.',

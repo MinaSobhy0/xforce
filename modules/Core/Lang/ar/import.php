@@ -32,6 +32,11 @@ return [
             'columns' => [
                 'label' => 'تعيين الأعمدة',
             ],
+            'available_columns' => [
+                'label' => 'الحقول المتاحة',
+                'required' => 'مطلوب',
+                'optional' => 'اختياري',
+            ],
             'skip_column' => '-- تخطي هذا الحقل --',
             'save_mapping' => [
                 'label' => 'حفظ هذا التعيين للاستخدام المستقبلي',
@@ -76,6 +81,7 @@ return [
     'validation' => [
         'missing_mappings' => 'تعيينات مطلوبة مفقودة',
         'required_mapping' => 'الحقل ":column" مطلوب ويجب تعيينه إلى عمود.',
+        'required_mapping_list' => 'يرجى تعيين الحقول المطلوبة التالية: :fields',
         'field_required' => 'هذا الحقل مطلوب.',
         'field_string' => 'يجب أن يكون هذا الحقل نصاً.',
         'field_max' => 'يجب ألا يتجاوز هذا الحقل :max حرفاً.',
