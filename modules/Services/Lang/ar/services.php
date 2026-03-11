@@ -6,7 +6,7 @@ return [
 
     'navigation' => [
         'services' => 'الخدمات',
-        'categories' => 'الفئات',
+        'categories' => 'فئات الخدمات',
         'consent_templates' => 'نماذج الموافقة',
         'parameter_templates' => 'قوالب المعايير',
     ],

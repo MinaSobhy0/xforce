@@ -6,7 +6,7 @@ return [
 
     'navigation' => [
         'services' => 'Services',
-        'categories' => 'Categories',
+        'categories' => 'Service Categories',
         'consent_templates' => 'Consent Templates',
         'parameter_templates' => 'Parameter Templates',
     ],
