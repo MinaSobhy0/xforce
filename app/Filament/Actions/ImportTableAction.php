@@ -402,8 +402,23 @@ class ImportTableAction extends Action
                 $data[$relationName]
             );
 
-            // Sync the relationship (this will add new ones without removing existing)
-            if (!empty($ids) && method_exists($record, $relationName)) {
+            if (empty($ids)) {
+                continue;
+            }
+
+            // Special handling for Spatie roles/permissions (polymorphic relationships)
+            if ($relationName === 'roles' && method_exists($record, 'syncRoles')) {
+                $record->syncRoles($ids);
+                continue;
+            }
+
+            if ($relationName === 'permissions' && method_exists($record, 'syncPermissions')) {
+                $record->syncPermissions($ids);
+                continue;
+            }
+
+            // Standard BelongsToMany sync
+            if (method_exists($record, $relationName)) {
                 $record->{$relationName}()->syncWithoutDetaching($ids);
             }
         }

@@ -444,8 +444,22 @@ class DynamicImporterFactory
 
         $query = $relatedModelClass::query();
 
+        // Get fillable fields - if empty, try to get actual table columns
+        // This handles models that use $guarded instead of $fillable (like Spatie's Role)
+        $fillable = $relatedModel->getFillable();
+        if (empty($fillable)) {
+            try {
+                $columns = $relatedModel->getConnection()
+                    ->getSchemaBuilder()
+                    ->getColumnListing($relatedModel->getTable());
+                $fillable = $columns;
+            } catch (\Exception $e) {
+                $fillable = [];
+            }
+        }
+
         // Apply tenant filter if model has tenant_id
-        if (in_array('tenant_id', $relatedModel->getFillable())) {
+        if (in_array('tenant_id', $fillable)) {
             $query->where('tenant_id', $tenantId);
         }
 
@@ -457,22 +471,23 @@ class DynamicImporterFactory
             }
         }
 
+        // If value looks like an integer ID, try direct lookup
+        if (is_numeric($value) && (int) $value > 0) {
+            $found = (clone $query)->find((int) $value);
+            if ($found) {
+                return $found->id;
+            }
+        }
+
         // Get translatable fields
         $translatableFields = property_exists($relatedModel, 'translatable')
             ? $relatedModel->translatable
             : [];
 
-        // Extended list of search fields for identifying records
-        $searchFields = [
-            'code', 'sku', 'email', 'employee_number', 'national_id',
-            'name', 'title', 'full_name', 'display_name',
-            'first_name', 'last_name', 'username',
-        ];
-
         // First, try exact match on identifier fields (code, sku, email, employee_number)
         $identifierFields = ['code', 'sku', 'email', 'employee_number', 'national_id', 'username'];
         foreach ($identifierFields as $searchField) {
-            if (!in_array($searchField, $relatedModel->getFillable())) {
+            if (!in_array($searchField, $fillable)) {
                 continue;
             }
 
@@ -486,7 +501,7 @@ class DynamicImporterFactory
         // Try to find by name fields (translatable or regular)
         $nameFields = ['name', 'title', 'full_name', 'display_name'];
         foreach ($nameFields as $searchField) {
-            if (!in_array($searchField, $relatedModel->getFillable()) && !in_array($searchField, $translatableFields)) {
+            if (!in_array($searchField, $fillable) && !in_array($searchField, $translatableFields)) {
                 continue;
             }
 
@@ -521,7 +536,7 @@ class DynamicImporterFactory
         }
 
         // For staff/user models, try to find by combining first_name + last_name
-        if (in_array('first_name', $relatedModel->getFillable()) && in_array('last_name', $relatedModel->getFillable())) {
+        if (in_array('first_name', $fillable) && in_array('last_name', $fillable)) {
             $searchQuery = clone $query;
             $found = $searchQuery->whereRaw("CONCAT(first_name, ' ', last_name) ILIKE ?", ["%{$value}%"])->first();
             if ($found) {
@@ -530,7 +545,7 @@ class DynamicImporterFactory
         }
 
         // For models with user relation (like StaffProfile), try to search through the user
-        if (in_array('user_id', $relatedModel->getFillable()) && method_exists($relatedModel, 'user')) {
+        if (in_array('user_id', $fillable) && method_exists($relatedModel, 'user')) {
             $searchQuery = clone $query;
             $found = $searchQuery->whereHas('user', function ($q) use ($value) {
                 $q->where('email', 'ILIKE', $value)
