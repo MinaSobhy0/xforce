@@ -14,8 +14,8 @@ return [
     'labels' => [
         'service' => 'Service',
         'services' => 'Services',
-        'category' => 'Category',
-        'categories' => 'Categories',
+        'category' => 'Service Category',
+        'categories' => 'Service Categories',
         'consent_template' => 'Consent Template',
         'consent_templates' => 'Consent Templates',
         'parameter_template' => 'Parameter Template',

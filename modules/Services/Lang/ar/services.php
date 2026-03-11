@@ -14,8 +14,8 @@ return [
     'labels' => [
         'service' => 'خدمة',
         'services' => 'الخدمات',
-        'category' => 'الفئة',
-        'categories' => 'الفئات',
+        'category' => 'فئة الخدمة',
+        'categories' => 'فئات الخدمات',
         'consent_template' => 'نموذج الموافقة',
         'consent_templates' => 'نماذج الموافقة',
         'parameter_template' => 'قالب المعايير',
