@@ -7,7 +7,7 @@ use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Modules\Auth\Models\User;
+use Modules\Staff\Models\StaffProfile;
 
 class PractitionersRelationManager extends RelationManager
 {
@@ -15,7 +15,7 @@ class PractitionersRelationManager extends RelationManager
 
     protected static ?string $title = 'Assigned Staff';
 
-    protected static ?string $recordTitleAttribute = 'user_id';
+    protected static ?string $recordTitleAttribute = 'staff_profile_id';
 
     protected static bool $isLazy = false;
 
@@ -23,11 +23,15 @@ class PractitionersRelationManager extends RelationManager
     {
         return $form
             ->schema([
-                Forms\Components\Select::make('user_id')
+                Forms\Components\Select::make('staff_profile_id')
                     ->label(__('booking::schedules.fields.practitioner'))
-                    ->relationship('practitioner', 'first_name')
-                    ->getOptionLabelFromRecordUsing(fn (User $record) => $record->full_name)
-                    ->searchable(['first_name', 'last_name', 'email'])
+                    ->options(function () {
+                        return StaffProfile::with('user')
+                            ->whereHas('user')
+                            ->get()
+                            ->pluck('user.full_name', 'id');
+                    })
+                    ->searchable()
                     ->preload()
                     ->required(),
 
@@ -47,11 +51,11 @@ class PractitionersRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
-            ->recordTitleAttribute('user_id')
+            ->recordTitleAttribute('staff_profile_id')
             ->columns([
-                Tables\Columns\TextColumn::make('practitioner.full_name')
+                Tables\Columns\TextColumn::make('staffProfile.user.full_name')
                     ->label(__('booking::schedules.fields.practitioner'))
-                    ->searchable(['first_name', 'last_name'])
+                    ->searchable()
                     ->sortable(),
 
                 Tables\Columns\IconColumn::make('is_primary')
