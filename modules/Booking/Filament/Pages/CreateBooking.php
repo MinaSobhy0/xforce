@@ -2067,11 +2067,13 @@ class CreateBooking extends Page implements HasForms
                 $packageSubscriptionId = $item['from_package'] ?? ($newPackageSubscriptions[$item['new_package_id']] ?? null);
 
                 // Get discount from form's services array (match by service_id)
+                // Note: Form values are in EGP, need to convert to minor units (piastres) by multiplying by 100
                 $discountMinor = 0;
                 if (!empty($data['services'])) {
                     foreach ($data['services'] as $formService) {
                         if (($formService['service_id'] ?? null) == $item['service_id']) {
-                            $discountMinor = (int) ($formService['discount_minor'] ?? 0);
+                            // Convert from EGP to minor units (piastres)
+                            $discountMinor = (int) (((float) ($formService['discount_minor'] ?? 0)) * 100);
                             break;
                         }
                     }
