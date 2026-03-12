@@ -44,6 +44,12 @@ class User extends BaseModel implements
         SoftDeletes,
         \App\Traits\TwoFactorAuthenticatable;
 
+    /**
+     * The database connection for the model.
+     * Must match Role and Permission models for Spatie permissions to work correctly.
+     */
+    protected $connection = 'tenant';
+
     protected $fillable = [
         'tenant_id',
         'first_name',
