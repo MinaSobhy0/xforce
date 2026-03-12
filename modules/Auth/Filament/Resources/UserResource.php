@@ -621,10 +621,6 @@ class UserResource extends Resource
         ];
     }
 
-    public static function canAccess(): bool
-    {
-        return auth()->user()?->hasRole(['super_admin', 'admin']) ?? false;
-    }
 
     protected static ?string $slug = 'users';
 }
