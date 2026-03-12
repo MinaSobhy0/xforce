@@ -12,31 +12,14 @@
     if ($panelId === 'tenant') {
         $user = auth()->user();
 
-        // Helper to check permission (mimics ChecksResourcePermissions logic)
-        $canAccess = function(string $permission) use ($user) {
-            if (!$user) {
-                return false;
-            }
+        // Check if user is super user (no permission checks needed)
+        $isSuperUser = $user && method_exists($user, 'hasRole') &&
+            $user->hasRole(['super-admin', 'super_admin', 'tenant-owner', 'tenant_owner', 'owner']);
 
-            // Super admin and key roles have full access
-            if (method_exists($user, 'hasRole') && $user->hasRole(['super-admin', 'super_admin', 'tenant-owner', 'tenant_owner', 'owner', 'admin'])) {
-                return true;
-            }
+        // Simple permission check using Spatie's cached permissions (no DB queries)
+        $canAccess = fn(string $permission) => $isSuperUser || ($user && $user->can($permission));
 
-            // Check the specific permission
-            if ($user->can($permission)) {
-                return true;
-            }
-
-            // If permission doesn't exist yet, allow access (fallback)
-            $permissionExists = \Spatie\Permission\Models\Permission::where('name', $permission)
-                ->where('guard_name', 'web')
-                ->exists();
-
-            return !$permissionExists;
-        };
-
-        // Today (Reception) - requires visits.view permission
+        // Today (Reception)
         if ($canAccess('visits.view')) {
             $quickAccessItems[] = [
                 'label' => __('Today'),
@@ -45,7 +28,7 @@
             ];
         }
 
-        // Book - requires appointments.create permission
+        // Book
         if ($canAccess('appointments.create')) {
             $quickAccessItems[] = [
                 'label' => __('Book'),
@@ -54,7 +37,7 @@
             ];
         }
 
-        // Patients - requires patients.view permission
+        // Patients
         if ($canAccess('patients.view')) {
             $quickAccessItems[] = [
                 'label' => __('Patients'),
@@ -63,7 +46,7 @@
             ];
         }
 
-        // Calendar - requires appointments.view permission
+        // Calendar
         if ($canAccess('appointments.view')) {
             $quickAccessItems[] = [
                 'label' => __('Calendar'),
