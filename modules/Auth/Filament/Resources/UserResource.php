@@ -2,7 +2,8 @@
 
 namespace Modules\Auth\Filament\Resources;
 
-use XLinic\Framework\Core\Filament\BaseResource;
+use App\Traits\ChecksResourcePermissions;
+use Filament\Resources\Resource;
 use Modules\Auth\Models\User;
 use Modules\Auth\Models\Role;
 use Modules\Auth\Models\UserStatus;
@@ -18,8 +19,10 @@ use Filament\Support\Enums\FontWeight;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Hash;
 
-class UserResource extends BaseResource
+class UserResource extends Resource
 {
+    use ChecksResourcePermissions;
+
     protected static ?string $model = User::class;
     protected static ?string $navigationIcon = 'heroicon-o-users';
     protected static ?string $navigationGroup = 'Settings';
