@@ -2,6 +2,7 @@
 
 namespace App\Traits;
 
+use Illuminate\Support\Facades\Cache;
 use Modules\Core\Models\Tenant;
 
 /**
@@ -25,6 +26,11 @@ use Modules\Core\Models\Tenant;
  */
 trait ChecksResourcePermissions
 {
+    /**
+     * Request-level cache for permission existence checks.
+     * This prevents redundant database queries during a single request.
+     */
+    protected static array $permissionExistsCache = [];
     /**
      * Check if the current user/tenant can access this resource.
      */
@@ -186,13 +192,33 @@ trait ChecksResourcePermissions
 
     /**
      * Check if a permission exists in the system.
+     * Uses request-level caching to prevent redundant database queries.
      * Uses the tenant-aware Permission model for multi-tenancy.
      */
     protected static function permissionExists(string $permissionName): bool
     {
-        return \Modules\Auth\Models\Permission::where('name', $permissionName)
+        // Check request-level cache first
+        if (isset(static::$permissionExistsCache[$permissionName])) {
+            return static::$permissionExistsCache[$permissionName];
+        }
+
+        $exists = \Modules\Auth\Models\Permission::where('name', $permissionName)
             ->where('guard_name', 'web')
             ->exists();
+
+        // Cache for this request
+        static::$permissionExistsCache[$permissionName] = $exists;
+
+        return $exists;
+    }
+
+    /**
+     * Clear the permission existence cache.
+     * Call this when permissions are created/deleted.
+     */
+    public static function clearPermissionCache(): void
+    {
+        static::$permissionExistsCache = [];
     }
 
     /**

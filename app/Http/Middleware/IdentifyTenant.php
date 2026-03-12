@@ -63,8 +63,8 @@ class IdentifyTenant
                     $tenantManager = app(\XLinic\Framework\Core\Tenancy\TenantManager::class);
                     $tenantManager->setCurrentTenant($tenant);
 
-                    // Clear Spatie permission cache for tenant-specific permissions
-                    $this->clearPermissionCache();
+                    // Only clear cache if tenant changed (not on every request)
+                    $this->clearPermissionCacheIfTenantChanged($tenant);
 
                     return $next($request);
                 }
@@ -103,8 +103,8 @@ class IdentifyTenant
         $tenantManager = app(\XLinic\Framework\Core\Tenancy\TenantManager::class);
         $tenantManager->setCurrentTenant($tenant);
 
-        // Clear Spatie permission cache for tenant-specific permissions
-        $this->clearPermissionCache();
+        // Only clear cache if tenant changed (not on every request)
+        $this->clearPermissionCacheIfTenantChanged($tenant);
 
         $response = $next($request);
 
@@ -228,6 +228,24 @@ class IdentifyTenant
 
         // Purge the disk instance so it picks up the new config
         Storage::forgetDisk('tenant');
+    }
+
+    /**
+     * Clear Spatie permission cache only if tenant has changed.
+     *
+     * Since permissions are stored per-tenant schema, we need to clear the cache
+     * when switching tenants to ensure correct permissions are loaded.
+     * We DON'T want to clear on every request as it breaks SPA navigation performance.
+     */
+    protected function clearPermissionCacheIfTenantChanged(Tenant $tenant): void
+    {
+        $currentTenantId = session('_permission_cache_tenant_id');
+
+        // Only clear cache if this is a different tenant than before
+        if ($currentTenantId !== $tenant->id) {
+            $this->clearPermissionCache();
+            session(['_permission_cache_tenant_id' => $tenant->id]);
+        }
     }
 
     /**
