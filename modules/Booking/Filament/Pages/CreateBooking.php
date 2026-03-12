@@ -2092,7 +2092,7 @@ class CreateBooking extends Page implements HasForms
                     'price_minor' => $isPackageSession ? 0 : ($service?->base_price_minor ?? 0),
                     // Discount (only for non-package services)
                     'discount_minor' => $isPackageSession ? 0 : $discountMinor,
-                    'discount_type' => $discountMinor > 0 ? Appointment::DISCOUNT_FIXED : null,
+                    'discount_type' => Appointment::DISCOUNT_FIXED,
                     'status' => Appointment::STATUS_SCHEDULED,
                     'source' => $data['source'] ?? Appointment::SOURCE_PHONE,
                     'notes' => $data['notes'] ?? null,
