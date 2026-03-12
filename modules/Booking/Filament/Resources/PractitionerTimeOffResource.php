@@ -74,7 +74,30 @@ class PractitionerTimeOffResource extends Resource
 
                                 Forms\Components\Select::make('time_off_type_id')
                                     ->label(__('booking::time_off.fields.time_off_type'))
-                                    ->relationship('timeOffType', 'name', fn ($query) => $query->active()->ordered())
+                                    ->options(function (Forms\Get $get) {
+                                        $userId = $get('user_id');
+                                        if (!$userId) {
+                                            return [];
+                                        }
+
+                                        // Get allocations for the selected user for the current year
+                                        $allocations = TimeOffAllocation::with('timeOffType')
+                                            ->where('user_id', $userId)
+                                            ->where('year', now()->year)
+                                            ->whereHas('timeOffType', fn ($q) => $q->active())
+                                            ->get();
+
+                                        // Build options with balance shown
+                                        return $allocations->mapWithKeys(function ($allocation) {
+                                            $typeName = $allocation->timeOffType->translated_name ?? __('booking::time_off.unknown_type');
+                                            $remaining = number_format($allocation->remaining_days, 1);
+                                            $total = number_format($allocation->total_days, 1);
+
+                                            return [
+                                                $allocation->time_off_type_id => "{$typeName} ({$remaining} / {$total} " . __('booking::time_off.days_remaining') . ")"
+                                            ];
+                                        })->toArray();
+                                    })
                                     ->searchable()
                                     ->preload()
                                     ->required()
@@ -90,6 +113,10 @@ class PractitionerTimeOffResource extends Resource
                                     })
                                     ->helperText(function (Forms\Get $get) {
                                         $userId = $get('user_id');
+                                        if (!$userId) {
+                                            return __('booking::time_off.fields.select_staff_first');
+                                        }
+
                                         $typeId = $get('time_off_type_id');
                                         if ($userId && $typeId) {
                                             $allocation = TimeOffAllocation::where('user_id', $userId)
@@ -199,7 +226,7 @@ class PractitionerTimeOffResource extends Resource
                     ->searchable(['first_name', 'last_name'])
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('timeOffType.name')
+                Tables\Columns\TextColumn::make('timeOffType.translated_name')
                     ->label(__('booking::time_off.fields.time_off_type'))
                     ->badge()
                     ->color(fn ($record) => $record->timeOffType?->color ?? 'gray')
@@ -254,7 +281,8 @@ class PractitionerTimeOffResource extends Resource
 
                 Tables\Filters\SelectFilter::make('time_off_type_id')
                     ->label(__('booking::time_off.fields.time_off_type'))
-                    ->relationship('timeOffType', 'name')
+                    ->relationship('timeOffType', 'name', fn ($query) => $query->active())
+                    ->getOptionLabelFromRecordUsing(fn ($record) => $record->translated_name)
                     ->searchable()
                     ->preload(),
 

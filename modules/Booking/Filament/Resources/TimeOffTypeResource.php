@@ -8,6 +8,8 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Modules\Auth\Models\Role;
+use Modules\Auth\Models\User;
 use Modules\Booking\Filament\Resources\TimeOffTypeResource\Pages;
 use Modules\Booking\Models\TimeOffType;
 
@@ -48,10 +50,18 @@ class TimeOffTypeResource extends Resource
             ->schema([
                 Forms\Components\Section::make(__('booking::time_off.types.sections.basic'))
                     ->schema([
-                        Forms\Components\TextInput::make('name')
-                            ->label(__('booking::time_off.types.fields.name'))
-                            ->required()
-                            ->maxLength(255),
+                        Forms\Components\Grid::make(2)
+                            ->schema([
+                                Forms\Components\TextInput::make('name.en')
+                                    ->label(__('booking::time_off.types.fields.name') . ' (English)')
+                                    ->required()
+                                    ->maxLength(255),
+
+                                Forms\Components\TextInput::make('name.ar')
+                                    ->label(__('booking::time_off.types.fields.name') . ' (Arabic)')
+                                    ->required()
+                                    ->maxLength(255),
+                            ]),
 
                         Forms\Components\TextInput::make('code')
                             ->label(__('booking::time_off.types.fields.code'))
@@ -60,10 +70,16 @@ class TimeOffTypeResource extends Resource
                             ->unique(ignoreRecord: true)
                             ->helperText(__('booking::time_off.types.help.code')),
 
-                        Forms\Components\Textarea::make('description')
-                            ->label(__('booking::time_off.types.fields.description'))
-                            ->rows(2)
-                            ->columnSpanFull(),
+                        Forms\Components\Grid::make(2)
+                            ->schema([
+                                Forms\Components\Textarea::make('description.en')
+                                    ->label(__('booking::time_off.types.fields.description') . ' (English)')
+                                    ->rows(2),
+
+                                Forms\Components\Textarea::make('description.ar')
+                                    ->label(__('booking::time_off.types.fields.description') . ' (Arabic)')
+                                    ->rows(2),
+                            ]),
 
                         Forms\Components\Select::make('color')
                             ->label(__('booking::time_off.types.fields.color'))
@@ -91,7 +107,44 @@ class TimeOffTypeResource extends Resource
 
                         Forms\Components\Toggle::make('requires_approval')
                             ->label(__('booking::time_off.types.fields.requires_approval'))
-                            ->default(true),
+                            ->default(true)
+                            ->live(),
+
+                        Forms\Components\Select::make('approval_type')
+                            ->label(__('booking::time_off.types.fields.approval_type'))
+                            ->options([
+                                TimeOffType::APPROVAL_TYPE_ANY => __('booking::time_off.types.approval_types.any'),
+                                TimeOffType::APPROVAL_TYPE_ROLES => __('booking::time_off.types.approval_types.roles'),
+                                TimeOffType::APPROVAL_TYPE_USERS => __('booking::time_off.types.approval_types.users'),
+                                TimeOffType::APPROVAL_TYPE_ROLES_OR_USERS => __('booking::time_off.types.approval_types.roles_or_users'),
+                            ])
+                            ->default(TimeOffType::APPROVAL_TYPE_ANY)
+                            ->visible(fn (Forms\Get $get) => $get('requires_approval'))
+                            ->live(),
+
+                        Forms\Components\Select::make('approval_role_ids')
+                            ->label(__('booking::time_off.types.fields.approval_roles'))
+                            ->options(fn () => Role::pluck('name', 'id'))
+                            ->multiple()
+                            ->searchable()
+                            ->preload()
+                            ->visible(fn (Forms\Get $get) => $get('requires_approval') && in_array($get('approval_type'), [
+                                TimeOffType::APPROVAL_TYPE_ROLES,
+                                TimeOffType::APPROVAL_TYPE_ROLES_OR_USERS,
+                            ]))
+                            ->helperText(__('booking::time_off.types.help.approval_roles')),
+
+                        Forms\Components\Select::make('approval_user_ids')
+                            ->label(__('booking::time_off.types.fields.approval_users'))
+                            ->options(fn () => User::pluck('email', 'id')->mapWithKeys(fn ($email, $id) => [$id => User::find($id)?->full_name ?? $email]))
+                            ->multiple()
+                            ->searchable()
+                            ->preload()
+                            ->visible(fn (Forms\Get $get) => $get('requires_approval') && in_array($get('approval_type'), [
+                                TimeOffType::APPROVAL_TYPE_USERS,
+                                TimeOffType::APPROVAL_TYPE_ROLES_OR_USERS,
+                            ]))
+                            ->helperText(__('booking::time_off.types.help.approval_users')),
 
                         Forms\Components\TextInput::make('default_days_per_year')
                             ->label(__('booking::time_off.types.fields.default_days'))
@@ -128,9 +181,9 @@ class TimeOffTypeResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('name')
+                Tables\Columns\TextColumn::make('translated_name')
                     ->label(__('booking::time_off.types.fields.name'))
-                    ->searchable()
+                    ->searchable(['name'])
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('code')

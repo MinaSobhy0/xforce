@@ -62,7 +62,8 @@ class TimeOffAllocationResource extends Resource
 
                         Forms\Components\Select::make('time_off_type_id')
                             ->label(__('booking::time_off.allocations.fields.type'))
-                            ->relationship('timeOffType', 'name')
+                            ->relationship('timeOffType', 'name', fn ($query) => $query->active()->ordered())
+                            ->getOptionLabelFromRecordUsing(fn ($record) => $record->translated_name)
                             ->searchable()
                             ->preload()
                             ->required()
@@ -136,11 +137,11 @@ class TimeOffAllocationResource extends Resource
                     ->searchable(['first_name', 'last_name'])
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('timeOffType.name')
+                Tables\Columns\TextColumn::make('timeOffType.translated_name')
                     ->label(__('booking::time_off.allocations.fields.type'))
                     ->badge()
                     ->color(fn ($record) => $record->timeOffType?->color ?? 'gray')
-                    ->searchable()
+                    ->searchable(['time_off_types.name'])
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('year')
@@ -188,7 +189,8 @@ class TimeOffAllocationResource extends Resource
 
                 Tables\Filters\SelectFilter::make('time_off_type_id')
                     ->label(__('booking::time_off.allocations.fields.type'))
-                    ->relationship('timeOffType', 'name')
+                    ->relationship('timeOffType', 'name', fn ($query) => $query->active()->ordered())
+                    ->getOptionLabelFromRecordUsing(fn ($record) => $record->translated_name)
                     ->searchable()
                     ->preload(),
 

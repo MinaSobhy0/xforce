@@ -4,6 +4,8 @@ return [
     'navigation' => 'Time Off',
     'singular' => 'Time Off Request',
     'plural' => 'Time Off Requests',
+    'days_remaining' => 'days remaining',
+    'unknown_type' => 'Unknown Type',
 
     'sections' => [
         'request' => 'Request Details',
@@ -31,6 +33,7 @@ return [
         'days_requested' => 'Days Requested',
         'days_requested_help' => 'Adjust if different from calendar days (e.g., half days)',
         'remaining_days' => ':days days remaining',
+        'select_staff_first' => 'Select a staff member first',
         'reason' => 'Reason',
         'status' => 'Status',
         'approved_by' => 'Approved By',
@@ -84,6 +87,16 @@ return [
             'allow_partial_day' => 'Allow Partial Day',
             'is_active' => 'Active',
             'sort_order' => 'Sort Order',
+            'approval_type' => 'Who Can Approve',
+            'approval_roles' => 'Approval Roles',
+            'approval_users' => 'Approval Users',
+        ],
+
+        'approval_types' => [
+            'any' => 'Any Manager',
+            'roles' => 'Specific Roles Only',
+            'users' => 'Specific Users Only',
+            'roles_or_users' => 'Specific Roles or Users',
         ],
 
         'help' => [
@@ -93,6 +106,8 @@ return [
             'max_days' => 'Maximum days allowed per request (leave empty for unlimited)',
             'min_notice' => 'Minimum days in advance required to request',
             'partial_day' => 'Allow requesting specific hours within a day',
+            'approval_roles' => 'Select roles that can approve this type of time off',
+            'approval_users' => 'Select specific users that can approve this type of time off',
         ],
     ],
 
