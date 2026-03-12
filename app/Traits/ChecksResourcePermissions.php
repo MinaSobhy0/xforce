@@ -2,7 +2,6 @@
 
 namespace App\Traits;
 
-use Illuminate\Support\Facades\Cache;
 use Modules\Core\Models\Tenant;
 
 /**
@@ -27,11 +26,6 @@ use Modules\Core\Models\Tenant;
 trait ChecksResourcePermissions
 {
     /**
-     * Request-level cache for permission existence checks.
-     * This prevents redundant database queries during a single request.
-     */
-    protected static array $permissionExistsCache = [];
-    /**
      * Check if the current user/tenant can access this resource.
      */
     public static function canAccess(): bool
@@ -46,13 +40,12 @@ trait ChecksResourcePermissions
             return false;
         }
 
-        // Use the smarter permission check that handles view_any/view fallback properly
         return static::checkViewAccess();
     }
 
     /**
      * Check if user has view access to this resource.
-     * This method properly handles the view_any/view fallback without legacy issues.
+     * Simple and fast - just checks Spatie's cached permissions.
      */
     protected static function checkViewAccess(): bool
     {
@@ -74,26 +67,9 @@ trait ChecksResourcePermissions
             return true;
         }
 
-        $viewAnyPerm = "{$permissionKey}.view_any";
-        $viewPerm = "{$permissionKey}.view";
-
-        // Check if user has either permission
-        if ($user->can($viewAnyPerm) || $user->can($viewPerm)) {
-            return true;
-        }
-
-        // User doesn't have either permission - check if ANY view permission exists
-        $viewAnyExists = static::permissionExists($viewAnyPerm);
-        $viewExists = static::permissionExists($viewPerm);
-
-        // Only allow access via legacy fallback if NEITHER permission exists in DB
-        // This means the resource hasn't been set up with permissions yet
-        if (!$viewAnyExists && !$viewExists) {
-            return true;
-        }
-
-        // At least one view permission exists, and user doesn't have it - deny access
-        return false;
+        // Check if user has either view_any or view permission
+        // Spatie caches these checks, so this is fast
+        return $user->can("{$permissionKey}.view_any") || $user->can("{$permissionKey}.view");
     }
 
     /**
@@ -131,6 +107,7 @@ trait ChecksResourcePermissions
 
     /**
      * Check if user has a specific permission for this resource.
+     * Uses Spatie's cached permission check - no database queries.
      */
     protected static function checkUserPermission(string $action): bool
     {
@@ -152,22 +129,8 @@ trait ChecksResourcePermissions
             return true;
         }
 
-        // Check the specific permission (e.g., 'patients.view')
-        $permissionName = "{$permissionKey}.{$action}";
-
-        // If user has the permission, allow access
-        if ($user->can($permissionName)) {
-            return true;
-        }
-
-        // If the permission doesn't exist yet (not assigned to any role),
-        // fall back to allowing access (legacy behavior)
-        // This prevents blocking access when permissions haven't been set up yet
-        if (!static::permissionExists($permissionName)) {
-            return true;
-        }
-
-        return false;
+        // Check the specific permission using Spatie's cached check
+        return $user->can("{$permissionKey}.{$action}");
     }
 
     /**
@@ -191,49 +154,11 @@ trait ChecksResourcePermissions
     }
 
     /**
-     * Check if a permission exists in the system.
-     * Uses cached list of all permission names to avoid individual queries.
-     */
-    protected static function permissionExists(string $permissionName): bool
-    {
-        $allPermissions = static::getAllPermissionNames();
-        return in_array($permissionName, $allPermissions, true);
-    }
-
-    /**
-     * Get all permission names (cached for the request).
-     * Loads all permissions once and reuses for all checks.
-     */
-    protected static function getAllPermissionNames(): array
-    {
-        // Check request-level cache first
-        if (!empty(static::$permissionExistsCache)) {
-            return static::$permissionExistsCache;
-        }
-
-        // Load all permission names in a single query
-        static::$permissionExistsCache = \Modules\Auth\Models\Permission::where('guard_name', 'web')
-            ->pluck('name')
-            ->toArray();
-
-        return static::$permissionExistsCache;
-    }
-
-    /**
-     * Clear the permission existence cache.
-     * Call this when permissions are created/deleted.
-     */
-    public static function clearPermissionCache(): void
-    {
-        static::$permissionExistsCache = [];
-    }
-
-    /**
      * Get the current tenant.
      */
     protected static function getCurrentTenant(): ?Tenant
     {
-        // Try from app container
+        // Try from app container first (fastest)
         if (app()->has('currentTenant')) {
             return app('currentTenant');
         }
@@ -242,12 +167,6 @@ trait ChecksResourcePermissions
         $tenant = request()->attributes->get('tenant');
         if ($tenant instanceof Tenant) {
             return $tenant;
-        }
-
-        // Try from session (only if numeric ID - INT primary keys)
-        $tenantId = session('tenant_id');
-        if ($tenantId && is_numeric($tenantId)) {
-            return Tenant::find((int) $tenantId);
         }
 
         return null;
@@ -264,7 +183,6 @@ trait ChecksResourcePermissions
 
     /**
      * Determine if the user can view records (list view).
-     * Checks for 'view_any' first, falls back to 'view' for backwards compatibility.
      */
     public static function canViewAny(): bool
     {
@@ -272,7 +190,6 @@ trait ChecksResourcePermissions
             return false;
         }
 
-        // Use the same smart view access check as canAccess()
         return static::checkViewAccess();
     }
 
