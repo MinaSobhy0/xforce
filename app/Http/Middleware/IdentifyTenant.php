@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Storage;
 use Modules\Core\Models\Tenant;
 use Modules\Core\Models\TenantStatus;
+use Spatie\Permission\PermissionRegistrar;
 use Symfony\Component\HttpFoundation\Response;
 
 class IdentifyTenant
@@ -62,6 +63,9 @@ class IdentifyTenant
                     $tenantManager = app(\XLinic\Framework\Core\Tenancy\TenantManager::class);
                     $tenantManager->setCurrentTenant($tenant);
 
+                    // Clear Spatie permission cache for tenant-specific permissions
+                    $this->clearPermissionCache();
+
                     return $next($request);
                 }
             }
@@ -98,6 +102,9 @@ class IdentifyTenant
         // Set tenant in TenantManager (used by HasTenancy trait)
         $tenantManager = app(\XLinic\Framework\Core\Tenancy\TenantManager::class);
         $tenantManager->setCurrentTenant($tenant);
+
+        // Clear Spatie permission cache for tenant-specific permissions
+        $this->clearPermissionCache();
 
         $response = $next($request);
 
@@ -221,5 +228,20 @@ class IdentifyTenant
 
         // Purge the disk instance so it picks up the new config
         Storage::forgetDisk('tenant');
+    }
+
+    /**
+     * Clear Spatie permission cache.
+     *
+     * Since permissions are stored per-tenant schema, we need to clear the cache
+     * on each tenant switch to ensure correct permissions are loaded.
+     */
+    protected function clearPermissionCache(): void
+    {
+        try {
+            app(PermissionRegistrar::class)->forgetCachedPermissions();
+        } catch (\Exception $e) {
+            // Silently ignore if PermissionRegistrar not available
+        }
     }
 }
