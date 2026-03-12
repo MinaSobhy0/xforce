@@ -360,6 +360,7 @@ class RoleResource extends Resource
                     'rooms' => __('auth::auth.resources.rooms'),
                     'work_schedules' => __('auth::auth.resources.work_schedules'),
                     'booking_rules' => __('auth::auth.resources.booking_rules'),
+                    'booking_configuration' => __('auth::auth.resources.booking_configuration'),
                     'blackout_dates' => __('auth::auth.resources.blackout_dates'),
                     'medicine_catalogs' => __('auth::auth.resources.medicine_catalogs'),
                     'settings' => __('auth::auth.resources.settings'),

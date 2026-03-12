@@ -174,6 +174,7 @@ return [
         'rooms' => 'الغرف',
         'work_schedules' => 'جداول العمل',
         'booking_rules' => 'قواعد الحجز',
+        'booking_configuration' => 'إعدادات الحجز',
         'blackout_dates' => 'تواريخ الحظر',
         'medicine_catalogs' => 'دليل الأدوية',
         'settings' => 'الإعدادات',

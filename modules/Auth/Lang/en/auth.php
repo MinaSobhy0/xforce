@@ -340,6 +340,7 @@ return [
         'rooms' => 'Rooms',
         'work_schedules' => 'Work Schedules',
         'booking_rules' => 'Booking Rules',
+        'booking_configuration' => 'Booking Configuration',
         'blackout_dates' => 'Blackout Dates',
         'medicine_catalogs' => 'Medicine Catalog',
         'settings' => 'Settings',

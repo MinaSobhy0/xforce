@@ -22,7 +22,7 @@ class BookingSlotConfigPage extends Page implements Forms\Contracts\HasForms
     use ChecksResourcePermissions;
 
     protected static ?string $moduleCode = 'booking';
-    protected static ?string $permissionKey = 'appointments';
+    protected static ?string $permissionKey = 'booking_configuration';
 
     protected static ?string $navigationIcon = 'heroicon-o-cog-8-tooth';
     protected static string $view = 'booking::filament.pages.booking-slot-config';
