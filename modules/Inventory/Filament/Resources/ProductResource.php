@@ -397,156 +397,159 @@ class ProductResource extends Resource
     {
         return $infolist
             ->schema([
-                Infolists\Components\Section::make(__('inventory::inventory.sections.basic_info'))
-                    ->schema([
-                        Infolists\Components\Grid::make(4)
+                Infolists\Components\Tabs::make('Product')
+                    ->tabs([
+                        Infolists\Components\Tabs\Tab::make(__('inventory::inventory.sections.basic_info'))
                             ->schema([
-                                Infolists\Components\ImageEntry::make('image_url')
-                                    ->label(__('inventory::inventory.fields.image'))
-                                    ->circular()
-                                    ->size(80),
+                                Infolists\Components\Grid::make(4)
+                                    ->schema([
+                                        Infolists\Components\ImageEntry::make('image_url')
+                                            ->label(__('inventory::inventory.fields.image'))
+                                            ->circular()
+                                            ->size(80),
 
-                                Infolists\Components\TextEntry::make('sku')
-                                    ->label(__('inventory::inventory.fields.sku')),
+                                        Infolists\Components\TextEntry::make('sku')
+                                            ->label(__('inventory::inventory.fields.sku')),
 
-                                Infolists\Components\TextEntry::make('barcode')
-                                    ->label(__('inventory::inventory.fields.barcode'))
+                                        Infolists\Components\TextEntry::make('barcode')
+                                            ->label(__('inventory::inventory.fields.barcode'))
+                                            ->placeholder('-'),
+
+                                        Infolists\Components\TextEntry::make('category.name')
+                                            ->label(__('inventory::inventory.fields.category'))
+                                            ->getStateUsing(fn (Product $record) => $record->category?->getTranslation('name', app()->getLocale()))
+                                            ->placeholder('-'),
+                                    ]),
+
+                                Infolists\Components\Grid::make(2)
+                                    ->schema([
+                                        Infolists\Components\TextEntry::make('name_en')
+                                            ->label(__('inventory::inventory.fields.name') . ' (English)')
+                                            ->getStateUsing(fn (Product $record) => $record->getTranslation('name', 'en')),
+
+                                        Infolists\Components\TextEntry::make('name_ar')
+                                            ->label(__('inventory::inventory.fields.name') . ' (Arabic)')
+                                            ->getStateUsing(fn (Product $record) => $record->getTranslation('name', 'ar')),
+                                    ]),
+
+                                Infolists\Components\Grid::make(2)
+                                    ->schema([
+                                        Infolists\Components\TextEntry::make('description_en')
+                                            ->label(__('inventory::inventory.fields.description') . ' (English)')
+                                            ->getStateUsing(fn (Product $record) => $record->getTranslation('description', 'en'))
+                                            ->placeholder('-'),
+
+                                        Infolists\Components\TextEntry::make('description_ar')
+                                            ->label(__('inventory::inventory.fields.description') . ' (Arabic)')
+                                            ->getStateUsing(fn (Product $record) => $record->getTranslation('description', 'ar'))
+                                            ->placeholder('-'),
+                                    ]),
+
+                                Infolists\Components\Grid::make(2)
+                                    ->schema([
+                                        Infolists\Components\TextEntry::make('salesUom.name')
+                                            ->label(__('inventory::inventory.fields.sales_uom'))
+                                            ->getStateUsing(fn (Product $record) => $record->salesUom ? $record->salesUom->getTranslation('name', app()->getLocale()) . ' (' . $record->salesUom->abbreviation . ')' : '-'),
+
+                                        Infolists\Components\TextEntry::make('purchaseUom.name')
+                                            ->label(__('inventory::inventory.fields.purchase_uom'))
+                                            ->getStateUsing(fn (Product $record) => $record->purchaseUom ? $record->purchaseUom->getTranslation('name', app()->getLocale()) . ' (' . $record->purchaseUom->abbreviation . ')' : '-'),
+                                    ]),
+                            ]),
+
+                        Infolists\Components\Tabs\Tab::make(__('inventory::inventory.sections.pricing'))
+                            ->schema([
+                                Infolists\Components\Grid::make(2)
+                                    ->schema([
+                                        Infolists\Components\TextEntry::make('cost_price')
+                                            ->label(__('inventory::inventory.fields.cost_price'))
+                                            ->money(current_currency()),
+
+                                        Infolists\Components\TextEntry::make('sell_price')
+                                            ->label(__('inventory::inventory.fields.sell_price'))
+                                            ->money(current_currency()),
+                                    ]),
+                            ]),
+
+                        Infolists\Components\Tabs\Tab::make(__('inventory::inventory.sections.stock'))
+                            ->schema([
+                                Infolists\Components\Grid::make(4)
+                                    ->schema([
+                                        Infolists\Components\TextEntry::make('total_stock')
+                                            ->label(__('inventory::inventory.fields.total_stock'))
+                                            ->badge()
+                                            ->color(fn (Product $record) => $record->isLowStock() ? 'danger' : 'success'),
+
+                                        Infolists\Components\TextEntry::make('reorder_point')
+                                            ->label(__('inventory::inventory.fields.reorder_point')),
+
+                                        Infolists\Components\TextEntry::make('reorder_quantity')
+                                            ->label(__('inventory::inventory.fields.reorder_quantity')),
+
+                                        Infolists\Components\TextEntry::make('lead_time_days')
+                                            ->label(__('inventory::inventory.fields.lead_time_days'))
+                                            ->suffix(' days'),
+                                    ]),
+                            ]),
+
+                        Infolists\Components\Tabs\Tab::make(__('inventory::inventory.sections.settings'))
+                            ->schema([
+                                Infolists\Components\Grid::make(4)
+                                    ->schema([
+                                        Infolists\Components\TextEntry::make('product_type')
+                                            ->label(__('inventory::inventory.fields.product_type'))
+                                            ->badge()
+                                            ->formatStateUsing(fn (ProductType $state): string => $state->label())
+                                            ->color(fn (ProductType $state): string => $state->color()),
+
+                                        Infolists\Components\IconEntry::make('is_consumable')
+                                            ->label(__('inventory::inventory.fields.is_consumable'))
+                                            ->boolean(),
+
+                                        Infolists\Components\IconEntry::make('is_active')
+                                            ->label(__('inventory::inventory.fields.is_active'))
+                                            ->boolean(),
+
+                                        Infolists\Components\IconEntry::make('is_asset')
+                                            ->label(__('assets::assets.asset_type.fields.is_active'))
+                                            ->boolean(),
+                                    ]),
+
+                                Infolists\Components\TextEntry::make('assetType.name')
+                                    ->label(__('assets::assets.asset.fields.asset_type'))
+                                    ->visible(fn (Product $record) => $record->is_asset)
                                     ->placeholder('-'),
-
-                                Infolists\Components\TextEntry::make('category.name')
-                                    ->label(__('inventory::inventory.fields.category'))
-                                    ->getStateUsing(fn (Product $record) => $record->category?->getTranslation('name', app()->getLocale()))
-                                    ->placeholder('-'),
                             ]),
 
-                        Infolists\Components\Grid::make(2)
+                        Infolists\Components\Tabs\Tab::make(__('inventory::inventory.sections.accounting'))
                             ->schema([
-                                Infolists\Components\TextEntry::make('name_en')
-                                    ->label(__('inventory::inventory.fields.name') . ' (English)')
-                                    ->getStateUsing(fn (Product $record) => $record->getTranslation('name', 'en')),
+                                Infolists\Components\TextEntry::make('valuation_method')
+                                    ->label(__('inventory::inventory.fields.valuation_method'))
+                                    ->formatStateUsing(fn ($state) => Product::VALUATION_METHODS[$state] ?? $state),
 
-                                Infolists\Components\TextEntry::make('name_ar')
-                                    ->label(__('inventory::inventory.fields.name') . ' (Arabic)')
-                                    ->getStateUsing(fn (Product $record) => $record->getTranslation('name', 'ar')),
-                            ]),
+                                Infolists\Components\Grid::make(3)
+                                    ->schema([
+                                        Infolists\Components\TextEntry::make('stockValuationAccount.code')
+                                            ->label(__('inventory::inventory.fields.stock_valuation_account'))
+                                            ->getStateUsing(fn (Product $record) => $record->stockValuationAccount
+                                                ? "[{$record->stockValuationAccount->code}] " . $record->stockValuationAccount->getTranslation('name', app()->getLocale())
+                                                : '-'),
 
-                        Infolists\Components\Grid::make(2)
-                            ->schema([
-                                Infolists\Components\TextEntry::make('description_en')
-                                    ->label(__('inventory::inventory.fields.description') . ' (English)')
-                                    ->getStateUsing(fn (Product $record) => $record->getTranslation('description', 'en'))
-                                    ->placeholder('-'),
+                                        Infolists\Components\TextEntry::make('incomeAccount.code')
+                                            ->label('Income Account')
+                                            ->getStateUsing(fn (Product $record) => $record->incomeAccount
+                                                ? "[{$record->incomeAccount->code}] " . $record->incomeAccount->getTranslation('name', app()->getLocale())
+                                                : '-'),
 
-                                Infolists\Components\TextEntry::make('description_ar')
-                                    ->label(__('inventory::inventory.fields.description') . ' (Arabic)')
-                                    ->getStateUsing(fn (Product $record) => $record->getTranslation('description', 'ar'))
-                                    ->placeholder('-'),
-                            ]),
-
-                        Infolists\Components\Grid::make(2)
-                            ->schema([
-                                Infolists\Components\TextEntry::make('salesUom.name')
-                                    ->label(__('inventory::inventory.fields.sales_uom'))
-                                    ->getStateUsing(fn (Product $record) => $record->salesUom ? $record->salesUom->getTranslation('name', app()->getLocale()) . ' (' . $record->salesUom->abbreviation . ')' : '-'),
-
-                                Infolists\Components\TextEntry::make('purchaseUom.name')
-                                    ->label(__('inventory::inventory.fields.purchase_uom'))
-                                    ->getStateUsing(fn (Product $record) => $record->purchaseUom ? $record->purchaseUom->getTranslation('name', app()->getLocale()) . ' (' . $record->purchaseUom->abbreviation . ')' : '-'),
-                            ]),
-                    ]),
-
-                Infolists\Components\Section::make(__('inventory::inventory.sections.pricing'))
-                    ->schema([
-                        Infolists\Components\Grid::make(2)
-                            ->schema([
-                                Infolists\Components\TextEntry::make('cost_price')
-                                    ->label(__('inventory::inventory.fields.cost_price'))
-                                    ->money(current_currency()),
-
-                                Infolists\Components\TextEntry::make('sell_price')
-                                    ->label(__('inventory::inventory.fields.sell_price'))
-                                    ->money(current_currency()),
-                            ]),
-                    ]),
-
-                Infolists\Components\Section::make(__('inventory::inventory.sections.stock'))
-                    ->schema([
-                        Infolists\Components\Grid::make(4)
-                            ->schema([
-                                Infolists\Components\TextEntry::make('total_stock')
-                                    ->label(__('inventory::inventory.fields.total_stock'))
-                                    ->badge()
-                                    ->color(fn (Product $record) => $record->isLowStock() ? 'danger' : 'success'),
-
-                                Infolists\Components\TextEntry::make('reorder_point')
-                                    ->label(__('inventory::inventory.fields.reorder_point')),
-
-                                Infolists\Components\TextEntry::make('reorder_quantity')
-                                    ->label(__('inventory::inventory.fields.reorder_quantity')),
-
-                                Infolists\Components\TextEntry::make('lead_time_days')
-                                    ->label(__('inventory::inventory.fields.lead_time_days'))
-                                    ->suffix(' days'),
-                            ]),
-                    ]),
-
-                Infolists\Components\Section::make(__('inventory::inventory.sections.settings'))
-                    ->schema([
-                        Infolists\Components\Grid::make(4)
-                            ->schema([
-                                Infolists\Components\TextEntry::make('product_type')
-                                    ->label(__('inventory::inventory.fields.product_type'))
-                                    ->badge()
-                                    ->formatStateUsing(fn (ProductType $state): string => $state->label())
-                                    ->color(fn (ProductType $state): string => $state->color()),
-
-                                Infolists\Components\IconEntry::make('is_consumable')
-                                    ->label(__('inventory::inventory.fields.is_consumable'))
-                                    ->boolean(),
-
-                                Infolists\Components\IconEntry::make('is_active')
-                                    ->label(__('inventory::inventory.fields.is_active'))
-                                    ->boolean(),
-
-                                Infolists\Components\IconEntry::make('is_asset')
-                                    ->label(__('assets::assets.asset_type.fields.is_active'))
-                                    ->boolean(),
-                            ]),
-
-                        Infolists\Components\TextEntry::make('assetType.name')
-                            ->label(__('assets::assets.asset.fields.asset_type'))
-                            ->visible(fn (Product $record) => $record->is_asset)
-                            ->placeholder('-'),
-                    ]),
-
-                Infolists\Components\Section::make(__('inventory::inventory.sections.accounting'))
-                    ->schema([
-                        Infolists\Components\TextEntry::make('valuation_method')
-                            ->label(__('inventory::inventory.fields.valuation_method'))
-                            ->formatStateUsing(fn ($state) => Product::VALUATION_METHODS[$state] ?? $state),
-
-                        Infolists\Components\Grid::make(3)
-                            ->schema([
-                                Infolists\Components\TextEntry::make('stockValuationAccount.code')
-                                    ->label(__('inventory::inventory.fields.stock_valuation_account'))
-                                    ->getStateUsing(fn (Product $record) => $record->stockValuationAccount
-                                        ? "[{$record->stockValuationAccount->code}] " . $record->stockValuationAccount->getTranslation('name', app()->getLocale())
-                                        : '-'),
-
-                                Infolists\Components\TextEntry::make('incomeAccount.code')
-                                    ->label('Income Account')
-                                    ->getStateUsing(fn (Product $record) => $record->incomeAccount
-                                        ? "[{$record->incomeAccount->code}] " . $record->incomeAccount->getTranslation('name', app()->getLocale())
-                                        : '-'),
-
-                                Infolists\Components\TextEntry::make('expenseAccount.code')
-                                    ->label('Expense Account')
-                                    ->getStateUsing(fn (Product $record) => $record->expenseAccount
-                                        ? "[{$record->expenseAccount->code}] " . $record->expenseAccount->getTranslation('name', app()->getLocale())
-                                        : '-'),
+                                        Infolists\Components\TextEntry::make('expenseAccount.code')
+                                            ->label('Expense Account')
+                                            ->getStateUsing(fn (Product $record) => $record->expenseAccount
+                                                ? "[{$record->expenseAccount->code}] " . $record->expenseAccount->getTranslation('name', app()->getLocale())
+                                                : '-'),
+                                    ]),
                             ]),
                     ])
-                    ->collapsed(),
+                    ->columnSpanFull(),
             ]);
     }
 
