@@ -40,7 +40,11 @@ trait ChecksResourcePermissions
             return false;
         }
 
-        // Then check user permission
+        // Check view_any (list) permission first, fall back to view for backwards compatibility
+        if (static::checkUserPermission('view_any')) {
+            return true;
+        }
+
         return static::checkUserPermission('view');
     }
 
@@ -188,11 +192,21 @@ trait ChecksResourcePermissions
     }
 
     /**
-     * Determine if the user can view records.
+     * Determine if the user can view records (list view).
+     * Checks for 'view_any' first, falls back to 'view' for backwards compatibility.
      */
     public static function canViewAny(): bool
     {
-        return static::checkModuleAccess() && static::checkUserPermission('view');
+        if (!static::checkModuleAccess()) {
+            return false;
+        }
+
+        // Check view_any first, fall back to view
+        if (static::checkUserPermission('view_any')) {
+            return true;
+        }
+
+        return static::checkUserPermission('view');
     }
 
     /**
