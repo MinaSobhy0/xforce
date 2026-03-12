@@ -7,6 +7,7 @@ use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 use Modules\Staff\Models\StaffProfile;
 
 class PractitionersRelationManager extends RelationManager
@@ -25,15 +26,30 @@ class PractitionersRelationManager extends RelationManager
             ->schema([
                 Forms\Components\Select::make('staff_profile_id')
                     ->label(__('booking::schedules.fields.practitioner'))
-                    ->options(function () {
+                    ->options(function (?Model $record) {
+                        // Get already assigned staff profile IDs for this work schedule
+                        $assignedIds = $this->getOwnerRecord()
+                            ->assignments()
+                            ->when($record, fn ($query) => $query->where('id', '!=', $record->id))
+                            ->pluck('staff_profile_id')
+                            ->toArray();
+
+                        // Return staff profiles excluding already assigned ones
                         return StaffProfile::with('user')
                             ->whereHas('user')
+                            ->whereNotIn('id', $assignedIds)
                             ->get()
                             ->pluck('user.full_name', 'id');
                     })
                     ->searchable()
                     ->preload()
-                    ->required(),
+                    ->required()
+                    ->unique(
+                        table: 'practitioner_schedule_assignments',
+                        column: 'staff_profile_id',
+                        ignoreRecord: true,
+                        modifyRuleUsing: fn ($rule) => $rule->where('work_schedule_id', $this->getOwnerRecord()->id)
+                    ),
 
                 Forms\Components\Grid::make(2)
                     ->schema([

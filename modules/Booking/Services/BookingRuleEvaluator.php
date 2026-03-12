@@ -563,4 +563,12 @@ class BookingRuleEvaluator
             'allow_equipment_overlap' => $this->config->allow_equipment_overlap,
         ];
     }
+
+    /**
+     * Get the max appointments per doctor daily limit.
+     */
+    public function getMaxPerDoctorDaily(): ?int
+    {
+        return $this->config->max_per_doctor_daily;
+    }
 }

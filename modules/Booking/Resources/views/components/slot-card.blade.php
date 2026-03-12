@@ -18,9 +18,6 @@
     $slotKey = $slot['date'] . '_' . $slot['start_time'] . '_' . ($slot['service_id'] ?? '');
     $isSelected = isset($selectedSlots[$slotKey]);
     $selectedPractitionerId = $isSelected ? (string) ($selectedSlots[$slotKey]['practitioner_id'] ?? '') : '';
-
-    // Debug: uncomment to see values
-    // dump(['slotKey' => $slotKey, 'isSelected' => $isSelected, 'selectedSlots' => $selectedSlots, 'selectedPractitionerId' => $selectedPractitionerId]);
 @endphp
 
 <div
@@ -40,7 +37,9 @@
     {{-- Header: Time & Duration --}}
     <div class="flex items-center justify-between mb-3">
         <div class="flex items-center gap-2">
-            <x-heroicon-o-clock class="w-4 h-4" style="color: {{ $isSelected ? '#22c55e' : '#9ca3af' }};" />
+            <span style="color: {{ $isSelected ? '#22c55e' : '#9ca3af' }};">
+                <x-heroicon-o-clock class="w-4 h-4" />
+            </span>
             <span class="text-lg font-bold" style="color: {{ $isSelected ? '#15803d' : '#111827' }};">
                 {{ $slot['start_time'] }}
             </span>
@@ -79,6 +78,7 @@
                     @php
                         $practitionerId = (string) ($practitioner['id'] ?? '');
                         $isThisPractitionerSelected = $isSelected && $selectedPractitionerId === $practitionerId;
+                        $practitionerStatus = $practitioner['status'] ?? 'available';
 
                         // Only pass essential data to reduce payload size
                         $slotData = [
@@ -94,7 +94,6 @@
                             'room_name' => $slot['room_name'] ?? null,
                             'equipment_id' => $slot['equipment_id'] ?? null,
                             'equipment_name' => $slot['equipment_name'] ?? null,
-                            // Package and treatment plan context
                             'from_package' => $slot['from_package'] ?? null,
                             'new_package_id' => $slot['new_package_id'] ?? null,
                             'treatment_plan_item_id' => $slot['treatment_plan_item_id'] ?? null,
@@ -104,14 +103,14 @@
                         type="button"
                         wire:click="selectSlot({{ json_encode($slotData) }})"
                         wire:loading.attr="disabled"
-                        wire:loading.class="opacity-50"
+                        wire:loading.class="opacity-50 cursor-wait"
                         class="practitioner-chip inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer border-2"
                         style="{{ $isThisPractitionerSelected ? 'background-color: #22c55e; color: white; border-color: #16a34a;' : ($isSelected ? 'background-color: #f3f4f6; color: #6b7280; border-color: #e5e7eb;' : 'background-color: white; color: #374151; border-color: #e5e7eb;') }}"
                     >
                         {{-- Status Dot --}}
                         <span
                             class="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                            style="background-color: {{ $isThisPractitionerSelected ? '#ffffff' : (($practitioner['status'] ?? 'available') === 'busy_soon' ? '#eab308' : '#22c55e') }};"
+                            style="background-color: {{ $isThisPractitionerSelected ? '#ffffff' : ($practitionerStatus === 'busy_soon' ? '#eab308' : '#22c55e') }};"
                         ></span>
 
                         {{-- Avatar --}}

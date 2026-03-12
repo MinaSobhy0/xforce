@@ -146,7 +146,10 @@
 
                         <button
                             type="button"
+                            wire:key="compact-slot-{{ $slotKey }}"
                             wire:click="selectSlot({{ json_encode($slotData) }})"
+                            wire:loading.attr="disabled"
+                            wire:loading.class="opacity-50 cursor-wait"
                             class="group relative flex flex-col items-center rounded-lg border-2 p-2 text-center transition-all active:scale-95"
                             style="{{ $isSelected ? 'background-color: #f0fdf4; border-color: #22c55e; box-shadow: 0 0 0 2px #bbf7d0;' : 'background-color: white; border-color: #e5e7eb;' }}"
                         >

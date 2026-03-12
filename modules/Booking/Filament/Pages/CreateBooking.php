@@ -102,8 +102,14 @@ class CreateBooking extends Page implements HasForms
             $bookingType = 'package';
         }
 
+        // Use current branch context, or fall back to user's primary branch
+        $defaultBranchId = current_branch_id()
+            ?? \App\Services\BranchContext::userPrimaryId()
+            ?? Branch::active()->main()->value('id')
+            ?? Branch::active()->ordered()->value('id');
+
         $formData = [
-            'branch_id' => current_branch_id(),
+            'branch_id' => $defaultBranchId,
             'date_from' => $dateFrom->format('Y-m-d'),
             'date_to' => $dateFrom->copy()->addWeek()->format('Y-m-d'),
             'booking_type' => $bookingType,
@@ -1067,7 +1073,13 @@ class CreateBooking extends Page implements HasForms
                                                             ->active()
                                                             ->pluck('name', 'id');
                                                     })
-                                                    ->default(fn () => current_branch_id())
+                                                    ->default(function () {
+                                                        // Use current branch context, or fall back to user's primary branch
+                                                        return current_branch_id()
+                                                            ?? \App\Services\BranchContext::userPrimaryId()
+                                                            ?? Branch::active()->main()->value('id')
+                                                            ?? Branch::active()->ordered()->value('id');
+                                                    })
                                                     ->required()
                                                     ->live(),
 
@@ -1508,17 +1520,9 @@ class CreateBooking extends Page implements HasForms
 
     public function selectSlot(array $slot): void
     {
-        \Log::warning('selectSlot called', [
-            'slot_service_id' => $slot['service_id'] ?? null,
-            'slot_from_package' => $slot['from_package'] ?? null,
-            'slot_new_package_id' => $slot['new_package_id'] ?? null,
-        ]);
-
         $serviceId = $slot['service_id'] ?? null;
         $slotKey = $slot['date'] . '_' . $slot['start_time'] . '_' . $serviceId;
         $practitionerId = $slot['practitioner_id'] ?? $slot['available_practitioners'][0]['id'] ?? null;
-        $notificationTitle = null;
-        $notificationType = 'success';
 
         // Find if this service already has a booking
         $existingServiceIndex = null;
@@ -1539,14 +1543,10 @@ class CreateBooking extends Page implements HasForms
                 // Toggle off - remove the booking
                 unset($this->bookingItems[$existingServiceIndex]);
                 $this->bookingItems = array_values($this->bookingItems);
-                $notificationTitle = __('booking::booking.messages.slot_removed');
-                $notificationType = 'info';
             } else {
                 // Case 2: Same slot + different practitioner = change practitioner
                 $this->bookingItems[$existingServiceIndex]['practitioner_id'] = $practitionerId;
                 $this->bookingItems[$existingServiceIndex]['practitioner_name'] = $slot['practitioner_name'] ?? null;
-                $notificationTitle = __('booking::booking.messages.practitioner_changed');
-                $notificationType = 'info';
             }
         } else {
             // Case 3: Different slot for same service = replace the slot
@@ -1572,28 +1572,12 @@ class CreateBooking extends Page implements HasForms
             if ($existingServiceIndex !== null) {
                 // Replace existing slot for this service
                 $this->bookingItems[$existingServiceIndex] = $newItem;
-                $notificationTitle = __('booking::booking.messages.slot_changed');
             } else {
                 // Add new booking
                 $this->bookingItems[] = $newItem;
-                $notificationTitle = __('booking::booking.messages.slot_added');
             }
         }
-
-        // Send notification
-        if ($notificationTitle) {
-            $notification = Notification::make()
-                ->title($notificationTitle)
-                ->duration(1500);
-
-            if ($notificationType === 'info') {
-                $notification->info();
-            } else {
-                $notification->success();
-            }
-
-            $notification->send();
-        }
+        // Visual feedback is handled instantly by Alpine.js - no notification needed
     }
 
     /**

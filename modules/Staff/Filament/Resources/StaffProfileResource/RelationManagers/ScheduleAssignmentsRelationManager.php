@@ -85,7 +85,8 @@ class ScheduleAssignmentsRelationManager extends RelationManager
 
                         $data['tenant_id'] = $ownerRecord->tenant_id;
                         $data['staff_profile_id'] = $ownerRecord->id;
-                        $data['branch_id'] = $ownerRecord->branch_id;
+                        // Use StaffProfile branch_id, or fall back to current branch context
+                        $data['branch_id'] = $ownerRecord->branch_id ?? current_branch_id();
 
                         return $data;
                     }),

@@ -19,6 +19,136 @@ class SlotGenerationService
 {
     protected ?BookingRuleEvaluator $ruleEvaluator = null;
 
+    // Pre-loaded data for batch optimization
+    protected Collection $preloadedAppointments;
+    protected Collection $preloadedScheduleAssignments;
+    protected Collection $preloadedLegacySchedules;
+    protected Collection $preloadedTimeOffs;
+    protected Collection $preloadedRoomBookings;
+    protected Collection $preloadedEquipmentBookings;
+    protected array $preloadedPractitionerAppointmentCounts = [];
+    protected ?Carbon $preloadedDate = null;
+    protected ?string $preloadedBranchId = null;
+
+    public function __construct()
+    {
+        $this->preloadedAppointments = collect();
+        $this->preloadedScheduleAssignments = collect();
+        $this->preloadedLegacySchedules = collect();
+        $this->preloadedTimeOffs = collect();
+        $this->preloadedRoomBookings = collect();
+        $this->preloadedEquipmentBookings = collect();
+        $this->preloadedPractitionerAppointmentCounts = [];
+    }
+
+    /**
+     * Pre-load all necessary data for slot generation to avoid N+1 queries.
+     * This dramatically improves performance for multi-tenant environments.
+     */
+    protected function preloadDataForDate(
+        Carbon $date,
+        string $branchId,
+        Service $service,
+        Collection $qualifiedPractitioners
+    ): void {
+        // Skip if already preloaded for this date and branch
+        if ($this->preloadedDate?->isSameDay($date) && $this->preloadedBranchId === $branchId) {
+            return;
+        }
+
+        $this->preloadedDate = $date->copy();
+        $this->preloadedBranchId = $branchId;
+
+        $practitionerUserIds = $qualifiedPractitioners->pluck('user_id')->filter()->toArray();
+        $staffProfileIds = $qualifiedPractitioners->pluck('id')->filter()->toArray();
+        $dayOfWeek = $date->dayOfWeek;
+
+        // 1. Pre-load ALL appointments for this date and branch
+        $this->preloadedAppointments = Appointment::query()
+            ->forDate($date)
+            ->where(function ($q) use ($branchId) {
+                $q->where('branch_id', $branchId)
+                    ->orWhereNull('branch_id');
+            })
+            ->active()
+            ->get(['id', 'practitioner_id', 'room_id', 'equipment_id', 'start_time', 'end_time', 'duration_minutes', 'service_id']);
+
+        // 2. Pre-load schedule assignments for all qualified practitioners
+        // Use forBranch scope which also checks WorkSchedule's branch_id for NULL assignment branch_id
+        $scheduleAssignments = PractitionerScheduleAssignment::query()
+            ->whereIn('staff_profile_id', $staffProfileIds)
+            ->forBranch($branchId)
+            ->active()
+            ->currentlyEffective()
+            ->with('workSchedule')
+            ->get();
+
+        // Key by staff_profile_id as string for consistent lookup
+        $this->preloadedScheduleAssignments = $scheduleAssignments->keyBy(fn($a) => (string) $a->staff_profile_id);
+
+        // 3. Pre-load legacy schedules for all practitioners
+        $legacySchedules = PractitionerSchedule::query()
+            ->whereIn('user_id', $practitionerUserIds)
+            ->where('branch_id', $branchId)
+            ->where('day_of_week', $dayOfWeek)
+            ->where('is_available', true)
+            ->get();
+
+        // Key by user_id as string for consistent lookup
+        $this->preloadedLegacySchedules = $legacySchedules->keyBy(fn($s) => (string) $s->user_id);
+
+        // 4. Pre-load time-off records for all practitioners (group by string user_id)
+        $timeOffs = PractitionerTimeOff::query()
+            ->whereIn('user_id', $practitionerUserIds)
+            ->where('status', 'approved')
+            ->where(function ($q) use ($branchId) {
+                $q->whereNull('branch_id')
+                    ->orWhere('branch_id', $branchId);
+            })
+            ->where('start_date', '<=', $date)
+            ->where(function ($q) use ($date) {
+                $q->whereNull('end_date')
+                    ->orWhere('end_date', '>=', $date);
+            })
+            ->get();
+
+        $this->preloadedTimeOffs = $timeOffs->groupBy(fn($t) => (string) $t->user_id);
+
+        // 5. Pre-load room bookings (group all appointments by room_id)
+        // This covers both service-specific rooms and fallback to any branch room
+        $this->preloadedRoomBookings = $this->preloadedAppointments
+            ->filter(fn($a) => $a->room_id !== null)
+            ->groupBy('room_id');
+
+        // 6. Pre-load equipment bookings (group all appointments by equipment_id)
+        $this->preloadedEquipmentBookings = $this->preloadedAppointments
+            ->filter(fn($a) => $a->equipment_id !== null)
+            ->groupBy('equipment_id');
+
+        // 7. Pre-load appointment counts per practitioner (for capacity checks, use string keys)
+        $this->preloadedPractitionerAppointmentCounts = $this->preloadedAppointments
+            ->filter(fn($a) => $a->practitioner_id !== null)
+            ->groupBy(fn($a) => (string) $a->practitioner_id)
+            ->map(fn($appointments) => $appointments->count())
+            ->toArray();
+    }
+
+    /**
+     * Clear preloaded data (useful for testing or when context changes).
+     */
+    public function clearPreloadedData(): void
+    {
+        $this->preloadedAppointments = collect();
+        $this->preloadedScheduleAssignments = collect();
+        $this->preloadedLegacySchedules = collect();
+        $this->preloadedTimeOffs = collect();
+        $this->preloadedRoomBookings = collect();
+        $this->preloadedEquipmentBookings = collect();
+        $this->preloadedPractitionerAppointmentCounts = [];
+        $this->preloadedDate = null;
+        $this->preloadedBranchId = null;
+    }
+
     /**
      * Generate available time slots for a service at a branch on a specific date.
      * All settings are derived from booking rules.
@@ -93,6 +223,9 @@ class SlotGenerationService
         if ($qualifiedPractitioners->isEmpty()) {
             return collect();
         }
+
+        // Pre-load all data for batch optimization (reduces N+1 queries)
+        $this->preloadDataForDate($date, $branchId, $service, $qualifiedPractitioners);
 
         // Get working hours from rules (now from Branch settings)
         $workingHours = $this->ruleEvaluator->getEffectiveWorkingHours($date);
@@ -210,12 +343,15 @@ class SlotGenerationService
                 continue;
             }
 
-            // Filter practitioners by capacity limits
-            $availablePractitioners = $availablePractitioners->filter(function ($practitioner) use ($date) {
-                $practitionerId = $practitioner->user_id;
-                $practitionerCapacity = $this->ruleEvaluator->checkCapacityLimits($date, $practitionerId);
-                return !$practitionerCapacity || !$practitionerCapacity['exceeded'];
-            });
+            // Filter practitioners by capacity limits (using pre-loaded counts)
+            $maxPerDoctor = $this->ruleEvaluator->getMaxPerDoctorDaily();
+            if ($maxPerDoctor) {
+                $availablePractitioners = $availablePractitioners->filter(function ($practitioner) use ($maxPerDoctor) {
+                    $practitionerId = (string) $practitioner->user_id;
+                    $currentCount = $this->preloadedPractitionerAppointmentCounts[$practitionerId] ?? 0;
+                    return $currentCount < $maxPerDoctor;
+                });
+            }
 
             if ($availablePractitioners->isEmpty()) {
                 continue;
@@ -226,7 +362,8 @@ class SlotGenerationService
                 $serviceId,
                 $branchId,
                 $slotStartTime,
-                $totalDuration
+                $totalDuration,
+                $service
             );
 
             // Find available equipment if required
@@ -234,7 +371,8 @@ class SlotGenerationService
                 $serviceId,
                 $branchId,
                 $slotStartTime,
-                $totalDuration
+                $totalDuration,
+                $service
             );
 
             // Check if equipment is required but not available (cascades: Service → ServiceCategory)
@@ -287,6 +425,7 @@ class SlotGenerationService
     /**
      * Get practitioners available at a specific time.
      * Now works with StaffProfile models instead of User models.
+     * Optimized to use pre-loaded data when available.
      */
     public function getAvailablePractitioners(
         string $serviceId,
@@ -295,17 +434,24 @@ class SlotGenerationService
         int $duration,
         ?Collection $qualifiedPractitioners = null
     ): Collection {
-        $service = Service::find($serviceId);
-        if (!$service) {
-            return collect();
+        // Use preloaded data if available, otherwise load fresh
+        $usePreloaded = $this->preloadedDate?->isSameDay($datetime) && $this->preloadedBranchId === $branchId;
+
+        if (!$qualifiedPractitioners) {
+            $service = Service::find($serviceId);
+            if (!$service) {
+                return collect();
+            }
+            $qualifiedPractitioners = $this->getQualifiedPractitioners($service, $branchId);
         }
 
         // Practitioners are now StaffProfile models
-        $practitioners = $qualifiedPractitioners ?? $this->getQualifiedPractitioners($service, $branchId);
+        $practitioners = $qualifiedPractitioners;
         $endTime = $datetime->copy()->addMinutes($duration);
         $date = $datetime->copy()->startOfDay();
         $dayOfWeek = $datetime->dayOfWeek;
         $startTimeStr = $datetime->format('H:i');
+        $endTimeStr = $endTime->format('H:i');
 
         // Get configuration flags for doctor availability checks
         $practitionerReq = $this->ruleEvaluator?->getPractitionerRequirements() ?? [];
@@ -313,38 +459,45 @@ class SlotGenerationService
         $checkTimeoff = $practitionerReq['check_timeoff'] ?? true;
         $allowOverlap = $practitionerReq['allow_overlap'] ?? false;
 
-        return $practitioners->filter(function ($staffProfile) use ($branchId, $date, $datetime, $endTime, $dayOfWeek, $startTimeStr, $duration, $checkSchedule, $checkTimeoff, $allowOverlap) {
+        return $practitioners->filter(function ($staffProfile) use ($branchId, $date, $datetime, $endTime, $dayOfWeek, $startTimeStr, $endTimeStr, $duration, $checkSchedule, $checkTimeoff, $allowOverlap, $usePreloaded) {
             // Check schedule assignment by staff_profile_id (only if check_doctor_schedule is enabled)
             if ($checkSchedule) {
-                $assignment = PractitionerScheduleAssignment::query()
-                    ->forStaffProfile($staffProfile->id)
-                    ->forBranch($branchId)
-                    ->active()
-                    ->currentlyEffective()
-                    ->with('workSchedule')
-                    ->first();
-
-                if (!$assignment || !$assignment->isAvailableAt($dayOfWeek, $startTimeStr)) {
-                    // Fall back to legacy PractitionerSchedule (uses user_id)
-                    $schedule = PractitionerSchedule::query()
-                        ->forPractitioner($staffProfile->user_id)
+                // Use preloaded data or query (cast to string for consistent key lookup)
+                $assignment = $usePreloaded
+                    ? ($this->preloadedScheduleAssignments->get((string) $staffProfile->id))
+                    : PractitionerScheduleAssignment::query()
+                        ->forStaffProfile($staffProfile->id)
                         ->forBranch($branchId)
-                        ->forDay($dayOfWeek)
-                        ->available()
+                        ->active()
+                        ->currentlyEffective()
+                        ->with('workSchedule')
                         ->first();
+
+                $assignmentAvailable = $assignment && $assignment->isAvailableAt($dayOfWeek, $startTimeStr);
+
+                if (!$assignmentAvailable) {
+                    // Fall back to legacy PractitionerSchedule (uses user_id, cast to string for key lookup)
+                    $schedule = $usePreloaded
+                        ? ($this->preloadedLegacySchedules->get((string) $staffProfile->user_id))
+                        : PractitionerSchedule::query()
+                            ->forPractitioner($staffProfile->user_id)
+                            ->forBranch($branchId)
+                            ->forDay($dayOfWeek)
+                            ->available()
+                            ->first();
 
                     if (!$schedule) {
                         return false;
                     }
 
                     // Check if within schedule hours
-                    if ($startTimeStr < $schedule->start_time || $endTime->format('H:i') > $schedule->end_time) {
+                    if ($startTimeStr < $schedule->start_time || $endTimeStr > $schedule->end_time) {
                         return false;
                     }
 
                     // Check break
                     if ($schedule->break_start && $schedule->break_end) {
-                        if ($startTimeStr < $schedule->break_end && $endTime->format('H:i') > $schedule->break_start) {
+                        if ($startTimeStr < $schedule->break_end && $endTimeStr > $schedule->break_start) {
                             return false;
                         }
                     }
@@ -353,27 +506,30 @@ class SlotGenerationService
 
             // Check time off (only if check_doctor_timeoff is enabled)
             if ($checkTimeoff) {
-                $hasTimeOff = PractitionerTimeOff::query()
-                    ->forPractitioner($staffProfile->user_id)
-                    ->approved()
-                    ->where(function ($q) use ($branchId) {
-                        $q->whereNull('branch_id')
-                            ->orWhere('branch_id', $branchId);
-                    })
-                    ->where('start_date', '<=', $date)
-                    ->where(function ($q) use ($date) {
-                        $q->whereNull('end_date')
-                            ->orWhere('end_date', '>=', $date);
-                    })
-                    ->first();
+                // Use preloaded data or query (cast to string for consistent key lookup)
+                $timeOffs = $usePreloaded
+                    ? ($this->preloadedTimeOffs->get((string) $staffProfile->user_id) ?? collect())
+                    : PractitionerTimeOff::query()
+                        ->forPractitioner($staffProfile->user_id)
+                        ->approved()
+                        ->where(function ($q) use ($branchId) {
+                            $q->whereNull('branch_id')
+                                ->orWhere('branch_id', $branchId);
+                        })
+                        ->where('start_date', '<=', $date)
+                        ->where(function ($q) use ($date) {
+                            $q->whereNull('end_date')
+                                ->orWhere('end_date', '>=', $date);
+                        })
+                        ->get();
 
-                if ($hasTimeOff) {
-                    if ($hasTimeOff->is_full_day) {
+                foreach ($timeOffs as $timeOff) {
+                    if ($timeOff->is_full_day) {
                         return false;
                     }
                     // Check partial day
-                    if ($hasTimeOff->start_time && $hasTimeOff->end_time) {
-                        if ($startTimeStr < $hasTimeOff->end_time && $endTime->format('H:i') > $hasTimeOff->start_time) {
+                    if ($timeOff->start_time && $timeOff->end_time) {
+                        if ($startTimeStr < $timeOff->end_time && $endTimeStr > $timeOff->start_time) {
                             return false;
                         }
                     }
@@ -382,15 +538,13 @@ class SlotGenerationService
 
             // Check conflicting appointments (skip if allow_doctor_overlap is enabled)
             if (!$allowOverlap) {
-                $hasConflict = Appointment::query()
-                    ->forPractitioner($staffProfile->user_id)
-                    ->forDate($date)
-                    ->active()
-                    ->where(function ($q) use ($datetime, $endTime) {
-                        $q->whereRaw("start_time < ?", [$endTime->format('H:i:s')])
-                            ->whereRaw("COALESCE(end_time, start_time + (duration_minutes || ' minutes')::interval) > ?", [$datetime->format('H:i:s')]);
-                    })
-                    ->exists();
+                $hasConflict = $this->hasAppointmentConflict(
+                    $staffProfile->user_id,
+                    'practitioner_id',
+                    $datetime,
+                    $endTime,
+                    $usePreloaded
+                );
 
                 if ($hasConflict) {
                     return false;
@@ -402,21 +556,68 @@ class SlotGenerationService
     }
 
     /**
+     * Check if there's an appointment conflict using preloaded data or database query.
+     */
+    protected function hasAppointmentConflict(
+        string $resourceId,
+        string $resourceField,
+        Carbon $datetime,
+        Carbon $endTime,
+        bool $usePreloaded
+    ): bool {
+        $startTimeStr = $datetime->format('H:i:s');
+        $endTimeStr = $endTime->format('H:i:s');
+
+        if ($usePreloaded) {
+            // Filter preloaded appointments in memory
+            return $this->preloadedAppointments
+                ->where($resourceField, $resourceId)
+                ->filter(function ($appointment) use ($startTimeStr, $endTimeStr) {
+                    $apptStart = $appointment->start_time;
+                    $apptEnd = $appointment->end_time
+                        ?? Carbon::createFromFormat('H:i:s', $apptStart)
+                            ->addMinutes($appointment->duration_minutes)
+                            ->format('H:i:s');
+
+                    // Check overlap: start1 < end2 AND end1 > start2
+                    return $apptStart < $endTimeStr && $apptEnd > $startTimeStr;
+                })
+                ->isNotEmpty();
+        }
+
+        // Fallback to database query
+        return Appointment::query()
+            ->where($resourceField, $resourceId)
+            ->forDate($datetime->copy()->startOfDay())
+            ->active()
+            ->where(function ($q) use ($endTimeStr, $startTimeStr) {
+                $q->whereRaw("start_time < ?", [$endTimeStr])
+                    ->whereRaw("COALESCE(end_time, start_time + (duration_minutes || ' minutes')::interval) > ?", [$startTimeStr]);
+            })
+            ->exists();
+    }
+
+    /**
      * Find an available room for a service (tries primary first, then backups by priority).
+     * Optimized to use pre-loaded data when available.
      */
     public function findAvailableRoom(
         string $serviceId,
         string $branchId,
         Carbon $datetime,
-        int $duration
+        int $duration,
+        ?Service $service = null
     ): ?Room {
-        $service = Service::with('category.rooms')->find($serviceId);
         if (!$service) {
-            return null;
+            $service = Service::with('category.rooms')->find($serviceId);
+            if (!$service) {
+                return null;
+            }
         }
 
         $date = $datetime->copy()->startOfDay();
         $endTime = $datetime->copy()->addMinutes($duration);
+        $usePreloaded = $this->preloadedDate?->isSameDay($date) && $this->preloadedBranchId === $branchId;
 
         // Check for room preference rules
         $roomPreference = $this->ruleEvaluator?->getRoomPreference();
@@ -434,7 +635,7 @@ class SlotGenerationService
                 ->filter(fn($r) => $r->is_active && $r->is_bookable)
                 ->first();
 
-            if ($primaryRoom && $this->isRoomAvailable($primaryRoom->id, $date, $datetime, $endTime)) {
+            if ($primaryRoom && $this->isRoomAvailableOptimized($primaryRoom->id, $datetime, $endTime, $usePreloaded)) {
                 return $primaryRoom;
             }
 
@@ -446,7 +647,7 @@ class SlotGenerationService
                 ->sortBy('pivot.priority');
 
             foreach ($backupRooms as $room) {
-                if ($this->isRoomAvailable($room->id, $date, $datetime, $endTime)) {
+                if ($this->isRoomAvailableOptimized($room->id, $datetime, $endTime, $usePreloaded)) {
                     return $room;
                 }
             }
@@ -461,7 +662,7 @@ class SlotGenerationService
                     ->get();
 
                 foreach ($preferredRooms as $room) {
-                    if ($this->isRoomAvailable($room->id, $date, $datetime, $endTime)) {
+                    if ($this->isRoomAvailableOptimized($room->id, $datetime, $endTime, $usePreloaded)) {
                         return $room;
                     }
                 }
@@ -481,7 +682,7 @@ class SlotGenerationService
             ->get();
 
         foreach ($anyRoom as $room) {
-            if ($this->isRoomAvailable($room->id, $date, $datetime, $endTime)) {
+            if ($this->isRoomAvailableOptimized($room->id, $datetime, $endTime, $usePreloaded)) {
                 return $room;
             }
         }
@@ -491,20 +692,25 @@ class SlotGenerationService
 
     /**
      * Find available equipment for a service.
+     * Optimized to use pre-loaded data when available.
      */
     public function findAvailableEquipment(
         string $serviceId,
         string $branchId,
         Carbon $datetime,
-        int $duration
+        int $duration,
+        ?Service $service = null
     ): ?Equipment {
-        $service = Service::with('category.requiredEquipment')->find($serviceId);
         if (!$service) {
-            return null;
+            $service = Service::with('category.requiredEquipment')->find($serviceId);
+            if (!$service) {
+                return null;
+            }
         }
 
         $date = $datetime->copy()->startOfDay();
         $endTime = $datetime->copy()->addMinutes($duration);
+        $usePreloaded = $this->preloadedDate?->isSameDay($date) && $this->preloadedBranchId === $branchId;
 
         // Check for equipment requirement rules
         $equipmentReq = $this->ruleEvaluator?->getEquipmentRequirements();
@@ -525,7 +731,7 @@ class SlotGenerationService
             }
 
             foreach ($requiredEquipment as $item) {
-                if ($this->isEquipmentAvailable($item->id, $date, $datetime, $endTime)) {
+                if ($this->isEquipmentAvailableOptimized($item->id, $datetime, $endTime, $usePreloaded)) {
                     return $item;
                 }
             }
@@ -539,7 +745,7 @@ class SlotGenerationService
                     ->get();
 
                 foreach ($equipment as $item) {
-                    if ($this->isEquipmentAvailable($item->id, $date, $datetime, $endTime)) {
+                    if ($this->isEquipmentAvailableOptimized($item->id, $datetime, $endTime, $usePreloaded)) {
                         return $item;
                     }
                 }
@@ -949,6 +1155,19 @@ class SlotGenerationService
             ->exists();
     }
 
+    /**
+     * Optimized room availability check using preloaded data when available.
+     */
+    protected function isRoomAvailableOptimized(string $roomId, Carbon $start, Carbon $end, bool $usePreloaded): bool
+    {
+        if ($usePreloaded) {
+            $roomBookings = $this->preloadedRoomBookings->get($roomId) ?? collect();
+            return !$this->hasTimeConflictInCollection($roomBookings, $start, $end);
+        }
+
+        return $this->isRoomAvailable($roomId, $start->copy()->startOfDay(), $start, $end);
+    }
+
     protected function isEquipmentAvailable(string $equipmentId, Carbon $date, Carbon $start, Carbon $end): bool
     {
         return !Appointment::query()
@@ -962,6 +1181,43 @@ class SlotGenerationService
             ->exists();
     }
 
+    /**
+     * Optimized equipment availability check using preloaded data when available.
+     */
+    protected function isEquipmentAvailableOptimized(string $equipmentId, Carbon $start, Carbon $end, bool $usePreloaded): bool
+    {
+        if ($usePreloaded) {
+            $equipmentBookings = $this->preloadedEquipmentBookings->get($equipmentId) ?? collect();
+            return !$this->hasTimeConflictInCollection($equipmentBookings, $start, $end);
+        }
+
+        return $this->isEquipmentAvailable($equipmentId, $start->copy()->startOfDay(), $start, $end);
+    }
+
+    /**
+     * Check if any appointment in the collection conflicts with the given time range.
+     */
+    protected function hasTimeConflictInCollection(Collection $appointments, Carbon $start, Carbon $end): bool
+    {
+        $startTimeStr = $start->format('H:i:s');
+        $endTimeStr = $end->format('H:i:s');
+
+        foreach ($appointments as $appointment) {
+            $apptStart = $appointment->start_time;
+            $apptEnd = $appointment->end_time
+                ?? Carbon::createFromFormat('H:i:s', $apptStart)
+                    ->addMinutes($appointment->duration_minutes)
+                    ->format('H:i:s');
+
+            // Check overlap: start1 < end2 AND end1 > start2
+            if ($apptStart < $endTimeStr && $apptEnd > $startTimeStr) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     protected function timeSlotsOverlap(string $start1, string $end1, string $start2, string $end2): bool
     {
         return $start1 < $end2 && $end1 > $start2;
@@ -969,6 +1225,7 @@ class SlotGenerationService
 
     /**
      * Enrich practitioner data with status, recommendations, and next appointment info.
+     * Optimized to use pre-loaded data when available.
      */
     protected function enrichPractitionerData(
         Collection $practitioners,
@@ -979,9 +1236,11 @@ class SlotGenerationService
         $slotEnd = $slotStart->copy()->addMinutes($duration);
         $date = $slotStart->copy()->startOfDay();
         $enrichedData = [];
+        $usePreloaded = $this->preloadedDate?->isSameDay($date) && $this->preloadedBranchId === $branchId;
 
         // Get recommended practitioner (first one - could be enhanced with more logic)
         $recommendedIndex = 0;
+        $slotEndTimeStr = $slotEnd->format('H:i:s');
 
         foreach ($practitioners as $index => $staffProfile) {
             // Skip staff profiles without valid user or user_id
@@ -991,13 +1250,24 @@ class SlotGenerationService
             $practitionerId = $staffProfile->user_id;
 
             // Get next appointment for this practitioner after slot end
-            $nextAppointment = Appointment::query()
-                ->forPractitioner($practitionerId)
-                ->forDate($date)
-                ->active()
-                ->whereRaw("start_time >= ?", [$slotEnd->format('H:i:s')])
-                ->orderBy('start_time')
-                ->first(['id', 'start_time', 'service_id']);
+            $nextAppointment = null;
+
+            if ($usePreloaded) {
+                // Find next appointment from preloaded data
+                $nextAppointment = $this->preloadedAppointments
+                    ->where('practitioner_id', $practitionerId)
+                    ->filter(fn($a) => $a->start_time >= $slotEndTimeStr)
+                    ->sortBy('start_time')
+                    ->first();
+            } else {
+                $nextAppointment = Appointment::query()
+                    ->forPractitioner($practitionerId)
+                    ->forDate($date)
+                    ->active()
+                    ->whereRaw("start_time >= ?", [$slotEndTimeStr])
+                    ->orderBy('start_time')
+                    ->first(['id', 'start_time', 'service_id']);
+            }
 
             // Determine status
             $status = 'available';
