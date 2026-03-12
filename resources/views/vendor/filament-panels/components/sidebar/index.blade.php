@@ -615,7 +615,7 @@
                     </div>
                     <div class="fi-quick-access-grid">
                         @foreach($quickAccessItems as $item)
-                            <a href="{{ $item['url'] }}" class="fi-quick-access-btn">
+                            <a href="{{ $item['url'] }}" wire:navigate class="fi-quick-access-btn">
                                 <x-filament::icon :icon="$item['icon']" class="fi-qa-icon" />
                                 <span class="fi-qa-label">{{ $item['label'] }}</span>
                             </a>
@@ -670,7 +670,7 @@
                                             <li>
                                                 <a
                                                     href="{{ $childItem->getUrl() }}"
-                                                    @if ($childItem->shouldOpenUrlInNewTab()) target="_blank" @endif
+                                                    @if ($childItem->shouldOpenUrlInNewTab()) target="_blank" @else wire:navigate @endif
                                                     class="fi-menu-item {{ $childIsActive ? 'active' : '' }}"
                                                     style="font-size: 13px; padding: 8px 12px;"
                                                 >
@@ -686,7 +686,7 @@
                                     {{-- Simple item without children --}}
                                     <a
                                         href="{{ $item->getUrl() }}"
-                                        @if ($item->shouldOpenUrlInNewTab()) target="_blank" @endif
+                                        @if ($item->shouldOpenUrlInNewTab()) target="_blank" @else wire:navigate @endif
                                         class="fi-menu-item {{ $itemIsActive ? 'active' : '' }}"
                                     >
                                         @if($icon = $item->getIcon())
