@@ -188,10 +188,10 @@ class StaffProfileResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('user.name')
+                Tables\Columns\TextColumn::make('user.full_name')
                     ->label(__('staff::staff.fields.name'))
-                    ->searchable()
-                    ->sortable(),
+                    ->searchable(['user.first_name', 'user.last_name'])
+                    ->sortable(['user.first_name']),
 
                 Tables\Columns\TextColumn::make('employee_number')
                     ->label(__('staff::staff.fields.employee_number'))
