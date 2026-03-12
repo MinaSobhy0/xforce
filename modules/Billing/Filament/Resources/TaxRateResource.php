@@ -20,7 +20,7 @@ class TaxRateResource extends Resource
 
     protected static ?string $moduleCode = 'billing';
 
-    protected static ?string $permissionKey = 'settings';
+    protected static ?string $permissionKey = 'tax_rates';
 
     protected static ?string $navigationIcon = 'heroicon-o-receipt-percent';
 

@@ -124,6 +124,8 @@ trait ChecksResourcePermissions
 
     /**
      * Check if user is a super admin or tenant owner (bypass permissions).
+     * Note: 'admin' role is NOT included - admins should have configurable permissions.
+     * Only platform super-admins and tenant owners bypass permission checks.
      */
     protected static function isSuperUser($user): bool
     {
@@ -137,7 +139,6 @@ trait ChecksResourcePermissions
             'tenant-owner',
             'tenant_owner',
             'owner',
-            'admin',
         ]);
     }
 

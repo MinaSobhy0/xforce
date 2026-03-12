@@ -19,7 +19,7 @@ class ConsentTemplateResource extends Resource
 
     protected static ?string $moduleCode = 'services';
 
-    protected static ?string $permissionKey = 'settings';
+    protected static ?string $permissionKey = 'consent_templates';
 
     protected static ?string $navigationIcon = 'heroicon-o-document-check';
 

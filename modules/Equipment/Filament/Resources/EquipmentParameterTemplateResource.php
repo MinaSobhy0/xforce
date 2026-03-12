@@ -20,7 +20,7 @@ class EquipmentParameterTemplateResource extends Resource
 
     protected static ?string $moduleCode = 'equipment';
 
-    protected static ?string $permissionKey = 'settings';
+    protected static ?string $permissionKey = 'equipment_parameter_templates';
 
     protected static ?string $navigationIcon = 'heroicon-o-adjustments-horizontal';
 

@@ -21,7 +21,7 @@ class FiscalPeriodResource extends Resource
 
     protected static ?string $moduleCode = 'accounting';
 
-    protected static ?string $permissionKey = 'settings';
+    protected static ?string $permissionKey = 'fiscal_periods';
 
     protected static ?string $navigationIcon = 'heroicon-o-calendar-days';
 

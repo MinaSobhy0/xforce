@@ -19,7 +19,7 @@ class ParameterTemplateResource extends Resource
 
     protected static ?string $moduleCode = 'services';
 
-    protected static ?string $permissionKey = 'settings';
+    protected static ?string $permissionKey = 'parameter_templates';
 
     protected static ?string $navigationIcon = 'heroicon-o-adjustments-horizontal';
 
