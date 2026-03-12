@@ -190,8 +190,16 @@ class StaffProfileResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('user.full_name')
                     ->label(__('staff::staff.fields.name'))
-                    ->searchable(['user.first_name', 'user.last_name'])
-                    ->sortable(['user.first_name']),
+                    ->searchable(query: function ($query, string $search) {
+                        return $query->whereHas('user', function ($q) use ($search) {
+                            $q->where('first_name', 'ilike', "%{$search}%")
+                              ->orWhere('last_name', 'ilike', "%{$search}%");
+                        });
+                    })
+                    ->sortable(query: function ($query, string $direction) {
+                        return $query->join('users', 'staff_profiles.user_id', '=', 'users.id')
+                            ->orderBy('users.first_name', $direction);
+                    }),
 
                 Tables\Columns\TextColumn::make('employee_number')
                     ->label(__('staff::staff.fields.employee_number'))
