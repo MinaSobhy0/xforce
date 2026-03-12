@@ -24,7 +24,7 @@ class DefaultAccountsPage extends Page implements Forms\Contracts\HasForms
 
     public static function canAccess(): bool
     {
-        return \Modules\Accounting\Filament\Pages\Concerns\ChecksAccountingPermissions::check('chart_of_accounts.view');
+        return \Modules\Accounting\Filament\Pages\Concerns\ChecksAccountingPermissions::check('default_accounts.view');
     }
 
     public ?array $data = [];

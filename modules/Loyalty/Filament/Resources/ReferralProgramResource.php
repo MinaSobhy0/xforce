@@ -22,7 +22,7 @@ class ReferralProgramResource extends Resource
 
     protected static ?string $moduleCode = 'loyalty';
 
-    protected static ?string $permissionKey = 'memberships';
+    protected static ?string $permissionKey = 'referral_programs';
 
     protected static ?string $navigationIcon = 'heroicon-o-user-plus';
 

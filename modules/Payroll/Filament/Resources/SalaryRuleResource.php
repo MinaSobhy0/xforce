@@ -22,7 +22,7 @@ class SalaryRuleResource extends Resource
 
     protected static ?string $moduleCode = 'payroll';
 
-    protected static ?string $permissionKey = 'payroll';
+    protected static ?string $permissionKey = 'salary_rules';
 
     protected static ?string $navigationIcon = 'heroicon-o-calculator';
 

@@ -38,7 +38,7 @@ class DoctorDashboard extends Page implements HasForms
 
     protected static ?string $moduleCode = 'booking';
 
-    protected static ?string $permissionKey = 'appointments';
+    protected static ?string $permissionKey = 'doctor_dashboard';
 
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-check';
 

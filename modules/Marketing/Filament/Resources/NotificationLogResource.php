@@ -19,7 +19,7 @@ class NotificationLogResource extends Resource
 
     protected static ?string $moduleCode = 'marketing';
 
-    protected static ?string $permissionKey = 'campaigns';
+    protected static ?string $permissionKey = 'notification_logs';
 
     protected static ?string $navigationIcon = 'heroicon-o-envelope';
 

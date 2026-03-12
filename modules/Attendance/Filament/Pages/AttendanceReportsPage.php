@@ -29,7 +29,7 @@ class AttendanceReportsPage extends Page implements HasForms, HasTable
 
     protected static ?string $moduleCode = 'attendance';
 
-    protected static ?string $permissionKey = 'reports';
+    protected static ?string $permissionKey = 'attendance_reports';
 
     protected static ?string $navigationIcon = 'heroicon-o-chart-bar';
 

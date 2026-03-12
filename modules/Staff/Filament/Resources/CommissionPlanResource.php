@@ -20,7 +20,7 @@ class CommissionPlanResource extends Resource
 
     protected static ?string $moduleCode = 'staff';
 
-    protected static ?string $permissionKey = 'staff';
+    protected static ?string $permissionKey = 'commission_plans';
 
     protected static ?string $navigationIcon = 'heroicon-o-calculator';
 

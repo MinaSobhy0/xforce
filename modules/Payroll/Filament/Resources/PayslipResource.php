@@ -24,7 +24,7 @@ class PayslipResource extends Resource
 
     protected static ?string $moduleCode = 'payroll';
 
-    protected static ?string $permissionKey = 'payroll';
+    protected static ?string $permissionKey = 'payslips';
 
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
 

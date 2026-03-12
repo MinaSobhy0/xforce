@@ -29,7 +29,7 @@ class BalanceSheetPage extends Page implements HasForms
 
     public static function canAccess(): bool
     {
-        return \Modules\Accounting\Filament\Pages\Concerns\ChecksAccountingPermissions::check('journal_entries.view');
+        return \Modules\Accounting\Filament\Pages\Concerns\ChecksAccountingPermissions::check('balance_sheet.view');
     }
 
     public ?string $as_of_date = null;

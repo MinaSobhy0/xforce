@@ -19,7 +19,7 @@ class SalaryRuleCategoryResource extends Resource
 
     protected static ?string $moduleCode = 'payroll';
 
-    protected static ?string $permissionKey = 'payroll';
+    protected static ?string $permissionKey = 'salary_rule_categories';
 
     protected static ?string $navigationIcon = 'heroicon-o-tag';
 

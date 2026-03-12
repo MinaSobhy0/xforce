@@ -26,7 +26,7 @@ class JournalEntryResource extends Resource
 
     protected static ?string $moduleCode = 'accounting';
 
-    protected static ?string $permissionKey = 'invoices';
+    protected static ?string $permissionKey = 'journal_entries';
 
     protected static ?string $navigationIcon = 'heroicon-o-document-duplicate';
 

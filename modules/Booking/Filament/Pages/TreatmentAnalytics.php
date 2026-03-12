@@ -20,7 +20,7 @@ class TreatmentAnalytics extends Page implements HasForms
     use ChecksResourcePermissions;
 
     protected static ?string $moduleCode = 'booking';
-    protected static ?string $permissionKey = 'appointments';
+    protected static ?string $permissionKey = 'treatment_analytics';
     protected static ?string $navigationIcon = 'heroicon-o-chart-bar';
     protected static ?string $navigationGroup = 'Reports';
     protected static ?int $navigationSort = 30;

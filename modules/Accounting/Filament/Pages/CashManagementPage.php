@@ -33,7 +33,7 @@ class CashManagementPage extends Page implements HasForms
 
     public static function canAccess(): bool
     {
-        return \Modules\Accounting\Filament\Pages\Concerns\ChecksAccountingPermissions::check('journal_entries.view');
+        return \Modules\Accounting\Filament\Pages\Concerns\ChecksAccountingPermissions::check('cash_management.view');
     }
 
     // Selected account

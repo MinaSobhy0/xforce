@@ -55,6 +55,8 @@ return [
         'marketing_loyalty' => 'التسويق والولاء',
         'memberships_giftcards' => 'العضويات وبطاقات الهدايا',
         'accounting' => 'المحاسبة',
+        'operations' => 'العمليات',
+        'reporting' => 'التقارير',
         'settings_admin' => 'الإعدادات والإدارة',
     ],
 
@@ -133,6 +135,36 @@ return [
         'journal_entries' => 'القيود المحاسبية',
         'journals' => 'اليوميات',
         'fiscal_periods' => 'الفترات المالية',
+        'general_ledger' => 'دفتر الأستاذ العام',
+        'trial_balance' => 'ميزان المراجعة',
+        'balance_sheet' => 'الميزانية العمومية',
+        'profit_loss' => 'الأرباح والخسائر',
+        'cash_flow' => 'التدفق النقدي',
+        'partner_ledger' => 'دفتر أستاذ الشركاء',
+        'cash_management' => 'إدارة النقد',
+        'default_accounts' => 'الحسابات الافتراضية',
+
+        // Operations
+        'calendar' => 'التقويم',
+        'daily_agenda' => 'الأجندة اليومية',
+        'checkout' => 'الدفع',
+        'room_calendar' => 'تقويم الغرف',
+        'doctor_dashboard' => 'لوحة الطبيب',
+        'reception_dashboard' => 'لوحة الاستقبال',
+        'treatment_session' => 'جلسة العلاج',
+
+        // Reporting
+        'financial_reports' => 'التقارير المالية',
+        'revenue_reports' => 'تقارير الإيرادات',
+        'patient_reports' => 'تقارير المرضى',
+        'appointment_reports' => 'تقارير المواعيد',
+        'inventory_reports' => 'تقارير المخزون',
+        'staff_reports' => 'تقارير الموظفين',
+        'campaign_reports' => 'تقارير الحملات',
+        'equipment_reports' => 'تقارير المعدات',
+        'gift_card_reports' => 'تقارير بطاقات الهدايا',
+        'attendance_reports' => 'تقارير الحضور',
+        'treatment_analytics' => 'تحليلات العلاج',
 
         // Settings & Administration
         'users' => 'المستخدمين',
@@ -145,7 +177,14 @@ return [
         'blackout_dates' => 'تواريخ الحظر',
         'medicine_catalogs' => 'دليل الأدوية',
         'settings' => 'الإعدادات',
-        'reports' => 'التقارير',
+        'general_settings' => 'الإعدادات العامة',
+        'usage_dashboard' => 'لوحة الاستخدام',
+
+        // Additional resources
+        'uom_categories' => 'فئات وحدات القياس',
+        'payroll_runs' => 'دورات الرواتب',
+        'salary_rule_categories' => 'فئات قواعد الرواتب',
+        'package_subscriptions' => 'اشتراكات الباقات',
     ],
 
     // Fields

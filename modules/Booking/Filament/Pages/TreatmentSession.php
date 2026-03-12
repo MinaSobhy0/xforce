@@ -52,7 +52,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
     use WithFileUploads;
 
     protected static ?string $moduleCode = 'booking';
-    protected static ?string $permissionKey = 'appointments';
+    protected static ?string $permissionKey = 'treatment_session';
     protected static ?string $navigationIcon = 'heroicon-o-play-circle';
     protected static ?string $navigationGroup = 'Operations';
     protected static ?int $navigationSort = 15;

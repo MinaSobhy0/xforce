@@ -29,7 +29,7 @@ class ProfitLossPage extends Page implements HasForms
 
     public static function canAccess(): bool
     {
-        return \Modules\Accounting\Filament\Pages\Concerns\ChecksAccountingPermissions::check('journal_entries.view');
+        return \Modules\Accounting\Filament\Pages\Concerns\ChecksAccountingPermissions::check('profit_loss.view');
     }
 
     public ?string $start_date = null;

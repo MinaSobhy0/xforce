@@ -23,7 +23,7 @@ class ServiceCategoryResource extends Resource
 
     protected static ?string $moduleCode = 'services';
 
-    protected static ?string $permissionKey = 'services';
+    protected static ?string $permissionKey = 'service_categories';
 
     protected static ?string $navigationIcon = 'heroicon-o-folder';
 

@@ -20,7 +20,7 @@ class ReceptionDashboard extends Page implements HasForms
 
     protected static ?string $moduleCode = 'booking';
 
-    protected static ?string $permissionKey = 'appointments';
+    protected static ?string $permissionKey = 'reception_dashboard';
 
     protected static ?string $navigationIcon = 'heroicon-o-building-office-2';
 

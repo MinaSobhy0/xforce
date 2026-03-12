@@ -21,7 +21,7 @@ class ChartOfAccountResource extends Resource
 
     protected static ?string $moduleCode = 'accounting';
 
-    protected static ?string $permissionKey = 'invoices';
+    protected static ?string $permissionKey = 'chart_of_accounts';
 
     protected static ?string $navigationIcon = 'heroicon-o-list-bullet';
 

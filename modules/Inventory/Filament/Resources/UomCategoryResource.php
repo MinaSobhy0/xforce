@@ -19,7 +19,7 @@ class UomCategoryResource extends Resource
 
     protected static ?string $moduleCode = 'inventory';
 
-    protected static ?string $permissionKey = 'uoms';
+    protected static ?string $permissionKey = 'uom_categories';
 
     protected static ?string $navigationIcon = 'heroicon-o-squares-2x2';
 

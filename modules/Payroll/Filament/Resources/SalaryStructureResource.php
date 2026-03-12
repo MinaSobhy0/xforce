@@ -20,7 +20,7 @@ class SalaryStructureResource extends Resource
 
     protected static ?string $moduleCode = 'payroll';
 
-    protected static ?string $permissionKey = 'payroll';
+    protected static ?string $permissionKey = 'salary_structures';
 
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
 

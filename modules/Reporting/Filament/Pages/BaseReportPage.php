@@ -29,20 +29,27 @@ abstract class BaseReportPage extends Page implements HasForms
             return false;
         }
 
-        // Super admin and key roles have full access
-        if (method_exists($user, 'hasRole') && $user->hasRole(['super-admin', 'super_admin', 'tenant-owner', 'tenant_owner', 'owner', 'admin'])) {
+        // Only platform super-admins and tenant owners bypass permission checks
+        // Note: 'admin' role is NOT included - admins should have configurable permissions
+        if (method_exists($user, 'hasRole') && $user->hasRole(['super-admin', 'super_admin', 'tenant-owner', 'tenant_owner', 'owner'])) {
             return true;
         }
 
         // Check reports.view permission
-        if ($user->can('reports.view')) {
+        if ($user->can('reports.view') || $user->can('reports.view_any')) {
             return true;
         }
 
         // If permission doesn't exist, allow access (fallback)
-        $permissionExists = \Spatie\Permission\Models\Permission::where('name', 'reports.view')
+        $permissionExists = \Modules\Auth\Models\Permission::where('name', 'reports.view')
             ->where('guard_name', 'web')
             ->exists();
+
+        if (!$permissionExists) {
+            $permissionExists = \Modules\Auth\Models\Permission::where('name', 'reports.view_any')
+                ->where('guard_name', 'web')
+                ->exists();
+        }
 
         return !$permissionExists;
     }

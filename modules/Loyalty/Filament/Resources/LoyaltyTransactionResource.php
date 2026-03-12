@@ -19,7 +19,7 @@ class LoyaltyTransactionResource extends Resource
 
     protected static ?string $moduleCode = 'loyalty';
 
-    protected static ?string $permissionKey = 'memberships';
+    protected static ?string $permissionKey = 'loyalty_transactions';
 
     protected static ?string $navigationIcon = 'heroicon-o-arrow-path';
 

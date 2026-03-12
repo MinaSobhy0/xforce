@@ -22,7 +22,7 @@ class PayrollRunResource extends Resource
 
     protected static ?string $moduleCode = 'payroll';
 
-    protected static ?string $permissionKey = 'payroll';
+    protected static ?string $permissionKey = 'payroll_runs';
 
     protected static ?string $navigationIcon = 'heroicon-o-banknotes';
 

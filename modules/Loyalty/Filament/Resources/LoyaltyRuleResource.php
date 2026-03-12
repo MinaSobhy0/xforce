@@ -21,7 +21,7 @@ class LoyaltyRuleResource extends Resource
 
     protected static ?string $moduleCode = 'loyalty';
 
-    protected static ?string $permissionKey = 'memberships';
+    protected static ?string $permissionKey = 'loyalty_rules';
 
     protected static ?string $navigationIcon = 'heroicon-o-gift';
 

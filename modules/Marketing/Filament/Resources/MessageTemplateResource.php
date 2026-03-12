@@ -19,7 +19,7 @@ class MessageTemplateResource extends Resource
 
     protected static ?string $moduleCode = 'marketing';
 
-    protected static ?string $permissionKey = 'campaigns';
+    protected static ?string $permissionKey = 'message_templates';
 
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
 

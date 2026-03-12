@@ -10,7 +10,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Modules\Auth\Models\Role;
 use Modules\Auth\Filament\Resources\RoleResource\Pages;
-use Spatie\Permission\Models\Permission;
+use Modules\Auth\Models\Permission;
 use Illuminate\Support\Str;
 
 class RoleResource extends Resource
@@ -240,6 +240,7 @@ class RoleResource extends Resource
                     'stock_transfers' => __('auth::auth.resources.stock_transfers'),
                     'inventory_adjustments' => __('auth::auth.resources.inventory_adjustments'),
                     'uoms' => __('auth::auth.resources.uoms'),
+                    'uom_categories' => __('auth::auth.resources.uom_categories'),
                 ],
             ],
             'equipment_assets' => [
@@ -258,10 +259,11 @@ class RoleResource extends Resource
                 'resources' => [
                     'staff' => __('auth::auth.resources.staff'),
                     'commission_plans' => __('auth::auth.resources.commission_plans'),
-                    'payroll' => __('auth::auth.resources.payroll'),
+                    'payroll_runs' => __('auth::auth.resources.payroll_runs'),
                     'payslips' => __('auth::auth.resources.payslips'),
                     'salary_structures' => __('auth::auth.resources.salary_structures'),
                     'salary_rules' => __('auth::auth.resources.salary_rules'),
+                    'salary_rule_categories' => __('auth::auth.resources.salary_rule_categories'),
                 ],
             ],
             'attendance_timeoff' => [
@@ -294,6 +296,7 @@ class RoleResource extends Resource
                 'icon' => 'heroicon-o-gift',
                 'resources' => [
                     'memberships' => __('auth::auth.resources.memberships'),
+                    'package_subscriptions' => __('auth::auth.resources.package_subscriptions'),
                     'gift_cards' => __('auth::auth.resources.gift_cards'),
                     'gift_card_templates' => __('auth::auth.resources.gift_card_templates'),
                 ],
@@ -306,6 +309,44 @@ class RoleResource extends Resource
                     'journal_entries' => __('auth::auth.resources.journal_entries'),
                     'journals' => __('auth::auth.resources.journals'),
                     'fiscal_periods' => __('auth::auth.resources.fiscal_periods'),
+                    'general_ledger' => __('auth::auth.resources.general_ledger'),
+                    'trial_balance' => __('auth::auth.resources.trial_balance'),
+                    'balance_sheet' => __('auth::auth.resources.balance_sheet'),
+                    'profit_loss' => __('auth::auth.resources.profit_loss'),
+                    'cash_flow' => __('auth::auth.resources.cash_flow'),
+                    'partner_ledger' => __('auth::auth.resources.partner_ledger'),
+                    'cash_management' => __('auth::auth.resources.cash_management'),
+                    'default_accounts' => __('auth::auth.resources.default_accounts'),
+                ],
+            ],
+            'operations' => [
+                'label' => __('auth::auth.permission_groups.operations'),
+                'icon' => 'heroicon-o-calendar-days',
+                'resources' => [
+                    'calendar' => __('auth::auth.resources.calendar'),
+                    'daily_agenda' => __('auth::auth.resources.daily_agenda'),
+                    'checkout' => __('auth::auth.resources.checkout'),
+                    'room_calendar' => __('auth::auth.resources.room_calendar'),
+                    'doctor_dashboard' => __('auth::auth.resources.doctor_dashboard'),
+                    'reception_dashboard' => __('auth::auth.resources.reception_dashboard'),
+                    'treatment_session' => __('auth::auth.resources.treatment_session'),
+                ],
+            ],
+            'reporting' => [
+                'label' => __('auth::auth.permission_groups.reporting'),
+                'icon' => 'heroicon-o-chart-bar',
+                'resources' => [
+                    'financial_reports' => __('auth::auth.resources.financial_reports'),
+                    'revenue_reports' => __('auth::auth.resources.revenue_reports'),
+                    'patient_reports' => __('auth::auth.resources.patient_reports'),
+                    'appointment_reports' => __('auth::auth.resources.appointment_reports'),
+                    'inventory_reports' => __('auth::auth.resources.inventory_reports'),
+                    'staff_reports' => __('auth::auth.resources.staff_reports'),
+                    'campaign_reports' => __('auth::auth.resources.campaign_reports'),
+                    'equipment_reports' => __('auth::auth.resources.equipment_reports'),
+                    'gift_card_reports' => __('auth::auth.resources.gift_card_reports'),
+                    'attendance_reports' => __('auth::auth.resources.attendance_reports'),
+                    'treatment_analytics' => __('auth::auth.resources.treatment_analytics'),
                 ],
             ],
             'settings_admin' => [
@@ -322,7 +363,8 @@ class RoleResource extends Resource
                     'blackout_dates' => __('auth::auth.resources.blackout_dates'),
                     'medicine_catalogs' => __('auth::auth.resources.medicine_catalogs'),
                     'settings' => __('auth::auth.resources.settings'),
-                    'reports' => __('auth::auth.resources.reports'),
+                    'general_settings' => __('auth::auth.resources.general_settings'),
+                    'usage_dashboard' => __('auth::auth.resources.usage_dashboard'),
                 ],
             ],
         ];

@@ -27,6 +27,16 @@ class CalendarPage extends Page implements HasForms, HasActions, HasInfolists
     use InteractsWithActions;
     use InteractsWithInfolists;
 
+    public static function canAccess(): bool
+    {
+        $user = auth()->user();
+        if (!$user) return false;
+        if (method_exists($user, 'hasRole') && $user->hasRole(['super-admin', 'super_admin', 'tenant-owner', 'tenant_owner', 'owner'])) {
+            return true;
+        }
+        return $user->can('calendar.view') || $user->can('calendar.view_any');
+    }
+
     protected static ?string $navigationIcon = 'heroicon-o-calendar-days';
 
     protected static ?string $navigationGroup = 'Operations';

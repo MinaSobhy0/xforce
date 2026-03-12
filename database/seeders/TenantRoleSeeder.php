@@ -5,7 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Modules\Auth\Models\Role;
-use Spatie\Permission\Models\Permission;
+use Modules\Auth\Models\Permission;
 use Modules\Core\Database\Seeders\Concerns\ResolveTenantId;
 
 class TenantRoleSeeder extends Seeder

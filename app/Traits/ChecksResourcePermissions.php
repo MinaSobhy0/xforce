@@ -30,22 +30,79 @@ trait ChecksResourcePermissions
      */
     public static function canAccess(): bool
     {
+        $resourceClass = static::class;
+        \Log::warning("PERM CHECK canAccess() called for: {$resourceClass}");
+
         // Check parent canAccess if exists
         if (method_exists(parent::class, 'canAccess') && !parent::canAccess()) {
+            \Log::warning("PERM CHECK: Parent canAccess returned false for {$resourceClass}");
             return false;
         }
 
         // First check module access
         if (!static::checkModuleAccess()) {
+            \Log::warning("PERM CHECK: Module access denied for {$resourceClass}");
             return false;
         }
 
-        // Check view_any (list) permission first, fall back to view for backwards compatibility
-        if (static::checkUserPermission('view_any')) {
+        // Use the smarter permission check that handles view_any/view fallback properly
+        return static::checkViewAccess();
+    }
+
+    /**
+     * Check if user has view access to this resource.
+     * This method properly handles the view_any/view fallback without legacy issues.
+     */
+    protected static function checkViewAccess(): bool
+    {
+        $permissionKey = static::$permissionKey ?? static::$moduleCode ?? null;
+
+        // If no permission key defined, allow access
+        if (!$permissionKey) {
             return true;
         }
 
-        return static::checkUserPermission('view');
+        $user = auth()->user();
+
+        if (!$user) {
+            return false;
+        }
+
+        // Super admin and tenant owner have full access
+        if (static::isSuperUser($user)) {
+            return true;
+        }
+
+        $viewAnyPerm = "{$permissionKey}.view_any";
+        $viewPerm = "{$permissionKey}.view";
+
+        // Check if user has either permission
+        if ($user->can($viewAnyPerm)) {
+            \Log::warning("PERM CHECK: User {$user->email} HAS {$viewAnyPerm}");
+            return true;
+        }
+
+        if ($user->can($viewPerm)) {
+            \Log::warning("PERM CHECK: User {$user->email} HAS {$viewPerm}");
+            return true;
+        }
+
+        // User doesn't have either permission - check if ANY view permission exists
+        $viewAnyExists = static::permissionExists($viewAnyPerm);
+        $viewExists = static::permissionExists($viewPerm);
+
+        \Log::warning("PERM CHECK: {$viewAnyPerm} exists={$viewAnyExists}, {$viewPerm} exists={$viewExists}");
+
+        // Only allow access via legacy fallback if NEITHER permission exists in DB
+        // This means the resource hasn't been set up with permissions yet
+        if (!$viewAnyExists && !$viewExists) {
+            \Log::warning("PERM CHECK: No view permissions exist for {$permissionKey}, allowing access (legacy fallback)");
+            return true;
+        }
+
+        // At least one view permission exists, and user doesn't have it - deny access
+        \Log::warning("PERM CHECK: DENIED - User {$user->email} lacks view access to {$permissionKey}");
+        return false;
     }
 
     /**
@@ -90,17 +147,20 @@ trait ChecksResourcePermissions
 
         // If no permission key defined, allow access
         if (!$permissionKey) {
+            \Log::debug("PERM CHECK: No permission key defined, allowing access");
             return true;
         }
 
         $user = auth()->user();
 
         if (!$user) {
+            \Log::debug("PERM CHECK: No user, denying access");
             return false;
         }
 
         // Super admin and tenant owner have full access
         if (static::isSuperUser($user)) {
+            \Log::warning("PERM CHECK: User {$user->email} is super user, bypassing checks");
             return true;
         }
 
@@ -108,17 +168,25 @@ trait ChecksResourcePermissions
         $permissionName = "{$permissionKey}.{$action}";
 
         // If user has the permission, allow access
-        if ($user->can($permissionName)) {
+        $hasPermission = $user->can($permissionName);
+        \Log::warning("PERM CHECK: User {$user->email} checking {$permissionName} = " . ($hasPermission ? 'YES' : 'NO'));
+
+        if ($hasPermission) {
             return true;
         }
 
         // If the permission doesn't exist yet (not assigned to any role),
         // fall back to checking if user has any role (legacy behavior)
         // This prevents blocking access when permissions haven't been set up yet
-        if (!static::permissionExists($permissionName)) {
+        $permExists = static::permissionExists($permissionName);
+        \Log::warning("PERM CHECK: Permission {$permissionName} exists in DB = " . ($permExists ? 'YES' : 'NO'));
+
+        if (!$permExists) {
+            \Log::warning("PERM CHECK: Permission doesn't exist, allowing access (legacy fallback)");
             return true;
         }
 
+        \Log::warning("PERM CHECK: DENIED - User {$user->email} does not have {$permissionName}");
         return false;
     }
 
@@ -144,11 +212,11 @@ trait ChecksResourcePermissions
 
     /**
      * Check if a permission exists in the system.
-     * No caching to ensure real-time permission checks.
+     * Uses the tenant-aware Permission model for multi-tenancy.
      */
     protected static function permissionExists(string $permissionName): bool
     {
-        return \Spatie\Permission\Models\Permission::where('name', $permissionName)
+        return \Modules\Auth\Models\Permission::where('name', $permissionName)
             ->where('guard_name', 'web')
             ->exists();
     }
@@ -197,12 +265,8 @@ trait ChecksResourcePermissions
             return false;
         }
 
-        // Check view_any first, fall back to view
-        if (static::checkUserPermission('view_any')) {
-            return true;
-        }
-
-        return static::checkUserPermission('view');
+        // Use the same smart view access check as canAccess()
+        return static::checkViewAccess();
     }
 
     /**

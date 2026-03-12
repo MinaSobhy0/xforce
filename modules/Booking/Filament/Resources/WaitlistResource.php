@@ -24,7 +24,7 @@ class WaitlistResource extends Resource
 
     protected static ?string $moduleCode = 'booking';
 
-    protected static ?string $permissionKey = 'appointments';
+    protected static ?string $permissionKey = 'waitlist';
 
     protected static ?string $navigationIcon = 'heroicon-o-queue-list';
 

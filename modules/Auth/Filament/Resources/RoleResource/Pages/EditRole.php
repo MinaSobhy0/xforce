@@ -5,7 +5,7 @@ namespace Modules\Auth\Filament\Resources\RoleResource\Pages;
 use App\Filament\Resources\Pages\BaseEditRecord;
 use Filament\Actions;
 use Modules\Auth\Filament\Resources\RoleResource;
-use Spatie\Permission\Models\Permission;
+use Modules\Auth\Models\Permission;
 
 class EditRole extends BaseEditRecord
 {

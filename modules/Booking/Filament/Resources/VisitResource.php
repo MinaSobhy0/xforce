@@ -24,7 +24,7 @@ class VisitResource extends Resource
 
     protected static ?string $moduleCode = 'booking';
 
-    protected static ?string $permissionKey = 'appointments';
+    protected static ?string $permissionKey = 'visits';
 
     protected static ?string $navigationIcon = 'heroicon-o-ticket';
 

@@ -4,7 +4,7 @@ namespace Modules\Auth\Filament\Resources\RoleResource\Pages;
 
 use Filament\Resources\Pages\CreateRecord;
 use Modules\Auth\Filament\Resources\RoleResource;
-use Spatie\Permission\Models\Permission;
+use Modules\Auth\Models\Permission;
 
 class CreateRole extends CreateRecord
 {

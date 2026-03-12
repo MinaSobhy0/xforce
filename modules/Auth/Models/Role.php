@@ -6,6 +6,11 @@ use Spatie\Permission\Models\Role as SpatieRole;
 
 class Role extends SpatieRole
 {
+    /**
+     * Use tenant database connection for multi-tenancy.
+     */
+    protected $connection = 'tenant';
+
     protected $fillable = [
         'name',
         'guard_name',

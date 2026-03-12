@@ -30,7 +30,7 @@ class PartnerLedgerPage extends Page implements HasForms
 
     public static function canAccess(): bool
     {
-        return \Modules\Accounting\Filament\Pages\Concerns\ChecksAccountingPermissions::check('journal_entries.view');
+        return \Modules\Accounting\Filament\Pages\Concerns\ChecksAccountingPermissions::check('partner_ledger.view');
     }
 
     // Filter properties

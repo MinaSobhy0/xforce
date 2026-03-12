@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Collection;
 use XLinic\Framework\Core\Module\ModuleManifest;
 use XLinic\Framework\Core\Tenancy\TenantManager;
-use Spatie\Permission\Models\Permission;
+use Modules\Auth\Models\Permission;
 use Modules\Auth\Models\Role;
 
 class PermissionRegistry

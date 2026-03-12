@@ -31,7 +31,7 @@ class RoomCalendar extends Page implements HasForms, HasActions, HasInfolists
 
     protected static ?string $moduleCode = 'booking';
 
-    protected static ?string $permissionKey = 'appointments';
+    protected static ?string $permissionKey = 'room_calendar';
 
     protected static ?string $navigationIcon = 'heroicon-o-calendar-days';
 

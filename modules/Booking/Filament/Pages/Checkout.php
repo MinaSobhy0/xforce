@@ -26,7 +26,7 @@ class Checkout extends Page implements HasForms, HasActions
     use ChecksResourcePermissions;
 
     protected static ?string $moduleCode = 'booking';
-    protected static ?string $permissionKey = 'appointments';
+    protected static ?string $permissionKey = 'checkout';
     protected static ?string $navigationIcon = 'heroicon-o-shopping-cart';
     protected static ?string $navigationGroup = 'Operations';
     protected static ?int $navigationSort = 16;

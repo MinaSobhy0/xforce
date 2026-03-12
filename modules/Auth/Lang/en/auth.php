@@ -221,6 +221,8 @@ return [
         'marketing_loyalty' => 'Marketing & Loyalty',
         'memberships_giftcards' => 'Memberships & Gift Cards',
         'accounting' => 'Accounting',
+        'operations' => 'Operations',
+        'reporting' => 'Reporting',
         'settings_admin' => 'Settings & Administration',
     ],
 
@@ -299,6 +301,36 @@ return [
         'journal_entries' => 'Journal Entries',
         'journals' => 'Journals',
         'fiscal_periods' => 'Fiscal Periods',
+        'general_ledger' => 'General Ledger',
+        'trial_balance' => 'Trial Balance',
+        'balance_sheet' => 'Balance Sheet',
+        'profit_loss' => 'Profit & Loss',
+        'cash_flow' => 'Cash Flow',
+        'partner_ledger' => 'Partner Ledger',
+        'cash_management' => 'Cash Management',
+        'default_accounts' => 'Default Accounts',
+
+        // Operations
+        'calendar' => 'Calendar',
+        'daily_agenda' => 'Daily Agenda',
+        'checkout' => 'Checkout',
+        'room_calendar' => 'Room Calendar',
+        'doctor_dashboard' => 'Doctor Dashboard',
+        'reception_dashboard' => 'Reception Dashboard',
+        'treatment_session' => 'Treatment Session',
+
+        // Reporting
+        'financial_reports' => 'Financial Reports',
+        'revenue_reports' => 'Revenue Reports',
+        'patient_reports' => 'Patient Reports',
+        'appointment_reports' => 'Appointment Reports',
+        'inventory_reports' => 'Inventory Reports',
+        'staff_reports' => 'Staff Reports',
+        'campaign_reports' => 'Campaign Reports',
+        'equipment_reports' => 'Equipment Reports',
+        'gift_card_reports' => 'Gift Card Reports',
+        'attendance_reports' => 'Attendance Reports',
+        'treatment_analytics' => 'Treatment Analytics',
 
         // Settings & Administration
         'users' => 'Users',
@@ -311,7 +343,14 @@ return [
         'blackout_dates' => 'Blackout Dates',
         'medicine_catalogs' => 'Medicine Catalog',
         'settings' => 'Settings',
-        'reports' => 'Reports',
+        'general_settings' => 'General Settings',
+        'usage_dashboard' => 'Usage Dashboard',
+
+        // Additional resources
+        'uom_categories' => 'UoM Categories',
+        'payroll_runs' => 'Payroll Runs',
+        'salary_rule_categories' => 'Salary Rule Categories',
+        'package_subscriptions' => 'Package Subscriptions',
     ],
 
     // Branch Role Fields

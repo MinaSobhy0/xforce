@@ -29,7 +29,7 @@ class TrialBalancePage extends Page implements HasForms
 
     public static function canAccess(): bool
     {
-        return \Modules\Accounting\Filament\Pages\Concerns\ChecksAccountingPermissions::check('journal_entries.view');
+        return \Modules\Accounting\Filament\Pages\Concerns\ChecksAccountingPermissions::check('trial_balance.view');
     }
 
     public ?string $as_of_date = null;

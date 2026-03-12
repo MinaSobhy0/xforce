@@ -23,7 +23,7 @@ class AutomationRuleResource extends Resource
 
     protected static ?string $moduleCode = 'marketing';
 
-    protected static ?string $permissionKey = 'campaigns';
+    protected static ?string $permissionKey = 'automation_rules';
 
     protected static ?string $navigationIcon = 'heroicon-o-bolt';
 
