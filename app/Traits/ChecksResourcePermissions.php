@@ -213,10 +213,21 @@ trait ChecksResourcePermissions
 
     /**
      * Determine if the user can edit records.
+     * Checks for both 'update' (new standard) and 'edit' (legacy) permissions.
      */
     public static function canEdit($record): bool
     {
-        return static::checkModuleAccess() && static::checkUserPermission('edit');
+        if (!static::checkModuleAccess()) {
+            return false;
+        }
+
+        // Check new standard 'update' permission first
+        if (static::checkUserPermission('update')) {
+            return true;
+        }
+
+        // Fall back to legacy 'edit' permission for backwards compatibility
+        return static::checkUserPermission('edit');
     }
 
     /**

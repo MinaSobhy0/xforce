@@ -30,9 +30,10 @@ class AuthModuleSeeder extends Seeder
             ['name' => 'system.settings', 'display_name' => 'System Settings', 'module' => 'core'],
 
             // Tenant Management
-            ['name' => 'tenants.view', 'display_name' => 'View Tenants', 'module' => 'core'],
+            ['name' => 'tenants.view_any', 'display_name' => 'View Tenants List', 'module' => 'core'],
+            ['name' => 'tenants.view', 'display_name' => 'View Tenant', 'module' => 'core'],
             ['name' => 'tenants.create', 'display_name' => 'Create Tenants', 'module' => 'core'],
-            ['name' => 'tenants.edit', 'display_name' => 'Edit Tenants', 'module' => 'core'],
+            ['name' => 'tenants.update', 'display_name' => 'Update Tenants', 'module' => 'core'],
             ['name' => 'tenants.delete', 'display_name' => 'Delete Tenants', 'module' => 'core'],
 
             // Module Management
@@ -40,49 +41,56 @@ class AuthModuleSeeder extends Seeder
             ['name' => 'modules.manage', 'display_name' => 'Manage Modules', 'module' => 'core'],
 
             // User Management
-            ['name' => 'users.view', 'display_name' => 'View Users', 'module' => 'auth'],
+            ['name' => 'users.view_any', 'display_name' => 'View Users List', 'module' => 'auth'],
+            ['name' => 'users.view', 'display_name' => 'View User', 'module' => 'auth'],
             ['name' => 'users.create', 'display_name' => 'Create Users', 'module' => 'auth'],
-            ['name' => 'users.edit', 'display_name' => 'Edit Users', 'module' => 'auth'],
+            ['name' => 'users.update', 'display_name' => 'Update Users', 'module' => 'auth'],
             ['name' => 'users.delete', 'display_name' => 'Delete Users', 'module' => 'auth'],
             ['name' => 'users.impersonate', 'display_name' => 'Impersonate Users', 'module' => 'auth'],
 
             // Role Management
-            ['name' => 'roles.view', 'display_name' => 'View Roles', 'module' => 'auth'],
+            ['name' => 'roles.view_any', 'display_name' => 'View Roles List', 'module' => 'auth'],
+            ['name' => 'roles.view', 'display_name' => 'View Role', 'module' => 'auth'],
             ['name' => 'roles.create', 'display_name' => 'Create Roles', 'module' => 'auth'],
-            ['name' => 'roles.edit', 'display_name' => 'Edit Roles', 'module' => 'auth'],
+            ['name' => 'roles.update', 'display_name' => 'Update Roles', 'module' => 'auth'],
             ['name' => 'roles.delete', 'display_name' => 'Delete Roles', 'module' => 'auth'],
 
             // Profile Management
             ['name' => 'profile.view', 'display_name' => 'View Profile', 'module' => 'auth'],
-            ['name' => 'profile.edit', 'display_name' => 'Edit Profile', 'module' => 'auth'],
+            ['name' => 'profile.update', 'display_name' => 'Update Profile', 'module' => 'auth'],
 
-            // Patient Management (for future modules)
-            ['name' => 'patients.view', 'display_name' => 'View Patients', 'module' => 'patients'],
+            // Patient Management
+            ['name' => 'patients.view_any', 'display_name' => 'View Patients List', 'module' => 'patients'],
+            ['name' => 'patients.view', 'display_name' => 'View Patient', 'module' => 'patients'],
             ['name' => 'patients.create', 'display_name' => 'Create Patients', 'module' => 'patients'],
-            ['name' => 'patients.edit', 'display_name' => 'Edit Patients', 'module' => 'patients'],
+            ['name' => 'patients.update', 'display_name' => 'Update Patients', 'module' => 'patients'],
             ['name' => 'patients.delete', 'display_name' => 'Delete Patients', 'module' => 'patients'],
 
             // Appointment Management
-            ['name' => 'appointments.view', 'display_name' => 'View Appointments', 'module' => 'appointments'],
-            ['name' => 'appointments.create', 'display_name' => 'Create Appointments', 'module' => 'appointments'],
-            ['name' => 'appointments.edit', 'display_name' => 'Edit Appointments', 'module' => 'appointments'],
-            ['name' => 'appointments.delete', 'display_name' => 'Delete Appointments', 'module' => 'appointments'],
+            ['name' => 'appointments.view_any', 'display_name' => 'View Appointments List', 'module' => 'booking'],
+            ['name' => 'appointments.view', 'display_name' => 'View Appointment', 'module' => 'booking'],
+            ['name' => 'appointments.create', 'display_name' => 'Create Appointments', 'module' => 'booking'],
+            ['name' => 'appointments.update', 'display_name' => 'Update Appointments', 'module' => 'booking'],
+            ['name' => 'appointments.delete', 'display_name' => 'Delete Appointments', 'module' => 'booking'],
 
             // Treatment Management
-            ['name' => 'treatments.view', 'display_name' => 'View Treatments', 'module' => 'treatments'],
-            ['name' => 'treatments.create', 'display_name' => 'Create Treatments', 'module' => 'treatments'],
-            ['name' => 'treatments.edit', 'display_name' => 'Edit Treatments', 'module' => 'treatments'],
-            ['name' => 'treatments.delete', 'display_name' => 'Delete Treatments', 'module' => 'treatments'],
+            ['name' => 'treatment_plans.view_any', 'display_name' => 'View Treatment Plans List', 'module' => 'treatment_plans'],
+            ['name' => 'treatment_plans.view', 'display_name' => 'View Treatment Plan', 'module' => 'treatment_plans'],
+            ['name' => 'treatment_plans.create', 'display_name' => 'Create Treatment Plans', 'module' => 'treatment_plans'],
+            ['name' => 'treatment_plans.update', 'display_name' => 'Update Treatment Plans', 'module' => 'treatment_plans'],
+            ['name' => 'treatment_plans.delete', 'display_name' => 'Delete Treatment Plans', 'module' => 'treatment_plans'],
 
             // Billing Management
-            ['name' => 'billing.view', 'display_name' => 'View Billing', 'module' => 'billing'],
-            ['name' => 'billing.create', 'display_name' => 'Create Invoices', 'module' => 'billing'],
-            ['name' => 'billing.edit', 'display_name' => 'Edit Billing', 'module' => 'billing'],
-            ['name' => 'billing.delete', 'display_name' => 'Delete Billing', 'module' => 'billing'],
+            ['name' => 'invoices.view_any', 'display_name' => 'View Invoices List', 'module' => 'billing'],
+            ['name' => 'invoices.view', 'display_name' => 'View Invoice', 'module' => 'billing'],
+            ['name' => 'invoices.create', 'display_name' => 'Create Invoices', 'module' => 'billing'],
+            ['name' => 'invoices.update', 'display_name' => 'Update Invoices', 'module' => 'billing'],
+            ['name' => 'invoices.delete', 'display_name' => 'Delete Invoices', 'module' => 'billing'],
 
             // Reports
-            ['name' => 'reports.view', 'display_name' => 'View Reports', 'module' => 'reports'],
-            ['name' => 'reports.export', 'display_name' => 'Export Reports', 'module' => 'reports'],
+            ['name' => 'reports.view_any', 'display_name' => 'View Reports List', 'module' => 'reporting'],
+            ['name' => 'reports.view', 'display_name' => 'View Report', 'module' => 'reporting'],
+            ['name' => 'reports.export', 'display_name' => 'Export Reports', 'module' => 'reporting'],
         ];
 
         foreach ($permissions as $permission) {
@@ -116,14 +124,14 @@ class AuthModuleSeeder extends Seeder
                 'is_system' => true,
                 'is_active' => true,
                 'permissions' => [
-                    'users.view', 'users.create', 'users.edit',
-                    'roles.view', 'roles.create', 'roles.edit',
-                    'patients.view', 'patients.create', 'patients.edit', 'patients.delete',
-                    'appointments.view', 'appointments.create', 'appointments.edit', 'appointments.delete',
-                    'treatments.view', 'treatments.create', 'treatments.edit', 'treatments.delete',
-                    'billing.view', 'billing.create', 'billing.edit',
-                    'reports.view', 'reports.export',
-                    'profile.view', 'profile.edit',
+                    'users.view_any', 'users.view', 'users.create', 'users.update',
+                    'roles.view_any', 'roles.view', 'roles.create', 'roles.update',
+                    'patients.view_any', 'patients.view', 'patients.create', 'patients.update', 'patients.delete',
+                    'appointments.view_any', 'appointments.view', 'appointments.create', 'appointments.update', 'appointments.delete',
+                    'treatment_plans.view_any', 'treatment_plans.view', 'treatment_plans.create', 'treatment_plans.update', 'treatment_plans.delete',
+                    'invoices.view_any', 'invoices.view', 'invoices.create', 'invoices.update',
+                    'reports.view_any', 'reports.view', 'reports.export',
+                    'profile.view', 'profile.update',
                 ],
             ],
             [
@@ -134,13 +142,13 @@ class AuthModuleSeeder extends Seeder
                 'is_system' => false,
                 'is_active' => true,
                 'permissions' => [
-                    'users.view', 'users.create', 'users.edit',
-                    'patients.view', 'patients.create', 'patients.edit', 'patients.delete',
-                    'appointments.view', 'appointments.create', 'appointments.edit', 'appointments.delete',
-                    'treatments.view', 'treatments.create', 'treatments.edit',
-                    'billing.view', 'billing.create', 'billing.edit',
-                    'reports.view',
-                    'profile.view', 'profile.edit',
+                    'users.view_any', 'users.view', 'users.create', 'users.update',
+                    'patients.view_any', 'patients.view', 'patients.create', 'patients.update', 'patients.delete',
+                    'appointments.view_any', 'appointments.view', 'appointments.create', 'appointments.update', 'appointments.delete',
+                    'treatment_plans.view_any', 'treatment_plans.view', 'treatment_plans.create', 'treatment_plans.update',
+                    'invoices.view_any', 'invoices.view', 'invoices.create', 'invoices.update',
+                    'reports.view_any', 'reports.view',
+                    'profile.view', 'profile.update',
                 ],
             ],
             [
@@ -151,11 +159,11 @@ class AuthModuleSeeder extends Seeder
                 'is_system' => false,
                 'is_active' => true,
                 'permissions' => [
-                    'patients.view', 'patients.create', 'patients.edit',
-                    'appointments.view', 'appointments.create', 'appointments.edit',
-                    'treatments.view', 'treatments.create', 'treatments.edit',
-                    'billing.view',
-                    'profile.view', 'profile.edit',
+                    'patients.view_any', 'patients.view', 'patients.create', 'patients.update',
+                    'appointments.view_any', 'appointments.view', 'appointments.create', 'appointments.update',
+                    'treatment_plans.view_any', 'treatment_plans.view', 'treatment_plans.create', 'treatment_plans.update',
+                    'invoices.view_any', 'invoices.view',
+                    'profile.view', 'profile.update',
                 ],
             ],
             [
@@ -166,10 +174,10 @@ class AuthModuleSeeder extends Seeder
                 'is_system' => false,
                 'is_active' => true,
                 'permissions' => [
-                    'patients.view', 'patients.edit',
-                    'appointments.view', 'appointments.edit',
-                    'treatments.view',
-                    'profile.view', 'profile.edit',
+                    'patients.view_any', 'patients.view', 'patients.update',
+                    'appointments.view_any', 'appointments.view', 'appointments.update',
+                    'treatment_plans.view_any', 'treatment_plans.view',
+                    'profile.view', 'profile.update',
                 ],
             ],
             [
@@ -180,10 +188,10 @@ class AuthModuleSeeder extends Seeder
                 'is_system' => false,
                 'is_active' => true,
                 'permissions' => [
-                    'patients.view', 'patients.create', 'patients.edit',
-                    'appointments.view', 'appointments.create', 'appointments.edit',
-                    'billing.view',
-                    'profile.view', 'profile.edit',
+                    'patients.view_any', 'patients.view', 'patients.create', 'patients.update',
+                    'appointments.view_any', 'appointments.view', 'appointments.create', 'appointments.update',
+                    'invoices.view_any', 'invoices.view',
+                    'profile.view', 'profile.update',
                 ],
             ],
             [
@@ -194,7 +202,7 @@ class AuthModuleSeeder extends Seeder
                 'is_system' => false,
                 'is_active' => true,
                 'permissions' => [
-                    'profile.view', 'profile.edit',
+                    'profile.view', 'profile.update',
                 ],
             ],
         ];

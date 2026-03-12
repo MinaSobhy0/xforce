@@ -2,6 +2,7 @@
 
 namespace Modules\Packages\Filament\Resources;
 
+use App\Traits\ChecksResourcePermissions;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -16,7 +17,13 @@ use Modules\Packages\Filament\Resources\PackageSubscriptionResource\RelationMana
 
 class PackageSubscriptionResource extends Resource
 {
+    use ChecksResourcePermissions;
+
     protected static ?string $model = PackageSubscription::class;
+
+    protected static ?string $moduleCode = 'packages';
+
+    protected static ?string $permissionKey = 'package_subscriptions';
 
     protected static ?string $navigationIcon = 'heroicon-o-ticket';
 
