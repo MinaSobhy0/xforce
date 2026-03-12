@@ -62,6 +62,13 @@ return [
 
     'all_branches' => 'جميع الفروع',
 
+    'tabs' => [
+        'my_time_off' => 'إجازاتي',
+        'pending' => 'بانتظار الموافقة',
+        'approved' => 'الموافق عليها',
+        'all' => 'جميع الطلبات',
+    ],
+
     // Time Off Types
     'types' => [
         'navigation' => 'أنواع الإجازات',

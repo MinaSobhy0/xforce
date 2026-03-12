@@ -62,6 +62,13 @@ return [
 
     'all_branches' => 'All Branches',
 
+    'tabs' => [
+        'my_time_off' => 'My Time Off',
+        'pending' => 'Pending Approval',
+        'approved' => 'Approved',
+        'all' => 'All Requests',
+    ],
+
     // Time Off Types
     'types' => [
         'navigation' => 'Time Off Types',
