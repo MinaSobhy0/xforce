@@ -192,24 +192,31 @@ trait ChecksResourcePermissions
 
     /**
      * Check if a permission exists in the system.
-     * Uses request-level caching to prevent redundant database queries.
-     * Uses the tenant-aware Permission model for multi-tenancy.
+     * Uses cached list of all permission names to avoid individual queries.
      */
     protected static function permissionExists(string $permissionName): bool
     {
+        $allPermissions = static::getAllPermissionNames();
+        return in_array($permissionName, $allPermissions, true);
+    }
+
+    /**
+     * Get all permission names (cached for the request).
+     * Loads all permissions once and reuses for all checks.
+     */
+    protected static function getAllPermissionNames(): array
+    {
         // Check request-level cache first
-        if (isset(static::$permissionExistsCache[$permissionName])) {
-            return static::$permissionExistsCache[$permissionName];
+        if (!empty(static::$permissionExistsCache)) {
+            return static::$permissionExistsCache;
         }
 
-        $exists = \Modules\Auth\Models\Permission::where('name', $permissionName)
-            ->where('guard_name', 'web')
-            ->exists();
+        // Load all permission names in a single query
+        static::$permissionExistsCache = \Modules\Auth\Models\Permission::where('guard_name', 'web')
+            ->pluck('name')
+            ->toArray();
 
-        // Cache for this request
-        static::$permissionExistsCache[$permissionName] = $exists;
-
-        return $exists;
+        return static::$permissionExistsCache;
     }
 
     /**

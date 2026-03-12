@@ -95,8 +95,12 @@ class Room extends BaseModel
     /**
      * Scope to rooms in a specific branch.
      */
-    public function scopeInBranch($query, string $branchId)
+    public function scopeInBranch($query, ?string $branchId)
     {
+        if ($branchId === null) {
+            return $query;
+        }
+
         return $query->where('rooms.branch_id', $branchId);
     }
 
