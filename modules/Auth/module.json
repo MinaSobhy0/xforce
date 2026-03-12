@@ -33,14 +33,25 @@
     ],
     "permissions": [
         {
-            "name": "users.view",
+            "name": "users.view_any",
             "display_name": {
-                "en": "View Users",
-                "ar": "عرض المستخدمين"
+                "en": "View Users List",
+                "ar": "عرض قائمة المستخدمين"
             },
             "description": {
-                "en": "View user accounts",
-                "ar": "عرض حسابات المستخدمين"
+                "en": "View list of user accounts",
+                "ar": "عرض قائمة حسابات المستخدمين"
+            }
+        },
+        {
+            "name": "users.view",
+            "display_name": {
+                "en": "View User",
+                "ar": "عرض المستخدم"
+            },
+            "description": {
+                "en": "View user account details",
+                "ar": "عرض تفاصيل حساب المستخدم"
             }
         },
         {
@@ -55,14 +66,14 @@
             }
         },
         {
-            "name": "users.edit",
+            "name": "users.update",
             "display_name": {
-                "en": "Edit Users",
-                "ar": "تعديل المستخدمين"
+                "en": "Update Users",
+                "ar": "تحديث المستخدمين"
             },
             "description": {
-                "en": "Edit user accounts",
-                "ar": "تعديل حسابات المستخدمين"
+                "en": "Update user accounts",
+                "ar": "تحديث حسابات المستخدمين"
             }
         },
         {
@@ -77,51 +88,95 @@
             }
         },
         {
-            "name": "roles.view",
+            "name": "roles.view_any",
             "display_name": {
-                "en": "View Roles",
-                "ar": "عرض الأدوار"
+                "en": "View Roles List",
+                "ar": "عرض قائمة الأدوار"
             },
             "description": {
-                "en": "View user roles",
-                "ar": "عرض أدوار المستخدمين"
+                "en": "View list of user roles",
+                "ar": "عرض قائمة أدوار المستخدمين"
             }
         },
         {
-            "name": "roles.manage",
+            "name": "roles.view",
             "display_name": {
-                "en": "Manage Roles",
-                "ar": "إدارة الأدوار"
+                "en": "View Role",
+                "ar": "عرض الدور"
             },
             "description": {
-                "en": "Create, edit, and delete user roles",
-                "ar": "إنشاء وتعديل وحذف أدوار المستخدمين"
+                "en": "View role details",
+                "ar": "عرض تفاصيل الدور"
+            }
+        },
+        {
+            "name": "roles.create",
+            "display_name": {
+                "en": "Create Roles",
+                "ar": "إنشاء الأدوار"
+            },
+            "description": {
+                "en": "Create new user roles",
+                "ar": "إنشاء أدوار مستخدمين جديدة"
+            }
+        },
+        {
+            "name": "roles.update",
+            "display_name": {
+                "en": "Update Roles",
+                "ar": "تحديث الأدوار"
+            },
+            "description": {
+                "en": "Update user roles",
+                "ar": "تحديث أدوار المستخدمين"
+            }
+        },
+        {
+            "name": "roles.delete",
+            "display_name": {
+                "en": "Delete Roles",
+                "ar": "حذف الأدوار"
+            },
+            "description": {
+                "en": "Delete user roles",
+                "ar": "حذف أدوار المستخدمين"
+            }
+        },
+        {
+            "name": "permissions.view_any",
+            "display_name": {
+                "en": "View Permissions List",
+                "ar": "عرض قائمة الصلاحيات"
+            },
+            "description": {
+                "en": "View list of system permissions",
+                "ar": "عرض قائمة صلاحيات النظام"
             }
         },
         {
             "name": "permissions.view",
             "display_name": {
-                "en": "View Permissions",
-                "ar": "عرض الصلاحيات"
+                "en": "View Permission",
+                "ar": "عرض الصلاحية"
             },
             "description": {
-                "en": "View system permissions",
-                "ar": "عرض صلاحيات النظام"
+                "en": "View permission details",
+                "ar": "عرض تفاصيل الصلاحية"
             }
         },
         {
-            "name": "permissions.manage",
+            "name": "permissions.assign",
             "display_name": {
-                "en": "Manage Permissions",
-                "ar": "إدارة الصلاحيات"
+                "en": "Assign Permissions",
+                "ar": "تعيين الصلاحيات"
             },
             "description": {
-                "en": "Manage system permissions",
-                "ar": "إدارة صلاحيات النظام"
+                "en": "Assign permissions to roles",
+                "ar": "تعيين الصلاحيات للأدوار"
             }
         },
         {
-            "name": "auth.impersonate",
+            "name": "users.impersonate",
             "display_name": {
                 "en": "Impersonate Users",
                 "ar": "انتحال شخصية المستخدمين"
@@ -144,13 +199,19 @@
                 "ar": "مالك العيادة مع الوصول الكامل لجميع الميزات"
             },
             "permissions": [
+                "users.view_any",
                 "users.view",
                 "users.create",
-                "users.edit",
+                "users.update",
                 "users.delete",
+                "roles.view_any",
                 "roles.view",
-                "roles.manage",
-                "permissions.view"
+                "roles.create",
+                "roles.update",
+                "roles.delete",
+                "permissions.view_any",
+                "permissions.view",
+                "permissions.assign"
             ]
         },
         {
@@ -164,12 +225,19 @@
                 "ar": "مدير المستأجر مع الوصول الكامل"
             },
             "permissions": [
+                "users.view_any",
                 "users.view",
                 "users.create",
-                "users.edit",
+                "users.update",
                 "users.delete",
+                "roles.view_any",
                 "roles.view",
-                "roles.manage"
+                "roles.create",
+                "roles.update",
+                "roles.delete",
+                "permissions.view_any",
+                "permissions.view",
+                "permissions.assign"
             ]
         },
         {
@@ -183,9 +251,11 @@
                 "ar": "مدير القسم مع وصول إداري محدود"
             },
             "permissions": [
+                "users.view_any",
                 "users.view",
                 "users.create",
-                "users.edit",
+                "users.update",
+                "roles.view_any",
                 "roles.view"
             ]
         },
@@ -200,6 +270,7 @@
                 "ar": "موظف عادي"
             },
             "permissions": [
+                "users.view_any",
                 "users.view"
             ]
         },
@@ -214,6 +285,7 @@
                 "ar": "موظف استقبال"
             },
             "permissions": [
+                "users.view_any",
                 "users.view"
             ]
         },
@@ -228,6 +300,7 @@
                 "ar": "طبيب"
             },
             "permissions": [
+                "users.view_any",
                 "users.view"
             ]
         },
@@ -242,6 +315,7 @@
                 "ar": "ممرض مسجل"
             },
             "permissions": [
+                "users.view_any",
                 "users.view"
             ]
         },
@@ -256,6 +330,7 @@
                 "ar": "فني طبي"
             },
             "permissions": [
+                "users.view_any",
                 "users.view"
             ]
         }
