@@ -89,7 +89,7 @@ class RoleResource extends Resource
                                 ->color('success')
                                 ->action(function (Forms\Set $set) {
                                     foreach (static::getResourcePermissions() as $resource => $label) {
-                                        foreach (['view', 'create', 'edit', 'delete', 'export', 'import'] as $action) {
+                                        foreach (['view', 'create', 'update', 'delete', 'export', 'import'] as $action) {
                                             $set("permissions.{$resource}.{$action}", true);
                                         }
                                     }
@@ -100,7 +100,7 @@ class RoleResource extends Resource
                                 ->color('danger')
                                 ->action(function (Forms\Set $set) {
                                     foreach (static::getResourcePermissions() as $resource => $label) {
-                                        foreach (['view', 'create', 'edit', 'delete', 'export', 'import'] as $action) {
+                                        foreach (['view', 'create', 'update', 'delete', 'export', 'import'] as $action) {
                                             $set("permissions.{$resource}.{$action}", false);
                                         }
                                     }
@@ -130,7 +130,7 @@ class RoleResource extends Resource
                     ->size('xs')
                     ->action(function (Forms\Set $set) use ($groupResources) {
                         foreach ($groupResources as $resource) {
-                            foreach (['view', 'create', 'edit', 'delete', 'export', 'import'] as $action) {
+                            foreach (['view', 'create', 'update', 'delete', 'export', 'import'] as $action) {
                                 $set("permissions.{$resource}.{$action}", true);
                             }
                         }
@@ -142,7 +142,7 @@ class RoleResource extends Resource
                     ->size('xs')
                     ->action(function (Forms\Set $set) use ($groupResources) {
                         foreach ($groupResources as $resource) {
-                            foreach (['view', 'create', 'edit', 'delete', 'export', 'import'] as $action) {
+                            foreach (['view', 'create', 'update', 'delete', 'export', 'import'] as $action) {
                                 $set("permissions.{$resource}.{$action}", false);
                             }
                         }
@@ -162,8 +162,8 @@ class RoleResource extends Resource
                             ->label(__('auth::auth.permissions.create'))
                             ->inline(),
 
-                        Forms\Components\Checkbox::make("permissions.{$resource}.edit")
-                            ->label(__('auth::auth.permissions.edit'))
+                        Forms\Components\Checkbox::make("permissions.{$resource}.update")
+                            ->label(__('auth::auth.permissions.update'))
                             ->inline(),
 
                         Forms\Components\Checkbox::make("permissions.{$resource}.delete")
@@ -418,7 +418,7 @@ class RoleResource extends Resource
             $permissions = $role->permissions->pluck('name')->toArray();
 
             foreach (static::getResourcePermissions() as $resource => $label) {
-                foreach (['view', 'create', 'edit', 'delete', 'export', 'import'] as $action) {
+                foreach (['view', 'create', 'update', 'delete', 'export', 'import'] as $action) {
                     $permName = "{$resource}.{$action}";
                     $data['permissions'][$resource][$action] = in_array($permName, $permissions);
                 }

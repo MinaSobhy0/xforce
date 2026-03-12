@@ -143,18 +143,13 @@ trait ChecksResourcePermissions
 
     /**
      * Check if a permission exists in the system.
+     * No caching to ensure real-time permission checks.
      */
     protected static function permissionExists(string $permissionName): bool
     {
-        static $cache = [];
-
-        if (!isset($cache[$permissionName])) {
-            $cache[$permissionName] = \Spatie\Permission\Models\Permission::where('name', $permissionName)
-                ->where('guard_name', 'web')
-                ->exists();
-        }
-
-        return $cache[$permissionName];
+        return \Spatie\Permission\Models\Permission::where('name', $permissionName)
+            ->where('guard_name', 'web')
+            ->exists();
     }
 
     /**

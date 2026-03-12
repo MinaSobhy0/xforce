@@ -36,6 +36,7 @@ return [
     'permissions' => [
         'view' => 'عرض',
         'create' => 'إنشاء',
+        'update' => 'تحديث',
         'edit' => 'تعديل',
         'delete' => 'حذف',
         'export' => 'تصدير',

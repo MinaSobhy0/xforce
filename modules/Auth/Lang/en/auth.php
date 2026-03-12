@@ -202,6 +202,7 @@ return [
     'permissions' => [
         'view' => 'View',
         'create' => 'Create',
+        'update' => 'Update',
         'edit' => 'Edit',
         'delete' => 'Delete',
         'export' => 'Export',

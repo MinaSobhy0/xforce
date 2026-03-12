@@ -24,7 +24,7 @@ class EditRole extends BaseEditRecord
         $permissions = $this->record->permissions->pluck('name')->toArray();
 
         foreach (RoleResource::getResourcePermissions() as $resource => $label) {
-            foreach (['view', 'create', 'edit', 'delete', 'export', 'import'] as $action) {
+            foreach (['view', 'create', 'update', 'delete', 'export', 'import'] as $action) {
                 $permName = "{$resource}.{$action}";
                 $data['permissions'][$resource][$action] = in_array($permName, $permissions);
             }
