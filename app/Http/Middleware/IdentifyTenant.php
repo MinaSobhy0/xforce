@@ -231,35 +231,19 @@ class IdentifyTenant
     }
 
     /**
-     * Clear Spatie permission cache only if tenant has changed.
+     * Set tenant-specific permission cache key.
      *
-     * Since permissions are stored per-tenant schema, we need to clear the cache
-     * when switching tenants to ensure correct permissions are loaded.
-     * We DON'T want to clear on every request as it breaks SPA navigation performance.
+     * Instead of clearing cache on every tenant switch, we use a unique
+     * cache key per tenant. This allows each tenant to have its own
+     * permission cache without conflicts.
      */
     protected function clearPermissionCacheIfTenantChanged(Tenant $tenant): void
     {
-        $currentTenantId = session('_permission_cache_tenant_id');
+        // Set tenant-specific cache key for Spatie permissions
+        // This avoids cache conflicts between tenants
+        Config::set('permission.cache.key', 'spatie.permission.cache.' . $tenant->slug);
 
-        // Only clear cache if this is a different tenant than before
-        if ($currentTenantId !== $tenant->id) {
-            $this->clearPermissionCache();
-            session(['_permission_cache_tenant_id' => $tenant->id]);
-        }
-    }
-
-    /**
-     * Clear Spatie permission cache.
-     *
-     * Since permissions are stored per-tenant schema, we need to clear the cache
-     * on each tenant switch to ensure correct permissions are loaded.
-     */
-    protected function clearPermissionCache(): void
-    {
-        try {
-            app(PermissionRegistrar::class)->forgetCachedPermissions();
-        } catch (\Exception $e) {
-            // Silently ignore if PermissionRegistrar not available
-        }
+        // Reset the PermissionRegistrar to pick up the new cache key
+        app(PermissionRegistrar::class)->initializeCache();
     }
 }

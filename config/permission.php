@@ -187,6 +187,8 @@ return [
 
         /*
          * The cache key used to store all permissions.
+         * NOTE: For multi-tenancy, this is dynamically modified in IdentifyTenant
+         * middleware to include the tenant slug.
          */
 
         'key' => 'spatie.permission.cache',
