@@ -2066,6 +2066,17 @@ class CreateBooking extends Page implements HasForms
                 $isPackageSession = !empty($item['from_package']) || !empty($item['new_package_id']);
                 $packageSubscriptionId = $item['from_package'] ?? ($newPackageSubscriptions[$item['new_package_id']] ?? null);
 
+                // Get discount from form's services array (match by service_id)
+                $discountMinor = 0;
+                if (!empty($data['services'])) {
+                    foreach ($data['services'] as $formService) {
+                        if (($formService['service_id'] ?? null) == $item['service_id']) {
+                            $discountMinor = (int) ($formService['discount_minor'] ?? 0);
+                            break;
+                        }
+                    }
+                }
+
                 $appointment = Appointment::create([
                     'patient_id' => $data['patient_id'],
                     'service_id' => $item['service_id'],
@@ -2079,6 +2090,9 @@ class CreateBooking extends Page implements HasForms
                     'duration_minutes' => $item['duration'],
                     // Package sessions have price 0 since they're prepaid
                     'price_minor' => $isPackageSession ? 0 : ($service?->base_price_minor ?? 0),
+                    // Discount (only for non-package services)
+                    'discount_minor' => $isPackageSession ? 0 : $discountMinor,
+                    'discount_type' => $discountMinor > 0 ? Appointment::DISCOUNT_FIXED : null,
                     'status' => Appointment::STATUS_SCHEDULED,
                     'source' => $data['source'] ?? Appointment::SOURCE_PHONE,
                     'notes' => $data['notes'] ?? null,
