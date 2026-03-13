@@ -74,7 +74,10 @@ class CommissionPlanResource extends Resource
                             ->options(CommissionPlan::TYPES)
                             ->default(CommissionPlan::TYPE_PERCENTAGE)
                             ->required()
-                            ->reactive(),
+                            ->live()
+                            ->helperText(fn (Forms\Get $get) => $get('commission_type') === CommissionPlan::TYPE_TIERED
+                                ? __('staff::commission.help.tiered_requires_rules')
+                                : null),
 
                         Forms\Components\TextInput::make('default_percentage')
                             ->label(__('staff::commission.fields.percentage'))
@@ -93,6 +96,16 @@ class CommissionPlanResource extends Resource
                             ->step(0.01)
                             ->default(0)
                             ->visible(fn (Forms\Get $get) => $get('commission_type') === CommissionPlan::TYPE_FLAT),
+
+                        Forms\Components\Placeholder::make('tiered_info')
+                            ->label('')
+                            ->content(new \Illuminate\Support\HtmlString(
+                                '<div class="text-sm text-warning-600 dark:text-warning-400 bg-warning-50 dark:bg-warning-950 p-3 rounded-lg">' .
+                                '<strong>' . __('staff::commission.help.tiered_title') . '</strong><br>' .
+                                __('staff::commission.help.tiered_description') .
+                                '</div>'
+                            ))
+                            ->visible(fn (Forms\Get $get) => $get('commission_type') === CommissionPlan::TYPE_TIERED),
                     ]),
             ]);
     }

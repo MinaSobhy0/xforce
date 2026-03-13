@@ -46,6 +46,9 @@ return [
     'help' => [
         'service_specific' => 'Select a specific service for this rule, or leave empty for category-level rule.',
         'category_fallback' => 'Select a category. If no service is selected, this rule applies to all services in the category.',
+        'tiered_requires_rules' => 'Tiered commission requires configuring Service Rules with revenue ranges.',
+        'tiered_title' => 'Tiered Commission',
+        'tiered_description' => 'For tiered commission, the default will be 0%. You must add Service Rules below to define commission tiers based on revenue ranges. Each tier specifies a revenue range (from/to) and a percentage.',
     ],
 
     'messages' => [
