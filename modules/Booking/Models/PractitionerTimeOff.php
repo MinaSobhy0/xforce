@@ -87,6 +87,15 @@ class PractitionerTimeOff extends BaseModel
             if (empty($timeOff->is_full_day)) {
                 $timeOff->is_full_day = true;
             }
+            // Auto-set type from TimeOffType if not provided
+            if (empty($timeOff->type)) {
+                if ($timeOff->time_off_type_id) {
+                    $timeOffType = TimeOffType::find($timeOff->time_off_type_id);
+                    $timeOff->type = $timeOffType?->code ?? self::TYPE_OTHER;
+                } else {
+                    $timeOff->type = self::TYPE_OTHER;
+                }
+            }
         });
     }
 
