@@ -196,15 +196,19 @@ class StockMoveService
         }
 
         // Determine unit cost based on transfer type and valuation method
-        // Note: unit_cost is always per stock UOM unit
-        if ($unitCostMinor === null && $product) {
+        // Note: unit_cost must be converted to per stock UOM unit
+        if ($product) {
             $isReceipt = in_array($transfer->transfer_type, [
                 StockTransfer::TYPE_RECEIPT,
                 StockTransfer::TYPE_RETURN_IN,
             ]);
 
-            if ($isReceipt) {
-                // For receipts, use product's current cost (will be updated after for AVCO)
+            if ($unitCostMinor !== null && $unitCostMinor > 0) {
+                // Convert unit cost from line's UOM to stock UOM
+                // If line UOM has ratio 6 (1 box = 6 pieces), cost per piece = cost per box / 6
+                $unitCostMinor = $this->convertCostToStockUom($unitCostMinor, $line->uom_id, $product);
+            } elseif ($isReceipt) {
+                // For receipts without cost, use product's current cost (will be updated after for AVCO)
                 $unitCostMinor = $product->cost_price_minor;
             } else {
                 // For sales/consumption, use valuation method
@@ -296,6 +300,75 @@ class StockMoveService
         // Convert and round to integer
         $convertedQuantity = $sourceUom->convertTo($quantity, $stockUom);
         return (int) round($convertedQuantity);
+    }
+
+    /**
+     * Convert unit cost from a given UOM to stock UOM (product's sales_uom).
+     * If you pay 600 EGP per Box (ratio 6), the cost per Piece = 600 / 6 = 100 EGP.
+     *
+     * @param int $costMinor Cost per unit in the source UOM (in minor currency)
+     * @param int|null $sourceUomId Source UOM ID
+     * @param Product|null $product The product (for getting stock UOM)
+     * @return int Cost per stock UOM unit (in minor currency)
+     */
+    protected function convertCostToStockUom(int $costMinor, ?int $sourceUomId, ?Product $product): int
+    {
+        if (!$product || $costMinor <= 0) {
+            return $costMinor;
+        }
+
+        $stockUom = $product->salesUom;
+
+        // If no UOMs defined, return cost as-is
+        if (!$stockUom) {
+            return $costMinor;
+        }
+
+        // If no source UOM or same as stock UOM, return as-is
+        if (!$sourceUomId || $sourceUomId === $stockUom->id) {
+            return $costMinor;
+        }
+
+        // Get source UOM
+        $sourceUom = Uom::find($sourceUomId);
+        if (!$sourceUom) {
+            return $costMinor;
+        }
+
+        // Verify same category
+        if ($sourceUom->category_id !== $stockUom->category_id) {
+            Log::warning('UOM category mismatch during cost conversion', [
+                'source_uom_id' => $sourceUomId,
+                'stock_uom_id' => $stockUom->id,
+                'product_id' => $product->id,
+            ]);
+            return $costMinor;
+        }
+
+        // Convert cost: if source UOM ratio is 6 (1 box = 6 pieces), divide cost by 6
+        // Source ratio is relative to reference unit, stock ratio is also relative to reference
+        // Cost per stock unit = cost per source unit * (stock ratio / source ratio)
+        // Example: Box ratio=6, Piece ratio=1: cost per piece = cost per box * (1/6) = cost/6
+        $sourceRatio = (float) $sourceUom->ratio;
+        $stockRatio = (float) $stockUom->ratio;
+
+        if ($sourceRatio <= 0) {
+            return $costMinor;
+        }
+
+        $convertedCost = (int) round($costMinor * ($stockRatio / $sourceRatio));
+
+        Log::info('Converted unit cost to stock UOM', [
+            'product_id' => $product->id,
+            'source_uom' => $sourceUom->name,
+            'source_ratio' => $sourceRatio,
+            'stock_uom' => $stockUom->name,
+            'stock_ratio' => $stockRatio,
+            'original_cost' => $costMinor,
+            'converted_cost' => $convertedCost,
+        ]);
+
+        return $convertedCost;
     }
 
     /**
