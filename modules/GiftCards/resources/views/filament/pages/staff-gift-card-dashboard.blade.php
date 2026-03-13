@@ -1,44 +1,5 @@
 <x-filament-panels::page>
     <div class="space-y-6">
-        {{-- Statistics Section --}}
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <x-filament::section>
-                <div class="text-center">
-                    <div class="text-sm text-gray-500 dark:text-gray-400">{{ __('giftcards::giftcards.stats.cards_available') }}</div>
-                    <div class="text-3xl font-bold text-primary-600 dark:text-primary-400">
-                        {{ number_format($this->myStatistics['available'] ?? 0) }}
-                    </div>
-                </div>
-            </x-filament::section>
-
-            <x-filament::section>
-                <div class="text-center">
-                    <div class="text-sm text-gray-500 dark:text-gray-400">{{ __('giftcards::giftcards.stats.total_issued') }}</div>
-                    <div class="text-3xl font-bold text-success-600 dark:text-success-400">
-                        {{ number_format($this->myStatistics['assigned'] ?? 0) }}
-                    </div>
-                </div>
-            </x-filament::section>
-
-            <x-filament::section>
-                <div class="text-center">
-                    <div class="text-sm text-gray-500 dark:text-gray-400">{{ __('giftcards::giftcards.stats.cards_sold') }}</div>
-                    <div class="text-3xl font-bold text-blue-600 dark:text-blue-400">
-                        {{ number_format($this->myStatistics['sold'] ?? 0) }}
-                    </div>
-                </div>
-            </x-filament::section>
-
-            <x-filament::section>
-                <div class="text-center">
-                    <div class="text-sm text-gray-500 dark:text-gray-400">{{ __('giftcards::giftcards.stats.sales_value') }}</div>
-                    <div class="text-3xl font-bold text-orange-600 dark:text-orange-400">
-                        {{ $this->myStatistics['formatted_sales_value'] ?? format_money(0) }}
-                    </div>
-                </div>
-            </x-filament::section>
-        </div>
-
         {{-- Cards by Denomination --}}
         <x-filament::section>
             <x-slot name="heading">
@@ -101,20 +62,13 @@
                                         @endif
                                     </td>
                                     <td class="p-3 text-end">
-                                        <div class="flex items-center justify-end gap-2">
-                                            <a href="{{ route('giftcards.print', $card->id) }}"
-                                               target="_blank"
-                                               class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
-                                                <x-heroicon-o-printer class="w-5 h-5" />
-                                            </a>
-                                            <x-filament::button
-                                                size="sm"
-                                                color="success"
-                                                wire:click="openSellModal('{{ $card->id }}')"
-                                            >
-                                                {{ __('giftcards::giftcards.staff_dashboard.sell') }}
-                                            </x-filament::button>
-                                        </div>
+                                        <x-filament::button
+                                            size="sm"
+                                            color="success"
+                                            wire:click="openSellModal('{{ $card->id }}')"
+                                        >
+                                            {{ __('giftcards::giftcards.staff_dashboard.sell') }}
+                                        </x-filament::button>
                                     </td>
                                 </tr>
                             @endforeach

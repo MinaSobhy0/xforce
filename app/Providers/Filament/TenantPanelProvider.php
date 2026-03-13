@@ -104,8 +104,9 @@ class TenantPanelProvider extends PanelProvider
             ->discoverResources(in: base_path('modules/Packages/Filament/Resources'), for: 'Modules\\Packages\\Filament\\Resources')
             ->discoverPages(in: base_path('modules/Packages/Filament/Pages'), for: 'Modules\\Packages\\Filament\\Pages')
 
-            // Discover GiftCards module resources
+            // Discover GiftCards module resources and pages
             ->discoverResources(in: base_path('modules/GiftCards/Filament/Resources'), for: 'Modules\\GiftCards\\Filament\\Resources')
+            ->discoverPages(in: base_path('modules/GiftCards/Filament/Pages'), for: 'Modules\\GiftCards\\Filament\\Pages')
 
             // Discover Memberships module resources
             ->discoverResources(in: base_path('modules/Memberships/Filament/Resources'), for: 'Modules\\Memberships\\Filament\\Resources')

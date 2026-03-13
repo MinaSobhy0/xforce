@@ -533,9 +533,7 @@ class GiftCardResource extends Resource
                         ->form([
                             Forms\Components\Select::make('staff_id')
                                 ->label(__('giftcards::giftcards.fields.assigned_to'))
-                                ->options(fn () => User::whereHas('roles', function ($query) {
-                                    $query->whereIn('name', ['admin', 'receptionist', 'staff']);
-                                })->get()->pluck('full_name', 'id'))
+                                ->options(fn () => User::orderBy('first_name')->get()->pluck('full_name', 'id'))
                                 ->required()
                                 ->searchable(),
                         ])

@@ -16,6 +16,7 @@ use Modules\GiftCards\Services\GiftCardService;
 use Modules\Patients\Models\Patient;
 use Modules\Accounting\Models\Journal;
 use Livewire\Attributes\Computed;
+use Modules\GiftCards\Filament\Widgets\MyGiftCardStatsWidget;
 
 class StaffGiftCardDashboard extends Page implements HasForms
 {
@@ -28,6 +29,13 @@ class StaffGiftCardDashboard extends Page implements HasForms
     protected static ?int $navigationSort = 13;
 
     protected static string $view = 'giftcards::filament.pages.staff-gift-card-dashboard';
+
+    protected function getHeaderWidgets(): array
+    {
+        return [
+            MyGiftCardStatsWidget::class,
+        ];
+    }
 
     public ?array $sellData = [];
     public ?string $selectedCardId = null;
@@ -45,10 +53,8 @@ class StaffGiftCardDashboard extends Page implements HasForms
 
     public static function shouldRegisterNavigation(): bool
     {
-        // Show in navigation for users who have assigned cards
-        return GiftCard::where('assigned_to_staff_id', Auth::id())
-            ->where('status', GiftCard::STATUS_DRAFT)
-            ->exists();
+        // Always show for staff to view their cards (even if empty)
+        return true;
     }
 
     public function mount(): void
@@ -96,6 +102,7 @@ class StaffGiftCardDashboard extends Page implements HasForms
         $this->selectedCardId = $cardId;
         $this->sellForm->fill([
             'patient_type' => 'existing',
+            'extra_discount' => 0,
         ]);
         $this->dispatch('open-modal', id: 'sell-card-modal');
     }
@@ -104,6 +111,53 @@ class StaffGiftCardDashboard extends Page implements HasForms
     {
         return $form
             ->schema([
+                // Pricing section (shows when card is selected)
+                Forms\Components\Section::make(__('giftcards::giftcards.fields.pricing'))
+                    ->schema([
+                        Forms\Components\Placeholder::make('face_value_display')
+                            ->label(__('giftcards::giftcards.fields.face_value'))
+                            ->content(function () {
+                                $card = $this->selectedCardId ? GiftCard::find($this->selectedCardId) : null;
+                                return $card ? $card->formatted_initial_value : '-';
+                            }),
+
+                        Forms\Components\Placeholder::make('template_discount_display')
+                            ->label(__('giftcards::giftcards.fields.template_discount'))
+                            ->content(function () {
+                                $card = $this->selectedCardId ? GiftCard::with('template')->find($this->selectedCardId) : null;
+                                if (!$card) return '-';
+                                $templateDiscount = $card->calculateTemplateDiscount();
+                                return $templateDiscount > 0 ? format_money($templateDiscount) : '-';
+                            }),
+
+                        Forms\Components\Placeholder::make('price_after_template_discount')
+                            ->label(__('giftcards::giftcards.fields.price_after_discount'))
+                            ->content(function () {
+                                $card = $this->selectedCardId ? GiftCard::with('template')->find($this->selectedCardId) : null;
+                                return $card ? format_money($card->getTemplateDiscountedPrice()) : '-';
+                            }),
+
+                        Forms\Components\TextInput::make('extra_discount')
+                            ->label(__('giftcards::giftcards.fields.extra_discount'))
+                            ->numeric()
+                            ->default(0)
+                            ->prefix('EGP')
+                            ->live(onBlur: true),
+
+                        Forms\Components\Placeholder::make('final_price_display')
+                            ->label(__('giftcards::giftcards.fields.final_price'))
+                            ->content(function (Forms\Get $get) {
+                                $card = $this->selectedCardId ? GiftCard::with('template')->find($this->selectedCardId) : null;
+                                if (!$card) return '-';
+                                $priceAfterTemplate = $card->getTemplateDiscountedPrice();
+                                $extraDiscount = (int) (($get('extra_discount') ?? 0) * 100);
+                                $finalPrice = max(0, $priceAfterTemplate - $extraDiscount);
+                                return format_money($finalPrice);
+                            }),
+                    ])
+                    ->columns(2)
+                    ->visible(fn () => $this->selectedCardId !== null),
+
                 Forms\Components\Radio::make('patient_type')
                     ->label(__('giftcards::giftcards.staff_dashboard.patient_type'))
                     ->options([
@@ -173,9 +227,8 @@ class StaffGiftCardDashboard extends Page implements HasForms
                     ->searchable()
                     ->nullable(),
 
-                Forms\Components\Textarea::make('notes')
-                    ->label(__('giftcards::giftcards.fields.notes'))
-                    ->rows(2),
+                Forms\Components\TextInput::make('notes')
+                    ->label(__('giftcards::giftcards.fields.notes')),
             ])
             ->statePath('sellData');
     }
@@ -239,13 +292,17 @@ class StaffGiftCardDashboard extends Page implements HasForms
             $purchaserData = $data['purchaser_patient_id'];
         }
 
+        // Convert extra discount from EGP to minor units (cents)
+        $extraDiscountMinor = (int) (($data['extra_discount'] ?? 0) * 100);
+
         // Process the sale with payment and GL entry
         $result = app(GiftCardService::class)->processSale(
             $card,
             $data['journal_id'],
             $purchaserData,
             $data['recipient_patient_id'] ?? null,
-            $data['notes'] ?? null
+            $data['notes'] ?? null,
+            $extraDiscountMinor
         );
 
         if (!$result['success']) {
