@@ -344,6 +344,7 @@ return [
         'adjustment' => 'تعديل',
         'purchase_receive' => 'استلام شراء',
         'appointment_consume' => 'استهلاك موعد',
+        'invoice_sale' => 'بيع فاتورة',
         'return' => 'إرجاع',
         'waste' => 'هالك',
     ],

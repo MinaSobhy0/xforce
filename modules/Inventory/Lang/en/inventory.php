@@ -345,6 +345,7 @@ return [
         'adjustment' => 'Adjustment',
         'purchase_receive' => 'Purchase Receive',
         'appointment_consume' => 'Appointment Consume',
+        'invoice_sale' => 'Invoice Sale',
         'return' => 'Return',
         'waste' => 'Waste',
     ],
