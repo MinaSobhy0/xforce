@@ -11,13 +11,12 @@ use Filament\Forms;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\DB;
 use Modules\Core\Models\Branch;
 use Modules\Inventory\Models\Product;
 use Modules\Inventory\Models\StockLevel;
 use Modules\Inventory\Models\StockLocation;
 use Modules\Inventory\Models\StockMovement;
-use Modules\Inventory\Services\StockValuationService;
+use Modules\Inventory\Filament\Resources\StockMovementResource;
 
 class StockReportPage extends Page implements HasTable, HasForms
 {
@@ -210,23 +209,14 @@ class StockReportPage extends Page implements HasTable, HasForms
                 Tables\Actions\Action::make('viewMovements')
                     ->label(__('inventory::inventory.stock_report.view_movements'))
                     ->icon('heroicon-o-arrows-right-left')
-                    ->modalHeading(fn ($record) => __('inventory::inventory.stock_report.movements_for', [
-                        'product' => $record->product?->getTranslation('name', app()->getLocale())
+                    ->url(fn ($record) => StockMovementResource::getUrl('index', [
+                        'tableFilters' => [
+                            'product_id' => [
+                                'value' => $record->product_id,
+                            ],
+                        ],
                     ]))
-                    ->modalContent(fn ($record) => view('inventory::filament.pages.partials.stock-movements-modal', [
-                        'movements' => StockMovement::where('product_id', $record->product_id)
-                            ->when($record->location_id, fn ($q) => $q->where(function ($sq) use ($record) {
-                                $sq->where('source_location_id', $record->location_id)
-                                    ->orWhere('destination_location_id', $record->location_id);
-                            }))
-                            ->with(['sourceLocation', 'destinationLocation', 'createdBy'])
-                            ->orderByDesc('created_at')
-                            ->limit(50)
-                            ->get(),
-                    ]))
-                    ->modalWidth('5xl')
-                    ->modalSubmitAction(false)
-                    ->modalCancelActionLabel(__('Close')),
+                    ->openUrlInNewTab(),
             ])
             ->defaultSort('product.sku')
             ->striped()
