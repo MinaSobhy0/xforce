@@ -12,6 +12,21 @@ class EditPractitionerTimeOff extends BaseEditRecord
 {
     protected static string $resource = PractitionerTimeOffResource::class;
 
+    public function mount(int|string $record): void
+    {
+        parent::mount($record);
+
+        // Redirect to index if the record is not pending (cannot edit approved/rejected/cancelled)
+        if (!$this->record->isPending()) {
+            Notification::make()
+                ->title(__('booking::time_off.messages.cannot_edit_non_pending'))
+                ->warning()
+                ->send();
+
+            $this->redirect($this->getResource()::getUrl('index'));
+        }
+    }
+
     protected function getEditHeaderActions(): array
     {
         return [

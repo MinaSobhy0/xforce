@@ -48,6 +48,51 @@ class PractitionerTimeOffResource extends Resource
         return __('booking::time_off.plural');
     }
 
+    /**
+     * Recalculate days requested based on dates and times.
+     * For full day: calendar days between start and end dates
+     * For partial day: hours between start and end time / 8 (standard work day)
+     */
+    protected static function recalculateDays(Forms\Get $get, Forms\Set $set): void
+    {
+        $startDate = $get('start_date');
+        $endDate = $get('end_date');
+        $isFullDay = $get('is_full_day');
+
+        if (!$startDate || !$endDate) {
+            return;
+        }
+
+        if ($isFullDay) {
+            // Full day calculation: number of calendar days
+            $days = \Carbon\Carbon::parse($startDate)->diffInDays(\Carbon\Carbon::parse($endDate)) + 1;
+            $set('days_requested', $days);
+        } else {
+            // Partial day calculation: hours / 8 for each day
+            $startTime = $get('start_time');
+            $endTime = $get('end_time');
+
+            if (!$startTime || !$endTime) {
+                return;
+            }
+
+            $calendarDays = \Carbon\Carbon::parse($startDate)->diffInDays(\Carbon\Carbon::parse($endDate)) + 1;
+
+            // Calculate hours for the partial day portion
+            $start = \Carbon\Carbon::parse($startTime);
+            $end = \Carbon\Carbon::parse($endTime);
+            $hours = $start->diffInMinutes($end) / 60;
+
+            // Convert hours to fraction of a day (8-hour workday)
+            $fractionPerDay = round($hours / 8, 1);
+
+            // Total days = fraction per day * number of calendar days
+            $totalDays = $fractionPerDay * $calendarDays;
+
+            $set('days_requested', max(0.5, round($totalDays, 1)));
+        }
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -146,7 +191,10 @@ class PractitionerTimeOffResource extends Resource
                         Forms\Components\Toggle::make('is_full_day')
                             ->label(__('booking::time_off.fields.is_full_day'))
                             ->default(true)
-                            ->live(),
+                            ->live()
+                            ->afterStateUpdated(function ($state, Forms\Get $get, Forms\Set $set) {
+                                static::recalculateDays($get, $set);
+                            }),
 
                         Forms\Components\Grid::make(3)
                             ->schema([
@@ -156,11 +204,7 @@ class PractitionerTimeOffResource extends Resource
                                     ->required()
                                     ->live()
                                     ->afterStateUpdated(function ($state, Forms\Get $get, Forms\Set $set) {
-                                        $endDate = $get('end_date');
-                                        if ($state && $endDate) {
-                                            $days = \Carbon\Carbon::parse($state)->diffInDays(\Carbon\Carbon::parse($endDate)) + 1;
-                                            $set('days_requested', $days);
-                                        }
+                                        static::recalculateDays($get, $set);
                                     }),
 
                                 Forms\Components\DatePicker::make('end_date')
@@ -170,11 +214,7 @@ class PractitionerTimeOffResource extends Resource
                                     ->afterOrEqual('start_date')
                                     ->live()
                                     ->afterStateUpdated(function ($state, Forms\Get $get, Forms\Set $set) {
-                                        $startDate = $get('start_date');
-                                        if ($startDate && $state) {
-                                            $days = \Carbon\Carbon::parse($startDate)->diffInDays(\Carbon\Carbon::parse($state)) + 1;
-                                            $set('days_requested', $days);
-                                        }
+                                        static::recalculateDays($get, $set);
                                     }),
 
                                 Forms\Components\TextInput::make('days_requested')
@@ -191,12 +231,20 @@ class PractitionerTimeOffResource extends Resource
                                 Forms\Components\TimePicker::make('start_time')
                                     ->label(__('booking::time_off.fields.start_time'))
                                     ->seconds(false)
-                                    ->required(),
+                                    ->required()
+                                    ->live()
+                                    ->afterStateUpdated(function ($state, Forms\Get $get, Forms\Set $set) {
+                                        static::recalculateDays($get, $set);
+                                    }),
 
                                 Forms\Components\TimePicker::make('end_time')
                                     ->label(__('booking::time_off.fields.end_time'))
                                     ->seconds(false)
-                                    ->required(),
+                                    ->required()
+                                    ->live()
+                                    ->afterStateUpdated(function ($state, Forms\Get $get, Forms\Set $set) {
+                                        static::recalculateDays($get, $set);
+                                    }),
                             ])
                             ->visible(fn (Forms\Get $get) => !$get('is_full_day')),
                     ]),
@@ -331,7 +379,8 @@ class PractitionerTimeOffResource extends Resource
                     ->action(fn (PractitionerTimeOff $record, array $data) => $record->reject(auth()->id(), $data['notes'])),
 
                 Tables\Actions\ActionGroup::make([
-                    Tables\Actions\EditAction::make(),
+                    Tables\Actions\EditAction::make()
+                        ->visible(fn (PractitionerTimeOff $record): bool => $record->isPending()),
 
                     Tables\Actions\Action::make('cancel')
                         ->label(__('booking::time_off.actions.cancel'))

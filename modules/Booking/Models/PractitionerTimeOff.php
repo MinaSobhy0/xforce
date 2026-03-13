@@ -84,7 +84,7 @@ class PractitionerTimeOff extends BaseModel
             if (empty($timeOff->status)) {
                 $timeOff->status = self::STATUS_PENDING;
             }
-            if (empty($timeOff->is_full_day)) {
+            if (is_null($timeOff->is_full_day)) {
                 $timeOff->is_full_day = true;
             }
             // Auto-set type from TimeOffType if not provided

@@ -58,6 +58,7 @@ return [
         'approved' => 'Time off request approved',
         'rejected' => 'Time off request rejected',
         'cancelled' => 'Time off request cancelled',
+        'cannot_edit_non_pending' => 'Only pending time off requests can be edited',
     ],
 
     'all_branches' => 'All Branches',
