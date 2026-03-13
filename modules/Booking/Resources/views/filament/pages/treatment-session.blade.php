@@ -847,16 +847,53 @@
                     @if(!$this->isViewMode())
                         @php $availableEquipment = $this->getAvailableEquipment(); @endphp
                         @if($availableEquipment->isNotEmpty())
-                            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                                <select wire:model="newEquipmentId" class="flex-1 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm">
-                                    <option value="">{{ __('booking::session.equipment.add_equipment') }}</option>
-                                    @foreach($availableEquipment as $eq)
-                                        <option value="{{ $eq->id }}">{{ $eq->name }}</option>
-                                    @endforeach
-                                </select>
-                                <x-filament::button wire:click="addEquipment" size="sm" class="w-full sm:w-auto">
+                            <div class="flex flex-col sm:flex-row gap-2 mb-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg"
+                                x-data="{
+                                    search: '',
+                                    open: false,
+                                    items: @js($availableEquipment->map(fn($eq) => ['id' => $eq->id, 'name' => $eq->name, 'code' => $eq->code ?? '', 'category' => $eq->category ?? ''])->values()->toArray()),
+                                    get filtered() {
+                                        if (!this.search) return this.items;
+                                        return this.items.filter(item =>
+                                            item.name.toLowerCase().includes(this.search.toLowerCase()) ||
+                                            item.code.toLowerCase().includes(this.search.toLowerCase())
+                                        );
+                                    },
+                                    select(id) {
+                                        $wire.set('newEquipmentId', id);
+                                        this.open = false;
+                                        const item = this.items.find(i => i.id == id);
+                                        this.search = item ? item.name + (item.code ? ' (' + item.code + ')' : '') : '';
+                                    },
+                                    clear() {
+                                        this.search = '';
+                                        this.open = false;
+                                    }
+                                }"
+                                @click.outside="open = false"
+                                @equipment-added.window="clear()"
+                            >
+                                <div class="flex-1 relative">
+                                    <input
+                                        type="text"
+                                        x-model="search"
+                                        @focus="open = true"
+                                        @input="open = true"
+                                        placeholder="{{ __('booking::session.equipment.add_equipment') }}"
+                                        class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm"
+                                    />
+                                    <div x-show="open && filtered.length > 0" x-cloak class="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded shadow-lg max-h-48 overflow-y-auto">
+                                        <template x-for="item in filtered" :key="item.id">
+                                            <button type="button" @click="select(item.id)" class="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex justify-between items-center">
+                                                <span x-text="item.name"></span>
+                                                <span x-show="item.code" x-text="item.code" class="text-xs px-1.5 py-0.5 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 rounded"></span>
+                                            </button>
+                                        </template>
+                                    </div>
+                                </div>
+                                <x-filament::button wire:click="addEquipment" size="sm" class="flex-1 sm:flex-none">
                                     <x-heroicon-o-plus class="w-4 h-4" />
-                                    <span class="sm:hidden ml-1">{{ __('booking::session.consumables.add') }}</span>
+                                    <span class="sm:hidden ml-1">{{ __('booking::session.equipment.add') }}</span>
                                 </x-filament::button>
                             </div>
                         @endif
