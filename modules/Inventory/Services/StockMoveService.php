@@ -399,14 +399,13 @@ class StockMoveService
                 $transfer->branch_id
             );
         } else {
-            // For consumption with FIFO, consume layers
-            if ($product->valuation_method === Product::VALUATION_FIFO) {
-                $this->valuationService->consumeFifoLayers(
-                    $product,
-                    $movement->quantity,
-                    $transfer->branch_id
-                );
-            }
+            // For all consumption/sales, consume FIFO layers to track remaining inventory
+            // This ensures remaining_quantity is decremented for accurate stock valuation
+            $this->valuationService->consumeFifoLayers(
+                $product,
+                $movement->quantity,
+                $transfer->branch_id
+            );
         }
     }
 

@@ -117,8 +117,10 @@ class StockReportPage extends Page implements HasTable, HasForms
                         if (!$product) return 0;
 
                         // Calculate weighted average from remaining receipt layers
+                        // Filter by location (destination_location_id for receipts)
                         $layers = StockMovement::where('product_id', $product->id)
-                            ->when($record->branch_id, fn($q) => $q->where('branch_id', $record->branch_id))
+                            ->when($record->location_id, fn($q) => $q->where('destination_location_id', $record->location_id))
+                            ->when(!$record->location_id && $record->branch_id, fn($q) => $q->where('branch_id', $record->branch_id))
                             ->whereIn('movement_type', [
                                 StockMovement::TYPE_PURCHASE_RECEIVE,
                                 StockMovement::TYPE_IN,
@@ -147,9 +149,11 @@ class StockReportPage extends Page implements HasTable, HasForms
                         $qty = $record->quantity_on_hand ?? 0;
                         if ($qty <= 0) return 0;
 
-                        // Always calculate from stock movement layers
+                        // Calculate from stock movement layers filtered by location
+                        // For receipts, destination_location_id is where stock was added
                         $value = StockMovement::where('product_id', $product->id)
-                            ->when($record->branch_id, fn($q) => $q->where('branch_id', $record->branch_id))
+                            ->when($record->location_id, fn($q) => $q->where('destination_location_id', $record->location_id))
+                            ->when(!$record->location_id && $record->branch_id, fn($q) => $q->where('branch_id', $record->branch_id))
                             ->whereIn('movement_type', [
                                 StockMovement::TYPE_PURCHASE_RECEIVE,
                                 StockMovement::TYPE_IN,
