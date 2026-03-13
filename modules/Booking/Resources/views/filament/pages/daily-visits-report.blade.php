@@ -142,48 +142,41 @@
     </div>
 
     {{-- Session Types Breakdown --}}
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
-        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ __('booking::reports.daily_visits.breakdown_title') }}</h3>
+    @php
+        $totalSessions = $stats['new_sessions'] + $stats['package_sessions'] + $stats['treatment_plan_continuations'] + $stats['treatment_plan_first'];
+        $newPercent = $totalSessions > 0 ? round($stats['new_sessions'] / $totalSessions * 100) : 0;
+        $packagePercent = $totalSessions > 0 ? round($stats['package_sessions'] / $totalSessions * 100) : 0;
+        $continuationPercent = $totalSessions > 0 ? round($stats['treatment_plan_continuations'] / $totalSessions * 100) : 0;
+        $firstPercent = $totalSessions > 0 ? round($stats['treatment_plan_first'] / $totalSessions * 100) : 0;
+    @endphp
+
+    <div class="flex flex-wrap gap-4 mb-6">
+        {{-- New Sessions --}}
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 text-center min-w-[140px]">
+            <p class="text-2xl font-bold text-green-600 dark:text-green-400">{{ $stats['new_sessions'] }}</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">{{ __('booking::reports.daily_visits.types.new') }}</p>
+            <p class="text-xs text-gray-400">{{ $newPercent }}%</p>
         </div>
-        <div class="p-4">
-            @php
-                $totalSessions = $stats['new_sessions'] + $stats['package_sessions'] + $stats['treatment_plan_continuations'] + $stats['treatment_plan_first'];
-                $newPercent = $totalSessions > 0 ? round($stats['new_sessions'] / $totalSessions * 100) : 0;
-                $packagePercent = $totalSessions > 0 ? round($stats['package_sessions'] / $totalSessions * 100) : 0;
-                $continuationPercent = $totalSessions > 0 ? round($stats['treatment_plan_continuations'] / $totalSessions * 100) : 0;
-                $firstPercent = $totalSessions > 0 ? round($stats['treatment_plan_first'] / $totalSessions * 100) : 0;
-            @endphp
 
-            <div class="grid grid-cols-4 gap-4">
-                {{-- New Sessions --}}
-                <div class="text-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                    <p class="text-2xl font-bold text-green-600 dark:text-green-400">{{ $stats['new_sessions'] }}</p>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ __('booking::reports.daily_visits.types.new') }}</p>
-                    <p class="text-xs text-gray-400">{{ $newPercent }}%</p>
-                </div>
+        {{-- Package Sessions --}}
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 text-center min-w-[140px]">
+            <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ $stats['package_sessions'] }}</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">{{ __('booking::reports.daily_visits.types.package') }}</p>
+            <p class="text-xs text-gray-400">{{ $packagePercent }}%</p>
+        </div>
 
-                {{-- Package Sessions --}}
-                <div class="text-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                    <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ $stats['package_sessions'] }}</p>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ __('booking::reports.daily_visits.types.package') }}</p>
-                    <p class="text-xs text-gray-400">{{ $packagePercent }}%</p>
-                </div>
+        {{-- Treatment Plan Continuations --}}
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 text-center min-w-[140px]">
+            <p class="text-2xl font-bold text-amber-600 dark:text-amber-400">{{ $stats['treatment_plan_continuations'] }}</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">{{ __('booking::reports.daily_visits.types.continuation') }}</p>
+            <p class="text-xs text-gray-400">{{ $continuationPercent }}%</p>
+        </div>
 
-                {{-- Treatment Plan Continuations --}}
-                <div class="text-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                    <p class="text-2xl font-bold text-amber-600 dark:text-amber-400">{{ $stats['treatment_plan_continuations'] }}</p>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ __('booking::reports.daily_visits.types.continuation') }}</p>
-                    <p class="text-xs text-gray-400">{{ $continuationPercent }}%</p>
-                </div>
-
-                {{-- First Treatment Plan Sessions --}}
-                <div class="text-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                    <p class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{{ $stats['treatment_plan_first'] }}</p>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ __('booking::reports.daily_visits.types.plan_first') }}</p>
-                    <p class="text-xs text-gray-400">{{ $firstPercent }}%</p>
-                </div>
-            </div>
+        {{-- First Treatment Plan Sessions --}}
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 text-center min-w-[140px]">
+            <p class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{{ $stats['treatment_plan_first'] }}</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">{{ __('booking::reports.daily_visits.types.plan_first') }}</p>
+            <p class="text-xs text-gray-400">{{ $firstPercent }}%</p>
         </div>
     </div>
 
