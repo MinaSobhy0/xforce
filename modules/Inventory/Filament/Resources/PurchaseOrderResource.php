@@ -131,6 +131,20 @@ class PurchaseOrderResource extends Resource
                                     ->label(__('inventory::inventory.fields.product'))
                                     ->relationship('product', 'id')
                                     ->getOptionLabelFromRecordUsing(fn (Product $record) => "[{$record->sku}] " . $record->getTranslation('name', app()->getLocale()))
+                                    ->getSearchResultsUsing(function (string $search) {
+                                        return Product::query()
+                                            ->where('is_active', true)
+                                            ->where(function ($query) use ($search) {
+                                                $query->where('sku', 'ilike', "%{$search}%")
+                                                    ->orWhere('name', 'ilike', "%{$search}%")
+                                                    ->orWhere('barcode', 'ilike', "%{$search}%");
+                                            })
+                                            ->limit(50)
+                                            ->get()
+                                            ->mapWithKeys(fn (Product $product) => [
+                                                $product->id => "[{$product->sku}] " . $product->getTranslation('name', app()->getLocale())
+                                            ]);
+                                    })
                                     ->required()
                                     ->searchable()
                                     ->preload()
