@@ -113,28 +113,27 @@ class StockReportPage extends Page implements HasTable, HasForms
                 Tables\Columns\TextColumn::make('unit_cost')
                     ->label(__('inventory::inventory.stock_report.unit_cost'))
                     ->getStateUsing(function ($record) {
-                        // Get average unit cost from FIFO layers or product cost
+                        // Always calculate from stock movement layers (remaining inventory)
                         $product = $record->product;
                         if (!$product) return 0;
 
-                        // For FIFO, calculate weighted average from remaining layers
-                        if ($product->valuation_method === Product::VALUATION_FIFO) {
-                            $layers = StockMovement::where('product_id', $product->id)
-                                ->when($record->branch_id, fn($q) => $q->where('branch_id', $record->branch_id))
-                                ->whereIn('movement_type', [
-                                    StockMovement::TYPE_PURCHASE_RECEIVE,
-                                    StockMovement::TYPE_IN,
-                                    StockMovement::TYPE_RETURN,
-                                ])
-                                ->where('remaining_quantity', '>', 0)
-                                ->selectRaw('SUM(remaining_quantity) as total_qty, SUM(remaining_quantity * unit_cost_minor) as total_value')
-                                ->first();
+                        // Calculate weighted average from remaining receipt layers
+                        $layers = StockMovement::where('product_id', $product->id)
+                            ->when($record->branch_id, fn($q) => $q->where('branch_id', $record->branch_id))
+                            ->whereIn('movement_type', [
+                                StockMovement::TYPE_PURCHASE_RECEIVE,
+                                StockMovement::TYPE_IN,
+                                StockMovement::TYPE_RETURN,
+                            ])
+                            ->where('remaining_quantity', '>', 0)
+                            ->selectRaw('SUM(remaining_quantity) as total_qty, SUM(remaining_quantity * unit_cost_minor) as total_value')
+                            ->first();
 
-                            if ($layers && $layers->total_qty > 0) {
-                                return (int) ($layers->total_value / $layers->total_qty);
-                            }
+                        if ($layers && $layers->total_qty > 0) {
+                            return (int) ($layers->total_value / $layers->total_qty);
                         }
 
+                        // Fallback to product cost if no layers found
                         return $product->cost_price_minor ?? 0;
                     })
                     ->formatStateUsing(fn ($state) => number_format(($state ?? 0) / 100, 2) . ' EGP')
@@ -149,23 +148,23 @@ class StockReportPage extends Page implements HasTable, HasForms
                         $qty = $record->quantity_on_hand ?? 0;
                         if ($qty <= 0) return 0;
 
-                        // For FIFO, sum value from remaining layers
-                        if ($product->valuation_method === Product::VALUATION_FIFO) {
-                            $value = StockMovement::where('product_id', $product->id)
-                                ->when($record->branch_id, fn($q) => $q->where('branch_id', $record->branch_id))
-                                ->whereIn('movement_type', [
-                                    StockMovement::TYPE_PURCHASE_RECEIVE,
-                                    StockMovement::TYPE_IN,
-                                    StockMovement::TYPE_RETURN,
-                                ])
-                                ->where('remaining_quantity', '>', 0)
-                                ->selectRaw('SUM(remaining_quantity * unit_cost_minor) as total_value')
-                                ->value('total_value');
+                        // Always calculate from stock movement layers
+                        $value = StockMovement::where('product_id', $product->id)
+                            ->when($record->branch_id, fn($q) => $q->where('branch_id', $record->branch_id))
+                            ->whereIn('movement_type', [
+                                StockMovement::TYPE_PURCHASE_RECEIVE,
+                                StockMovement::TYPE_IN,
+                                StockMovement::TYPE_RETURN,
+                            ])
+                            ->where('remaining_quantity', '>', 0)
+                            ->selectRaw('SUM(remaining_quantity * unit_cost_minor) as total_value')
+                            ->value('total_value');
 
-                            return $value ?? 0;
+                        if ($value && $value > 0) {
+                            return $value;
                         }
 
-                        // For AVCO/Standard, use product cost
+                        // Fallback to product cost if no layers
                         return $qty * ($product->cost_price_minor ?? 0);
                     })
                     ->formatStateUsing(fn ($state) => number_format(($state ?? 0) / 100, 2) . ' EGP')
