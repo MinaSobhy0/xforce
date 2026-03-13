@@ -109,12 +109,15 @@ class AccountingIntegrationService
                 }
 
                 // Create the journal entry
+                // Use class basename for readable reference (e.g., "GiftCard:12" instead of full namespace)
+                $referenceLabel = $referenceType ? class_basename($referenceType) . ":{$referenceId}" : null;
+
                 $entry = JournalEntry::create([
                     'tenant_id' => $tenantId,
                     'journal_id' => $journal->id,
                     'date' => $date,
                     'description' => $description,
-                    'reference' => $referenceType ? "{$referenceType}:{$referenceId}" : null,
+                    'reference' => $referenceLabel,
                     'source_type' => $referenceType,
                     'source_id' => $referenceId,
                     'status' => JournalEntry::STATUS_DRAFT,
