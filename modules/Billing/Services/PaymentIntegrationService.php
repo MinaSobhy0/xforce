@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\DB;
 use Modules\Billing\Models\Invoice;
 use Modules\Billing\Models\Payment;
 use Modules\GiftCards\Models\GiftCard;
+use Modules\GiftCards\Services\GiftCardService;
 use Modules\Loyalty\Services\LoyaltyService;
 use Modules\Memberships\Models\MembershipSubscription;
 use Modules\Patients\Models\Patient;
@@ -86,14 +87,13 @@ class PaymentIntegrationService
                 'received_by_user_id' => auth()->id(),
             ]);
 
-            // Redeem from gift card
-            $giftCard->redeem(
+            // Redeem from gift card using GiftCardService to create proper GL entry
+            // GL Entry: DR Gift Card Liability, CR Patient Receivables (with patient as partner)
+            app(GiftCardService::class)->redeem(
+                $giftCard,
                 $paymentAmount,
-                $invoice->id,
-                $payment->id,
-                __('giftcards::giftcards.redemption_for_invoice', [
-                    'invoice' => $invoice->code,
-                ])
+                $invoice,
+                $payment
             );
 
             return [
