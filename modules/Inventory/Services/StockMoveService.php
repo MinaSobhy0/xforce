@@ -390,16 +390,14 @@ class StockMoveService
         StockTransfer $transfer,
         Product $product
     ): void {
-        // For receipts with AVCO, update average cost
+        // For receipts, always update average cost on product
         if ($this->isReceiptType($transfer->transfer_type)) {
-            if ($product->valuation_method === Product::VALUATION_AVERAGE) {
-                $this->valuationService->updateAverageCost(
-                    $product,
-                    $movement->quantity,
-                    $movement->unit_cost_minor,
-                    $transfer->branch_id
-                );
-            }
+            $this->valuationService->updateAverageCost(
+                $product,
+                $movement->quantity,
+                $movement->unit_cost_minor,
+                $transfer->branch_id
+            );
         } else {
             // For consumption with FIFO, consume layers
             if ($product->valuation_method === Product::VALUATION_FIFO) {

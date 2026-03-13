@@ -182,13 +182,15 @@ class StockValuationService
     }
 
     /**
-     * Update average cost after a purchase receipt (AVCO method).
+     * Update average cost after a purchase receipt.
+     * Always updates product cost with weighted average, regardless of valuation method.
+     * This ensures product.cost_price_minor always reflects current average cost.
      *
      * Formula: New Avg = (Old Qty * Old Avg + New Qty * New Cost) / (Old Qty + New Qty)
      *
      * @param Product $product
-     * @param int $newQuantity Quantity received
-     * @param int $newUnitCostMinor Cost per unit of new receipt
+     * @param int $newQuantity Quantity received (in stock UOM)
+     * @param int $newUnitCostMinor Cost per unit of new receipt (in stock UOM)
      * @param string|null $branchId
      */
     public function updateAverageCost(
@@ -197,11 +199,6 @@ class StockValuationService
         int $newUnitCostMinor,
         ?string $branchId = null
     ): void {
-        // Only update for AVCO products
-        if ($product->valuation_method !== Product::VALUATION_AVERAGE) {
-            return;
-        }
-
         // Get current stock quantity
         $query = StockLevel::where('product_id', $product->id);
         if ($branchId) {
@@ -211,7 +208,7 @@ class StockValuationService
 
         // Subtract the new quantity to get quantity before receipt
         $oldQty = max(0, $currentQty - $newQuantity);
-        $oldCost = $product->cost_price_minor;
+        $oldCost = $product->cost_price_minor ?? 0;
 
         if ($oldQty + $newQuantity <= 0) {
             return;
@@ -222,12 +219,13 @@ class StockValuationService
         $totalQty = $oldQty + $newQuantity;
         $newAvgCost = (int) round($totalValue / $totalQty);
 
-        // Update product cost
+        // Update product cost (always, regardless of valuation method)
         $product->cost_price_minor = $newAvgCost;
         $product->save();
 
         Log::info('Updated average cost for product', [
             'product_id' => $product->id,
+            'valuation_method' => $product->valuation_method,
             'old_qty' => $oldQty,
             'old_cost' => $oldCost,
             'new_qty' => $newQuantity,
@@ -239,6 +237,7 @@ class StockValuationService
     /**
      * Record a receipt movement with cost tracking.
      * Sets up the FIFO layer (remaining_quantity) for future consumption.
+     * Always updates product average cost regardless of valuation method.
      */
     public function recordReceiptCost(StockMovement $movement, int $unitCostMinor): void
     {
@@ -246,9 +245,9 @@ class StockValuationService
         $movement->remaining_quantity = $movement->quantity; // Full quantity available for FIFO
         $movement->save();
 
-        // Update average cost if applicable
+        // Always update average cost on product
         $product = $movement->product;
-        if ($product && $product->valuation_method === Product::VALUATION_AVERAGE) {
+        if ($product) {
             $this->updateAverageCost($product, $movement->quantity, $unitCostMinor, $movement->branch_id);
         }
     }
