@@ -110,17 +110,63 @@ class StockReportPage extends Page implements HasTable, HasForms
                     ->sortable()
                     ->alignEnd(),
 
-                Tables\Columns\TextColumn::make('product.cost_price_minor')
+                Tables\Columns\TextColumn::make('unit_cost')
                     ->label(__('inventory::inventory.stock_report.unit_cost'))
+                    ->getStateUsing(function ($record) {
+                        // Get average unit cost from FIFO layers or product cost
+                        $product = $record->product;
+                        if (!$product) return 0;
+
+                        // For FIFO, calculate weighted average from remaining layers
+                        if ($product->valuation_method === Product::VALUATION_FIFO) {
+                            $layers = StockMovement::where('product_id', $product->id)
+                                ->when($record->branch_id, fn($q) => $q->where('branch_id', $record->branch_id))
+                                ->whereIn('movement_type', [
+                                    StockMovement::TYPE_PURCHASE_RECEIVE,
+                                    StockMovement::TYPE_IN,
+                                    StockMovement::TYPE_RETURN,
+                                ])
+                                ->where('remaining_quantity', '>', 0)
+                                ->selectRaw('SUM(remaining_quantity) as total_qty, SUM(remaining_quantity * unit_cost_minor) as total_value')
+                                ->first();
+
+                            if ($layers && $layers->total_qty > 0) {
+                                return (int) ($layers->total_value / $layers->total_qty);
+                            }
+                        }
+
+                        return $product->cost_price_minor ?? 0;
+                    })
                     ->formatStateUsing(fn ($state) => number_format(($state ?? 0) / 100, 2) . ' EGP')
                     ->alignEnd(),
 
                 Tables\Columns\TextColumn::make('stock_value')
                     ->label(__('inventory::inventory.stock_report.stock_value'))
                     ->getStateUsing(function ($record) {
+                        $product = $record->product;
+                        if (!$product) return 0;
+
                         $qty = $record->quantity_on_hand ?? 0;
-                        $cost = $record->product?->cost_price_minor ?? 0;
-                        return $qty * $cost;
+                        if ($qty <= 0) return 0;
+
+                        // For FIFO, sum value from remaining layers
+                        if ($product->valuation_method === Product::VALUATION_FIFO) {
+                            $value = StockMovement::where('product_id', $product->id)
+                                ->when($record->branch_id, fn($q) => $q->where('branch_id', $record->branch_id))
+                                ->whereIn('movement_type', [
+                                    StockMovement::TYPE_PURCHASE_RECEIVE,
+                                    StockMovement::TYPE_IN,
+                                    StockMovement::TYPE_RETURN,
+                                ])
+                                ->where('remaining_quantity', '>', 0)
+                                ->selectRaw('SUM(remaining_quantity * unit_cost_minor) as total_value')
+                                ->value('total_value');
+
+                            return $value ?? 0;
+                        }
+
+                        // For AVCO/Standard, use product cost
+                        return $qty * ($product->cost_price_minor ?? 0);
                     })
                     ->formatStateUsing(fn ($state) => number_format(($state ?? 0) / 100, 2) . ' EGP')
                     ->alignEnd()
@@ -214,13 +260,26 @@ class StockReportPage extends Page implements HasTable, HasForms
         $totalProducts = $query->distinct('product_id')->count('product_id');
         $totalQuantity = $query->sum('quantity_on_hand');
 
-        // Calculate total value
-        $totalValue = DB::table('stock_levels')
+        // Calculate total value from FIFO layers (remaining_quantity * unit_cost_minor)
+        $fifoValue = DB::table('stock_movements')
+            ->join('products', 'stock_movements.product_id', '=', 'products.id')
+            ->where('products.is_active', true)
+            ->whereIn('stock_movements.movement_type', ['purchase_receive', 'in', 'return'])
+            ->where('stock_movements.remaining_quantity', '>', 0)
+            ->when($this->filterBranchId, fn ($q) => $q->where('stock_movements.branch_id', $this->filterBranchId))
+            ->selectRaw('SUM(stock_movements.remaining_quantity * stock_movements.unit_cost_minor) as total')
+            ->value('total') ?? 0;
+
+        // For non-FIFO products, calculate from stock levels * product cost
+        $nonFifoValue = DB::table('stock_levels')
             ->join('products', 'stock_levels.product_id', '=', 'products.id')
             ->where('products.is_active', true)
+            ->where('products.valuation_method', '!=', 'fifo')
             ->when($this->filterBranchId, fn ($q) => $q->where('stock_levels.branch_id', $this->filterBranchId))
             ->selectRaw('SUM(stock_levels.quantity_on_hand * products.cost_price_minor) as total')
             ->value('total') ?? 0;
+
+        $totalValue = $fifoValue + $nonFifoValue;
 
         // Low stock count
         $lowStockCount = DB::table('stock_levels')
