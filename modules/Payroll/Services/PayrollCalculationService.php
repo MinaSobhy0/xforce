@@ -840,8 +840,9 @@ class PayrollCalculationService
                 ->whereNotIn('status', [AttendanceViolation::STATUS_WAIVED, AttendanceViolation::STATUS_CANCELLED])
                 ->sum('violation_minutes');
 
-            // Calculate absence days (working days - present days)
-            $absenceDays = max(0, $workingDays - $presentDays);
+            // Calculate absence days (working days - present days - approved time off days)
+            $approvedTimeOffDays = $this->getApprovedTimeOffDays($staff, $start, $end);
+            $absenceDays = max(0, $workingDays - $presentDays - $approvedTimeOffDays);
 
             return [
                 'worked_days' => (float) $workedDays,
@@ -851,6 +852,7 @@ class PayrollCalculationService
                 'absence_days' => (int) $absenceDays,
                 'late_days' => (int) $lateDays,
                 'half_days' => (int) $halfDays,
+                'time_off_days' => (int) $approvedTimeOffDays,
             ];
 
         } catch (\Exception $e) {
@@ -867,7 +869,74 @@ class PayrollCalculationService
                 'absence_days' => 0,
                 'late_days' => 0,
                 'half_days' => 0,
+                'time_off_days' => 0,
             ];
+        }
+    }
+
+    /**
+     * Get approved time off days for the period.
+     *
+     * @param StaffProfile $staff
+     * @param Carbon $start
+     * @param Carbon $end
+     * @return int Number of approved time off days
+     */
+    protected function getApprovedTimeOffDays(StaffProfile $staff, Carbon $start, Carbon $end): int
+    {
+        // Check if PractitionerTimeOff model exists
+        if (!class_exists(\Modules\Booking\Models\PractitionerTimeOff::class)) {
+            return 0;
+        }
+
+        try {
+            $timeOffs = \Modules\Booking\Models\PractitionerTimeOff::on($staff->getConnectionName())
+                ->withoutGlobalScopes()
+                ->where('user_id', $staff->user_id)
+                ->where('status', \Modules\Booking\Models\PractitionerTimeOff::STATUS_APPROVED)
+                ->where(function ($query) use ($start, $end) {
+                    // Time off overlaps with the period
+                    $query->whereBetween('start_date', [$start, $end])
+                        ->orWhereBetween('end_date', [$start, $end])
+                        ->orWhere(function ($q) use ($start, $end) {
+                            $q->where('start_date', '<=', $start)
+                                ->where('end_date', '>=', $end);
+                        });
+                })
+                ->get();
+
+            $totalDays = 0;
+
+            foreach ($timeOffs as $timeOff) {
+                // Calculate overlapping days within the payroll period
+                $timeOffStart = $timeOff->start_date->max($start);
+                $timeOffEnd = ($timeOff->end_date ?? $timeOff->start_date)->min($end);
+
+                // Count only working days (exclude weekends)
+                $current = $timeOffStart->copy();
+                while ($current <= $timeOffEnd) {
+                    // Skip Friday (5) and Saturday (6) for Egypt
+                    if (!in_array($current->dayOfWeek, [5, 6])) {
+                        // If using days_requested, use that; otherwise count actual days
+                        if ($timeOff->days_requested && $timeOff->is_full_day) {
+                            // Use days_requested from the allocation (more accurate for partial days)
+                            $totalDays += $timeOff->days_requested;
+                            break; // days_requested already accounts for full period
+                        }
+                        $totalDays++;
+                    }
+                    $current->addDay();
+                }
+            }
+
+            return (int) $totalDays;
+
+        } catch (\Exception $e) {
+            Log::warning('PayrollCalculation: Failed to fetch time off data', [
+                'staff_id' => $staff->id,
+                'error' => $e->getMessage(),
+            ]);
+            return 0;
         }
     }
 
@@ -899,10 +968,17 @@ class PayrollCalculationService
                 ->where('penalty_amount_minor', '>', 0)
                 ->get();
 
+            // Filter out violations that occurred during approved time off
+            $timeOffDates = $this->getApprovedTimeOffDates($staff, $start, $end);
+            $filteredViolations = $violations->filter(function ($violation) use ($timeOffDates) {
+                $violationDate = $violation->violation_date->format('Y-m-d');
+                return !in_array($violationDate, $timeOffDates);
+            });
+
             return [
-                'total_minor' => $violations->sum('penalty_amount_minor'),
-                'count' => $violations->count(),
-                'violations' => $violations,
+                'total_minor' => $filteredViolations->sum('penalty_amount_minor'),
+                'count' => $filteredViolations->count(),
+                'violations' => $filteredViolations,
             ];
 
         } catch (\Exception $e) {
@@ -916,6 +992,54 @@ class PayrollCalculationService
                 'count' => 0,
                 'violations' => collect(),
             ];
+        }
+    }
+
+    /**
+     * Get array of dates covered by approved time off.
+     *
+     * @param StaffProfile $staff
+     * @param Carbon $start
+     * @param Carbon $end
+     * @return array Array of date strings (Y-m-d)
+     */
+    protected function getApprovedTimeOffDates(StaffProfile $staff, Carbon $start, Carbon $end): array
+    {
+        if (!class_exists(\Modules\Booking\Models\PractitionerTimeOff::class)) {
+            return [];
+        }
+
+        try {
+            $timeOffs = \Modules\Booking\Models\PractitionerTimeOff::on($staff->getConnectionName())
+                ->withoutGlobalScopes()
+                ->where('user_id', $staff->user_id)
+                ->where('status', \Modules\Booking\Models\PractitionerTimeOff::STATUS_APPROVED)
+                ->where(function ($query) use ($start, $end) {
+                    $query->whereBetween('start_date', [$start, $end])
+                        ->orWhereBetween('end_date', [$start, $end])
+                        ->orWhere(function ($q) use ($start, $end) {
+                            $q->where('start_date', '<=', $start)
+                                ->where('end_date', '>=', $end);
+                        });
+                })
+                ->get();
+
+            $dates = [];
+            foreach ($timeOffs as $timeOff) {
+                $timeOffStart = $timeOff->start_date->max($start);
+                $timeOffEnd = ($timeOff->end_date ?? $timeOff->start_date)->min($end);
+
+                $current = $timeOffStart->copy();
+                while ($current <= $timeOffEnd) {
+                    $dates[] = $current->format('Y-m-d');
+                    $current->addDay();
+                }
+            }
+
+            return array_unique($dates);
+
+        } catch (\Exception $e) {
+            return [];
         }
     }
 

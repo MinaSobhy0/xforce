@@ -72,6 +72,7 @@ class Patient extends BaseModel implements Authenticatable
         'sms_consent',
         'email_consent',
         'whatsapp_consent',
+        'created_by_user_id',
     ];
 
     /**
@@ -97,6 +98,26 @@ class Patient extends BaseModel implements Authenticatable
     protected $hidden = [
         'portal_password',
     ];
+
+    protected static function booted(): void
+    {
+        parent::booted();
+
+        static::creating(function (Patient $patient) {
+            // Track who created the patient
+            if (empty($patient->created_by_user_id) && auth()->check()) {
+                $patient->created_by_user_id = auth()->id();
+            }
+        });
+    }
+
+    /**
+     * Get the user who created this patient.
+     */
+    public function createdByUser(): BelongsTo
+    {
+        return $this->belongsTo(\Modules\Auth\Models\User::class, 'created_by_user_id');
+    }
 
     /**
      * The accessors to append to the model's array form.

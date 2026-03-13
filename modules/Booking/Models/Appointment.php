@@ -59,6 +59,8 @@ class Appointment extends BaseModel
         'started_at',
         'completed_at',
         'cancelled_at',
+        'created_by_user_id',
+        'is_upsell',
     ];
 
     protected $casts = [
@@ -75,6 +77,7 @@ class Appointment extends BaseModel
         'started_at' => 'datetime',
         'completed_at' => 'datetime',
         'cancelled_at' => 'datetime',
+        'is_upsell' => 'boolean',
     ];
 
     // Status constants
@@ -148,6 +151,10 @@ class Appointment extends BaseModel
             if (empty($appointment->source)) {
                 $appointment->source = self::SOURCE_PHONE;
             }
+            // Track who created the appointment
+            if (empty($appointment->created_by_user_id) && auth()->check()) {
+                $appointment->created_by_user_id = auth()->id();
+            }
         });
     }
 
@@ -170,6 +177,11 @@ class Appointment extends BaseModel
     public function practitioner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'practitioner_id');
+    }
+
+    public function createdByUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by_user_id');
     }
 
     public function room(): BelongsTo
