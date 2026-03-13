@@ -157,6 +157,21 @@ class StockTransferResource extends Resource
                                     ->getOptionLabelFromRecordUsing(fn (Product $record) =>
                                         "{$record->sku} - " . $record->getTranslation('name', app()->getLocale())
                                     )
+                                    ->getSearchResultsUsing(function (string $search): array {
+                                        return Product::query()
+                                            ->where('is_active', true)
+                                            ->where(function ($query) use ($search) {
+                                                $query->where('sku', 'ilike', "%{$search}%")
+                                                    ->orWhere('barcode', 'ilike', "%{$search}%")
+                                                    ->orWhere('name', 'ilike', "%{$search}%");
+                                            })
+                                            ->limit(50)
+                                            ->get()
+                                            ->mapWithKeys(fn (Product $record) => [
+                                                $record->id => "{$record->sku} - " . $record->getTranslation('name', app()->getLocale())
+                                            ])
+                                            ->toArray();
+                                    })
                                     ->searchable()
                                     ->preload()
                                     ->required()
