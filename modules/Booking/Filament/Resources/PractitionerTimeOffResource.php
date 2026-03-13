@@ -148,26 +148,30 @@ class PractitionerTimeOffResource extends Resource
                                             return [];
                                         }
 
-                                        // Get all active time off types with allocations for the user
+                                        // Get only time off types that have allocations for this user
                                         $types = TimeOffType::active()->ordered()->get();
 
                                         return $types->mapWithKeys(function ($type) use ($userId) {
-                                            $typeName = $type->translated_name;
-
-                                            // Auto-create allocation for current period if it doesn't exist
-                                            $allocation = TimeOffAllocation::getOrCreateForDate(
+                                            // Check if allocation exists for current period
+                                            $allocation = TimeOffAllocation::getForDate(
                                                 $userId,
                                                 $type->id,
                                                 now()
                                             );
 
+                                            // Skip types without allocations
+                                            if (!$allocation) {
+                                                return [];
+                                            }
+
+                                            $typeName = $type->translated_name;
                                             $remaining = $allocation->display_value;
                                             $total = $allocation->total_display_value;
 
                                             return [
                                                 $type->id => "{$typeName} ({$remaining} / {$total})"
                                             ];
-                                        })->toArray();
+                                        })->filter()->toArray();
                                     })
                                     ->searchable()
                                     ->preload()
@@ -194,12 +198,27 @@ class PractitionerTimeOffResource extends Resource
                                             return __('booking::time_off.fields.select_staff_first');
                                         }
 
+                                        // Check if user has any allocations
+                                        $hasAllocations = TimeOffAllocation::where('user_id', $userId)
+                                            ->where(function ($query) {
+                                                $query->where('year', now()->year)
+                                                    ->where(function ($q) {
+                                                        $q->whereNull('month')
+                                                            ->orWhere('month', now()->month);
+                                                    });
+                                            })
+                                            ->exists();
+
+                                        if (!$hasAllocations) {
+                                            return __('booking::time_off.fields.no_allocations');
+                                        }
+
                                         $typeId = $get('time_off_type_id');
                                         if ($userId && $typeId) {
                                             $type = TimeOffType::find($typeId);
-                                            if ($type) {
-                                                // Auto-create allocation if needed
-                                                $allocation = TimeOffAllocation::getOrCreateForDate($userId, $typeId, now());
+                                            $allocation = TimeOffAllocation::getForDate($userId, $typeId, now());
+
+                                            if ($allocation && $type) {
                                                 $periodLabel = $type->isMonthly()
                                                     ? __('booking::time_off.fields.remaining_this_month', ['value' => $allocation->display_value])
                                                     : __('booking::time_off.fields.remaining_this_year', ['value' => $allocation->display_value]);

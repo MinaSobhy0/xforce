@@ -61,6 +61,7 @@ return [
         'remaining_this_month' => ':value remaining this month',
         'remaining_this_year' => ':value remaining this year',
         'select_staff_first' => 'Select a staff member first',
+        'no_allocations' => 'No time off allocations found for this staff member',
         'reason' => 'Reason',
         'status' => 'Status',
         'approved_by' => 'Approved By',

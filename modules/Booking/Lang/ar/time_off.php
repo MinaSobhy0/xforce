@@ -61,6 +61,7 @@ return [
         'remaining_this_month' => ':value متبقي هذا الشهر',
         'remaining_this_year' => ':value متبقي هذا العام',
         'select_staff_first' => 'اختر موظفاً أولاً',
+        'no_allocations' => 'لا توجد تخصيصات إجازات لهذا الموظف',
         'reason' => 'السبب',
         'status' => 'الحالة',
         'approved_by' => 'تمت الموافقة بواسطة',
