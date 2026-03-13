@@ -124,7 +124,7 @@ class GiftCardGLService
      *
      * For invoice payments:
      *   DR: Gift Card Liability
-     *   CR: Accounts Receivable (reduces patient balance)
+     *   CR: Accounts Receivable (reduces patient balance) - with patient as partner
      *
      * For direct redemption (no invoice):
      *   DR: Gift Card Liability
@@ -156,6 +156,10 @@ class GiftCardGLService
             return null;
         }
 
+        // Get patient for partner assignment on receivables line
+        $patientId = $invoice?->patient_id;
+        $patientType = $patientId ? \Modules\Patients\Models\Patient::class : null;
+
         $lines = [
             [
                 'account_code' => $liabilityAccount->code,
@@ -170,6 +174,8 @@ class GiftCardGLService
                 'description' => $invoice
                     ? "Payment for Invoice {$invoice->code}"
                     : "Gift card redemption",
+                'partner_type' => $patientType,
+                'partner_id' => $patientId,
             ],
         ];
 

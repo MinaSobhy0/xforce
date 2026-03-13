@@ -153,6 +153,8 @@ class AccountingIntegrationService
                         'debit_minor' => $debitMinor,
                         'credit_minor' => $creditMinor,
                         'description' => $lineData['description'] ?? null,
+                        'partner_type' => $lineData['partner_type'] ?? null,
+                        'partner_id' => $lineData['partner_id'] ?? null,
                     ]);
 
                     $totalDebit += $debitMinor;
