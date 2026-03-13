@@ -6,6 +6,7 @@ use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Facades\DB;
 use Modules\Inventory\Models\StockLevel;
+use Modules\Inventory\Models\StockMovement;
 
 class StockReportStatsWidget extends BaseWidget
 {
@@ -23,15 +24,39 @@ class StockReportStatsWidget extends BaseWidget
         $totalProducts = (clone $query)->distinct('product_id')->count('product_id');
         $totalQuantity = (clone $query)->sum('quantity_on_hand');
 
-        // Calculate total value from FIFO layers
-        $totalValue = DB::table('stock_movements')
-            ->join('products', 'stock_movements.product_id', '=', 'products.id')
-            ->where('products.is_active', true)
-            ->whereIn('stock_movements.movement_type', ['purchase_receive', 'in', 'return'])
-            ->where('stock_movements.remaining_quantity', '>', 0)
-            ->when($branchId, fn ($q) => $q->where('stock_movements.branch_id', $branchId))
-            ->selectRaw('SUM(stock_movements.remaining_quantity * stock_movements.unit_cost_minor) as total')
-            ->value('total') ?? 0;
+        // Calculate total value: SUM(quantity_on_hand × unit_cost) per product
+        // Unit cost comes from FIFO layers, quantity from stock levels
+        $totalValue = 0;
+
+        $stockLevels = (clone $query)
+            ->where('quantity_on_hand', '>', 0)
+            ->with('product')
+            ->get();
+
+        foreach ($stockLevels as $level) {
+            if (!$level->product) continue;
+
+            // Get weighted average cost from remaining layers
+            $layers = StockMovement::where('product_id', $level->product_id)
+                ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                ->whereIn('movement_type', [
+                    StockMovement::TYPE_PURCHASE_RECEIVE,
+                    StockMovement::TYPE_IN,
+                    StockMovement::TYPE_RETURN,
+                ])
+                ->where('remaining_quantity', '>', 0)
+                ->selectRaw('SUM(remaining_quantity) as total_qty, SUM(remaining_quantity * unit_cost_minor) as total_value')
+                ->first();
+
+            $unitCost = 0;
+            if ($layers && $layers->total_qty > 0) {
+                $unitCost = (int) ($layers->total_value / $layers->total_qty);
+            } else {
+                $unitCost = $level->product->cost_price_minor ?? 0;
+            }
+
+            $totalValue += $level->quantity_on_hand * $unitCost;
+        }
 
         // Low stock count
         $lowStockCount = DB::table('stock_levels')

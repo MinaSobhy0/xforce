@@ -112,15 +112,13 @@ class StockReportPage extends Page implements HasTable, HasForms
                 Tables\Columns\TextColumn::make('unit_cost')
                     ->label(__('inventory::inventory.stock_report.unit_cost'))
                     ->getStateUsing(function ($record) {
-                        // Always calculate from stock movement layers (remaining inventory)
+                        // Calculate weighted average cost from remaining receipt layers
+                        // Cost is tracked at branch level (not per location)
                         $product = $record->product;
                         if (!$product) return 0;
 
-                        // Calculate weighted average from remaining receipt layers
-                        // Filter by location (destination_location_id for receipts)
                         $layers = StockMovement::where('product_id', $product->id)
-                            ->when($record->location_id, fn($q) => $q->where('destination_location_id', $record->location_id))
-                            ->when(!$record->location_id && $record->branch_id, fn($q) => $q->where('branch_id', $record->branch_id))
+                            ->when($record->branch_id, fn($q) => $q->where('branch_id', $record->branch_id))
                             ->whereIn('movement_type', [
                                 StockMovement::TYPE_PURCHASE_RECEIVE,
                                 StockMovement::TYPE_IN,
@@ -143,32 +141,34 @@ class StockReportPage extends Page implements HasTable, HasForms
                 Tables\Columns\TextColumn::make('stock_value')
                     ->label(__('inventory::inventory.stock_report.stock_value'))
                     ->getStateUsing(function ($record) {
+                        // Stock Value = Quantity on Hand × Unit Cost
+                        // This correctly values inventory per location
                         $product = $record->product;
                         if (!$product) return 0;
 
                         $qty = $record->quantity_on_hand ?? 0;
                         if ($qty <= 0) return 0;
 
-                        // Calculate from stock movement layers filtered by location
-                        // For receipts, destination_location_id is where stock was added
-                        $value = StockMovement::where('product_id', $product->id)
-                            ->when($record->location_id, fn($q) => $q->where('destination_location_id', $record->location_id))
-                            ->when(!$record->location_id && $record->branch_id, fn($q) => $q->where('branch_id', $record->branch_id))
+                        // Get unit cost from layers (branch level)
+                        $layers = StockMovement::where('product_id', $product->id)
+                            ->when($record->branch_id, fn($q) => $q->where('branch_id', $record->branch_id))
                             ->whereIn('movement_type', [
                                 StockMovement::TYPE_PURCHASE_RECEIVE,
                                 StockMovement::TYPE_IN,
                                 StockMovement::TYPE_RETURN,
                             ])
                             ->where('remaining_quantity', '>', 0)
-                            ->selectRaw('SUM(remaining_quantity * unit_cost_minor) as total_value')
-                            ->value('total_value');
+                            ->selectRaw('SUM(remaining_quantity) as total_qty, SUM(remaining_quantity * unit_cost_minor) as total_value')
+                            ->first();
 
-                        if ($value && $value > 0) {
-                            return $value;
+                        $unitCost = 0;
+                        if ($layers && $layers->total_qty > 0) {
+                            $unitCost = (int) ($layers->total_value / $layers->total_qty);
+                        } else {
+                            $unitCost = $product->cost_price_minor ?? 0;
                         }
 
-                        // Fallback to product cost if no layers
-                        return $qty * ($product->cost_price_minor ?? 0);
+                        return $qty * $unitCost;
                     })
                     ->formatStateUsing(fn ($state) => number_format(($state ?? 0) / 100, 2) . ' EGP')
                     ->alignEnd()
