@@ -37,6 +37,14 @@ return [
         'assigned_to' => 'Assigned To',
         'sold_by' => 'Sold By',
         'owner' => 'Owner',
+        'pricing' => 'Pricing',
+        'face_value' => 'Face Value',
+        'template_discount' => 'Template Discount',
+        'price_after_discount' => 'Price After Discount',
+        'extra_discount' => 'Extra Discount',
+        'final_price' => 'Final Price',
+        'sold_price' => 'Sold Price',
+        'total_discount' => 'Total Discount',
     ],
 
     'statuses' => [

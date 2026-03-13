@@ -24,12 +24,20 @@ class GiftCardGLService
 
     /**
      * Post gift card sale journal entry
-     * DR: Cash/Bank (payment method from journal)
-     * CR: Gift Card Liability
+     *
+     * Without discount:
+     *   DR: Cash/Bank (payment method from journal) = face value
+     *   CR: Gift Card Liability = face value
+     *
+     * With discount:
+     *   DR: Cash/Bank (payment method from journal) = sold price (after discount)
+     *   DR: Discount Expense = discount amount
+     *   CR: Gift Card Liability = face value
      */
     public function postGiftCardSale(
         GiftCard $card,
-        string $journalId
+        string $journalId,
+        int $discountMinor = 0
     ): ?JournalEntry {
         $template = $card->template;
         $journal = Journal::find($journalId);
@@ -46,6 +54,7 @@ class GiftCardGLService
         $liabilityAccount = $template?->liabilityAccount
             ?? $this->defaultAccounts->getGiftCardLiabilityAccount();
         $paymentAccount = $journal->defaultDebitAccount;
+        $expenseAccount = $template?->expenseAccount;
 
         if (!$liabilityAccount || !$paymentAccount) {
             Log::warning('Gift card GL accounts not configured', [
@@ -56,24 +65,52 @@ class GiftCardGLService
             return null;
         }
 
+        // Calculate amounts
+        $soldPriceMinor = $card->initial_value_minor - $discountMinor;
+
         $lines = [
             [
                 'account_code' => $paymentAccount->code,
-                'debit' => $card->initial_value_minor,
+                'debit' => $soldPriceMinor,
                 'credit' => 0,
                 'description' => "Gift card sale: {$card->code}",
             ],
-            [
-                'account_code' => $liabilityAccount->code,
-                'debit' => 0,
-                'credit' => $card->initial_value_minor,
-                'description' => "Gift card liability: {$card->code}",
-            ],
         ];
+
+        // Add discount expense line if there's a discount and expense account is configured
+        if ($discountMinor > 0 && $expenseAccount) {
+            $lines[] = [
+                'account_code' => $expenseAccount->code,
+                'debit' => $discountMinor,
+                'credit' => 0,
+                'description' => "Gift card discount: {$card->code}",
+            ];
+        } elseif ($discountMinor > 0) {
+            // If no expense account configured, log warning but still process
+            Log::warning('Gift card discount expense account not configured, discount will not be recorded', [
+                'card_id' => $card->id,
+                'discount' => $discountMinor,
+            ]);
+            // Add the discount to the cash/bank debit to balance the entry
+            $lines[0]['debit'] = $card->initial_value_minor;
+        }
+
+        // Credit liability for full face value
+        $lines[] = [
+            'account_code' => $liabilityAccount->code,
+            'debit' => 0,
+            'credit' => $card->initial_value_minor,
+            'description' => "Gift card liability: {$card->code}",
+        ];
+
+        $memo = "Gift card sale: {$card->code}";
+        if ($discountMinor > 0) {
+            $memo .= " (Discount: " . format_money($discountMinor) . ")";
+        }
 
         return $this->accountingService->createJournalEntry(
             now(),
-            "Gift card sale: {$card->code}",
+            $memo,
             $lines,
             GiftCard::class,
             $card->id,

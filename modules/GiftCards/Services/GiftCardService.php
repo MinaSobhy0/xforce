@@ -152,6 +152,7 @@ class GiftCardService
      * @param string|array|null $purchaserPatientIdOrData - Patient ID string or array with new patient data
      * @param string|null $recipientPatientId
      * @param string|null $notes
+     * @param int $extraDiscountMinor - Additional discount beyond template discount
      * @return array
      */
     public function processSale(
@@ -159,7 +160,8 @@ class GiftCardService
         string $journalId,
         string|array|null $purchaserPatientIdOrData = null,
         ?string $recipientPatientId = null,
-        ?string $notes = null
+        ?string $notes = null,
+        int $extraDiscountMinor = 0
     ): array {
         if (!$card->isDraft()) {
             return ['success' => false, 'error' => 'Card must be in draft status to sell'];
@@ -169,26 +171,25 @@ class GiftCardService
         $purchaserPatientId = null;
 
         if (is_array($purchaserPatientIdOrData) && !empty($purchaserPatientIdOrData['first_name'])) {
-            // Create new patient using direct insert to ensure it's committed
-            $patientId = DB::table('patients')->insertGetId([
+            // Create new patient using model to trigger sequence generation
+            $patient = Patient::create([
                 'tenant_id' => $card->tenant_id,
                 'first_name' => $purchaserPatientIdOrData['first_name'],
                 'last_name' => $purchaserPatientIdOrData['last_name'] ?? '',
                 'phone' => $purchaserPatientIdOrData['phone'] ?? null,
                 'email' => $purchaserPatientIdOrData['email'] ?? null,
-                'created_at' => now(),
-                'updated_at' => now(),
             ]);
 
-            $purchaserPatientId = $patientId;
+            $purchaserPatientId = $patient->id;
 
             Log::info("Created new patient for gift card sale", [
-                'patient_id' => $patientId,
+                'patient_id' => $patient->id,
+                'patient_code' => $patient->code,
                 'card_id' => $card->id,
             ]);
         } elseif (is_string($purchaserPatientIdOrData) && !empty($purchaserPatientIdOrData)) {
             // Verify existing patient exists
-            $exists = DB::table('patients')->where('id', $purchaserPatientIdOrData)->exists();
+            $exists = Patient::where('id', $purchaserPatientIdOrData)->exists();
             if (!$exists) {
                 Log::error("Patient not found for gift card sale", [
                     'patient_id' => $purchaserPatientIdOrData,
@@ -199,19 +200,33 @@ class GiftCardService
             $purchaserPatientId = $purchaserPatientIdOrData;
         }
 
-        DB::transaction(function () use ($card, $journalId, $purchaserPatientId, $recipientPatientId, $notes) {
+        // Calculate discounts
+        $templateDiscountMinor = $card->calculateTemplateDiscount();
+        $totalDiscountMinor = $templateDiscountMinor + $extraDiscountMinor;
+        $soldPriceMinor = $card->initial_value_minor - $totalDiscountMinor;
+
+        // Ensure sold price is not negative
+        if ($soldPriceMinor < 0) {
+            return ['success' => false, 'error' => 'Total discount exceeds card value'];
+        }
+
+        DB::transaction(function () use ($card, $journalId, $purchaserPatientId, $recipientPatientId, $notes, $templateDiscountMinor, $extraDiscountMinor, $totalDiscountMinor, $soldPriceMinor) {
             // Update card
             $card->update([
                 'purchaser_patient_id' => $purchaserPatientId,
                 'recipient_patient_id' => $recipientPatientId,
                 'sold_by_staff_id' => auth()->id(),
+                'sold_price_minor' => $soldPriceMinor,
+                'template_discount_minor' => $templateDiscountMinor,
+                'extra_discount_minor' => $extraDiscountMinor,
+                'total_discount_minor' => $totalDiscountMinor,
                 'status' => GiftCard::STATUS_ACTIVE,
                 'activated_at' => now(),
                 'notes' => $notes,
             ]);
 
-            // Create GL entry
-            $journalEntry = $this->glService->postGiftCardSale($card, $journalId);
+            // Create GL entry with discount
+            $journalEntry = $this->glService->postGiftCardSale($card, $journalId, $totalDiscountMinor);
 
             if ($journalEntry) {
                 $card->update(['sale_journal_entry_id' => $journalEntry->id]);
@@ -225,7 +240,9 @@ class GiftCardService
                 'amount_minor' => $card->initial_value_minor,
                 'running_balance_minor' => $card->initial_value_minor,
                 'journal_entry_id' => $journalEntry?->id,
-                'notes' => 'Card sold and activated',
+                'notes' => $totalDiscountMinor > 0
+                    ? "Card sold and activated (Discount: " . format_money($totalDiscountMinor) . ")"
+                    : 'Card sold and activated',
                 'created_by_user_id' => auth()->id(),
             ]);
         });

@@ -37,6 +37,14 @@ return [
         'assigned_to' => 'مسند إلى',
         'sold_by' => 'باع بواسطة',
         'owner' => 'المالك',
+        'pricing' => 'التسعير',
+        'face_value' => 'القيمة الاسمية',
+        'template_discount' => 'خصم القالب',
+        'price_after_discount' => 'السعر بعد الخصم',
+        'extra_discount' => 'خصم إضافي',
+        'final_price' => 'السعر النهائي',
+        'sold_price' => 'سعر البيع',
+        'total_discount' => 'إجمالي الخصم',
     ],
 
     'statuses' => [

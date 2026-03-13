@@ -36,6 +36,10 @@ class GiftCard extends BaseModel
         'sold_by_staff_id',
         'initial_value_minor',
         'remaining_value_minor',
+        'sold_price_minor',
+        'template_discount_minor',
+        'extra_discount_minor',
+        'total_discount_minor',
         'status',
         'purchased_via_invoice_id',
         'sale_journal_entry_id',
@@ -47,6 +51,10 @@ class GiftCard extends BaseModel
     protected $casts = [
         'initial_value_minor' => 'integer',
         'remaining_value_minor' => 'integer',
+        'sold_price_minor' => 'integer',
+        'template_discount_minor' => 'integer',
+        'extra_discount_minor' => 'integer',
+        'total_discount_minor' => 'integer',
         'expires_at' => 'datetime',
         'activated_at' => 'datetime',
         'assigned_at' => 'datetime',
@@ -154,6 +162,45 @@ class GiftCard extends BaseModel
     public function getFormattedRemainingValueAttribute(): string
     {
         return format_money($this->remaining_value_minor);
+    }
+
+    public function getFormattedSoldPriceAttribute(): string
+    {
+        return format_money($this->sold_price_minor ?? $this->initial_value_minor);
+    }
+
+    public function getFormattedTotalDiscountAttribute(): string
+    {
+        return format_money($this->total_discount_minor ?? 0);
+    }
+
+    /**
+     * Calculate template discount for this card.
+     */
+    public function calculateTemplateDiscount(): int
+    {
+        $template = $this->template;
+        if (!$template || !$template->discount_type || $template->discount_value <= 0) {
+            return 0;
+        }
+
+        if ($template->discount_type === GiftCardTemplate::DISCOUNT_PERCENTAGE) {
+            return (int) round($this->initial_value_minor * $template->discount_value / 100);
+        }
+
+        if ($template->discount_type === GiftCardTemplate::DISCOUNT_FIXED) {
+            return min($template->discount_value, $this->initial_value_minor);
+        }
+
+        return 0;
+    }
+
+    /**
+     * Get template discounted price.
+     */
+    public function getTemplateDiscountedPrice(): int
+    {
+        return $this->initial_value_minor - $this->calculateTemplateDiscount();
     }
 
     public function getUsedValueMinorAttribute(): int

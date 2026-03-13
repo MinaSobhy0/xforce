@@ -125,6 +125,15 @@ class GiftCardResource extends Resource
                         Infolists\Components\TextEntry::make('formatted_initial_value')
                             ->label(__('giftcards::giftcards.fields.initial_value')),
 
+                        Infolists\Components\TextEntry::make('formatted_sold_price')
+                            ->label(__('giftcards::giftcards.fields.sold_price'))
+                            ->visible(fn (GiftCard $record) => $record->sold_price_minor !== null),
+
+                        Infolists\Components\TextEntry::make('formatted_total_discount')
+                            ->label(__('giftcards::giftcards.fields.total_discount'))
+                            ->visible(fn (GiftCard $record) => ($record->total_discount_minor ?? 0) > 0)
+                            ->color('warning'),
+
                         Infolists\Components\TextEntry::make('formatted_remaining_value')
                             ->label(__('giftcards::giftcards.fields.remaining_value'))
                             ->color(fn (GiftCard $record) => $record->remaining_value_minor > 0 ? 'success' : 'gray'),
@@ -223,6 +232,16 @@ class GiftCardResource extends Resource
                     ->suffix(' ' . current_currency())
                     ->sortable(),
 
+                Tables\Columns\TextColumn::make('sold_price_minor')
+                    ->label(__('giftcards::giftcards.fields.sold_price'))
+                    ->formatStateUsing(fn ($state) => $state ? number_format($state / 100, 2) : '-')
+                    ->suffix(fn ($state) => $state ? ' ' . current_currency() : '')
+                    ->description(fn (GiftCard $record) => $record->total_discount_minor > 0
+                        ? __('giftcards::giftcards.fields.total_discount') . ': ' . format_money($record->total_discount_minor)
+                        : null)
+                    ->color(fn (GiftCard $record) => $record->total_discount_minor > 0 ? 'warning' : null)
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 Tables\Columns\TextColumn::make('remaining_value_minor')
                     ->label(__('giftcards::giftcards.fields.remaining_value'))
                     ->formatStateUsing(fn ($state) => number_format($state / 100, 2))
@@ -308,7 +327,56 @@ class GiftCardResource extends Resource
                     ->visible(fn (GiftCard $record) => $record->isDraft())
                     ->modalHeading(__('giftcards::giftcards.staff_dashboard.sell_card'))
                     ->modalWidth('lg')
-                    ->form([
+                    ->form(fn (GiftCard $record) => [
+                        Forms\Components\Section::make(__('giftcards::giftcards.fields.pricing'))
+                            ->schema([
+                                Forms\Components\Grid::make(3)
+                                    ->schema([
+                                        Forms\Components\Placeholder::make('face_value')
+                                            ->label(__('giftcards::giftcards.fields.face_value'))
+                                            ->content(fn () => format_money($record->initial_value_minor)),
+
+                                        Forms\Components\Placeholder::make('template_discount_display')
+                                            ->label(__('giftcards::giftcards.fields.template_discount'))
+                                            ->content(function () use ($record) {
+                                                $discount = $record->calculateTemplateDiscount();
+                                                if ($discount <= 0) {
+                                                    return '-';
+                                                }
+                                                $template = $record->template;
+                                                $discountLabel = $template->discount_type === 'percentage'
+                                                    ? "{$template->discount_value}%"
+                                                    : format_money($template->discount_value);
+                                                return "- " . format_money($discount) . " ({$discountLabel})";
+                                            }),
+
+                                        Forms\Components\Placeholder::make('price_after_template_discount')
+                                            ->label(__('giftcards::giftcards.fields.price_after_discount'))
+                                            ->content(fn () => format_money($record->getTemplateDiscountedPrice())),
+                                    ]),
+
+                                Forms\Components\Grid::make(2)
+                                    ->schema([
+                                        Forms\Components\TextInput::make('extra_discount')
+                                            ->label(__('giftcards::giftcards.fields.extra_discount'))
+                                            ->numeric()
+                                            ->default(0)
+                                            ->prefix(current_currency())
+                                            ->live(onBlur: true)
+                                            ->minValue(0)
+                                            ->maxValue(fn () => $record->getTemplateDiscountedPrice() / 100),
+
+                                        Forms\Components\Placeholder::make('final_price')
+                                            ->label(__('giftcards::giftcards.fields.final_price'))
+                                            ->content(function (Forms\Get $get) use ($record) {
+                                                $extraDiscount = (float) ($get('extra_discount') ?? 0) * 100;
+                                                $finalPrice = $record->getTemplateDiscountedPrice() - $extraDiscount;
+                                                return format_money(max(0, (int) $finalPrice));
+                                            })
+                                            ->extraAttributes(['class' => 'text-lg font-bold text-primary-600']),
+                                    ]),
+                            ]),
+
                         Forms\Components\Radio::make('patient_type')
                             ->label(__('giftcards::giftcards.staff_dashboard.patient_type'))
                             ->options([
@@ -319,7 +387,6 @@ class GiftCardResource extends Resource
                             ->live()
                             ->required()
                             ->afterStateUpdated(function (Forms\Set $set, $state) {
-                                // Clear the other fields when switching
                                 if ($state === 'new') {
                                     $set('purchaser_patient_id', null);
                                 } else {
@@ -382,17 +449,9 @@ class GiftCardResource extends Resource
                             ->rows(2),
                     ])
                     ->action(function (GiftCard $record, array $data) {
-                        \Log::info('Gift card activation form data', [
-                            'card_id' => $record->id,
-                            'patient_type' => $data['patient_type'] ?? 'not set',
-                            'purchaser_patient_id' => $data['purchaser_patient_id'] ?? 'not set',
-                            'new_patient_first_name' => $data['new_patient_first_name'] ?? 'not set',
-                        ]);
-
                         $purchaserData = null;
 
                         if (($data['patient_type'] ?? '') === 'new') {
-                            // Validate new patient data
                             if (empty($data['new_patient_first_name'])) {
                                 Notification::make()
                                     ->title('First name is required for new patient')
@@ -408,7 +467,6 @@ class GiftCardResource extends Resource
                                 'email' => $data['new_patient_email'] ?? null,
                             ];
                         } else {
-                            // Validate existing patient selection
                             if (empty($data['purchaser_patient_id'])) {
                                 Notification::make()
                                     ->title('Please select a patient')
@@ -420,12 +478,15 @@ class GiftCardResource extends Resource
                             $purchaserData = $data['purchaser_patient_id'];
                         }
 
+                        $extraDiscountMinor = (int) (($data['extra_discount'] ?? 0) * 100);
+
                         $result = app(GiftCardService::class)->processSale(
                             $record,
                             $data['journal_id'],
                             $purchaserData,
                             $data['recipient_patient_id'] ?? null,
-                            $data['notes'] ?? null
+                            $data['notes'] ?? null,
+                            $extraDiscountMinor
                         );
 
                         if (!$result['success']) {
