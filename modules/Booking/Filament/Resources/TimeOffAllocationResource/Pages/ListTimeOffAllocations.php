@@ -56,13 +56,21 @@ class ListTimeOffAllocations extends BaseListRecords
                     ->minValue(2020)
                     ->maxValue(2050),
 
-                Forms\Components\Select::make('month')
-                    ->label(__('booking::time_off.allocations.fields.month'))
+                Forms\Components\Toggle::make('all_months')
+                    ->label(__('booking::time_off.allocations.bulk.all_months'))
+                    ->default(true)
+                    ->visible(fn (Forms\Get $get) => $get('time_off_type_id') && TimeOffType::find($get('time_off_type_id'))?->isMonthly())
+                    ->live()
+                    ->helperText(__('booking::time_off.allocations.bulk.all_months_help')),
+
+                Forms\Components\Select::make('months')
+                    ->label(__('booking::time_off.allocations.bulk.select_months'))
                     ->options(fn () => collect(range(1, 12))->mapWithKeys(fn ($m) => [
                         $m => \Carbon\Carbon::create()->month($m)->translatedFormat('F')
                     ])->toArray())
-                    ->visible(fn (Forms\Get $get) => $get('time_off_type_id') && TimeOffType::find($get('time_off_type_id'))?->isMonthly())
-                    ->required(fn (Forms\Get $get) => $get('time_off_type_id') && TimeOffType::find($get('time_off_type_id'))?->isMonthly()),
+                    ->multiple()
+                    ->visible(fn (Forms\Get $get) => $get('time_off_type_id') && TimeOffType::find($get('time_off_type_id'))?->isMonthly() && !$get('all_months'))
+                    ->required(fn (Forms\Get $get) => $get('time_off_type_id') && TimeOffType::find($get('time_off_type_id'))?->isMonthly() && !$get('all_months')),
 
                 Forms\Components\Select::make('user_ids')
                     ->label(__('booking::time_off.allocations.bulk.select_staff'))
@@ -102,40 +110,51 @@ class ListTimeOffAllocations extends BaseListRecords
                 $type = TimeOffType::find($data['time_off_type_id']);
                 $userIds = $data['user_ids'];
                 $year = $data['year'];
-                $month = $type?->isMonthly() ? $data['month'] : null;
                 $allocatedAmount = $data['allocated_amount'];
                 $skipExisting = $data['skip_existing'] ?? true;
+
+                // Determine which months to allocate
+                $months = [null]; // Default for yearly types
+                if ($type?->isMonthly()) {
+                    if ($data['all_months'] ?? false) {
+                        $months = range(1, 12); // All 12 months
+                    } else {
+                        $months = $data['months'] ?? [];
+                    }
+                }
 
                 $created = 0;
                 $skipped = 0;
 
                 foreach ($userIds as $userId) {
-                    $criteria = [
-                        'tenant_id' => current_tenant_id(),
-                        'user_id' => $userId,
-                        'time_off_type_id' => $data['time_off_type_id'],
-                        'year' => $year,
-                        'month' => $month,
-                    ];
+                    foreach ($months as $month) {
+                        $criteria = [
+                            'tenant_id' => current_tenant_id(),
+                            'user_id' => $userId,
+                            'time_off_type_id' => $data['time_off_type_id'],
+                            'year' => $year,
+                            'month' => $month,
+                        ];
 
-                    $existing = TimeOffAllocation::where($criteria)->first();
+                        $existing = TimeOffAllocation::where($criteria)->first();
 
-                    if ($existing) {
-                        if ($skipExisting) {
-                            $skipped++;
-                            continue;
+                        if ($existing) {
+                            if ($skipExisting) {
+                                $skipped++;
+                                continue;
+                            }
+                            // Update existing
+                            $existing->update(['allocated_days' => $allocatedAmount]);
+                            $created++;
+                        } else {
+                            // Create new
+                            TimeOffAllocation::create(array_merge($criteria, [
+                                'allocated_days' => $allocatedAmount,
+                                'used_days' => 0,
+                                'carried_over_days' => 0,
+                            ]));
+                            $created++;
                         }
-                        // Update existing
-                        $existing->update(['allocated_days' => $allocatedAmount]);
-                        $created++;
-                    } else {
-                        // Create new
-                        TimeOffAllocation::create(array_merge($criteria, [
-                            'allocated_days' => $allocatedAmount,
-                            'used_days' => 0,
-                            'carried_over_days' => 0,
-                        ]));
-                        $created++;
                     }
                 }
 
