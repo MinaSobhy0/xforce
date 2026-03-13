@@ -16,14 +16,14 @@ class EditPractitionerTimeOff extends BaseEditRecord
     {
         parent::mount($record);
 
-        // Redirect to index if the record is not pending (cannot edit approved/rejected/cancelled)
+        // Redirect to view page if the record is not pending (cannot edit approved/rejected/cancelled)
         if (!$this->record->isPending()) {
             Notification::make()
                 ->title(__('booking::time_off.messages.cannot_edit_non_pending'))
                 ->warning()
                 ->send();
 
-            $this->redirect($this->getResource()::getUrl('index'));
+            $this->redirect($this->getResource()::getUrl('view', ['record' => $this->record]));
         }
     }
 

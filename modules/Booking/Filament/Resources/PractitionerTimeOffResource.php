@@ -446,6 +446,8 @@ class PractitionerTimeOffResource extends Resource
                     ->action(fn (PractitionerTimeOff $record, array $data) => $record->reject(auth()->id(), $data['notes'])),
 
                 Tables\Actions\ActionGroup::make([
+                    Tables\Actions\ViewAction::make(),
+
                     Tables\Actions\EditAction::make()
                         ->visible(fn (PractitionerTimeOff $record): bool => $record->isPending()),
 
@@ -478,6 +480,7 @@ class PractitionerTimeOffResource extends Resource
         return [
             'index' => Pages\ListPractitionerTimeOff::route('/'),
             'create' => Pages\CreatePractitionerTimeOff::route('/create'),
+            'view' => Pages\ViewPractitionerTimeOff::route('/{record}'),
             'edit' => Pages\EditPractitionerTimeOff::route('/{record}/edit'),
         ];
     }
