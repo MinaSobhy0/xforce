@@ -111,19 +111,24 @@ class CalculateCommissionOnAppointmentCompleted
      */
     protected function getAppointmentRevenue($appointment): int
     {
-        // Try to get from related invoice line
+        // Try to get from related invoice line first
         if ($appointment->invoiceLine) {
             return $appointment->invoiceLine->total_minor ?? 0;
         }
 
-        // Fall back to service price
-        if ($appointment->service) {
-            return $appointment->service->price_minor ?? 0;
+        // Use appointment's own price_minor (set during booking)
+        if (!empty($appointment->price_minor)) {
+            return $appointment->price_minor;
         }
 
         // Use final price if set on appointment
-        if (isset($appointment->final_price_minor)) {
+        if (!empty($appointment->final_price_minor)) {
             return $appointment->final_price_minor;
+        }
+
+        // Fall back to service base price
+        if ($appointment->service) {
+            return $appointment->service->base_price_minor ?? $appointment->service->price_minor ?? 0;
         }
 
         return 0;
