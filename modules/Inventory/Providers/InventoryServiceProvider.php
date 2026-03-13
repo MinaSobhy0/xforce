@@ -26,6 +26,7 @@ class InventoryServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([
                 \Modules\Inventory\Console\FixStockMovementCosts::class,
+                \Modules\Inventory\Console\RecalculateProductCosts::class,
             ]);
         }
     }
