@@ -99,7 +99,7 @@ class ViewPayrollRun extends BaseViewRecord
                 ->label(__('payroll::payroll.actions.pay'))
                 ->icon('heroicon-o-banknotes')
                 ->color('info')
-                ->visible(fn () => $this->record->canTransitionTo(PayrollRun::STATUS_PAID))
+                ->visible(fn () => in_array($this->record->status, [PayrollRun::STATUS_APPROVED, PayrollRun::STATUS_PROCESSING]))
                 ->requiresConfirmation()
                 ->action(function () {
                     if ($this->record->markAsPaid(auth()->id())) {
@@ -107,7 +107,7 @@ class ViewPayrollRun extends BaseViewRecord
                             ->title(__('payroll::payroll.messages.paid'))
                             ->success()
                             ->send();
-                        $this->refreshFormData(['status']);
+                        $this->refreshFormData(['status', 'paid_at']);
                     }
                 }),
 
