@@ -292,7 +292,8 @@ class GiftCardService
             $journalEntry = $this->glService->postGiftCardRedemption(
                 $card,
                 $amountToRedeem,
-                $invoice
+                $invoice,
+                $payment
             );
 
             // Record transaction

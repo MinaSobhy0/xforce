@@ -6,6 +6,7 @@ use Modules\GiftCards\Models\GiftCard;
 use Modules\Billing\Models\Invoice;
 use Modules\Billing\Models\Payment;
 use Modules\Accounting\Models\Journal;
+use Modules\Patients\Models\Patient;
 use Modules\Accounting\Models\JournalEntry;
 use Modules\Accounting\Services\AccountingIntegrationService;
 use Modules\Accounting\Services\DefaultAccountsService;
@@ -122,26 +123,30 @@ class GiftCardGLService
     /**
      * Post gift card redemption journal entry
      *
-     * For invoice payments:
+     * For payments (invoice or appointment):
      *   DR: Gift Card Liability
      *   CR: Accounts Receivable (reduces patient balance) - with patient as partner
      *
-     * For direct redemption (no invoice):
+     * For direct redemption (no invoice/payment):
      *   DR: Gift Card Liability
      *   CR: Service Revenue
      */
     public function postGiftCardRedemption(
         GiftCard $card,
         int $amountMinor,
-        ?Invoice $invoice = null
+        ?Invoice $invoice = null,
+        ?Payment $payment = null
     ): ?JournalEntry {
         $template = $card->template;
 
         $liabilityAccount = $template?->liabilityAccount
             ?? $this->defaultAccounts->getGiftCardLiabilityAccount();
 
-        // For invoice payments, credit AR; for direct redemption, credit revenue
-        if ($invoice) {
+        // Determine patient from invoice or payment
+        $patientId = $invoice?->patient_id ?? $payment?->patient_id;
+
+        // For any payment (invoice or appointment), credit AR; for direct redemption, credit revenue
+        if ($invoice || $payment) {
             $creditAccount = $this->defaultAccounts->getPatientReceivableAccount();
         } else {
             $creditAccount = $this->defaultAccounts->getServiceRevenueAccount();
@@ -157,8 +162,7 @@ class GiftCardGLService
         }
 
         // Get patient for partner assignment on receivables line
-        $patientId = $invoice?->patient_id;
-        $patientType = $patientId ? \Modules\Patients\Models\Patient::class : null;
+        $patientType = $patientId ? Patient::class : null;
 
         $lines = [
             [
