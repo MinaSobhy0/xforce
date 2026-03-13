@@ -17,6 +17,26 @@ class TimeOffType extends BaseModel
 
     public array $translatable = ['name', 'description'];
 
+    // Request unit constants
+    public const REQUEST_UNIT_DAY = 'day';
+    public const REQUEST_UNIT_HALF_DAY = 'half_day';
+    public const REQUEST_UNIT_HOUR = 'hour';
+
+    public const REQUEST_UNITS = [
+        self::REQUEST_UNIT_DAY => 'Days',
+        self::REQUEST_UNIT_HALF_DAY => 'Half Days',
+        self::REQUEST_UNIT_HOUR => 'Hours',
+    ];
+
+    // Allocation period constants
+    public const ALLOCATION_PERIOD_YEARLY = 'yearly';
+    public const ALLOCATION_PERIOD_MONTHLY = 'monthly';
+
+    public const ALLOCATION_PERIODS = [
+        self::ALLOCATION_PERIOD_YEARLY => 'Yearly',
+        self::ALLOCATION_PERIOD_MONTHLY => 'Monthly',
+    ];
+
     // Approval type constants
     public const APPROVAL_TYPE_ANY = 'any';
     public const APPROVAL_TYPE_ROLES = 'roles';
@@ -46,6 +66,11 @@ class TimeOffType extends BaseModel
         'min_days_notice',
         'allow_half_day',
         'allow_partial_day',
+        'request_unit',
+        'allocation_period',
+        'hours_per_day',
+        'default_allocation',
+        'max_per_request',
         'is_active',
         'sort_order',
     ];
@@ -60,6 +85,9 @@ class TimeOffType extends BaseModel
         'min_days_notice' => 'integer',
         'allow_half_day' => 'boolean',
         'allow_partial_day' => 'boolean',
+        'hours_per_day' => 'decimal:2',
+        'default_allocation' => 'decimal:2',
+        'max_per_request' => 'decimal:2',
         'is_active' => 'boolean',
         'sort_order' => 'integer',
     ];
@@ -73,6 +101,9 @@ class TimeOffType extends BaseModel
         'min_days_notice' => 0,
         'allow_half_day' => true,
         'allow_partial_day' => false,
+        'request_unit' => self::REQUEST_UNIT_DAY,
+        'allocation_period' => self::ALLOCATION_PERIOD_YEARLY,
+        'hours_per_day' => 8.00,
         'is_active' => true,
         'sort_order' => 0,
     ];
@@ -201,5 +232,161 @@ class TimeOffType extends BaseModel
         }
 
         return User::whereIn('id', $userIds)->get();
+    }
+
+    /**
+     * Check if this type uses hours as the request unit.
+     */
+    public function isHourBased(): bool
+    {
+        return $this->request_unit === self::REQUEST_UNIT_HOUR;
+    }
+
+    /**
+     * Check if this type uses half days as the request unit.
+     */
+    public function isHalfDayBased(): bool
+    {
+        return $this->request_unit === self::REQUEST_UNIT_HALF_DAY;
+    }
+
+    /**
+     * Check if this type uses days as the request unit.
+     */
+    public function isDayBased(): bool
+    {
+        return $this->request_unit === self::REQUEST_UNIT_DAY;
+    }
+
+    /**
+     * Check if allocation is monthly.
+     */
+    public function isMonthly(): bool
+    {
+        return $this->allocation_period === self::ALLOCATION_PERIOD_MONTHLY;
+    }
+
+    /**
+     * Check if allocation is yearly.
+     */
+    public function isYearly(): bool
+    {
+        return $this->allocation_period === self::ALLOCATION_PERIOD_YEARLY;
+    }
+
+    /**
+     * Get the unit label (hours, half days, or days).
+     */
+    public function getUnitLabel(): string
+    {
+        return match ($this->request_unit) {
+            self::REQUEST_UNIT_HOUR => __('booking::time_off.request_units.hour'),
+            self::REQUEST_UNIT_HALF_DAY => __('booking::time_off.request_units.half_day'),
+            default => __('booking::time_off.request_units.day'),
+        };
+    }
+
+    /**
+     * Get the unit label for a single item.
+     */
+    public function getSingularUnitLabel(): string
+    {
+        return match ($this->request_unit) {
+            self::REQUEST_UNIT_HOUR => __('booking::time_off.request_units_singular.hour'),
+            self::REQUEST_UNIT_HALF_DAY => __('booking::time_off.request_units_singular.half_day'),
+            default => __('booking::time_off.request_units_singular.day'),
+        };
+    }
+
+    /**
+     * Convert a value to hours based on request unit.
+     */
+    public function convertToHours(float $value): float
+    {
+        return match ($this->request_unit) {
+            self::REQUEST_UNIT_HOUR => $value,
+            self::REQUEST_UNIT_HALF_DAY => $value * ($this->hours_per_day / 2),
+            default => $value * $this->hours_per_day,
+        };
+    }
+
+    /**
+     * Convert hours to the request unit value.
+     */
+    public function convertFromHours(float $hours): float
+    {
+        return match ($this->request_unit) {
+            self::REQUEST_UNIT_HOUR => $hours,
+            self::REQUEST_UNIT_HALF_DAY => $hours / ($this->hours_per_day / 2),
+            default => $hours / $this->hours_per_day,
+        };
+    }
+
+    /**
+     * Convert a value to days.
+     */
+    public function convertToDays(float $value): float
+    {
+        return match ($this->request_unit) {
+            self::REQUEST_UNIT_HOUR => $value / $this->hours_per_day,
+            self::REQUEST_UNIT_HALF_DAY => $value / 2,
+            default => $value,
+        };
+    }
+
+    /**
+     * Get the effective default allocation based on request unit.
+     * Returns default_allocation if set, otherwise converts default_days_per_year.
+     */
+    public function getEffectiveDefaultAllocation(): float
+    {
+        if ($this->default_allocation !== null) {
+            return (float) $this->default_allocation;
+        }
+
+        // Convert legacy default_days_per_year to appropriate unit
+        if ($this->isHourBased()) {
+            return $this->default_days_per_year * $this->hours_per_day;
+        }
+
+        if ($this->isHalfDayBased()) {
+            return $this->default_days_per_year * 2;
+        }
+
+        return (float) $this->default_days_per_year;
+    }
+
+    /**
+     * Get the effective max per request based on request unit.
+     */
+    public function getEffectiveMaxPerRequest(): ?float
+    {
+        if ($this->max_per_request !== null) {
+            return (float) $this->max_per_request;
+        }
+
+        if ($this->max_days_per_request === null) {
+            return null;
+        }
+
+        // Convert legacy max_days_per_request to appropriate unit
+        if ($this->isHourBased()) {
+            return $this->max_days_per_request * $this->hours_per_day;
+        }
+
+        if ($this->isHalfDayBased()) {
+            return $this->max_days_per_request * 2;
+        }
+
+        return (float) $this->max_days_per_request;
+    }
+
+    /**
+     * Format a value with the appropriate unit label.
+     */
+    public function formatValue(float $value): string
+    {
+        $formatted = number_format($value, $this->isHourBased() ? 1 : 1);
+        return $formatted . ' ' . $this->getUnitLabel();
     }
 }

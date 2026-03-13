@@ -119,6 +119,23 @@ class TimeOffTypeSeeder extends Seeder
                 'allow_half_day' => false,
                 'sort_order' => 8,
             ],
+            [
+                'code' => 'EXCUSE',
+                'name' => ['en' => 'Excuses', 'ar' => 'أذونات'],
+                'description' => ['en' => 'Hours-based permission for personal errands', 'ar' => 'أذونات بالساعة للأمور الشخصية'],
+                'color' => 'warning',
+                'is_paid' => true,
+                'requires_approval' => true,
+                'request_unit' => TimeOffType::REQUEST_UNIT_HOUR,
+                'allocation_period' => TimeOffType::ALLOCATION_PERIOD_MONTHLY,
+                'hours_per_day' => 8,
+                'default_allocation' => 2, // 2 hours per month
+                'max_per_request' => 2, // Max 2 hours per request
+                'min_days_notice' => 0,
+                'allow_half_day' => false,
+                'allow_partial_day' => true,
+                'sort_order' => 9,
+            ],
         ];
 
         foreach ($types as $type) {

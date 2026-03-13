@@ -489,8 +489,11 @@ class PayrollCalculationService
         // Get violation deductions from Attendance module
         $violationData = $this->getViolationDeductions($staff, $periodStart, $periodEnd);
 
-        // TODO: Get leave data when module is available
+        // Get leave data (including hours-based time off)
         $leaveData = $this->getLeaveData($staff, $periodStart, $periodEnd);
+
+        // Get detailed time off data for context
+        $timeOffData = $this->getTimeOffDetailsForPayroll($staff, $periodStart, $periodEnd);
 
         // Get allowance values from employee salary components
         $allowanceData = $this->getEmployeeAllowances($staff);
@@ -531,6 +534,12 @@ class PayrollCalculationService
             'unpaid_leave_days' => $leaveData['unpaid_leave_days'] ?? 0,
             'sick_leave_days' => $leaveData['sick_leave_days'] ?? 0,
             'annual_leave_days' => $leaveData['annual_leave_days'] ?? 0,
+
+            // Time off (detailed breakdown)
+            'time_off_days' => $timeOffData['total_days'] ?? 0,
+            'time_off_hours' => $timeOffData['total_hours'] ?? 0,
+            'excuse_hours' => $timeOffData['excuse_hours'] ?? 0,
+            'time_off_count' => $timeOffData['count'] ?? 0,
 
             // Commission
             'commission_amount' => $commissionData['total_amount'],
@@ -876,13 +885,14 @@ class PayrollCalculationService
 
     /**
      * Get approved time off days for the period.
+     * Handles both day-based and hours-based time off types.
      *
      * @param StaffProfile $staff
      * @param Carbon $start
      * @param Carbon $end
-     * @return int Number of approved time off days
+     * @return float Number of approved time off days (can be fractional for hours-based)
      */
-    protected function getApprovedTimeOffDays(StaffProfile $staff, Carbon $start, Carbon $end): int
+    protected function getApprovedTimeOffDays(StaffProfile $staff, Carbon $start, Carbon $end): float
     {
         // Check if PractitionerTimeOff model exists
         if (!class_exists(\Modules\Booking\Models\PractitionerTimeOff::class)) {
@@ -903,12 +913,29 @@ class PayrollCalculationService
                                 ->where('end_date', '>=', $end);
                         });
                 })
+                ->with('timeOffType')
                 ->get();
 
-            $totalDays = 0;
+            $totalDays = 0.0;
 
             foreach ($timeOffs as $timeOff) {
-                // Calculate overlapping days within the payroll period
+                $type = $timeOff->timeOffType;
+
+                // Check if this is an hours-based time off type
+                if ($type && $type->isHourBased() && $timeOff->hours_requested) {
+                    // Convert hours to days using the type's hours_per_day setting
+                    $hoursPerDay = $type->hours_per_day ?? 8;
+                    $totalDays += $timeOff->hours_requested / $hoursPerDay;
+                    continue;
+                }
+
+                // For day-based types, use days_requested if available
+                if ($timeOff->days_requested) {
+                    $totalDays += $timeOff->days_requested;
+                    continue;
+                }
+
+                // Fallback: Calculate overlapping days within the payroll period
                 $timeOffStart = $timeOff->start_date->max($start);
                 $timeOffEnd = ($timeOff->end_date ?? $timeOff->start_date)->min($end);
 
@@ -917,19 +944,26 @@ class PayrollCalculationService
                 while ($current <= $timeOffEnd) {
                     // Skip Friday (5) and Saturday (6) for Egypt
                     if (!in_array($current->dayOfWeek, [5, 6])) {
-                        // If using days_requested, use that; otherwise count actual days
-                        if ($timeOff->days_requested && $timeOff->is_full_day) {
-                            // Use days_requested from the allocation (more accurate for partial days)
-                            $totalDays += $timeOff->days_requested;
-                            break; // days_requested already accounts for full period
+                        if ($timeOff->is_full_day) {
+                            $totalDays += 1;
+                        } else {
+                            // Partial day - estimate based on time range
+                            if ($timeOff->start_time && $timeOff->end_time) {
+                                $startTime = Carbon::parse($timeOff->start_time);
+                                $endTime = Carbon::parse($timeOff->end_time);
+                                $hours = $startTime->diffInMinutes($endTime) / 60;
+                                $hoursPerDay = $type?->hours_per_day ?? 8;
+                                $totalDays += $hours / $hoursPerDay;
+                            } else {
+                                $totalDays += 0.5; // Default to half day
+                            }
                         }
-                        $totalDays++;
                     }
                     $current->addDay();
                 }
             }
 
-            return (int) $totalDays;
+            return round($totalDays, 2);
 
         } catch (\Exception $e) {
             Log::warning('PayrollCalculation: Failed to fetch time off data', [
@@ -997,6 +1031,7 @@ class PayrollCalculationService
 
     /**
      * Get array of dates covered by approved time off.
+     * For hours-based time off, only includes the specific date if it's a full day equivalent.
      *
      * @param StaffProfile $staff
      * @param Carbon $start
@@ -1022,16 +1057,36 @@ class PayrollCalculationService
                                 ->where('end_date', '>=', $end);
                         });
                 })
+                ->with('timeOffType')
                 ->get();
 
             $dates = [];
             foreach ($timeOffs as $timeOff) {
+                $type = $timeOff->timeOffType;
+
+                // For hours-based types, only include if hours >= half day
+                if ($type && $type->isHourBased()) {
+                    $hoursPerDay = $type->hours_per_day ?? 8;
+                    $hoursRequested = $timeOff->hours_requested ?? 0;
+
+                    // Only include the date if it's at least half a day
+                    if ($hoursRequested >= ($hoursPerDay / 2)) {
+                        $dates[] = $timeOff->start_date->format('Y-m-d');
+                    }
+                    continue;
+                }
+
+                // For day-based types, include all dates in range
                 $timeOffStart = $timeOff->start_date->max($start);
                 $timeOffEnd = ($timeOff->end_date ?? $timeOff->start_date)->min($end);
 
                 $current = $timeOffStart->copy();
                 while ($current <= $timeOffEnd) {
-                    $dates[] = $current->format('Y-m-d');
+                    // For full-day time off, always include
+                    // For partial day, only include if it covers most of the day
+                    if ($timeOff->is_full_day) {
+                        $dates[] = $current->format('Y-m-d');
+                    }
                     $current->addDay();
                 }
             }
@@ -1083,6 +1138,101 @@ class PayrollCalculationService
             'sick_leave_days' => 0,
             'annual_leave_days' => 0,
         ];
+    }
+
+    /**
+     * Get detailed time off data for payroll calculations.
+     * Breaks down time off by type and unit (hours vs days).
+     *
+     * @param StaffProfile $staff
+     * @param Carbon $start
+     * @param Carbon $end
+     * @return array
+     */
+    public function getTimeOffDetailsForPayroll(StaffProfile $staff, Carbon $start, Carbon $end): array
+    {
+        $result = [
+            'total_days' => 0,
+            'total_hours' => 0,
+            'excuse_hours' => 0, // Hours-based excuses
+            'count' => 0,
+            'by_type' => [],
+        ];
+
+        if (!class_exists(\Modules\Booking\Models\PractitionerTimeOff::class)) {
+            return $result;
+        }
+
+        try {
+            $timeOffs = \Modules\Booking\Models\PractitionerTimeOff::on($staff->getConnectionName())
+                ->withoutGlobalScopes()
+                ->where('user_id', $staff->user_id)
+                ->where('status', \Modules\Booking\Models\PractitionerTimeOff::STATUS_APPROVED)
+                ->where(function ($query) use ($start, $end) {
+                    $query->whereBetween('start_date', [$start, $end])
+                        ->orWhereBetween('end_date', [$start, $end])
+                        ->orWhere(function ($q) use ($start, $end) {
+                            $q->where('start_date', '<=', $start)
+                                ->where('end_date', '>=', $end);
+                        });
+                })
+                ->with('timeOffType')
+                ->get();
+
+            $result['count'] = $timeOffs->count();
+
+            foreach ($timeOffs as $timeOff) {
+                $type = $timeOff->timeOffType;
+                $typeCode = $type?->code ?? 'OTHER';
+
+                if (!isset($result['by_type'][$typeCode])) {
+                    $result['by_type'][$typeCode] = [
+                        'name' => $type?->translated_name ?? 'Other',
+                        'days' => 0,
+                        'hours' => 0,
+                        'is_paid' => $type?->is_paid ?? true,
+                    ];
+                }
+
+                // Check if this is an hours-based time off type
+                if ($type && $type->isHourBased() && $timeOff->hours_requested) {
+                    $hours = (float) $timeOff->hours_requested;
+                    $result['total_hours'] += $hours;
+                    $result['by_type'][$typeCode]['hours'] += $hours;
+
+                    // Track excuse hours separately for common use case
+                    if (in_array(strtoupper($typeCode), ['EXCUSE', 'EXCUSES', 'PERMISSION'])) {
+                        $result['excuse_hours'] += $hours;
+                    }
+
+                    // Convert to days for total
+                    $hoursPerDay = $type->hours_per_day ?? 8;
+                    $days = $hours / $hoursPerDay;
+                    $result['total_days'] += $days;
+                    $result['by_type'][$typeCode]['days'] += $days;
+                } else {
+                    // Day-based time off
+                    $days = (float) ($timeOff->days_requested ?? 1);
+                    $result['total_days'] += $days;
+                    $result['by_type'][$typeCode]['days'] += $days;
+
+                    // Convert to hours for total
+                    $hoursPerDay = $type?->hours_per_day ?? 8;
+                    $hours = $days * $hoursPerDay;
+                    $result['total_hours'] += $hours;
+                    $result['by_type'][$typeCode]['hours'] += $hours;
+                }
+            }
+
+            return $result;
+
+        } catch (\Exception $e) {
+            Log::warning('PayrollCalculation: Failed to fetch time off details', [
+                'staff_id' => $staff->id,
+                'error' => $e->getMessage(),
+            ]);
+            return $result;
+        }
     }
 
     /**

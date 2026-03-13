@@ -26,6 +26,7 @@ class PractitionerTimeOff extends BaseModel
         'end_time',
         'is_full_day',
         'days_requested',
+        'hours_requested',
         'reason',
         'status',
         'approved_by_user_id',
@@ -37,7 +38,8 @@ class PractitionerTimeOff extends BaseModel
         'start_date' => 'date',
         'end_date' => 'date',
         'is_full_day' => 'boolean',
-        'days_requested' => 'decimal:1',
+        'days_requested' => 'decimal:2',
+        'hours_requested' => 'decimal:2',
         'approved_at' => 'datetime',
     ];
 
@@ -187,14 +189,18 @@ class PractitionerTimeOff extends BaseModel
             'approved_at' => now(),
         ]);
 
-        // Deduct days from allocation if using typed time off
-        if ($result && $this->time_off_type_id && $this->days_requested) {
-            $allocation = TimeOffAllocation::getOrCreate(
-                $this->user_id,
-                $this->time_off_type_id,
-                $this->start_date->year
-            );
-            $allocation->useDays($this->days_requested);
+        // Deduct from allocation if using typed time off
+        if ($result && $this->time_off_type_id) {
+            $deductAmount = $this->getDeductionAmount();
+
+            if ($deductAmount > 0) {
+                $allocation = TimeOffAllocation::getOrCreateForDate(
+                    $this->user_id,
+                    $this->time_off_type_id,
+                    $this->start_date
+                );
+                $allocation->useDays($deductAmount);
+            }
         }
 
         return $result;
@@ -226,15 +232,20 @@ class PractitionerTimeOff extends BaseModel
             'status' => self::STATUS_CANCELLED,
         ]);
 
-        // Return days to allocation if was approved and using typed time off
-        if ($result && $wasApproved && $this->time_off_type_id && $this->days_requested) {
-            $allocation = TimeOffAllocation::where('user_id', $this->user_id)
-                ->where('time_off_type_id', $this->time_off_type_id)
-                ->where('year', $this->start_date->year)
-                ->first();
+        // Return allocation if was approved and using typed time off
+        if ($result && $wasApproved && $this->time_off_type_id) {
+            $returnAmount = $this->getDeductionAmount();
 
-            if ($allocation) {
-                $allocation->returnDays($this->days_requested);
+            if ($returnAmount > 0) {
+                $allocation = TimeOffAllocation::getForDate(
+                    $this->user_id,
+                    $this->time_off_type_id,
+                    $this->start_date
+                );
+
+                if ($allocation) {
+                    $allocation->returnDays($returnAmount);
+                }
             }
         }
 
@@ -309,5 +320,79 @@ class PractitionerTimeOff extends BaseModel
     public function scopeOrdered($query)
     {
         return $query->orderBy('start_date', 'desc');
+    }
+
+    /**
+     * Get the amount to deduct/return from allocation.
+     * Returns hours_requested for hour-based types, days_requested otherwise.
+     */
+    public function getDeductionAmount(): float
+    {
+        $type = $this->timeOffType;
+
+        if ($type && $type->isHourBased()) {
+            return (float) ($this->hours_requested ?? 0);
+        }
+
+        return (float) ($this->days_requested ?? 0);
+    }
+
+    /**
+     * Get the requested amount in hours.
+     */
+    public function getRequestedInHours(): float
+    {
+        if ($this->hours_requested !== null) {
+            return (float) $this->hours_requested;
+        }
+
+        $type = $this->timeOffType;
+
+        if (!$type) {
+            return ($this->days_requested ?? 0) * 8; // Default 8 hours per day
+        }
+
+        return $type->convertToHours($this->days_requested ?? 0);
+    }
+
+    /**
+     * Get formatted display duration with appropriate unit.
+     */
+    public function getDisplayDurationAttribute(): string
+    {
+        $type = $this->timeOffType;
+
+        if (!$type) {
+            return number_format($this->days_requested ?? 0, 1) . ' ' . __('booking::time_off.request_units.day');
+        }
+
+        if ($type->isHourBased() && $this->hours_requested !== null) {
+            return $type->formatValue($this->hours_requested);
+        }
+
+        return $type->formatValue($this->days_requested ?? 0);
+    }
+
+    /**
+     * Check if this is an hours-based request.
+     */
+    public function isHoursBased(): bool
+    {
+        return $this->timeOffType?->isHourBased() ?? false;
+    }
+
+    /**
+     * Calculate hours from time range.
+     */
+    public static function calculateHoursFromTimeRange(?string $startTime, ?string $endTime): float
+    {
+        if (!$startTime || !$endTime) {
+            return 0;
+        }
+
+        $start = \Carbon\Carbon::parse($startTime);
+        $end = \Carbon\Carbon::parse($endTime);
+
+        return round($start->diffInMinutes($end) / 60, 2);
     }
 }

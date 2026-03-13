@@ -98,6 +98,61 @@ class TimeOffTypeResource extends Resource
                     ])
                     ->columns(2),
 
+                Forms\Components\Section::make(__('booking::time_off.types.sections.unit_settings'))
+                    ->schema([
+                        Forms\Components\Select::make('request_unit')
+                            ->label(__('booking::time_off.types.fields.request_unit'))
+                            ->options([
+                                TimeOffType::REQUEST_UNIT_DAY => __('booking::time_off.request_units.day'),
+                                TimeOffType::REQUEST_UNIT_HALF_DAY => __('booking::time_off.request_units.half_day'),
+                                TimeOffType::REQUEST_UNIT_HOUR => __('booking::time_off.request_units.hour'),
+                            ])
+                            ->default(TimeOffType::REQUEST_UNIT_DAY)
+                            ->required()
+                            ->live()
+                            ->helperText(__('booking::time_off.types.help.request_unit')),
+
+                        Forms\Components\Select::make('allocation_period')
+                            ->label(__('booking::time_off.types.fields.allocation_period'))
+                            ->options([
+                                TimeOffType::ALLOCATION_PERIOD_YEARLY => __('booking::time_off.allocation_periods.yearly'),
+                                TimeOffType::ALLOCATION_PERIOD_MONTHLY => __('booking::time_off.allocation_periods.monthly'),
+                            ])
+                            ->default(TimeOffType::ALLOCATION_PERIOD_YEARLY)
+                            ->required()
+                            ->live()
+                            ->helperText(__('booking::time_off.types.help.allocation_period')),
+
+                        Forms\Components\TextInput::make('hours_per_day')
+                            ->label(__('booking::time_off.types.fields.hours_per_day'))
+                            ->numeric()
+                            ->step(0.5)
+                            ->default(8)
+                            ->visible(fn (Forms\Get $get) => $get('request_unit') === TimeOffType::REQUEST_UNIT_HOUR)
+                            ->helperText(__('booking::time_off.types.help.hours_per_day')),
+
+                        Forms\Components\TextInput::make('default_allocation')
+                            ->label(fn (Forms\Get $get) => $get('request_unit') === TimeOffType::REQUEST_UNIT_HOUR
+                                ? __('booking::time_off.types.fields.default_hours')
+                                : __('booking::time_off.types.fields.default_days'))
+                            ->numeric()
+                            ->step(0.5)
+                            ->nullable()
+                            ->helperText(fn (Forms\Get $get) => $get('allocation_period') === TimeOffType::ALLOCATION_PERIOD_MONTHLY
+                                ? __('booking::time_off.types.help.default_allocation_monthly')
+                                : __('booking::time_off.types.help.default_allocation_yearly')),
+
+                        Forms\Components\TextInput::make('max_per_request')
+                            ->label(fn (Forms\Get $get) => $get('request_unit') === TimeOffType::REQUEST_UNIT_HOUR
+                                ? __('booking::time_off.types.fields.max_hours_per_request')
+                                : __('booking::time_off.types.fields.max_days_per_request'))
+                            ->numeric()
+                            ->step(0.5)
+                            ->nullable()
+                            ->helperText(__('booking::time_off.types.help.max_per_request')),
+                    ])
+                    ->columns(2),
+
                 Forms\Components\Section::make(__('booking::time_off.types.sections.settings'))
                     ->schema([
                         Forms\Components\Toggle::make('is_paid')
@@ -146,18 +201,6 @@ class TimeOffTypeResource extends Resource
                             ]))
                             ->helperText(__('booking::time_off.types.help.approval_users')),
 
-                        Forms\Components\TextInput::make('default_days_per_year')
-                            ->label(__('booking::time_off.types.fields.default_days'))
-                            ->numeric()
-                            ->default(0)
-                            ->helperText(__('booking::time_off.types.help.default_days')),
-
-                        Forms\Components\TextInput::make('max_days_per_request')
-                            ->label(__('booking::time_off.types.fields.max_days_per_request'))
-                            ->numeric()
-                            ->nullable()
-                            ->helperText(__('booking::time_off.types.help.max_days')),
-
                         Forms\Components\TextInput::make('min_days_notice')
                             ->label(__('booking::time_off.types.fields.min_days_notice'))
                             ->numeric()
@@ -166,11 +209,13 @@ class TimeOffTypeResource extends Resource
 
                         Forms\Components\Toggle::make('allow_half_day')
                             ->label(__('booking::time_off.types.fields.allow_half_day'))
-                            ->default(true),
+                            ->default(true)
+                            ->visible(fn (Forms\Get $get) => $get('request_unit') === TimeOffType::REQUEST_UNIT_DAY),
 
                         Forms\Components\Toggle::make('allow_partial_day')
                             ->label(__('booking::time_off.types.fields.allow_partial_day'))
                             ->default(false)
+                            ->visible(fn (Forms\Get $get) => $get('request_unit') === TimeOffType::REQUEST_UNIT_DAY)
                             ->helperText(__('booking::time_off.types.help.partial_day')),
                     ])
                     ->columns(2),
@@ -200,9 +245,26 @@ class TimeOffTypeResource extends Resource
                     ->label(__('booking::time_off.types.fields.is_paid'))
                     ->boolean(),
 
-                Tables\Columns\TextColumn::make('default_days_per_year')
-                    ->label(__('booking::time_off.types.fields.default_days'))
-                    ->numeric()
+                Tables\Columns\TextColumn::make('request_unit')
+                    ->label(__('booking::time_off.types.fields.request_unit'))
+                    ->formatStateUsing(fn (string $state): string => __('booking::time_off.request_units.' . $state))
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        TimeOffType::REQUEST_UNIT_HOUR => 'info',
+                        TimeOffType::REQUEST_UNIT_HALF_DAY => 'warning',
+                        default => 'gray',
+                    }),
+
+                Tables\Columns\TextColumn::make('allocation_period')
+                    ->label(__('booking::time_off.types.fields.allocation_period'))
+                    ->formatStateUsing(fn (string $state): string => __('booking::time_off.allocation_periods.' . $state))
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                Tables\Columns\TextColumn::make('default_allocation')
+                    ->label(__('booking::time_off.types.fields.default_allocation'))
+                    ->formatStateUsing(fn ($record) => $record->default_allocation !== null
+                        ? $record->formatValue($record->default_allocation)
+                        : ($record->default_days_per_year . ' ' . __('booking::time_off.request_units.day')))
                     ->alignEnd(),
 
                 Tables\Columns\IconColumn::make('requires_approval')

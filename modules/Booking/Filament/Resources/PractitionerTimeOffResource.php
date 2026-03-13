@@ -49,47 +49,70 @@ class PractitionerTimeOffResource extends Resource
     }
 
     /**
-     * Recalculate days requested based on dates and times.
-     * For full day: calendar days between start and end dates
-     * For partial day: hours between start and end time / 8 (standard work day)
+     * Recalculate days/hours requested based on dates and times.
+     * For day-based types: calendar days between start and end dates
+     * For hour-based types: hours between start and end time
      */
     protected static function recalculateDays(Forms\Get $get, Forms\Set $set): void
     {
         $startDate = $get('start_date');
         $endDate = $get('end_date');
         $isFullDay = $get('is_full_day');
+        $timeOffTypeId = $get('time_off_type_id');
 
-        if (!$startDate || !$endDate) {
+        if (!$startDate) {
             return;
         }
 
-        if ($isFullDay) {
-            // Full day calculation: number of calendar days
-            $days = \Carbon\Carbon::parse($startDate)->diffInDays(\Carbon\Carbon::parse($endDate)) + 1;
-            $set('days_requested', $days);
-        } else {
-            // Partial day calculation: hours / 8 for each day
+        // Get the time off type to determine if it's hour-based
+        $type = $timeOffTypeId ? TimeOffType::find($timeOffTypeId) : null;
+        $isHourBased = $type?->isHourBased() ?? false;
+
+        if ($isHourBased) {
+            // Hour-based calculation: hours between start and end time
             $startTime = $get('start_time');
             $endTime = $get('end_time');
 
-            if (!$startTime || !$endTime) {
+            if ($startTime && $endTime) {
+                $hours = PractitionerTimeOff::calculateHoursFromTimeRange($startTime, $endTime);
+                $set('hours_requested', round($hours, 2));
+                // Also set days_requested for backwards compatibility
+                $hoursPerDay = $type->hours_per_day ?? 8;
+                $set('days_requested', round($hours / $hoursPerDay, 2));
+            }
+        } else {
+            // Day-based calculation
+            if (!$endDate) {
                 return;
             }
 
-            $calendarDays = \Carbon\Carbon::parse($startDate)->diffInDays(\Carbon\Carbon::parse($endDate)) + 1;
+            if ($isFullDay) {
+                // Full day calculation: number of calendar days
+                $days = \Carbon\Carbon::parse($startDate)->diffInDays(\Carbon\Carbon::parse($endDate)) + 1;
+                $set('days_requested', $days);
+            } else {
+                // Partial day calculation: hours / hours_per_day for each day
+                $startTime = $get('start_time');
+                $endTime = $get('end_time');
 
-            // Calculate hours for the partial day portion
-            $start = \Carbon\Carbon::parse($startTime);
-            $end = \Carbon\Carbon::parse($endTime);
-            $hours = $start->diffInMinutes($end) / 60;
+                if (!$startTime || !$endTime) {
+                    return;
+                }
 
-            // Convert hours to fraction of a day (8-hour workday)
-            $fractionPerDay = round($hours / 8, 1);
+                $calendarDays = \Carbon\Carbon::parse($startDate)->diffInDays(\Carbon\Carbon::parse($endDate)) + 1;
 
-            // Total days = fraction per day * number of calendar days
-            $totalDays = $fractionPerDay * $calendarDays;
+                // Calculate hours for the partial day portion
+                $hours = PractitionerTimeOff::calculateHoursFromTimeRange($startTime, $endTime);
 
-            $set('days_requested', max(0.5, round($totalDays, 1)));
+                // Convert hours to fraction of a day
+                $hoursPerDay = $type?->hours_per_day ?? 8;
+                $fractionPerDay = round($hours / $hoursPerDay, 2);
+
+                // Total days = fraction per day * number of calendar days
+                $totalDays = $fractionPerDay * $calendarDays;
+
+                $set('days_requested', max(0.5, round($totalDays, 1)));
+            }
         }
     }
 
@@ -125,21 +148,24 @@ class PractitionerTimeOffResource extends Resource
                                             return [];
                                         }
 
-                                        // Get allocations for the selected user for the current year
-                                        $allocations = TimeOffAllocation::with('timeOffType')
-                                            ->where('user_id', $userId)
-                                            ->where('year', now()->year)
-                                            ->whereHas('timeOffType', fn ($q) => $q->active())
-                                            ->get();
+                                        // Get all active time off types with allocations for the user
+                                        $types = TimeOffType::active()->ordered()->get();
 
-                                        // Build options with balance shown
-                                        return $allocations->mapWithKeys(function ($allocation) {
-                                            $typeName = $allocation->timeOffType->translated_name ?? __('booking::time_off.unknown_type');
-                                            $remaining = number_format($allocation->remaining_days, 1);
-                                            $total = number_format($allocation->total_days, 1);
+                                        return $types->mapWithKeys(function ($type) use ($userId) {
+                                            $typeName = $type->translated_name;
+
+                                            // Auto-create allocation for current period if it doesn't exist
+                                            $allocation = TimeOffAllocation::getOrCreateForDate(
+                                                $userId,
+                                                $type->id,
+                                                now()
+                                            );
+
+                                            $remaining = $allocation->display_value;
+                                            $total = $allocation->total_display_value;
 
                                             return [
-                                                $allocation->time_off_type_id => "{$typeName} ({$remaining} / {$total} " . __('booking::time_off.days_remaining') . ")"
+                                                $type->id => "{$typeName} ({$remaining} / {$total})"
                                             ];
                                         })->toArray();
                                     })
@@ -148,13 +174,19 @@ class PractitionerTimeOffResource extends Resource
                                     ->required()
                                     ->live()
                                     ->afterStateUpdated(function ($state, Forms\Get $get, Forms\Set $set) {
-                                        // Auto-calculate days when type changes
-                                        $startDate = $get('start_date');
-                                        $endDate = $get('end_date');
-                                        if ($startDate && $endDate) {
-                                            $days = \Carbon\Carbon::parse($startDate)->diffInDays(\Carbon\Carbon::parse($endDate)) + 1;
-                                            $set('days_requested', $days);
+                                        if (!$state) {
+                                            return;
                                         }
+
+                                        $type = TimeOffType::find($state);
+
+                                        // For hour-based types, set is_full_day to false
+                                        if ($type?->isHourBased()) {
+                                            $set('is_full_day', false);
+                                        }
+
+                                        // Recalculate
+                                        static::recalculateDays($get, $set);
                                     })
                                     ->helperText(function (Forms\Get $get) {
                                         $userId = $get('user_id');
@@ -164,12 +196,14 @@ class PractitionerTimeOffResource extends Resource
 
                                         $typeId = $get('time_off_type_id');
                                         if ($userId && $typeId) {
-                                            $allocation = TimeOffAllocation::where('user_id', $userId)
-                                                ->where('time_off_type_id', $typeId)
-                                                ->where('year', now()->year)
-                                                ->first();
-                                            if ($allocation) {
-                                                return __('booking::time_off.fields.remaining_days', ['days' => number_format($allocation->remaining_days, 1)]);
+                                            $type = TimeOffType::find($typeId);
+                                            if ($type) {
+                                                // Auto-create allocation if needed
+                                                $allocation = TimeOffAllocation::getOrCreateForDate($userId, $typeId, now());
+                                                $periodLabel = $type->isMonthly()
+                                                    ? __('booking::time_off.fields.remaining_this_month', ['value' => $allocation->display_value])
+                                                    : __('booking::time_off.fields.remaining_this_year', ['value' => $allocation->display_value]);
+                                                return $periodLabel;
                                             }
                                         }
                                         return null;
@@ -192,6 +226,7 @@ class PractitionerTimeOffResource extends Resource
                             ->label(__('booking::time_off.fields.is_full_day'))
                             ->default(true)
                             ->live()
+                            ->visible(fn (Forms\Get $get) => !($get('time_off_type_id') && TimeOffType::find($get('time_off_type_id'))?->isHourBased()))
                             ->afterStateUpdated(function ($state, Forms\Get $get, Forms\Set $set) {
                                 static::recalculateDays($get, $set);
                             }),
@@ -204,6 +239,11 @@ class PractitionerTimeOffResource extends Resource
                                     ->required()
                                     ->live()
                                     ->afterStateUpdated(function ($state, Forms\Get $get, Forms\Set $set) {
+                                        // For hour-based types, set end_date same as start_date
+                                        $typeId = $get('time_off_type_id');
+                                        if ($typeId && TimeOffType::find($typeId)?->isHourBased()) {
+                                            $set('end_date', $state);
+                                        }
                                         static::recalculateDays($get, $set);
                                     }),
 
@@ -213,6 +253,7 @@ class PractitionerTimeOffResource extends Resource
                                     ->required()
                                     ->afterOrEqual('start_date')
                                     ->live()
+                                    ->visible(fn (Forms\Get $get) => !($get('time_off_type_id') && TimeOffType::find($get('time_off_type_id'))?->isHourBased()))
                                     ->afterStateUpdated(function ($state, Forms\Get $get, Forms\Set $set) {
                                         static::recalculateDays($get, $set);
                                     }),
@@ -222,8 +263,16 @@ class PractitionerTimeOffResource extends Resource
                                     ->numeric()
                                     ->step(0.5)
                                     ->minValue(0.5)
-                                    ->visible(fn (Forms\Get $get) => $get('time_off_type_id'))
+                                    ->visible(fn (Forms\Get $get) => $get('time_off_type_id') && !TimeOffType::find($get('time_off_type_id'))?->isHourBased())
                                     ->helperText(__('booking::time_off.fields.days_requested_help')),
+
+                                Forms\Components\TextInput::make('hours_requested')
+                                    ->label(__('booking::time_off.fields.hours_requested'))
+                                    ->numeric()
+                                    ->step(0.25)
+                                    ->minValue(0.25)
+                                    ->visible(fn (Forms\Get $get) => $get('time_off_type_id') && TimeOffType::find($get('time_off_type_id'))?->isHourBased())
+                                    ->helperText(__('booking::time_off.fields.hours_requested_help')),
                             ]),
 
                         Forms\Components\Grid::make(2)
@@ -231,7 +280,7 @@ class PractitionerTimeOffResource extends Resource
                                 Forms\Components\TimePicker::make('start_time')
                                     ->label(__('booking::time_off.fields.start_time'))
                                     ->seconds(false)
-                                    ->required()
+                                    ->required(fn (Forms\Get $get) => !$get('is_full_day') || ($get('time_off_type_id') && TimeOffType::find($get('time_off_type_id'))?->isHourBased()))
                                     ->live()
                                     ->afterStateUpdated(function ($state, Forms\Get $get, Forms\Set $set) {
                                         static::recalculateDays($get, $set);
@@ -240,13 +289,13 @@ class PractitionerTimeOffResource extends Resource
                                 Forms\Components\TimePicker::make('end_time')
                                     ->label(__('booking::time_off.fields.end_time'))
                                     ->seconds(false)
-                                    ->required()
+                                    ->required(fn (Forms\Get $get) => !$get('is_full_day') || ($get('time_off_type_id') && TimeOffType::find($get('time_off_type_id'))?->isHourBased()))
                                     ->live()
                                     ->afterStateUpdated(function ($state, Forms\Get $get, Forms\Set $set) {
                                         static::recalculateDays($get, $set);
                                     }),
                             ])
-                            ->visible(fn (Forms\Get $get) => !$get('is_full_day')),
+                            ->visible(fn (Forms\Get $get) => !$get('is_full_day') || ($get('time_off_type_id') && TimeOffType::find($get('time_off_type_id'))?->isHourBased())),
                     ]),
 
                 Forms\Components\Section::make(__('booking::time_off.sections.details'))
@@ -281,9 +330,8 @@ class PractitionerTimeOffResource extends Resource
                     ->placeholder(fn ($record) => PractitionerTimeOff::TYPES[$record->type] ?? $record->type)
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('days_requested')
-                    ->label(__('booking::time_off.fields.days_requested'))
-                    ->numeric(decimalPlaces: 1)
+                Tables\Columns\TextColumn::make('display_duration')
+                    ->label(__('booking::time_off.fields.duration'))
                     ->placeholder('-')
                     ->toggleable(),
 

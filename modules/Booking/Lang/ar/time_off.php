@@ -5,7 +5,29 @@ return [
     'singular' => 'طلب إجازة',
     'plural' => 'طلبات الإجازات',
     'days_remaining' => 'يوم متبقي',
+    'hours_remaining' => 'ساعة متبقية',
+    'remaining_this_month' => 'متبقي هذا الشهر',
+    'remaining_this_year' => 'متبقي هذا العام',
     'unknown_type' => 'نوع غير معروف',
+
+    // Request units
+    'request_units' => [
+        'day' => 'أيام',
+        'half_day' => 'نصف يوم',
+        'hour' => 'ساعات',
+    ],
+
+    'request_units_singular' => [
+        'day' => 'يوم',
+        'half_day' => 'نصف يوم',
+        'hour' => 'ساعة',
+    ],
+
+    // Allocation periods
+    'allocation_periods' => [
+        'yearly' => 'سنوي',
+        'monthly' => 'شهري',
+    ],
 
     'sections' => [
         'request' => 'تفاصيل الطلب',
@@ -30,9 +52,14 @@ return [
         'is_full_day' => 'يوم كامل',
         'period' => 'الفترة',
         'days' => 'الأيام',
+        'duration' => 'المدة',
         'days_requested' => 'الأيام المطلوبة',
         'days_requested_help' => 'عدّل إذا اختلفت عن أيام التقويم (مثل نصف يوم)',
+        'hours_requested' => 'الساعات المطلوبة',
+        'hours_requested_help' => 'يتم حساب الساعات تلقائياً من نطاق الوقت',
         'remaining_days' => ':days يوم متبقي',
+        'remaining_this_month' => ':value متبقي هذا الشهر',
+        'remaining_this_year' => ':value متبقي هذا العام',
         'select_staff_first' => 'اختر موظفاً أولاً',
         'reason' => 'السبب',
         'status' => 'الحالة',
@@ -78,7 +105,8 @@ return [
 
         'sections' => [
             'basic' => 'المعلومات الأساسية',
-            'settings' => 'الإعدادات والقواعد',
+            'unit_settings' => 'إعدادات الوحدة والتخصيص',
+            'settings' => 'الموافقة والقواعد',
         ],
 
         'fields' => [
@@ -88,8 +116,15 @@ return [
             'color' => 'اللون',
             'is_paid' => 'إجازة مدفوعة',
             'requires_approval' => 'تتطلب موافقة',
+            'request_unit' => 'وحدة الطلب',
+            'allocation_period' => 'فترة التخصيص',
+            'hours_per_day' => 'ساعات العمل اليومية',
+            'default_allocation' => 'التخصيص الافتراضي',
             'default_days' => 'الأيام الافتراضية/السنة',
+            'default_hours' => 'الساعات الافتراضية',
+            'max_per_request' => 'الحد الأقصى للطلب',
             'max_days_per_request' => 'الحد الأقصى للأيام لكل طلب',
+            'max_hours_per_request' => 'الحد الأقصى للساعات لكل طلب',
             'min_days_notice' => 'الحد الأدنى للإشعار المسبق',
             'allow_half_day' => 'السماح بنصف يوم',
             'allow_partial_day' => 'السماح بيوم جزئي',
@@ -108,9 +143,15 @@ return [
         ],
 
         'help' => [
-            'code' => 'معرف فريد (مثل: ANNUAL, SICK, PERSONAL)',
+            'code' => 'معرف فريد (مثل: ANNUAL, SICK, EXCUSE)',
             'is_paid' => 'ما إذا كان هذا النوع من الإجازة مدفوعاً',
+            'request_unit' => 'وحدة طلب الإجازة (أيام أو نصف أيام أو ساعات)',
+            'allocation_period' => 'متى يتم تجديد التخصيص (سنوياً أو شهرياً)',
+            'hours_per_day' => 'ساعات العمل القياسية في اليوم للتحويل',
+            'default_allocation_yearly' => 'التخصيص الافتراضي لكل سنة',
+            'default_allocation_monthly' => 'التخصيص الافتراضي لكل شهر',
             'default_days' => 'التخصيص الافتراضي عند إنشاء تخصيصات جديدة',
+            'max_per_request' => 'الحد الأقصى المسموح به لكل طلب (اتركه فارغاً للسماح بغير محدود)',
             'max_days' => 'الحد الأقصى للأيام المسموح بها لكل طلب (اتركه فارغاً للسماح بغير محدود)',
             'min_notice' => 'الحد الأدنى للأيام المطلوبة مسبقاً للطلب',
             'partial_day' => 'السماح بطلب ساعات محددة خلال اليوم',
@@ -128,22 +169,47 @@ return [
         'sections' => [
             'allocation' => 'تفاصيل التخصيص',
             'days' => 'الأيام',
+            'hours' => 'الساعات',
         ],
 
         'fields' => [
             'practitioner' => 'المختص',
             'type' => 'نوع الإجازة',
             'year' => 'السنة',
+            'month' => 'الشهر',
+            'period' => 'الفترة',
+            'allocated' => 'المخصص',
             'allocated_days' => 'الأيام المخصصة',
+            'allocated_hours' => 'الساعات المخصصة',
+            'used' => 'المستخدم',
             'used_days' => 'الأيام المستخدمة',
-            'carried_over' => 'المنقولة',
+            'used_hours' => 'الساعات المستخدمة',
+            'carried_over' => 'المنقول',
+            'carried_over_hours' => 'الساعات المنقولة',
+            'remaining' => 'المتبقي',
             'remaining_days' => 'الأيام المتبقية',
+            'remaining_hours' => 'الساعات المتبقية',
             'notes' => 'ملاحظات',
         ],
 
         'help' => [
-            'carried_over' => 'الأيام المنقولة من السنة السابقة',
+            'carried_over' => 'المنقول من الفترة السابقة',
             'used_days' => 'يتم حسابها تلقائياً من الطلبات الموافق عليها',
+            'month' => 'مطلوب لأنواع التخصيص الشهري',
+        ],
+
+        'bulk' => [
+            'button' => 'تخصيص جماعي',
+            'title' => 'التخصيص الجماعي',
+            'submit' => 'إنشاء التخصيصات',
+            'select_staff' => 'اختر الموظفين',
+            'select_staff_help' => 'اختر الموظفين الذين تريد التخصيص لهم',
+            'all_staff' => 'تحديد جميع الموظفين',
+            'amount_help' => 'المبلغ المراد تخصيصه (يستخدم الافتراضي إذا لم يتم التغيير)',
+            'skip_existing' => 'تجاوز التخصيصات الموجودة',
+            'skip_existing_help' => 'إذا تم التفعيل، سيتم تجاوز الموظفين الذين لديهم تخصيص بالفعل',
+            'success' => 'اكتمل التخصيص الجماعي',
+            'success_message' => 'تم إنشاء :created تخصيص، تم تجاوز :skipped موجود.',
         ],
     ],
 ];

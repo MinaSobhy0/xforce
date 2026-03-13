@@ -67,12 +67,12 @@ class TimeOffAllocationResource extends Resource
                             ->searchable()
                             ->preload()
                             ->required()
-                            ->reactive()
+                            ->live()
                             ->afterStateUpdated(function ($state, Forms\Set $set) {
                                 if ($state) {
                                     $type = TimeOffType::find($state);
                                     if ($type) {
-                                        $set('allocated_days', $type->default_days_per_year);
+                                        $set('allocated_days', $type->getEffectiveDefaultAllocation());
                                     }
                                 }
                             }),
@@ -84,27 +84,44 @@ class TimeOffAllocationResource extends Resource
                             ->required()
                             ->minValue(2020)
                             ->maxValue(2050),
-                    ])
-                    ->columns(3),
 
-                Forms\Components\Section::make(__('booking::time_off.allocations.sections.days'))
+                        Forms\Components\Select::make('month')
+                            ->label(__('booking::time_off.allocations.fields.month'))
+                            ->options(fn () => collect(range(1, 12))->mapWithKeys(fn ($m) => [
+                                $m => \Carbon\Carbon::create()->month($m)->translatedFormat('F')
+                            ])->toArray())
+                            ->visible(fn (Forms\Get $get) => $get('time_off_type_id') && TimeOffType::find($get('time_off_type_id'))?->isMonthly())
+                            ->required(fn (Forms\Get $get) => $get('time_off_type_id') && TimeOffType::find($get('time_off_type_id'))?->isMonthly())
+                            ->helperText(__('booking::time_off.allocations.help.month')),
+                    ])
+                    ->columns(2),
+
+                Forms\Components\Section::make(fn (Forms\Get $get) => $get('time_off_type_id') && TimeOffType::find($get('time_off_type_id'))?->isHourBased()
+                    ? __('booking::time_off.allocations.sections.hours')
+                    : __('booking::time_off.allocations.sections.days'))
                     ->schema([
                         Forms\Components\TextInput::make('allocated_days')
-                            ->label(__('booking::time_off.allocations.fields.allocated_days'))
+                            ->label(fn (Forms\Get $get) => $get('time_off_type_id') && TimeOffType::find($get('time_off_type_id'))?->isHourBased()
+                                ? __('booking::time_off.allocations.fields.allocated_hours')
+                                : __('booking::time_off.allocations.fields.allocated_days'))
                             ->numeric()
                             ->default(0)
                             ->step(0.5)
                             ->required(),
 
                         Forms\Components\TextInput::make('carried_over_days')
-                            ->label(__('booking::time_off.allocations.fields.carried_over'))
+                            ->label(fn (Forms\Get $get) => $get('time_off_type_id') && TimeOffType::find($get('time_off_type_id'))?->isHourBased()
+                                ? __('booking::time_off.allocations.fields.carried_over_hours')
+                                : __('booking::time_off.allocations.fields.carried_over'))
                             ->numeric()
                             ->default(0)
                             ->step(0.5)
                             ->helperText(__('booking::time_off.allocations.help.carried_over')),
 
                         Forms\Components\TextInput::make('used_days')
-                            ->label(__('booking::time_off.allocations.fields.used_days'))
+                            ->label(fn (Forms\Get $get) => $get('time_off_type_id') && TimeOffType::find($get('time_off_type_id'))?->isHourBased()
+                                ? __('booking::time_off.allocations.fields.used_hours')
+                                : __('booking::time_off.allocations.fields.used_days'))
                             ->numeric()
                             ->default(0)
                             ->step(0.5)
@@ -113,8 +130,10 @@ class TimeOffAllocationResource extends Resource
                             ->helperText(__('booking::time_off.allocations.help.used_days')),
 
                         Forms\Components\Placeholder::make('remaining_days')
-                            ->label(__('booking::time_off.allocations.fields.remaining_days'))
-                            ->content(fn ($record) => $record ? number_format($record->remaining_days, 1) : '-'),
+                            ->label(fn (Forms\Get $get) => $get('time_off_type_id') && TimeOffType::find($get('time_off_type_id'))?->isHourBased()
+                                ? __('booking::time_off.allocations.fields.remaining_hours')
+                                : __('booking::time_off.allocations.fields.remaining_days'))
+                            ->content(fn ($record) => $record ? $record->display_value : '-'),
                     ])
                     ->columns(4),
 
@@ -144,30 +163,30 @@ class TimeOffAllocationResource extends Resource
                     ->searchable(['time_off_types.name'])
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('year')
-                    ->label(__('booking::time_off.allocations.fields.year'))
-                    ->sortable(),
+                Tables\Columns\TextColumn::make('period_label')
+                    ->label(__('booking::time_off.allocations.fields.period'))
+                    ->sortable(['year', 'month']),
 
                 Tables\Columns\TextColumn::make('allocated_days')
-                    ->label(__('booking::time_off.allocations.fields.allocated_days'))
-                    ->numeric(decimalPlaces: 1)
+                    ->label(__('booking::time_off.allocations.fields.allocated'))
+                    ->formatStateUsing(fn ($record) => $record->timeOffType?->formatValue($record->allocated_days) ?? number_format($record->allocated_days, 1))
                     ->alignEnd(),
 
                 Tables\Columns\TextColumn::make('carried_over_days')
                     ->label(__('booking::time_off.allocations.fields.carried_over'))
-                    ->numeric(decimalPlaces: 1)
+                    ->formatStateUsing(fn ($record) => $record->timeOffType?->formatValue($record->carried_over_days) ?? number_format($record->carried_over_days, 1))
                     ->alignEnd()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('used_days')
-                    ->label(__('booking::time_off.allocations.fields.used_days'))
-                    ->numeric(decimalPlaces: 1)
+                    ->label(__('booking::time_off.allocations.fields.used'))
+                    ->formatStateUsing(fn ($record) => $record->timeOffType?->formatValue($record->used_days) ?? number_format($record->used_days, 1))
                     ->alignEnd()
                     ->color('danger'),
 
                 Tables\Columns\TextColumn::make('remaining_days')
-                    ->label(__('booking::time_off.allocations.fields.remaining_days'))
-                    ->numeric(decimalPlaces: 1)
+                    ->label(__('booking::time_off.allocations.fields.remaining'))
+                    ->formatStateUsing(fn ($record) => $record->display_value)
                     ->alignEnd()
                     ->color(fn ($record) => $record->remaining_days > 0 ? 'success' : 'danger')
                     ->weight('bold'),
