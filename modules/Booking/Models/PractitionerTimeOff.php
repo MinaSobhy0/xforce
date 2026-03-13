@@ -82,6 +82,21 @@ class PractitionerTimeOff extends BaseModel
     {
         parent::booted();
 
+        // For hours-based time off types, ensure is_full_day is false
+        static::saving(function (self $timeOff) {
+            if ($timeOff->time_off_type_id) {
+                $type = TimeOffType::find($timeOff->time_off_type_id);
+                if ($type && $type->isHourBased()) {
+                    $timeOff->is_full_day = false;
+
+                    // Ensure end_date is same as start_date for hours-based
+                    if ($timeOff->start_date && !$timeOff->end_date) {
+                        $timeOff->end_date = $timeOff->start_date;
+                    }
+                }
+            }
+        });
+
         static::creating(function (PractitionerTimeOff $timeOff) {
             if (empty($timeOff->status)) {
                 $timeOff->status = self::STATUS_PENDING;
