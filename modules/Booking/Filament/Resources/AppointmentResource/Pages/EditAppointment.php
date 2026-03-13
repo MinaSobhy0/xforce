@@ -2,11 +2,11 @@
 
 namespace Modules\Booking\Filament\Resources\AppointmentResource\Pages;
 
-use Modules\Booking\Filament\Resources\AppointmentResource;
-use Filament\Actions;
 use App\Filament\Resources\Pages\BaseEditRecord;
+use Filament\Actions;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Modules\Booking\Filament\Resources\AppointmentResource;
 
 class EditAppointment extends BaseEditRecord
 {
@@ -23,6 +23,14 @@ class EditAppointment extends BaseEditRecord
     protected function getRedirectUrl(): string
     {
         return $this->getResource()::getUrl('view', ['record' => $this->record]);
+    }
+
+    protected function afterSave(): void
+    {
+        // If the appointment was unscheduled and now has a practitioner, mark it as scheduled
+        if ($this->record->is_unscheduled && $this->record->hasPractitionerAssigned()) {
+            $this->record->markAsScheduled();
+        }
     }
 
     public function form(Form $form): Form

@@ -239,4 +239,16 @@ return [
 
     // Any Available Doctor
     'any_available_doctor' => 'Any Available Doctor',
+
+    // Quick Book / Unscheduled Appointments
+    'quick_book' => 'Quick Book (No Time Slot)',
+    'quick_book_help' => 'Create appointment without selecting a specific time. Requires scheduling later.',
+    'quick_book_details' => 'Quick Book Details',
+    'quick_book_created' => 'Appointment created - requires scheduling',
+    'needs_scheduling' => 'Needs Scheduling',
+    'not_scheduled' => 'Not Scheduled',
+    'unscheduled_only' => 'Unscheduled Only',
+    'scheduled_only' => 'Scheduled Only',
+    'all_appointments' => 'All Appointments',
+    'assign_time_slot' => 'Assign Time Slot',
 ];

@@ -239,4 +239,16 @@ return [
 
     // Any Available Doctor
     'any_available_doctor' => 'أي طبيب متاح',
+
+    // Quick Book / Unscheduled Appointments
+    'quick_book' => 'حجز سريع (بدون موعد)',
+    'quick_book_help' => 'إنشاء موعد بدون تحديد وقت محدد. يتطلب الجدولة لاحقًا.',
+    'quick_book_details' => 'تفاصيل الحجز السريع',
+    'quick_book_created' => 'تم إنشاء الموعد - يتطلب الجدولة',
+    'needs_scheduling' => 'يحتاج جدولة',
+    'not_scheduled' => 'غير مجدول',
+    'unscheduled_only' => 'غير المجدولة فقط',
+    'scheduled_only' => 'المجدولة فقط',
+    'all_appointments' => 'جميع المواعيد',
+    'assign_time_slot' => 'تعيين موعد',
 ];

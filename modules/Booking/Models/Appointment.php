@@ -61,6 +61,7 @@ class Appointment extends BaseModel
         'cancelled_at',
         'created_by_user_id',
         'is_upsell',
+        'is_unscheduled',
     ];
 
     protected $casts = [
@@ -78,6 +79,7 @@ class Appointment extends BaseModel
         'completed_at' => 'datetime',
         'cancelled_at' => 'datetime',
         'is_upsell' => 'boolean',
+        'is_unscheduled' => 'boolean',
     ];
 
     // Status constants
@@ -333,7 +335,7 @@ class Appointment extends BaseModel
     public function getFormattedTimeAttribute(): string
     {
         if (! $this->start_time) {
-            return '';
+            return $this->is_unscheduled ? __('booking::booking.not_scheduled') : '-';
         }
         $start = $this->start_time->format('H:i');
         $end = $this->end_time ? $this->end_time->format('H:i') : '';
@@ -434,6 +436,11 @@ class Appointment extends BaseModel
             return false;
         }
 
+        // Block check-in for unscheduled appointments
+        if ($status === self::STATUS_CHECKED_IN && $this->isUnscheduled()) {
+            return false;
+        }
+
         return in_array($status, $transitions[$this->status] ?? []);
     }
 
@@ -443,6 +450,35 @@ class Appointment extends BaseModel
     public function hasPractitionerAssigned(): bool
     {
         return $this->practitioner_id !== null;
+    }
+
+    /**
+     * Check if this is an unscheduled (quick book) appointment.
+     */
+    public function isUnscheduled(): bool
+    {
+        return $this->is_unscheduled === true;
+    }
+
+    /**
+     * Check if this appointment needs scheduling (unscheduled and no practitioner).
+     */
+    public function needsScheduling(): bool
+    {
+        return $this->is_unscheduled && ! $this->hasPractitionerAssigned();
+    }
+
+    /**
+     * Mark the appointment as scheduled (when assigning practitioner).
+     */
+    public function markAsScheduled(): bool
+    {
+        if (! $this->hasPractitionerAssigned()) {
+            return false;
+        }
+        $this->update(['is_unscheduled' => false]);
+
+        return true;
     }
 
     public function transitionTo(string $status, ?string $reason = null): bool
@@ -725,6 +761,16 @@ class Appointment extends BaseModel
     public function scopePackageSessions($query)
     {
         return $query->where('is_package_session', true);
+    }
+
+    public function scopeUnscheduled($query)
+    {
+        return $query->where('is_unscheduled', true);
+    }
+
+    public function scopeScheduled($query)
+    {
+        return $query->where('is_unscheduled', false);
     }
 
     public function scopeRegularSessions($query)

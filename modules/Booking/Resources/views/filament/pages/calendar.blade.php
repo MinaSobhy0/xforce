@@ -180,6 +180,57 @@
             <div id="calendar" class="min-h-[400px] md:min-h-[600px]" wire:ignore></div>
         </x-filament::section>
 
+        {{-- Unscheduled Appointments Section --}}
+        @php
+            $unscheduledAppointments = $this->getUnscheduledAppointments();
+        @endphp
+        @if($unscheduledAppointments->isNotEmpty())
+        <x-filament::section>
+            <x-slot name="heading">
+                <div class="flex items-center gap-2 text-amber-600">
+                    <x-heroicon-o-exclamation-triangle class="w-5 h-5" />
+                    <span>{{ __('booking::booking.needs_scheduling') }}</span>
+                    <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-700">
+                        {{ $unscheduledAppointments->count() }}
+                    </span>
+                </div>
+            </x-slot>
+
+            <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                @foreach($unscheduledAppointments as $appointment)
+                <div class="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg">
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1 min-w-0">
+                            <p class="font-medium text-gray-900 dark:text-white truncate">
+                                {{ $appointment->patient?->full_name ?? __('booking::calendar.unknown_patient') }}
+                            </p>
+                            <p class="text-sm text-gray-600 dark:text-gray-400 truncate">
+                                {{ $appointment->service?->getTranslation('name', app()->getLocale()) }}
+                            </p>
+                            @if($appointment->patient?->phone)
+                            <p class="text-xs text-gray-500 dark:text-gray-500">
+                                {{ $appointment->patient->phone }}
+                            </p>
+                            @endif
+                        </div>
+                        <div class="flex-shrink-0 ml-2">
+                            <x-filament::button
+                                tag="a"
+                                :href="route('filament.tenant.resources.appointments.edit', $appointment)"
+                                size="xs"
+                                color="warning"
+                                icon="heroicon-o-calendar"
+                            >
+                                {{ __('booking::booking.assign_time_slot') }}
+                            </x-filament::button>
+                        </div>
+                    </div>
+                </div>
+                @endforeach
+            </div>
+        </x-filament::section>
+        @endif
+
     </div>
 
     @assets

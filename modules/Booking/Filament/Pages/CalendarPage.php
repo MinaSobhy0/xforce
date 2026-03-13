@@ -2,38 +2,37 @@
 
 namespace Modules\Booking\Filament\Pages;
 
-use Modules\Booking\Models\Appointment;
-use Modules\Auth\Models\User;
-use Modules\Core\Models\Branch;
 use App\Services\BranchContext;
-use Filament\Pages\Page;
+use Filament\Actions\Concerns\InteractsWithActions;
+use Filament\Actions\Contracts\HasActions;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
-use Filament\Actions\Action;
-use Filament\Actions\Concerns\InteractsWithActions;
-use Filament\Actions\Contracts\HasActions;
-use Filament\Infolists\Components\TextEntry;
-use Filament\Infolists\Components\Section;
-use Filament\Infolists\Infolist;
 use Filament\Infolists\Concerns\InteractsWithInfolists;
 use Filament\Infolists\Contracts\HasInfolists;
+use Filament\Pages\Page;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Collection;
+use Modules\Auth\Models\User;
+use Modules\Booking\Models\Appointment;
 
-class CalendarPage extends Page implements HasForms, HasActions, HasInfolists
+class CalendarPage extends Page implements HasActions, HasForms, HasInfolists
 {
-    use InteractsWithForms;
     use InteractsWithActions;
+    use InteractsWithForms;
     use InteractsWithInfolists;
 
     public static function canAccess(): bool
     {
         $user = auth()->user();
-        if (!$user) return false;
+        if (! $user) {
+            return false;
+        }
         if (method_exists($user, 'hasRole') && $user->hasRole(['super-admin', 'super_admin', 'tenant-owner', 'tenant_owner', 'owner'])) {
             return true;
         }
+
         return $user->can('calendar.view') || $user->can('calendar.view_any');
     }
 
@@ -48,13 +47,21 @@ class CalendarPage extends Page implements HasForms, HasActions, HasInfolists
     protected static string $view = 'booking::filament.pages.calendar';
 
     public ?string $selectedBranch = null;
+
     public ?string $selectedPractitioner = null;
+
     public ?string $selectedDate = null;
+
     public string $viewMode = 'week';
+
     public ?string $selectedAppointmentId = null;
+
     public bool $showModal = false;
+
     public bool $showGroupModal = false;
+
     public array $selectedGroupAppointments = [];
+
     public ?string $selectedGroupCategory = null;
 
     public static function getNavigationLabel(): string
@@ -136,6 +143,7 @@ class CalendarPage extends Page implements HasForms, HasActions, HasInfolists
             $individual = $appointments->map(function (Appointment $appointment) {
                 return $this->formatAppointmentEvent($appointment);
             })->toArray();
+
             return array_merge($grouped, $individual);
         }
 
@@ -152,7 +160,8 @@ class CalendarPage extends Page implements HasForms, HasActions, HasInfolists
         // Group by date and category
         $grouped = $appointments->groupBy(function ($appointment) {
             $categoryId = $appointment->service?->category_id ?? 'uncategorized';
-            return $appointment->date->format('Y-m-d') . '_' . $categoryId;
+
+            return $appointment->date->format('Y-m-d').'_'.$categoryId;
         });
 
         foreach ($grouped as $key => $group) {
@@ -177,8 +186,8 @@ class CalendarPage extends Page implements HasForms, HasActions, HasInfolists
             })->toArray();
 
             $events[] = [
-                'id' => 'group_' . $key,
-                'title' => $categoryName . ' (' . $count . ')',
+                'id' => 'group_'.$key,
+                'title' => $categoryName.' ('.$count.')',
                 'start' => $dateStr,
                 'allDay' => true,
                 'backgroundColor' => $this->hexToRgba($categoryColor, 0.15),
@@ -211,8 +220,8 @@ class CalendarPage extends Page implements HasForms, HasActions, HasInfolists
         return [
             'id' => $appointment->id,
             'title' => $title,
-            'start' => $appointment->date->format('Y-m-d') . 'T' . $appointment->start_time->format('H:i:s'),
-            'end' => $appointment->date->format('Y-m-d') . 'T' . ($appointment->end_time ? $appointment->end_time->format('H:i:s') : $appointment->start_time->addMinutes($appointment->duration_minutes)->format('H:i:s')),
+            'start' => $appointment->date->format('Y-m-d').'T'.$appointment->start_time->format('H:i:s'),
+            'end' => $appointment->date->format('Y-m-d').'T'.($appointment->end_time ? $appointment->end_time->format('H:i:s') : $appointment->start_time->addMinutes($appointment->duration_minutes)->format('H:i:s')),
             'backgroundColor' => $colors['bg'],
             'borderColor' => $colors['border'],
             'textColor' => $colors['text'],
@@ -228,7 +237,7 @@ class CalendarPage extends Page implements HasForms, HasActions, HasInfolists
                 'practitioner' => $appointment->practitioner?->full_name,
                 'branch' => $appointment->branch?->name,
                 'room' => $appointment->room?->name,
-                'time' => $appointment->start_time->format('H:i') . ' - ' . ($appointment->end_time ? $appointment->end_time->format('H:i') : $appointment->start_time->addMinutes($appointment->duration_minutes)->format('H:i')),
+                'time' => $appointment->start_time->format('H:i').' - '.($appointment->end_time ? $appointment->end_time->format('H:i') : $appointment->start_time->addMinutes($appointment->duration_minutes)->format('H:i')),
             ],
         ];
     }
@@ -237,11 +246,12 @@ class CalendarPage extends Page implements HasForms, HasActions, HasInfolists
     {
         $hex = ltrim($hex, '#');
         if (strlen($hex) === 3) {
-            $hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+            $hex = $hex[0].$hex[0].$hex[1].$hex[1].$hex[2].$hex[2];
         }
         $r = hexdec(substr($hex, 0, 2));
         $g = hexdec(substr($hex, 2, 2));
         $b = hexdec(substr($hex, 4, 2));
+
         return "rgba({$r}, {$g}, {$b}, {$alpha})";
     }
 
@@ -317,7 +327,7 @@ class CalendarPage extends Page implements HasForms, HasActions, HasInfolists
 
         return match ($this->viewMode) {
             'day' => $date->format('l, F j, Y'),
-            'week' => $date->startOfWeek()->format('M j') . ' - ' . $date->endOfWeek()->format('M j, Y'),
+            'week' => $date->startOfWeek()->format('M j').' - '.$date->endOfWeek()->format('M j, Y'),
             'month' => $date->format('F Y'),
             default => $date->format('F Y'),
         };
@@ -325,7 +335,7 @@ class CalendarPage extends Page implements HasForms, HasActions, HasInfolists
 
     public function showAppointment(?string $id): void
     {
-        if (!$id) {
+        if (! $id) {
             return;
         }
         $this->selectedAppointmentId = $id;
@@ -340,7 +350,7 @@ class CalendarPage extends Page implements HasForms, HasActions, HasInfolists
 
     public function getSelectedAppointment()
     {
-        if (!$this->selectedAppointmentId) {
+        if (! $this->selectedAppointmentId) {
             return null;
         }
 
@@ -367,5 +377,20 @@ class CalendarPage extends Page implements HasForms, HasActions, HasInfolists
         $this->closeGroupModal();
         $this->selectedAppointmentId = $appointmentId;
         $this->showModal = true;
+    }
+
+    /**
+     * Get unscheduled appointments for the selected date.
+     */
+    public function getUnscheduledAppointments(): Collection
+    {
+        return Appointment::query()
+            ->where('is_unscheduled', true)
+            ->whereDate('date', $this->selectedDate)
+            ->where('branch_id', BranchContext::currentId())
+            ->with(['patient', 'service'])
+            ->active()
+            ->ordered()
+            ->get();
     }
 }

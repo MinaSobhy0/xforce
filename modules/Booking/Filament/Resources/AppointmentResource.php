@@ -282,9 +282,14 @@ class AppointmentResource extends Resource
 
                 Tables\Columns\TextColumn::make('practitioner.full_name')
                     ->label(__('booking::appointments.fields.practitioner'))
-                    ->default(__('booking::reception.assign_before_checkin'))
-                    ->color(fn ($record) => $record->hasPractitionerAssigned() ? null : 'warning')
-                    ->icon(fn ($record) => $record->hasPractitionerAssigned() ? null : 'heroicon-o-exclamation-triangle')
+                    ->default('-')
+                    ->badge()
+                    ->color(fn ($record) => $record->isUnscheduled() ? 'warning' : ($record->hasPractitionerAssigned() ? null : 'warning'))
+                    ->icon(fn ($record) => ($record->isUnscheduled() || ! $record->hasPractitionerAssigned()) ? 'heroicon-o-exclamation-triangle' : null)
+                    ->formatStateUsing(fn ($state, $record) => $record->isUnscheduled()
+                            ? __('booking::booking.needs_scheduling')
+                            : ($record->hasPractitionerAssigned() ? $state : __('booking::reception.assign_before_checkin'))
+                    )
                     ->sortable()
                     ->toggleable(),
 
@@ -309,6 +314,15 @@ class AppointmentResource extends Resource
                         'gray' => fn ($state) => in_array($state, [Appointment::STATUS_NO_SHOW, Appointment::STATUS_RESCHEDULED]),
                     ])
                     ->formatStateUsing(fn (string $state): string => Appointment::STATUSES[$state] ?? $state),
+
+                Tables\Columns\IconColumn::make('is_unscheduled')
+                    ->label(__('booking::booking.needs_scheduling'))
+                    ->boolean()
+                    ->trueIcon('heroicon-o-clock')
+                    ->falseIcon('')
+                    ->trueColor('warning')
+                    ->tooltip(fn ($record) => $record->is_unscheduled ? __('booking::booking.needs_scheduling') : null)
+                    ->toggleable(),
 
                 Tables\Columns\TextColumn::make('branch.name')
                     ->label(__('booking::appointments.fields.branch'))
@@ -368,6 +382,12 @@ class AppointmentResource extends Resource
                     ->label(__('booking::appointments.filters.upcoming'))
                     ->query(fn (Builder $query): Builder => $query->upcoming())
                     ->toggle(),
+
+                Tables\Filters\TernaryFilter::make('is_unscheduled')
+                    ->label(__('booking::booking.unscheduled_only'))
+                    ->placeholder(__('booking::booking.all_appointments'))
+                    ->trueLabel(__('booking::booking.unscheduled_only'))
+                    ->falseLabel(__('booking::booking.scheduled_only')),
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([
@@ -479,6 +499,16 @@ class AppointmentResource extends Resource
             ->schema([
                 Infolists\Components\Section::make(__('booking::appointments.sections.details'))
                     ->schema([
+                        // Unscheduled Warning Banner
+                        Infolists\Components\TextEntry::make('is_unscheduled')
+                            ->label('')
+                            ->state(fn (Appointment $record) => $record->is_unscheduled ? __('booking::booking.needs_scheduling') : null)
+                            ->badge()
+                            ->color('warning')
+                            ->icon('heroicon-o-exclamation-triangle')
+                            ->visible(fn (Appointment $record) => $record->is_unscheduled)
+                            ->columnSpanFull(),
+
                         Infolists\Components\Grid::make(3)
                             ->schema([
                                 Infolists\Components\TextEntry::make('code')

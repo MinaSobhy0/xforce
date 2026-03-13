@@ -3,40 +3,37 @@
 namespace Modules\Booking\Filament\Pages;
 
 use App\Traits\ChecksResourcePermissions;
+use Carbon\Carbon;
 use Filament\Forms;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Forms\Contracts\HasForms;
-use Filament\Pages\Page;
 use Filament\Notifications\Notification;
-use Illuminate\Support\Collection;
+use Filament\Pages\Page;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\HtmlString;
 use Livewire\Attributes\On;
+use Modules\Auth\Models\User;
 use Modules\Booking\Models\Appointment;
 use Modules\Booking\Services\BookingRuleEvaluator;
 use Modules\Booking\Services\SlotGenerationService;
 use Modules\Core\Models\Branch;
-use Modules\Core\Models\Room;
-use Modules\Equipment\Models\Equipment;
 use Modules\Packages\Models\Package;
-use Modules\Packages\Models\PackageSubscription;
 use Modules\Packages\Models\PackageSessionUsage;
+use Modules\Packages\Models\PackageSubscription;
 use Modules\Patients\Models\Patient;
 use Modules\Services\Models\Service;
 use Modules\TreatmentPlans\Models\TreatmentPlan;
-use Modules\TreatmentPlans\Models\TreatmentPlanItem;
 use Modules\TreatmentPlans\Models\TreatmentPlanAppointment;
+use Modules\TreatmentPlans\Models\TreatmentPlanItem;
 use Modules\TreatmentPlans\Services\TreatmentPlanService;
-use Modules\Auth\Models\User;
-use Carbon\Carbon;
 
 class CreateBooking extends Page implements HasForms
 {
-    use InteractsWithForms;
     use ChecksResourcePermissions;
+    use InteractsWithForms;
 
     protected static ?string $moduleCode = 'booking';
 
@@ -55,11 +52,16 @@ class CreateBooking extends Page implements HasForms
 
     // Slot generation state
     public array $availableSlots = [];
+
     public array $bookingItems = [];
 
     // Reschedule tracking
     public ?int $rescheduleAppointmentId = null;
+
     public ?Appointment $rescheduleAppointment = null;
+
+    // Quick book mode
+    public bool $isQuickBook = false;
 
     public static function getNavigationLabel(): string
     {
@@ -71,6 +73,7 @@ class CreateBooking extends Page implements HasForms
         if ($this->rescheduleAppointment) {
             return __('booking::booking.title.reschedule_booking');
         }
+
         return __('booking::booking.title.create_booking');
     }
 
@@ -79,6 +82,7 @@ class CreateBooking extends Page implements HasForms
         if ($this->rescheduleAppointment) {
             return __('booking::booking.heading.reschedule_booking');
         }
+
         return __('booking::booking.heading.create_booking');
     }
 
@@ -180,25 +184,25 @@ class CreateBooking extends Page implements HasForms
         }
 
         // Handle patient from query (if not already set by reschedule)
-        if ($patientIdFromQuery && !isset($formData['patient_id'])) {
+        if ($patientIdFromQuery && ! isset($formData['patient_id'])) {
             $formData['patient_id'] = $patientIdFromQuery;
         }
 
         // Handle package subscription from query
-        if ($packageSubscriptionIdFromQuery && !$this->rescheduleAppointment) {
+        if ($packageSubscriptionIdFromQuery && ! $this->rescheduleAppointment) {
             $subscription = PackageSubscription::with('package')->find($packageSubscriptionIdFromQuery);
             if ($subscription && $subscription->isActive()) {
                 $formData['package_subscription_id'] = $packageSubscriptionIdFromQuery;
                 $formData['package_mode'] = 'existing';
                 // Also set patient if not already set
-                if (!isset($formData['patient_id'])) {
+                if (! isset($formData['patient_id'])) {
                     $formData['patient_id'] = $subscription->patient_id;
                 }
             }
         }
 
         // Handle treatment plan booking (if not already set by reschedule)
-        if ($bookingType === 'treatment_plan' && $treatmentPlanIdFromQuery && !$this->rescheduleAppointment) {
+        if ($bookingType === 'treatment_plan' && $treatmentPlanIdFromQuery && ! $this->rescheduleAppointment) {
             $treatmentPlan = TreatmentPlan::with(['patient', 'items.service'])->find($treatmentPlanIdFromQuery);
 
             if ($treatmentPlan) {
@@ -257,7 +261,7 @@ class CreateBooking extends Page implements HasForms
                                                             ->limit(50)
                                                             ->get()
                                                             ->mapWithKeys(fn (Patient $p) => [
-                                                                $p->id => "{$p->full_name} ({$p->code})"
+                                                                $p->id => "{$p->full_name} ({$p->code})",
                                                             ]);
                                                     })
                                                     ->searchable()
@@ -272,7 +276,7 @@ class CreateBooking extends Page implements HasForms
                                                             ->limit(20)
                                                             ->get()
                                                             ->mapWithKeys(fn (Patient $p) => [
-                                                                $p->id => "{$p->full_name} ({$p->code}) - {$p->phone}"
+                                                                $p->id => "{$p->full_name} ({$p->code}) - {$p->phone}",
                                                             ])
                                                             ->toArray();
                                                     })
@@ -302,6 +306,7 @@ class CreateBooking extends Page implements HasForms
                                                     ])
                                                     ->createOptionUsing(function (array $data): string {
                                                         $patient = Patient::create($data);
+
                                                         return $patient->id;
                                                     }),
 
@@ -324,6 +329,39 @@ class CreateBooking extends Page implements HasForms
                                                     ->required(),
                                             ]),
 
+                                        // Quick Book Toggle
+                                        Forms\Components\Toggle::make('is_quick_book')
+                                            ->label(__('booking::booking.quick_book'))
+                                            ->helperText(__('booking::booking.quick_book_help'))
+                                            ->live()
+                                            ->afterStateUpdated(function ($state, $livewire, Get $get, Set $set) {
+                                                $livewire->isQuickBook = $state;
+                                                if ($state) {
+                                                    // Clear booking items when enabling quick book
+                                                    $livewire->bookingItems = [];
+                                                    $livewire->availableSlots = [];
+
+                                                    // Copy branch_id to quick_book_branch_id if set
+                                                    $branchId = $get('branch_id');
+                                                    if ($branchId) {
+                                                        $set('quick_book_branch_id', $branchId);
+                                                    } else {
+                                                        // Set default branch
+                                                        $defaultBranch = current_branch_id()
+                                                            ?? \App\Services\BranchContext::userPrimaryId()
+                                                            ?? Branch::active()->main()->value('id')
+                                                            ?? Branch::active()->ordered()->value('id');
+                                                        $set('quick_book_branch_id', $defaultBranch);
+                                                    }
+
+                                                    // Set default date to today if not set
+                                                    if (! $get('quick_book_date')) {
+                                                        $set('quick_book_date', today()->format('Y-m-d'));
+                                                    }
+                                                }
+                                            })
+                                            ->columnSpanFull(),
+
                                         // Patient Info Card - shows clickable packages and treatment plans
                                         Forms\Components\Placeholder::make('patient_info')
                                             ->label('')
@@ -333,13 +371,13 @@ class CreateBooking extends Page implements HasForms
                                                 $selectedSubscriptionId = $get('package_subscription_id');
                                                 $selectedPlanId = $get('treatment_plan_id');
 
-                                                if (!$patientId) {
+                                                if (! $patientId) {
                                                     return '';
                                                 }
 
                                                 try {
                                                     $patient = Patient::find($patientId);
-                                                    if (!$patient) {
+                                                    if (! $patient) {
                                                         return '';
                                                     }
 
@@ -380,8 +418,8 @@ class CreateBooking extends Page implements HasForms
                                                         $html .= '<div class="mb-3">';
                                                         $html .= '<div class="flex items-center gap-2 mb-2">';
                                                         $html .= '<svg class="w-4 h-4 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"></path></svg>';
-                                                        $html .= '<span class="font-semibold text-sm text-gray-900 dark:text-white">' . __('booking::booking.labels.active_packages') . '</span>';
-                                                        $html .= '<span class="ml-auto px-2 py-0.5 text-xs font-medium rounded-full" style="background-color: #dcfce7; color: #15803d;">' . $activePackages->count() . '</span>';
+                                                        $html .= '<span class="font-semibold text-sm text-gray-900 dark:text-white">'.__('booking::booking.labels.active_packages').'</span>';
+                                                        $html .= '<span class="ml-auto px-2 py-0.5 text-xs font-medium rounded-full" style="background-color: #dcfce7; color: #15803d;">'.$activePackages->count().'</span>';
                                                         $html .= '</div>';
                                                         $html .= '<div class="flex flex-wrap gap-1.5">';
                                                         foreach ($activePackages as $sub) {
@@ -393,11 +431,11 @@ class CreateBooking extends Page implements HasForms
                                                                 ? 'background-color: #4ade80; color: white;'
                                                                 : 'background-color: #e5e7eb; color: #374151;';
 
-                                                            $html .= '<button type="button" wire:click="selectPackageForBooking(\'' . $sub->id . '\')" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all cursor-pointer" style="' . $pillStyle . '">';
+                                                            $html .= '<button type="button" wire:click="selectPackageForBooking(\''.$sub->id.'\')" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all cursor-pointer" style="'.$pillStyle.'">';
                                                             if ($isSelected) {
                                                                 $html .= '<svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>';
                                                             }
-                                                            $html .= '<span class="truncate max-w-[100px]">' . e($sub->package->translated_name) . '</span>';
+                                                            $html .= '<span class="truncate max-w-[100px]">'.e($sub->package->translated_name).'</span>';
                                                             // Show pulses or sessions based on package type
                                                             // Check if package is pulse-based (by consumption_type or pulses_per_session)
                                                             $isPulse = $sub->package->isPulseBased() || $sub->package->hasPulseBasedItems();
@@ -410,9 +448,9 @@ class CreateBooking extends Page implements HasForms
                                                                 // Use pulses_used directly - it sums quantity_used from usage records
                                                                 $pulsesUsed = $sub->pulses_used;
                                                                 $pulsesRemaining = max(0, $totalPulses - $pulsesUsed);
-                                                                $html .= '<span class="px-1.5 py-0.5 rounded-full text-[10px] font-semibold" style="' . $badgeStyle . '">' . number_format($pulsesRemaining) . '/' . number_format($totalPulses) . ' ' . __('packages::packages.labels.pulses') . '</span>';
+                                                                $html .= '<span class="px-1.5 py-0.5 rounded-full text-[10px] font-semibold" style="'.$badgeStyle.'">'.number_format($pulsesRemaining).'/'.number_format($totalPulses).' '.__('packages::packages.labels.pulses').'</span>';
                                                             } else {
-                                                                $html .= '<span class="px-1.5 py-0.5 rounded-full text-[10px] font-semibold" style="' . $badgeStyle . '">' . $sub->sessions_remaining . '/' . $sub->package->total_sessions . '</span>';
+                                                                $html .= '<span class="px-1.5 py-0.5 rounded-full text-[10px] font-semibold" style="'.$badgeStyle.'">'.$sub->sessions_remaining.'/'.$sub->package->total_sessions.'</span>';
                                                             }
                                                             $html .= '</button>';
                                                         }
@@ -425,8 +463,8 @@ class CreateBooking extends Page implements HasForms
                                                         $html .= '<div>';
                                                         $html .= '<div class="flex items-center gap-2 mb-2">';
                                                         $html .= '<svg class="w-4 h-4 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>';
-                                                        $html .= '<span class="font-semibold text-sm text-gray-900 dark:text-white">' . __('booking::booking.labels.active_treatment_plans') . '</span>';
-                                                        $html .= '<span class="ml-auto px-2 py-0.5 text-xs font-medium rounded-full" style="background-color: #dbeafe; color: #1d4ed8;">' . $activePlans->count() . '</span>';
+                                                        $html .= '<span class="font-semibold text-sm text-gray-900 dark:text-white">'.__('booking::booking.labels.active_treatment_plans').'</span>';
+                                                        $html .= '<span class="ml-auto px-2 py-0.5 text-xs font-medium rounded-full" style="background-color: #dbeafe; color: #1d4ed8;">'.$activePlans->count().'</span>';
                                                         $html .= '</div>';
                                                         $html .= '<div class="flex flex-wrap gap-1.5">';
                                                         foreach ($activePlans as $plan) {
@@ -441,12 +479,12 @@ class CreateBooking extends Page implements HasForms
                                                                 ? 'background-color: #4ade80; color: white;'
                                                                 : 'background-color: #e5e7eb; color: #374151;';
 
-                                                            $html .= '<button type="button" wire:click="selectTreatmentPlanForBooking(\'' . $plan->id . '\')" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all cursor-pointer" style="' . $pillStyle . '">';
+                                                            $html .= '<button type="button" wire:click="selectTreatmentPlanForBooking(\''.$plan->id.'\')" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all cursor-pointer" style="'.$pillStyle.'">';
                                                             if ($isSelected) {
                                                                 $html .= '<svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>';
                                                             }
-                                                            $html .= '<span class="truncate max-w-[100px]">' . e($plan->translated_name) . '</span>';
-                                                            $html .= '<span class="px-1.5 py-0.5 rounded-full text-[10px] font-semibold" style="' . $badgeStyle . '">' . $remainingSessions . ' · ' . $progress . '%</span>';
+                                                            $html .= '<span class="truncate max-w-[100px]">'.e($plan->translated_name).'</span>';
+                                                            $html .= '<span class="px-1.5 py-0.5 rounded-full text-[10px] font-semibold" style="'.$badgeStyle.'">'.$remainingSessions.' · '.$progress.'%</span>';
                                                             $html .= '</button>';
                                                         }
                                                         $html .= '</div>';
@@ -463,7 +501,7 @@ class CreateBooking extends Page implements HasForms
                                                         $selectedSub = $activePackages->firstWhere('id', $selectedSubscriptionId);
                                                         if ($selectedSub) {
                                                             $html .= '<div class="flex items-center gap-2 mb-2">';
-                                                            $html .= '<span class="font-semibold text-sm text-gray-900 dark:text-white">' . __('booking::booking.labels.select_services_to_book') . '</span>';
+                                                            $html .= '<span class="font-semibold text-sm text-gray-900 dark:text-white">'.__('booking::booking.labels.select_services_to_book').'</span>';
                                                             $html .= '</div>';
                                                             $html .= '<div class="flex flex-wrap gap-1.5">';
 
@@ -479,12 +517,12 @@ class CreateBooking extends Page implements HasForms
                                                                         ? 'background-color: #4ade80; color: white;'
                                                                         : 'background-color: #e5e7eb; color: #374151;';
 
-                                                                    $html .= '<button type="button" wire:click="$set(\'data.package_service_id\', \'' . $item->service_id . '\')" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all cursor-pointer" style="' . $svcPillStyle . '">';
+                                                                    $html .= '<button type="button" wire:click="$set(\'data.package_service_id\', \''.$item->service_id.'\')" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all cursor-pointer" style="'.$svcPillStyle.'">';
                                                                     if ($isServiceSelected) {
                                                                         $html .= '<svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>';
                                                                     }
-                                                                    $html .= '<span class="truncate max-w-[120px]">' . e($item->service->translated_name) . '</span>';
-                                                                    $html .= '<span class="px-1.5 py-0.5 rounded-full text-[10px] font-semibold" style="' . $svcBadgeStyle . '">' . $remaining . '/' . $item->quantity . '</span>';
+                                                                    $html .= '<span class="truncate max-w-[120px]">'.e($item->service->translated_name).'</span>';
+                                                                    $html .= '<span class="px-1.5 py-0.5 rounded-full text-[10px] font-semibold" style="'.$svcBadgeStyle.'">'.$remaining.'/'.$item->quantity.'</span>';
                                                                     $html .= '</button>';
                                                                 }
                                                             }
@@ -495,14 +533,14 @@ class CreateBooking extends Page implements HasForms
                                                         $selectedPlan = $activePlans->firstWhere('id', $selectedPlanId);
                                                         if ($selectedPlan) {
                                                             $html .= '<div class="flex items-center gap-2 mb-2">';
-                                                            $html .= '<span class="font-semibold text-sm text-gray-900 dark:text-white">' . __('booking::booking.labels.select_services_to_book') . '</span>';
+                                                            $html .= '<span class="font-semibold text-sm text-gray-900 dark:text-white">'.__('booking::booking.labels.select_services_to_book').'</span>';
                                                             $html .= '</div>';
                                                             $html .= '<div class="flex flex-wrap gap-1.5">';
 
                                                             $selectedItemId = $this->data['treatment_plan_item_id'] ?? null;
                                                             foreach ($selectedPlan->items as $item) {
                                                                 // Show all items with service, not just bookable ones
-                                                                if (!$item->service || $item->isCompleted() || $item->isCancelled()) {
+                                                                if (! $item->service || $item->isCompleted() || $item->isCancelled()) {
                                                                     continue;
                                                                 }
 
@@ -533,7 +571,7 @@ class CreateBooking extends Page implements HasForms
                                                                 if ($isItemSelected) {
                                                                     $itemPillStyle = 'background-color: #22c55e; color: white; box-shadow: 0 0 0 2px #86efac;';
                                                                     $itemBadgeStyle = 'background-color: #4ade80; color: white;';
-                                                                } elseif ($hasScheduledAppointment && !$canBook) {
+                                                                } elseif ($hasScheduledAppointment && ! $canBook) {
                                                                     $itemPillStyle = 'background-color: #fef3c7; color: #92400e; border: 1px solid #fcd34d;';
                                                                     $itemBadgeStyle = 'background-color: #fde68a; color: #92400e;';
                                                                 } else {
@@ -541,18 +579,18 @@ class CreateBooking extends Page implements HasForms
                                                                     $itemBadgeStyle = 'background-color: #e5e7eb; color: #374151;';
                                                                 }
 
-                                                                $html .= '<button type="button" wire:click="selectTreatmentPlanItem(\'' . $item->id . '\')" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all cursor-pointer" style="' . $itemPillStyle . '">';
+                                                                $html .= '<button type="button" wire:click="selectTreatmentPlanItem(\''.$item->id.'\')" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all cursor-pointer" style="'.$itemPillStyle.'">';
                                                                 if ($isItemSelected) {
                                                                     $html .= '<svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>';
                                                                 } elseif ($hasScheduledAppointment) {
                                                                     $html .= '<svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>';
                                                                 }
-                                                                $html .= '<span class="truncate max-w-[120px]">' . e($item->service->translated_name) . '</span>';
-                                                                $html .= '<span class="px-1.5 py-0.5 rounded-full text-[10px] font-semibold" style="' . $itemBadgeStyle . '">' . $item->remaining_sessions . '/' . $item->recommended_sessions . '</span>';
+                                                                $html .= '<span class="truncate max-w-[120px]">'.e($item->service->translated_name).'</span>';
+                                                                $html .= '<span class="px-1.5 py-0.5 rounded-full text-[10px] font-semibold" style="'.$itemBadgeStyle.'">'.$item->remaining_sessions.'/'.$item->recommended_sessions.'</span>';
                                                                 if ($scheduledDate) {
-                                                                    $html .= '<span class="text-[10px] opacity-75">' . $scheduledDate . '</span>';
+                                                                    $html .= '<span class="text-[10px] opacity-75">'.$scheduledDate.'</span>';
                                                                 } else {
-                                                                    $html .= '<span class="text-[10px] opacity-75">' . $nextDate . '</span>';
+                                                                    $html .= '<span class="text-[10px] opacity-75">'.$nextDate.'</span>';
                                                                 }
                                                                 $html .= '</button>';
                                                             }
@@ -563,7 +601,7 @@ class CreateBooking extends Page implements HasForms
                                                         $html .= '<div class="flex items-center justify-center h-full text-sm text-gray-400">';
                                                         $html .= '<div class="text-center">';
                                                         $html .= '<svg class="w-8 h-8 mx-auto mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>';
-                                                        $html .= '<p>' . __('booking::booking.labels.click_to_book') . '</p>';
+                                                        $html .= '<p>'.__('booking::booking.labels.click_to_book').'</p>';
                                                         $html .= '</div>';
                                                         $html .= '</div>';
                                                     }
@@ -599,7 +637,7 @@ class CreateBooking extends Page implements HasForms
                                                                             ->ordered()
                                                                             ->get()
                                                                             ->mapWithKeys(fn (Service $s) => [
-                                                                                $s->id => "{$s->translated_name} ({$s->duration_minutes} min)"
+                                                                                $s->id => "{$s->translated_name} ({$s->duration_minutes} min)",
                                                                             ]);
                                                                     })
                                                                     ->searchable()
@@ -633,8 +671,8 @@ class CreateBooking extends Page implements HasForms
                                                                     ->label('')
                                                                     ->content(function (Get $get, $livewire) {
                                                                         $serviceId = $get('service_id');
-                                                                        if (!$serviceId) {
-                                                                            return new HtmlString('<span class="text-gray-400 text-sm">' . __('booking::booking.messages.select_service_first') . '</span>');
+                                                                        if (! $serviceId) {
+                                                                            return new HtmlString('<span class="text-gray-400 text-sm">'.__('booking::booking.messages.select_service_first').'</span>');
                                                                         }
 
                                                                         // Check if this service has a booked slot
@@ -643,18 +681,19 @@ class CreateBooking extends Page implements HasForms
                                                                                 $date = Carbon::parse($item['date'])->format('M d');
                                                                                 $time = $item['start_time'];
                                                                                 $practitioner = $item['practitioner_name'] ?? '';
+
                                                                                 return new HtmlString(
-                                                                                    '<span class="inline-flex items-center px-2.5 py-1 rounded-md text-green-700 bg-green-100 text-sm">' .
-                                                                                    '<svg class="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>' .
-                                                                                    $date . ' ' . $time .
-                                                                                    ($practitioner ? ' - ' . $practitioner : '') .
+                                                                                    '<span class="inline-flex items-center px-2.5 py-1 rounded-md text-green-700 bg-green-100 text-sm">'.
+                                                                                    '<svg class="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>'.
+                                                                                    $date.' '.$time.
+                                                                                    ($practitioner ? ' - '.$practitioner : '').
                                                                                     '</span>'
                                                                                 );
                                                                             }
                                                                         }
 
                                                                         return new HtmlString(
-                                                                            '<span class="text-amber-600 text-sm">' . __('booking::booking.messages.no_slot_selected') . '</span>'
+                                                                            '<span class="text-amber-600 text-sm">'.__('booking::booking.messages.no_slot_selected').'</span>'
                                                                         );
                                                                     })
                                                                     ->columnSpan(4),
@@ -676,8 +715,8 @@ class CreateBooking extends Page implements HasForms
                                                                             }
                                                                         }),
                                                                 ])
-                                                                ->columnSpan(2)
-                                                                ->visible(fn (Get $get): bool => filled($get('service_id'))),
+                                                                    ->columnSpan(2)
+                                                                    ->visible(fn (Get $get): bool => filled($get('service_id'))),
                                                             ]),
 
                                                         // Row 2: Price, Discount, Total, Source indicator
@@ -703,8 +742,10 @@ class CreateBooking extends Page implements HasForms
                                                                         $price = (float) ($get('price_minor') ?? 0);
                                                                         if ($maxPercent < 100 && $price > 0) {
                                                                             $maxAmount = ($price * $maxPercent) / 100;
-                                                                            return __('booking::booking.fields.max_discount') . ': ' . $maxPercent . '% (' . number_format($maxAmount, 2) . ')';
+
+                                                                            return __('booking::booking.fields.max_discount').': '.$maxPercent.'% ('.number_format($maxAmount, 2).')';
                                                                         }
+
                                                                         return null;
                                                                     })
                                                                     ->afterStateUpdated(function ($state, Get $get, Set $set) {
@@ -737,9 +778,10 @@ class CreateBooking extends Page implements HasForms
                                                                         $price = (float) ($get('price_minor') ?? 0);
                                                                         $discount = (float) ($get('discount_minor') ?? 0);
                                                                         $total = max(0, $price - $discount);
+
                                                                         return new HtmlString(
-                                                                            '<span class="font-semibold text-lg">' .
-                                                                            number_format($total, 2) . ' ' . current_currency() .
+                                                                            '<span class="font-semibold text-lg">'.
+                                                                            number_format($total, 2).' '.current_currency().
                                                                             '</span>'
                                                                         );
                                                                     })
@@ -762,15 +804,15 @@ class CreateBooking extends Page implements HasForms
 
                                                                         // Source badge with sessions/pulses info
                                                                         if ($sourceType === 'treatment_plan') {
-                                                                            $html .= '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 mr-2">' .
-                                                                                '<svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>' .
-                                                                                __('booking::booking.labels.from_treatment_plan') .
+                                                                            $html .= '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 mr-2">'.
+                                                                                '<svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>'.
+                                                                                __('booking::booking.labels.from_treatment_plan').
                                                                                 '</span>';
                                                                         } elseif ($sourceType === 'package') {
                                                                             // Package badge
-                                                                            $html .= '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 mr-2">' .
-                                                                                '<svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"></path></svg>' .
-                                                                                __('booking::booking.labels.from_package') .
+                                                                            $html .= '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 mr-2">'.
+                                                                                '<svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"></path></svg>'.
+                                                                                __('booking::booking.labels.from_package').
                                                                                 '</span>';
 
                                                                             // Sessions/Pulses badge
@@ -781,12 +823,12 @@ class CreateBooking extends Page implements HasForms
                                                                                 // Calculate total pulses if pulse-based
                                                                                 if ($consumptionType === 'pulses' && $pulsesPerSession) {
                                                                                     $totalPulses = $packageSessions * $pulsesPerSession;
-                                                                                    $html .= '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 mr-2">' .
-                                                                                        $packageSessions . ' ' . __('booking::booking.labels.sessions') . ' × ' . $pulsesPerSession . ' = ' . $totalPulses . ' ' . $unitLabel .
+                                                                                    $html .= '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 mr-2">'.
+                                                                                        $packageSessions.' '.__('booking::booking.labels.sessions').' × '.$pulsesPerSession.' = '.$totalPulses.' '.$unitLabel.
                                                                                         '</span>';
                                                                                 } else {
-                                                                                    $html .= '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 mr-2">' .
-                                                                                        $remaining . '/' . $packageSessions . ' ' . $unitLabel .
+                                                                                    $html .= '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 mr-2">'.
+                                                                                        $remaining.'/'.$packageSessions.' '.$unitLabel.
                                                                                         '</span>';
                                                                                 }
                                                                             }
@@ -795,9 +837,9 @@ class CreateBooking extends Page implements HasForms
                                                                         // Existing appointment warning
                                                                         if ($existingDate) {
                                                                             $date = Carbon::parse($existingDate)->format('M d, Y');
-                                                                            $html .= '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">' .
-                                                                                '<svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>' .
-                                                                                __('booking::booking.labels.already_booked') . ': ' . $date . ' ' . ($existingTime ?? '') .
+                                                                            $html .= '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">'.
+                                                                                '<svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>'.
+                                                                                __('booking::booking.labels.already_booked').': '.$date.' '.($existingTime ?? '').
                                                                                 '</span>';
                                                                         }
 
@@ -834,8 +876,7 @@ class CreateBooking extends Page implements HasForms
                                                     ->reorderable(false)
                                                     ->defaultItems(1)
                                                     ->live()
-                                                    ->itemLabel(fn (array $state): ?string =>
-                                                        isset($state['service_id'])
+                                                    ->itemLabel(fn (array $state): ?string => isset($state['service_id'])
                                                             ? Service::find($state['service_id'])?->translated_name
                                                             : null
                                                     )
@@ -889,27 +930,27 @@ class CreateBooking extends Page implements HasForms
                                                         // Show package line if applicable
                                                         if ($hasNewPackage || $hasExistingPackage) {
                                                             $priceLabel = $hasExistingPackage
-                                                                ? __('booking::booking.labels.package_price') . ' <span class="text-green-600 text-xs">(' . __('booking::booking.labels.prepaid') . ')</span>'
+                                                                ? __('booking::booking.labels.package_price').' <span class="text-green-600 text-xs">('.__('booking::booking.labels.prepaid').')</span>'
                                                                 : __('booking::booking.labels.package_price');
-                                                            $html .= '<div class="flex justify-between text-sm">' .
-                                                                '<span class="text-gray-600">' . $priceLabel . ':</span>' .
-                                                                '<span class="font-medium">' . number_format($packagePrice, 2) . ' ' . current_currency() . '</span>' .
+                                                            $html .= '<div class="flex justify-between text-sm">'.
+                                                                '<span class="text-gray-600">'.$priceLabel.':</span>'.
+                                                                '<span class="font-medium">'.number_format($packagePrice, 2).' '.current_currency().'</span>'.
                                                                 '</div>';
                                                         }
 
                                                         // Show services line if there are regular services
                                                         if ($servicesTotal > 0) {
-                                                            $html .= '<div class="flex justify-between text-sm">' .
-                                                                '<span class="text-gray-600">' . __('booking::booking.labels.services_total') . ':</span>' .
-                                                                '<span class="font-medium">' . number_format($servicesTotal, 2) . ' ' . current_currency() . '</span>' .
+                                                            $html .= '<div class="flex justify-between text-sm">'.
+                                                                '<span class="text-gray-600">'.__('booking::booking.labels.services_total').':</span>'.
+                                                                '<span class="font-medium">'.number_format($servicesTotal, 2).' '.current_currency().'</span>'.
                                                                 '</div>';
                                                         }
 
                                                         // Grand total
                                                         $grandTotal = $packagePrice + $servicesTotal;
-                                                        $html .= '<div class="flex justify-between pt-2 border-t mt-2">' .
-                                                            '<span class="text-gray-600 font-medium">' . __('booking::booking.labels.cart_total') . ':</span>' .
-                                                            '<span class="font-bold text-xl text-primary-600">' . number_format($grandTotal, 2) . ' ' . current_currency() . '</span>' .
+                                                        $html .= '<div class="flex justify-between pt-2 border-t mt-2">'.
+                                                            '<span class="text-gray-600 font-medium">'.__('booking::booking.labels.cart_total').':</span>'.
+                                                            '<span class="font-bold text-xl text-primary-600">'.number_format($grandTotal, 2).' '.current_currency().'</span>'.
                                                             '</div>';
 
                                                         $html .= '</div>';
@@ -956,7 +997,7 @@ class CreateBooking extends Page implements HasForms
                                                             ->where('is_active', true)
                                                             ->get()
                                                             ->mapWithKeys(fn (Package $pkg) => [
-                                                                $pkg->id => "{$pkg->translated_name} - {$pkg->formatted_price} ({$pkg->total_sessions} " . __('booking::booking.labels.sessions') . ")"
+                                                                $pkg->id => "{$pkg->translated_name} - {$pkg->formatted_price} ({$pkg->total_sessions} ".__('booking::booking.labels.sessions').')',
                                                             ]);
                                                     })
                                                     ->searchable()
@@ -997,19 +1038,20 @@ class CreateBooking extends Page implements HasForms
                                                     ->label(__('booking::booking.fields.plan_progress'))
                                                     ->content(function (Get $get) {
                                                         $planId = $get('treatment_plan_id');
-                                                        if (!$planId) {
+                                                        if (! $planId) {
                                                             return '-';
                                                         }
                                                         try {
                                                             $plan = TreatmentPlan::with('items')->find($planId);
-                                                            if (!$plan) {
+                                                            if (! $plan) {
                                                                 return '-';
                                                             }
+
                                                             return new HtmlString(
-                                                                "<div class='text-sm'>" .
-                                                                "<strong>{$plan->total_completed_sessions}</strong> of <strong>{$plan->total_recommended_sessions}</strong> sessions completed " .
-                                                                "(<strong>{$plan->progress_percentage}%</strong>)" .
-                                                                "</div>"
+                                                                "<div class='text-sm'>".
+                                                                "<strong>{$plan->total_completed_sessions}</strong> of <strong>{$plan->total_recommended_sessions}</strong> sessions completed ".
+                                                                "(<strong>{$plan->progress_percentage}%</strong>)".
+                                                                '</div>'
                                                             );
                                                         } catch (\Exception $e) {
                                                             return '-';
@@ -1025,12 +1067,12 @@ class CreateBooking extends Page implements HasForms
                                                     ->label(__('booking::booking.fields.scheduling_preferences'))
                                                     ->content(function (Get $get) {
                                                         $itemId = $get('treatment_plan_item_id');
-                                                        if (!$itemId) {
+                                                        if (! $itemId) {
                                                             return '-';
                                                         }
                                                         try {
                                                             $item = TreatmentPlanItem::with(['preferredPractitioner'])->find($itemId);
-                                                            if (!$item) {
+                                                            if (! $item) {
                                                                 return '-';
                                                             }
                                                             $info = [];
@@ -1043,6 +1085,7 @@ class CreateBooking extends Page implements HasForms
                                                             if ($item->preferred_time_slot) {
                                                                 $info[] = "Time: {$item->time_slot_label}";
                                                             }
+
                                                             return empty($info) ? 'No preferences set' : implode(' | ', $info);
                                                         } catch (\Exception $e) {
                                                             return '-';
@@ -1060,7 +1103,52 @@ class CreateBooking extends Page implements HasForms
                                             ->visible(fn (Get $get) => $get('booking_type') === 'treatment_plan'),
                                     ]),
 
-                                // Schedule Section
+                                // Quick Book Details Section (visible only when quick book is enabled)
+                                Forms\Components\Section::make(__('booking::booking.quick_book_details'))
+                                    ->description(__('booking::booking.quick_book_help'))
+                                    ->icon('heroicon-o-bolt')
+                                    ->schema([
+                                        Forms\Components\Grid::make(3)
+                                            ->schema([
+                                                Forms\Components\Select::make('quick_book_branch_id')
+                                                    ->label(__('booking::booking.fields.branch'))
+                                                    ->options(function () {
+                                                        return Branch::query()
+                                                            ->active()
+                                                            ->pluck('name', 'id');
+                                                    })
+                                                    ->default(function () {
+                                                        return current_branch_id()
+                                                            ?? \App\Services\BranchContext::userPrimaryId()
+                                                            ?? Branch::active()->main()->value('id')
+                                                            ?? Branch::active()->ordered()->value('id');
+                                                    })
+                                                    ->required()
+                                                    ->live(),
+
+                                                Forms\Components\DatePicker::make('quick_book_date')
+                                                    ->label(__('booking::booking.fields.date'))
+                                                    ->required()
+                                                    ->minDate(today())
+                                                    ->default(today())
+                                                    ->native(false),
+
+                                                Forms\Components\Select::make('quick_book_source')
+                                                    ->label(__('booking::booking.fields.source'))
+                                                    ->options(Appointment::SOURCES)
+                                                    ->default(Appointment::SOURCE_PHONE)
+                                                    ->required(),
+                                            ]),
+
+                                        Forms\Components\Textarea::make('quick_book_notes')
+                                            ->label(__('booking::booking.fields.notes'))
+                                            ->rows(2)
+                                            ->columnSpanFull(),
+                                    ])
+                                    ->visible(fn (Get $get) => $get('is_quick_book') === true)
+                                    ->collapsed(false),
+
+                                // Schedule Section (hidden when quick book is enabled)
                                 Forms\Components\Section::make(__('booking::booking.sections.schedule'))
                                     ->description(__('booking::booking.sections.schedule_desc'))
                                     ->schema([
@@ -1091,8 +1179,10 @@ class CreateBooking extends Page implements HasForms
                                                         $branchId = $get('branch_id');
                                                         if ($branchId) {
                                                             $evaluator = app(BookingRuleEvaluator::class)->forContext($branchId);
+
                                                             return today()->addDays($evaluator->getMaxAdvanceDays());
                                                         }
+
                                                         return today()->addDays(60);
                                                     })
                                                     ->default(today())
@@ -1113,8 +1203,10 @@ class CreateBooking extends Page implements HasForms
                                                         $branchId = $get('branch_id');
                                                         if ($branchId) {
                                                             $evaluator = app(BookingRuleEvaluator::class)->forContext($branchId);
+
                                                             return today()->addDays($evaluator->getMaxAdvanceDays());
                                                         }
+
                                                         return today()->addDays(60);
                                                     })
                                                     ->default(today()->addWeek())
@@ -1144,7 +1236,8 @@ class CreateBooking extends Page implements HasForms
                                         ])->fullWidth(),
 
                                         // Slot Grid is now rendered directly in the page view for proper reactivity
-                                    ]),
+                                    ])
+                                    ->visible(fn (Get $get) => $get('is_quick_book') !== true),
 
                                 // Notes Section
                                 Forms\Components\TextInput::make('notes')
@@ -1185,11 +1278,12 @@ class CreateBooking extends Page implements HasForms
             'first_service_source_type' => $data['services'][0]['source_type'] ?? null,
         ]);
 
-        if (!$branchId || !$dateFrom || !$dateTo) {
+        if (! $branchId || ! $dateFrom || ! $dateTo) {
             Notification::make()
                 ->title(__('booking::booking.validation.branch_date_required'))
                 ->warning()
                 ->send();
+
             return;
         }
 
@@ -1202,7 +1296,7 @@ class CreateBooking extends Page implements HasForms
         if ($bookingType === 'service') {
             $services = $data['services'] ?? [];
             foreach ($services as $service) {
-                if (!empty($service['service_id'])) {
+                if (! empty($service['service_id'])) {
                     $serviceIds[] = $service['service_id'];
                     $durations[$service['service_id']] = $service['duration_override'] ?? null;
                     $serviceSourceTypes[$service['service_id']] = $service['source_type'] ?? null;
@@ -1240,6 +1334,7 @@ class CreateBooking extends Page implements HasForms
                 ->title(__('booking::booking.validation.service_required'))
                 ->warning()
                 ->send();
+
             return;
         }
 
@@ -1287,15 +1382,15 @@ class CreateBooking extends Page implements HasForms
                     } elseif ($serviceNewPackageId) {
                         $slot['from_package'] = null;
                         $slot['new_package_id'] = $serviceNewPackageId;
-                    } elseif ($bookingType === 'package' || !empty($packageSubscriptionId) || $isPackageService) {
-                        if ($packageMode === 'existing' || !empty($packageSubscriptionId)) {
+                    } elseif ($bookingType === 'package' || ! empty($packageSubscriptionId) || $isPackageService) {
+                        if ($packageMode === 'existing' || ! empty($packageSubscriptionId)) {
                             $slot['from_package'] = $packageSubscriptionId;
                             $slot['new_package_id'] = null;
                         } else {
                             $slot['from_package'] = null;
                             $slot['new_package_id'] = $newPackageId;
                         }
-                    } elseif (!empty($newPackageId)) {
+                    } elseif (! empty($newPackageId)) {
                         $slot['from_package'] = null;
                         $slot['new_package_id'] = $newPackageId;
                     } else {
@@ -1352,11 +1447,12 @@ class CreateBooking extends Page implements HasForms
             }
         }
 
-        if (!$serviceId || !$branchId) {
+        if (! $serviceId || ! $branchId) {
             Notification::make()
                 ->title(__('booking::booking.validation.service_branch_required'))
                 ->warning()
                 ->send();
+
             return;
         }
 
@@ -1413,11 +1509,12 @@ class CreateBooking extends Page implements HasForms
             'services_raw' => $data['services'] ?? [],
         ]);
 
-        if (!$branchId || !$dateFrom || !$dateTo) {
+        if (! $branchId || ! $dateFrom || ! $dateTo) {
             Notification::make()
                 ->title(__('booking::booking.validation.branch_date_required'))
                 ->warning()
                 ->send();
+
             return;
         }
 
@@ -1460,8 +1557,8 @@ class CreateBooking extends Page implements HasForms
         } elseif ($serviceNewPackageId) {
             $fromPackage = null;
             $slotNewPackageId = $serviceNewPackageId;
-        } elseif ($bookingType === 'package' || $isPackageService || !empty($packageSubscriptionId) || !empty($newPackageId)) {
-            if ($packageMode === 'existing' || !empty($packageSubscriptionId)) {
+        } elseif ($bookingType === 'package' || $isPackageService || ! empty($packageSubscriptionId) || ! empty($newPackageId)) {
+            if ($packageMode === 'existing' || ! empty($packageSubscriptionId)) {
                 $fromPackage = $packageSubscriptionId;
             } else {
                 $fromPackage = null;
@@ -1521,7 +1618,7 @@ class CreateBooking extends Page implements HasForms
     public function selectSlot(array $slot): void
     {
         $serviceId = $slot['service_id'] ?? null;
-        $slotKey = $slot['date'] . '_' . $slot['start_time'] . '_' . $serviceId;
+        $slotKey = $slot['date'].'_'.$slot['start_time'].'_'.$serviceId;
         $practitionerId = $slot['practitioner_id'] ?? $slot['available_practitioners'][0]['id'] ?? null;
 
         // Find if this service already has a booking
@@ -1530,7 +1627,7 @@ class CreateBooking extends Page implements HasForms
         foreach ($this->bookingItems as $index => $item) {
             if ($item['service_id'] === $serviceId) {
                 $existingServiceIndex = $index;
-                $existingSlotKey = $item['date'] . '_' . $item['start_time'] . '_' . $item['service_id'];
+                $existingSlotKey = $item['date'].'_'.$item['start_time'].'_'.$item['service_id'];
                 break;
             }
         }
@@ -1587,13 +1684,14 @@ class CreateBooking extends Page implements HasForms
     {
         $keys = [];
         foreach ($this->bookingItems as $item) {
-            $key = $item['date'] . '_' . $item['start_time'] . '_' . ($item['service_id'] ?? '');
+            $key = $item['date'].'_'.$item['start_time'].'_'.($item['service_id'] ?? '');
             $keys[$key] = [
                 // Cast to string for consistent comparison in views
                 'practitioner_id' => (string) ($item['practitioner_id'] ?? ''),
                 'practitioner_name' => $item['practitioner_name'] ?? '',
             ];
         }
+
         return $keys;
     }
 
@@ -1632,7 +1730,7 @@ class CreateBooking extends Page implements HasForms
                 $services = [];
 
                 foreach ($subscription->package->items as $item) {
-                    if (!$item->service) {
+                    if (! $item->service) {
                         continue;
                     }
 
@@ -1682,7 +1780,7 @@ class CreateBooking extends Page implements HasForms
                 // Also set hidden fields that persist outside conditional sections
                 $this->data['_package_mode'] = 'existing';
                 $this->data['_package_subscription_id'] = $subscriptionId;
-                $this->data['services'] = !empty($services) ? $services : [['service_id' => null, 'duration_override' => null, 'price_minor' => null]];
+                $this->data['services'] = ! empty($services) ? $services : [['service_id' => null, 'duration_override' => null, 'price_minor' => null]];
                 // Clear treatment plan selection when selecting package
                 $this->data['treatment_plan_id'] = null;
                 $this->data['treatment_plan_item_id'] = null;
@@ -1726,7 +1824,7 @@ class CreateBooking extends Page implements HasForms
                 $services = [];
 
                 foreach ($package->items as $item) {
-                    if (!$item->service) {
+                    if (! $item->service) {
                         continue;
                     }
 
@@ -1758,7 +1856,7 @@ class CreateBooking extends Page implements HasForms
                 // Also set hidden fields that persist outside conditional sections
                 $this->data['_package_mode'] = 'new';
                 $this->data['_new_package_id'] = $packageId;
-                $this->data['services'] = !empty($services) ? $services : [['service_id' => null, 'duration_override' => null, 'price_minor' => null]];
+                $this->data['services'] = ! empty($services) ? $services : [['service_id' => null, 'duration_override' => null, 'price_minor' => null]];
                 // Clear treatment plan selection when selecting new package
                 $this->data['treatment_plan_id'] = null;
                 $this->data['treatment_plan_item_id'] = null;
@@ -1816,11 +1914,11 @@ class CreateBooking extends Page implements HasForms
 
                 foreach ($plan->items as $item) {
                     // Skip items without service or that are completed/cancelled
-                    if (!$item->service || $item->isCompleted() || $item->isCancelled()) {
+                    if (! $item->service || $item->isCompleted() || $item->isCancelled()) {
                         continue;
                     }
 
-                    if (!$firstBookableItem) {
+                    if (! $firstBookableItem) {
                         $firstBookableItem = $item;
                     }
 
@@ -1883,7 +1981,7 @@ class CreateBooking extends Page implements HasForms
                 // Update form data
                 $this->data['booking_type'] = 'service'; // Use service mode for cart display
                 $this->data['treatment_plan_id'] = $planId;
-                $this->data['services'] = !empty($services) ? $services : [['service_id' => null, 'duration_override' => null, 'price_minor' => null]];
+                $this->data['services'] = ! empty($services) ? $services : [['service_id' => null, 'duration_override' => null, 'price_minor' => null]];
 
                 // Clear/set package subscription based on treatment plan source
                 if ($isFromPackage && $plan->packageSubscription) {
@@ -1978,6 +2076,14 @@ class CreateBooking extends Page implements HasForms
                 ->title(__('booking::booking.validation.patient_required'))
                 ->danger()
                 ->send();
+
+            return;
+        }
+
+        // Handle Quick Book mode
+        if ($this->isQuickBook || ($data['is_quick_book'] ?? false)) {
+            $this->createQuickBookAppointments($data);
+
             return;
         }
 
@@ -1986,6 +2092,7 @@ class CreateBooking extends Page implements HasForms
                 ->title(__('booking::booking.validation.slot_required'))
                 ->danger()
                 ->send();
+
             return;
         }
 
@@ -2002,7 +2109,7 @@ class CreateBooking extends Page implements HasForms
 
             // First, create any new package subscriptions needed
             foreach ($this->bookingItems as $item) {
-                if (!empty($item['new_package_id']) && !isset($newPackageSubscriptions[$item['new_package_id']])) {
+                if (! empty($item['new_package_id']) && ! isset($newPackageSubscriptions[$item['new_package_id']])) {
                     $package = Package::find($item['new_package_id']);
                     if ($package) {
                         \Log::warning('Creating package subscription', [
@@ -2047,13 +2154,13 @@ class CreateBooking extends Page implements HasForms
                 $service = Service::find($item['service_id']);
 
                 // Determine if this is a package session
-                $isPackageSession = !empty($item['from_package']) || !empty($item['new_package_id']);
+                $isPackageSession = ! empty($item['from_package']) || ! empty($item['new_package_id']);
                 $packageSubscriptionId = $item['from_package'] ?? ($newPackageSubscriptions[$item['new_package_id']] ?? null);
 
                 // Get discount from form's services array (match by service_id)
                 // Note: Form values are in EGP, need to convert to minor units (piastres) by multiplying by 100
                 $discountMinor = 0;
-                if (!empty($data['services'])) {
+                if (! empty($data['services'])) {
                     foreach ($data['services'] as $formService) {
                         if (($formService['service_id'] ?? null) == $item['service_id']) {
                             // Convert from EGP to minor units (piastres)
@@ -2092,7 +2199,7 @@ class CreateBooking extends Page implements HasForms
                 $createdAppointments[] = $appointment;
 
                 // Handle package booking - create/link treatment plan (usage recorded on session completion)
-                if (!empty($item['from_package'])) {
+                if (! empty($item['from_package'])) {
                     \Log::info('Package booking: from_package detected', [
                         'from_package' => $item['from_package'],
                         'service_id' => $item['service_id'],
@@ -2118,7 +2225,7 @@ class CreateBooking extends Page implements HasForms
                                 'existing_plan' => $plan ? $plan->id : null,
                             ]);
 
-                            if (!$plan) {
+                            if (! $plan) {
                                 $plan = $treatmentPlanService->createFromPackageSubscription($subscription, $data['branch_id']);
                                 \Log::warning('Package booking: Created new plan', [
                                     'plan_id' => $plan->id,
@@ -2134,7 +2241,7 @@ class CreateBooking extends Page implements HasForms
                                     'service_id' => $item['service_id'],
                                 ]);
 
-                                if ($planItem && !TreatmentPlanAppointment::where('appointment_id', $appointment->id)->exists()) {
+                                if ($planItem && ! TreatmentPlanAppointment::where('appointment_id', $appointment->id)->exists()) {
                                     TreatmentPlanAppointment::create([
                                         'tenant_id' => $appointment->tenant_id,
                                         'treatment_plan_item_id' => $planItem->id,
@@ -2160,7 +2267,7 @@ class CreateBooking extends Page implements HasForms
                 }
 
                 // Handle new package booking - create treatment plan (usage recorded on session completion)
-                if (!empty($item['new_package_id']) && isset($newPackageSubscriptions[$item['new_package_id']])) {
+                if (! empty($item['new_package_id']) && isset($newPackageSubscriptions[$item['new_package_id']])) {
                     \Log::info('New package booking: new_package_id detected', [
                         'new_package_id' => $item['new_package_id'],
                         'subscription_id' => $newPackageSubscriptions[$item['new_package_id']],
@@ -2182,7 +2289,7 @@ class CreateBooking extends Page implements HasForms
                             $treatmentPlanService = app(TreatmentPlanService::class);
                             $plan = TreatmentPlan::where('package_subscription_id', $subscription->id)->first();
 
-                            if (!$plan) {
+                            if (! $plan) {
                                 $plan = $treatmentPlanService->createFromPackageSubscription($subscription, $data['branch_id']);
                                 \Log::warning('New package booking: Created plan', [
                                     'plan_id' => $plan->id,
@@ -2192,7 +2299,7 @@ class CreateBooking extends Page implements HasForms
                             // Link appointment to treatment plan item
                             if ($plan) {
                                 $planItem = $plan->items()->where('service_id', $item['service_id'])->first();
-                                if ($planItem && !TreatmentPlanAppointment::where('appointment_id', $appointment->id)->exists()) {
+                                if ($planItem && ! TreatmentPlanAppointment::where('appointment_id', $appointment->id)->exists()) {
                                     TreatmentPlanAppointment::create([
                                         'tenant_id' => $appointment->tenant_id,
                                         'treatment_plan_item_id' => $planItem->id,
@@ -2214,7 +2321,7 @@ class CreateBooking extends Page implements HasForms
                 }
 
                 // Link to treatment plan if from treatment plan
-                if (!empty($item['treatment_plan_item_id'])) {
+                if (! empty($item['treatment_plan_item_id'])) {
                     $planItem = TreatmentPlanItem::find($item['treatment_plan_item_id']);
                     if ($planItem) {
                         TreatmentPlanAppointment::create([
@@ -2232,14 +2339,14 @@ class CreateBooking extends Page implements HasForms
             // (Package treatment plans are created inline above when recording package usage)
             $bookingType = $data['booking_type'] ?? 'service';
 
-            if ($bookingType === 'service' && !empty($createdAppointments)) {
+            if ($bookingType === 'service' && ! empty($createdAppointments)) {
                 $treatmentPlanService = app(TreatmentPlanService::class);
                 // Direct service booking: Create treatment plan from booked appointments
                 $appointmentsForNewPlan = array_filter($createdAppointments, function ($appt) {
-                    return !TreatmentPlanAppointment::where('appointment_id', $appt->id)->exists();
+                    return ! TreatmentPlanAppointment::where('appointment_id', $appt->id)->exists();
                 });
 
-                if (!empty($appointmentsForNewPlan)) {
+                if (! empty($appointmentsForNewPlan)) {
                     $treatmentPlanService->createFromServiceBooking(
                         $data['patient_id'],
                         $data['branch_id'],
@@ -2280,6 +2387,106 @@ class CreateBooking extends Page implements HasForms
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
                 'trace' => $e->getTraceAsString(),
+            ]);
+
+            Notification::make()
+                ->title(__('booking::booking.messages.booking_failed'))
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
+        }
+    }
+
+    /**
+     * Create quick book (unscheduled) appointments without time slot selection.
+     */
+    protected function createQuickBookAppointments(array $data): void
+    {
+        $services = $data['services'] ?? [];
+        $branchId = $data['quick_book_branch_id'] ?? $data['branch_id'] ?? null;
+        $date = $data['quick_book_date'] ?? today()->format('Y-m-d');
+        $source = $data['quick_book_source'] ?? Appointment::SOURCE_PHONE;
+        $notes = $data['quick_book_notes'] ?? $data['notes'] ?? null;
+
+        if (empty($services)) {
+            Notification::make()
+                ->title(__('booking::booking.validation.service_required'))
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        // Validate at least one service is selected
+        $validServices = array_filter($services, fn ($s) => ! empty($s['service_id']));
+        if (empty($validServices)) {
+            Notification::make()
+                ->title(__('booking::booking.validation.service_required'))
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        $createdAppointments = [];
+
+        try {
+            foreach ($validServices as $serviceData) {
+                $service = Service::find($serviceData['service_id']);
+                if (! $service) {
+                    continue;
+                }
+
+                $duration = $serviceData['duration_override'] ?? $service->duration_minutes ?? 30;
+
+                // Get price and discount
+                $priceMinor = (int) ((float) ($serviceData['price_minor'] ?? 0) * 100);
+                $discountMinor = (int) ((float) ($serviceData['discount_minor'] ?? 0) * 100);
+
+                // Check if from package
+                $isPackageSession = ($serviceData['source_type'] ?? null) === 'package';
+                $packageSubscriptionId = $serviceData['from_package'] ?? null;
+
+                $appointment = Appointment::create([
+                    'patient_id' => $data['patient_id'],
+                    'service_id' => $service->id,
+                    'branch_id' => $branchId,
+                    'practitioner_id' => null, // No practitioner for quick book
+                    'room_id' => null,
+                    'equipment_id' => null,
+                    'date' => $date,
+                    'start_time' => null, // No time slot for unscheduled appointments
+                    'end_time' => null,
+                    'duration_minutes' => $duration,
+                    'price_minor' => $isPackageSession ? 0 : ($priceMinor ?: $service->base_price_minor ?? 0),
+                    'discount_minor' => $isPackageSession ? 0 : $discountMinor,
+                    'discount_type' => Appointment::DISCOUNT_FIXED,
+                    'status' => Appointment::STATUS_SCHEDULED,
+                    'source' => $source,
+                    'notes' => $notes,
+                    'is_unscheduled' => true, // Mark as unscheduled
+                    'package_subscription_id' => $packageSubscriptionId,
+                    'is_package_session' => $isPackageSession,
+                ]);
+
+                $createdAppointments[] = $appointment;
+            }
+
+            $count = count($createdAppointments);
+
+            Notification::make()
+                ->title(__('booking::booking.quick_book_created'))
+                ->body(__('booking::booking.messages.appointments_created', ['count' => $count]))
+                ->success()
+                ->send();
+
+            $this->redirect(route('filament.tenant.resources.appointments.index'));
+
+        } catch (\Exception $e) {
+            \Log::error('Quick book creation failed', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
             ]);
 
             Notification::make()
