@@ -107,6 +107,43 @@ class CommissionPlanResource extends Resource
                             ))
                             ->visible(fn (Forms\Get $get) => $get('commission_type') === CommissionPlan::TYPE_TIERED),
                     ]),
+
+                Forms\Components\Section::make(__('staff::commission.sections.new_patient_commission'))
+                    ->description(__('staff::commission.sections.new_patient_commission_description'))
+                    ->schema([
+                        Forms\Components\Toggle::make('new_patient_commission_enabled')
+                            ->label(__('staff::commission.fields.new_patient_enabled'))
+                            ->default(false)
+                            ->live(),
+
+                        Forms\Components\Select::make('new_patient_commission_type')
+                            ->label(__('staff::commission.fields.commission_type'))
+                            ->options([
+                                CommissionPlan::TYPE_PERCENTAGE => __('staff::commission.commission_types.percentage'),
+                                CommissionPlan::TYPE_FLAT => __('staff::commission.commission_types.flat'),
+                            ])
+                            ->default(CommissionPlan::TYPE_PERCENTAGE)
+                            ->live()
+                            ->visible(fn (Forms\Get $get) => $get('new_patient_commission_enabled')),
+
+                        Forms\Components\TextInput::make('new_patient_percentage')
+                            ->label(__('staff::commission.fields.percentage'))
+                            ->numeric()
+                            ->suffix('%')
+                            ->minValue(0)
+                            ->maxValue(100)
+                            ->step(0.01)
+                            ->default(0)
+                            ->visible(fn (Forms\Get $get) => $get('new_patient_commission_enabled') && $get('new_patient_commission_type') === CommissionPlan::TYPE_PERCENTAGE),
+
+                        Forms\Components\TextInput::make('new_patient_flat_amount')
+                            ->label(__('staff::commission.fields.flat_amount'))
+                            ->numeric()
+                            ->prefix(current_currency())
+                            ->step(0.01)
+                            ->default(0)
+                            ->visible(fn (Forms\Get $get) => $get('new_patient_commission_enabled') && $get('new_patient_commission_type') === CommissionPlan::TYPE_FLAT),
+                    ]),
             ]);
     }
 
@@ -127,6 +164,12 @@ class CommissionPlanResource extends Resource
                 Tables\Columns\TextColumn::make('formatted_default')
                     ->label(__('staff::commission.fields.default_value'))
                     ->getStateUsing(fn (CommissionPlan $record) => $record->formatted_default),
+
+                Tables\Columns\TextColumn::make('formatted_new_patient_commission')
+                    ->label(__('staff::commission.fields.new_patient_commission'))
+                    ->getStateUsing(fn (CommissionPlan $record) => $record->formatted_new_patient_commission)
+                    ->badge()
+                    ->color(fn (CommissionPlan $record) => $record->hasNewPatientCommission() ? 'success' : 'gray'),
 
                 Tables\Columns\TextColumn::make('staff_profiles_count')
                     ->label(__('staff::commission.fields.assigned_staff'))

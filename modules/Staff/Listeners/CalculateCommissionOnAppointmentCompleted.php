@@ -3,6 +3,7 @@
 namespace Modules\Staff\Listeners;
 
 use Modules\Booking\Events\AppointmentCompleted;
+use Modules\Booking\Models\Appointment;
 use Modules\Staff\Models\StaffProfile;
 use Modules\Staff\Models\StaffCommissionRecord;
 
@@ -40,21 +41,38 @@ class CalculateCommissionOnAppointmentCompleted
         // Get service category ID if available
         $categoryId = $appointment->service?->category_id ?? null;
 
+        // Check if this is a new patient
+        $isNewPatient = $this->isNewPatient($appointment);
+
+        // Get commission plan
+        $commissionPlan = $staffProfile->commissionPlan;
+
         // Calculate commission
-        $commissionAmount = $staffProfile->calculateCommission(
-            $revenueMinor,
-            $appointment->service_id,
-            $categoryId
-        );
+        $commissionAmount = 0;
+        $commissionType = null;
+        $commissionRate = null;
+
+        // Check for new patient commission first
+        if ($isNewPatient && $commissionPlan && $commissionPlan->hasNewPatientCommission()) {
+            $commissionAmount = $commissionPlan->calculateNewPatientCommission($revenueMinor);
+            $commissionType = 'new_patient_' . ($commissionPlan->new_patient_commission_type ?? 'percentage');
+            $commissionRate = $commissionPlan->new_patient_percentage;
+        }
+
+        // If no new patient commission or amount is 0, use regular commission
+        if ($commissionAmount <= 0) {
+            $commissionAmount = $staffProfile->calculateCommission(
+                $revenueMinor,
+                $appointment->service_id,
+                $categoryId
+            );
+            $commissionType = $commissionPlan?->commission_type ?? $staffProfile->commission_type;
+            $commissionRate = $commissionPlan?->default_percentage ?? $staffProfile->commission_percentage;
+        }
 
         if ($commissionAmount <= 0) {
             return;
         }
-
-        // Get commission info for record
-        $commissionPlan = $staffProfile->commissionPlan;
-        $commissionType = $commissionPlan?->commission_type ?? $staffProfile->commission_type;
-        $commissionRate = $commissionPlan?->default_percentage ?? $staffProfile->commission_percentage;
 
         // Create commission record
         StaffCommissionRecord::create([
@@ -66,7 +84,26 @@ class CalculateCommissionOnAppointmentCompleted
             'commission_type' => $commissionType,
             'commission_rate' => $commissionRate,
             'status' => StaffCommissionRecord::STATUS_PENDING,
+            'notes' => $isNewPatient && $commissionPlan?->hasNewPatientCommission() ? 'New patient commission' : null,
         ]);
+    }
+
+    /**
+     * Check if this is the patient's first completed appointment.
+     */
+    protected function isNewPatient(Appointment $appointment): bool
+    {
+        if (!$appointment->patient_id) {
+            return false;
+        }
+
+        // Check if patient has any other completed appointments before this one
+        $previousCompletedCount = Appointment::where('patient_id', $appointment->patient_id)
+            ->where('id', '!=', $appointment->id)
+            ->where('status', Appointment::STATUS_COMPLETED)
+            ->count();
+
+        return $previousCompletedCount === 0;
     }
 
     /**

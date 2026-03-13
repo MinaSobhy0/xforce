@@ -17,6 +17,10 @@ class CommissionPlan extends BaseModel
         'commission_type',
         'default_percentage',
         'default_flat_amount_minor',
+        'new_patient_commission_enabled',
+        'new_patient_commission_type',
+        'new_patient_percentage',
+        'new_patient_flat_amount_minor',
         'is_active',
         'created_by',
     ];
@@ -24,6 +28,9 @@ class CommissionPlan extends BaseModel
     protected $casts = [
         'default_percentage' => 'decimal:2',
         'default_flat_amount_minor' => 'integer',
+        'new_patient_commission_enabled' => 'boolean',
+        'new_patient_percentage' => 'decimal:2',
+        'new_patient_flat_amount_minor' => 'integer',
         'is_active' => 'boolean',
     ];
 
@@ -128,5 +135,53 @@ class CommissionPlan extends BaseModel
         }
 
         return format_money($this->default_flat_amount_minor ?? 0);
+    }
+
+    /**
+     * Check if new patient commission is enabled.
+     */
+    public function hasNewPatientCommission(): bool
+    {
+        return $this->new_patient_commission_enabled ?? false;
+    }
+
+    /**
+     * Calculate commission for a new patient.
+     *
+     * @param int $revenueMinor Revenue in minor units
+     * @return int Commission amount in minor units
+     */
+    public function calculateNewPatientCommission(int $revenueMinor): int
+    {
+        if (!$this->hasNewPatientCommission()) {
+            return 0;
+        }
+
+        $type = $this->new_patient_commission_type ?? self::TYPE_PERCENTAGE;
+
+        switch ($type) {
+            case self::TYPE_FLAT:
+                return $this->new_patient_flat_amount_minor ?? 0;
+
+            case self::TYPE_PERCENTAGE:
+            default:
+                return (int) round($revenueMinor * ($this->new_patient_percentage ?? 0) / 100);
+        }
+    }
+
+    /**
+     * Get formatted new patient commission value.
+     */
+    public function getFormattedNewPatientCommissionAttribute(): string
+    {
+        if (!$this->hasNewPatientCommission()) {
+            return '-';
+        }
+
+        if ($this->new_patient_commission_type === self::TYPE_FLAT) {
+            return format_money($this->new_patient_flat_amount_minor ?? 0);
+        }
+
+        return ($this->new_patient_percentage ?? 0) . '%';
     }
 }

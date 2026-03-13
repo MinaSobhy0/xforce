@@ -16,6 +16,8 @@ return [
         'plan_details' => 'تفاصيل الخطة',
         'default_commission' => 'العمولة الافتراضية',
         'default_commission_description' => 'العمولة الافتراضية المطبقة عند عدم وجود قاعدة خدمة محددة.',
+        'new_patient_commission' => 'عمولة المريض الجديد',
+        'new_patient_commission_description' => 'عمولة خاصة للموعد الأول لمريض جديد.',
     ],
 
     'fields' => [
@@ -35,6 +37,8 @@ return [
         'category' => 'الفئة',
         'applies_to' => 'ينطبق على',
         'value' => 'القيمة',
+        'new_patient_enabled' => 'تفعيل عمولة المريض الجديد',
+        'new_patient_commission' => 'مريض جديد',
     ],
 
     'commission_types' => [

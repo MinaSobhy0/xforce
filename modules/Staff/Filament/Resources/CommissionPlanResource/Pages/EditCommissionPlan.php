@@ -22,6 +22,7 @@ class EditCommissionPlan extends BaseEditRecord
     {
         // Convert minor to major units
         $data['default_flat_amount'] = ($data['default_flat_amount_minor'] ?? 0) / 100;
+        $data['new_patient_flat_amount'] = ($data['new_patient_flat_amount_minor'] ?? 0) / 100;
 
         return $data;
     }
@@ -32,6 +33,12 @@ class EditCommissionPlan extends BaseEditRecord
         if (isset($data['default_flat_amount'])) {
             $data['default_flat_amount_minor'] = (int) round(($data['default_flat_amount'] ?? 0) * 100);
             unset($data['default_flat_amount']);
+        }
+
+        // Convert new patient flat amount to minor units
+        if (isset($data['new_patient_flat_amount'])) {
+            $data['new_patient_flat_amount_minor'] = (int) round(($data['new_patient_flat_amount'] ?? 0) * 100);
+            unset($data['new_patient_flat_amount']);
         }
 
         return $data;

@@ -16,6 +16,8 @@ return [
         'plan_details' => 'Plan Details',
         'default_commission' => 'Default Commission',
         'default_commission_description' => 'Default commission applied when no specific service rule matches.',
+        'new_patient_commission' => 'New Patient Commission',
+        'new_patient_commission_description' => 'Special commission for the first appointment of a new patient.',
     ],
 
     'fields' => [
@@ -35,6 +37,8 @@ return [
         'category' => 'Category',
         'applies_to' => 'Applies To',
         'value' => 'Value',
+        'new_patient_enabled' => 'Enable New Patient Commission',
+        'new_patient_commission' => 'New Patient',
     ],
 
     'commission_types' => [

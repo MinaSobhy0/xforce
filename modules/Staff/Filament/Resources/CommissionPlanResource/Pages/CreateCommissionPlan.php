@@ -19,6 +19,12 @@ class CreateCommissionPlan extends CreateRecord
             unset($data['default_flat_amount']);
         }
 
+        // Convert new patient flat amount to minor units
+        if (isset($data['new_patient_flat_amount'])) {
+            $data['new_patient_flat_amount_minor'] = (int) round(($data['new_patient_flat_amount'] ?? 0) * 100);
+            unset($data['new_patient_flat_amount']);
+        }
+
         return $data;
     }
 }
