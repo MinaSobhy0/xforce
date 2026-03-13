@@ -41,6 +41,8 @@ return [
     'max_per_doctor_daily_help' => 'Leave empty for unlimited',
     'allow_doctor_overlap' => 'Allow Doctor Overlap',
     'allow_doctor_overlap_help' => 'Allow booking same doctor at same time (double-booking)',
+    'allow_any_available_doctor' => 'Allow Any Available Doctor',
+    'allow_any_available_doctor_help' => 'Show "Any Available Doctor" option when booking. Practitioner must be assigned before check-in.',
 
     // Step 3 fields
     'room_assignment' => 'Room Assignment Method',

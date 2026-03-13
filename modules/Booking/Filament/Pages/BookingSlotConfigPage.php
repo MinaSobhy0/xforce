@@ -2,40 +2,48 @@
 
 namespace Modules\Booking\Filament\Pages;
 
+use App\Traits\ChecksResourcePermissions;
+use Carbon\Carbon;
+use Filament\Actions\Action;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
-use Filament\Actions\Action;
-use Modules\Booking\Models\BookingConfig;
 use Modules\Booking\Models\BookingBlackoutDate;
+use Modules\Booking\Models\BookingConfig;
+use Modules\Booking\Services\SlotGenerationService;
 use Modules\Core\Models\Branch;
 use Modules\Services\Models\Service;
-use Modules\Booking\Services\SlotGenerationService;
-use Carbon\Carbon;
-use App\Traits\ChecksResourcePermissions;
 
 class BookingSlotConfigPage extends Page implements Forms\Contracts\HasForms
 {
-    use Forms\Concerns\InteractsWithForms;
     use ChecksResourcePermissions;
+    use Forms\Concerns\InteractsWithForms;
 
     protected static ?string $moduleCode = 'booking';
+
     protected static ?string $permissionKey = 'booking_configuration';
 
     protected static ?string $navigationIcon = 'heroicon-o-cog-8-tooth';
+
     protected static string $view = 'booking::filament.pages.booking-slot-config';
+
     protected static ?string $navigationGroup = 'Settings';
+
     protected static ?int $navigationSort = 50;
+
     protected static ?string $slug = 'booking-configuration';
 
     public ?array $data = [];
+
     public ?string $selectedBranchId = null;
 
     // Preview properties
     public ?string $previewServiceId = null;
+
     public ?string $previewDate = null;
+
     public ?array $previewSlots = null;
 
     public static function getNavigationLabel(): string
@@ -77,6 +85,7 @@ class BookingSlotConfigPage extends Page implements Forms\Contracts\HasForms
             'check_doctor_timeoff' => $config->check_doctor_timeoff,
             'max_per_doctor_daily' => $config->max_per_doctor_daily,
             'allow_doctor_overlap' => $config->allow_doctor_overlap,
+            'allow_any_available_doctor' => $config->allow_any_available_doctor,
             'room_assignment' => $config->room_assignment,
             'check_room_availability' => $config->check_room_availability,
             'allow_room_overlap' => $config->allow_room_overlap,
@@ -182,6 +191,11 @@ class BookingSlotConfigPage extends Page implements Forms\Contracts\HasForms
                                     ->helperText(__('booking::config.allow_doctor_overlap_help'))
                                     ->default(false),
                             ]),
+
+                        Forms\Components\Toggle::make('allow_any_available_doctor')
+                            ->label(__('booking::config.allow_any_available_doctor'))
+                            ->helperText(__('booking::config.allow_any_available_doctor_help'))
+                            ->default(false),
                     ]),
 
                 // Step 3: Room Configuration
@@ -320,6 +334,7 @@ class BookingSlotConfigPage extends Page implements Forms\Contracts\HasForms
             'check_doctor_timeoff' => $data['check_doctor_timeoff'] ? true : false,
             'max_per_doctor_daily' => $data['max_per_doctor_daily'] ?: null,
             'allow_doctor_overlap' => $data['allow_doctor_overlap'] ? true : false,
+            'allow_any_available_doctor' => $data['allow_any_available_doctor'] ? true : false,
             'room_assignment' => $data['room_assignment'],
             'check_room_availability' => $data['check_room_availability'] ? true : false,
             'allow_room_overlap' => $data['allow_room_overlap'] ? true : false,
@@ -354,18 +369,20 @@ class BookingSlotConfigPage extends Page implements Forms\Contracts\HasForms
 
     public function generatePreview(): void
     {
-        if (!$this->previewServiceId || !$this->previewDate) {
+        if (! $this->previewServiceId || ! $this->previewDate) {
             Notification::make()
                 ->title(__('booking::config.select_service_date'))
                 ->warning()
                 ->send();
+
             return;
         }
 
         try {
             $service = Service::find($this->previewServiceId);
-            if (!$service) {
+            if (! $service) {
                 $this->previewSlots = [];
+
                 return;
             }
 
@@ -373,8 +390,9 @@ class BookingSlotConfigPage extends Page implements Forms\Contracts\HasForms
                 ? Branch::find($this->selectedBranchId)
                 : Branch::first();
 
-            if (!$branch) {
+            if (! $branch) {
                 $this->previewSlots = [];
+
                 return;
             }
 
@@ -388,7 +406,7 @@ class BookingSlotConfigPage extends Page implements Forms\Contracts\HasForms
             $this->previewSlots = $slots->map(function ($slot) {
                 return [
                     'time' => $slot['start_time'] ?? 'N/A',
-                    'available' => !empty($slot['available_practitioners']),
+                    'available' => ! empty($slot['available_practitioners']),
                     'practitioners' => collect($slot['available_practitioners'] ?? [])->pluck('name')->implode(', '),
                     'room' => $slot['room']['name'] ?? null,
                     'blocked_reason' => $slot['blocked_reason'] ?? null,

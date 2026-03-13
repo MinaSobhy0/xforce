@@ -3,24 +3,23 @@
 namespace Modules\Booking\Filament\Resources;
 
 use App\Traits\ChecksResourcePermissions;
-use Modules\Booking\Filament\Resources\AppointmentResource\Pages;
-use Modules\Booking\Filament\Resources\AppointmentResource\RelationManagers;
-use Modules\Booking\Models\Appointment;
-use Modules\Auth\Models\User;
-use Modules\Core\Models\Branch;
-use Modules\Core\Models\Room;
-use Modules\Patients\Models\Patient;
-use Modules\Services\Models\Service;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Infolists;
+use Filament\Infolists\Infolist;
+use Filament\Notifications\Actions\Action as NotificationAction;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Filament\Infolists;
-use Filament\Infolists\Infolist;
 use Illuminate\Database\Eloquent\Builder;
-use Filament\Notifications\Notification;
-use Filament\Notifications\Actions\Action as NotificationAction;
+use Modules\Auth\Models\User;
+use Modules\Booking\Filament\Resources\AppointmentResource\Pages;
+use Modules\Booking\Filament\Resources\AppointmentResource\RelationManagers;
+use Modules\Booking\Models\Appointment;
+use Modules\Core\Models\Branch;
+use Modules\Patients\Models\Patient;
+use Modules\Services\Models\Service;
 use XLinic\Framework\Core\Filament\RelationManagers\ActivityLogRelationManager;
 
 class AppointmentResource extends Resource
@@ -67,7 +66,7 @@ class AppointmentResource extends Resource
                             Forms\Components\Select::make('patient_id')
                                 ->label(__('booking::appointments.fields.patient'))
                                 ->relationship('patient', 'first_name')
-                                ->getOptionLabelFromRecordUsing(fn (Patient $record) => $record->full_name . ' (' . $record->code . ')')
+                                ->getOptionLabelFromRecordUsing(fn (Patient $record) => $record->full_name.' ('.$record->code.')')
                                 ->searchable(['first_name', 'last_name', 'phone', 'code'])
                                 ->preload()
                                 ->required()
@@ -92,6 +91,7 @@ class AppointmentResource extends Resource
                                 ])
                                 ->createOptionUsing(function (array $data): string {
                                     $patient = Patient::create($data);
+
                                     return $patient->id;
                                 }),
                         ]),
@@ -165,11 +165,12 @@ class AppointmentResource extends Resource
                                         ->label(__('booking::appointments.fields.practitioner'))
                                         ->options(function (Forms\Get $get) {
                                             $branchId = $get('branch_id');
+
                                             return User::query()
                                                 ->whereHas('roles', function ($q) {
                                                     $q->whereIn('name', ['doctor', 'nurse', 'technician']);
                                                 })
-                                                ->when($branchId, function ($q) use ($branchId) {
+                                                ->when($branchId, function ($q) {
                                                     // Filter by branch if needed
                                                 })
                                                 ->pluck('first_name', 'id')
@@ -243,8 +244,8 @@ class AppointmentResource extends Resource
                                 ->helperText(__('booking::appointments.fields.internal_notes_help')),
                         ]),
                 ])
-                ->columnSpanFull()
-                ->skippable(),
+                    ->columnSpanFull()
+                    ->skippable(),
             ]);
     }
 
@@ -266,7 +267,7 @@ class AppointmentResource extends Resource
                     ->label(__('booking::appointments.fields.service'))
                     ->searchable(query: function ($query, string $search) {
                         $query->whereHas('service', function ($q) use ($search) {
-                            $q->whereRaw("name::text ILIKE ?", ["%{$search}%"]);
+                            $q->whereRaw('name::text ILIKE ?', ["%{$search}%"]);
                         });
                     })
                     ->sortable(query: function ($query, string $direction) {
@@ -281,6 +282,9 @@ class AppointmentResource extends Resource
 
                 Tables\Columns\TextColumn::make('practitioner.full_name')
                     ->label(__('booking::appointments.fields.practitioner'))
+                    ->default(__('booking::reception.assign_before_checkin'))
+                    ->color(fn ($record) => $record->hasPractitionerAssigned() ? null : 'warning')
+                    ->icon(fn ($record) => $record->hasPractitionerAssigned() ? null : 'heroicon-o-exclamation-triangle')
                     ->sortable()
                     ->toggleable(),
 
@@ -436,8 +440,7 @@ class AppointmentResource extends Resource
                             Appointment::STATUS_CONFIRMED,
                             Appointment::STATUS_CHECKED_IN,
                         ]))
-                        ->url(fn (Appointment $record): string =>
-                            \Modules\Booking\Filament\Pages\CreateBooking::getUrl() . '?reschedule_appointment_id=' . $record->id
+                        ->url(fn (Appointment $record): string => \Modules\Booking\Filament\Pages\CreateBooking::getUrl().'?reschedule_appointment_id='.$record->id
                         ),
 
                     Tables\Actions\Action::make('cancel')
@@ -504,12 +507,12 @@ class AppointmentResource extends Resource
 
                                 Infolists\Components\TextEntry::make('patient.balance_minor')
                                     ->label(__('patients::patients.balance.title'))
-                                    ->formatStateUsing(fn ($state) => $state != 0 ? number_format(abs($state) / 100, 2) . ' ' . current_currency() : '-')
+                                    ->formatStateUsing(fn ($state) => $state != 0 ? number_format(abs($state) / 100, 2).' '.current_currency() : '-')
                                     ->badge()
                                     ->color(fn (Appointment $record): string => $record->patient?->balance_status_color ?? 'gray')
-                                    ->suffix(fn (Appointment $record) => match(true) {
-                                        ($record->patient?->balance_minor ?? 0) > 0 => ' ' . __('patients::patients.balance.owes'),
-                                        ($record->patient?->balance_minor ?? 0) < 0 => ' ' . __('patients::patients.balance.credit'),
+                                    ->suffix(fn (Appointment $record) => match (true) {
+                                        ($record->patient?->balance_minor ?? 0) > 0 => ' '.__('patients::patients.balance.owes'),
+                                        ($record->patient?->balance_minor ?? 0) < 0 => ' '.__('patients::patients.balance.credit'),
                                         default => '',
                                     })
                                     ->visible(fn (Appointment $record) => ($record->patient?->balance_minor ?? 0) != 0),
@@ -529,7 +532,7 @@ class AppointmentResource extends Resource
 
                                 Infolists\Components\TextEntry::make('duration_minutes')
                                     ->label(__('booking::appointments.fields.duration'))
-                                    ->suffix(' ' . __('booking::appointments.minutes')),
+                                    ->suffix(' '.__('booking::appointments.minutes')),
 
                                 Infolists\Components\TextEntry::make('branch.name')
                                     ->label(__('booking::appointments.fields.branch')),
@@ -575,6 +578,7 @@ class AppointmentResource extends Resource
                                     ->label(__('billing::billing.fields.remaining'))
                                     ->state(function (Appointment $record) {
                                         $paid = \Modules\Billing\Models\Payment::forAppointment($record->id)->completed()->sum('amount_minor');
+
                                         return max(0, ($record->net_price ?? 0) - $paid);
                                     })
                                     ->money(current_currency(), divideBy: 100)
@@ -598,7 +602,7 @@ class AppointmentResource extends Resource
                                     ->label(__('billing::billing.fields.status'))
                                     ->state(fn (Appointment $record) => $record->effective_invoice?->status)
                                     ->badge()
-                                    ->formatStateUsing(fn ($state) => $state ? __('billing::billing.statuses.' . $state) : '-')
+                                    ->formatStateUsing(fn ($state) => $state ? __('billing::billing.statuses.'.$state) : '-')
                                     ->color(fn (Appointment $record): string => $record->effective_invoice?->status_color ?? 'gray')
                                     ->placeholder('-'),
 

@@ -5,9 +5,10 @@
 ])
 
 @php
-    // Filter out practitioners without valid names or IDs
+    // Filter out practitioners without valid names
+    // Note: null ID is valid for "Any Available Doctor" option
     $practitioners = collect($slot['available_practitioners'] ?? [])
-        ->filter(fn($p) => !empty($p['name']) && $p['name'] !== 'Unknown' && !empty($p['id']))
+        ->filter(fn($p) => !empty($p['name']) && $p['name'] !== 'Unknown' && (($p['is_any_available'] ?? false) || !empty($p['id'])))
         ->values()
         ->all();
     $isLimited = count($practitioners) === 1;
@@ -77,6 +78,7 @@
                 @foreach($practitioners as $practitioner)
                     @php
                         $practitionerId = (string) ($practitioner['id'] ?? '');
+                        $isAnyAvailable = $practitioner['is_any_available'] ?? false;
                         $isThisPractitionerSelected = $isSelected && $selectedPractitionerId === $practitionerId;
                         $practitionerStatus = $practitioner['status'] ?? 'available';
 
@@ -98,6 +100,17 @@
                             'new_package_id' => $slot['new_package_id'] ?? null,
                             'treatment_plan_item_id' => $slot['treatment_plan_item_id'] ?? null,
                         ];
+
+                        // Special styling for "Any Available Doctor" option
+                        if ($isAnyAvailable) {
+                            $buttonStyle = $isThisPractitionerSelected
+                                ? 'background-color: #8b5cf6; color: white; border-color: #7c3aed;'
+                                : ($isSelected ? 'background-color: #f3f4f6; color: #6b7280; border-color: #e5e7eb;' : 'background-color: #f5f3ff; color: #6d28d9; border-color: #c4b5fd; border-style: dashed;');
+                        } else {
+                            $buttonStyle = $isThisPractitionerSelected
+                                ? 'background-color: #22c55e; color: white; border-color: #16a34a;'
+                                : ($isSelected ? 'background-color: #f3f4f6; color: #6b7280; border-color: #e5e7eb;' : 'background-color: white; color: #374151; border-color: #e5e7eb;');
+                        }
                     @endphp
                     <button
                         type="button"
@@ -105,34 +118,43 @@
                         wire:loading.attr="disabled"
                         wire:loading.class="opacity-50 cursor-wait"
                         class="practitioner-chip inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer border-2"
-                        style="{{ $isThisPractitionerSelected ? 'background-color: #22c55e; color: white; border-color: #16a34a;' : ($isSelected ? 'background-color: #f3f4f6; color: #6b7280; border-color: #e5e7eb;' : 'background-color: white; color: #374151; border-color: #e5e7eb;') }}"
+                        style="{{ $buttonStyle }}"
                     >
-                        {{-- Status Dot --}}
-                        <span
-                            class="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                            style="background-color: {{ $isThisPractitionerSelected ? '#ffffff' : ($practitionerStatus === 'busy_soon' ? '#eab308' : '#22c55e') }};"
-                        ></span>
-
-                        {{-- Avatar --}}
-                        @if(!empty($practitioner['avatar']))
-                            <img src="{{ $practitioner['avatar'] }}" alt="" class="w-6 h-6 rounded-full object-cover" />
+                        {{-- Status Dot / Users Icon for Any Available --}}
+                        @if($isAnyAvailable)
+                            <x-heroicon-o-user-group
+                                class="w-5 h-5 flex-shrink-0"
+                                style="color: {{ $isThisPractitionerSelected ? '#ffffff' : '#8b5cf6' }};"
+                            />
                         @else
                             <span
-                                class="w-6 h-6 rounded-full flex items-center justify-center"
-                                style="background-color: {{ $isThisPractitionerSelected ? '#4ade80' : '#e5e7eb' }};"
-                            >
-                                <x-heroicon-o-user
-                                    class="w-4 h-4"
-                                    style="color: {{ $isThisPractitionerSelected ? '#ffffff' : '#6b7280' }};"
-                                />
-                            </span>
+                                class="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                                style="background-color: {{ $isThisPractitionerSelected ? '#ffffff' : ($practitionerStatus === 'busy_soon' ? '#eab308' : '#22c55e') }};"
+                            ></span>
+                        @endif
+
+                        {{-- Avatar (not shown for Any Available) --}}
+                        @if(!$isAnyAvailable)
+                            @if(!empty($practitioner['avatar']))
+                                <img src="{{ $practitioner['avatar'] }}" alt="" class="w-6 h-6 rounded-full object-cover" />
+                            @else
+                                <span
+                                    class="w-6 h-6 rounded-full flex items-center justify-center"
+                                    style="background-color: {{ $isThisPractitionerSelected ? '#4ade80' : '#e5e7eb' }};"
+                                >
+                                    <x-heroicon-o-user
+                                        class="w-4 h-4"
+                                        style="color: {{ $isThisPractitionerSelected ? '#ffffff' : '#6b7280' }};"
+                                    />
+                                </span>
+                            @endif
                         @endif
 
                         {{-- Name --}}
                         <span>{{ $practitioner['name'] }}</span>
 
                         {{-- Recommended Star --}}
-                        @if($practitioner['is_recommended'] ?? false)
+                        @if(($practitioner['is_recommended'] ?? false) && !$isAnyAvailable)
                             <x-heroicon-s-star
                                 class="w-4 h-4 flex-shrink-0"
                                 style="color: {{ $isThisPractitionerSelected ? '#fde047' : '#eab308' }};"

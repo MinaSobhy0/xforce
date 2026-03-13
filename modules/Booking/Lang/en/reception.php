@@ -155,4 +155,10 @@ return [
     // Package
     'package_balance_due' => 'Package Balance Due',
     'package_paid' => 'Package Paid',
+
+    // Practitioner assignment
+    'assign_before_checkin' => 'Assign Before Check-in',
+    'assign_doctor_to_checkin' => 'Assign Doctor to Check In',
+    'practitioner_required_for_checkin' => 'Practitioner Required',
+    'assign_doctor_first' => 'Please assign a doctor before checking in this appointment.',
 ];

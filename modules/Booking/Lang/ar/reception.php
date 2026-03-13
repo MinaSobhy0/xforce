@@ -155,4 +155,10 @@ return [
     // Package
     'package_balance_due' => 'رصيد الباقة مستحق',
     'package_paid' => 'الباقة مدفوعة',
+
+    // Practitioner assignment
+    'assign_before_checkin' => 'تعيين قبل التسجيل',
+    'assign_doctor_to_checkin' => 'تعيين طبيب للتسجيل',
+    'practitioner_required_for_checkin' => 'الطبيب مطلوب',
+    'assign_doctor_first' => 'يرجى تعيين طبيب قبل تسجيل دخول هذا الموعد.',
 ];

@@ -236,4 +236,7 @@ return [
 
     // Minutes
     'minutes' => 'دقيقة',
+
+    // Any Available Doctor
+    'any_available_doctor' => 'أي طبيب متاح',
 ];

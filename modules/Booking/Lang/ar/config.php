@@ -41,6 +41,8 @@ return [
     'max_per_doctor_daily_help' => 'اتركه فارغاً لعدم وجود حد',
     'allow_doctor_overlap' => 'السماح بتداخل الطبيب',
     'allow_doctor_overlap_help' => 'السماح بحجز نفس الطبيب في نفس الوقت (حجز مزدوج)',
+    'allow_any_available_doctor' => 'السماح بأي طبيب متاح',
+    'allow_any_available_doctor_help' => 'عرض خيار "أي طبيب متاح" عند الحجز. يجب تعيين الطبيب قبل تسجيل الدخول.',
 
     // Step 3 fields
     'room_assignment' => 'طريقة تعيين الغرفة',

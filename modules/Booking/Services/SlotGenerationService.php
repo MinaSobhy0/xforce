@@ -2,18 +2,18 @@
 
 namespace Modules\Booking\Services;
 
-use Modules\Booking\Models\Appointment;
-use Modules\Booking\Models\PractitionerSchedule;
-use Modules\Booking\Models\PractitionerScheduleAssignment;
-use Modules\Booking\Models\PractitionerTimeOff;
-use Modules\Booking\Models\BookingBlackoutDate;
-use Modules\Services\Models\Service;
-use Modules\Equipment\Models\Equipment;
-use Modules\Core\Models\Room;
-use Modules\Auth\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Modules\Auth\Models\User;
+use Modules\Booking\Models\Appointment;
+use Modules\Booking\Models\BookingConfig;
+use Modules\Booking\Models\PractitionerSchedule;
+use Modules\Booking\Models\PractitionerScheduleAssignment;
+use Modules\Booking\Models\PractitionerTimeOff;
+use Modules\Core\Models\Room;
+use Modules\Equipment\Models\Equipment;
+use Modules\Services\Models\Service;
 
 class SlotGenerationService
 {
@@ -21,13 +21,21 @@ class SlotGenerationService
 
     // Pre-loaded data for batch optimization
     protected Collection $preloadedAppointments;
+
     protected Collection $preloadedScheduleAssignments;
+
     protected Collection $preloadedLegacySchedules;
+
     protected Collection $preloadedTimeOffs;
+
     protected Collection $preloadedRoomBookings;
+
     protected Collection $preloadedEquipmentBookings;
+
     protected array $preloadedPractitionerAppointmentCounts = [];
+
     protected ?Carbon $preloadedDate = null;
+
     protected ?string $preloadedBranchId = null;
 
     public function __construct()
@@ -84,7 +92,7 @@ class SlotGenerationService
             ->get();
 
         // Key by staff_profile_id as string for consistent lookup
-        $this->preloadedScheduleAssignments = $scheduleAssignments->keyBy(fn($a) => (string) $a->staff_profile_id);
+        $this->preloadedScheduleAssignments = $scheduleAssignments->keyBy(fn ($a) => (string) $a->staff_profile_id);
 
         // 3. Pre-load legacy schedules for all practitioners
         $legacySchedules = PractitionerSchedule::query()
@@ -95,7 +103,7 @@ class SlotGenerationService
             ->get();
 
         // Key by user_id as string for consistent lookup
-        $this->preloadedLegacySchedules = $legacySchedules->keyBy(fn($s) => (string) $s->user_id);
+        $this->preloadedLegacySchedules = $legacySchedules->keyBy(fn ($s) => (string) $s->user_id);
 
         // 4. Pre-load time-off records for all practitioners (group by string user_id)
         $timeOffs = PractitionerTimeOff::query()
@@ -112,24 +120,24 @@ class SlotGenerationService
             })
             ->get();
 
-        $this->preloadedTimeOffs = $timeOffs->groupBy(fn($t) => (string) $t->user_id);
+        $this->preloadedTimeOffs = $timeOffs->groupBy(fn ($t) => (string) $t->user_id);
 
         // 5. Pre-load room bookings (group all appointments by room_id)
         // This covers both service-specific rooms and fallback to any branch room
         $this->preloadedRoomBookings = $this->preloadedAppointments
-            ->filter(fn($a) => $a->room_id !== null)
+            ->filter(fn ($a) => $a->room_id !== null)
             ->groupBy('room_id');
 
         // 6. Pre-load equipment bookings (group all appointments by equipment_id)
         $this->preloadedEquipmentBookings = $this->preloadedAppointments
-            ->filter(fn($a) => $a->equipment_id !== null)
+            ->filter(fn ($a) => $a->equipment_id !== null)
             ->groupBy('equipment_id');
 
         // 7. Pre-load appointment counts per practitioner (for capacity checks, use string keys)
         $this->preloadedPractitionerAppointmentCounts = $this->preloadedAppointments
-            ->filter(fn($a) => $a->practitioner_id !== null)
-            ->groupBy(fn($a) => (string) $a->practitioner_id)
-            ->map(fn($appointments) => $appointments->count())
+            ->filter(fn ($a) => $a->practitioner_id !== null)
+            ->groupBy(fn ($a) => (string) $a->practitioner_id)
+            ->map(fn ($appointments) => $appointments->count())
             ->toArray();
     }
 
@@ -169,7 +177,7 @@ class SlotGenerationService
             'category.requiredEquipment',
         ])->find($serviceId);
 
-        if (!$service) {
+        if (! $service) {
             return collect();
         }
 
@@ -177,7 +185,7 @@ class SlotGenerationService
         $this->ruleEvaluator = $this->getRuleEvaluator($branchId, $serviceId, $isOnlineBooking);
 
         // Check if online booking is enabled (for online requests)
-        if ($isOnlineBooking && !$this->ruleEvaluator->isOnlineBookingEnabled()) {
+        if ($isOnlineBooking && ! $this->ruleEvaluator->isOnlineBookingEnabled()) {
             return collect();
         }
 
@@ -194,7 +202,7 @@ class SlotGenerationService
         }
 
         // Check service time restrictions (service-specific blackouts/allowed days)
-        if (!$this->isDateAllowedForService($service, $date)) {
+        if (! $this->isDateAllowedForService($service, $date)) {
             return collect();
         }
 
@@ -231,7 +239,7 @@ class SlotGenerationService
         $workingHours = $this->ruleEvaluator->getEffectiveWorkingHours($date);
 
         // Check if branch is closed on this day
-        if (!empty($workingHours['is_closed']) || empty($workingHours['start']) || empty($workingHours['end'])) {
+        if (! empty($workingHours['is_closed']) || empty($workingHours['start']) || empty($workingHours['end'])) {
             return collect();
         }
 
@@ -290,8 +298,8 @@ class SlotGenerationService
         $availableSlots = collect();
 
         foreach ($possibleSlots as $slot) {
-            $slotStartTime = Carbon::parse($date->format('Y-m-d') . ' ' . $slot['start']);
-            $slotEndTime = Carbon::parse($date->format('Y-m-d') . ' ' . $slot['end']);
+            $slotStartTime = Carbon::parse($date->format('Y-m-d').' '.$slot['start']);
+            $slotEndTime = Carbon::parse($date->format('Y-m-d').' '.$slot['end']);
 
             // Skip slots in the past
             if ($slotStartTime->isPast()) {
@@ -349,6 +357,7 @@ class SlotGenerationService
                 $availablePractitioners = $availablePractitioners->filter(function ($practitioner) use ($maxPerDoctor) {
                     $practitionerId = (string) $practitioner->user_id;
                     $currentCount = $this->preloadedPractitionerAppointmentCounts[$practitionerId] ?? 0;
+
                     return $currentCount < $maxPerDoctor;
                 });
             }
@@ -379,7 +388,7 @@ class SlotGenerationService
             $requiredEquipment = $service->getEffectiveEquipment()
                 ->where('pivot.is_mandatory', true);
 
-            if ($requiredEquipment->isNotEmpty() && !$equipment) {
+            if ($requiredEquipment->isNotEmpty() && ! $equipment) {
                 continue;
             }
 
@@ -437,9 +446,9 @@ class SlotGenerationService
         // Use preloaded data if available, otherwise load fresh
         $usePreloaded = $this->preloadedDate?->isSameDay($datetime) && $this->preloadedBranchId === $branchId;
 
-        if (!$qualifiedPractitioners) {
+        if (! $qualifiedPractitioners) {
             $service = Service::find($serviceId);
-            if (!$service) {
+            if (! $service) {
                 return collect();
             }
             $qualifiedPractitioners = $this->getQualifiedPractitioners($service, $branchId);
@@ -459,7 +468,7 @@ class SlotGenerationService
         $checkTimeoff = $practitionerReq['check_timeoff'] ?? true;
         $allowOverlap = $practitionerReq['allow_overlap'] ?? false;
 
-        return $practitioners->filter(function ($staffProfile) use ($branchId, $date, $datetime, $endTime, $dayOfWeek, $startTimeStr, $endTimeStr, $duration, $checkSchedule, $checkTimeoff, $allowOverlap, $usePreloaded) {
+        return $practitioners->filter(function ($staffProfile) use ($branchId, $date, $datetime, $endTime, $dayOfWeek, $startTimeStr, $endTimeStr, $checkSchedule, $checkTimeoff, $allowOverlap, $usePreloaded) {
             // Check schedule assignment by staff_profile_id (only if check_doctor_schedule is enabled)
             if ($checkSchedule) {
                 // Use preloaded data or query (cast to string for consistent key lookup)
@@ -475,7 +484,7 @@ class SlotGenerationService
 
                 $assignmentAvailable = $assignment && $assignment->isAvailableAt($dayOfWeek, $startTimeStr);
 
-                if (!$assignmentAvailable) {
+                if (! $assignmentAvailable) {
                     // Fall back to legacy PractitionerSchedule (uses user_id, cast to string for key lookup)
                     $schedule = $usePreloaded
                         ? ($this->preloadedLegacySchedules->get((string) $staffProfile->user_id))
@@ -486,7 +495,7 @@ class SlotGenerationService
                             ->available()
                             ->first();
 
-                    if (!$schedule) {
+                    if (! $schedule) {
                         return false;
                     }
 
@@ -537,7 +546,7 @@ class SlotGenerationService
             }
 
             // Check conflicting appointments (skip if allow_doctor_overlap is enabled)
-            if (!$allowOverlap) {
+            if (! $allowOverlap) {
                 $hasConflict = $this->hasAppointmentConflict(
                     $staffProfile->user_id,
                     'practitioner_id',
@@ -591,7 +600,7 @@ class SlotGenerationService
             ->forDate($datetime->copy()->startOfDay())
             ->active()
             ->where(function ($q) use ($endTimeStr, $startTimeStr) {
-                $q->whereRaw("start_time < ?", [$endTimeStr])
+                $q->whereRaw('start_time < ?', [$endTimeStr])
                     ->whereRaw("COALESCE(end_time, start_time + (duration_minutes || ' minutes')::interval) > ?", [$startTimeStr]);
             })
             ->exists();
@@ -608,9 +617,9 @@ class SlotGenerationService
         int $duration,
         ?Service $service = null
     ): ?Room {
-        if (!$service) {
+        if (! $service) {
             $service = Service::with('category.rooms')->find($serviceId);
-            if (!$service) {
+            if (! $service) {
                 return null;
             }
         }
@@ -621,7 +630,7 @@ class SlotGenerationService
 
         // Check for room preference rules
         $roomPreference = $this->ruleEvaluator?->getRoomPreference();
-        $useServiceRooms = !$roomPreference || $roomPreference['source'] === 'service';
+        $useServiceRooms = ! $roomPreference || $roomPreference['source'] === 'service';
         $strictRoom = $roomPreference['strict'] ?? false;
 
         if ($useServiceRooms) {
@@ -632,7 +641,7 @@ class SlotGenerationService
             $primaryRoom = $effectiveRooms
                 ->where('pivot.is_primary', true)
                 ->where('branch_id', $branchId)
-                ->filter(fn($r) => $r->is_active && $r->is_bookable)
+                ->filter(fn ($r) => $r->is_active && $r->is_bookable)
                 ->first();
 
             if ($primaryRoom && $this->isRoomAvailableOptimized($primaryRoom->id, $datetime, $endTime, $usePreloaded)) {
@@ -643,7 +652,7 @@ class SlotGenerationService
             $backupRooms = $effectiveRooms
                 ->where('pivot.is_primary', false)
                 ->where('branch_id', $branchId)
-                ->filter(fn($r) => $r->is_active && $r->is_bookable)
+                ->filter(fn ($r) => $r->is_active && $r->is_bookable)
                 ->sortBy('pivot.priority');
 
             foreach ($backupRooms as $room) {
@@ -654,7 +663,7 @@ class SlotGenerationService
         } else {
             // Use manually specified rooms from rule
             $preferredRoomIds = $roomPreference['preferred_rooms'] ?? [];
-            if (!empty($preferredRoomIds)) {
+            if (! empty($preferredRoomIds)) {
                 $preferredRooms = Room::whereIn('id', $preferredRoomIds)
                     ->where('rooms.branch_id', $branchId)
                     ->active()
@@ -701,9 +710,9 @@ class SlotGenerationService
         int $duration,
         ?Service $service = null
     ): ?Equipment {
-        if (!$service) {
+        if (! $service) {
             $service = Service::with('category.requiredEquipment')->find($serviceId);
-            if (!$service) {
+            if (! $service) {
                 return null;
             }
         }
@@ -714,7 +723,7 @@ class SlotGenerationService
 
         // Check for equipment requirement rules
         $equipmentReq = $this->ruleEvaluator?->getEquipmentRequirements();
-        $useServiceEquipment = !$equipmentReq || $equipmentReq['source'] === 'service';
+        $useServiceEquipment = ! $equipmentReq || $equipmentReq['source'] === 'service';
 
         if ($useServiceEquipment) {
             // Use getEffectiveEquipment() which cascades: Service → ServiceCategory
@@ -724,7 +733,7 @@ class SlotGenerationService
             $requiredEquipment = $effectiveEquipment
                 ->where('pivot.is_mandatory', true)
                 ->where('branch_id', $branchId)
-                ->filter(fn($e) => $e->status === Equipment::STATUS_ACTIVE);
+                ->filter(fn ($e) => $e->status === Equipment::STATUS_ACTIVE);
 
             if ($requiredEquipment->isEmpty()) {
                 return null;
@@ -738,7 +747,7 @@ class SlotGenerationService
         } else {
             // Use manually specified equipment from rule
             $requiredEquipmentIds = $equipmentReq['required_equipment'] ?? [];
-            if (!empty($requiredEquipmentIds)) {
+            if (! empty($requiredEquipmentIds)) {
                 $equipment = Equipment::whereIn('id', $requiredEquipmentIds)
                     ->where('equipment.branch_id', $branchId)
                     ->where('equipment.status', Equipment::STATUS_ACTIVE)
@@ -803,7 +812,7 @@ class SlotGenerationService
             ->first();
 
         if ($assignment) {
-            if (!$assignment->isAvailableAt($dayOfWeek, $startTimeStr)) {
+            if (! $assignment->isAvailableAt($dayOfWeek, $startTimeStr)) {
                 return false;
             }
         } else {
@@ -815,7 +824,7 @@ class SlotGenerationService
                 ->available()
                 ->first();
 
-            if (!$schedule) {
+            if (! $schedule) {
                 return false;
             }
 
@@ -855,7 +864,7 @@ class SlotGenerationService
             ->forDate($date)
             ->active()
             ->where(function ($q) use ($datetime, $endTime) {
-                $q->whereRaw("start_time < ?", [$endTime->format('H:i:s')])
+                $q->whereRaw('start_time < ?', [$endTime->format('H:i:s')])
                     ->whereRaw("COALESCE(end_time, start_time + (duration_minutes || ' minutes')::interval) > ?", [$datetime->format('H:i:s')]);
             });
 
@@ -863,7 +872,7 @@ class SlotGenerationService
             $conflictQuery->where('id', '!=', $excludeAppointmentId);
         }
 
-        return !$conflictQuery->exists();
+        return ! $conflictQuery->exists();
     }
 
     /**
@@ -940,7 +949,7 @@ class SlotGenerationService
                 $end = $item['end_time'];
 
                 // Check practitioner conflict
-                if (!empty($item['practitioner_id'])) {
+                if (! empty($item['practitioner_id'])) {
                     $key = $item['practitioner_id'];
                     if (isset($practitionerSlots[$key])) {
                         foreach ($practitionerSlots[$key] as $existingSlot) {
@@ -953,7 +962,7 @@ class SlotGenerationService
                 }
 
                 // Check room conflict
-                if (!empty($item['room_id'])) {
+                if (! empty($item['room_id'])) {
                     $key = $item['room_id'];
                     if (isset($roomSlots[$key])) {
                         foreach ($roomSlots[$key] as $existingSlot) {
@@ -966,7 +975,7 @@ class SlotGenerationService
                 }
 
                 // Check equipment conflict
-                if (!empty($item['equipment_id'])) {
+                if (! empty($item['equipment_id'])) {
                     $key = $item['equipment_id'];
                     if (isset($equipmentSlots[$key])) {
                         foreach ($equipmentSlots[$key] as $existingSlot) {
@@ -1022,7 +1031,7 @@ class SlotGenerationService
     {
         // Check for practitioner requirement rules
         $practitionerReq = $this->ruleEvaluator?->getPractitionerRequirements();
-        $useServicePractitioners = !$practitionerReq || $practitionerReq['source'] === 'service';
+        $useServicePractitioners = ! $practitionerReq || $practitionerReq['source'] === 'service';
 
         if ($useServicePractitioners) {
             // Use getEffectiveQualifiedStaff() which cascades: Service → ServiceCategory
@@ -1042,28 +1051,28 @@ class SlotGenerationService
                     // Staff profile is at this branch
                     $query->where('staff_profiles.branch_id', $branchId)
                     // Or has a schedule assignment at this branch
-                    ->orWhereExists(function ($subQuery) use ($branchId) {
-                        $subQuery->select(DB::raw(1))
-                            ->from('practitioner_schedule_assignments')
-                            ->whereColumn('practitioner_schedule_assignments.staff_profile_id', 'staff_profiles.id')
-                            ->where('practitioner_schedule_assignments.branch_id', $branchId)
-                            ->where('practitioner_schedule_assignments.is_active', true)
-                            ->whereNull('practitioner_schedule_assignments.deleted_at')
-                            ->where(function ($q) {
-                                $q->whereNull('practitioner_schedule_assignments.effective_from')
-                                    ->orWhere('practitioner_schedule_assignments.effective_from', '<=', now());
-                            })
-                            ->where(function ($q) {
-                                $q->whereNull('practitioner_schedule_assignments.effective_until')
-                                    ->orWhere('practitioner_schedule_assignments.effective_until', '>=', now());
-                            });
-                    });
+                        ->orWhereExists(function ($subQuery) use ($branchId) {
+                            $subQuery->select(DB::raw(1))
+                                ->from('practitioner_schedule_assignments')
+                                ->whereColumn('practitioner_schedule_assignments.staff_profile_id', 'staff_profiles.id')
+                                ->where('practitioner_schedule_assignments.branch_id', $branchId)
+                                ->where('practitioner_schedule_assignments.is_active', true)
+                                ->whereNull('practitioner_schedule_assignments.deleted_at')
+                                ->where(function ($q) {
+                                    $q->whereNull('practitioner_schedule_assignments.effective_from')
+                                        ->orWhere('practitioner_schedule_assignments.effective_from', '<=', now());
+                                })
+                                ->where(function ($q) {
+                                    $q->whereNull('practitioner_schedule_assignments.effective_until')
+                                        ->orWhere('practitioner_schedule_assignments.effective_until', '>=', now());
+                                });
+                        });
                 })
                 ->get();
         } else {
             // Use manually specified practitioners from rule
             $requiredPractitionerIds = $practitionerReq['required_practitioners'] ?? [];
-            if (!empty($requiredPractitionerIds)) {
+            if (! empty($requiredPractitionerIds)) {
                 return \Modules\Staff\Models\StaffProfile::whereIn('user_id', $requiredPractitionerIds)
                     ->with('user')
                     ->where('staff_profiles.is_active', true)
@@ -1082,7 +1091,7 @@ class SlotGenerationService
         }
 
         // Check allowed days (empty array means all days allowed)
-        if (!empty($restrictions['allowed_days']) && !in_array($date->dayOfWeek, $restrictions['allowed_days'])) {
+        if (! empty($restrictions['allowed_days']) && ! in_array($date->dayOfWeek, $restrictions['allowed_days'])) {
             return false;
         }
 
@@ -1144,12 +1153,12 @@ class SlotGenerationService
 
     protected function isRoomAvailable(string $roomId, Carbon $date, Carbon $start, Carbon $end): bool
     {
-        return !Appointment::query()
+        return ! Appointment::query()
             ->forRoom($roomId)
             ->forDate($date)
             ->active()
             ->where(function ($q) use ($start, $end) {
-                $q->whereRaw("start_time < ?", [$end->format('H:i:s')])
+                $q->whereRaw('start_time < ?', [$end->format('H:i:s')])
                     ->whereRaw("COALESCE(end_time, start_time + (duration_minutes || ' minutes')::interval) > ?", [$start->format('H:i:s')]);
             })
             ->exists();
@@ -1162,7 +1171,8 @@ class SlotGenerationService
     {
         if ($usePreloaded) {
             $roomBookings = $this->preloadedRoomBookings->get($roomId) ?? collect();
-            return !$this->hasTimeConflictInCollection($roomBookings, $start, $end);
+
+            return ! $this->hasTimeConflictInCollection($roomBookings, $start, $end);
         }
 
         return $this->isRoomAvailable($roomId, $start->copy()->startOfDay(), $start, $end);
@@ -1170,12 +1180,12 @@ class SlotGenerationService
 
     protected function isEquipmentAvailable(string $equipmentId, Carbon $date, Carbon $start, Carbon $end): bool
     {
-        return !Appointment::query()
+        return ! Appointment::query()
             ->where('equipment_id', $equipmentId)
             ->forDate($date)
             ->active()
             ->where(function ($q) use ($start, $end) {
-                $q->whereRaw("start_time < ?", [$end->format('H:i:s')])
+                $q->whereRaw('start_time < ?', [$end->format('H:i:s')])
                     ->whereRaw("COALESCE(end_time, start_time + (duration_minutes || ' minutes')::interval) > ?", [$start->format('H:i:s')]);
             })
             ->exists();
@@ -1188,7 +1198,8 @@ class SlotGenerationService
     {
         if ($usePreloaded) {
             $equipmentBookings = $this->preloadedEquipmentBookings->get($equipmentId) ?? collect();
-            return !$this->hasTimeConflictInCollection($equipmentBookings, $start, $end);
+
+            return ! $this->hasTimeConflictInCollection($equipmentBookings, $start, $end);
         }
 
         return $this->isEquipmentAvailable($equipmentId, $start->copy()->startOfDay(), $start, $end);
@@ -1242,9 +1253,26 @@ class SlotGenerationService
         $recommendedIndex = 0;
         $slotEndTimeStr = $slotEnd->format('H:i:s');
 
+        // Check if "Any Available Doctor" option should be added
+        $config = BookingConfig::getForBranch($branchId);
+        if ($config->allow_any_available_doctor && $practitioners->isNotEmpty()) {
+            $enrichedData[] = [
+                'id' => null,
+                'staff_profile_id' => null,
+                'name' => __('booking::booking.any_available_doctor'),
+                'avatar' => null,
+                'is_recommended' => true,
+                'is_any_available' => true,
+                'status' => 'available',
+                'next_appointment' => null,
+            ];
+            // Since "Any Available Doctor" is recommended, other practitioners are not
+            $recommendedIndex = -1;
+        }
+
         foreach ($practitioners as $index => $staffProfile) {
             // Skip staff profiles without valid user or user_id
-            if (!$staffProfile->user_id || !$staffProfile->user) {
+            if (! $staffProfile->user_id || ! $staffProfile->user) {
                 continue;
             }
             $practitionerId = $staffProfile->user_id;
@@ -1256,7 +1284,7 @@ class SlotGenerationService
                 // Find next appointment from preloaded data
                 $nextAppointment = $this->preloadedAppointments
                     ->where('practitioner_id', $practitionerId)
-                    ->filter(fn($a) => $a->start_time >= $slotEndTimeStr)
+                    ->filter(fn ($a) => $a->start_time >= $slotEndTimeStr)
                     ->sortBy('start_time')
                     ->first();
             } else {
@@ -1264,7 +1292,7 @@ class SlotGenerationService
                     ->forPractitioner($practitionerId)
                     ->forDate($date)
                     ->active()
-                    ->whereRaw("start_time >= ?", [$slotEndTimeStr])
+                    ->whereRaw('start_time >= ?', [$slotEndTimeStr])
                     ->orderBy('start_time')
                     ->first(['id', 'start_time', 'service_id']);
             }
@@ -1284,7 +1312,7 @@ class SlotGenerationService
             }
 
             // Check if practitioner is preferred for this service (future enhancement)
-            // For now, first available is recommended
+            // For now, first available is recommended (unless "Any Available Doctor" is shown)
             $isRecommended = ($index === $recommendedIndex);
 
             $enrichedData[] = [
@@ -1293,6 +1321,7 @@ class SlotGenerationService
                 'name' => $staffProfile->user?->name ?? $staffProfile->user?->full_name ?? 'Unknown',
                 'avatar' => $staffProfile->user?->avatar_url ?? null,
                 'is_recommended' => $isRecommended,
+                'is_any_available' => false,
                 'status' => $status,
                 'next_appointment' => $nextAppointment ? [
                     'time' => $nextAppointment->start_time,
@@ -1317,6 +1346,7 @@ class SlotGenerationService
 
     /**
      * Legacy method for backward compatibility.
+     *
      * @deprecated Use generateAvailableSlots with isOnlineBooking parameter instead.
      */
     public function generateAvailableSlotsWithRules(

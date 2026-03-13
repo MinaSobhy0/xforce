@@ -4,7 +4,6 @@ namespace Modules\Booking\Filament\Widgets;
 
 use App\Services\BranchContext;
 use Carbon\Carbon;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Widgets\Widget;
@@ -27,9 +26,13 @@ class PatientFlowWidget extends Widget implements HasForms
 
     // Modal state
     public bool $showRoomModal = false;
+
     public bool $showDoctorModal = false;
+
     public ?string $editingAppointmentId = null;
+
     public ?string $selectedRoomId = null;
+
     public ?string $selectedDoctorId = null;
 
     public function mount(?string $selectedDate = null): void
@@ -64,6 +67,7 @@ class PatientFlowWidget extends Widget implements HasForms
     public function calculateWaitTime($appointment): ?array
     {
         $receptionService = app(ReceptionService::class);
+
         return $receptionService->calculateWaitTime($appointment);
     }
 
@@ -106,15 +110,16 @@ class PatientFlowWidget extends Widget implements HasForms
     {
         $appointment = \Modules\Booking\Models\Appointment::find($appointmentId);
 
-        if (!$appointment) {
+        if (! $appointment) {
             \Filament\Notifications\Notification::make()
                 ->title(__('booking::reception.messages.appointment_not_found'))
                 ->danger()
                 ->send();
+
             return;
         }
 
-        if (!in_array($appointment->status, [
+        if (! in_array($appointment->status, [
             \Modules\Booking\Models\Appointment::STATUS_SCHEDULED,
             \Modules\Booking\Models\Appointment::STATUS_CONFIRMED,
         ])) {
@@ -122,16 +127,31 @@ class PatientFlowWidget extends Widget implements HasForms
                 ->title(__('booking::reception.messages.cannot_check_in'))
                 ->danger()
                 ->send();
+
+            return;
+        }
+
+        // Check if practitioner is assigned - if not, prompt to assign first
+        if (! $appointment->hasPractitionerAssigned()) {
+            \Filament\Notifications\Notification::make()
+                ->title(__('booking::reception.practitioner_required_for_checkin'))
+                ->body(__('booking::reception.assign_doctor_first'))
+                ->warning()
+                ->send();
+            // Open the doctor modal
+            $this->openDoctorModal($appointmentId);
+
             return;
         }
 
         // Auto-confirm if still scheduled (state machine requires: scheduled -> confirmed -> checked_in)
         if ($appointment->status === \Modules\Booking\Models\Appointment::STATUS_SCHEDULED) {
-            if (!$appointment->confirm()) {
+            if (! $appointment->confirm()) {
                 \Filament\Notifications\Notification::make()
                     ->title(__('booking::reception.messages.cannot_check_in'))
                     ->danger()
                     ->send();
+
                 return;
             }
         }
@@ -223,7 +243,7 @@ class PatientFlowWidget extends Widget implements HasForms
     public function openRoomModal(string $appointmentId): void
     {
         $appointment = Appointment::find($appointmentId);
-        if (!$appointment) {
+        if (! $appointment) {
             return;
         }
 
@@ -249,12 +269,13 @@ class PatientFlowWidget extends Widget implements HasForms
     {
         $appointment = Appointment::find($this->editingAppointmentId);
 
-        if (!$appointment) {
+        if (! $appointment) {
             \Filament\Notifications\Notification::make()
                 ->title(__('booking::reception.messages.appointment_not_found'))
                 ->danger()
                 ->send();
             $this->closeRoomModal();
+
             return;
         }
 
@@ -295,7 +316,7 @@ class PatientFlowWidget extends Widget implements HasForms
     public function openDoctorModal(string $appointmentId): void
     {
         $appointment = Appointment::find($appointmentId);
-        if (!$appointment) {
+        if (! $appointment) {
             return;
         }
 
@@ -321,20 +342,22 @@ class PatientFlowWidget extends Widget implements HasForms
     {
         $appointment = Appointment::find($this->editingAppointmentId);
 
-        if (!$appointment) {
+        if (! $appointment) {
             \Filament\Notifications\Notification::make()
                 ->title(__('booking::reception.messages.appointment_not_found'))
                 ->danger()
                 ->send();
             $this->closeDoctorModal();
+
             return;
         }
 
-        if (!$this->selectedDoctorId) {
+        if (! $this->selectedDoctorId) {
             \Filament\Notifications\Notification::make()
                 ->title(__('booking::reception.messages.practitioner_not_found'))
                 ->danger()
                 ->send();
+
             return;
         }
 
@@ -361,7 +384,7 @@ class PatientFlowWidget extends Widget implements HasForms
     {
         $branchId = BranchContext::currentId();
 
-        if (!$branchId) {
+        if (! $branchId) {
             return [];
         }
 
@@ -411,7 +434,7 @@ class PatientFlowWidget extends Widget implements HasForms
             ->distinct()
             ->orderBy('users.first_name')
             ->get()
-            ->mapWithKeys(fn ($user) => [$user->id => trim($user->first_name . ' ' . $user->last_name)])
+            ->mapWithKeys(fn ($user) => [$user->id => trim($user->first_name.' '.$user->last_name)])
             ->toArray();
     }
 
@@ -420,7 +443,7 @@ class PatientFlowWidget extends Widget implements HasForms
      */
     public function getEditingAppointment(): ?Appointment
     {
-        if (!$this->editingAppointmentId) {
+        if (! $this->editingAppointmentId) {
             return null;
         }
 
@@ -434,22 +457,24 @@ class PatientFlowWidget extends Widget implements HasForms
     {
         $appointment = Appointment::with('visits')->find($appointmentId);
 
-        if (!$appointment) {
+        if (! $appointment) {
             \Filament\Notifications\Notification::make()
                 ->title(__('booking::reception.messages.appointment_not_found'))
                 ->danger()
                 ->send();
+
             return;
         }
 
         // Get the current visit for this appointment
         $visit = $appointment->current_visit;
 
-        if (!$visit) {
+        if (! $visit) {
             \Filament\Notifications\Notification::make()
                 ->title(__('booking::reception.messages.no_visit'))
                 ->danger()
                 ->send();
+
             return;
         }
 
@@ -466,11 +491,12 @@ class PatientFlowWidget extends Widget implements HasForms
     {
         $subscription = \Modules\Packages\Models\PackageSubscription::with('invoice')->find($subscriptionId);
 
-        if (!$subscription) {
+        if (! $subscription) {
             \Filament\Notifications\Notification::make()
                 ->title(__('booking::reception.messages.subscription_not_found'))
                 ->danger()
                 ->send();
+
             return;
         }
 
@@ -479,7 +505,7 @@ class PatientFlowWidget extends Widget implements HasForms
             \Modules\Billing\Models\Invoice::where('id', $subscription->invoice_id)->exists();
 
         // If no invoice exists or was deleted, create a new one
-        if (!$invoiceExists) {
+        if (! $invoiceExists) {
             try {
                 // Clear old invoice_id if it was deleted
                 if ($subscription->invoice_id) {
@@ -494,6 +520,7 @@ class PatientFlowWidget extends Widget implements HasForms
                     ->title(__('booking::reception.messages.invoice_creation_failed'))
                     ->danger()
                     ->send();
+
                 return;
             }
         }

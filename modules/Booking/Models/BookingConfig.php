@@ -2,9 +2,9 @@
 
 namespace Modules\Booking\Models;
 
-use XLinic\Framework\Core\Model\BaseModel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Modules\Core\Models\Branch;
+use XLinic\Framework\Core\Model\BaseModel;
 
 class BookingConfig extends BaseModel
 {
@@ -32,6 +32,7 @@ class BookingConfig extends BaseModel
         'check_doctor_timeoff',
         'max_per_doctor_daily',
         'allow_doctor_overlap',
+        'allow_any_available_doctor',
         // Step 3: Room
         'room_assignment',
         'check_room_availability',
@@ -56,6 +57,7 @@ class BookingConfig extends BaseModel
         'check_doctor_timeoff' => 'boolean',
         'max_per_doctor_daily' => 'integer',
         'allow_doctor_overlap' => 'boolean',
+        'allow_any_available_doctor' => 'boolean',
         'check_room_availability' => 'boolean',
         'allow_room_overlap' => 'boolean',
         'check_equipment_availability' => 'boolean',
@@ -67,7 +69,9 @@ class BookingConfig extends BaseModel
 
     // Room assignment options
     public const ROOM_FROM_SERVICE = 'service';
+
     public const ROOM_AUTO_ASSIGN = 'auto';
+
     public const ROOM_MANUAL = 'manual';
 
     public const ROOM_ASSIGNMENT_OPTIONS = [
@@ -78,6 +82,7 @@ class BookingConfig extends BaseModel
 
     // Equipment assignment options
     public const EQUIPMENT_FROM_SERVICE = 'service';
+
     public const EQUIPMENT_AUTO_ASSIGN = 'auto';
 
     public const EQUIPMENT_ASSIGNMENT_OPTIONS = [
@@ -99,6 +104,7 @@ class BookingConfig extends BaseModel
         'check_doctor_timeoff' => true,
         'max_per_doctor_daily' => null,
         'allow_doctor_overlap' => false,
+        'allow_any_available_doctor' => false,
         'room_assignment' => self::ROOM_FROM_SERVICE,
         'check_room_availability' => true,
         'allow_room_overlap' => false,
@@ -141,7 +147,7 @@ class BookingConfig extends BaseModel
         $config = static::whereNull('branch_id')->first();
 
         // Create default if none exists
-        if (!$config) {
+        if (! $config) {
             $config = static::createDefault();
         }
 
@@ -165,6 +171,7 @@ class BookingConfig extends BaseModel
     public static function getValue(string $key, ?string $branchId = null, $default = null)
     {
         $config = static::getForBranch($branchId);
+
         return $config->{$key} ?? $default ?? (self::DEFAULTS[$key] ?? null);
     }
 
@@ -185,7 +192,7 @@ class BookingConfig extends BaseModel
      */
     public function getBreakTimesAttribute(): ?array
     {
-        if (!$this->break_enabled || !$this->break_start || !$this->break_end) {
+        if (! $this->break_enabled || ! $this->break_start || ! $this->break_end) {
             return null;
         }
 
@@ -215,7 +222,7 @@ class BookingConfig extends BaseModel
      */
     public function shouldCheckRoomAvailability(): bool
     {
-        return $this->check_room_availability && !$this->allow_room_overlap;
+        return $this->check_room_availability && ! $this->allow_room_overlap;
     }
 
     /**
@@ -223,7 +230,7 @@ class BookingConfig extends BaseModel
      */
     public function shouldCheckEquipmentAvailability(): bool
     {
-        return $this->check_equipment_availability && !$this->allow_equipment_overlap;
+        return $this->check_equipment_availability && ! $this->allow_equipment_overlap;
     }
 
     /**
@@ -231,6 +238,6 @@ class BookingConfig extends BaseModel
      */
     public function shouldCheckDoctorAvailability(): bool
     {
-        return $this->check_doctor_schedule && !$this->allow_doctor_overlap;
+        return $this->check_doctor_schedule && ! $this->allow_doctor_overlap;
     }
 }

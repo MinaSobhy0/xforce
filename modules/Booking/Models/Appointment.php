@@ -2,10 +2,6 @@
 
 namespace Modules\Booking\Models;
 
-use XLinic\Framework\Core\Model\BaseModel;
-use XLinic\Framework\Core\Model\Traits\HasTenancy;
-use XLinic\Framework\Core\Model\Traits\HasActivity;
-use XLinic\Framework\Core\Model\Traits\HasSequence;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -19,13 +15,17 @@ use Modules\Core\Models\Room;
 use Modules\Packages\Models\PackageSubscription;
 use Modules\Patients\Models\Patient;
 use Modules\Services\Models\Service;
-use Modules\Booking\Models\Visit;
+use XLinic\Framework\Core\Model\BaseModel;
+use XLinic\Framework\Core\Model\Traits\HasActivity;
+use XLinic\Framework\Core\Model\Traits\HasSequence;
+use XLinic\Framework\Core\Model\Traits\HasTenancy;
 
 class Appointment extends BaseModel
 {
-    use HasTenancy, HasActivity, HasSequence, SoftDeletes;
+    use HasActivity, HasSequence, HasTenancy, SoftDeletes;
 
     protected string $sequenceCode = 'appointment';
+
     protected string $sequenceColumn = 'code';
 
     protected $fillable = [
@@ -82,12 +82,19 @@ class Appointment extends BaseModel
 
     // Status constants
     public const STATUS_SCHEDULED = 'scheduled';
+
     public const STATUS_CONFIRMED = 'confirmed';
+
     public const STATUS_CHECKED_IN = 'checked_in';
+
     public const STATUS_IN_PROGRESS = 'in_progress';
+
     public const STATUS_COMPLETED = 'completed';
+
     public const STATUS_CANCELLED = 'cancelled';
+
     public const STATUS_NO_SHOW = 'no_show';
+
     public const STATUS_RESCHEDULED = 'rescheduled';
 
     public const STATUSES = [
@@ -114,11 +121,17 @@ class Appointment extends BaseModel
 
     // Source constants
     public const SOURCE_WALK_IN = 'walk_in';
+
     public const SOURCE_PHONE = 'phone';
+
     public const SOURCE_WEBSITE = 'website';
+
     public const SOURCE_MOBILE_APP = 'mobile_app';
+
     public const SOURCE_REFERRAL = 'referral';
+
     public const SOURCE_SOCIAL_MEDIA = 'social_media';
+
     public const SOURCE_RESCHEDULED = 'rescheduled';
 
     public const SOURCES = [
@@ -133,6 +146,7 @@ class Appointment extends BaseModel
 
     // Discount type constants
     public const DISCOUNT_FIXED = 'fixed';
+
     public const DISCOUNT_PERCENT = 'percent';
 
     public const DISCOUNT_TYPES = [
@@ -300,27 +314,30 @@ class Appointment extends BaseModel
     // Accessors
     public function getStartDateTimeAttribute(): ?\Carbon\Carbon
     {
-        if (!$this->date || !$this->start_time) {
+        if (! $this->date || ! $this->start_time) {
             return null;
         }
+
         return $this->date->copy()->setTimeFrom($this->start_time);
     }
 
     public function getEndDateTimeAttribute(): ?\Carbon\Carbon
     {
-        if (!$this->date || !$this->end_time) {
+        if (! $this->date || ! $this->end_time) {
             return null;
         }
+
         return $this->date->copy()->setTimeFrom($this->end_time);
     }
 
     public function getFormattedTimeAttribute(): string
     {
-        if (!$this->start_time) {
+        if (! $this->start_time) {
             return '';
         }
         $start = $this->start_time->format('H:i');
         $end = $this->end_time ? $this->end_time->format('H:i') : '';
+
         return $end ? "{$start} - {$end}" : $start;
     }
 
@@ -362,12 +379,12 @@ class Appointment extends BaseModel
      */
     public function getDiscountDisplayAttribute(): string
     {
-        if (!$this->hasDiscount()) {
+        if (! $this->hasDiscount()) {
             return '';
         }
 
         if ($this->discount_type === self::DISCOUNT_PERCENT) {
-            return $this->discount_minor . '%';
+            return $this->discount_minor.'%';
         }
 
         return number_format($this->discount_minor / 100, 2);
@@ -412,12 +429,25 @@ class Appointment extends BaseModel
             self::STATUS_RESCHEDULED => [],
         ];
 
+        // Block check-in if no practitioner is assigned
+        if ($status === self::STATUS_CHECKED_IN && ! $this->hasPractitionerAssigned()) {
+            return false;
+        }
+
         return in_array($status, $transitions[$this->status] ?? []);
+    }
+
+    /**
+     * Check if a practitioner has been assigned to this appointment.
+     */
+    public function hasPractitionerAssigned(): bool
+    {
+        return $this->practitioner_id !== null;
     }
 
     public function transitionTo(string $status, ?string $reason = null): bool
     {
-        if (!$this->canTransitionTo($status)) {
+        if (! $this->canTransitionTo($status)) {
             return false;
         }
 
@@ -441,6 +471,7 @@ class Appointment extends BaseModel
         }
 
         $this->fill($data);
+
         return $this->save();
     }
 
@@ -471,6 +502,7 @@ class Appointment extends BaseModel
             );
             $visitService->addAppointment($visit, $this);
         }
+
         return $result;
     }
 
@@ -502,7 +534,7 @@ class Appointment extends BaseModel
 
     public function reschedule(array $newData): ?Appointment
     {
-        if (!$this->canTransitionTo(self::STATUS_RESCHEDULED)) {
+        if (! $this->canTransitionTo(self::STATUS_RESCHEDULED)) {
             return null;
         }
 
@@ -619,6 +651,7 @@ class Appointment extends BaseModel
         if ($branchId === null) {
             return $query;
         }
+
         return $query->where('branch_id', $branchId);
     }
 
@@ -712,7 +745,7 @@ class Appointment extends BaseModel
 
     public function getPackageSessionLabel(): ?string
     {
-        if (!$this->isPackageSession() || !$this->packageSubscription) {
+        if (! $this->isPackageSession() || ! $this->packageSubscription) {
             return null;
         }
 
@@ -721,6 +754,7 @@ class Appointment extends BaseModel
         if ($package?->isPulseBased()) {
             $used = $this->packageSubscription->pulses_used;
             $total = $package->total_pulses ?? 0;
+
             return __('booking::appointments.labels.pulses_progress', ['used' => number_format($used), 'total' => number_format($total)]);
         }
 

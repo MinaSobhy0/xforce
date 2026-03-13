@@ -2,20 +2,20 @@
 
 namespace Modules\Booking\Filament\Resources\AppointmentResource\Pages;
 
-use Modules\Booking\Filament\Resources\AppointmentResource;
-use Modules\Booking\Filament\Pages\Checkout;
-use Modules\Booking\Models\Appointment;
-use Modules\Billing\Models\Payment;
-use Modules\Accounting\Models\Journal;
-use Modules\GiftCards\Models\GiftCard;
-use Modules\GiftCards\Services\GiftCardService;
+use App\Filament\Resources\Pages\BaseViewRecord;
 use Filament\Actions;
 use Filament\Forms;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
-use Filament\Notifications\Notification;
 use Filament\Notifications\Actions\Action as NotificationAction;
-use App\Filament\Resources\Pages\BaseViewRecord;
+use Filament\Notifications\Notification;
+use Modules\Accounting\Models\Journal;
+use Modules\Billing\Models\Payment;
+use Modules\Booking\Filament\Pages\Checkout;
+use Modules\Booking\Filament\Resources\AppointmentResource;
+use Modules\Booking\Models\Appointment;
+use Modules\GiftCards\Models\GiftCard;
+use Modules\GiftCards\Services\GiftCardService;
 
 class ViewAppointment extends BaseViewRecord
 {
@@ -81,19 +81,21 @@ class ViewAppointment extends BaseViewRecord
                             if (empty($state)) {
                                 $set('gift_card_id', null);
                                 $set('amount_minor', null);
+
                                 return;
                             }
 
                             $giftCardService = app(GiftCardService::class);
                             $validation = $giftCardService->validateForPayment($state);
 
-                            if (!$validation['valid']) {
+                            if (! $validation['valid']) {
                                 Notification::make()
                                     ->title($validation['error'])
                                     ->danger()
                                     ->send();
                                 $set('gift_card_id', null);
                                 $set('amount_minor', null);
+
                                 return;
                             }
 
@@ -110,14 +112,15 @@ class ViewAppointment extends BaseViewRecord
                         ->label(__('billing::billing.record_payment.gift_card_balance'))
                         ->content(function (Get $get) {
                             $cardId = $get('gift_card_id');
-                            if (!$cardId) {
+                            if (! $cardId) {
                                 return '-';
                             }
                             $card = GiftCard::find($cardId);
-                            if (!$card) {
+                            if (! $card) {
                                 return '-';
                             }
-                            return format_money($card->remaining_value_minor) . ' (' . $card->code . ')';
+
+                            return format_money($card->remaining_value_minor).' ('.$card->code.')';
                         })
                         ->visible(fn (Get $get) => $this->isGiftCardJournal($get('journal_id')) && $get('gift_card_id')),
 
@@ -132,7 +135,7 @@ class ViewAppointment extends BaseViewRecord
                         ->prefix(current_currency())
                         ->default(fn () => $this->getAppointmentRemainingAmount() / 100)
                         ->helperText(fn (Get $get) => __('billing::billing.record_payment.max_amount', [
-                            'amount' => format_money($this->getMaxPaymentAmount($get))
+                            'amount' => format_money($this->getMaxPaymentAmount($get)),
                         ])),
 
                     Forms\Components\DateTimePicker::make('paid_at')
@@ -143,7 +146,7 @@ class ViewAppointment extends BaseViewRecord
                     Forms\Components\TextInput::make('reference_number')
                         ->label(__('billing::billing.fields.reference'))
                         ->maxLength(255)
-                        ->visible(fn (Get $get) => !$this->isGiftCardJournal($get('journal_id'))),
+                        ->visible(fn (Get $get) => ! $this->isGiftCardJournal($get('journal_id'))),
 
                     Forms\Components\Textarea::make('notes')
                         ->label(__('billing::billing.fields.notes'))
@@ -165,9 +168,48 @@ class ViewAppointment extends BaseViewRecord
                 ->label(__('booking::appointments.actions.check_in'))
                 ->icon('heroicon-o-arrow-right-circle')
                 ->color('warning')
-                ->requiresConfirmation()
-                ->visible(fn (): bool => $this->record->canTransitionTo(Appointment::STATUS_CHECKED_IN))
-                ->action(function () {
+                ->visible(fn (): bool => $this->canShowCheckInAction())
+                ->form(function (): array {
+                    // If practitioner is not assigned, show form to select one
+                    if (! $this->record->hasPractitionerAssigned()) {
+                        return [
+                            Forms\Components\Placeholder::make('warning')
+                                ->content(__('booking::reception.practitioner_required_for_checkin'))
+                                ->extraAttributes(['class' => 'text-amber-600']),
+                            Forms\Components\Select::make('practitioner_id')
+                                ->label(__('booking::reception.forms.practitioner'))
+                                ->options($this->getAvailablePractitioners())
+                                ->required()
+                                ->searchable()
+                                ->native(false),
+                        ];
+                    }
+
+                    return [];
+                })
+                ->requiresConfirmation(fn (): bool => $this->record->hasPractitionerAssigned())
+                ->action(function (array $data) {
+                    // Assign practitioner if selected
+                    if (! empty($data['practitioner_id'])) {
+                        $this->record->update(['practitioner_id' => $data['practitioner_id']]);
+                        $this->record->refresh();
+                    }
+
+                    // Check if we can now check in
+                    if (! $this->record->hasPractitionerAssigned()) {
+                        Notification::make()
+                            ->title(__('booking::reception.practitioner_required_for_checkin'))
+                            ->danger()
+                            ->send();
+
+                        return;
+                    }
+
+                    // Auto-confirm if still scheduled
+                    if ($this->record->status === Appointment::STATUS_SCHEDULED) {
+                        $this->record->confirm();
+                    }
+
                     $this->record->checkIn();
 
                     // Check if this is a package session with unpaid balance
@@ -226,8 +268,7 @@ class ViewAppointment extends BaseViewRecord
                     Appointment::STATUS_CONFIRMED,
                     Appointment::STATUS_CHECKED_IN,
                 ]))
-                ->url(fn (): string =>
-                    \Modules\Booking\Filament\Pages\CreateBooking::getUrl() . '?reschedule_appointment_id=' . $this->record->id
+                ->url(fn (): string => \Modules\Booking\Filament\Pages\CreateBooking::getUrl().'?reschedule_appointment_id='.$this->record->id
                 ),
 
             Actions\Action::make('cancel')
@@ -248,7 +289,7 @@ class ViewAppointment extends BaseViewRecord
     protected function canRecordPayment(): bool
     {
         // Can record payment if appointment is not cancelled and has remaining amount
-        return !$this->record->isCancelled() && $this->getAppointmentRemainingAmount() > 0;
+        return ! $this->record->isCancelled() && $this->getAppointmentRemainingAmount() > 0;
     }
 
     protected function getAppointmentPaidAmount(): int
@@ -262,15 +303,17 @@ class ViewAppointment extends BaseViewRecord
     {
         $netPrice = $this->record->net_price ?? 0;
         $paid = $this->getAppointmentPaidAmount();
+
         return max(0, $netPrice - $paid);
     }
 
     protected function isGiftCardJournal(?string $journalId): bool
     {
-        if (!$journalId) {
+        if (! $journalId) {
             return false;
         }
         $journal = Journal::find($journalId);
+
         return $journal?->type === Journal::TYPE_GIFT_CARD;
     }
 
@@ -282,7 +325,41 @@ class ViewAppointment extends BaseViewRecord
                 return min($card->remaining_value_minor, $this->getAppointmentRemainingAmount());
             }
         }
+
         return $this->getAppointmentRemainingAmount();
+    }
+
+    /**
+     * Check if the check-in action should be shown.
+     * Shows if appointment is scheduled/confirmed (regardless of practitioner assignment).
+     */
+    protected function canShowCheckInAction(): bool
+    {
+        return in_array($this->record->status, [
+            Appointment::STATUS_SCHEDULED,
+            Appointment::STATUS_CONFIRMED,
+        ]);
+    }
+
+    /**
+     * Get available practitioners for assignment.
+     */
+    protected function getAvailablePractitioners(): array
+    {
+        return \Illuminate\Support\Facades\DB::table('users')
+            ->join('model_has_roles', function ($join) {
+                $join->on('users.id', '=', 'model_has_roles.model_id')
+                    ->where('model_has_roles.model_type', 'Modules\\Auth\\Models\\User');
+            })
+            ->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
+            ->where('users.status', 'active')
+            ->whereIn('roles.name', ['doctor', 'nurse', 'technician'])
+            ->select('users.id', 'users.first_name', 'users.last_name')
+            ->distinct()
+            ->orderBy('users.first_name')
+            ->get()
+            ->mapWithKeys(fn ($user) => [$user->id => trim($user->first_name.' '.$user->last_name)])
+            ->toArray();
     }
 
     protected function recordPayment(array $data): void
@@ -297,15 +374,17 @@ class ViewAppointment extends BaseViewRecord
                     ->title(__('billing::billing.record_payment.select_gift_card'))
                     ->danger()
                     ->send();
+
                 return;
             }
 
             $card = GiftCard::find($data['gift_card_id']);
-            if (!$card || !$card->canRedeem()) {
+            if (! $card || ! $card->canRedeem()) {
                 Notification::make()
                     ->title(__('billing::billing.record_payment.invalid_gift_card'))
                     ->danger()
                     ->send();
+
                 return;
             }
 
@@ -314,6 +393,7 @@ class ViewAppointment extends BaseViewRecord
                     ->title(__('billing::billing.record_payment.amount_exceeds_balance'))
                     ->danger()
                     ->send();
+
                 return;
             }
 

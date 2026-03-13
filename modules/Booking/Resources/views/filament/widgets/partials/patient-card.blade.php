@@ -6,7 +6,9 @@
     $showPayment = $showPayment ?? true;
     $showCheckout = $showCheckout ?? true;
     $showAssignActions = $showAssignActions ?? false;
-    $canCheckIn = $this->canCheckIn($appointment);
+    $hasPractitioner = $appointment->hasPractitionerAssigned();
+    $canCheckIn = $this->canCheckIn($appointment) && $hasPractitioner;
+    $needsPractitionerAssignment = !$hasPractitioner && $this->canCheckIn($appointment);
     $canChangeRoomOrDoctor = $this->canChangeRoomOrDoctor($appointment);
     $hasBalance = $appointment->remaining_balance > 0;
     $canRecordPayment = in_array($appointment->status, ['checked_in', 'in_progress']) && $hasBalance;
@@ -179,11 +181,15 @@
                     class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-md border transition-colors cursor-pointer
                         {{ $appointment->practitioner
                             ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900'
-                            : 'bg-gray-50 text-gray-500 dark:bg-gray-800 dark:text-gray-400 border-gray-200 dark:border-gray-700 border-dashed hover:bg-gray-100 dark:hover:bg-gray-700' }}"
-                    title="{{ __('booking::reception.actions.assign_doctor') }}"
+                            : 'bg-amber-50 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300 border-amber-300 dark:border-amber-700 border-dashed hover:bg-amber-100 dark:hover:bg-amber-900' }}"
+                    title="{{ $appointment->practitioner ? __('booking::reception.actions.assign_doctor') : __('booking::reception.assign_before_checkin') }}"
                 >
-                    <x-heroicon-o-user-circle class="w-3 h-3" />
-                    {{ $appointment->practitioner?->full_name ?? __('booking::reception.unassigned') }}
+                    @if($appointment->practitioner)
+                        <x-heroicon-o-user-circle class="w-3 h-3" />
+                    @else
+                        <x-heroicon-o-exclamation-triangle class="w-3 h-3" />
+                    @endif
+                    {{ $appointment->practitioner?->full_name ?? __('booking::reception.assign_before_checkin') }}
                 </button>
             @else
                 @if($showRoom && $appointment->room)
@@ -197,6 +203,11 @@
                         <x-heroicon-o-user-circle class="w-3 h-3" />
                         {{ $appointment->practitioner->full_name }}
                     </span>
+                @else
+                    <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-md bg-amber-50 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300 border border-amber-300 dark:border-amber-700 border-dashed">
+                        <x-heroicon-o-exclamation-triangle class="w-3 h-3" />
+                        {{ __('booking::reception.assign_before_checkin') }}
+                    </span>
                 @endif
             @endif
         </div>
@@ -204,10 +215,22 @@
     </a>
 
     {{-- Action Buttons --}}
-    @if(($showCheckIn && $canCheckIn) || ($showPayment && $canRecordPayment) || ($showPayment && $canRecordPackagePayment && $hasPackageBalance) || $canCheckout)
+    @if(($showCheckIn && ($canCheckIn || $needsPractitionerAssignment)) || ($showPayment && $canRecordPayment) || ($showPayment && $canRecordPackagePayment && $hasPackageBalance) || $canCheckout)
         <div class="px-3 pb-4 space-y-2">
-            {{-- Check-in Button --}}
-            @if($showCheckIn && $canCheckIn)
+            {{-- Assign Doctor Button (shown when practitioner not assigned but appointment can be checked in) --}}
+            @if($showCheckIn && $needsPractitionerAssignment)
+                <x-filament::button
+                    wire:click="openDoctorModal('{{ $appointment->id }}')"
+                    wire:loading.attr="disabled"
+                    color="warning"
+                    size="sm"
+                    class="w-full"
+                    icon="heroicon-o-exclamation-triangle"
+                >
+                    {{ __('booking::reception.assign_doctor_to_checkin') }}
+                </x-filament::button>
+            {{-- Check-in Button (only shown when practitioner is assigned) --}}
+            @elseif($showCheckIn && $canCheckIn)
                 <x-filament::button
                     wire:click="checkInAppointment('{{ $appointment->id }}')"
                     wire:loading.attr="disabled"
