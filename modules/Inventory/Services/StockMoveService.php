@@ -1025,11 +1025,22 @@ class StockMoveService
                 return;
             }
 
-            // Calculate value using product cost price
-            $valueMinor = $movement->quantity * $product->cost_price_minor;
+            // Calculate value using movement's unit cost (already converted to stock UOM)
+            // Fall back to product cost if movement cost is not set
+            $unitCostMinor = $movement->unit_cost_minor ?: $product->cost_price_minor;
+            $valueMinor = $movement->quantity * $unitCostMinor;
             $valueMajor = (int) round($valueMinor / 100);
 
             if ($valueMajor <= 0) {
+                Log::warning('Skipping journal entry - value is zero', [
+                    'movement_id' => $movement->id,
+                    'product_id' => $product->id,
+                    'product_sku' => $product->sku,
+                    'quantity' => $movement->quantity,
+                    'movement_unit_cost_minor' => $movement->unit_cost_minor,
+                    'product_cost_price_minor' => $product->cost_price_minor,
+                    'calculated_value_minor' => $valueMinor,
+                ]);
                 return;
             }
 

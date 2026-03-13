@@ -867,12 +867,12 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                     $quantityToDeduct = (int) ($consumable->base_quantity ?? $consumable->quantity);
 
                     // Odoo-like: Transfer from Treatment Location → Customer Location
-                    // Uses product's sales_uom (stock UOM) by default
+                    // Uses the UOM specified on the consumable (set when adding)
                     $transfer = $stockMoveService->createConsumption(
                         $consumable->product,
                         $sourceLocation,
                         $quantityToDeduct,
-                        null, // uom_id - null uses product's sales_uom (stock UOM)
+                        $consumable->uom_id, // Use consumable's UOM
                         SessionConsumable::class,
                         (string) $consumable->id,
                         'Consumed during appointment #' . $this->appointment->id
@@ -1998,6 +1998,8 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
         }
 
         $this->newEquipmentId = null;
+
+        $this->dispatch('equipment-added');
 
         Notification::make()
             ->title(__('booking::session.equipment.added'))
