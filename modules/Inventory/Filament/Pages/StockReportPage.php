@@ -110,22 +110,19 @@ class StockReportPage extends Page implements HasTable, HasForms
                     ->sortable()
                     ->alignEnd(),
 
-                Tables\Columns\TextColumn::make('unit_cost')
+                Tables\Columns\TextColumn::make('product.cost_price_minor')
                     ->label(__('inventory::inventory.stock_report.unit_cost'))
-                    ->formatStateUsing(function ($record) {
-                        $cost = $record->product?->cost_price_minor ?? 0;
-                        return number_format($cost / 100, 2) . ' EGP';
-                    })
+                    ->formatStateUsing(fn ($state) => number_format(($state ?? 0) / 100, 2) . ' EGP')
                     ->alignEnd(),
 
                 Tables\Columns\TextColumn::make('stock_value')
                     ->label(__('inventory::inventory.stock_report.stock_value'))
-                    ->formatStateUsing(function ($record) {
+                    ->getStateUsing(function ($record) {
                         $qty = $record->quantity_on_hand ?? 0;
                         $cost = $record->product?->cost_price_minor ?? 0;
-                        $value = $qty * $cost;
-                        return number_format($value / 100, 2) . ' EGP';
+                        return $qty * $cost;
                     })
+                    ->formatStateUsing(fn ($state) => number_format(($state ?? 0) / 100, 2) . ' EGP')
                     ->alignEnd()
                     ->weight('bold'),
 
