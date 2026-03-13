@@ -224,10 +224,13 @@ class DailyVisitsReport extends Page implements HasForms, HasTable
                     ->formatStateUsing(function ($state) {
                         return collect($state)->map(fn ($t) => __('booking::reports.daily_visits.types.' . $t))->implode(', ');
                     })
-                    ->color(fn ($state) => match (true) {
-                        in_array('package', $state) => 'info',
-                        in_array('continuation', $state) => 'warning',
-                        default => 'success',
+                    ->color(function ($state) {
+                        $types = is_array($state) ? $state : [$state];
+                        return match (true) {
+                            in_array('package', $types) => 'info',
+                            in_array('continuation', $types) => 'warning',
+                            default => 'success',
+                        };
                     }),
 
                 Tables\Columns\TextColumn::make('appointments_summary')
