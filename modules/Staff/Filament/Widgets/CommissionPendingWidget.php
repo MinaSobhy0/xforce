@@ -68,12 +68,15 @@ class CommissionPendingWidget extends BaseWidget
 
     protected function getWeeklyPendingData(): array
     {
-        return StaffCommissionRecord::pending()
+        $data = StaffCommissionRecord::pending()
             ->where('created_at', '>=', now()->subDays(7))
+            ->selectRaw('DATE(created_at) as date, COUNT(*) as count')
             ->groupBy(DB::raw('DATE(created_at)'))
             ->orderBy(DB::raw('DATE(created_at)'))
-            ->pluck(DB::raw('COUNT(*)'))
+            ->pluck('count')
             ->toArray();
+
+        return !empty($data) ? $data : [0];
     }
 
     protected function formatCurrency(int $amountMinor): string
