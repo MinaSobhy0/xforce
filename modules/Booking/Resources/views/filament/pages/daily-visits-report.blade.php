@@ -150,30 +150,30 @@
         $firstPercent = $totalSessions > 0 ? round($stats['treatment_plan_first'] / $totalSessions * 100) : 0;
     @endphp
 
-    <div class="grid grid-cols-4 gap-4 mb-6">
+    <div class="flex gap-4 mb-6">
         {{-- New Sessions --}}
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 text-center">
+        <div class="w-1/4 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 text-center">
             <p class="text-2xl font-bold text-green-600 dark:text-green-400">{{ $stats['new_sessions'] }}</p>
             <p class="text-sm text-gray-500 dark:text-gray-400">{{ __('booking::reports.daily_visits.types.new') }}</p>
             <p class="text-xs text-gray-400">{{ $newPercent }}%</p>
         </div>
 
         {{-- Package Sessions --}}
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 text-center">
+        <div class="w-1/4 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 text-center">
             <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ $stats['package_sessions'] }}</p>
             <p class="text-sm text-gray-500 dark:text-gray-400">{{ __('booking::reports.daily_visits.types.package') }}</p>
             <p class="text-xs text-gray-400">{{ $packagePercent }}%</p>
         </div>
 
         {{-- Treatment Plan Continuations --}}
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 text-center">
+        <div class="w-1/4 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 text-center">
             <p class="text-2xl font-bold text-amber-600 dark:text-amber-400">{{ $stats['treatment_plan_continuations'] }}</p>
             <p class="text-sm text-gray-500 dark:text-gray-400">{{ __('booking::reports.daily_visits.types.continuation') }}</p>
             <p class="text-xs text-gray-400">{{ $continuationPercent }}%</p>
         </div>
 
         {{-- First Treatment Plan Sessions --}}
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 text-center">
+        <div class="w-1/4 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 text-center">
             <p class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{{ $stats['treatment_plan_first'] }}</p>
             <p class="text-sm text-gray-500 dark:text-gray-400">{{ __('booking::reports.daily_visits.types.plan_first') }}</p>
             <p class="text-xs text-gray-400">{{ $firstPercent }}%</p>
