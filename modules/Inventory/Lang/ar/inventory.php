@@ -148,6 +148,8 @@ return [
         'counted_qty' => 'الكمية المعدودة',
         'difference' => 'الفرق',
         'unit_cost' => 'تكلفة الوحدة',
+        'value' => 'القيمة',
+        'from_to' => 'من / إلى',
         'value_adjustment' => 'تعديل القيمة',
         'total_value_adjustment' => 'إجمالي تعديل القيمة',
         'valuation_method' => 'طريقة التقييم',

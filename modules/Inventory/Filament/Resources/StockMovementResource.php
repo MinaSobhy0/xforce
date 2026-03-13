@@ -166,17 +166,41 @@ class StockMovementResource extends Resource
                         ($record->isIncoming() ? '+' : '-') . abs($record->quantity)
                     ),
 
+                Tables\Columns\TextColumn::make('unit_cost_minor')
+                    ->label(__('inventory::inventory.fields.unit_cost'))
+                    ->formatStateUsing(fn ($state) => number_format(($state ?? 0) / 100, 2) . ' EGP')
+                    ->alignEnd(),
+
+                Tables\Columns\TextColumn::make('value')
+                    ->label(__('inventory::inventory.fields.value'))
+                    ->getStateUsing(fn (StockMovement $record) => abs($record->quantity) * ($record->unit_cost_minor ?? 0))
+                    ->formatStateUsing(fn ($state) => number_format(($state ?? 0) / 100, 2) . ' EGP')
+                    ->alignEnd()
+                    ->weight('bold'),
+
+                Tables\Columns\TextColumn::make('from_to')
+                    ->label(__('inventory::inventory.fields.from_to'))
+                    ->getStateUsing(function (StockMovement $record): string {
+                        $from = $record->sourceLocation?->getTranslation('name', app()->getLocale())
+                            ?? $record->sourceLocation?->code
+                            ?? '-';
+                        $to = $record->destinationLocation?->getTranslation('name', app()->getLocale())
+                            ?? $record->destinationLocation?->code
+                            ?? '-';
+                        return "{$from} → {$to}";
+                    }),
+
                 Tables\Columns\TextColumn::make('quantity_before')
                     ->label(__('inventory::inventory.fields.before'))
                     ->numeric()
                     ->alignEnd()
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('quantity_after')
                     ->label(__('inventory::inventory.fields.after'))
                     ->numeric()
                     ->alignEnd()
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('reference_type')
                     ->label(__('inventory::inventory.fields.reference'))
@@ -187,14 +211,6 @@ class StockMovementResource extends Resource
                         $type = class_basename($record->reference_type);
                         return $type . ($record->reference_id ? " #{$record->reference_id}" : '');
                     })
-                    ->toggleable(),
-
-                Tables\Columns\TextColumn::make('sourceLocation.code')
-                    ->label(__('inventory::inventory.fields.source_location'))
-                    ->toggleable(isToggledHiddenByDefault: true),
-
-                Tables\Columns\TextColumn::make('destinationLocation.code')
-                    ->label(__('inventory::inventory.fields.destination_location'))
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('notes')

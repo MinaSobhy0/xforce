@@ -148,6 +148,8 @@ return [
         'counted_qty' => 'Counted Qty',
         'difference' => 'Difference',
         'unit_cost' => 'Unit Cost',
+        'value' => 'Value',
+        'from_to' => 'From / To',
         'value_adjustment' => 'Value Adjustment',
         'total_value_adjustment' => 'Total Value Adjustment',
         'valuation_method' => 'Valuation Method',
