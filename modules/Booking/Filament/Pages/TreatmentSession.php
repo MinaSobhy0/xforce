@@ -2317,10 +2317,39 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
 
     public function getAvailableConsumables(): Collection
     {
-        return Product::query()
+        $branchId = $this->appointment?->branch_id;
+
+        // Use the treatment default location (is_treatment_default flag)
+        $stockLocation = $branchId
+            ? StockLocation::getTreatmentDefaultLocation($branchId)
+            : null;
+
+        $products = Product::query()
             ->where('is_active', true)
             ->where('is_consumable', true)
+            ->with('salesUom')
             ->get();
+
+        // Add stock quantity to each product
+        if ($stockLocation) {
+            $locationId = $stockLocation->id;
+
+            // Get all stock levels for this location in one query
+            $stockLevels = StockLevel::where('location_id', $locationId)
+                ->pluck('quantity_on_hand', 'product_id');
+
+            $products->each(function ($product) use ($stockLevels) {
+                $product->stock_qty = $stockLevels[$product->id] ?? 0;
+                $product->stock_uom = $product->salesUom?->abbreviation ?? 'pcs';
+            });
+        } else {
+            $products->each(function ($product) {
+                $product->stock_qty = 0;
+                $product->stock_uom = $product->salesUom?->abbreviation ?? 'pcs';
+            });
+        }
+
+        return $products;
     }
 
     public function addConsumable(): void
@@ -2409,6 +2438,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
 
         $products = Product::query()
             ->where('is_active', true)
+            ->with('salesUom')
             ->get();
 
         // Add stock quantity to each product
@@ -2421,10 +2451,12 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
 
             $products->each(function ($product) use ($stockLevels) {
                 $product->stock_qty = $stockLevels[$product->id] ?? 0;
+                $product->stock_uom = $product->salesUom?->abbreviation ?? 'pcs';
             });
         } else {
             $products->each(function ($product) {
                 $product->stock_qty = 0;
+                $product->stock_uom = $product->salesUom?->abbreviation ?? 'pcs';
             });
         }
 
