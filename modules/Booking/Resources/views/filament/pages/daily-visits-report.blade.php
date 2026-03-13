@@ -150,7 +150,7 @@
         $firstPercent = $totalSessions > 0 ? round($stats['treatment_plan_first'] / $totalSessions * 100) : 0;
     @endphp
 
-    <div class="w-1/2 grid grid-cols-4 gap-4 mb-6">
+    <div class="inline-grid grid-cols-4 gap-4 mb-6">
         {{-- New Sessions --}}
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 text-center">
             <p class="text-2xl font-bold text-green-600 dark:text-green-400">{{ $stats['new_sessions'] }}</p>
