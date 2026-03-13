@@ -246,54 +246,10 @@ class StockReportPage extends Page implements HasTable, HasForms
         return (string) $record->id;
     }
 
-    public function getStockSummaryStats(): array
+    protected function getHeaderWidgets(): array
     {
-        $query = StockLevel::query()
-            ->whereHas('product', fn ($q) => $q->where('is_active', true));
-
-        // Apply branch filter if set
-        if ($this->filterBranchId) {
-            $query->where('branch_id', $this->filterBranchId);
-        }
-
-        $totalProducts = $query->distinct('product_id')->count('product_id');
-        $totalQuantity = $query->sum('quantity_on_hand');
-
-        // Calculate total value from FIFO layers (remaining_quantity * unit_cost_minor)
-        $fifoValue = DB::table('stock_movements')
-            ->join('products', 'stock_movements.product_id', '=', 'products.id')
-            ->where('products.is_active', true)
-            ->whereIn('stock_movements.movement_type', ['purchase_receive', 'in', 'return'])
-            ->where('stock_movements.remaining_quantity', '>', 0)
-            ->when($this->filterBranchId, fn ($q) => $q->where('stock_movements.branch_id', $this->filterBranchId))
-            ->selectRaw('SUM(stock_movements.remaining_quantity * stock_movements.unit_cost_minor) as total')
-            ->value('total') ?? 0;
-
-        // For non-FIFO products, calculate from stock levels * product cost
-        $nonFifoValue = DB::table('stock_levels')
-            ->join('products', 'stock_levels.product_id', '=', 'products.id')
-            ->where('products.is_active', true)
-            ->where('products.valuation_method', '!=', 'fifo')
-            ->when($this->filterBranchId, fn ($q) => $q->where('stock_levels.branch_id', $this->filterBranchId))
-            ->selectRaw('SUM(stock_levels.quantity_on_hand * products.cost_price_minor) as total')
-            ->value('total') ?? 0;
-
-        $totalValue = $fifoValue + $nonFifoValue;
-
-        // Low stock count
-        $lowStockCount = DB::table('stock_levels')
-            ->join('products', 'stock_levels.product_id', '=', 'products.id')
-            ->where('products.is_active', true)
-            ->whereColumn('stock_levels.quantity_on_hand', '<=', 'products.reorder_point')
-            ->where('stock_levels.quantity_on_hand', '>', 0)
-            ->when($this->filterBranchId, fn ($q) => $q->where('stock_levels.branch_id', $this->filterBranchId))
-            ->count();
-
         return [
-            'total_products' => $totalProducts,
-            'total_quantity' => $totalQuantity,
-            'total_value' => $totalValue,
-            'low_stock_count' => $lowStockCount,
+            \Modules\Inventory\Filament\Widgets\StockReportStatsWidget::class,
         ];
     }
 }

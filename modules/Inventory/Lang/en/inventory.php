@@ -459,5 +459,9 @@ return [
         'total_quantity' => 'Total Quantity',
         'total_value' => 'Total Value',
         'low_stock_items' => 'Low Stock Items',
+        'active_products' => 'Active products in stock',
+        'units_in_stock' => 'Units in stock',
+        'need_reorder' => 'Items need reorder',
+        'inventory_value' => 'Total inventory value',
     ],
 ];

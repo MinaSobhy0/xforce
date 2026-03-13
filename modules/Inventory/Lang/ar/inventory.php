@@ -458,5 +458,9 @@ return [
         'total_quantity' => 'إجمالي الكمية',
         'total_value' => 'إجمالي القيمة',
         'low_stock_items' => 'منتجات بمخزون منخفض',
+        'active_products' => 'المنتجات النشطة في المخزون',
+        'units_in_stock' => 'الوحدات في المخزون',
+        'need_reorder' => 'منتجات تحتاج إعادة طلب',
+        'inventory_value' => 'إجمالي قيمة المخزون',
     ],
 ];
