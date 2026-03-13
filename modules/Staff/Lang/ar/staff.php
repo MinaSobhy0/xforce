@@ -4,6 +4,7 @@ return [
     'navigation' => [
         'profiles' => 'ملفات الموظفين',
         'commissions' => 'العمولات',
+        'commission_records' => 'سجلات العمولات',
     ],
 
     'labels' => [
@@ -11,6 +12,8 @@ return [
         'profiles' => 'ملفات الموظفين',
         'commission' => 'عمولة',
         'commissions' => 'العمولات',
+        'commission_record' => 'سجل عمولة',
+        'commission_records' => 'سجلات العمولات',
         'schedule_assignment' => 'تعيين جدول',
         'schedule_assignments' => 'تعيينات الجدول',
     ],
@@ -77,6 +80,10 @@ return [
         'effective_until' => 'ساري حتى',
         'is_primary' => 'رئيسي',
         'is_primary_help' => 'تعيين كجدول رئيسي لهذا الموظف',
+        'staff' => 'الموظف',
+        'from' => 'من',
+        'until' => 'إلى',
+        'cancellation_reason' => 'سبب الإلغاء',
     ],
 
     'commission_types' => [
@@ -96,12 +103,18 @@ return [
         'approve' => 'موافقة',
         'cancel' => 'إلغاء',
         'approve_selected' => 'الموافقة على المحدد',
+        'mark_paid' => 'تحديد كمدفوع',
+        'mark_paid_selected' => 'تحديد كمدفوع',
+        'cancel_selected' => 'إلغاء المحدد',
     ],
 
     'messages' => [
         'approved' => 'تمت الموافقة على العمولة بنجاح',
         'cancelled' => 'تم إلغاء العمولة',
         'approved_count' => 'تمت الموافقة على :count عمولة',
+        'paid_count' => 'تم تحديد :count عمولة كمدفوعة',
+        'cancelled_count' => 'تم إلغاء :count عمولة',
+        'marked_paid' => 'تم تحديد العمولة كمدفوعة',
         'all_services' => 'جميع الخدمات',
     ],
 

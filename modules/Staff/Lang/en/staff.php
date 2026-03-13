@@ -4,6 +4,7 @@ return [
     'navigation' => [
         'profiles' => 'Staff Profiles',
         'commissions' => 'Commissions',
+        'commission_records' => 'Commission Records',
     ],
 
     'labels' => [
@@ -11,6 +12,8 @@ return [
         'profiles' => 'Staff Profiles',
         'commission' => 'Commission',
         'commissions' => 'Commissions',
+        'commission_record' => 'Commission Record',
+        'commission_records' => 'Commission Records',
         'schedule_assignment' => 'Schedule Assignment',
         'schedule_assignments' => 'Schedule Assignments',
     ],
@@ -77,6 +80,10 @@ return [
         'effective_until' => 'Effective Until',
         'is_primary' => 'Primary',
         'is_primary_help' => 'Mark as primary schedule for this staff member',
+        'staff' => 'Staff',
+        'from' => 'From',
+        'until' => 'Until',
+        'cancellation_reason' => 'Cancellation Reason',
     ],
 
     'commission_types' => [
@@ -96,12 +103,18 @@ return [
         'approve' => 'Approve',
         'cancel' => 'Cancel',
         'approve_selected' => 'Approve Selected',
+        'mark_paid' => 'Mark as Paid',
+        'mark_paid_selected' => 'Mark Paid',
+        'cancel_selected' => 'Cancel Selected',
     ],
 
     'messages' => [
         'approved' => 'Commission approved successfully',
         'cancelled' => 'Commission cancelled',
         'approved_count' => ':count commissions approved',
+        'paid_count' => ':count commissions marked as paid',
+        'cancelled_count' => ':count commissions cancelled',
+        'marked_paid' => 'Commission marked as paid',
         'all_services' => 'All services',
     ],
 
