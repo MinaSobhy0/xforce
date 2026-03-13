@@ -170,8 +170,7 @@ return [
     // Actions
     'actions' => [
         'add_service' => 'Add Another Service',
-        'generate_slots' => 'Find Available Slots',
-        'find_next' => 'Find Next Available',
+        'next_week' => 'Next Week',
         'select_slot' => 'Select This Slot',
         'previous' => 'Previous',
         'next' => 'Next',
@@ -207,8 +206,8 @@ return [
         'cart_empty' => 'No appointments yet',
         'select_slots_hint' => 'Select time slots from the available options',
         'no_slots' => 'No Available Slots',
-        'generate_slots_hint' => 'Click "Find Available Slots" to see available times',
-        'click_generate_slots' => 'Click "Find Available Slots" to see available appointment times',
+        'generate_slots_hint' => 'Select a service to see available times',
+        'click_generate_slots' => 'Select a service to see available appointment times',
         'select_package_first' => 'Select a package first',
         'no_services_in_package' => 'No services available in this package',
         'select_service_first' => 'Select a service',

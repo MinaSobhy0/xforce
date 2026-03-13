@@ -170,8 +170,7 @@ return [
     // Actions
     'actions' => [
         'add_service' => 'إضافة خدمة أخرى',
-        'generate_slots' => 'البحث عن الأوقات المتاحة',
-        'find_next' => 'البحث عن الوقت التالي',
+        'next_week' => 'الأسبوع القادم',
         'select_slot' => 'اختيار هذا الوقت',
         'previous' => 'السابق',
         'next' => 'التالي',
@@ -207,8 +206,8 @@ return [
         'cart_empty' => 'لا توجد مواعيد بعد',
         'select_slots_hint' => 'اختر الأوقات من الخيارات المتاحة',
         'no_slots' => 'لا توجد أوقات متاحة',
-        'generate_slots_hint' => 'انقر على "البحث عن الأوقات المتاحة" لرؤية الأوقات المتاحة',
-        'click_generate_slots' => 'انقر على "البحث عن الأوقات المتاحة" لرؤية أوقات المواعيد المتاحة',
+        'generate_slots_hint' => 'اختر خدمة لعرض الأوقات المتاحة',
+        'click_generate_slots' => 'اختر خدمة لعرض أوقات المواعيد المتاحة',
         'select_package_first' => 'اختر باقة أولاً',
         'no_services_in_package' => 'لا توجد خدمات متاحة في هذه الباقة',
         'select_service_first' => 'اختر خدمة',

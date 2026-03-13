@@ -1221,17 +1221,10 @@ class CreateBooking extends Page implements HasForms
                                             ]),
 
                                         Forms\Components\Actions::make([
-                                            Forms\Components\Actions\Action::make('generate_slots')
-                                                ->label(__('booking::booking.actions.generate_slots'))
-                                                ->icon('heroicon-o-magnifying-glass')
-                                                ->action(fn () => $this->generateSlots())
-                                                ->color('primary')
-                                                ->size('lg'),
-
-                                            Forms\Components\Actions\Action::make('find_next_available')
-                                                ->label(__('booking::booking.actions.find_next'))
+                                            Forms\Components\Actions\Action::make('next_week')
+                                                ->label(__('booking::booking.actions.next_week'))
                                                 ->icon('heroicon-o-forward')
-                                                ->action(fn () => $this->findNextAvailable())
+                                                ->action(fn () => $this->goToNextWeek())
                                                 ->color('gray'),
                                         ])->fullWidth(),
 
@@ -1422,65 +1415,20 @@ class CreateBooking extends Page implements HasForms
         }
     }
 
-    public function findNextAvailable(): void
+    public function goToNextWeek(): void
     {
         $data = $this->form->getState();
-        $branchId = $data['branch_id'] ?? null;
-        $bookingType = $data['booking_type'] ?? 'service';
+        $currentDateFrom = Carbon::parse($data['date_from'] ?? today());
 
-        $serviceId = null;
-        if ($bookingType === 'service') {
-            $services = $data['services'] ?? [];
-            $serviceId = $services[0]['service_id'] ?? null;
-        } elseif ($bookingType === 'package') {
-            $packageMode = $data['package_mode'] ?? 'existing';
-            if ($packageMode === 'existing') {
-                $serviceId = $data['package_service_id'] ?? null;
-            } else {
-                $serviceId = $data['new_package_service_id'] ?? null;
-            }
-        } elseif ($bookingType === 'treatment_plan') {
-            $treatmentPlanItemId = $data['treatment_plan_item_id'] ?? null;
-            if ($treatmentPlanItemId) {
-                $item = TreatmentPlanItem::find($treatmentPlanItemId);
-                $serviceId = $item?->service_id;
-            }
-        }
+        // Advance by one week
+        $newDateFrom = $currentDateFrom->copy()->addWeek();
+        $newDateTo = $newDateFrom->copy()->addWeek();
 
-        if (! $serviceId || ! $branchId) {
-            Notification::make()
-                ->title(__('booking::booking.validation.service_branch_required'))
-                ->warning()
-                ->send();
+        $this->data['date_from'] = $newDateFrom->format('Y-m-d');
+        $this->data['date_to'] = $newDateTo->format('Y-m-d');
 
-            return;
-        }
-
-        $slotService = app(SlotGenerationService::class);
-        $result = $slotService->findNextAvailableSlot(
-            $serviceId,
-            $branchId,
-            Carbon::parse($data['date_from'] ?? today()),
-            30
-        );
-
-        if ($result) {
-            $foundDate = Carbon::parse($result['date']);
-            $this->data['date_from'] = $result['date'];
-            $this->data['date_to'] = $foundDate->copy()->addWeek()->format('Y-m-d');
-            $this->generateSlots();
-
-            Notification::make()
-                ->title(__('booking::booking.messages.next_available_found'))
-                ->body(__('booking::booking.messages.date_updated', ['date' => $result['date']]))
-                ->success()
-                ->send();
-        } else {
-            Notification::make()
-                ->title(__('booking::booking.messages.no_availability'))
-                ->danger()
-                ->send();
-        }
+        // Generate slots for the new week
+        $this->generateSlots();
     }
 
     /**
