@@ -28,7 +28,7 @@ class PackageResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-cube';
 
-    protected static ?string $navigationGroup = 'Marketing';
+    protected static ?string $navigationGroup = 'Inventory';
 
     protected static ?int $navigationSort = 10;
 
