@@ -18,6 +18,16 @@ class InventoryServiceProvider extends ServiceProvider
         $this->registerTranslations();
         $this->registerViews();
         $this->loadMigrationsFrom(module_path($this->moduleName, 'Database/Migrations'));
+        $this->registerCommands();
+    }
+
+    protected function registerCommands(): void
+    {
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                \Modules\Inventory\Console\FixStockMovementCosts::class,
+            ]);
+        }
     }
 
     public function register(): void
