@@ -15,34 +15,34 @@
             ];
         @endphp
 
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div style="display: flex; flex-direction: row; gap: 12px; flex-wrap: wrap;">
             {{-- Plan Name --}}
-            <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-                <p class="text-sm text-gray-500 dark:text-gray-400">Current Plan</p>
-                <p class="text-xl font-bold text-gray-900 dark:text-white">{{ $data['plan_name'] }}</p>
+            <div style="flex: 1; min-width: 140px;" class="bg-gray-50 dark:bg-gray-800 rounded-md p-2.5">
+                <p class="text-xs text-gray-500 dark:text-gray-400">Current Plan</p>
+                <p class="text-base font-bold text-gray-900 dark:text-white">{{ $data['plan_name'] }}</p>
             </div>
 
             {{-- Status --}}
-            <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-                <p class="text-sm text-gray-500 dark:text-gray-400">Status</p>
-                <x-filament::badge :color="$statusColors[$data['status']] ?? 'gray'" class="mt-1">
+            <div style="flex: 1; min-width: 140px;" class="bg-gray-50 dark:bg-gray-800 rounded-md p-2.5">
+                <p class="text-xs text-gray-500 dark:text-gray-400">Status</p>
+                <x-filament::badge :color="$statusColors[$data['status']] ?? 'gray'" class="mt-0.5">
                     {{ ucfirst($data['status']) }}
                     @if($data['is_trial'])
-                        ({{ ceil($data['days_remaining']) }} days left)
+                        ({{ ceil($data['days_remaining']) }} days)
                     @endif
                 </x-filament::badge>
             </div>
 
             {{-- Billing Cycle --}}
-            <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-                <p class="text-sm text-gray-500 dark:text-gray-400">Billing Cycle</p>
-                <p class="text-xl font-bold text-gray-900 dark:text-white">{{ ucfirst($data['billing_cycle']) }}</p>
+            <div style="flex: 1; min-width: 140px;" class="bg-gray-50 dark:bg-gray-800 rounded-md p-2.5">
+                <p class="text-xs text-gray-500 dark:text-gray-400">Billing Cycle</p>
+                <p class="text-base font-bold text-gray-900 dark:text-white">{{ ucfirst($data['billing_cycle']) }}</p>
             </div>
 
             {{-- Next Invoice --}}
-            <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-                <p class="text-sm text-gray-500 dark:text-gray-400">Next Invoice</p>
-                <p class="text-xl font-bold text-gray-900 dark:text-white">{{ $data['next_invoice'] }}</p>
+            <div style="flex: 1; min-width: 140px;" class="bg-gray-50 dark:bg-gray-800 rounded-md p-2.5">
+                <p class="text-xs text-gray-500 dark:text-gray-400">Next Invoice</p>
+                <p class="text-base font-bold text-gray-900 dark:text-white">{{ $data['next_invoice'] }}</p>
             </div>
         </div>
 
