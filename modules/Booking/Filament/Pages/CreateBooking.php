@@ -2173,7 +2173,6 @@ class CreateBooking extends Page implements HasForms
                 $packageSubscriptionId = $item['from_package'] ?? ($newPackageSubscriptions[$item['new_package_id']] ?? null);
 
                 // Get discount from form's services array (match by service_id)
-                // Note: Form values are in EGP, need to convert to minor units (piastres) by multiplying by 100
                 $discountMinor = 0;
                 $discountType = Appointment::DISCOUNT_FIXED;
                 if (! empty($data['services'])) {
@@ -2182,10 +2181,10 @@ class CreateBooking extends Page implements HasForms
                             $discountType = $formService['discount_type'] ?? Appointment::DISCOUNT_FIXED;
 
                             if ($discountType === Appointment::DISCOUNT_PERCENT) {
-                                // For percentage, store the percentage value (multiplied by 100 for precision)
-                                $discountMinor = (int) (((float) ($formService['discount_percent'] ?? 0)) * 100);
+                                // For percentage, store the percentage value directly (e.g., 10 for 10%)
+                                $discountMinor = (int) ((float) ($formService['discount_percent'] ?? 0));
                             } else {
-                                // Convert from EGP to minor units (piastres)
+                                // For fixed, convert from EGP to minor units (piastres)
                                 $discountMinor = (int) (((float) ($formService['discount_minor'] ?? 0)) * 100);
                             }
                             break;
@@ -2467,9 +2466,10 @@ class CreateBooking extends Page implements HasForms
                 $discountType = $serviceData['discount_type'] ?? Appointment::DISCOUNT_FIXED;
 
                 if ($discountType === Appointment::DISCOUNT_PERCENT) {
-                    // For percentage, store the percentage value (multiplied by 100 for precision)
-                    $discountMinor = (int) (((float) ($serviceData['discount_percent'] ?? 0)) * 100);
+                    // For percentage, store the percentage value directly (e.g., 10 for 10%)
+                    $discountMinor = (int) ((float) ($serviceData['discount_percent'] ?? 0));
                 } else {
+                    // For fixed, convert from EGP to minor units (piastres)
                     $discountMinor = (int) ((float) ($serviceData['discount_minor'] ?? 0) * 100);
                 }
 
