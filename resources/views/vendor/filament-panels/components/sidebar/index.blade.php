@@ -6,6 +6,9 @@
     $openSidebarClasses = 'fi-sidebar-open translate-x-0 shadow-xl ring-1 ring-gray-950/5 dark:ring-white/10 rtl:-translate-x-0';
     $isRtl = __('filament-panels::layout.direction') === 'rtl';
     $panelId = filament()->getCurrentPanel()?->getId();
+    $userId = auth()->id() ?? 'guest';
+    // Create a unique storage key prefix for this user + panel to prevent navigation state bleeding
+    $storageKeyPrefix = "sidebar_{$panelId}_{$userId}_";
 
     // Quick Access items configuration - only for tenant panel
     $quickAccessItems = [];
@@ -438,33 +441,34 @@
 {{-- format-ignore-start --}}
 <aside
     x-data="{
-        activeGroup: localStorage.getItem('sidebar_active_group') || null,
-        isPanelCollapsed: localStorage.getItem('sidebar_panel_collapsed') === 'true',
+        storagePrefix: @js($storageKeyPrefix),
+        activeGroup: null,
+        isPanelCollapsed: false,
         init() {
-            this.activeGroup = localStorage.getItem('sidebar_active_group') || null;
-            this.isPanelCollapsed = localStorage.getItem('sidebar_panel_collapsed') === 'true';
+            this.activeGroup = localStorage.getItem(this.storagePrefix + 'active_group') || null;
+            this.isPanelCollapsed = localStorage.getItem(this.storagePrefix + 'panel_collapsed') === 'true';
         },
         setActiveGroup(group) {
             if (this.activeGroup === group) {
                 this.activeGroup = null;
-                localStorage.removeItem('sidebar_active_group');
+                localStorage.removeItem(this.storagePrefix + 'active_group');
             } else {
                 this.activeGroup = group;
-                localStorage.setItem('sidebar_active_group', group);
+                localStorage.setItem(this.storagePrefix + 'active_group', group);
                 this.isPanelCollapsed = false;
-                localStorage.setItem('sidebar_panel_collapsed', 'false');
+                localStorage.setItem(this.storagePrefix + 'panel_collapsed', 'false');
             }
         },
         closeGroup() {
             this.activeGroup = null;
-            localStorage.removeItem('sidebar_active_group');
+            localStorage.removeItem(this.storagePrefix + 'active_group');
         },
         togglePanel() {
             this.isPanelCollapsed = !this.isPanelCollapsed;
-            localStorage.setItem('sidebar_panel_collapsed', this.isPanelCollapsed);
+            localStorage.setItem(this.storagePrefix + 'panel_collapsed', this.isPanelCollapsed);
             if (this.isPanelCollapsed) {
                 this.activeGroup = null;
-                localStorage.removeItem('sidebar_active_group');
+                localStorage.removeItem(this.storagePrefix + 'active_group');
             }
         },
         isGroupActive(group) {
