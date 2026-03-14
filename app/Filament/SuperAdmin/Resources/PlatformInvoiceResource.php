@@ -64,20 +64,20 @@ class PlatformInvoiceResource extends Resource
                             $currency = $tenant->getCurrency();
                             $lineItems = [];
 
-                            // Plan charge (country-specific)
-                            $planCharge = 0;
+                            // Plan charge (country-specific) - in EGP for display
+                            $planChargeMinor = 0;
                             if ($tenant->plan) {
                                 $planPrice = $tenant->plan->getPriceForCountry($country);
-                                $planCharge = $planPrice['amount_minor'] ?? 0;
+                                $planChargeMinor = $planPrice['amount_minor'] ?? 0;
                                 $lineItems[] = [
                                     'type' => 'plan',
                                     'description' => $tenant->plan->name . ' (Monthly)',
-                                    'amount_minor' => $planCharge,
+                                    'amount_minor' => $planChargeMinor,
                                 ];
                             }
 
                             // Add-on charges
-                            $addonCharges = 0;
+                            $addonChargesMinor = 0;
                             foreach ($tenant->activeAddOns as $addon) {
                                 // Get price from pivot or calculate from add-on
                                 $price = $addon->pivot->price ?? null;
@@ -85,7 +85,7 @@ class PlatformInvoiceResource extends Resource
                                     $priceData = $addon->getPriceForCountry($country);
                                     $price = (int) ($priceData['amount'] * 100); // Convert to minor
                                 }
-                                $addonCharges += $price;
+                                $addonChargesMinor += $price;
                                 $lineItems[] = [
                                     'type' => 'addon',
                                     'description' => $addon->name,
@@ -98,20 +98,22 @@ class PlatformInvoiceResource extends Resource
                             $periodEnd = now()->endOfMonth();
                             $dueDate = now()->addDays(15);
 
-                            // Calculate totals
-                            $subtotal = $planCharge + $addonCharges;
+                            // Calculate totals (in minor/piasters)
+                            $subtotalMinor = $planChargeMinor + $addonChargesMinor;
                             $taxRate = $tenant->tax_rate ?? 0.14;
-                            $tax = (int) round($subtotal * $taxRate);
-                            $total = $subtotal + $tax;
+                            $taxMinor = (int) round($subtotalMinor * $taxRate);
+                            $totalMinor = $subtotalMinor + $taxMinor;
 
-                            // Set form values
+                            // Set form values - convert to EGP for display
                             $set('plan_code', $tenant->plan?->code);
-                            $set('plan_charge_minor', $planCharge);
-                            $set('addon_charges_minor', $addonCharges);
-                            $set('subtotal_minor', $subtotal);
-                            $set('tax_rate', $taxRate);
-                            $set('tax_minor', $tax);
-                            $set('total_minor', $total);
+                            $set('plan_charge_minor', $planChargeMinor / 100);
+                            $set('addon_charges_minor', $addonChargesMinor / 100);
+                            $set('overage_charges_minor', 0);
+                            $set('discount_minor', 0);
+                            $set('subtotal_minor', $subtotalMinor / 100);
+                            $set('tax_rate', $taxRate * 100); // Display as percentage
+                            $set('tax_minor', $taxMinor / 100);
+                            $set('total_minor', $totalMinor / 100);
                             $set('currency', $currency);
                             $set('period_start', $periodStart->format('Y-m-d'));
                             $set('period_end', $periodEnd->format('Y-m-d'));
@@ -145,42 +147,53 @@ class PlatformInvoiceResource extends Resource
                 ->columns(3)
                 ->schema([
                     Forms\Components\TextInput::make('plan_charge_minor')
-                        ->label('Plan Charge (piasters)')
+                        ->label('Plan Charge (EGP)')
                         ->numeric()
                         ->default(0)
                         ->live(onBlur: true)
+                        ->formatStateUsing(fn ($state) => $state ? $state / 100 : 0)
+                        ->dehydrateStateUsing(fn ($state) => $state ? $state * 100 : 0)
                         ->afterStateUpdated(fn(Get $get, Set $set) => static::calculateTotals($get, $set)),
 
                     Forms\Components\TextInput::make('addon_charges_minor')
-                        ->label('Add-on Charges (piasters)')
+                        ->label('Add-on Charges (EGP)')
                         ->numeric()
                         ->default(0)
                         ->live(onBlur: true)
+                        ->formatStateUsing(fn ($state) => $state ? $state / 100 : 0)
+                        ->dehydrateStateUsing(fn ($state) => $state ? $state * 100 : 0)
                         ->afterStateUpdated(fn(Get $get, Set $set) => static::calculateTotals($get, $set)),
 
                     Forms\Components\TextInput::make('overage_charges_minor')
-                        ->label('Overage Charges (piasters)')
+                        ->label('Overage Charges (EGP)')
                         ->numeric()
                         ->default(0)
                         ->live(onBlur: true)
+                        ->formatStateUsing(fn ($state) => $state ? $state / 100 : 0)
+                        ->dehydrateStateUsing(fn ($state) => $state ? $state * 100 : 0)
                         ->afterStateUpdated(fn(Get $get, Set $set) => static::calculateTotals($get, $set)),
 
                     Forms\Components\TextInput::make('discount_minor')
-                        ->label('Discount (piasters)')
+                        ->label('Discount (EGP)')
                         ->numeric()
                         ->default(0)
                         ->live(onBlur: true)
+                        ->formatStateUsing(fn ($state) => $state ? $state / 100 : 0)
+                        ->dehydrateStateUsing(fn ($state) => $state ? $state * 100 : 0)
                         ->afterStateUpdated(fn(Get $get, Set $set) => static::calculateTotals($get, $set)),
 
                     Forms\Components\TextInput::make('discount_code')
                         ->label('Discount Code'),
 
                     Forms\Components\TextInput::make('tax_rate')
-                        ->label('Tax Rate')
+                        ->label('Tax Rate (%)')
                         ->numeric()
-                        ->default(0.14)
-                        ->step(0.01)
+                        ->default(14)
+                        ->step(1)
+                        ->suffix('%')
                         ->live(onBlur: true)
+                        ->formatStateUsing(fn ($state) => $state ? $state * 100 : 14)
+                        ->dehydrateStateUsing(fn ($state) => $state ? $state / 100 : 0.14)
                         ->afterStateUpdated(fn(Get $get, Set $set) => static::calculateTotals($get, $set)),
                 ]),
 
@@ -188,22 +201,28 @@ class PlatformInvoiceResource extends Resource
                 ->columns(3)
                 ->schema([
                     Forms\Components\TextInput::make('subtotal_minor')
-                        ->label('Subtotal (piasters)')
+                        ->label('Subtotal (EGP)')
                         ->numeric()
                         ->disabled()
-                        ->dehydrated(),
+                        ->dehydrated()
+                        ->formatStateUsing(fn ($state) => $state ? $state / 100 : 0)
+                        ->dehydrateStateUsing(fn ($state) => $state ? $state * 100 : 0),
 
                     Forms\Components\TextInput::make('tax_minor')
-                        ->label('Tax (piasters)')
+                        ->label('Tax (EGP)')
                         ->numeric()
                         ->disabled()
-                        ->dehydrated(),
+                        ->dehydrated()
+                        ->formatStateUsing(fn ($state) => $state ? $state / 100 : 0)
+                        ->dehydrateStateUsing(fn ($state) => $state ? $state * 100 : 0),
 
                     Forms\Components\TextInput::make('total_minor')
-                        ->label('Total (piasters)')
+                        ->label('Total (EGP)')
                         ->numeric()
                         ->disabled()
-                        ->dehydrated(),
+                        ->dehydrated()
+                        ->formatStateUsing(fn ($state) => $state ? $state / 100 : 0)
+                        ->dehydrateStateUsing(fn ($state) => $state ? $state * 100 : 0),
 
                     Forms\Components\Hidden::make('currency'),
                     Forms\Components\Hidden::make('plan_code'),
@@ -226,9 +245,11 @@ class PlatformInvoiceResource extends Resource
                             Forms\Components\TextInput::make('description')
                                 ->required(),
                             Forms\Components\TextInput::make('amount_minor')
-                                ->label('Amount (piasters)')
+                                ->label('Amount (EGP)')
                                 ->numeric()
-                                ->required(),
+                                ->required()
+                                ->formatStateUsing(fn ($state) => $state ? $state / 100 : 0)
+                                ->dehydrateStateUsing(fn ($state) => $state ? $state * 100 : 0),
                         ])
                         ->columns(3)
                         ->defaultItems(0)
@@ -255,14 +276,15 @@ class PlatformInvoiceResource extends Resource
 
     protected static function calculateTotals(Get $get, Set $set): void
     {
-        $planCharge = (int) ($get('plan_charge_minor') ?? 0);
-        $addonCharges = (int) ($get('addon_charges_minor') ?? 0);
-        $overageCharges = (int) ($get('overage_charges_minor') ?? 0);
-        $discount = (int) ($get('discount_minor') ?? 0);
-        $taxRate = (float) ($get('tax_rate') ?? 0.14);
+        // Values are in EGP (main currency), not piasters
+        $planCharge = (float) ($get('plan_charge_minor') ?? 0);
+        $addonCharges = (float) ($get('addon_charges_minor') ?? 0);
+        $overageCharges = (float) ($get('overage_charges_minor') ?? 0);
+        $discount = (float) ($get('discount_minor') ?? 0);
+        $taxRatePercent = (float) ($get('tax_rate') ?? 14); // Tax rate as percentage (e.g., 14 for 14%)
 
         $subtotal = $planCharge + $addonCharges + $overageCharges - $discount;
-        $tax = (int) round($subtotal * $taxRate);
+        $tax = round($subtotal * ($taxRatePercent / 100), 2);
         $total = $subtotal + $tax;
 
         $set('subtotal_minor', $subtotal);

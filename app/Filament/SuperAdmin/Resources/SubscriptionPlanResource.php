@@ -60,15 +60,18 @@ class SubscriptionPlanResource extends Resource
                 ->columns(3)
                 ->schema([
                     Forms\Components\TextInput::make('price_monthly_minor')
-                        ->label('Monthly Price (piasters)')
+                        ->label('Monthly Price (EGP)')
                         ->numeric()
                         ->required()
-                        ->helperText('In minor units (1 EGP = 100 piasters)'),
+                        ->formatStateUsing(fn ($state) => $state ? $state / 100 : null)
+                        ->dehydrateStateUsing(fn ($state) => $state ? $state * 100 : 0),
 
                     Forms\Components\TextInput::make('price_yearly_minor')
-                        ->label('Yearly Price (piasters)')
+                        ->label('Yearly Price (EGP)')
                         ->numeric()
-                        ->required(),
+                        ->required()
+                        ->formatStateUsing(fn ($state) => $state ? $state / 100 : null)
+                        ->dehydrateStateUsing(fn ($state) => $state ? $state * 100 : 0),
 
                     Forms\Components\TextInput::make('trial_days')
                         ->numeric()
@@ -87,20 +90,17 @@ class SubscriptionPlanResource extends Resource
                                         Forms\Components\Grid::make(3)
                                             ->schema([
                                                 Forms\Components\TextInput::make("prices.{$code}.monthly")
-                                                    ->label('Monthly (minor units)')
+                                                    ->label("Monthly ({$info['currency']})")
                                                     ->numeric()
                                                     ->placeholder('Use default'),
 
                                                 Forms\Components\TextInput::make("prices.{$code}.yearly")
-                                                    ->label('Yearly (minor units)')
+                                                    ->label("Yearly ({$info['currency']})")
                                                     ->numeric()
                                                     ->placeholder('Use default'),
 
-                                                Forms\Components\TextInput::make("prices.{$code}.currency")
-                                                    ->label('Currency')
-                                                    ->default($info['currency'])
-                                                    ->disabled()
-                                                    ->dehydrated(),
+                                                Forms\Components\Hidden::make("prices.{$code}.currency")
+                                                    ->default($info['currency']),
                                             ]),
                                     ]);
                             })->toArray()
