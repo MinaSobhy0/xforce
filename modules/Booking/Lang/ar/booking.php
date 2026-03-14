@@ -86,6 +86,9 @@ return [
         'notes' => 'ملاحظات',
         'source' => 'مصدر الحجز',
         'discount' => 'الخصم',
+        'discount_type' => 'نوع الخصم',
+        'discount_fixed' => 'مبلغ ثابت',
+        'discount_percent' => 'نسبة مئوية',
         'max_discount' => 'الحد الأقصى للخصم',
         'total' => 'الإجمالي',
     ],
@@ -231,6 +234,7 @@ return [
         'branch_date_required' => 'الرجاء اختيار فرع وتاريخ أولاً',
         'service_branch_required' => 'الرجاء اختيار خدمة وفرع أولاً',
         'discount_exceeds_max' => 'لا يمكن أن يتجاوز الخصم :max% (:amount)',
+        'discount_percent_exceeds_max' => 'لا يمكن أن يتجاوز الخصم :max%',
     ],
 
     // Minutes

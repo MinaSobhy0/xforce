@@ -86,6 +86,9 @@ return [
         'notes' => 'Notes',
         'source' => 'Booking Source',
         'discount' => 'Discount',
+        'discount_type' => 'Discount Type',
+        'discount_fixed' => 'Fixed Amount',
+        'discount_percent' => 'Percentage',
         'max_discount' => 'Max discount',
         'total' => 'Total',
     ],
@@ -231,6 +234,7 @@ return [
         'branch_date_required' => 'Please select a branch and date first',
         'service_branch_required' => 'Please select a service and branch first',
         'discount_exceeds_max' => 'Discount cannot exceed :max% (:amount)',
+        'discount_percent_exceeds_max' => 'Discount cannot exceed :max%',
     ],
 
     // Minutes
