@@ -40,7 +40,7 @@ class MyInvoiceResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('invoice_number')
+                Tables\Columns\TextColumn::make('number')
                     ->label('Invoice #')
                     ->searchable()
                     ->sortable(),
@@ -52,9 +52,9 @@ class MyInvoiceResource extends Resource
                     )
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('amount_minor')
+                Tables\Columns\TextColumn::make('total_minor')
                     ->label('Amount')
-                    ->formatStateUsing(fn($state) => 'EGP ' . number_format($state / 100, 2))
+                    ->money('EGP', divideBy: 100)
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('status')

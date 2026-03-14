@@ -28,13 +28,13 @@ class RecentInvoicesWidget extends BaseWidget
                     ->limit(5)
             )
             ->columns([
-                Tables\Columns\TextColumn::make('invoice_number')
+                Tables\Columns\TextColumn::make('number')
                     ->label('Invoice #')
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('amount_minor')
+                Tables\Columns\TextColumn::make('total_minor')
                     ->label('Amount')
-                    ->formatStateUsing(fn($state) => 'EGP ' . number_format($state / 100, 2)),
+                    ->money('EGP', divideBy: 100),
 
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
