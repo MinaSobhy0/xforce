@@ -741,6 +741,48 @@ class Tenant extends Model
         });
     }
 
+    /**
+     * Country to currency mapping.
+     */
+    public const COUNTRY_CURRENCIES = [
+        'EG' => 'EGP',
+        'SA' => 'SAR',
+        'AE' => 'AED',
+        'KW' => 'KWD',
+        'QA' => 'QAR',
+        'BH' => 'BHD',
+        'OM' => 'OMR',
+        'JO' => 'JOD',
+        'LB' => 'USD',
+    ];
+
+    /**
+     * Get the currency code for this tenant based on their country.
+     */
+    public function getCurrency(): string
+    {
+        return self::COUNTRY_CURRENCIES[$this->country] ?? 'EGP';
+    }
+
+    /**
+     * Get the country name for this tenant.
+     */
+    public function getCountryName(): string
+    {
+        return match ($this->country) {
+            'EG' => 'Egypt',
+            'SA' => 'Saudi Arabia',
+            'AE' => 'UAE',
+            'KW' => 'Kuwait',
+            'QA' => 'Qatar',
+            'BH' => 'Bahrain',
+            'OM' => 'Oman',
+            'JO' => 'Jordan',
+            'LB' => 'Lebanon',
+            default => $this->country ?? 'Unknown',
+        };
+    }
+
     public function getDisplayName(): string
     {
         return $this->name;

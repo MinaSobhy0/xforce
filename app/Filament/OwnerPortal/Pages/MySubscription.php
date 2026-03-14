@@ -77,6 +77,7 @@ class MySubscription extends Page
                 ->form(function () {
                     $tenant = Auth::user()->tenant;
                     $pricePerUser = $tenant?->getExtraResourcePrice('user') ?? 50;
+                    $currency = $tenant?->getCurrency() ?? 'EGP';
                     return [
                         TextInput::make('additional_users')
                             ->label('Number of Additional Users')
@@ -85,7 +86,7 @@ class MySubscription extends Page
                             ->maxValue(100)
                             ->default(1)
                             ->required()
-                            ->helperText("Each additional user costs EGP {$pricePerUser}/month"),
+                            ->helperText("Each additional user costs {$currency} {$pricePerUser}/month"),
                         Textarea::make('message')
                             ->label('Additional Message (Optional)')
                             ->placeholder('Any specific requirements...'),
@@ -95,13 +96,14 @@ class MySubscription extends Page
                     $tenant = Auth::user()->tenant;
                     $count = $data['additional_users'];
                     $pricePerUser = $tenant->getExtraResourcePrice('user');
+                    $currency = $tenant->getCurrency();
                     $totalCost = $count * $pricePerUser;
 
                     SupportTicket::create([
                         'tenant_id' => $tenant->id,
                         'ticket_number' => 'TKT-' . strtoupper(uniqid()),
                         'subject' => "Request for {$count} Additional User(s)",
-                        'description' => "Clinic: {$tenant->name}\n\nRequested Additional Users: {$count}\nPrice per User: EGP {$pricePerUser}/month\nEstimated Total: EGP " . number_format($totalCost) . "/month\n\nMessage: " . ($data['message'] ?? 'No additional message'),
+                        'description' => "Clinic: {$tenant->name}\nCountry: {$tenant->country}\n\nRequested Additional Users: {$count}\nPrice per User: {$currency} {$pricePerUser}/month\nEstimated Total: {$currency} " . number_format($totalCost) . "/month\n\nMessage: " . ($data['message'] ?? 'No additional message'),
                         'category' => 'billing',
                         'priority' => 'normal',
                         'status' => 'open',
@@ -156,29 +158,43 @@ class MySubscription extends Page
                 ->label('Request Add-On')
                 ->icon('heroicon-o-plus-circle')
                 ->color('gray')
-                ->form([
-                    CheckboxList::make('requested_addons')
-                        ->label('Select Add-Ons')
-                        ->options(
-                            AddOn::whereRaw('is_active = true')
-                                ->get()
-                                ->mapWithKeys(fn($addon) => [
-                                    $addon->id => $addon->name . ' - EGP ' . number_format($addon->price_monthly_minor / 100) . '/mo'
-                                ])
-                        )
-                        ->required(),
-                    Textarea::make('message')
-                        ->label('Additional Message (Optional)'),
-                ])
+                ->form(function () {
+                    $tenant = Auth::user()->tenant;
+                    $country = $tenant?->country ?? 'EG';
+
+                    return [
+                        CheckboxList::make('requested_addons')
+                            ->label('Select Add-Ons')
+                            ->options(
+                                AddOn::whereRaw('is_active = true')
+                                    ->get()
+                                    ->mapWithKeys(fn($addon) => [
+                                        $addon->id => $addon->name . ' - ' . $addon->getFormattedPriceForCountry($country) . '/mo'
+                                    ])
+                            )
+                            ->required(),
+                        Textarea::make('message')
+                            ->label('Additional Message (Optional)'),
+                    ];
+                })
                 ->action(function (array $data) {
                     $tenant = Auth::user()->tenant;
-                    $addons = AddOn::whereIn('id', $data['requested_addons'])->pluck('name')->join(', ');
+                    $country = $tenant->country ?? 'EG';
+                    $currency = $tenant->getCurrency();
+
+                    $addonsData = AddOn::whereIn('id', $data['requested_addons'])->get();
+                    $addonsList = $addonsData->map(function ($addon) use ($country) {
+                        $price = $addon->getPriceForCountry($country);
+                        return "- {$addon->name}: {$price['currency']} " . number_format($price['amount'], 2) . "/month";
+                    })->join("\n");
+
+                    $totalMonthly = $addonsData->sum(fn ($addon) => $addon->getPriceForCountry($country)['amount']);
 
                     SupportTicket::create([
                         'tenant_id' => $tenant->id,
                         'ticket_number' => 'TKT-' . strtoupper(uniqid()),
-                        'subject' => 'Add-On Request: ' . $addons,
-                        'description' => "Clinic: {$tenant->name}\n\nRequested Add-Ons: {$addons}\n\nMessage: " . ($data['message'] ?? 'No additional message'),
+                        'subject' => 'Add-On Request: ' . $addonsData->pluck('name')->join(', '),
+                        'description' => "Clinic: {$tenant->name}\nCountry: {$country}\n\nRequested Add-Ons:\n{$addonsList}\n\nEstimated Total: {$currency} " . number_format($totalMonthly, 2) . "/month\n\nMessage: " . ($data['message'] ?? 'No additional message'),
                         'category' => 'billing',
                         'priority' => 'normal',
                         'status' => 'open',
