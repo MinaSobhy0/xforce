@@ -16,6 +16,9 @@ class AuthServiceProvider extends ServiceProvider
         $this->registerTranslations();
         $this->registerViews();
         $this->loadMigrationsFrom(module_path($this->moduleName, 'Database/Migrations'));
+
+        // Register observers
+        \Modules\Auth\Models\User::observe(\Modules\Auth\Observers\UserLimitObserver::class);
     }
 
     protected function registerTranslations(): void

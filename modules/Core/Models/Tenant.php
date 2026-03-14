@@ -54,6 +54,8 @@ class Tenant extends Model
         'extra_branches',
         'extra_patients',
         'extra_storage_mb',
+        'users_overage_at',
+        'users_overage_notified',
         'timezone',
         'locale',
         'currency',
@@ -89,6 +91,8 @@ class Tenant extends Model
         'extra_branches' => 'integer',
         'extra_patients' => 'integer',
         'extra_storage_mb' => 'integer',
+        'users_overage_at' => 'datetime',
+        'users_overage_notified' => 'boolean',
         'tax_rate' => 'decimal:4',
         'meta' => 'array',
         'status' => TenantStatus::class,
@@ -655,6 +659,54 @@ class Tenant extends Model
 
         $current = $this->usage->branches ?? 0;
         return $current < $limit;
+    }
+
+    /**
+     * Check if tenant is in user overage state.
+     */
+    public function isInUserOverage(): bool
+    {
+        return $this->users_overage_at !== null;
+    }
+
+    /**
+     * Get remaining days in grace period for user overage.
+     * Returns null if not in overage, 0 or negative if expired.
+     */
+    public function getUserOverageGraceDaysRemaining(): ?int
+    {
+        if (!$this->users_overage_at) {
+            return null;
+        }
+
+        $gracePeriodEnds = $this->users_overage_at->addDays(14);
+        return (int) now()->diffInDays($gracePeriodEnds, false);
+    }
+
+    /**
+     * Check if user overage grace period has expired.
+     */
+    public function isUserOverageGraceExpired(): bool
+    {
+        if (!$this->users_overage_at) {
+            return false;
+        }
+
+        return now()->greaterThan($this->users_overage_at->addDays(14));
+    }
+
+    /**
+     * Get the user overage count (how many users over limit).
+     */
+    public function getUserOverageCount(): int
+    {
+        $limit = $this->getEffectiveLimit('users');
+        if ($limit === null) {
+            return 0;
+        }
+
+        $current = $this->usage->users ?? 0;
+        return max(0, $current - $limit);
     }
 
     public function getRemainingStorage(): int

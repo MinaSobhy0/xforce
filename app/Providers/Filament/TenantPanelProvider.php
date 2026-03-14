@@ -175,6 +175,12 @@ class TenantPanelProvider extends PanelProvider
                 fn (): View => view('filament.hooks.branch-switcher')
             )
 
+            // User limit warning banner
+            ->renderHook(
+                PanelsRenderHook::BODY_START,
+                fn (): View => view('filament.hooks.user-limit-banner')
+            )
+
             // Custom sidebar theme styles
             ->renderHook(
                 PanelsRenderHook::STYLES_AFTER,
