@@ -12,6 +12,7 @@ use App\Models\SubscriptionPlan;
 use App\Models\AddOn;
 use App\Models\SupportTicket;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\Url;
 
 class MySubscription extends Page
 {
@@ -24,6 +25,18 @@ class MySubscription extends Page
     protected static ?string $title = 'My Subscription';
 
     protected static string $view = 'filament.owner-portal.pages.my-subscription';
+
+    #[Url]
+    public ?string $action = null;
+
+    public function mount(): void
+    {
+        // Auto-trigger action from URL parameter
+        if ($this->action) {
+            $this->mountAction($this->action);
+            $this->action = null;
+        }
+    }
 
     public function getSubscriptionData(): array
     {

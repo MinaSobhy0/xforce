@@ -52,7 +52,7 @@
                     <x-heroicon-o-information-circle class="w-5 h-5 text-blue-500" />
                     <p class="text-sm text-blue-700 dark:text-blue-300">
                         Your trial ends on <strong>{{ $data['trial_ends_at'] }}</strong>.
-                        <a href="{{ route('filament.admin.pages.my-subscription') }}" class="underline font-medium">Upgrade now</a> to continue using all features.
+                        <a href="{{ route('filament.admin.pages.my-subscription') }}?action=requestUpgrade" class="underline font-medium">Upgrade now</a> to continue using all features.
                     </p>
                 </div>
             </div>
