@@ -66,23 +66,8 @@ class AddOnResource extends Resource
                     ])
                     ->columns(2),
 
-                Forms\Components\Section::make('Pricing')
+                Forms\Components\Section::make('Billing Settings')
                     ->schema([
-                        Forms\Components\TextInput::make('monthly_price')
-                            ->label('Monthly Price (EGP)')
-                            ->numeric()
-                            ->prefix('EGP')
-                            ->required()
-                            ->default(0),
-
-                        Forms\Components\TextInput::make('yearly_price')
-                            ->label('Yearly Price (EGP)')
-                            ->numeric()
-                            ->prefix('EGP')
-                            ->required()
-                            ->default(0)
-                            ->helperText('Usually 10-20% discount from monthly * 12'),
-
                         Forms\Components\Toggle::make('is_recurring')
                             ->label('Recurring billing')
                             ->default(true)
@@ -97,6 +82,150 @@ class AddOnResource extends Resource
                             ->default('monthly'),
                     ])
                     ->columns(2),
+
+                Forms\Components\Section::make('Country Pricing')
+                    ->description('Set prices for each country. Leave empty to use Egypt (EGP) price as fallback.')
+                    ->schema([
+                        Forms\Components\Tabs::make('Country Prices')
+                            ->tabs([
+                                Forms\Components\Tabs\Tab::make('Egypt (EGP)')
+                                    ->schema([
+                                        Forms\Components\TextInput::make('prices.EG.monthly')
+                                            ->label('Monthly')
+                                            ->numeric()
+                                            ->prefix('EGP')
+                                            ->required()
+                                            ->default(0),
+                                        Forms\Components\TextInput::make('prices.EG.yearly')
+                                            ->label('Yearly')
+                                            ->numeric()
+                                            ->prefix('EGP')
+                                            ->required()
+                                            ->default(0),
+                                        Forms\Components\Hidden::make('prices.EG.currency')->default('EGP'),
+                                    ])
+                                    ->columns(2),
+
+                                Forms\Components\Tabs\Tab::make('Saudi Arabia (SAR)')
+                                    ->schema([
+                                        Forms\Components\TextInput::make('prices.SA.monthly')
+                                            ->label('Monthly')
+                                            ->numeric()
+                                            ->prefix('SAR'),
+                                        Forms\Components\TextInput::make('prices.SA.yearly')
+                                            ->label('Yearly')
+                                            ->numeric()
+                                            ->prefix('SAR'),
+                                        Forms\Components\Hidden::make('prices.SA.currency')->default('SAR'),
+                                    ])
+                                    ->columns(2),
+
+                                Forms\Components\Tabs\Tab::make('UAE (AED)')
+                                    ->schema([
+                                        Forms\Components\TextInput::make('prices.AE.monthly')
+                                            ->label('Monthly')
+                                            ->numeric()
+                                            ->prefix('AED'),
+                                        Forms\Components\TextInput::make('prices.AE.yearly')
+                                            ->label('Yearly')
+                                            ->numeric()
+                                            ->prefix('AED'),
+                                        Forms\Components\Hidden::make('prices.AE.currency')->default('AED'),
+                                    ])
+                                    ->columns(2),
+
+                                Forms\Components\Tabs\Tab::make('Kuwait (KWD)')
+                                    ->schema([
+                                        Forms\Components\TextInput::make('prices.KW.monthly')
+                                            ->label('Monthly')
+                                            ->numeric()
+                                            ->prefix('KWD'),
+                                        Forms\Components\TextInput::make('prices.KW.yearly')
+                                            ->label('Yearly')
+                                            ->numeric()
+                                            ->prefix('KWD'),
+                                        Forms\Components\Hidden::make('prices.KW.currency')->default('KWD'),
+                                    ])
+                                    ->columns(2),
+
+                                Forms\Components\Tabs\Tab::make('Qatar (QAR)')
+                                    ->schema([
+                                        Forms\Components\TextInput::make('prices.QA.monthly')
+                                            ->label('Monthly')
+                                            ->numeric()
+                                            ->prefix('QAR'),
+                                        Forms\Components\TextInput::make('prices.QA.yearly')
+                                            ->label('Yearly')
+                                            ->numeric()
+                                            ->prefix('QAR'),
+                                        Forms\Components\Hidden::make('prices.QA.currency')->default('QAR'),
+                                    ])
+                                    ->columns(2),
+
+                                Forms\Components\Tabs\Tab::make('Bahrain (BHD)')
+                                    ->schema([
+                                        Forms\Components\TextInput::make('prices.BH.monthly')
+                                            ->label('Monthly')
+                                            ->numeric()
+                                            ->prefix('BHD'),
+                                        Forms\Components\TextInput::make('prices.BH.yearly')
+                                            ->label('Yearly')
+                                            ->numeric()
+                                            ->prefix('BHD'),
+                                        Forms\Components\Hidden::make('prices.BH.currency')->default('BHD'),
+                                    ])
+                                    ->columns(2),
+
+                                Forms\Components\Tabs\Tab::make('Oman (OMR)')
+                                    ->schema([
+                                        Forms\Components\TextInput::make('prices.OM.monthly')
+                                            ->label('Monthly')
+                                            ->numeric()
+                                            ->prefix('OMR'),
+                                        Forms\Components\TextInput::make('prices.OM.yearly')
+                                            ->label('Yearly')
+                                            ->numeric()
+                                            ->prefix('OMR'),
+                                        Forms\Components\Hidden::make('prices.OM.currency')->default('OMR'),
+                                    ])
+                                    ->columns(2),
+
+                                Forms\Components\Tabs\Tab::make('Jordan (JOD)')
+                                    ->schema([
+                                        Forms\Components\TextInput::make('prices.JO.monthly')
+                                            ->label('Monthly')
+                                            ->numeric()
+                                            ->prefix('JOD'),
+                                        Forms\Components\TextInput::make('prices.JO.yearly')
+                                            ->label('Yearly')
+                                            ->numeric()
+                                            ->prefix('JOD'),
+                                        Forms\Components\Hidden::make('prices.JO.currency')->default('JOD'),
+                                    ])
+                                    ->columns(2),
+
+                                Forms\Components\Tabs\Tab::make('Lebanon (USD)')
+                                    ->schema([
+                                        Forms\Components\TextInput::make('prices.LB.monthly')
+                                            ->label('Monthly')
+                                            ->numeric()
+                                            ->prefix('USD'),
+                                        Forms\Components\TextInput::make('prices.LB.yearly')
+                                            ->label('Yearly')
+                                            ->numeric()
+                                            ->prefix('USD'),
+                                        Forms\Components\Hidden::make('prices.LB.currency')->default('USD'),
+                                    ])
+                                    ->columns(2),
+                            ])
+                            ->columnSpanFull(),
+                    ]),
+
+                // Keep legacy fields for backwards compatibility
+                Forms\Components\Hidden::make('monthly_price')
+                    ->dehydrateStateUsing(fn ($state, Forms\Get $get) => $get('prices.EG.monthly') ?? $state ?? 0),
+                Forms\Components\Hidden::make('yearly_price')
+                    ->dehydrateStateUsing(fn ($state, Forms\Get $get) => $get('prices.EG.yearly') ?? $state ?? 0),
 
                 Forms\Components\Section::make('Features & Limits')
                     ->schema([
@@ -130,15 +259,21 @@ class AddOnResource extends Resource
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('monthly_price')
-                    ->label('Monthly')
+                Tables\Columns\TextColumn::make('prices.EG.monthly')
+                    ->label('Monthly (EGP)')
                     ->money('EGP')
-                    ->sortable(),
+                    ->sortable(query: fn ($query, $direction) => $query->orderByRaw("(prices->>'EG'->>'monthly')::numeric {$direction}")),
 
-                Tables\Columns\TextColumn::make('yearly_price')
-                    ->label('Yearly')
+                Tables\Columns\TextColumn::make('prices.EG.yearly')
+                    ->label('Yearly (EGP)')
                     ->money('EGP')
-                    ->sortable(),
+                    ->sortable(query: fn ($query, $direction) => $query->orderByRaw("(prices->>'EG'->>'yearly')::numeric {$direction}")),
+
+                Tables\Columns\TextColumn::make('prices')
+                    ->label('Countries')
+                    ->badge()
+                    ->color('info')
+                    ->formatStateUsing(fn ($state) => is_array($state) ? count($state) . ' countries' : '0'),
 
                 Tables\Columns\TextColumn::make('active_subscribers_count')
                     ->label('Subscribers')

@@ -26,6 +26,7 @@ class AddOn extends Model
         'icon',
         'monthly_price',
         'yearly_price',
+        'prices',
         'is_active',
         'is_recurring',
         'billing_interval',
@@ -37,11 +38,27 @@ class AddOn extends Model
     protected $casts = [
         'monthly_price' => 'decimal:2',
         'yearly_price' => 'decimal:2',
+        'prices' => 'array',
         'is_active' => 'boolean',
         'is_recurring' => 'boolean',
         'features' => 'array',
         'limits' => 'array',
         'sort_order' => 'integer',
+    ];
+
+    /**
+     * Supported countries with their currencies.
+     */
+    public const COUNTRIES = [
+        'EG' => ['name' => 'Egypt', 'currency' => 'EGP'],
+        'SA' => ['name' => 'Saudi Arabia', 'currency' => 'SAR'],
+        'AE' => ['name' => 'UAE', 'currency' => 'AED'],
+        'KW' => ['name' => 'Kuwait', 'currency' => 'KWD'],
+        'QA' => ['name' => 'Qatar', 'currency' => 'QAR'],
+        'BH' => ['name' => 'Bahrain', 'currency' => 'BHD'],
+        'OM' => ['name' => 'Oman', 'currency' => 'OMR'],
+        'JO' => ['name' => 'Jordan', 'currency' => 'JOD'],
+        'LB' => ['name' => 'Lebanon', 'currency' => 'USD'],
     ];
 
     protected function getPostgresBooleanFields(): array
@@ -93,5 +110,53 @@ class AddOn extends Model
         return app()->getLocale() === 'ar' && $this->description_ar
             ? $this->description_ar
             : $this->description;
+    }
+
+    /**
+     * Get price for a specific country.
+     */
+    public function getPriceForCountry(string $countryCode, string $interval = 'monthly'): ?array
+    {
+        $countryCode = strtoupper($countryCode);
+        $prices = $this->prices ?? [];
+
+        if (isset($prices[$countryCode])) {
+            return [
+                'amount' => $prices[$countryCode][$interval] ?? $prices[$countryCode]['monthly'] ?? 0,
+                'currency' => $prices[$countryCode]['currency'] ?? self::COUNTRIES[$countryCode]['currency'] ?? 'USD',
+            ];
+        }
+
+        // Fallback to default prices (EG)
+        if (isset($prices['EG'])) {
+            return [
+                'amount' => $prices['EG'][$interval] ?? $prices['EG']['monthly'] ?? 0,
+                'currency' => 'EGP',
+            ];
+        }
+
+        // Fallback to legacy columns
+        return [
+            'amount' => $interval === 'yearly' ? $this->yearly_price : $this->monthly_price,
+            'currency' => 'EGP',
+        ];
+    }
+
+    /**
+     * Get formatted price for a country.
+     */
+    public function getFormattedPriceForCountry(string $countryCode, string $interval = 'monthly'): string
+    {
+        $price = $this->getPriceForCountry($countryCode, $interval);
+        return $price['currency'] . ' ' . number_format($price['amount'], 2);
+    }
+
+    /**
+     * Check if add-on has pricing for a specific country.
+     */
+    public function hasPriceForCountry(string $countryCode): bool
+    {
+        $countryCode = strtoupper($countryCode);
+        return isset($this->prices[$countryCode]);
     }
 }

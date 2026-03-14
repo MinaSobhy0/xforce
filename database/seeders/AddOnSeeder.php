@@ -7,6 +7,34 @@ use Illuminate\Database\Seeder;
 
 class AddOnSeeder extends Seeder
 {
+    /**
+     * Price multipliers relative to EGP base price.
+     * Based on approximate exchange rates and market conditions.
+     */
+    private const PRICE_MULTIPLIERS = [
+        'EG' => 1.0,      // Base price in EGP
+        'SA' => 0.075,    // ~1 EGP = 0.075 SAR
+        'AE' => 0.073,    // ~1 EGP = 0.073 AED
+        'KW' => 0.006,    // ~1 EGP = 0.006 KWD
+        'QA' => 0.073,    // ~1 EGP = 0.073 QAR
+        'BH' => 0.0075,   // ~1 EGP = 0.0075 BHD
+        'OM' => 0.0077,   // ~1 EGP = 0.0077 OMR
+        'JO' => 0.014,    // ~1 EGP = 0.014 JOD
+        'LB' => 0.02,     // ~1 EGP = 0.02 USD (Lebanon uses USD)
+    ];
+
+    private const CURRENCIES = [
+        'EG' => 'EGP',
+        'SA' => 'SAR',
+        'AE' => 'AED',
+        'KW' => 'KWD',
+        'QA' => 'QAR',
+        'BH' => 'BHD',
+        'OM' => 'OMR',
+        'JO' => 'JOD',
+        'LB' => 'USD',
+    ];
+
     public function run(): void
     {
         $addOns = [
@@ -17,8 +45,8 @@ class AddOnSeeder extends Seeder
                 'description' => 'Add 5 additional users to your plan',
                 'description_ar' => 'أضف 5 مستخدمين إضافيين لخطتك',
                 'icon' => 'heroicon-o-user-plus',
-                'monthly_price' => 250.00,
-                'yearly_price' => 2500.00,
+                'base_monthly' => 250,
+                'base_yearly' => 2500,
                 'is_active' => true,
                 'is_recurring' => true,
                 'billing_interval' => 'monthly',
@@ -33,8 +61,8 @@ class AddOnSeeder extends Seeder
                 'description' => 'Add 10 additional users to your plan',
                 'description_ar' => 'أضف 10 مستخدمين إضافيين لخطتك',
                 'icon' => 'heroicon-o-user-plus',
-                'monthly_price' => 450.00,
-                'yearly_price' => 4500.00,
+                'base_monthly' => 450,
+                'base_yearly' => 4500,
                 'is_active' => true,
                 'is_recurring' => true,
                 'billing_interval' => 'monthly',
@@ -49,8 +77,8 @@ class AddOnSeeder extends Seeder
                 'description' => 'Add one additional branch location',
                 'description_ar' => 'أضف فرع إضافي واحد',
                 'icon' => 'heroicon-o-building-storefront',
-                'monthly_price' => 200.00,
-                'yearly_price' => 2000.00,
+                'base_monthly' => 200,
+                'base_yearly' => 2000,
                 'is_active' => true,
                 'is_recurring' => true,
                 'billing_interval' => 'monthly',
@@ -65,8 +93,8 @@ class AddOnSeeder extends Seeder
                 'description' => 'Send appointment reminders and notifications via WhatsApp',
                 'description_ar' => 'إرسال تذكيرات المواعيد والإشعارات عبر واتساب',
                 'icon' => 'heroicon-o-chat-bubble-left-right',
-                'monthly_price' => 150.00,
-                'yearly_price' => 1500.00,
+                'base_monthly' => 150,
+                'base_yearly' => 1500,
                 'is_active' => true,
                 'is_recurring' => true,
                 'billing_interval' => 'monthly',
@@ -86,8 +114,8 @@ class AddOnSeeder extends Seeder
                 'description' => '1000 SMS messages for patient notifications',
                 'description_ar' => '1000 رسالة SMS لإشعارات المرضى',
                 'icon' => 'heroicon-o-device-phone-mobile',
-                'monthly_price' => 100.00,
-                'yearly_price' => 1000.00,
+                'base_monthly' => 100,
+                'base_yearly' => 1000,
                 'is_active' => true,
                 'is_recurring' => true,
                 'billing_interval' => 'monthly',
@@ -102,8 +130,8 @@ class AddOnSeeder extends Seeder
                 'description' => '5000 SMS messages for patient notifications',
                 'description_ar' => '5000 رسالة SMS لإشعارات المرضى',
                 'icon' => 'heroicon-o-device-phone-mobile',
-                'monthly_price' => 400.00,
-                'yearly_price' => 4000.00,
+                'base_monthly' => 400,
+                'base_yearly' => 4000,
                 'is_active' => true,
                 'is_recurring' => true,
                 'billing_interval' => 'monthly',
@@ -118,8 +146,8 @@ class AddOnSeeder extends Seeder
                 'description' => 'Detailed analytics, custom reports, and data export',
                 'description_ar' => 'تحليلات تفصيلية وتقارير مخصصة وتصدير البيانات',
                 'icon' => 'heroicon-o-chart-bar',
-                'monthly_price' => 100.00,
-                'yearly_price' => 1000.00,
+                'base_monthly' => 100,
+                'base_yearly' => 1000,
                 'is_active' => true,
                 'is_recurring' => true,
                 'billing_interval' => 'monthly',
@@ -140,8 +168,8 @@ class AddOnSeeder extends Seeder
                 'description' => 'Let patients book appointments online 24/7',
                 'description_ar' => 'اسمح للمرضى بحجز المواعيد عبر الإنترنت على مدار الساعة',
                 'icon' => 'heroicon-o-calendar-days',
-                'monthly_price' => 150.00,
-                'yearly_price' => 1500.00,
+                'base_monthly' => 150,
+                'base_yearly' => 1500,
                 'is_active' => true,
                 'is_recurring' => true,
                 'billing_interval' => 'monthly',
@@ -162,8 +190,8 @@ class AddOnSeeder extends Seeder
                 'description' => 'Give patients access to their records, appointments, and invoices',
                 'description_ar' => 'امنح المرضى الوصول إلى سجلاتهم ومواعيدهم وفواتيرهم',
                 'icon' => 'heroicon-o-user-circle',
-                'monthly_price' => 200.00,
-                'yearly_price' => 2000.00,
+                'base_monthly' => 200,
+                'base_yearly' => 2000,
                 'is_active' => true,
                 'is_recurring' => true,
                 'billing_interval' => 'monthly',
@@ -184,8 +212,8 @@ class AddOnSeeder extends Seeder
                 'description' => 'Add 10 GB of storage for photos and documents',
                 'description_ar' => 'أضف 10 جيجابايت من مساحة التخزين للصور والمستندات',
                 'icon' => 'heroicon-o-server-stack',
-                'monthly_price' => 50.00,
-                'yearly_price' => 500.00,
+                'base_monthly' => 50,
+                'base_yearly' => 500,
                 'is_active' => true,
                 'is_recurring' => true,
                 'billing_interval' => 'monthly',
@@ -200,8 +228,8 @@ class AddOnSeeder extends Seeder
                 'description' => 'Email campaigns, promotions, and loyalty programs',
                 'description_ar' => 'حملات البريد الإلكتروني والعروض الترويجية وبرامج الولاء',
                 'icon' => 'heroicon-o-megaphone',
-                'monthly_price' => 150.00,
-                'yearly_price' => 1500.00,
+                'base_monthly' => 150,
+                'base_yearly' => 1500,
                 'is_active' => true,
                 'is_recurring' => true,
                 'billing_interval' => 'monthly',
@@ -222,8 +250,8 @@ class AddOnSeeder extends Seeder
                 'description' => 'Full API access for custom integrations',
                 'description_ar' => 'وصول كامل لواجهة البرمجة للتكاملات المخصصة',
                 'icon' => 'heroicon-o-code-bracket',
-                'monthly_price' => 300.00,
-                'yearly_price' => 3000.00,
+                'base_monthly' => 300,
+                'base_yearly' => 3000,
                 'is_active' => true,
                 'is_recurring' => true,
                 'billing_interval' => 'monthly',
@@ -240,12 +268,48 @@ class AddOnSeeder extends Seeder
         ];
 
         foreach ($addOns as $addOn) {
+            // Generate country-specific prices
+            $prices = $this->generateCountryPrices($addOn['base_monthly'], $addOn['base_yearly']);
+
             AddOn::updateOrCreate(
                 ['code' => $addOn['code']],
-                $addOn
+                [
+                    'name' => $addOn['name'],
+                    'name_ar' => $addOn['name_ar'],
+                    'description' => $addOn['description'],
+                    'description_ar' => $addOn['description_ar'],
+                    'icon' => $addOn['icon'],
+                    'monthly_price' => $addOn['base_monthly'], // Keep legacy for backwards compatibility
+                    'yearly_price' => $addOn['base_yearly'],
+                    'prices' => $prices,
+                    'is_active' => $addOn['is_active'],
+                    'is_recurring' => $addOn['is_recurring'],
+                    'billing_interval' => $addOn['billing_interval'],
+                    'features' => $addOn['features'],
+                    'limits' => $addOn['limits'],
+                    'sort_order' => $addOn['sort_order'],
+                ]
             );
         }
 
-        $this->command->info('Add-ons seeded successfully: ' . count($addOns) . ' add-ons created/updated.');
+        $this->command->info('Add-ons seeded successfully: ' . count($addOns) . ' add-ons created/updated with country-specific pricing.');
+    }
+
+    /**
+     * Generate prices for all supported countries based on EGP base price.
+     */
+    private function generateCountryPrices(float $baseMonthly, float $baseYearly): array
+    {
+        $prices = [];
+
+        foreach (self::PRICE_MULTIPLIERS as $country => $multiplier) {
+            $prices[$country] = [
+                'monthly' => round($baseMonthly * $multiplier, 2),
+                'yearly' => round($baseYearly * $multiplier, 2),
+                'currency' => self::CURRENCIES[$country],
+            ];
+        }
+
+        return $prices;
     }
 }
