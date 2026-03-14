@@ -2173,18 +2173,20 @@ class CreateBooking extends Page implements HasForms
                 $packageSubscriptionId = $item['from_package'] ?? ($newPackageSubscriptions[$item['new_package_id']] ?? null);
 
                 // Get discount from form's services array (match by service_id)
+                // Always calculate and store as fixed amount for consistency
                 $discountMinor = 0;
-                $discountType = Appointment::DISCOUNT_FIXED;
+                $priceMinor = $service?->base_price_minor ?? 0;
                 if (! empty($data['services'])) {
                     foreach ($data['services'] as $formService) {
                         if (($formService['service_id'] ?? null) == $item['service_id']) {
                             $discountType = $formService['discount_type'] ?? Appointment::DISCOUNT_FIXED;
 
                             if ($discountType === Appointment::DISCOUNT_PERCENT) {
-                                // For percentage, store the percentage value directly (e.g., 10 for 10%)
-                                $discountMinor = (int) ((float) ($formService['discount_percent'] ?? 0));
+                                // Calculate discount amount from percentage
+                                $percent = (float) ($formService['discount_percent'] ?? 0);
+                                $discountMinor = (int) round($priceMinor * $percent / 100);
                             } else {
-                                // For fixed, convert from EGP to minor units (piastres)
+                                // Convert from EGP to minor units (piastres)
                                 $discountMinor = (int) (((float) ($formService['discount_minor'] ?? 0)) * 100);
                             }
                             break;
@@ -2204,10 +2206,10 @@ class CreateBooking extends Page implements HasForms
                     'end_time' => $item['end_time'],
                     'duration_minutes' => $item['duration'],
                     // Package sessions have price 0 since they're prepaid
-                    'price_minor' => $isPackageSession ? 0 : ($service?->base_price_minor ?? 0),
-                    // Discount (only for non-package services)
+                    'price_minor' => $isPackageSession ? 0 : $priceMinor,
+                    // Discount (only for non-package services) - always stored as fixed amount
                     'discount_minor' => $isPackageSession ? 0 : $discountMinor,
-                    'discount_type' => $isPackageSession ? Appointment::DISCOUNT_FIXED : $discountType,
+                    'discount_type' => Appointment::DISCOUNT_FIXED,
                     'status' => Appointment::STATUS_SCHEDULED,
                     'source' => $data['source'] ?? Appointment::SOURCE_PHONE,
                     'notes' => $data['notes'] ?? null,
@@ -2461,15 +2463,19 @@ class CreateBooking extends Page implements HasForms
 
                 $duration = $serviceData['duration_override'] ?? $service->duration_minutes ?? 30;
 
-                // Get price and discount
+                // Get price and discount - always calculate and store as fixed amount
                 $priceMinor = (int) ((float) ($serviceData['price_minor'] ?? 0) * 100);
+                if (!$priceMinor) {
+                    $priceMinor = $service->base_price_minor ?? 0;
+                }
                 $discountType = $serviceData['discount_type'] ?? Appointment::DISCOUNT_FIXED;
 
                 if ($discountType === Appointment::DISCOUNT_PERCENT) {
-                    // For percentage, store the percentage value directly (e.g., 10 for 10%)
-                    $discountMinor = (int) ((float) ($serviceData['discount_percent'] ?? 0));
+                    // Calculate discount amount from percentage
+                    $percent = (float) ($serviceData['discount_percent'] ?? 0);
+                    $discountMinor = (int) round($priceMinor * $percent / 100);
                 } else {
-                    // For fixed, convert from EGP to minor units (piastres)
+                    // Convert from EGP to minor units (piastres)
                     $discountMinor = (int) ((float) ($serviceData['discount_minor'] ?? 0) * 100);
                 }
 
@@ -2488,9 +2494,9 @@ class CreateBooking extends Page implements HasForms
                     'start_time' => null, // No time slot for unscheduled appointments
                     'end_time' => null,
                     'duration_minutes' => $duration,
-                    'price_minor' => $isPackageSession ? 0 : ($priceMinor ?: $service->base_price_minor ?? 0),
+                    'price_minor' => $isPackageSession ? 0 : $priceMinor,
                     'discount_minor' => $isPackageSession ? 0 : $discountMinor,
-                    'discount_type' => $isPackageSession ? Appointment::DISCOUNT_FIXED : $discountType,
+                    'discount_type' => Appointment::DISCOUNT_FIXED,
                     'status' => Appointment::STATUS_SCHEDULED,
                     'source' => $source,
                     'notes' => $notes,
