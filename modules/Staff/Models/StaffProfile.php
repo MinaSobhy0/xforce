@@ -16,11 +16,33 @@ use Modules\Payroll\Models\EmployeeSalaryStructure;
 use Spatie\Translatable\HasTranslations;
 use XLinic\Framework\Core\Model\BaseModel;
 use XLinic\Framework\Core\Model\Traits\HasActivity;
+use XLinic\Framework\Core\Model\Traits\HasSequence;
 
 class StaffProfile extends BaseModel
 {
     use HasTranslations;
     use HasActivity;
+    use HasSequence;
+
+    /**
+     * The column that stores the sequence number.
+     */
+    protected string $sequenceColumn = 'employee_number';
+
+    /**
+     * The sequence code used for generating numbers.
+     */
+    protected string $sequenceCode = 'EMP';
+
+    /**
+     * The sequence prefix (e.g., EMP-000001).
+     */
+    protected string $sequencePrefix = 'EMP';
+
+    /**
+     * The sequence format.
+     */
+    protected string $sequenceFormat = '{prefix}-{number:6}';
 
     protected $table = 'staff_profiles';
 

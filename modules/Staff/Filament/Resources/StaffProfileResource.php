@@ -86,7 +86,10 @@ class StaffProfileResource extends Resource
                             ->schema([
                                 Forms\Components\TextInput::make('employee_number')
                                     ->label(__('staff::staff.fields.employee_number'))
-                                    ->maxLength(30),
+                                    ->maxLength(30)
+                                    ->disabled(fn (?StaffProfile $record) => $record === null)
+                                    ->placeholder(fn (?StaffProfile $record) => $record === null ? __('staff::staff.fields.auto_generated') : null)
+                                    ->helperText(fn (?StaffProfile $record) => $record === null ? __('staff::staff.fields.employee_number_auto') : null),
 
                                 Forms\Components\TextInput::make('job_title')
                                     ->label(__('staff::staff.fields.job_title'))

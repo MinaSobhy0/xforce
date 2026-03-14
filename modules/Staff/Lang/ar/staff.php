@@ -44,6 +44,8 @@ return [
         'user' => 'المستخدم',
         'branch' => 'الفرع',
         'employee_number' => 'رقم الموظف',
+        'employee_number_auto' => 'سيتم إنشاؤه تلقائياً عند الحفظ',
+        'auto_generated' => 'تلقائي',
         'job_title' => 'المسمى الوظيفي',
         'bio' => 'السيرة الذاتية',
         'specializations' => 'التخصصات',

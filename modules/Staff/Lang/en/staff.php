@@ -44,6 +44,8 @@ return [
         'user' => 'User',
         'branch' => 'Branch',
         'employee_number' => 'Employee Number',
+        'employee_number_auto' => 'Will be auto-generated on save',
+        'auto_generated' => 'Auto-generated',
         'job_title' => 'Job Title',
         'bio' => 'Biography',
         'specializations' => 'Specializations',
