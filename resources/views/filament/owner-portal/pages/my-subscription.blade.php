@@ -5,6 +5,8 @@
         $plan = $data['plan'];
         $addOns = $data['add_ons'];
         $usage = $data['usage'];
+        $country = $tenant?->country ?? 'EG';
+        $currency = $tenant?->getCurrency() ?? 'EGP';
     @endphp
 
     <div class="space-y-6">
@@ -24,7 +26,7 @@
                     @if($plan)
                         <div class="mt-4">
                             <span class="text-3xl font-bold text-primary-600">
-                                EGP {{ number_format(($plan->price_monthly_minor ?? 0) / 100) }}
+                                {{ $plan->getFormattedPriceForCountry($country) }}
                             </span>
                             <span class="text-gray-500">/month</span>
                         </div>
@@ -105,7 +107,7 @@
                                 <p class="text-sm text-gray-500">{{ $addon->description }}</p>
                             </div>
                             <span class="text-primary-600 font-medium">
-                                EGP {{ number_format($addon->price_monthly_minor / 100) }}/mo
+                                {{ $addon->getFormattedPriceForCountry($country) }}/mo
                             </span>
                         </div>
                     @endforeach
@@ -135,7 +137,7 @@
                         @endif
                         <h4 class="font-bold text-gray-900 dark:text-white">{{ $availablePlan->name }}</h4>
                         <p class="text-2xl font-bold text-primary-600 mt-2">
-                            EGP {{ number_format($availablePlan->price_monthly_minor / 100) }}
+                            {{ $availablePlan->getFormattedPriceForCountry($country) }}
                             <span class="text-sm font-normal text-gray-500">/mo</span>
                         </p>
                         <ul class="mt-4 space-y-2 text-sm text-gray-600 dark:text-gray-400">

@@ -23,12 +23,28 @@ class SubscriptionPlan extends Model
 
     public array $translatable = ['name', 'description'];
 
+    /**
+     * Supported countries with their currencies.
+     */
+    public const COUNTRIES = [
+        'EG' => ['name' => 'Egypt', 'currency' => 'EGP'],
+        'SA' => ['name' => 'Saudi Arabia', 'currency' => 'SAR'],
+        'AE' => ['name' => 'UAE', 'currency' => 'AED'],
+        'KW' => ['name' => 'Kuwait', 'currency' => 'KWD'],
+        'QA' => ['name' => 'Qatar', 'currency' => 'QAR'],
+        'BH' => ['name' => 'Bahrain', 'currency' => 'BHD'],
+        'OM' => ['name' => 'Oman', 'currency' => 'OMR'],
+        'JO' => ['name' => 'Jordan', 'currency' => 'JOD'],
+        'LB' => ['name' => 'Lebanon', 'currency' => 'USD'],
+    ];
+
     protected $fillable = [
         'code',
         'name',
         'description',
         'price_monthly_minor',
         'price_yearly_minor',
+        'prices',
         'currency',
         'trial_days',
         'is_active',
@@ -70,6 +86,7 @@ class SubscriptionPlan extends Model
     protected $casts = [
         'price_monthly_minor' => 'integer',
         'price_yearly_minor' => 'integer',
+        'prices' => 'array',
         'trial_days' => 'integer',
         'is_active' => 'boolean',
         'is_featured' => 'boolean',
@@ -158,5 +175,53 @@ class SubscriptionPlan extends Model
     public function hasModule(string $moduleCode): bool
     {
         return in_array($moduleCode, $this->included_module_codes ?? []);
+    }
+
+    /**
+     * Get price for a specific country.
+     */
+    public function getPriceForCountry(string $countryCode, string $interval = 'monthly'): ?array
+    {
+        $countryCode = strtoupper($countryCode);
+        $prices = $this->prices ?? [];
+
+        if (isset($prices[$countryCode])) {
+            return [
+                'amount_minor' => $prices[$countryCode][$interval] ?? $prices[$countryCode]['monthly'] ?? 0,
+                'currency' => $prices[$countryCode]['currency'] ?? self::COUNTRIES[$countryCode]['currency'] ?? 'USD',
+            ];
+        }
+
+        // Fallback to default prices (EG)
+        if (isset($prices['EG'])) {
+            return [
+                'amount_minor' => $prices['EG'][$interval] ?? $prices['EG']['monthly'] ?? 0,
+                'currency' => 'EGP',
+            ];
+        }
+
+        // Fallback to legacy columns
+        return [
+            'amount_minor' => $interval === 'yearly' ? $this->price_yearly_minor : $this->price_monthly_minor,
+            'currency' => $this->currency ?? 'EGP',
+        ];
+    }
+
+    /**
+     * Get formatted price for a country.
+     */
+    public function getFormattedPriceForCountry(string $countryCode, string $interval = 'monthly'): string
+    {
+        $price = $this->getPriceForCountry($countryCode, $interval);
+        return $price['currency'] . ' ' . number_format($price['amount_minor'] / 100, 2);
+    }
+
+    /**
+     * Check if plan has pricing for a specific country.
+     */
+    public function hasPriceForCountry(string $countryCode): bool
+    {
+        $countryCode = strtoupper($countryCode);
+        return isset($this->prices[$countryCode]);
     }
 }

@@ -55,7 +55,8 @@ class SubscriptionPlanResource extends Resource
                         ->default(0),
                 ]),
 
-            Forms\Components\Section::make('Pricing')
+            Forms\Components\Section::make('Default Pricing (Egypt)')
+                ->description('Base prices in EGP - used as fallback when country-specific price is not set')
                 ->columns(3)
                 ->schema([
                     Forms\Components\TextInput::make('price_monthly_minor')
@@ -69,14 +70,41 @@ class SubscriptionPlanResource extends Resource
                         ->numeric()
                         ->required(),
 
-                    Forms\Components\Select::make('currency')
-                        ->options(['EGP' => 'EGP', 'SAR' => 'SAR', 'AED' => 'AED'])
-                        ->default('EGP')
-                        ->required(),
-
                     Forms\Components\TextInput::make('trial_days')
                         ->numeric()
                         ->default(14),
+                ]),
+
+            Forms\Components\Section::make('Country-Specific Pricing')
+                ->description('Set different prices for each country. Leave empty to use Egypt (EGP) price as default.')
+                ->collapsed()
+                ->schema([
+                    Forms\Components\Tabs::make('Country Prices')
+                        ->tabs(
+                            collect(SubscriptionPlan::COUNTRIES)->map(function ($info, $code) {
+                                return Forms\Components\Tabs\Tab::make($info['name'])
+                                    ->schema([
+                                        Forms\Components\Grid::make(3)
+                                            ->schema([
+                                                Forms\Components\TextInput::make("prices.{$code}.monthly")
+                                                    ->label('Monthly (minor units)')
+                                                    ->numeric()
+                                                    ->placeholder('Use default'),
+
+                                                Forms\Components\TextInput::make("prices.{$code}.yearly")
+                                                    ->label('Yearly (minor units)')
+                                                    ->numeric()
+                                                    ->placeholder('Use default'),
+
+                                                Forms\Components\TextInput::make("prices.{$code}.currency")
+                                                    ->label('Currency')
+                                                    ->default($info['currency'])
+                                                    ->disabled()
+                                                    ->dehydrated(),
+                                            ]),
+                                    ]);
+                            })->toArray()
+                        ),
                 ]),
 
             Forms\Components\Section::make('Hard Limits')

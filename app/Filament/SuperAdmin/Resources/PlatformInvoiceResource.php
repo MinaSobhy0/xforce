@@ -64,10 +64,11 @@ class PlatformInvoiceResource extends Resource
                             $currency = $tenant->getCurrency();
                             $lineItems = [];
 
-                            // Plan charge
+                            // Plan charge (country-specific)
                             $planCharge = 0;
                             if ($tenant->plan) {
-                                $planCharge = $tenant->plan->price_monthly_minor ?? 0;
+                                $planPrice = $tenant->plan->getPriceForCountry($country);
+                                $planCharge = $planPrice['amount_minor'] ?? 0;
                                 $lineItems[] = [
                                     'type' => 'plan',
                                     'description' => $tenant->plan->name . ' (Monthly)',
