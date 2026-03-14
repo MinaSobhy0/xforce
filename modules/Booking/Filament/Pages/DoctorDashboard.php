@@ -437,14 +437,11 @@ class DoctorDashboard extends Page implements HasForms
         }
 
         DB::transaction(function () use ($appointment) {
+            // Complete the appointment - this triggers AppointmentObserver which handles:
+            // - Updating treatment plan appointment status
+            // - Incrementing completed sessions
+            // - Checking if plan should auto-complete
             $appointment->complete();
-
-            // Update treatment plan progress if linked
-            if ($planAppointment = $appointment->treatmentPlanAppointment) {
-                $planAppointment->update(['status' => Appointment::STATUS_COMPLETED]);
-                $planAppointment->item->incrementCompletedSessions();
-                $planAppointment->item->treatmentPlan->checkAndMarkComplete();
-            }
         });
 
         $this->activeAppointmentId = null;

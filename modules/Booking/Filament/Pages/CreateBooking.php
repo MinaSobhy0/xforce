@@ -586,7 +586,7 @@ class CreateBooking extends Page implements HasForms
                                                                     $html .= '<svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>';
                                                                 }
                                                                 $html .= '<span class="truncate max-w-[120px]">'.e($item->service->translated_name).'</span>';
-                                                                $html .= '<span class="px-1.5 py-0.5 rounded-full text-[10px] font-semibold" style="'.$itemBadgeStyle.'">'.$item->remaining_sessions.'/'.$item->recommended_sessions.'</span>';
+                                                                $html .= '<span class="px-1.5 py-0.5 rounded-full text-[10px] font-semibold" style="'.$itemBadgeStyle.'">'.$item->completed_sessions.'/'.$item->recommended_sessions.'</span>';
                                                                 if ($scheduledDate) {
                                                                     $html .= '<span class="text-[10px] opacity-75">'.$scheduledDate.'</span>';
                                                                 } else {
@@ -679,7 +679,7 @@ class CreateBooking extends Page implements HasForms
                                                                         foreach ($livewire->bookingItems as $item) {
                                                                             if ((string) ($item['service_id'] ?? '') === (string) $serviceId) {
                                                                                 $date = Carbon::parse($item['date'])->format('M d');
-                                                                                $time = $item['start_time'];
+                                                                                $time = Carbon::parse($item['start_time'])->format('g:i A');
                                                                                 $practitioner = $item['practitioner_name'] ?? '';
 
                                                                                 return new HtmlString(
@@ -1424,15 +1424,27 @@ class CreateBooking extends Page implements HasForms
                     $serviceSourceType = $serviceSourceTypes[$serviceId] ?? null;
                     $isPackageService = $serviceSourceType === 'package' || $serviceSourceType === 'treatment_plan';
 
-                    // Get service-level package IDs
+                    // Get service-level package IDs and treatment plan item ID
                     $serviceFromPackage = null;
                     $serviceNewPackageId = null;
+                    $serviceSourceItemId = null;
+
+                    // Try to find by service_id first
                     foreach ($services as $service) {
                         if (($service['service_id'] ?? null) == $serviceId) {
                             $serviceFromPackage = $service['from_package'] ?? null;
                             $serviceNewPackageId = $service['new_package_id'] ?? null;
+                            $serviceSourceItemId = $service['source_item_id'] ?? null;
                             break;
                         }
+                    }
+
+                    // If not found and single service, use it (Select may not include service_id)
+                    if ($serviceSourceItemId === null && count($services) === 1) {
+                        $singleService = $services[0];
+                        $serviceFromPackage = $singleService['from_package'] ?? null;
+                        $serviceNewPackageId = $singleService['new_package_id'] ?? null;
+                        $serviceSourceItemId = $singleService['source_item_id'] ?? null;
                     }
 
                     // Use service-level package IDs if available
@@ -1458,7 +1470,14 @@ class CreateBooking extends Page implements HasForms
                         $slot['new_package_id'] = null;
                     }
 
-                    $slot['treatment_plan_item_id'] = $bookingType === 'treatment_plan' ? $treatmentPlanItemId : null;
+                    // Set treatment plan item ID from service source or booking type
+                    if ($serviceSourceType === 'treatment_plan' && $serviceSourceItemId) {
+                        $slot['treatment_plan_item_id'] = $serviceSourceItemId;
+                    } elseif ($bookingType === 'treatment_plan') {
+                        $slot['treatment_plan_item_id'] = $treatmentPlanItemId;
+                    } else {
+                        $slot['treatment_plan_item_id'] = null;
+                    }
                     $allSlots[] = $slot;
                 }
             }
@@ -1543,20 +1562,52 @@ class CreateBooking extends Page implements HasForms
         $slotNewPackageId = null;  // Renamed to avoid shadowing
         $treatmentPlanItemId = null;
 
-        // Check if the service is from a package (via services array)
+        // Check if the service is from a package or treatment plan (via services array)
         $services = $data['services'] ?? [];
         $serviceSourceType = null;
         $serviceFromPackage = null;
         $serviceNewPackageId = null;
+        $serviceSourceItemId = null;
+
+        // Try to find service info by service_id first
         foreach ($services as $service) {
             if (($service['service_id'] ?? null) == $serviceId) {
                 $serviceSourceType = $service['source_type'] ?? null;
                 $serviceFromPackage = $service['from_package'] ?? null;
                 $serviceNewPackageId = $service['new_package_id'] ?? null;
+                $serviceSourceItemId = $service['source_item_id'] ?? null;
                 break;
             }
         }
+
+        // If not found by service_id but there's only one service, use it
+        // (Form Select components may not include service_id in raw state)
+        if ($serviceSourceType === null && count($services) === 1) {
+            $service = $services[0];
+            $serviceSourceType = $service['source_type'] ?? null;
+            $serviceFromPackage = $service['from_package'] ?? null;
+            $serviceNewPackageId = $service['new_package_id'] ?? null;
+            $serviceSourceItemId = $service['source_item_id'] ?? null;
+        }
+
+        // Also check form-level treatment_plan_item_id as fallback
+        if ($serviceSourceItemId === null && !empty($data['treatment_plan_item_id'])) {
+            $formPlanItem = TreatmentPlanItem::find($data['treatment_plan_item_id']);
+            if ($formPlanItem && $formPlanItem->service_id == $serviceId) {
+                $serviceSourceType = 'treatment_plan';
+                $serviceSourceItemId = $formPlanItem->id;
+            }
+        }
+
         $isPackageService = $serviceSourceType === 'package';
+        $isTreatmentPlanService = $serviceSourceType === 'treatment_plan';
+
+        \Log::warning('generateSlotsForService - service source resolved', [
+            'serviceSourceType' => $serviceSourceType,
+            'serviceSourceItemId' => $serviceSourceItemId,
+            'isTreatmentPlanService' => $isTreatmentPlanService,
+            'treatment_plan_item_id_from_form' => $data['treatment_plan_item_id'] ?? null,
+        ]);
 
         \Log::warning('generateSlotsForService - service found', [
             'serviceSourceType' => $serviceSourceType,
@@ -1579,6 +1630,11 @@ class CreateBooking extends Page implements HasForms
                 $fromPackage = null;
                 $slotNewPackageId = $newPackageId;  // Use form-level value
             }
+        }
+
+        // Set treatment plan item ID from service source or form data
+        if ($isTreatmentPlanService && $serviceSourceItemId) {
+            $treatmentPlanItemId = $serviceSourceItemId;
         } elseif ($bookingType === 'treatment_plan') {
             $treatmentPlanItemId = $data['treatment_plan_item_id'] ?? null;
         }
@@ -1733,8 +1789,8 @@ class CreateBooking extends Page implements HasForms
         $this->availableSlots = [];
         $this->bookingItems = [];
 
-        // Get current form state
-        $this->data = $this->form->getState();
+        // Get current form state without validation
+        $this->data = $this->form->getRawState();
 
         try {
             $subscription = PackageSubscription::with([
@@ -1829,8 +1885,8 @@ class CreateBooking extends Page implements HasForms
         $this->availableSlots = [];
         $this->bookingItems = [];
 
-        // Get current form state
-        $this->data = $this->form->getState();
+        // Get current form state without validation
+        $this->data = $this->form->getRawState();
 
         try {
             $package = Package::with(['items.service'])->find($packageId);
@@ -1904,8 +1960,8 @@ class CreateBooking extends Page implements HasForms
         $this->availableSlots = [];
         $this->bookingItems = [];
 
-        // Get current form state
-        $this->data = $this->form->getState();
+        // Get current form state without validation
+        $this->data = $this->form->getRawState();
 
         try {
             $plan = TreatmentPlan::with([

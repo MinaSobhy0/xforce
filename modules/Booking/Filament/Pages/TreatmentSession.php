@@ -832,14 +832,11 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
             // Update cumulative equipment parameters (shots, energy, etc.)
             $this->updateCumulativeEquipmentParameters();
 
+            // Complete the appointment - this triggers AppointmentObserver which handles:
+            // - Updating treatment plan appointment status
+            // - Incrementing completed sessions
+            // - Checking if plan should auto-complete
             $this->appointment->complete();
-
-            // Update treatment plan progress if linked
-            if ($planAppointment = $this->appointment->treatmentPlanAppointment) {
-                $planAppointment->update(['status' => Appointment::STATUS_COMPLETED]);
-                $planAppointment->item->incrementCompletedSessions();
-                $planAppointment->item->treatmentPlan->checkAndMarkComplete();
-            }
 
             // Get the treatment default location for this branch
             $branchId = $this->appointment->branch_id;
@@ -1121,7 +1118,9 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
             'start_time' => $now->format('H:i:s'),
             'end_time' => $now->copy()->addMinutes($duration)->format('H:i:s'),
             'duration_minutes' => $duration,
-            'price_minor' => $item->unit_price_minor,
+            'price_minor' => $item->unit_price_minor, // Original price from plan item
+            'discount_type' => 'fixed',
+            'discount_minor' => $item->discount_minor ?? 0, // Discount from plan item
             'status' => Appointment::STATUS_SCHEDULED,
             'notes' => $item->notes,
             'source' => 'treatment_plan',
@@ -1715,6 +1714,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                         'recommended_sessions' => $serviceData['sessions'],
                         'session_interval_days' => $serviceData['interval'],
                         'unit_price_minor' => $service?->base_price_minor ?? 0,
+                        'discount_minor' => 0,
                         'sort_order' => $index,
                     ]);
                 }
@@ -2970,22 +2970,22 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                     $discountType = $item['discount_type'] ?? 'none';
                     $discountValue = (float) ($item['discount_value'] ?? 0);
 
-                    // Calculate final price with discount
-                    if ($discountType === 'percent') {
-                        $finalPrice = $originalPrice * (1 - $discountValue / 100);
-                    } elseif ($discountType === 'fixed') {
-                        $finalPrice = max(0, $originalPrice - $discountValue);
-                    } else {
-                        $finalPrice = $originalPrice;
-                    }
+                    // Calculate discount amount in minor units
+                    $originalPriceMinor = (int) round($originalPrice * 100);
+                    $discountMinor = 0;
 
-                    $unitPriceMinor = (int) round($finalPrice * 100);
+                    if ($discountType === 'percent' && $discountValue > 0) {
+                        $discountMinor = (int) round($originalPriceMinor * $discountValue / 100);
+                    } elseif ($discountType === 'fixed' && $discountValue > 0) {
+                        $discountMinor = (int) round($discountValue * 100);
+                    }
 
                     $itemData = [
                         'tenant_id' => $plan->tenant_id,
                         'treatment_plan_id' => $plan->id,
                         'item_type' => $itemType,
-                        'unit_price_minor' => $unitPriceMinor,
+                        'unit_price_minor' => $originalPriceMinor, // Original price
+                        'discount_minor' => $discountMinor, // Discount amount to show in invoice
                         'sort_order' => $maxSortOrder + $index + 1,
                     ];
 

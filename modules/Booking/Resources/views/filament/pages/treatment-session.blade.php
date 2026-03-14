@@ -520,7 +520,7 @@
 
                                                 {{-- Status & Actions --}}
                                                 <div class="flex items-center gap-2 flex-shrink-0">
-                                                    @if($item->service_id === $appointment->service_id)
+                                                    @if($appointment->treatmentPlanAppointment && $appointment->treatmentPlanAppointment->treatment_plan_item_id === $item->id)
                                                         <span class="px-3 py-1.5 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 rounded-lg text-xs font-semibold flex items-center gap-1.5">
                                                             <x-heroicon-s-play class="w-4 h-4" />
                                                             {{ __('booking::session.plan.current') }}
@@ -593,7 +593,7 @@
 
                                     {{-- Status & Actions --}}
                                     <div class="flex items-center gap-2 flex-shrink-0">
-                                        @if($item->service_id === $appointment->service_id)
+                                        @if($appointment->treatmentPlanAppointment && $appointment->treatmentPlanAppointment->treatment_plan_item_id === $item->id)
                                             <span class="px-3 py-1.5 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 rounded-lg text-xs font-semibold flex items-center gap-1.5">
                                                 <x-heroicon-s-play class="w-4 h-4" />
                                                 {{ __('booking::session.plan.current') }}

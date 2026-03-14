@@ -132,8 +132,8 @@
                                         wire:click="$dispatch('slot-selected', { slot: {{ json_encode($slotWithPractitioner) }} })"
                                         class="group relative flex flex-col items-center rounded-lg border border-gray-200 bg-white p-3 text-center transition-all hover:border-primary-500 hover:bg-primary-50 hover:shadow-md active:scale-95 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-primary-400 dark:hover:bg-primary-900/20"
                                     >
-                                        <span class="text-lg font-bold text-gray-900 dark:text-white">{{ $slot['start_time'] }}</span>
-                                        <span class="text-xs text-gray-500 dark:text-gray-400">{{ $slot['end_time'] }}</span>
+                                        <span class="text-lg font-bold text-gray-900 dark:text-white">{{ \Carbon\Carbon::parse($slot['start_time'])->format('g:i A') }}</span>
+                                        <span class="text-xs text-gray-500 dark:text-gray-400">{{ \Carbon\Carbon::parse($slot['end_time'])->format('g:i A') }}</span>
                                         @if(count($practitioners) > 0)
                                             <span class="mt-1 flex items-center gap-1 text-xs text-gray-400">
                                                 <x-heroicon-o-user class="h-3 w-3" />
@@ -154,7 +154,7 @@
                     <div>
                         <div class="mb-3 flex items-center gap-2">
                             <x-heroicon-o-clock class="h-5 w-5 text-primary-600 dark:text-primary-400" />
-                            <span class="font-semibold text-gray-900 dark:text-white">{{ $time }}</span>
+                            <span class="font-semibold text-gray-900 dark:text-white">{{ \Carbon\Carbon::parse($time)->format('g:i A') }}</span>
                             <span class="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-700 dark:text-gray-300">
                                 {{ count($timeSlots) }} {{ __('booking::booking.labels.options') }}
                             </span>
@@ -242,9 +242,9 @@
                                             wire:click="$dispatch('slot-selected', { slot: {{ json_encode($slotWithPractitioner) }} })"
                                             class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-all hover:border-primary-400 hover:bg-primary-50 hover:text-primary-700 active:scale-95 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:border-primary-500 dark:hover:bg-primary-900/20 dark:hover:text-primary-400"
                                         >
-                                            <span class="font-bold">{{ $slot['start_time'] }}</span>
+                                            <span class="font-bold">{{ \Carbon\Carbon::parse($slot['start_time'])->format('g:i A') }}</span>
                                             <span class="text-gray-400">-</span>
-                                            <span>{{ $slot['end_time'] }}</span>
+                                            <span>{{ \Carbon\Carbon::parse($slot['end_time'])->format('g:i A') }}</span>
                                             <span class="text-xs text-gray-500">{{ \Carbon\Carbon::parse($slot['date'])->format('M d') }}</span>
                                             @if(count($practitioners) > 0)
                                                 <span class="ml-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs dark:bg-gray-600">

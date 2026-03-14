@@ -42,11 +42,11 @@
                 <x-heroicon-o-clock class="w-4 h-4" />
             </span>
             <span class="text-lg font-bold" style="color: {{ $isSelected ? '#15803d' : '#111827' }};">
-                {{ $slot['start_time'] }}
+                {{ \Carbon\Carbon::parse($slot['start_time'])->format('g:i A') }}
             </span>
             <span class="text-gray-400">-</span>
             <span class="text-gray-600">
-                {{ $slot['end_time'] }}
+                {{ \Carbon\Carbon::parse($slot['end_time'])->format('g:i A') }}
             </span>
         </div>
         <span
