@@ -65,84 +65,71 @@
         <x-filament::section>
             <x-slot name="heading">Usage & Limits</x-slot>
 
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="grid grid-cols-4 gap-3">
                 {{-- Users --}}
                 @php
                     $usersOverLimit = is_numeric($usage['max_users']) && $usage['max_users'] !== '∞' && $usage['users'] > $usage['max_users'];
                     $usersNearLimit = is_numeric($usage['max_users']) && $usage['max_users'] !== '∞' && $usage['users'] >= ($usage['max_users'] * 0.8);
                 @endphp
                 <div @class([
-                    'rounded-lg p-4',
+                    'rounded-md p-2.5',
                     'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800' => $usersOverLimit,
                     'bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800' => $usersNearLimit && !$usersOverLimit,
                     'bg-gray-50 dark:bg-gray-800' => !$usersNearLimit,
                 ])>
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-sm text-gray-500">Users</span>
+                    <div class="flex items-center justify-between mb-1.5">
+                        <span class="text-xs text-gray-500">Users</span>
                         <span @class([
-                            'text-sm font-medium',
+                            'text-xs font-semibold',
                             'text-red-600 dark:text-red-400' => $usersOverLimit,
                             'text-yellow-600 dark:text-yellow-400' => $usersNearLimit && !$usersOverLimit,
-                        ])>{{ number_format($usage['users']) }} / {{ is_numeric($usage['max_users']) ? number_format($usage['max_users']) : '∞' }}</span>
+                        ])>{{ $usage['users'] }}/{{ is_numeric($usage['max_users']) ? $usage['max_users'] : '∞' }}</span>
                     </div>
                     @if(is_numeric($usage['max_users']) && $usage['max_users'] > 0)
-                        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
                             <div @class([
-                                'h-2 rounded-full',
+                                'h-1.5 rounded-full',
                                 'bg-red-500' => $usersOverLimit,
                                 'bg-yellow-500' => $usersNearLimit && !$usersOverLimit,
                                 'bg-primary-600' => !$usersNearLimit,
                             ]) style="width: {{ min(100, ($usage['users'] / $usage['max_users']) * 100) }}%"></div>
                         </div>
-                        @if($usersOverLimit)
-                            <p class="text-xs text-red-600 dark:text-red-400 mt-2">
-                                {{ $usage['users'] - $usage['max_users'] }} over limit.
-                                <button type="button" wire:click="mountAction('requestAddOn')" class="underline font-medium">Get more</button>
-                            </p>
-                        @elseif($usersNearLimit)
-                            <p class="text-xs text-yellow-600 dark:text-yellow-400 mt-2">
-                                Near limit.
-                                <button type="button" wire:click="mountAction('requestAddOn')" class="underline font-medium">Get more</button>
-                            </p>
-                        @endif
                     @endif
                 </div>
 
                 {{-- Branches --}}
-                <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-sm text-gray-500">Branches</span>
-                        <span class="text-sm font-medium">{{ number_format($usage['branches']) }} / {{ is_numeric($usage['max_branches']) ? number_format($usage['max_branches']) : '∞' }}</span>
+                <div class="bg-gray-50 dark:bg-gray-800 rounded-md p-2.5">
+                    <div class="flex items-center justify-between mb-1.5">
+                        <span class="text-xs text-gray-500">Branches</span>
+                        <span class="text-xs font-semibold">{{ $usage['branches'] }}/{{ is_numeric($usage['max_branches']) ? $usage['max_branches'] : '∞' }}</span>
                     </div>
                     @if(is_numeric($usage['max_branches']) && $usage['max_branches'] > 0)
-                        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                            <div class="bg-primary-600 h-2 rounded-full" style="width: {{ min(100, ($usage['branches'] / $usage['max_branches']) * 100) }}%"></div>
+                        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                            <div class="bg-primary-600 h-1.5 rounded-full" style="width: {{ min(100, ($usage['branches'] / $usage['max_branches']) * 100) }}%"></div>
                         </div>
                     @endif
                 </div>
 
                 {{-- Patients --}}
-                <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-sm text-gray-500">Patients</span>
-                        <span class="text-sm font-medium">{{ number_format($usage['patients']) }} / {{ is_numeric($usage['max_patients']) ? number_format($usage['max_patients']) : '∞' }}</span>
+                <div class="bg-gray-50 dark:bg-gray-800 rounded-md p-2.5">
+                    <div class="flex items-center justify-between mb-1.5">
+                        <span class="text-xs text-gray-500">Patients</span>
+                        <span class="text-xs font-semibold">{{ number_format($usage['patients']) }}</span>
                     </div>
-                    @if(is_numeric($usage['max_patients']) && $usage['max_patients'] > 0)
-                        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                            <div class="bg-primary-600 h-2 rounded-full" style="width: {{ min(100, ($usage['patients'] / $usage['max_patients']) * 100) }}%"></div>
-                        </div>
-                    @endif
+                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                        <div class="bg-green-500 h-1.5 rounded-full" style="width: 100%"></div>
+                    </div>
                 </div>
 
                 {{-- Storage --}}
-                <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-sm text-gray-500">Storage</span>
-                        <span class="text-sm font-medium">{{ round($usage['storage_mb'] / 1024, 1) }} GB / {{ is_numeric($usage['max_storage_mb']) ? round($usage['max_storage_mb'] / 1024, 1) . ' GB' : '∞' }}</span>
+                <div class="bg-gray-50 dark:bg-gray-800 rounded-md p-2.5">
+                    <div class="flex items-center justify-between mb-1.5">
+                        <span class="text-xs text-gray-500">Storage</span>
+                        <span class="text-xs font-semibold">{{ round($usage['storage_mb'] / 1024, 1) }}GB/{{ is_numeric($usage['max_storage_mb']) ? round($usage['max_storage_mb'] / 1024) . 'GB' : '∞' }}</span>
                     </div>
                     @if(is_numeric($usage['max_storage_mb']) && $usage['max_storage_mb'] > 0)
-                        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                            <div class="bg-primary-600 h-2 rounded-full" style="width: {{ min(100, ($usage['storage_mb'] / $usage['max_storage_mb']) * 100) }}%"></div>
+                        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                            <div class="bg-primary-600 h-1.5 rounded-full" style="width: {{ min(100, ($usage['storage_mb'] / $usage['max_storage_mb']) * 100) }}%"></div>
                         </div>
                     @endif
                 </div>
