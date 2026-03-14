@@ -6,13 +6,11 @@ use Filament\Pages\Page;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Notifications\Notification;
 use App\Models\SubscriptionPlan;
 use App\Models\AddOn;
 use App\Models\SupportTicket;
-use App\Models\PlatformSetting;
 use Illuminate\Support\Facades\Auth;
 
 class MySubscription extends Page
@@ -70,52 +68,6 @@ class MySubscription extends Page
     protected function getHeaderActions(): array
     {
         return [
-            Action::make('requestAdditionalUsers')
-                ->label('Buy Additional Users')
-                ->icon('heroicon-o-user-plus')
-                ->color('success')
-                ->form(function () {
-                    $tenant = Auth::user()->tenant;
-                    $pricePerUser = $tenant?->getExtraResourcePrice('user') ?? 50;
-                    $currency = $tenant?->getCurrency() ?? 'EGP';
-                    return [
-                        TextInput::make('additional_users')
-                            ->label('Number of Additional Users')
-                            ->numeric()
-                            ->minValue(1)
-                            ->maxValue(100)
-                            ->default(1)
-                            ->required()
-                            ->helperText("Each additional user costs {$currency} {$pricePerUser}/month"),
-                        Textarea::make('message')
-                            ->label('Additional Message (Optional)')
-                            ->placeholder('Any specific requirements...'),
-                    ];
-                })
-                ->action(function (array $data) {
-                    $tenant = Auth::user()->tenant;
-                    $count = $data['additional_users'];
-                    $pricePerUser = $tenant->getExtraResourcePrice('user');
-                    $currency = $tenant->getCurrency();
-                    $totalCost = $count * $pricePerUser;
-
-                    SupportTicket::create([
-                        'tenant_id' => $tenant->id,
-                        'ticket_number' => 'TKT-' . strtoupper(uniqid()),
-                        'subject' => "Request for {$count} Additional User(s)",
-                        'description' => "Clinic: {$tenant->name}\nCountry: {$tenant->country}\n\nRequested Additional Users: {$count}\nPrice per User: {$currency} {$pricePerUser}/month\nEstimated Total: {$currency} " . number_format($totalCost) . "/month\n\nMessage: " . ($data['message'] ?? 'No additional message'),
-                        'category' => 'billing',
-                        'priority' => 'normal',
-                        'status' => 'open',
-                    ]);
-
-                    Notification::make()
-                        ->title('Request Submitted')
-                        ->body("Your request for {$count} additional user(s) has been submitted. Our team will contact you shortly.")
-                        ->success()
-                        ->send();
-                }),
-
             Action::make('requestUpgrade')
                 ->label('Request Plan Upgrade')
                 ->icon('heroicon-o-arrow-up-circle')

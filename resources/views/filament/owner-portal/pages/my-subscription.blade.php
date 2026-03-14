@@ -97,12 +97,12 @@
                         @if($usersOverLimit)
                             <p class="text-xs text-red-600 dark:text-red-400 mt-2">
                                 {{ $usage['users'] - $usage['max_users'] }} over limit.
-                                <button type="button" wire:click="mountAction('requestAdditionalUsers')" class="underline font-medium">Buy more</button>
+                                <button type="button" wire:click="mountAction('requestAddOn')" class="underline font-medium">Get more</button>
                             </p>
                         @elseif($usersNearLimit)
                             <p class="text-xs text-yellow-600 dark:text-yellow-400 mt-2">
                                 Near limit.
-                                <button type="button" wire:click="mountAction('requestAdditionalUsers')" class="underline font-medium">Buy more</button>
+                                <button type="button" wire:click="mountAction('requestAddOn')" class="underline font-medium">Get more</button>
                             </p>
                         @endif
                     @endif
