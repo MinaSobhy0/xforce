@@ -35,6 +35,7 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->domain('sys.x-linic.com')
             ->login()
+            ->authGuard('owner')
             ->brandName('XLinic')
             ->colors([
                 'primary' => Color::Blue,

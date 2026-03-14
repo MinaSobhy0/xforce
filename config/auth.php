@@ -41,6 +41,11 @@ return [
             'provider' => 'users',
         ],
 
+        'owner' => [
+            'driver' => 'session',
+            'provider' => 'owner_users',
+        ],
+
         'patient' => [
             'driver' => 'session',
             'provider' => 'patients',
@@ -68,6 +73,11 @@ return [
         'users' => [
             'driver' => 'eloquent',
             'model' => env('AUTH_MODEL', \Modules\Auth\Models\User::class),
+        ],
+
+        'owner_users' => [
+            'driver' => 'eloquent',
+            'model' => \App\Models\OwnerUser::class,
         ],
 
         'patients' => [
