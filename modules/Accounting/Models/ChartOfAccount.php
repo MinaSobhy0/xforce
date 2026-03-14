@@ -248,6 +248,24 @@ class ChartOfAccount extends BaseModel
         $this->save();
     }
 
+    /**
+     * Generate the next available code for a given account type.
+     */
+    public static function generateNextCode(string $type): ?string
+    {
+        // Find the maximum numeric code for this type
+        $maxCode = static::where('type', $type)
+            ->whereRaw("code ~ '^[0-9]+$'") // Only numeric codes
+            ->selectRaw('MAX(CAST(code AS INTEGER)) as max_code')
+            ->value('max_code');
+
+        if ($maxCode) {
+            return (string) ($maxCode + 1);
+        }
+
+        return null;
+    }
+
     // Scopes
     public function scopeActive($query)
     {

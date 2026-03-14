@@ -52,6 +52,22 @@ class ChartOfAccountResource extends Resource
             ->schema([
                 Forms\Components\Section::make()
                     ->schema([
+                        Forms\Components\Select::make('type')
+                            ->label(__('accounting::accounting.type'))
+                            ->options(ChartOfAccount::TYPES)
+                            ->required()
+                            ->searchable()
+                            ->live()
+                            ->afterStateUpdated(function ($state, Forms\Set $set, ?ChartOfAccount $record) {
+                                // Only auto-generate on create, not edit
+                                if ($record === null && $state) {
+                                    $nextCode = ChartOfAccount::generateNextCode($state);
+                                    if ($nextCode) {
+                                        $set('code', $nextCode);
+                                    }
+                                }
+                            }),
+
                         Forms\Components\TextInput::make('code')
                             ->label(__('accounting::accounting.account_resource.account_code'))
                             ->required()
@@ -66,12 +82,6 @@ class ChartOfAccountResource extends Resource
                         Forms\Components\TextInput::make('name.ar')
                             ->label(__('accounting::accounting.account_resource.account_name_ar'))
                             ->maxLength(255),
-
-                        Forms\Components\Select::make('type')
-                            ->label(__('accounting::accounting.type'))
-                            ->options(ChartOfAccount::TYPES)
-                            ->required()
-                            ->searchable(),
 
                         Forms\Components\Select::make('parent_id')
                             ->label(__('accounting::accounting.account_resource.parent_account'))
