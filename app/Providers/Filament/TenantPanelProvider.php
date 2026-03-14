@@ -217,7 +217,7 @@ class TenantPanelProvider extends PanelProvider
                         ? __('auth::limits.banner.expired', ['current' => $currentUsers, 'limit' => $limit])
                         : __('auth::limits.banner.warning', ['current' => $currentUsers, 'limit' => $limit, 'days' => max(0, $daysRemaining ?? 14)]);
                     $actionText = __('auth::limits.banner.action');
-                    $actionUrl = url('/admin/settings/subscription');
+                    $actionUrl = 'https://sys.x-linic.com/admin';
 
                     return <<<HTML
 <div style="width: 100%; background-color: {$bgColor}; color: white; padding: 0.5rem 1rem; text-align: center; font-size: 0.875rem; font-weight: 500; z-index: 50;">
