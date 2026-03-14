@@ -111,7 +111,7 @@ class PlatformInvoiceResource extends Resource
                             $set('overage_charges_minor', 0);
                             $set('discount_minor', 0);
                             $set('subtotal_minor', $subtotalMinor / 100);
-                            $set('tax_rate', $taxRate * 100); // Display as percentage
+                            $set('tax_rate', round($taxRate * 100, 2)); // Display as percentage (e.g., 14 for 14%)
                             $set('tax_minor', $taxMinor / 100);
                             $set('total_minor', $totalMinor / 100);
                             $set('currency', $currency);
@@ -188,12 +188,12 @@ class PlatformInvoiceResource extends Resource
                     Forms\Components\TextInput::make('tax_rate')
                         ->label('Tax Rate (%)')
                         ->numeric()
-                        ->default(14)
-                        ->step(1)
+                        ->default(0.14)
+                        ->step(0.01)
                         ->suffix('%')
                         ->live(onBlur: true)
-                        ->formatStateUsing(fn ($state) => $state ? $state * 100 : 14)
-                        ->dehydrateStateUsing(fn ($state) => $state ? $state / 100 : 0.14)
+                        ->formatStateUsing(fn ($state) => $state !== null ? round($state * 100, 2) : 14)
+                        ->dehydrateStateUsing(fn ($state) => $state !== null ? $state / 100 : 0.14)
                         ->afterStateUpdated(fn(Get $get, Set $set) => static::calculateTotals($get, $set)),
                 ]),
 

@@ -731,6 +731,22 @@ class CreateBooking extends Page implements HasForms
                                                                     ->hidden(fn (Get $get) => $get('source_type') === 'package')
                                                                     ->columnSpan(2),
 
+                                                                Forms\Components\Select::make('discount_type')
+                                                                    ->label(__('booking::booking.fields.discount_type'))
+                                                                    ->options([
+                                                                        Appointment::DISCOUNT_FIXED => __('booking::booking.fields.discount_fixed'),
+                                                                        Appointment::DISCOUNT_PERCENT => __('booking::booking.fields.discount_percent'),
+                                                                    ])
+                                                                    ->default(Appointment::DISCOUNT_FIXED)
+                                                                    ->live()
+                                                                    ->afterStateUpdated(function ($state, Set $set) {
+                                                                        // Reset discount values when type changes
+                                                                        $set('discount_minor', 0);
+                                                                        $set('discount_percent', 0);
+                                                                    })
+                                                                    ->hidden(fn (Get $get) => $get('source_type') === 'package')
+                                                                    ->columnSpan(1),
+
                                                                 Forms\Components\TextInput::make('discount_minor')
                                                                     ->label(__('booking::booking.fields.discount'))
                                                                     ->numeric()
@@ -767,16 +783,59 @@ class CreateBooking extends Page implements HasForms
                                                                                 ->send();
                                                                         }
                                                                     })
-                                                                    // Hide for package services (no discount for packages)
-                                                                    ->hidden(fn (Get $get) => $get('source_type') === 'package')
-                                                                    ->columnSpan(2),
+                                                                    // Show only for fixed discount type
+                                                                    ->visible(fn (Get $get) => $get('source_type') !== 'package' && $get('discount_type') !== Appointment::DISCOUNT_PERCENT)
+                                                                    ->columnSpan(1),
+
+                                                                Forms\Components\TextInput::make('discount_percent')
+                                                                    ->label(__('booking::booking.fields.discount'))
+                                                                    ->numeric()
+                                                                    ->suffix('%')
+                                                                    ->default(0)
+                                                                    ->minValue(0)
+                                                                    ->live(onBlur: true)
+                                                                    ->helperText(function (Get $get) {
+                                                                        $maxPercent = (float) ($get('max_discount_percent') ?? 100);
+                                                                        if ($maxPercent < 100) {
+                                                                            return __('booking::booking.fields.max_discount').': '.$maxPercent.'%';
+                                                                        }
+
+                                                                        return null;
+                                                                    })
+                                                                    ->afterStateUpdated(function ($state, Get $get, Set $set) {
+                                                                        // Validate discount doesn't exceed max
+                                                                        $maxPercent = (float) ($get('max_discount_percent') ?? 100);
+                                                                        $discount = (float) ($state ?? 0);
+
+                                                                        if ($discount > $maxPercent) {
+                                                                            $set('discount_percent', $maxPercent);
+                                                                            Notification::make()
+                                                                                ->title(__('booking::booking.validation.discount_percent_exceeds_max', [
+                                                                                    'max' => $maxPercent,
+                                                                                ]))
+                                                                                ->warning()
+                                                                                ->duration(3000)
+                                                                                ->send();
+                                                                        }
+                                                                    })
+                                                                    // Show only for percent discount type
+                                                                    ->visible(fn (Get $get) => $get('source_type') !== 'package' && $get('discount_type') === Appointment::DISCOUNT_PERCENT)
+                                                                    ->columnSpan(1),
 
                                                                 // Total (calculated) - hide for packages
                                                                 Forms\Components\Placeholder::make('total_display')
                                                                     ->label(__('booking::booking.fields.total'))
                                                                     ->content(function (Get $get) {
                                                                         $price = (float) ($get('price_minor') ?? 0);
-                                                                        $discount = (float) ($get('discount_minor') ?? 0);
+                                                                        $discountType = $get('discount_type') ?? Appointment::DISCOUNT_FIXED;
+
+                                                                        if ($discountType === Appointment::DISCOUNT_PERCENT) {
+                                                                            $discountPercent = (float) ($get('discount_percent') ?? 0);
+                                                                            $discount = ($price * $discountPercent) / 100;
+                                                                        } else {
+                                                                            $discount = (float) ($get('discount_minor') ?? 0);
+                                                                        }
+
                                                                         $total = max(0, $price - $discount);
 
                                                                         return new HtmlString(
@@ -903,7 +962,15 @@ class CreateBooking extends Page implements HasForms
                                                             } else {
                                                                 // Regular service - add to total
                                                                 $price = (float) ($service['price_minor'] ?? 0);
-                                                                $discount = (float) ($service['discount_minor'] ?? 0);
+                                                                $discountType = $service['discount_type'] ?? Appointment::DISCOUNT_FIXED;
+
+                                                                if ($discountType === Appointment::DISCOUNT_PERCENT) {
+                                                                    $discountPercent = (float) ($service['discount_percent'] ?? 0);
+                                                                    $discount = ($price * $discountPercent) / 100;
+                                                                } else {
+                                                                    $discount = (float) ($service['discount_minor'] ?? 0);
+                                                                }
+
                                                                 $servicesTotal += max(0, $price - $discount);
                                                             }
                                                         }
@@ -2108,11 +2175,19 @@ class CreateBooking extends Page implements HasForms
                 // Get discount from form's services array (match by service_id)
                 // Note: Form values are in EGP, need to convert to minor units (piastres) by multiplying by 100
                 $discountMinor = 0;
+                $discountType = Appointment::DISCOUNT_FIXED;
                 if (! empty($data['services'])) {
                     foreach ($data['services'] as $formService) {
                         if (($formService['service_id'] ?? null) == $item['service_id']) {
-                            // Convert from EGP to minor units (piastres)
-                            $discountMinor = (int) (((float) ($formService['discount_minor'] ?? 0)) * 100);
+                            $discountType = $formService['discount_type'] ?? Appointment::DISCOUNT_FIXED;
+
+                            if ($discountType === Appointment::DISCOUNT_PERCENT) {
+                                // For percentage, store the percentage value (multiplied by 100 for precision)
+                                $discountMinor = (int) (((float) ($formService['discount_percent'] ?? 0)) * 100);
+                            } else {
+                                // Convert from EGP to minor units (piastres)
+                                $discountMinor = (int) (((float) ($formService['discount_minor'] ?? 0)) * 100);
+                            }
                             break;
                         }
                     }
@@ -2133,7 +2208,7 @@ class CreateBooking extends Page implements HasForms
                     'price_minor' => $isPackageSession ? 0 : ($service?->base_price_minor ?? 0),
                     // Discount (only for non-package services)
                     'discount_minor' => $isPackageSession ? 0 : $discountMinor,
-                    'discount_type' => Appointment::DISCOUNT_FIXED,
+                    'discount_type' => $isPackageSession ? Appointment::DISCOUNT_FIXED : $discountType,
                     'status' => Appointment::STATUS_SCHEDULED,
                     'source' => $data['source'] ?? Appointment::SOURCE_PHONE,
                     'notes' => $data['notes'] ?? null,
@@ -2389,7 +2464,14 @@ class CreateBooking extends Page implements HasForms
 
                 // Get price and discount
                 $priceMinor = (int) ((float) ($serviceData['price_minor'] ?? 0) * 100);
-                $discountMinor = (int) ((float) ($serviceData['discount_minor'] ?? 0) * 100);
+                $discountType = $serviceData['discount_type'] ?? Appointment::DISCOUNT_FIXED;
+
+                if ($discountType === Appointment::DISCOUNT_PERCENT) {
+                    // For percentage, store the percentage value (multiplied by 100 for precision)
+                    $discountMinor = (int) (((float) ($serviceData['discount_percent'] ?? 0)) * 100);
+                } else {
+                    $discountMinor = (int) ((float) ($serviceData['discount_minor'] ?? 0) * 100);
+                }
 
                 // Check if from package
                 $isPackageSession = ($serviceData['source_type'] ?? null) === 'package';
@@ -2408,7 +2490,7 @@ class CreateBooking extends Page implements HasForms
                     'duration_minutes' => $duration,
                     'price_minor' => $isPackageSession ? 0 : ($priceMinor ?: $service->base_price_minor ?? 0),
                     'discount_minor' => $isPackageSession ? 0 : $discountMinor,
-                    'discount_type' => Appointment::DISCOUNT_FIXED,
+                    'discount_type' => $isPackageSession ? Appointment::DISCOUNT_FIXED : $discountType,
                     'status' => Appointment::STATUS_SCHEDULED,
                     'source' => $source,
                     'notes' => $notes,
