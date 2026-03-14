@@ -904,7 +904,7 @@ class CreateBooking extends Page implements HasForms
 
                                                                         return $html ? new HtmlString($html) : '';
                                                                     })
-                                                                    ->columnSpan(6),
+                                                                    ->columnSpan(3),
                                                             ])
                                                             ->visible(fn (Get $get): bool => filled($get('service_id'))),
 
