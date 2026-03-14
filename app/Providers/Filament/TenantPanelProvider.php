@@ -178,7 +178,64 @@ class TenantPanelProvider extends PanelProvider
             // User limit warning banner
             ->renderHook(
                 PanelsRenderHook::BODY_START,
-                fn (): View => view('filament.hooks.user-limit-banner')
+                function (): string {
+                    $tenant = current_tenant();
+                    if (!$tenant) {
+                        return '';
+                    }
+
+                    $limit = $tenant->getEffectiveLimit('users');
+                    if ($limit === null) {
+                        return '';
+                    }
+
+                    $currentUsers = \Illuminate\Support\Facades\DB::connection('tenant')
+                        ->table('users')
+                        ->whereNull('deleted_at')
+                        ->count();
+
+                    if ($currentUsers <= $limit) {
+                        return '';
+                    }
+
+                    // Over limit - show banner
+                    $daysRemaining = 14;
+                    $isExpired = false;
+
+                    if ($tenant->users_overage_at) {
+                        $daysRemaining = $tenant->getUserOverageGraceDaysRemaining();
+                        $isExpired = $tenant->isUserOverageGraceExpired();
+                    } else {
+                        $tenant->update([
+                            'users_overage_at' => now(),
+                            'users_overage_notified' => false,
+                        ]);
+                    }
+
+                    $bgColor = $isExpired ? 'bg-red-600' : 'bg-amber-500';
+                    $message = $isExpired
+                        ? __('auth::limits.banner.expired', ['current' => $currentUsers, 'limit' => $limit])
+                        : __('auth::limits.banner.warning', ['current' => $currentUsers, 'limit' => $limit, 'days' => max(0, $daysRemaining ?? 14)]);
+                    $actionText = __('auth::limits.banner.action');
+                    $actionUrl = url('/admin/settings/subscription');
+
+                    return <<<HTML
+<div class="w-full {$bgColor} text-white px-4 py-2 text-center text-sm font-medium" style="z-index: 50;">
+    <div class="flex items-center justify-center gap-2 flex-wrap">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+        </svg>
+        <span>{$message}</span>
+        <a href="{$actionUrl}" class="ml-2 inline-flex items-center gap-1 px-3 py-1 bg-white/20 hover:bg-white/30 rounded-md text-white text-xs font-semibold transition-colors">
+            {$actionText}
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+            </svg>
+        </a>
+    </div>
+</div>
+HTML;
+                }
             )
 
             // Custom sidebar theme styles
