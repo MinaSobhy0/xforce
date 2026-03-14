@@ -7,6 +7,8 @@ use App\Models\PlatformInvoice;
 use Modules\Core\Models\Tenant;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -46,7 +48,75 @@ class PlatformInvoiceResource extends Resource
                         ->label('Clinic')
                         ->options(fn() => Tenant::pluck('name', 'id'))
                         ->searchable()
-                        ->required(),
+                        ->required()
+                        ->live()
+                        ->afterStateUpdated(function (Get $get, Set $set, ?string $state) {
+                            if (!$state) {
+                                return;
+                            }
+
+                            $tenant = Tenant::with(['plan', 'activeAddOns'])->find($state);
+                            if (!$tenant) {
+                                return;
+                            }
+
+                            $country = $tenant->country ?? 'EG';
+                            $currency = $tenant->getCurrency();
+                            $lineItems = [];
+
+                            // Plan charge
+                            $planCharge = 0;
+                            if ($tenant->plan) {
+                                $planCharge = $tenant->plan->price_monthly_minor ?? 0;
+                                $lineItems[] = [
+                                    'type' => 'plan',
+                                    'description' => $tenant->plan->name . ' (Monthly)',
+                                    'amount_minor' => $planCharge,
+                                ];
+                            }
+
+                            // Add-on charges
+                            $addonCharges = 0;
+                            foreach ($tenant->activeAddOns as $addon) {
+                                // Get price from pivot or calculate from add-on
+                                $price = $addon->pivot->price ?? null;
+                                if (!$price) {
+                                    $priceData = $addon->getPriceForCountry($country);
+                                    $price = (int) ($priceData['amount'] * 100); // Convert to minor
+                                }
+                                $addonCharges += $price;
+                                $lineItems[] = [
+                                    'type' => 'addon',
+                                    'description' => $addon->name,
+                                    'amount_minor' => $price,
+                                ];
+                            }
+
+                            // Set period dates (current month)
+                            $periodStart = now()->startOfMonth();
+                            $periodEnd = now()->endOfMonth();
+                            $dueDate = now()->addDays(15);
+
+                            // Calculate totals
+                            $subtotal = $planCharge + $addonCharges;
+                            $taxRate = $tenant->tax_rate ?? 0.14;
+                            $tax = (int) round($subtotal * $taxRate);
+                            $total = $subtotal + $tax;
+
+                            // Set form values
+                            $set('plan_code', $tenant->plan?->code);
+                            $set('plan_charge_minor', $planCharge);
+                            $set('addon_charges_minor', $addonCharges);
+                            $set('subtotal_minor', $subtotal);
+                            $set('tax_rate', $taxRate);
+                            $set('tax_minor', $tax);
+                            $set('total_minor', $total);
+                            $set('currency', $currency);
+                            $set('period_start', $periodStart->format('Y-m-d'));
+                            $set('period_end', $periodEnd->format('Y-m-d'));
+                            $set('due_date', $dueDate->format('Y-m-d'));
+                            $set('line_items', $lineItems);
+                        }),
 
                     Forms\Components\TextInput::make('number')
                         ->label('Invoice Number')
@@ -76,22 +146,30 @@ class PlatformInvoiceResource extends Resource
                     Forms\Components\TextInput::make('plan_charge_minor')
                         ->label('Plan Charge (piasters)')
                         ->numeric()
-                        ->default(0),
+                        ->default(0)
+                        ->live(onBlur: true)
+                        ->afterStateUpdated(fn(Get $get, Set $set) => static::calculateTotals($get, $set)),
 
                     Forms\Components\TextInput::make('addon_charges_minor')
                         ->label('Add-on Charges (piasters)')
                         ->numeric()
-                        ->default(0),
+                        ->default(0)
+                        ->live(onBlur: true)
+                        ->afterStateUpdated(fn(Get $get, Set $set) => static::calculateTotals($get, $set)),
 
                     Forms\Components\TextInput::make('overage_charges_minor')
                         ->label('Overage Charges (piasters)')
                         ->numeric()
-                        ->default(0),
+                        ->default(0)
+                        ->live(onBlur: true)
+                        ->afterStateUpdated(fn(Get $get, Set $set) => static::calculateTotals($get, $set)),
 
                     Forms\Components\TextInput::make('discount_minor')
                         ->label('Discount (piasters)')
                         ->numeric()
-                        ->default(0),
+                        ->default(0)
+                        ->live(onBlur: true)
+                        ->afterStateUpdated(fn(Get $get, Set $set) => static::calculateTotals($get, $set)),
 
                     Forms\Components\TextInput::make('discount_code')
                         ->label('Discount Code'),
@@ -100,7 +178,60 @@ class PlatformInvoiceResource extends Resource
                         ->label('Tax Rate')
                         ->numeric()
                         ->default(0.14)
-                        ->step(0.01),
+                        ->step(0.01)
+                        ->live(onBlur: true)
+                        ->afterStateUpdated(fn(Get $get, Set $set) => static::calculateTotals($get, $set)),
+                ]),
+
+            Forms\Components\Section::make('Totals')
+                ->columns(3)
+                ->schema([
+                    Forms\Components\TextInput::make('subtotal_minor')
+                        ->label('Subtotal (piasters)')
+                        ->numeric()
+                        ->disabled()
+                        ->dehydrated(),
+
+                    Forms\Components\TextInput::make('tax_minor')
+                        ->label('Tax (piasters)')
+                        ->numeric()
+                        ->disabled()
+                        ->dehydrated(),
+
+                    Forms\Components\TextInput::make('total_minor')
+                        ->label('Total (piasters)')
+                        ->numeric()
+                        ->disabled()
+                        ->dehydrated(),
+
+                    Forms\Components\Hidden::make('currency'),
+                    Forms\Components\Hidden::make('plan_code'),
+                ]),
+
+            Forms\Components\Section::make('Line Items')
+                ->collapsed()
+                ->schema([
+                    Forms\Components\Repeater::make('line_items')
+                        ->label('')
+                        ->schema([
+                            Forms\Components\Select::make('type')
+                                ->options([
+                                    'plan' => 'Plan',
+                                    'addon' => 'Add-on',
+                                    'overage' => 'Overage',
+                                    'other' => 'Other',
+                                ])
+                                ->required(),
+                            Forms\Components\TextInput::make('description')
+                                ->required(),
+                            Forms\Components\TextInput::make('amount_minor')
+                                ->label('Amount (piasters)')
+                                ->numeric()
+                                ->required(),
+                        ])
+                        ->columns(3)
+                        ->defaultItems(0)
+                        ->reorderable(false),
                 ]),
 
             Forms\Components\Section::make('Payment')
@@ -119,6 +250,23 @@ class PlatformInvoiceResource extends Resource
                         ->columnSpanFull(),
                 ]),
         ]);
+    }
+
+    protected static function calculateTotals(Get $get, Set $set): void
+    {
+        $planCharge = (int) ($get('plan_charge_minor') ?? 0);
+        $addonCharges = (int) ($get('addon_charges_minor') ?? 0);
+        $overageCharges = (int) ($get('overage_charges_minor') ?? 0);
+        $discount = (int) ($get('discount_minor') ?? 0);
+        $taxRate = (float) ($get('tax_rate') ?? 0.14);
+
+        $subtotal = $planCharge + $addonCharges + $overageCharges - $discount;
+        $tax = (int) round($subtotal * $taxRate);
+        $total = $subtotal + $tax;
+
+        $set('subtotal_minor', $subtotal);
+        $set('tax_minor', $tax);
+        $set('total_minor', $total);
     }
 
     public static function table(Table $table): Table
