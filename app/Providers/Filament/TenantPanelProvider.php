@@ -212,7 +212,7 @@ class TenantPanelProvider extends PanelProvider
                         ]);
                     }
 
-                    $bgColor = $isExpired ? 'bg-red-600' : 'bg-amber-500';
+                    $bgColor = $isExpired ? '#dc2626' : '#f59e0b'; // red-600 or amber-500
                     $message = $isExpired
                         ? __('auth::limits.banner.expired', ['current' => $currentUsers, 'limit' => $limit])
                         : __('auth::limits.banner.warning', ['current' => $currentUsers, 'limit' => $limit, 'days' => max(0, $daysRemaining ?? 14)]);
@@ -220,15 +220,15 @@ class TenantPanelProvider extends PanelProvider
                     $actionUrl = url('/admin/settings/subscription');
 
                     return <<<HTML
-<div class="w-full {$bgColor} text-white px-4 py-2 text-center text-sm font-medium" style="z-index: 50;">
-    <div class="flex items-center justify-center gap-2 flex-wrap">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+<div style="width: 100%; background-color: {$bgColor}; color: white; padding: 0.5rem 1rem; text-align: center; font-size: 0.875rem; font-weight: 500; z-index: 50;">
+    <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; flex-wrap: wrap;">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 1.25rem; height: 1.25rem;">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
         </svg>
         <span>{$message}</span>
-        <a href="{$actionUrl}" class="ml-2 inline-flex items-center gap-1 px-3 py-1 bg-white/20 hover:bg-white/30 rounded-md text-white text-xs font-semibold transition-colors">
+        <a href="{$actionUrl}" style="margin-left: 0.5rem; display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.25rem 0.75rem; background-color: rgba(255,255,255,0.2); border-radius: 0.375rem; color: white; font-size: 0.75rem; font-weight: 600; text-decoration: none;">
             {$actionText}
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 1rem; height: 1rem;">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
             </svg>
         </a>
