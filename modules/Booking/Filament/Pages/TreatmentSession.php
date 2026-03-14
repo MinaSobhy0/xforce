@@ -909,22 +909,42 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
         }
 
         $discountType = $data['discount_type'] ?? 'fixed';
-        $discountValue = (int) ($data['discount_value'] ?? 0);
+        $discountValue = (float) ($data['discount_value'] ?? 0);
         $discountReason = $data['discount_reason'] ?? null;
+
+        // Calculate discount_minor based on type
+        // For percent: calculate actual discount amount and store as fixed
+        // For fixed: convert from major units (EGP) to minor units (piastres)
+        if ($discountType === 'percent' && $discountValue > 0) {
+            // Calculate discount amount from percentage and store as fixed
+            $priceMinor = $this->appointment->price_minor ?? 0;
+            $discountMinor = (int) round($priceMinor * $discountValue / 100);
+            $discountType = 'fixed'; // Store as fixed amount
+        } elseif ($discountType === 'fixed' && $discountValue > 0) {
+            // Convert from EGP to piastres
+            $discountMinor = (int) ($discountValue * 100);
+        } else {
+            $discountMinor = 0;
+            $discountType = 'fixed';
+        }
 
         $this->appointment->update([
             'discount_type' => $discountType,
-            'discount_minor' => $discountValue,
+            'discount_minor' => $discountMinor,
             'discount_reason' => $discountReason,
         ]);
 
         $this->appointment->refresh();
 
+        // Update local state to reflect the change
+        $this->serviceDiscountType = $discountType;
+        $this->serviceDiscountValue = $discountMinor / 100; // Convert back to major units for display
+
         Notification::make()
             ->title(__('booking::session.messages.discount_applied'))
             ->body(__('booking::session.messages.discount_applied_body', [
-                'amount' => number_format($this->appointment->getDiscountAmountMinor() / 100, 2),
-                'final' => number_format($this->appointment->net_price / 100, 2),
+                'amount' => number_format($discountMinor / 100, 2),
+                'final' => number_format(($this->appointment->price_minor - $discountMinor) / 100, 2),
             ]))
             ->success()
             ->send();
@@ -3506,19 +3526,23 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
 
         if ($discountType === 'none' || $discountValue <= 0) {
             $this->appointment->update([
-                'discount_type' => 'none',
+                'discount_type' => 'fixed',
                 'discount_minor' => 0,
             ]);
         } else {
-            // Calculate discount_minor based on type
-            // For percent: store the percentage value
-            // For fixed: store the amount in minor units
-            $discountMinor = $discountType === 'fixed'
-                ? (int) ($discountValue * 100)
-                : (int) $discountValue;
+            // Calculate discount_minor based on type - always store as fixed amount
+            $priceMinor = $this->appointment->price_minor ?? 0;
+
+            if ($discountType === 'percent') {
+                // Calculate discount amount from percentage
+                $discountMinor = (int) round($priceMinor * $discountValue / 100);
+            } else {
+                // Convert from EGP to piastres
+                $discountMinor = (int) ($discountValue * 100);
+            }
 
             $this->appointment->update([
-                'discount_type' => $discountType,
+                'discount_type' => 'fixed',
                 'discount_minor' => $discountMinor,
             ]);
         }
@@ -3620,16 +3644,28 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
     /**
      * Update service discount.
      */
-    public function updateServiceDiscount(string $type, int $value): void
+    public function updateServiceDiscount(string $type, float $value): void
     {
         $this->serviceDiscountType = $type;
         $this->serviceDiscountValue = max(0, $value);
 
-        // Update appointment discount
+        // Update appointment discount - always calculate and store as fixed amount
         if ($this->appointment) {
+            $priceMinor = $this->appointment->price_minor ?? 0;
+
+            if ($type === 'percent' && $value > 0) {
+                // Calculate discount amount from percentage
+                $discountMinor = (int) round($priceMinor * $value / 100);
+            } elseif ($type === 'fixed' && $value > 0) {
+                // Convert from EGP to piastres
+                $discountMinor = (int) ($value * 100);
+            } else {
+                $discountMinor = 0;
+            }
+
             $this->appointment->update([
-                'discount_type' => $type === 'none' ? 'none' : $type,
-                'discount_minor' => $type === 'none' ? 0 : $this->serviceDiscountValue,
+                'discount_type' => 'fixed',
+                'discount_minor' => $discountMinor,
             ]);
         }
     }
@@ -3655,24 +3691,27 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
         // Values are already set via wire:model.live
         $this->overallDiscountValue = max(0, $this->overallDiscountValue ?? 0);
 
-        // Store discount in appointment
-        // For percentage: store the percentage value (e.g., 10 for 10%)
-        // For fixed: store the amount in minor units (user enters major units, we convert)
+        // Store discount in appointment - always calculate and store as fixed amount
         if ($this->appointment) {
             if ($this->overallDiscountType !== 'none' && $this->overallDiscountValue > 0) {
-                // For fixed discounts, user enters in major units, convert to minor
-                $discountMinor = $this->overallDiscountType === 'fixed'
-                    ? $this->overallDiscountValue * 100
-                    : $this->overallDiscountValue; // For percent, store as-is
+                $priceMinor = $this->appointment->price_minor ?? 0;
+
+                if ($this->overallDiscountType === 'percent') {
+                    // Calculate discount amount from percentage
+                    $discountMinor = (int) round($priceMinor * $this->overallDiscountValue / 100);
+                } else {
+                    // For fixed discounts, user enters in major units, convert to minor
+                    $discountMinor = (int) ($this->overallDiscountValue * 100);
+                }
 
                 $this->appointment->update([
-                    'discount_type' => $this->overallDiscountType,
+                    'discount_type' => 'fixed',
                     'discount_minor' => $discountMinor,
                     'discount_reason' => $this->overallDiscountReason,
                 ]);
             } else {
                 $this->appointment->update([
-                    'discount_type' => 'none',
+                    'discount_type' => 'fixed',
                     'discount_minor' => 0,
                     'discount_reason' => null,
                 ]);
