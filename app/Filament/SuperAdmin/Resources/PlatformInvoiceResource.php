@@ -106,16 +106,16 @@ class PlatformInvoiceResource extends Resource
                             $taxMinor = (int) round($subtotalMinor * $taxRate);
                             $totalMinor = $subtotalMinor + $taxMinor;
 
-                            // Set form values (in piasters)
+                            // Set form values (in main currency)
                             $set('plan_code', $tenant->plan?->code);
-                            $set('plan_charge_minor', $planChargeMinor);
-                            $set('addon_charges_minor', $addonChargesMinor);
-                            $set('overage_charges_minor', 0);
-                            $set('discount_minor', 0);
-                            $set('subtotal_minor', $subtotalMinor);
-                            $set('tax_rate', $taxRate); // Decimal (e.g., 0.14 for 14%)
-                            $set('tax_minor', $taxMinor);
-                            $set('total_minor', $totalMinor);
+                            $set('plan_charge', $planChargeMinor / 100);
+                            $set('addon_charges', $addonChargesMinor / 100);
+                            $set('overage_charges', 0);
+                            $set('discount', 0);
+                            $set('subtotal', $subtotalMinor / 100);
+                            $set('tax_rate', $taxRate * 100); // Percentage (e.g., 14 for 14%)
+                            $set('tax', $taxMinor / 100);
+                            $set('total', $totalMinor / 100);
                             $set('currency', $currency);
                             $set('period_start', $periodStart->format('Y-m-d'));
                             $set('period_end', $periodEnd->format('Y-m-d'));
@@ -145,59 +145,77 @@ class PlatformInvoiceResource extends Resource
                         ->label('Due Date'),
                 ]),
 
-            Forms\Components\Section::make('Charges (in piasters)')
+            Forms\Components\Section::make('Charges')
                 ->columns(3)
                 ->schema([
-                    Forms\Components\TextInput::make('plan_charge_minor')
+                    Forms\Components\TextInput::make('currency')
+                        ->label('Currency')
+                        ->default('EGP')
+                        ->disabled()
+                        ->dehydrated(),
+
+                    Forms\Components\TextInput::make('plan_charge')
                         ->label('Plan Charge')
                         ->numeric()
-                        ->default(0),
+                        ->default(0)
+                        ->live(onBlur: true)
+                        ->afterStateUpdated(fn(Get $get, Set $set) => static::recalculateTotals($get, $set)),
 
-                    Forms\Components\TextInput::make('addon_charges_minor')
+                    Forms\Components\TextInput::make('addon_charges')
                         ->label('Add-on Charges')
                         ->numeric()
-                        ->default(0),
+                        ->default(0)
+                        ->live(onBlur: true)
+                        ->afterStateUpdated(fn(Get $get, Set $set) => static::recalculateTotals($get, $set)),
 
-                    Forms\Components\TextInput::make('overage_charges_minor')
+                    Forms\Components\TextInput::make('overage_charges')
                         ->label('Overage Charges')
                         ->numeric()
-                        ->default(0),
+                        ->default(0)
+                        ->live(onBlur: true)
+                        ->afterStateUpdated(fn(Get $get, Set $set) => static::recalculateTotals($get, $set)),
 
-                    Forms\Components\TextInput::make('discount_minor')
+                    Forms\Components\TextInput::make('discount')
                         ->label('Discount')
                         ->numeric()
-                        ->default(0),
+                        ->default(0)
+                        ->live(onBlur: true)
+                        ->afterStateUpdated(fn(Get $get, Set $set) => static::recalculateTotals($get, $set)),
 
                     Forms\Components\TextInput::make('discount_code')
                         ->label('Discount Code'),
 
                     Forms\Components\TextInput::make('tax_rate')
-                        ->label('Tax Rate')
+                        ->label('Tax Rate (%)')
                         ->numeric()
-                        ->default(0.14)
-                        ->step(0.01)
-                        ->helperText('e.g., 0.14 for 14%'),
+                        ->default(14)
+                        ->step(1)
+                        ->suffix('%')
+                        ->live(onBlur: true)
+                        ->afterStateUpdated(fn(Get $get, Set $set) => static::recalculateTotals($get, $set)),
                 ]),
 
-            Forms\Components\Section::make('Totals (in piasters)')
+            Forms\Components\Section::make('Totals')
                 ->columns(3)
                 ->schema([
-                    Forms\Components\TextInput::make('subtotal_minor')
+                    Forms\Components\TextInput::make('subtotal')
                         ->label('Subtotal')
                         ->numeric()
-                        ->default(0),
+                        ->disabled()
+                        ->dehydrated(false),
 
-                    Forms\Components\TextInput::make('tax_minor')
+                    Forms\Components\TextInput::make('tax')
                         ->label('Tax')
                         ->numeric()
-                        ->default(0),
+                        ->disabled()
+                        ->dehydrated(false),
 
-                    Forms\Components\TextInput::make('total_minor')
+                    Forms\Components\TextInput::make('total')
                         ->label('Total')
                         ->numeric()
-                        ->default(0),
+                        ->disabled()
+                        ->dehydrated(false),
 
-                    Forms\Components\Hidden::make('currency'),
                     Forms\Components\Hidden::make('plan_code'),
                 ]),
 
@@ -217,14 +235,23 @@ class PlatformInvoiceResource extends Resource
                                 ->required(),
                             Forms\Components\TextInput::make('description')
                                 ->required(),
-                            Forms\Components\TextInput::make('amount_minor')
+                            Forms\Components\TextInput::make('amount')
                                 ->label('Amount')
                                 ->numeric()
                                 ->required(),
                         ])
                         ->columns(3)
                         ->defaultItems(0)
-                        ->reorderable(false),
+                        ->reorderable(false)
+                        ->mutateRelationshipDataBeforeFillUsing(function (array $data): array {
+                            $data['amount'] = ($data['amount_minor'] ?? 0) / 100;
+                            return $data;
+                        })
+                        ->mutateRelationshipDataBeforeSaveUsing(function (array $data): array {
+                            $data['amount_minor'] = ($data['amount'] ?? 0) * 100;
+                            unset($data['amount']);
+                            return $data;
+                        }),
                 ]),
 
             Forms\Components\Section::make('Payment')
@@ -245,6 +272,23 @@ class PlatformInvoiceResource extends Resource
         ]);
     }
 
+
+    protected static function recalculateTotals(Get $get, Set $set): void
+    {
+        $planCharge = (float) ($get('plan_charge') ?? 0);
+        $addonCharges = (float) ($get('addon_charges') ?? 0);
+        $overageCharges = (float) ($get('overage_charges') ?? 0);
+        $discount = (float) ($get('discount') ?? 0);
+        $taxRatePercent = (float) ($get('tax_rate') ?? 14);
+
+        $subtotal = $planCharge + $addonCharges + $overageCharges - $discount;
+        $tax = round($subtotal * ($taxRatePercent / 100), 2);
+        $total = $subtotal + $tax;
+
+        $set('subtotal', $subtotal);
+        $set('tax', $tax);
+        $set('total', $total);
+    }
 
     public static function table(Table $table): Table
     {
