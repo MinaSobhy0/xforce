@@ -21,21 +21,21 @@ class EditPlatformInvoice extends BaseEditRecord
     protected function mutateFormDataBeforeFill(array $data): array
     {
         // Convert piasters to main currency for display
-        $data['plan_charge'] = ($data['plan_charge_minor'] ?? 0) / 100;
-        $data['addon_charges'] = ($data['addon_charges_minor'] ?? 0) / 100;
-        $data['overage_charges'] = ($data['overage_charges_minor'] ?? 0) / 100;
-        $data['discount'] = ($data['discount_minor'] ?? 0) / 100;
-        $data['subtotal'] = ($data['subtotal_minor'] ?? 0) / 100;
-        $data['tax'] = ($data['tax_minor'] ?? 0) / 100;
-        $data['total'] = ($data['total_minor'] ?? 0) / 100;
+        $data['plan_charge'] = round(($data['plan_charge_minor'] ?? 0) / 100, 2);
+        $data['addon_charges'] = round(($data['addon_charges_minor'] ?? 0) / 100, 2);
+        $data['overage_charges'] = round(($data['overage_charges_minor'] ?? 0) / 100, 2);
+        $data['discount'] = round(($data['discount_minor'] ?? 0) / 100, 2);
+        $data['subtotal'] = round(($data['subtotal_minor'] ?? 0) / 100, 2);
+        $data['tax'] = round(($data['tax_minor'] ?? 0) / 100, 2);
+        $data['total'] = round(($data['total_minor'] ?? 0) / 100, 2);
 
         // Convert tax rate from decimal to percentage
-        $data['tax_rate'] = ($data['tax_rate'] ?? 0.14) * 100;
+        $data['tax_rate'] = round(($data['tax_rate'] ?? 0.14) * 100, 2);
 
         // Convert line items
         if (!empty($data['line_items'])) {
             foreach ($data['line_items'] as &$item) {
-                $item['amount'] = ($item['amount_minor'] ?? 0) / 100;
+                $item['amount'] = round(($item['amount_minor'] ?? 0) / 100, 2);
             }
         }
 

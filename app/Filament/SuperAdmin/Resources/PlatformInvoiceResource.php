@@ -108,14 +108,14 @@ class PlatformInvoiceResource extends Resource
 
                             // Set form values (in main currency)
                             $set('plan_code', $tenant->plan?->code);
-                            $set('plan_charge', $planChargeMinor / 100);
-                            $set('addon_charges', $addonChargesMinor / 100);
+                            $set('plan_charge', round($planChargeMinor / 100, 2));
+                            $set('addon_charges', round($addonChargesMinor / 100, 2));
                             $set('overage_charges', 0);
                             $set('discount', 0);
-                            $set('subtotal', $subtotalMinor / 100);
-                            $set('tax_rate', $taxRate * 100); // Percentage (e.g., 14 for 14%)
-                            $set('tax', $taxMinor / 100);
-                            $set('total', $totalMinor / 100);
+                            $set('subtotal', round($subtotalMinor / 100, 2));
+                            $set('tax_rate', round($taxRate * 100, 2)); // Percentage (e.g., 14 for 14%)
+                            $set('tax', round($taxMinor / 100, 2));
+                            $set('total', round($totalMinor / 100, 2));
                             $set('currency', $currency);
                             $set('period_start', $periodStart->format('Y-m-d'));
                             $set('period_end', $periodEnd->format('Y-m-d'));
