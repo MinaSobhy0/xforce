@@ -79,7 +79,7 @@ class SubscriptionPlanResource extends Resource
                 ]),
 
             Forms\Components\Section::make('Country-Specific Pricing')
-                ->description('Set different prices for each country. Leave empty to use Egypt (EGP) price as default.')
+                ->description('Set different prices and tax rates for each country. Leave empty to use Egypt (EGP) price as default.')
                 ->collapsed()
                 ->schema([
                     Forms\Components\Tabs::make('Country Prices')
@@ -87,7 +87,7 @@ class SubscriptionPlanResource extends Resource
                             collect(SubscriptionPlan::COUNTRIES)->map(function ($info, $code) {
                                 return Forms\Components\Tabs\Tab::make($info['name'])
                                     ->schema([
-                                        Forms\Components\Grid::make(3)
+                                        Forms\Components\Grid::make(4)
                                             ->schema([
                                                 Forms\Components\TextInput::make("prices.{$code}.monthly")
                                                     ->label("Monthly ({$info['currency']})")
@@ -98,6 +98,12 @@ class SubscriptionPlanResource extends Resource
                                                     ->label("Yearly ({$info['currency']})")
                                                     ->numeric()
                                                     ->placeholder('Use default'),
+
+                                                Forms\Components\TextInput::make("prices.{$code}.tax_rate")
+                                                    ->label('Tax Rate (%)')
+                                                    ->numeric()
+                                                    ->placeholder($info['default_tax'] ?? '14')
+                                                    ->suffix('%'),
 
                                                 Forms\Components\Hidden::make("prices.{$code}.currency")
                                                     ->default($info['currency']),

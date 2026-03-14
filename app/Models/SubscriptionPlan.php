@@ -24,18 +24,18 @@ class SubscriptionPlan extends Model
     public array $translatable = ['name', 'description'];
 
     /**
-     * Supported countries with their currencies.
+     * Supported countries with their currencies and default tax rates.
      */
     public const COUNTRIES = [
-        'EG' => ['name' => 'Egypt', 'currency' => 'EGP'],
-        'SA' => ['name' => 'Saudi Arabia', 'currency' => 'SAR'],
-        'AE' => ['name' => 'UAE', 'currency' => 'AED'],
-        'KW' => ['name' => 'Kuwait', 'currency' => 'KWD'],
-        'QA' => ['name' => 'Qatar', 'currency' => 'QAR'],
-        'BH' => ['name' => 'Bahrain', 'currency' => 'BHD'],
-        'OM' => ['name' => 'Oman', 'currency' => 'OMR'],
-        'JO' => ['name' => 'Jordan', 'currency' => 'JOD'],
-        'LB' => ['name' => 'Lebanon', 'currency' => 'USD'],
+        'EG' => ['name' => 'Egypt', 'currency' => 'EGP', 'default_tax' => 14],
+        'SA' => ['name' => 'Saudi Arabia', 'currency' => 'SAR', 'default_tax' => 15],
+        'AE' => ['name' => 'UAE', 'currency' => 'AED', 'default_tax' => 5],
+        'KW' => ['name' => 'Kuwait', 'currency' => 'KWD', 'default_tax' => 0],
+        'QA' => ['name' => 'Qatar', 'currency' => 'QAR', 'default_tax' => 0],
+        'BH' => ['name' => 'Bahrain', 'currency' => 'BHD', 'default_tax' => 10],
+        'OM' => ['name' => 'Oman', 'currency' => 'OMR', 'default_tax' => 5],
+        'JO' => ['name' => 'Jordan', 'currency' => 'JOD', 'default_tax' => 16],
+        'LB' => ['name' => 'Lebanon', 'currency' => 'USD', 'default_tax' => 11],
     ];
 
     protected $fillable = [
@@ -223,5 +223,22 @@ class SubscriptionPlan extends Model
     {
         $countryCode = strtoupper($countryCode);
         return isset($this->prices[$countryCode]);
+    }
+
+    /**
+     * Get tax rate for a specific country (as percentage, e.g., 14 for 14%).
+     */
+    public function getTaxRateForCountry(string $countryCode): float
+    {
+        $countryCode = strtoupper($countryCode);
+        $prices = $this->prices ?? [];
+
+        // Check if country has specific tax rate in plan
+        if (isset($prices[$countryCode]['tax_rate'])) {
+            return (float) $prices[$countryCode]['tax_rate'];
+        }
+
+        // Fallback to country's default tax rate
+        return (float) (self::COUNTRIES[$countryCode]['default_tax'] ?? 14);
     }
 }

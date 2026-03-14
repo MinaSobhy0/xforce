@@ -100,9 +100,12 @@ class PlatformInvoiceResource extends Resource
 
                             // Calculate totals (in minor/piasters)
                             $subtotalMinor = $planChargeMinor + $addonChargesMinor;
-                            // Tenant stores tax_rate as percentage (14), convert to decimal (0.14)
-                            $taxRateRaw = $tenant->tax_rate ?? 14;
-                            $taxRate = $taxRateRaw > 1 ? $taxRateRaw / 100 : $taxRateRaw; // Convert 14 -> 0.14
+
+                            // Get tax rate from plan's country-specific pricing (as percentage)
+                            $taxRatePercent = $tenant->plan
+                                ? $tenant->plan->getTaxRateForCountry($country)
+                                : (\App\Models\SubscriptionPlan::COUNTRIES[$country]['default_tax'] ?? 14);
+                            $taxRate = $taxRatePercent / 100; // Convert percentage to decimal
                             $taxMinor = (int) round($subtotalMinor * $taxRate);
                             $totalMinor = $subtotalMinor + $taxMinor;
 
@@ -113,7 +116,7 @@ class PlatformInvoiceResource extends Resource
                             $set('overage_charges', 0);
                             $set('discount', 0);
                             $set('subtotal', round($subtotalMinor / 100, 2));
-                            $set('tax_rate', round($taxRate * 100, 2)); // Percentage (e.g., 14 for 14%)
+                            $set('tax_rate', round($taxRatePercent, 2)); // Percentage from plan (e.g., 14 for 14%)
                             $set('tax', round($taxMinor / 100, 2));
                             $set('total', round($totalMinor / 100, 2));
                             $set('currency', $currency);
