@@ -65,14 +65,14 @@
         <x-filament::section>
             <x-slot name="heading">Usage & Limits</x-slot>
 
-            <div class="flex flex-row gap-3">
+            <div style="display: flex; flex-direction: row; gap: 12px;">
                 {{-- Users --}}
                 @php
                     $usersOverLimit = is_numeric($usage['max_users']) && $usage['max_users'] !== '∞' && $usage['users'] > $usage['max_users'];
                     $usersNearLimit = is_numeric($usage['max_users']) && $usage['max_users'] !== '∞' && $usage['users'] >= ($usage['max_users'] * 0.8);
                 @endphp
-                <div @class([
-                    'flex-1 rounded-md p-2.5',
+                <div style="flex: 1;" @class([
+                    'rounded-md p-2.5',
                     'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800' => $usersOverLimit,
                     'bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800' => $usersNearLimit && !$usersOverLimit,
                     'bg-gray-50 dark:bg-gray-800' => !$usersNearLimit,
@@ -98,7 +98,7 @@
                 </div>
 
                 {{-- Branches --}}
-                <div class="flex-1 bg-gray-50 dark:bg-gray-800 rounded-md p-2.5">
+                <div style="flex: 1;" class="bg-gray-50 dark:bg-gray-800 rounded-md p-2.5">
                     <div class="flex items-center justify-between mb-1.5">
                         <span class="text-xs text-gray-500">Branches</span>
                         <span class="text-xs font-semibold">{{ $usage['branches'] }}/{{ is_numeric($usage['max_branches']) ? $usage['max_branches'] : '∞' }}</span>
@@ -111,7 +111,7 @@
                 </div>
 
                 {{-- Patients --}}
-                <div class="flex-1 bg-gray-50 dark:bg-gray-800 rounded-md p-2.5">
+                <div style="flex: 1;" class="bg-gray-50 dark:bg-gray-800 rounded-md p-2.5">
                     <div class="flex items-center justify-between mb-1.5">
                         <span class="text-xs text-gray-500">Patients</span>
                         <span class="text-xs font-semibold">{{ number_format($usage['patients']) }}</span>
@@ -122,7 +122,7 @@
                 </div>
 
                 {{-- Storage --}}
-                <div class="flex-1 bg-gray-50 dark:bg-gray-800 rounded-md p-2.5">
+                <div style="flex: 1;" class="bg-gray-50 dark:bg-gray-800 rounded-md p-2.5">
                     <div class="flex items-center justify-between mb-1.5">
                         <span class="text-xs text-gray-500">Storage</span>
                         <span class="text-xs font-semibold">{{ round($usage['storage_mb'] / 1024, 1) }}GB/{{ is_numeric($usage['max_storage_mb']) ? round($usage['max_storage_mb'] / 1024) . 'GB' : '∞' }}</span>
