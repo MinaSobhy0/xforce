@@ -100,7 +100,9 @@ class PlatformInvoiceResource extends Resource
 
                             // Calculate totals (in minor/piasters)
                             $subtotalMinor = $planChargeMinor + $addonChargesMinor;
-                            $taxRate = $tenant->tax_rate ?? 0.14;
+                            // Tenant stores tax_rate as percentage (14), convert to decimal (0.14)
+                            $taxRateRaw = $tenant->tax_rate ?? 14;
+                            $taxRate = $taxRateRaw > 1 ? $taxRateRaw / 100 : $taxRateRaw; // Convert 14 -> 0.14
                             $taxMinor = (int) round($subtotalMinor * $taxRate);
                             $totalMinor = $subtotalMinor + $taxMinor;
 
