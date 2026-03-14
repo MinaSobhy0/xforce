@@ -253,6 +253,29 @@ class TenantResource extends Resource
                         ->suffix('MB'),
                 ]),
 
+            Forms\Components\Section::make('Custom Pricing')
+                ->icon('heroicon-o-currency-dollar')
+                ->description('Override platform default pricing for this tenant. Leave empty to use platform defaults.')
+                ->columns(2)
+                ->collapsible()
+                ->collapsed()
+                ->schema([
+                    Forms\Components\TextInput::make('extra_user_price')
+                        ->label('Price per Extra User (EGP/month)')
+                        ->helperText(fn () => 'Platform default: EGP ' . \App\Models\PlatformSetting::get('extra_user_price_egp', 50))
+                        ->numeric()
+                        ->minValue(0)
+                        ->prefix('EGP')
+                        ->placeholder('Use platform default'),
+                    Forms\Components\TextInput::make('extra_branch_price')
+                        ->label('Price per Extra Branch (EGP/month)')
+                        ->helperText(fn () => 'Platform default: EGP ' . \App\Models\PlatformSetting::get('extra_branch_price_egp', 100))
+                        ->numeric()
+                        ->minValue(0)
+                        ->prefix('EGP')
+                        ->placeholder('Use platform default'),
+                ]),
+
             Forms\Components\Section::make('Branding')
                 ->icon('heroicon-o-paint-brush')
                 ->description('Customize the clinic\'s visual identity')

@@ -54,6 +54,8 @@ class Tenant extends Model
         'extra_branches',
         'extra_patients',
         'extra_storage_mb',
+        'extra_user_price',
+        'extra_branch_price',
         'users_overage_at',
         'users_overage_notified',
         'timezone',
@@ -91,6 +93,8 @@ class Tenant extends Model
         'extra_branches' => 'integer',
         'extra_patients' => 'integer',
         'extra_storage_mb' => 'integer',
+        'extra_user_price' => 'integer',
+        'extra_branch_price' => 'integer',
         'users_overage_at' => 'datetime',
         'users_overage_notified' => 'boolean',
         'tax_rate' => 'decimal:4',
@@ -715,6 +719,26 @@ class Tenant extends Model
         $used = $this->usage->storage_mb ?? 0;
 
         return max(0, $limit - $used);
+    }
+
+    /**
+     * Get the price for an additional resource (user, branch, etc.).
+     * Returns tenant-specific price if set, otherwise falls back to platform default.
+     */
+    public function getExtraResourcePrice(string $resource): int
+    {
+        $tenantPrice = $this->{"extra_{$resource}_price"};
+
+        if ($tenantPrice !== null) {
+            return $tenantPrice;
+        }
+
+        // Fall back to platform setting
+        return (int) \App\Models\PlatformSetting::get("extra_{$resource}_price_egp", match ($resource) {
+            'user' => 50,
+            'branch' => 100,
+            default => 0,
+        });
     }
 
     public function getDisplayName(): string

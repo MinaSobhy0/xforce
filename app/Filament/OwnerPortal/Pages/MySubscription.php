@@ -75,7 +75,8 @@ class MySubscription extends Page
                 ->icon('heroicon-o-user-plus')
                 ->color('success')
                 ->form(function () {
-                    $pricePerUser = (int) PlatformSetting::get('extra_user_price_egp', 50);
+                    $tenant = Auth::user()->tenant;
+                    $pricePerUser = $tenant?->getExtraResourcePrice('user') ?? 50;
                     return [
                         TextInput::make('additional_users')
                             ->label('Number of Additional Users')
@@ -93,7 +94,7 @@ class MySubscription extends Page
                 ->action(function (array $data) {
                     $tenant = Auth::user()->tenant;
                     $count = $data['additional_users'];
-                    $pricePerUser = (int) PlatformSetting::get('extra_user_price_egp', 50);
+                    $pricePerUser = $tenant->getExtraResourcePrice('user');
                     $totalCost = $count * $pricePerUser;
 
                     SupportTicket::create([
