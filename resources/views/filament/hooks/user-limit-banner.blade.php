@@ -8,8 +8,13 @@
 
     if ($tenant) {
         $limit = $tenant->getEffectiveLimit('users');
-        // Count users directly for real-time accuracy
-        $currentUsers = \Modules\Auth\Models\User::count();
+
+        // Count users using raw query to bypass any model scopes
+        // This ensures accurate count regardless of context
+        $currentUsers = \Illuminate\Support\Facades\DB::connection('tenant')
+            ->table('users')
+            ->whereNull('deleted_at')
+            ->count();
 
         // Show banner if over limit (real-time check)
         if ($limit !== null && $currentUsers > $limit) {
