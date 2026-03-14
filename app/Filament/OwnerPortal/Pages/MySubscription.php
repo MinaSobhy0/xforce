@@ -32,17 +32,22 @@ class MySubscription extends Page
         $tenant = $user?->tenant;
         $plan = $tenant?->plan;
 
+        // Compute actual usage from tenant database
+        $tenantUsage = $tenant?->computeUsage();
+
         return [
             'tenant' => $tenant,
             'plan' => $plan,
-            'add_ons' => $tenant?->addOns ?? collect(),
+            'add_ons' => $tenant?->activeAddOns ?? collect(),
             'usage' => [
-                'users' => $tenant?->users()->count() ?? 0,
-                'max_users' => $plan?->max_users ?? '∞',
-                'patients' => 0, // Would come from tenant data
-                'max_patients' => $plan?->max_patients ?? '∞',
-                'storage_mb' => $tenant?->storage_used_mb ?? 0,
-                'max_storage_mb' => $plan?->max_storage_mb ?? '∞',
+                'users' => $tenantUsage?->users ?? 0,
+                'max_users' => $tenant?->getEffectiveLimit('users') ?? '∞',
+                'patients' => $tenantUsage?->patients ?? 0,
+                'max_patients' => $tenant?->getEffectiveLimit('patients') ?? '∞',
+                'storage_mb' => $tenantUsage?->storage_mb ?? 0,
+                'max_storage_mb' => $tenant?->getEffectiveLimit('storage_mb') ?? '∞',
+                'branches' => $tenantUsage?->branches ?? 0,
+                'max_branches' => $tenant?->getEffectiveLimit('branches') ?? '∞',
             ],
         ];
     }

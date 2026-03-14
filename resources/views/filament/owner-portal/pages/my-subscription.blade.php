@@ -65,11 +65,11 @@
         <x-filament::section>
             <x-slot name="heading">Usage & Limits</x-slot>
 
-            <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {{-- Users --}}
                 @php
-                    $usersOverLimit = is_numeric($usage['max_users']) && $usage['users'] > $usage['max_users'];
-                    $usersNearLimit = is_numeric($usage['max_users']) && $usage['users'] >= ($usage['max_users'] * 0.8);
+                    $usersOverLimit = is_numeric($usage['max_users']) && $usage['max_users'] !== '∞' && $usage['users'] > $usage['max_users'];
+                    $usersNearLimit = is_numeric($usage['max_users']) && $usage['max_users'] !== '∞' && $usage['users'] >= ($usage['max_users'] * 0.8);
                 @endphp
                 <div @class([
                     'rounded-lg p-4',
@@ -83,7 +83,7 @@
                             'text-sm font-medium',
                             'text-red-600 dark:text-red-400' => $usersOverLimit,
                             'text-yellow-600 dark:text-yellow-400' => $usersNearLimit && !$usersOverLimit,
-                        ])>{{ $usage['users'] }} / {{ $usage['max_users'] }}</span>
+                        ])>{{ number_format($usage['users']) }} / {{ is_numeric($usage['max_users']) ? number_format($usage['max_users']) : '∞' }}</span>
                     </div>
                     @if(is_numeric($usage['max_users']) && $usage['max_users'] > 0)
                         <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
@@ -96,27 +96,28 @@
                         </div>
                         @if($usersOverLimit)
                             <p class="text-xs text-red-600 dark:text-red-400 mt-2">
-                                You are {{ $usage['users'] - $usage['max_users'] }} user(s) over your limit.
-                                <button
-                                    type="button"
-                                    wire:click="mountAction('requestAdditionalUsers')"
-                                    class="underline font-medium hover:text-red-800"
-                                >
-                                    Buy additional users
-                                </button>
+                                {{ $usage['users'] - $usage['max_users'] }} over limit.
+                                <button type="button" wire:click="mountAction('requestAdditionalUsers')" class="underline font-medium">Buy more</button>
                             </p>
                         @elseif($usersNearLimit)
                             <p class="text-xs text-yellow-600 dark:text-yellow-400 mt-2">
-                                Approaching user limit.
-                                <button
-                                    type="button"
-                                    wire:click="mountAction('requestAdditionalUsers')"
-                                    class="underline font-medium hover:text-yellow-800"
-                                >
-                                    Buy additional users
-                                </button>
+                                Near limit.
+                                <button type="button" wire:click="mountAction('requestAdditionalUsers')" class="underline font-medium">Buy more</button>
                             </p>
                         @endif
+                    @endif
+                </div>
+
+                {{-- Branches --}}
+                <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm text-gray-500">Branches</span>
+                        <span class="text-sm font-medium">{{ number_format($usage['branches']) }} / {{ is_numeric($usage['max_branches']) ? number_format($usage['max_branches']) : '∞' }}</span>
+                    </div>
+                    @if(is_numeric($usage['max_branches']) && $usage['max_branches'] > 0)
+                        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                            <div class="bg-primary-600 h-2 rounded-full" style="width: {{ min(100, ($usage['branches'] / $usage['max_branches']) * 100) }}%"></div>
+                        </div>
                     @endif
                 </div>
 
@@ -124,7 +125,7 @@
                 <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
                     <div class="flex items-center justify-between mb-2">
                         <span class="text-sm text-gray-500">Patients</span>
-                        <span class="text-sm font-medium">{{ $usage['patients'] }} / {{ $usage['max_patients'] }}</span>
+                        <span class="text-sm font-medium">{{ number_format($usage['patients']) }} / {{ is_numeric($usage['max_patients']) ? number_format($usage['max_patients']) : '∞' }}</span>
                     </div>
                     @if(is_numeric($usage['max_patients']) && $usage['max_patients'] > 0)
                         <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
@@ -196,7 +197,8 @@
                         </p>
                         <ul class="mt-4 space-y-2 text-sm text-gray-600 dark:text-gray-400">
                             <li>{{ $availablePlan->max_users ?? '∞' }} Users</li>
-                            <li>{{ $availablePlan->max_patients ?? '∞' }} Patients</li>
+                            <li>{{ $availablePlan->max_branches ?? '∞' }} Branches</li>
+                            <li>Unlimited Patients</li>
                             <li>{{ $availablePlan->max_storage_mb ? round($availablePlan->max_storage_mb / 1024) . ' GB' : 'Unlimited' }} Storage</li>
                         </ul>
                     </div>
