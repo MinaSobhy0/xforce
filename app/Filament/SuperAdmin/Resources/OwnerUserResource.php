@@ -62,10 +62,19 @@ class OwnerUserResource extends Resource
 
                         Forms\Components\TextInput::make('password')
                             ->password()
-                            ->dehydrateStateUsing(fn ($state) => $state ? Hash::make($state) : null)
+                            ->revealable()
+                            ->dehydrateStateUsing(fn ($state) => filled($state) ? Hash::make($state) : null)
                             ->dehydrated(fn ($state) => filled($state))
-                            ->required(fn (string $context): bool => $context === 'create')
-                            ->helperText(fn (string $context) => $context === 'edit' ? 'Leave empty to keep current password' : null),
+                            ->required(fn (string $operation): bool => $operation === 'create')
+                            ->confirmed()
+                            ->helperText(fn (string $operation) => $operation === 'edit' ? 'Leave empty to keep current password' : 'Minimum 8 characters'),
+
+                        Forms\Components\TextInput::make('password_confirmation')
+                            ->password()
+                            ->revealable()
+                            ->requiredWith('password')
+                            ->visible(fn (string $operation): bool => $operation === 'create' || true)
+                            ->dehydrated(false),
 
                         Forms\Components\Select::make('status')
                             ->options([
