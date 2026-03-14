@@ -111,7 +111,7 @@ class PlatformInvoiceResource extends Resource
                             $set('overage_charges_minor', 0);
                             $set('discount_minor', 0);
                             $set('subtotal_minor', $subtotalMinor / 100);
-                            $set('tax_rate', round($taxRate * 100, 2)); // Display as percentage (e.g., 14 for 14%)
+                            $set('tax_rate', $taxRate); // Decimal (e.g., 0.14 for 14%)
                             $set('tax_minor', $taxMinor / 100);
                             $set('total_minor', $totalMinor / 100);
                             $set('currency', $currency);
@@ -186,14 +186,12 @@ class PlatformInvoiceResource extends Resource
                         ->label('Discount Code'),
 
                     Forms\Components\TextInput::make('tax_rate')
-                        ->label('Tax Rate (%)')
+                        ->label('Tax Rate')
                         ->numeric()
                         ->default(0.14)
                         ->step(0.01)
-                        ->suffix('%')
+                        ->helperText('e.g., 0.14 for 14%')
                         ->live(onBlur: true)
-                        ->formatStateUsing(fn ($state) => $state !== null ? round($state * 100, 2) : 14)
-                        ->dehydrateStateUsing(fn ($state) => $state !== null ? $state / 100 : 0.14)
                         ->afterStateUpdated(fn(Get $get, Set $set) => static::calculateTotals($get, $set)),
                 ]),
 
@@ -281,10 +279,10 @@ class PlatformInvoiceResource extends Resource
         $addonCharges = (float) ($get('addon_charges_minor') ?? 0);
         $overageCharges = (float) ($get('overage_charges_minor') ?? 0);
         $discount = (float) ($get('discount_minor') ?? 0);
-        $taxRatePercent = (float) ($get('tax_rate') ?? 14); // Tax rate as percentage (e.g., 14 for 14%)
+        $taxRate = (float) ($get('tax_rate') ?? 0.14); // Tax rate as decimal (e.g., 0.14 for 14%)
 
         $subtotal = $planCharge + $addonCharges + $overageCharges - $discount;
-        $tax = round($subtotal * ($taxRatePercent / 100), 2);
+        $tax = round($subtotal * $taxRate, 2);
         $total = $subtotal + $tax;
 
         $set('subtotal_minor', $subtotal);

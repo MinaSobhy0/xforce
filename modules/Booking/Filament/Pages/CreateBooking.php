@@ -729,7 +729,7 @@ class CreateBooking extends Page implements HasForms
                                                                     ->live(onBlur: true)
                                                                     // Hide for package services (price is at package level)
                                                                     ->hidden(fn (Get $get) => $get('source_type') === 'package')
-                                                                    ->columnSpan(2),
+                                                                    ->columnSpan(3),
 
                                                                 Forms\Components\Select::make('discount_type')
                                                                     ->label(__('booking::booking.fields.discount_type'))
@@ -745,7 +745,7 @@ class CreateBooking extends Page implements HasForms
                                                                         $set('discount_percent', 0);
                                                                     })
                                                                     ->hidden(fn (Get $get) => $get('source_type') === 'package')
-                                                                    ->columnSpan(1),
+                                                                    ->columnSpan(2),
 
                                                                 Forms\Components\TextInput::make('discount_minor')
                                                                     ->label(__('booking::booking.fields.discount'))
@@ -785,7 +785,7 @@ class CreateBooking extends Page implements HasForms
                                                                     })
                                                                     // Show only for fixed discount type
                                                                     ->visible(fn (Get $get) => $get('source_type') !== 'package' && $get('discount_type') !== Appointment::DISCOUNT_PERCENT)
-                                                                    ->columnSpan(1),
+                                                                    ->columnSpan(2),
 
                                                                 Forms\Components\TextInput::make('discount_percent')
                                                                     ->label(__('booking::booking.fields.discount'))
@@ -820,7 +820,7 @@ class CreateBooking extends Page implements HasForms
                                                                     })
                                                                     // Show only for percent discount type
                                                                     ->visible(fn (Get $get) => $get('source_type') !== 'package' && $get('discount_type') === Appointment::DISCOUNT_PERCENT)
-                                                                    ->columnSpan(1),
+                                                                    ->columnSpan(2),
 
                                                                 // Total (calculated) - hide for packages
                                                                 Forms\Components\Placeholder::make('total_display')
