@@ -12,6 +12,7 @@ use Filament\Notifications\Notification;
 use App\Models\SubscriptionPlan;
 use App\Models\AddOn;
 use App\Models\SupportTicket;
+use App\Models\PlatformSetting;
 use Illuminate\Support\Facades\Auth;
 
 class MySubscription extends Page
@@ -73,28 +74,33 @@ class MySubscription extends Page
                 ->label('Buy Additional Users')
                 ->icon('heroicon-o-user-plus')
                 ->color('success')
-                ->form([
-                    TextInput::make('additional_users')
-                        ->label('Number of Additional Users')
-                        ->numeric()
-                        ->minValue(1)
-                        ->maxValue(100)
-                        ->default(1)
-                        ->required()
-                        ->helperText('Each additional user costs EGP 50/month'),
-                    Textarea::make('message')
-                        ->label('Additional Message (Optional)')
-                        ->placeholder('Any specific requirements...'),
-                ])
+                ->form(function () {
+                    $pricePerUser = (int) PlatformSetting::get('extra_user_price_egp', 50);
+                    return [
+                        TextInput::make('additional_users')
+                            ->label('Number of Additional Users')
+                            ->numeric()
+                            ->minValue(1)
+                            ->maxValue(100)
+                            ->default(1)
+                            ->required()
+                            ->helperText("Each additional user costs EGP {$pricePerUser}/month"),
+                        Textarea::make('message')
+                            ->label('Additional Message (Optional)')
+                            ->placeholder('Any specific requirements...'),
+                    ];
+                })
                 ->action(function (array $data) {
                     $tenant = Auth::user()->tenant;
                     $count = $data['additional_users'];
+                    $pricePerUser = (int) PlatformSetting::get('extra_user_price_egp', 50);
+                    $totalCost = $count * $pricePerUser;
 
                     SupportTicket::create([
                         'tenant_id' => $tenant->id,
                         'ticket_number' => 'TKT-' . strtoupper(uniqid()),
                         'subject' => "Request for {$count} Additional User(s)",
-                        'description' => "Clinic: {$tenant->name}\n\nRequested Additional Users: {$count}\nEstimated Cost: EGP " . number_format($count * 50) . "/month\n\nMessage: " . ($data['message'] ?? 'No additional message'),
+                        'description' => "Clinic: {$tenant->name}\n\nRequested Additional Users: {$count}\nPrice per User: EGP {$pricePerUser}/month\nEstimated Total: EGP " . number_format($totalCost) . "/month\n\nMessage: " . ($data['message'] ?? 'No additional message'),
                         'category' => 'billing',
                         'priority' => 'normal',
                         'status' => 'open',

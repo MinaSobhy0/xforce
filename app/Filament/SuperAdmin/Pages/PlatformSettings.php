@@ -49,6 +49,8 @@ class PlatformSettings extends Page implements HasForms
             'auto_delete_after' => PlatformSetting::get('auto_delete_after', 90),
 
             // Payment
+            'extra_user_price_egp' => PlatformSetting::get('extra_user_price_egp', 50),
+            'extra_branch_price_egp' => PlatformSetting::get('extra_branch_price_egp', 100),
             'payment_gateway' => PlatformSetting::get('payment_gateway', 'paymob'),
             'payment_api_key' => PlatformSetting::getEncrypted('payment_api_key'),
             'payment_merchant_id' => PlatformSetting::get('payment_merchant_id'),
@@ -226,6 +228,27 @@ class PlatformSettings extends Page implements HasForms
                                             ->label('iFrame ID')
                                             ->helperText('For Paymob: Payment iFrame ID')
                                             ->visible(fn (Forms\Get $get) => $get('payment_gateway') === 'paymob'),
+                                    ])
+                                    ->columns(2),
+
+                                Forms\Components\Section::make('Add-On Pricing')
+                                    ->description('Prices for additional resources beyond plan limits')
+                                    ->schema([
+                                        Forms\Components\TextInput::make('extra_user_price_egp')
+                                            ->label('Extra User Price (EGP/month)')
+                                            ->numeric()
+                                            ->minValue(0)
+                                            ->required()
+                                            ->prefix('EGP')
+                                            ->helperText('Price per additional user beyond plan limit'),
+
+                                        Forms\Components\TextInput::make('extra_branch_price_egp')
+                                            ->label('Extra Branch Price (EGP/month)')
+                                            ->numeric()
+                                            ->minValue(0)
+                                            ->required()
+                                            ->prefix('EGP')
+                                            ->helperText('Price per additional branch beyond plan limit'),
                                     ])
                                     ->columns(2),
 
@@ -428,6 +451,10 @@ class PlatformSettings extends Page implements HasForms
         PlatformSetting::set('trial_expiry_warning', $data['trial_expiry_warning'], 'trial', 'integer');
         PlatformSetting::set('auto_suspend_after', $data['auto_suspend_after'], 'trial', 'integer');
         PlatformSetting::set('auto_delete_after', $data['auto_delete_after'], 'trial', 'integer');
+
+        // Payment - Add-On Pricing
+        PlatformSetting::set('extra_user_price_egp', $data['extra_user_price_egp'], 'payment', 'integer');
+        PlatformSetting::set('extra_branch_price_egp', $data['extra_branch_price_egp'], 'payment', 'integer');
 
         // Payment
         PlatformSetting::set('payment_gateway', $data['payment_gateway'], 'payment');
