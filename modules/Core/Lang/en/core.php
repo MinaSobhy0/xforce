@@ -254,6 +254,13 @@ return [
         'access_denied' => 'Access denied.',
     ],
 
+    // Deletion blocked (FK violation)
+    'deletion_blocked' => [
+        'title' => 'Cannot Delete Record',
+        'message' => 'This record cannot be deleted because it has related :relation. Please delete or archive those records first.',
+        'related_records' => 'related records',
+    ],
+
     // Dashboard Widgets
     'widgets' => [
         'total_patients' => 'Total Patients',

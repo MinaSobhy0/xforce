@@ -4,7 +4,16 @@ namespace App\Providers;
 
 use App\Database\PostgresConnection;
 use App\Http\Middleware\IdentifyTenant;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\ForceDeleteAction;
+use Filament\Notifications\Notification;
+use Filament\Support\Exceptions\Halt;
+use Filament\Tables\Actions\DeleteAction as TableDeleteAction;
+use Filament\Tables\Actions\DeleteBulkAction;
+use Filament\Tables\Actions\ForceDeleteAction as TableForceDeleteAction;
+use Filament\Tables\Actions\ForceDeleteBulkAction;
 use Illuminate\Database\Connection;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
 
@@ -34,6 +43,105 @@ class AppServiceProvider extends ServiceProvider
 
         // Register Livewire components from modules
         $this->registerModuleLivewireComponents();
+
+        // Configure delete actions to handle FK violations gracefully
+        $this->configureDeleteActions();
+    }
+
+    /**
+     * Configure all delete actions to catch FK violations and show friendly notifications.
+     */
+    protected function configureDeleteActions(): void
+    {
+        $handleFkViolation = function (QueryException $e): void {
+            if ($e->getCode() === '23503') {
+                // Extract table name from error message
+                $table = 'related records';
+                if (preg_match('/on table "([^"]+)"[^"]*$/', $e->getMessage(), $matches)) {
+                    $table = str_replace('_', ' ', ucfirst($matches[1]));
+                }
+
+                Notification::make()
+                    ->title(__('core::core.deletion_blocked.title'))
+                    ->body(__('core::core.deletion_blocked.message', ['relation' => $table]))
+                    ->danger()
+                    ->persistent()
+                    ->send();
+
+                // Throw Halt to stop the action without showing success notification
+                throw new Halt();
+            }
+
+            // Re-throw non-FK exceptions
+            throw $e;
+        };
+
+        // Configure page/form delete actions
+        DeleteAction::configureUsing(function (DeleteAction $action) use ($handleFkViolation): void {
+            $action->using(function ($record) use ($handleFkViolation, $action) {
+                try {
+                    $record->delete();
+                } catch (QueryException $e) {
+                    $handleFkViolation($e);
+                }
+            });
+        });
+
+        ForceDeleteAction::configureUsing(function (ForceDeleteAction $action) use ($handleFkViolation): void {
+            $action->using(function ($record) use ($handleFkViolation) {
+                try {
+                    $record->forceDelete();
+                } catch (QueryException $e) {
+                    $handleFkViolation($e);
+                }
+            });
+        });
+
+        // Configure table row delete actions
+        TableDeleteAction::configureUsing(function (TableDeleteAction $action) use ($handleFkViolation): void {
+            $action->using(function ($record) use ($handleFkViolation) {
+                try {
+                    $record->delete();
+                } catch (QueryException $e) {
+                    $handleFkViolation($e);
+                }
+            });
+        });
+
+        TableForceDeleteAction::configureUsing(function (TableForceDeleteAction $action) use ($handleFkViolation): void {
+            $action->using(function ($record) use ($handleFkViolation) {
+                try {
+                    $record->forceDelete();
+                } catch (QueryException $e) {
+                    $handleFkViolation($e);
+                }
+            });
+        });
+
+        // Configure bulk delete actions
+        DeleteBulkAction::configureUsing(function (DeleteBulkAction $action) use ($handleFkViolation): void {
+            $action->using(function ($records) use ($handleFkViolation) {
+                foreach ($records as $record) {
+                    try {
+                        $record->delete();
+                    } catch (QueryException $e) {
+                        $handleFkViolation($e);
+                    }
+                }
+            });
+        });
+
+        ForceDeleteBulkAction::configureUsing(function (ForceDeleteBulkAction $action) use ($handleFkViolation): void {
+            $action->using(function ($records) use ($handleFkViolation) {
+                foreach ($records as $record) {
+                    try {
+                        $record->forceDelete();
+                    } catch (QueryException $e) {
+                        $handleFkViolation($e);
+                    }
+                }
+            });
+        });
     }
 
     /**

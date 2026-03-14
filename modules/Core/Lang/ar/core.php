@@ -160,6 +160,13 @@ return [
         'access_denied' => 'تم رفض الوصول.',
     ],
 
+    // Deletion blocked (FK violation)
+    'deletion_blocked' => [
+        'title' => 'لا يمكن حذف السجل',
+        'message' => 'لا يمكن حذف هذا السجل لأنه مرتبط بـ :relation. يرجى حذف أو أرشفة تلك السجلات أولاً.',
+        'related_records' => 'سجلات مرتبطة',
+    ],
+
     // Dashboard Widgets
     'widgets' => [
         'total_patients' => 'إجمالي المرضى',

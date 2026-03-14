@@ -39,5 +39,16 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        // Handle PostgreSQL foreign key violations with user-friendly messages
+        $exceptions->renderable(function (\Illuminate\Database\QueryException $e, \Illuminate\Http\Request $request) {
+            $handler = new \App\Exceptions\ForeignKeyViolationHandler;
+            $response = $handler->handle($e, $request);
+
+            if ($response !== null) {
+                return $response;
+            }
+
+            // Let Laravel handle other query exceptions
+            return null;
+        });
     })->create();
