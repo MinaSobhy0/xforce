@@ -233,6 +233,7 @@ return [
         'items_added_to_plan' => 'Items added to treatment plan successfully',
         'add_to_plan_failed' => 'Failed to add items to treatment plan',
         'session_started' => 'Session started successfully',
+        'session_resumed' => 'Session resumed',
         'session_assigned' => 'Session assigned successfully',
         'session_assigned_body' => ':service assigned to another doctor',
         'cannot_start_session' => 'Cannot start session for this service',

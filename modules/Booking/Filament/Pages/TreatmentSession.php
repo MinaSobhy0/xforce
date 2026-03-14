@@ -1035,6 +1035,49 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
         $action = $data['action'] ?? 'keep_open';
         $practitionerId = $data['practitioner_id'] ?? $this->appointment->practitioner_id;
 
+        // Check if there's already an active appointment for this treatment plan item
+        $existingAppointment = Appointment::query()
+            ->whereHas('treatmentPlanAppointment', function ($q) use ($item) {
+                $q->where('treatment_plan_item_id', $item->id);
+            })
+            ->whereIn('status', [
+                Appointment::STATUS_IN_PROGRESS,
+                Appointment::STATUS_CHECKED_IN,
+                Appointment::STATUS_CONFIRMED,
+                Appointment::STATUS_SCHEDULED,
+            ])
+            ->where('id', '!=', $this->appointment->id)
+            ->first();
+
+        // If there's an existing active appointment, navigate to it instead of creating a new one
+        if ($existingAppointment) {
+            // Handle current session based on action
+            if ($action === 'complete_current') {
+                $this->completeSession();
+            }
+
+            // Start the existing appointment if not already in progress
+            if ($existingAppointment->status === Appointment::STATUS_SCHEDULED) {
+                $existingAppointment->confirm();
+            }
+            if ($existingAppointment->status === Appointment::STATUS_CONFIRMED) {
+                $existingAppointment->checkIn();
+            }
+            if ($existingAppointment->status === Appointment::STATUS_CHECKED_IN) {
+                $existingAppointment->start();
+            }
+
+            Notification::make()
+                ->title(__('booking::session.messages.session_resumed'))
+                ->body($item->service?->translated_name)
+                ->success()
+                ->send();
+
+            $this->pendingSessionItemId = null;
+            $this->redirect(static::getUrl(['appointment_id' => $existingAppointment->id]));
+            return;
+        }
+
         // Handle current session based on action
         if ($action === 'complete_current') {
             $this->completeSession();

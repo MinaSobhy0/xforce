@@ -233,6 +233,7 @@ return [
         'items_added_to_plan' => 'تمت إضافة العناصر لخطة العلاج بنجاح',
         'add_to_plan_failed' => 'فشل إضافة العناصر لخطة العلاج',
         'session_started' => 'تم بدء الجلسة بنجاح',
+        'session_resumed' => 'تم استئناف الجلسة',
         'session_assigned' => 'تم تعيين الجلسة بنجاح',
         'session_assigned_body' => 'تم تعيين :service لطبيب آخر',
         'cannot_start_session' => 'لا يمكن بدء جلسة لهذه الخدمة',
