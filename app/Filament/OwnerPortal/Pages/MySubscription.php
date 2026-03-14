@@ -4,7 +4,7 @@ namespace App\Filament\OwnerPortal\Pages;
 
 use Filament\Pages\Page;
 use Filament\Actions\Action;
-use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Notifications\Notification;
@@ -85,19 +85,38 @@ class MySubscription extends Page
                 ->label('Request Plan Upgrade')
                 ->icon('heroicon-o-arrow-up-circle')
                 ->color('primary')
-                ->form([
-                    Select::make('requested_plan_id')
-                        ->label('Select Plan')
-                        ->options(
-                            SubscriptionPlan::whereRaw('is_active = true')
-                                ->orderBy('price_monthly_minor')
-                                ->pluck('name', 'id')
-                        )
-                        ->required(),
-                    Textarea::make('message')
-                        ->label('Additional Message (Optional)')
-                        ->placeholder('Any specific requirements or questions...'),
-                ])
+                ->modalWidth('lg')
+                ->form(function () {
+                    $tenant = Auth::user()->tenant;
+                    $country = $tenant?->country ?? 'EG';
+                    $currency = $tenant?->getCurrency() ?? 'EGP';
+
+                    $plans = SubscriptionPlan::whereRaw('is_active = true')
+                        ->orderBy('price_monthly_minor')
+                        ->get();
+
+                    return [
+                        Radio::make('requested_plan_id')
+                            ->label('Select Plan')
+                            ->options(
+                                $plans->mapWithKeys(fn($plan) => [
+                                    $plan->id => $plan->name
+                                ])
+                            )
+                            ->descriptions(
+                                $plans->mapWithKeys(fn($plan) => [
+                                    $plan->id => ($plan->max_users ?? '∞') . ' Users, '
+                                        . ($plan->max_branches ?? '∞') . ' Branches — '
+                                        . $currency . ' ' . number_format($plan->price_monthly_minor / 100) . '/mo'
+                                ])
+                            )
+                            ->required(),
+                        Textarea::make('message')
+                            ->label('Additional Message (Optional)')
+                            ->placeholder('Any specific requirements or questions...')
+                            ->rows(3),
+                    ];
+                })
                 ->action(function (array $data) {
                     $tenant = Auth::user()->tenant;
                     $plan = SubscriptionPlan::find($data['requested_plan_id']);
@@ -123,23 +142,37 @@ class MySubscription extends Page
                 ->label('Request Add-On')
                 ->icon('heroicon-o-plus-circle')
                 ->color('gray')
+                ->modalWidth('2xl')
                 ->form(function () {
                     $tenant = Auth::user()->tenant;
                     $country = $tenant?->country ?? 'EG';
+
+                    $addons = AddOn::whereRaw('is_active = true')
+                        ->orderBy('sort_order')
+                        ->get();
 
                     return [
                         CheckboxList::make('requested_addons')
                             ->label('Select Add-Ons')
                             ->options(
-                                AddOn::whereRaw('is_active = true')
-                                    ->get()
-                                    ->mapWithKeys(fn($addon) => [
-                                        $addon->id => $addon->name . ' - ' . $addon->getFormattedPriceForCountry($country) . '/mo'
-                                    ])
+                                $addons->mapWithKeys(fn($addon) => [
+                                    $addon->id => $addon->localizedName
+                                ])
                             )
+                            ->descriptions(
+                                $addons->mapWithKeys(fn($addon) => [
+                                    $addon->id => $addon->localizedDescription
+                                        ? $addon->localizedDescription . ' — ' . $addon->getFormattedPriceForCountry($country) . '/mo'
+                                        : $addon->getFormattedPriceForCountry($country) . '/mo'
+                                ])
+                            )
+                            ->columns(2)
+                            ->gridDirection('row')
+                            ->bulkToggleable()
                             ->required(),
                         Textarea::make('message')
-                            ->label('Additional Message (Optional)'),
+                            ->label('Additional Message (Optional)')
+                            ->rows(3),
                     ];
                 })
                 ->action(function (array $data) {
