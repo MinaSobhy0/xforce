@@ -67,15 +67,56 @@
 
             <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {{-- Users --}}
-                <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                @php
+                    $usersOverLimit = is_numeric($usage['max_users']) && $usage['users'] > $usage['max_users'];
+                    $usersNearLimit = is_numeric($usage['max_users']) && $usage['users'] >= ($usage['max_users'] * 0.8);
+                @endphp
+                <div @class([
+                    'rounded-lg p-4',
+                    'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800' => $usersOverLimit,
+                    'bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800' => $usersNearLimit && !$usersOverLimit,
+                    'bg-gray-50 dark:bg-gray-800' => !$usersNearLimit,
+                ])>
                     <div class="flex items-center justify-between mb-2">
                         <span class="text-sm text-gray-500">Users</span>
-                        <span class="text-sm font-medium">{{ $usage['users'] }} / {{ $usage['max_users'] }}</span>
+                        <span @class([
+                            'text-sm font-medium',
+                            'text-red-600 dark:text-red-400' => $usersOverLimit,
+                            'text-yellow-600 dark:text-yellow-400' => $usersNearLimit && !$usersOverLimit,
+                        ])>{{ $usage['users'] }} / {{ $usage['max_users'] }}</span>
                     </div>
                     @if(is_numeric($usage['max_users']) && $usage['max_users'] > 0)
                         <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                            <div class="bg-primary-600 h-2 rounded-full" style="width: {{ min(100, ($usage['users'] / $usage['max_users']) * 100) }}%"></div>
+                            <div @class([
+                                'h-2 rounded-full',
+                                'bg-red-500' => $usersOverLimit,
+                                'bg-yellow-500' => $usersNearLimit && !$usersOverLimit,
+                                'bg-primary-600' => !$usersNearLimit,
+                            ]) style="width: {{ min(100, ($usage['users'] / $usage['max_users']) * 100) }}%"></div>
                         </div>
+                        @if($usersOverLimit)
+                            <p class="text-xs text-red-600 dark:text-red-400 mt-2">
+                                You are {{ $usage['users'] - $usage['max_users'] }} user(s) over your limit.
+                                <button
+                                    type="button"
+                                    wire:click="mountAction('requestAdditionalUsers')"
+                                    class="underline font-medium hover:text-red-800"
+                                >
+                                    Buy additional users
+                                </button>
+                            </p>
+                        @elseif($usersNearLimit)
+                            <p class="text-xs text-yellow-600 dark:text-yellow-400 mt-2">
+                                Approaching user limit.
+                                <button
+                                    type="button"
+                                    wire:click="mountAction('requestAdditionalUsers')"
+                                    class="underline font-medium hover:text-yellow-800"
+                                >
+                                    Buy additional users
+                                </button>
+                            </p>
+                        @endif
                     @endif
                 </div>
 

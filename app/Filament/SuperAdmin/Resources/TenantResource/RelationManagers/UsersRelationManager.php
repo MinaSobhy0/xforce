@@ -41,18 +41,20 @@ class UsersRelationManager extends RelationManager
                 Forms\Components\TextInput::make('phone')
                     ->tel(),
 
-                Forms\Components\Select::make('roles')
-                    ->relationship(
-                        'roles',
-                        'name',
-                        fn ($query) => $query->whereIn('name', [
-                            'owner', 'admin', 'manager', 'doctor', 'nurse',
-                            'technician', 'receptionist', 'staff'
-                        ])
-                    )
-                    ->multiple()
-                    ->preload()
-                    ->required(),
+                Forms\Components\TextInput::make('password')
+                    ->password()
+                    ->revealable()
+                    ->dehydrateStateUsing(fn ($state) => filled($state) ? Hash::make($state) : null)
+                    ->dehydrated(fn ($state) => filled($state))
+                    ->required(fn (string $operation): bool => $operation === 'create')
+                    ->confirmed()
+                    ->helperText(fn (string $operation) => $operation === 'edit' ? 'Leave empty to keep current password' : 'Minimum 8 characters'),
+
+                Forms\Components\TextInput::make('password_confirmation')
+                    ->password()
+                    ->revealable()
+                    ->requiredWith('password')
+                    ->dehydrated(false),
             ]);
     }
 
@@ -102,16 +104,46 @@ class UsersRelationManager extends RelationManager
             ->headerActions([
                 Tables\Actions\CreateAction::make()
                     ->mutateFormDataUsing(function (array $data): array {
-                        $data['password'] = Hash::make(Str::random(16));
                         $data['tenant_id'] = $this->getOwnerRecord()->id;
                         return $data;
                     }),
             ])
             ->actions([
-                Tables\Actions\Action::make('resetPassword')
-                    ->label('Reset Password')
+                Tables\Actions\Action::make('setPassword')
+                    ->label('Set Password')
                     ->icon('heroicon-o-key')
                     ->color('warning')
+                    ->form([
+                        Forms\Components\TextInput::make('new_password')
+                            ->label('New Password')
+                            ->password()
+                            ->revealable()
+                            ->required()
+                            ->minLength(8)
+                            ->confirmed(),
+
+                        Forms\Components\TextInput::make('new_password_confirmation')
+                            ->label('Confirm Password')
+                            ->password()
+                            ->revealable()
+                            ->required(),
+                    ])
+                    ->action(function ($record, array $data): void {
+                        $record->update([
+                            'password' => Hash::make($data['new_password']),
+                        ]);
+
+                        Notification::make()
+                            ->title('Password updated')
+                            ->body("Password has been set for {$record->email}")
+                            ->success()
+                            ->send();
+                    }),
+
+                Tables\Actions\Action::make('resetPassword')
+                    ->label('Generate Random')
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('info')
                     ->requiresConfirmation()
                     ->modalDescription('This will generate a new random password and send it to the user\'s email.')
                     ->action(function ($record): void {
@@ -132,8 +164,9 @@ class UsersRelationManager extends RelationManager
 
                         Notification::make()
                             ->title('Password reset')
-                            ->body("New password has been generated and will be sent to {$record->email}")
-                            ->success()
+                            ->body("New password: {$newPassword} (copy it now)")
+                            ->warning()
+                            ->persistent()
                             ->send();
                     }),
 
