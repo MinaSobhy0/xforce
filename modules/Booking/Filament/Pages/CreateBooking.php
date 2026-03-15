@@ -280,6 +280,11 @@ class CreateBooking extends Page implements HasForms
                                                             ])
                                                             ->toArray();
                                                     })
+                                                    ->getOptionLabelUsing(function ($value): ?string {
+                                                        $patient = Patient::find($value);
+
+                                                        return $patient ? "{$patient->full_name} ({$patient->code})" : null;
+                                                    })
                                                     ->required()
                                                     ->live()
                                                     ->createOptionForm([
