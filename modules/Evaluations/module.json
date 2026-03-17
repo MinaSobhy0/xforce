@@ -1,0 +1,95 @@
+{
+    "name": "Evaluations",
+    "alias": "evaluations",
+    "description": {
+        "en": "Patient feedback collection and satisfaction analytics",
+        "ar": "جمع ملاحظات المرضى وتحليل الرضا"
+    },
+    "version": "1.0.0",
+    "category": "operations",
+    "icon": "heroicon-o-star",
+    "keywords": [
+        "evaluations",
+        "feedback",
+        "reviews",
+        "satisfaction",
+        "nps"
+    ],
+    "priority": 16,
+    "providers": [
+        "Modules\\Evaluations\\Providers\\EvaluationsServiceProvider"
+    ],
+    "dependencies": [
+        "Core",
+        "Auth",
+        "Patients",
+        "Booking"
+    ],
+    "optional_dependencies": [],
+    "models": [
+        "Modules\\Evaluations\\Models\\Evaluation"
+    ],
+    "permissions": {
+        "evaluations.view_any": "View evaluations list",
+        "evaluations.view": "View evaluation details",
+        "evaluations.create": "Create evaluations",
+        "evaluations.update": "Update evaluations",
+        "evaluations.delete": "Delete evaluations",
+        "evaluations.report": "View evaluation reports"
+    },
+    "default_role_permissions": {
+        "admin": [
+            "evaluations.*"
+        ],
+        "manager": [
+            "evaluations.*"
+        ],
+        "doctor": [
+            "evaluations.view_any",
+            "evaluations.view"
+        ],
+        "nurse": [
+            "evaluations.view_any",
+            "evaluations.view"
+        ],
+        "receptionist": [
+            "evaluations.view_any",
+            "evaluations.view",
+            "evaluations.create"
+        ],
+        "staff": [
+            "evaluations.create"
+        ]
+    },
+    "navigation": [
+        {
+            "id": "evaluations",
+            "label": {
+                "en": "Evaluations",
+                "ar": "التقييمات"
+            },
+            "icon": "heroicon-o-star",
+            "route": "filament.tenant.resources.evaluations.index",
+            "group": "operations",
+            "order": 20,
+            "permission": "evaluations.view_any"
+        },
+        {
+            "id": "evaluation_report",
+            "label": {
+                "en": "Satisfaction Report",
+                "ar": "تقرير الرضا"
+            },
+            "icon": "heroicon-o-chart-pie",
+            "route": "filament.tenant.pages.evaluation-report",
+            "group": "reports",
+            "order": 25,
+            "permission": "evaluations.report"
+        }
+    ],
+    "active": true,
+    "display_name": {
+        "en": "Evaluations",
+        "ar": "التقييمات"
+    }
+}
