@@ -21,5 +21,6 @@
     "Attendance": true,
     "TreatmentPlans": true,
     "Prescriptions": true,
-    "Assets": true
+    "Assets": true,
+    "Evaluations": true
 }
