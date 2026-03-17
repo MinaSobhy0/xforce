@@ -2513,6 +2513,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
 
         $products = Product::query()
             ->where('is_active', true)
+            ->where('is_consumable', false) // Only sellable products, not consumables
             ->with('salesUom')
             ->get();
 
