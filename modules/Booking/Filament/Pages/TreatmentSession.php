@@ -2402,29 +2402,31 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
         $products = Product::query()
             ->where('is_active', true)
             ->where('is_consumable', true)
-            ->with('salesUom')
+            ->with(['salesUom', 'category'])
             ->get();
 
         // Add stock quantity to each product
+        $stockLevels = [];
         if ($stockLocation) {
-            $locationId = $stockLocation->id;
-
-            // Get all stock levels for this location in one query
-            $stockLevels = StockLevel::where('location_id', $locationId)
-                ->pluck('quantity_on_hand', 'product_id');
-
-            $products->each(function ($product) use ($stockLevels) {
-                $product->stock_qty = $stockLevels[$product->id] ?? 0;
-                $product->stock_uom = $product->salesUom?->abbreviation ?? 'pcs';
-            });
-        } else {
-            $products->each(function ($product) {
-                $product->stock_qty = 0;
-                $product->stock_uom = $product->salesUom?->abbreviation ?? 'pcs';
-            });
+            $stockLevels = StockLevel::where('location_id', $stockLocation->id)
+                ->pluck('quantity_on_hand', 'product_id')
+                ->toArray();
         }
 
-        return $products;
+        $products->each(function ($product) use ($stockLevels) {
+            $product->stock_qty = $stockLevels[$product->id] ?? 0;
+            $product->stock_uom = $product->salesUom?->abbreviation ?? 'pcs';
+        });
+
+        // Filter out products that are out of stock and don't allow negative stock
+        return $products->filter(function ($product) {
+            // If product has stock, always show it
+            if ($product->stock_qty > 0) {
+                return true;
+            }
+            // If out of stock, only show if category allows negative stock
+            return $product->category?->allow_negative_stock ?? false;
+        })->values();
     }
 
     public function addConsumable(): void
@@ -2514,29 +2516,31 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
         $products = Product::query()
             ->where('is_active', true)
             ->where('is_consumable', false) // Only sellable products, not consumables
-            ->with('salesUom')
+            ->with(['salesUom', 'category'])
             ->get();
 
         // Add stock quantity to each product
+        $stockLevels = [];
         if ($stockLocation) {
-            $locationId = $stockLocation->id;
-
-            // Get all stock levels for this location in one query
-            $stockLevels = StockLevel::where('location_id', $locationId)
-                ->pluck('quantity_on_hand', 'product_id');
-
-            $products->each(function ($product) use ($stockLevels) {
-                $product->stock_qty = $stockLevels[$product->id] ?? 0;
-                $product->stock_uom = $product->salesUom?->abbreviation ?? 'pcs';
-            });
-        } else {
-            $products->each(function ($product) {
-                $product->stock_qty = 0;
-                $product->stock_uom = $product->salesUom?->abbreviation ?? 'pcs';
-            });
+            $stockLevels = StockLevel::where('location_id', $stockLocation->id)
+                ->pluck('quantity_on_hand', 'product_id')
+                ->toArray();
         }
 
-        return $products;
+        $products->each(function ($product) use ($stockLevels) {
+            $product->stock_qty = $stockLevels[$product->id] ?? 0;
+            $product->stock_uom = $product->salesUom?->abbreviation ?? 'pcs';
+        });
+
+        // Filter out products that are out of stock and don't allow negative stock
+        return $products->filter(function ($product) {
+            // If product has stock, always show it
+            if ($product->stock_qty > 0) {
+                return true;
+            }
+            // If out of stock, only show if category allows negative stock
+            return $product->category?->allow_negative_stock ?? false;
+        })->values();
     }
 
     public function addProduct(): void

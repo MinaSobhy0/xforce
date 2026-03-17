@@ -20,6 +20,7 @@ class ProductCategory extends BaseModel
         'description',
         'parent_id',
         'is_active',
+        'allow_negative_stock',
         'sort_order',
     ];
 
@@ -27,6 +28,7 @@ class ProductCategory extends BaseModel
         'name' => 'array',
         'description' => 'array',
         'is_active' => 'boolean',
+        'allow_negative_stock' => 'boolean',
         'sort_order' => 'integer',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
@@ -34,6 +36,7 @@ class ProductCategory extends BaseModel
 
     protected $attributes = [
         'is_active' => true,
+        'allow_negative_stock' => false,
         'sort_order' => 0,
     ];
 

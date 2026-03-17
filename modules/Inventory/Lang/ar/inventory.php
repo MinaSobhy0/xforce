@@ -75,6 +75,8 @@ return [
         'parent_category' => 'الفئة الرئيسية',
         'sort_order' => 'ترتيب العرض',
         'is_active' => 'نشط',
+        'allow_negative_stock' => 'السماح بالمخزون السالب',
+        'allow_negative_stock_help' => 'السماح باستخدام المنتجات في هذه الفئة حتى عند نفاد المخزون',
         'products' => 'المنتجات',
         'subcategories' => 'الفئات الفرعية',
         'sku' => 'رمز المنتج',

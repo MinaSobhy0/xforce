@@ -75,6 +75,8 @@ return [
         'parent_category' => 'Parent Category',
         'sort_order' => 'Sort Order',
         'is_active' => 'Active',
+        'allow_negative_stock' => 'Allow Negative Stock',
+        'allow_negative_stock_help' => 'Allow products in this category to be used even when out of stock',
         'products' => 'Products',
         'subcategories' => 'Subcategories',
         'sku' => 'SKU',

@@ -87,7 +87,7 @@ class ProductCategoryResource extends Resource
                                     ->rows(3),
                             ]),
 
-                        Forms\Components\Grid::make(2)
+                        Forms\Components\Grid::make(3)
                             ->schema([
                                 Forms\Components\TextInput::make('sort_order')
                                     ->label(__('inventory::inventory.fields.sort_order'))
@@ -97,6 +97,11 @@ class ProductCategoryResource extends Resource
                                 Forms\Components\Toggle::make('is_active')
                                     ->label(__('inventory::inventory.fields.is_active'))
                                     ->default(true),
+
+                                Forms\Components\Toggle::make('allow_negative_stock')
+                                    ->label(__('inventory::inventory.fields.allow_negative_stock'))
+                                    ->helperText(__('inventory::inventory.fields.allow_negative_stock_help'))
+                                    ->default(false),
                             ]),
                     ]),
             ]);
@@ -130,6 +135,11 @@ class ProductCategoryResource extends Resource
                 Tables\Columns\IconColumn::make('is_active')
                     ->label(__('inventory::inventory.fields.is_active'))
                     ->boolean(),
+
+                Tables\Columns\IconColumn::make('allow_negative_stock')
+                    ->label(__('inventory::inventory.fields.allow_negative_stock'))
+                    ->boolean()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('sort_order')
                     ->label(__('inventory::inventory.fields.sort_order'))
