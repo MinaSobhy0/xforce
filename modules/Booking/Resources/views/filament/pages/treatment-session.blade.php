@@ -704,7 +704,7 @@
                             @elseif($type === 'boolean')
                                 <input type="checkbox" wire:model.live="parameterValues.{{ $key }}" wire:change="updateParameterValue('{{ $key }}', $event.target.checked)" class="rounded border-gray-300 text-primary-600" @if($this->isViewMode()) disabled @endif />
                             @else
-                                <input type="{{ in_array($type, ['number', 'decimal']) ? 'number' : 'text' }}" wire:model.blur="parameterValues.{{ $key }}" wire:change="updateParameterValue('{{ $key }}', $event.target.value)" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm" @if(isset($param['min'])) min="{{ $param['min'] }}" @endif @if(isset($param['max'])) max="{{ $param['max'] }}" @endif @if($this->isViewMode()) readonly @endif />
+                                <input type="{{ in_array($type, ['number', 'decimal']) ? 'number' : (in_array($type, ['date', 'time', 'datetime-local']) ? $type : 'text') }}" wire:model.blur="parameterValues.{{ $key }}" wire:change="updateParameterValue('{{ $key }}', $event.target.value)" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm" @if(isset($param['min'])) min="{{ $param['min'] }}" @endif @if(isset($param['max'])) max="{{ $param['max'] }}" @endif @if($this->isViewMode()) readonly @endif />
                             @endif
                         </div>
                     @endforeach
@@ -850,7 +850,7 @@
                                                                             </label>
                                                                         @else
                                                                             <input
-                                                                                type="{{ in_array($param->value_type, ['integer', 'decimal']) ? 'number' : 'text' }}"
+                                                                                type="{{ in_array($param->value_type, ['integer', 'decimal']) ? 'number' : (in_array($param->value_type, ['date', 'time', 'datetime-local']) ? $param->value_type : 'text') }}"
                                                                                 value="{{ $equipmentParameterValues[$equipment['equipment_id']][$param->parameter_key] ?? $param->default_value }}"
                                                                                 wire:change="updateEquipmentParameterValue('{{ $equipment['equipment_id'] }}', '{{ $param->parameter_key }}', $event.target.value)"
                                                                                 class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-xs py-1"
