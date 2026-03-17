@@ -13,6 +13,7 @@ use Filament\Tables\Actions\DeleteBulkAction;
 use Filament\Tables\Actions\ForceDeleteAction as TableForceDeleteAction;
 use Filament\Tables\Actions\ForceDeleteBulkAction;
 use Illuminate\Database\Connection;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
@@ -35,6 +36,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Register morph map for polymorphic relationships
+        // This handles legacy data with short names and makes URLs cleaner
+        $this->registerMorphMap();
+
         // Add our custom IdentifyTenant middleware to Livewire's persistent middleware
         // This ensures the middleware runs on Livewire AJAX requests, not just initial page loads
         Livewire::addPersistentMiddleware([
@@ -221,5 +226,29 @@ class AppServiceProvider extends ServiceProvider
         // Now lowercase everything
         $alias = strtolower($alias);
         return $alias;
+    }
+
+    /**
+     * Register morph map for polymorphic relationships.
+     * Maps short names to fully qualified class names.
+     */
+    protected function registerMorphMap(): void
+    {
+        Relation::morphMap([
+            // Accounting source types (legacy support)
+            'vendor_payment' => \Modules\Inventory\Models\VendorBill::class,
+            'vendor_bill' => \Modules\Inventory\Models\VendorBill::class,
+            'invoice' => \Modules\Billing\Models\Invoice::class,
+            'payment' => \Modules\Billing\Models\Payment::class,
+
+            // Common partner types
+            'patient' => \Modules\Patients\Models\Patient::class,
+            'supplier' => \Modules\Inventory\Models\Supplier::class,
+            'staff_profile' => \Modules\Staff\Models\StaffProfile::class,
+
+            // Package types
+            'package_subscription' => \Modules\Packages\Models\PackageSubscription::class,
+            'package_session_usage' => \Modules\Packages\Models\PackageSessionUsage::class,
+        ]);
     }
 }

@@ -281,4 +281,9 @@ return [
         'activated' => 'تم تفعيل الفئة',
         'deactivated' => 'تم إلغاء تفعيل الفئة',
     ],
+
+    'notifications' => [
+        'editing_system_template' => 'تحرير قالب النظام',
+        'editing_system_template_body' => 'أنت تقوم بتحرير قالب نظام. ستؤثر التغييرات على جميع الخدمات التي تستخدم هذا القالب.',
+    ],
 ];

@@ -195,4 +195,9 @@ return [
         'order' => 'Order',
         'active' => 'Active',
     ],
+
+    'notifications' => [
+        'editing_system_template' => 'Editing System Template',
+        'editing_system_template_body' => 'You are editing a system template. Changes will affect all equipment using this template.',
+    ],
 ];

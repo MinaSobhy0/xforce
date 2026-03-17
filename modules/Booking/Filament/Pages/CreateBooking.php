@@ -63,6 +63,9 @@ class CreateBooking extends Page implements HasForms
     // Quick book mode
     public bool $isQuickBook = false;
 
+    // Initial patient for pre-selection (reschedule, treatment plan, etc.)
+    public ?int $initialPatientId = null;
+
     public static function getNavigationLabel(): string
     {
         return __('booking::booking.navigation.create_booking');
@@ -84,6 +87,33 @@ class CreateBooking extends Page implements HasForms
         }
 
         return __('booking::booking.heading.create_booking');
+    }
+
+    /**
+     * Get patient options for the select, ensuring the initial patient is included.
+     */
+    public function getPatientOptions(): array
+    {
+        $patients = Patient::query()
+            ->orderBy('first_name')
+            ->limit(50)
+            ->get();
+
+        // Include the initial patient if set and not already in the list
+        // Use withTrashed() because the appointment might reference a deleted patient
+        if ($this->initialPatientId) {
+            $found = $patients->contains(fn ($p) => $p->id == $this->initialPatientId);
+            if (! $found) {
+                $initialPatient = Patient::withTrashed()->find($this->initialPatientId);
+                if ($initialPatient) {
+                    $patients->prepend($initialPatient);
+                }
+            }
+        }
+
+        return $patients->mapWithKeys(fn (Patient $p) => [
+            (string) $p->id => $p->display_name . ($p->trashed() ? ' [' . __('core::core.deleted') . ']' : ''),
+        ])->toArray();
     }
 
     public function mount(): void
@@ -133,6 +163,7 @@ class CreateBooking extends Page implements HasForms
 
                 // Set patient
                 $formData['patient_id'] = $appointment->patient_id;
+                $this->initialPatientId = $appointment->patient_id;
 
                 // For reschedule, always use 'service' booking type to show the services repeater
                 // But track original treatment plan/package info for proper linking
@@ -186,6 +217,7 @@ class CreateBooking extends Page implements HasForms
         // Handle patient from query (if not already set by reschedule)
         if ($patientIdFromQuery && ! isset($formData['patient_id'])) {
             $formData['patient_id'] = $patientIdFromQuery;
+            $this->initialPatientId = (int) $patientIdFromQuery;
         }
 
         // Handle package subscription from query
@@ -197,6 +229,7 @@ class CreateBooking extends Page implements HasForms
                 // Also set patient if not already set
                 if (! isset($formData['patient_id'])) {
                     $formData['patient_id'] = $subscription->patient_id;
+                    $this->initialPatientId = $subscription->patient_id;
                 }
             }
         }
@@ -207,6 +240,7 @@ class CreateBooking extends Page implements HasForms
 
             if ($treatmentPlan) {
                 $formData['patient_id'] = $treatmentPlan->patient_id;
+                $this->initialPatientId = $treatmentPlan->patient_id;
                 $formData['treatment_plan_id'] = $treatmentPlan->id;
 
                 // If specific item is selected, use it; otherwise find first bookable
@@ -255,36 +289,20 @@ class CreateBooking extends Page implements HasForms
                                                 // Patient Selection
                                                 Forms\Components\Select::make('patient_id')
                                                     ->label(__('booking::booking.fields.patient'))
-                                                    ->options(function () {
-                                                        return Patient::query()
-                                                            ->orderBy('first_name')
-                                                            ->limit(50)
-                                                            ->get()
-                                                            ->mapWithKeys(fn (Patient $p) => [
-                                                                $p->id => "{$p->full_name} ({$p->code})",
-                                                            ]);
-                                                    })
+                                                    ->options(fn () => $this->getPatientOptions())
                                                     ->searchable()
-                                                    ->getSearchResultsUsing(function (string $search): array {
-                                                        return Patient::query()
-                                                            ->where(function ($q) use ($search) {
-                                                                $q->where('first_name', 'ilike', "%{$search}%")
-                                                                    ->orWhere('last_name', 'ilike', "%{$search}%")
-                                                                    ->orWhere('phone', 'ilike', "%{$search}%")
-                                                                    ->orWhere('code', 'ilike', "%{$search}%");
-                                                            })
-                                                            ->limit(20)
-                                                            ->get()
-                                                            ->mapWithKeys(fn (Patient $p) => [
-                                                                $p->id => "{$p->full_name} ({$p->code}) - {$p->phone}",
-                                                            ])
-                                                            ->toArray();
-                                                    })
-                                                    ->getOptionLabelUsing(function ($value): ?string {
-                                                        $patient = Patient::find($value);
-
-                                                        return $patient ? "{$patient->full_name} ({$patient->code})" : null;
-                                                    })
+                                                    ->getSearchResultsUsing(fn (string $search): array => Patient::query()
+                                                        ->where(function ($q) use ($search) {
+                                                            $q->where('first_name', 'ilike', "%{$search}%")
+                                                                ->orWhere('last_name', 'ilike', "%{$search}%")
+                                                                ->orWhere('phone', 'ilike', "%{$search}%")
+                                                                ->orWhere('code', 'ilike', "%{$search}%");
+                                                        })
+                                                        ->limit(20)
+                                                        ->get()
+                                                        ->mapWithKeys(fn (Patient $p) => [(string) $p->id => "{$p->display_name} - {$p->phone}"])
+                                                        ->toArray())
+                                                    ->preload()
                                                     ->required()
                                                     ->live()
                                                     ->createOptionForm([

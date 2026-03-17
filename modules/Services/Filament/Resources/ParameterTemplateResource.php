@@ -257,8 +257,7 @@ class ParameterTemplateResource extends Resource
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make()
-                    ->visible(fn ($record) => !$record->is_system),
+                Tables\Actions\EditAction::make(),
                 Tables\Actions\ReplicateAction::make()
                     ->label('Duplicate')
                     ->beforeReplicaSaved(function (ParameterTemplate $replica): void {

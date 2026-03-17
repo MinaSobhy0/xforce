@@ -277,8 +277,7 @@ class EquipmentParameterTemplateResource extends Resource
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make()
-                    ->visible(fn ($record) => !$record->is_system),
+                Tables\Actions\EditAction::make(),
                 Tables\Actions\ReplicateAction::make()
                     ->label(__('equipment::equipment.template.duplicate'))
                     ->beforeReplicaSaved(function (EquipmentParameterTemplate $replica): void {

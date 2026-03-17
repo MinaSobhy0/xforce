@@ -659,12 +659,12 @@ class InventoryAccountingService
                 now(),
                 $description,
                 $lines,
-                'vendor_payment',
+                VendorBill::class,
                 $bill->id,
                 true
             );
         } catch (\Exception $e) {
-            \Log::error('VendorPayment: Failed to create journal entry', [
+            \Log::error('VendorBillPayment: Failed to create journal entry', [
                 'bill_id' => $bill->id,
                 'error' => $e->getMessage(),
             ]);

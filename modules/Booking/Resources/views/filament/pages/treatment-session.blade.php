@@ -788,7 +788,12 @@
                                                                             >
                                                                                 <option value="">-</option>
                                                                                 @foreach($param->options ?? [] as $option)
-                                                                                    <option value="{{ $option['value'] }}" {{ ($equipmentParameterValues[$equipment['equipment_id']][$param->parameter_key] ?? '') == $option['value'] ? 'selected' : '' }}>{{ $option['label'] }}</option>
+                                                                                    @php
+                                                                                        $optionLabel = is_array($option['label'] ?? null)
+                                                                                            ? ($option['label'][app()->getLocale()] ?? $option['label']['en'] ?? $option['value'])
+                                                                                            : ($option['label'] ?? $option['value']);
+                                                                                    @endphp
+                                                                                    <option value="{{ $option['value'] }}" {{ ($equipmentParameterValues[$equipment['equipment_id']][$param->parameter_key] ?? '') == $option['value'] ? 'selected' : '' }}>{{ $optionLabel }}</option>
                                                                                 @endforeach
                                                                             </select>
                                                                         @elseif($param->value_type === 'boolean')

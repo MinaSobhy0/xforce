@@ -195,4 +195,9 @@ return [
         'order' => 'الترتيب',
         'active' => 'نشط',
     ],
+
+    'notifications' => [
+        'editing_system_template' => 'تحرير قالب النظام',
+        'editing_system_template_body' => 'أنت تقوم بتحرير قالب نظام. ستؤثر التغييرات على جميع المعدات التي تستخدم هذا القالب.',
+    ],
 ];

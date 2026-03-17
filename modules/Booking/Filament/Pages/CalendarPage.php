@@ -176,7 +176,7 @@ class CalendarPage extends Page implements HasActions, HasForms, HasInfolists
             $appointmentsList = $group->map(function ($apt) {
                 return [
                     'id' => $apt->id,
-                    'time' => $apt->start_time->format('H:i'),
+                    'time' => $apt->start_time?->format('H:i') ?? '--:--',
                     'patient' => $apt->patient?->full_name,
                     'phone' => $apt->patient?->phone,
                     'service' => $apt->service?->name,
@@ -210,18 +210,29 @@ class CalendarPage extends Page implements HasActions, HasForms, HasInfolists
     {
         $phone = $appointment->patient?->phone;
         $patientName = $appointment->patient?->full_name;
-        $time = $appointment->start_time->format('H:i');
+        $time = $appointment->start_time?->format('H:i') ?? '--:--';
 
         // Simple single-line title for fallback (custom eventContent handles display)
         $title = $phone ?: $patientName ?: $time;
 
         $colors = $this->getStatusColors($appointment->status);
 
+        // Handle null start_time gracefully
+        $dateStr = $appointment->date?->format('Y-m-d') ?? now()->format('Y-m-d');
+        $startTimeStr = $appointment->start_time?->format('H:i:s') ?? '00:00:00';
+        $endTimeStr = $appointment->end_time?->format('H:i:s')
+            ?? ($appointment->start_time?->addMinutes($appointment->duration_minutes ?? 30)->format('H:i:s') ?? '00:30:00');
+
+        // Format time range for display
+        $startDisplay = $appointment->start_time?->format('H:i') ?? '--:--';
+        $endDisplay = $appointment->end_time?->format('H:i')
+            ?? ($appointment->start_time?->addMinutes($appointment->duration_minutes ?? 30)->format('H:i') ?? '--:--');
+
         return [
             'id' => $appointment->id,
             'title' => $title,
-            'start' => $appointment->date->format('Y-m-d').'T'.$appointment->start_time->format('H:i:s'),
-            'end' => $appointment->date->format('Y-m-d').'T'.($appointment->end_time ? $appointment->end_time->format('H:i:s') : $appointment->start_time->addMinutes($appointment->duration_minutes)->format('H:i:s')),
+            'start' => $dateStr.'T'.$startTimeStr,
+            'end' => $dateStr.'T'.$endTimeStr,
             'backgroundColor' => $colors['bg'],
             'borderColor' => $colors['border'],
             'textColor' => $colors['text'],
@@ -237,7 +248,7 @@ class CalendarPage extends Page implements HasActions, HasForms, HasInfolists
                 'practitioner' => $appointment->practitioner?->full_name,
                 'branch' => $appointment->branch?->name,
                 'room' => $appointment->room?->name,
-                'time' => $appointment->start_time->format('H:i').' - '.($appointment->end_time ? $appointment->end_time->format('H:i') : $appointment->start_time->addMinutes($appointment->duration_minutes)->format('H:i')),
+                'time' => $startDisplay.' - '.$endDisplay,
             ],
         ];
     }

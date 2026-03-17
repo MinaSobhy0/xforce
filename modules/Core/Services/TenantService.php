@@ -292,6 +292,9 @@ class TenantService
                 // Service parameter templates
                 \Modules\Services\Database\Seeders\ParameterTemplatesSeeder::class,
 
+                // Equipment parameter templates
+                \Modules\Equipment\Database\Seeders\EquipmentParameterTemplatesSeeder::class,
+
                 // Work schedules (default shift patterns)
                 \Modules\Booking\Database\Seeders\WorkScheduleSeeder::class,
 
