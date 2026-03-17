@@ -28,6 +28,7 @@ return [
         'equipment' => 'المعدات',
         'presets' => 'إعدادات مسبقة',
         'parameters' => 'معايير العلاج',
+        'treatment_parameters' => 'معايير العلاج',
         'clinical_notes' => 'التوثيق السريري',
         'consumables' => 'المستهلكات',
         'products' => 'المنتجات',

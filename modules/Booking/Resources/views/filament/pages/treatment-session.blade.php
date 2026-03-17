@@ -670,6 +670,48 @@
             </x-filament::section>
         </div>
 
+        {{-- Treatment Parameters (Service-specific settings) --}}
+        @php $parameters = $this->getServiceParameters(); @endphp
+        @if(!empty($parameters))
+            <x-filament::section>
+                <x-slot name="heading">
+                    <div class="flex items-center gap-2">
+                        <x-heroicon-o-adjustments-horizontal class="w-5 h-5 text-primary-500" />
+                        {{ __('booking::session.sections.treatment_parameters') }}
+                        <span class="text-xs text-gray-500 font-normal">({{ $appointment?->service?->translated_name }})</span>
+                    </div>
+                </x-slot>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
+                    @foreach($parameters as $param)
+                        @php
+                            $key = $param['key'] ?? '';
+                            $type = $param['type'] ?? 'text';
+                            $label = is_array($param['label'] ?? '') ? ($param['label'][app()->getLocale()] ?? $param['label']['en'] ?? $key) : ($param['label'] ?? $key);
+                            $unit = $param['unit'] ?? null;
+                        @endphp
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                {{ $label }}@if($unit) <span class="text-gray-400">({{ $unit }})</span>@endif
+                            </label>
+                            @if($type === 'select')
+                                <select wire:model.live="parameterValues.{{ $key }}" wire:change="updateParameterValue('{{ $key }}', $event.target.value)" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm" @if($this->isViewMode()) disabled @endif>
+                                    <option value="">-</option>
+                                    @foreach($param['options'] ?? [] as $option)
+                                        <option value="{{ $option['value'] }}">{{ is_array($option['label'] ?? '') ? ($option['label'][app()->getLocale()] ?? $option['label']['en'] ?? $option['value']) : ($option['label'] ?? $option['value']) }}</option>
+                                    @endforeach
+                                </select>
+                            @elseif($type === 'boolean')
+                                <input type="checkbox" wire:model.live="parameterValues.{{ $key }}" wire:change="updateParameterValue('{{ $key }}', $event.target.checked)" class="rounded border-gray-300 text-primary-600" @if($this->isViewMode()) disabled @endif />
+                            @else
+                                <input type="{{ in_array($type, ['number', 'decimal']) ? 'number' : 'text' }}" wire:model.blur="parameterValues.{{ $key }}" wire:change="updateParameterValue('{{ $key }}', $event.target.value)" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm" @if(isset($param['min'])) min="{{ $param['min'] }}" @endif @if(isset($param['max'])) max="{{ $param['max'] }}" @endif @if($this->isViewMode()) readonly @endif />
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+            </x-filament::section>
+        @endif
+
         {{-- Equipment & Clinical Notes Section (always show if equipment available) --}}
         @if($this->hasEquipmentSection())
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
@@ -852,7 +894,7 @@
                     @if(!$this->isViewMode())
                         @php $availableEquipment = $this->getAvailableEquipment(); @endphp
                         @if($availableEquipment->isNotEmpty())
-                            <div class="flex flex-col sm:flex-row gap-2 mb-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg"
+                            <div class="flex gap-2 mb-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg"
                                 x-data="{
                                     search: '',
                                     open: false,
@@ -896,9 +938,8 @@
                                         </template>
                                     </div>
                                 </div>
-                                <x-filament::button wire:click="addEquipment" size="sm" class="flex-1 sm:flex-none">
+                                <x-filament::button wire:click="addEquipment" size="sm">
                                     <x-heroicon-o-plus class="w-4 h-4" />
-                                    <span class="sm:hidden ml-1">{{ __('booking::session.equipment.add') }}</span>
                                 </x-filament::button>
                             </div>
                         @endif
@@ -906,47 +947,6 @@
                 </x-filament::section>
 
             </div>
-
-            {{-- Service Parameters --}}
-            @php $parameters = $this->getServiceParameters(); @endphp
-            @if(!empty($parameters))
-                <x-filament::section>
-                    <x-slot name="heading">
-                        <div class="flex items-center gap-2">
-                            <x-heroicon-o-adjustments-horizontal class="w-5 h-5 text-gray-400" />
-                            {{ __('booking::session.sections.parameters') }}
-                        </div>
-                    </x-slot>
-
-                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-3">
-                        @foreach($parameters as $param)
-                            @php
-                                $key = $param['key'] ?? '';
-                                $type = $param['type'] ?? 'text';
-                                $label = is_array($param['label'] ?? '') ? ($param['label'][app()->getLocale()] ?? $param['label']['en'] ?? $key) : ($param['label'] ?? $key);
-                                $unit = $param['unit'] ?? null;
-                            @endphp
-                            <div>
-                                <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    {{ $label }}@if($unit) <span class="text-gray-400">({{ $unit }})</span>@endif
-                                </label>
-                                @if($type === 'select')
-                                    <select wire:model.live="parameterValues.{{ $key }}" wire:change="updateParameterValue('{{ $key }}', $event.target.value)" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm" @if($this->isViewMode()) disabled @endif>
-                                        <option value="">-</option>
-                                        @foreach($param['options'] ?? [] as $option)
-                                            <option value="{{ $option['value'] }}">{{ is_array($option['label'] ?? '') ? ($option['label'][app()->getLocale()] ?? $option['label']['en'] ?? $option['value']) : ($option['label'] ?? $option['value']) }}</option>
-                                        @endforeach
-                                    </select>
-                                @elseif($type === 'boolean')
-                                    <input type="checkbox" wire:model.live="parameterValues.{{ $key }}" wire:change="updateParameterValue('{{ $key }}', $event.target.checked)" class="rounded border-gray-300 text-primary-600" @if($this->isViewMode()) disabled @endif />
-                                @else
-                                    <input type="{{ in_array($type, ['number', 'decimal']) ? 'number' : 'text' }}" wire:model.blur="parameterValues.{{ $key }}" wire:change="updateParameterValue('{{ $key }}', $event.target.value)" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded text-sm" @if(isset($param['min'])) min="{{ $param['min'] }}" @endif @if(isset($param['max'])) max="{{ $param['max'] }}" @endif @if($this->isViewMode()) readonly @endif />
-                                @endif
-                            </div>
-                        @endforeach
-                    </div>
-                </x-filament::section>
-            @endif
         @endif
 
         {{-- Consumables & Products Row --}}

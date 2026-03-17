@@ -28,6 +28,7 @@ return [
         'equipment' => 'Equipment',
         'presets' => 'Parameter Presets',
         'parameters' => 'Treatment Parameters',
+        'treatment_parameters' => 'Treatment Parameters',
         'clinical_notes' => 'Clinical Documentation',
         'consumables' => 'Consumables',
         'products' => 'Products',

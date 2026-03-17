@@ -1888,7 +1888,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
 
                 // Initialize parameter values with defaults
                 if ($equipment->hasTracking()) {
-                    $this->equipmentParameterValues[$equipment->id] = $equipment->getDefaultParameterValues();
+                    $this->equipmentParameterValues[(int) $equipment->id] = $equipment->getDefaultParameterValues();
                 }
             }
         }
@@ -1901,7 +1901,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
 
                 // Initialize parameter values with defaults
                 if ($equipment->hasTracking()) {
-                    $this->equipmentParameterValues[$equipment->id] = $equipment->getDefaultParameterValues();
+                    $this->equipmentParameterValues[(int) $equipment->id] = $equipment->getDefaultParameterValues();
                 }
             }
         }
@@ -2049,7 +2049,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
 
         // Initialize parameter values with defaults if equipment has tracking
         if ($equipment->hasTracking()) {
-            $this->equipmentParameterValues[$equipment->id] = $equipment->getDefaultParameterValues();
+            $this->equipmentParameterValues[(int) $equipment->id] = $equipment->getDefaultParameterValues();
         }
 
         // Save to session data
@@ -2074,11 +2074,12 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
     {
         $this->sessionEquipment = array_values(array_filter(
             $this->sessionEquipment,
-            fn ($e) => $e['equipment_id'] !== $equipmentId
+            fn ($e) => (string) $e['equipment_id'] !== $equipmentId
         ));
 
         // Remove parameter values for this equipment
         unset($this->equipmentParameterValues[$equipmentId]);
+        unset($this->equipmentParameterValues[(int) $equipmentId]);
 
         // Save to session data
         if ($this->sessionData) {
@@ -2092,7 +2093,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
     public function updateEquipmentMetric(string $equipmentId, string $key, $value): void
     {
         foreach ($this->sessionEquipment as $index => $equipment) {
-            if ($equipment['equipment_id'] === $equipmentId) {
+            if ((string) $equipment['equipment_id'] === $equipmentId) {
                 $this->sessionEquipment[$index][$key] = $value;
                 break;
             }
@@ -2141,11 +2142,14 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
      */
     public function updateEquipmentParameterValue(string $equipmentId, string $key, $value): void
     {
-        if (!isset($this->equipmentParameterValues[$equipmentId])) {
-            $this->equipmentParameterValues[$equipmentId] = [];
+        // Normalize key to int for consistency
+        $normalizedId = (int) $equipmentId;
+
+        if (!isset($this->equipmentParameterValues[$normalizedId])) {
+            $this->equipmentParameterValues[$normalizedId] = [];
         }
 
-        $this->equipmentParameterValues[$equipmentId][$key] = $value;
+        $this->equipmentParameterValues[$normalizedId][$key] = $value;
 
         // Save to session data
         if ($this->sessionData) {
@@ -2160,7 +2164,10 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
      */
     public function getEquipmentParameterValue(string $equipmentId, string $key)
     {
-        return $this->equipmentParameterValues[$equipmentId][$key] ?? null;
+        // Check both string and int keys for backwards compatibility
+        return $this->equipmentParameterValues[$equipmentId][$key]
+            ?? $this->equipmentParameterValues[(int) $equipmentId][$key]
+            ?? null;
     }
 
     /**
@@ -2190,7 +2197,10 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                 continue;
             }
 
-            $parameterValues = $this->equipmentParameterValues[$equipmentId] ?? [];
+            // Handle both string and int keys for backwards compatibility
+            $parameterValues = $this->equipmentParameterValues[$equipmentId]
+                ?? $this->equipmentParameterValues[(int) $equipmentId]
+                ?? [];
 
             // Get cumulative parameters for this equipment
             $cumulativeParams = $equipment->trackingParameters()
