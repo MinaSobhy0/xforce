@@ -158,7 +158,7 @@ class ViewVisit extends ViewRecord
                         ->success()
                         ->send();
                 })
-                ->visible(fn (Visit $record) => in_array($record->status, [Visit::STATUS_COMPLETED, Visit::STATUS_INVOICED]) &&
+                ->visible(fn (Visit $record) => $record->status !== Visit::STATUS_CANCELLED &&
                     ! Evaluation::where('visit_id', $record->id)->exists()
                 ),
 
