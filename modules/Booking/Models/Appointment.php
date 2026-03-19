@@ -99,15 +99,12 @@ class Appointment extends BaseModel
 
     public const STATUS_RESCHEDULED = 'rescheduled';
 
-    public const STATUS_CLOSED = 'closed';
-
     public const STATUSES = [
         self::STATUS_SCHEDULED => 'Scheduled',
         self::STATUS_CONFIRMED => 'Confirmed',
         self::STATUS_CHECKED_IN => 'Checked In',
         self::STATUS_IN_PROGRESS => 'In Progress',
         self::STATUS_COMPLETED => 'Completed',
-        self::STATUS_CLOSED => 'Closed',
         self::STATUS_CANCELLED => 'Cancelled',
         self::STATUS_NO_SHOW => 'No Show',
         self::STATUS_RESCHEDULED => 'Rescheduled',
@@ -119,7 +116,6 @@ class Appointment extends BaseModel
         self::STATUS_CHECKED_IN => 'warning',
         self::STATUS_IN_PROGRESS => 'secondary',
         self::STATUS_COMPLETED => 'success',
-        self::STATUS_CLOSED => 'warning',
         self::STATUS_CANCELLED => 'danger',
         self::STATUS_NO_SHOW => 'gray',
         self::STATUS_RESCHEDULED => 'warning',
@@ -428,9 +424,8 @@ class Appointment extends BaseModel
             self::STATUS_SCHEDULED => [self::STATUS_CONFIRMED, self::STATUS_CANCELLED, self::STATUS_RESCHEDULED],
             self::STATUS_CONFIRMED => [self::STATUS_CHECKED_IN, self::STATUS_CANCELLED, self::STATUS_NO_SHOW, self::STATUS_RESCHEDULED],
             self::STATUS_CHECKED_IN => [self::STATUS_IN_PROGRESS, self::STATUS_CANCELLED],
-            self::STATUS_IN_PROGRESS => [self::STATUS_COMPLETED, self::STATUS_CLOSED, self::STATUS_CANCELLED],
+            self::STATUS_IN_PROGRESS => [self::STATUS_COMPLETED, self::STATUS_SCHEDULED, self::STATUS_CANCELLED],
             self::STATUS_COMPLETED => [],
-            self::STATUS_CLOSED => [self::STATUS_RESCHEDULED],
             self::STATUS_CANCELLED => [],
             self::STATUS_NO_SHOW => [],
             self::STATUS_RESCHEDULED => [],
@@ -564,14 +559,20 @@ class Appointment extends BaseModel
     }
 
     /**
-     * Close the appointment without completing it.
-     * Used when doctor needs to end session early - patient will need to reschedule.
+     * Revert the appointment to scheduled without completing it.
+     * Used when doctor needs to end session early - appointment can be rescheduled.
      */
-    public function close(?string $reason = null): bool
+    public function revertToScheduled(?string $reason = null): bool
     {
-        $result = $this->transitionTo(self::STATUS_CLOSED, $reason);
+        // Store the reason in notes if provided
+        if ($reason) {
+            $this->notes = trim(($this->notes ?? '') . "\n[Session closed: {$reason}]");
+        }
 
-        return $result;
+        $this->status = self::STATUS_SCHEDULED;
+        $this->started_at = null;
+
+        return $this->save();
     }
 
     public function cancel(?string $reason = null): bool
@@ -649,11 +650,6 @@ class Appointment extends BaseModel
     public function isRescheduled(): bool
     {
         return $this->status === self::STATUS_RESCHEDULED;
-    }
-
-    public function isClosed(): bool
-    {
-        return $this->status === self::STATUS_CLOSED;
     }
 
     public function isActive(): bool

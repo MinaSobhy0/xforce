@@ -459,7 +459,6 @@ class AppointmentResource extends Resource
                             Appointment::STATUS_SCHEDULED,
                             Appointment::STATUS_CONFIRMED,
                             Appointment::STATUS_CHECKED_IN,
-                            Appointment::STATUS_CLOSED,
                         ]))
                         ->url(fn (Appointment $record): string => \Modules\Booking\Filament\Pages\CreateBooking::getUrl().'?reschedule_appointment_id='.$record->id
                         ),

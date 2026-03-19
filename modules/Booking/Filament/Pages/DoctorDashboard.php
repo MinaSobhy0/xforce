@@ -391,7 +391,6 @@ class DoctorDashboard extends Page implements HasForms
             Appointment::STATUS_SCHEDULED,
             Appointment::STATUS_CONFIRMED,
             Appointment::STATUS_CHECKED_IN,
-            Appointment::STATUS_CLOSED,
         ];
 
         if (! in_array($appointment->status, $allowedStatuses)) {

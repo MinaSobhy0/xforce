@@ -991,9 +991,9 @@ class TreatmentSession extends Page implements HasActions, HasForms, HasInfolist
                 ]);
             }
 
-            // Close the appointment (does NOT trigger AppointmentCompleted event)
+            // Revert appointment to scheduled (does NOT trigger AppointmentCompleted event)
             // Treatment plan session count is NOT incremented
-            $this->appointment->close($reason);
+            $this->appointment->revertToScheduled($reason);
 
             // NOTE: Consumables are NOT deducted for closed sessions
             // They remain pending and can be used in the rescheduled session

@@ -72,7 +72,6 @@ return [
         'checked_in' => 'Checked In',
         'in_progress' => 'In Progress',
         'completed' => 'Completed',
-        'closed' => 'Closed',
         'cancelled' => 'Cancelled',
         'no_show' => 'No Show',
         'rescheduled' => 'Rescheduled',
