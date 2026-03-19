@@ -61,7 +61,10 @@
 
     @if (filament()->hasDarkMode() && (! filament()->hasDarkModeForced()))
         <x-filament::dropdown.list>
-            <x-filament-panels::theme-switcher />
+            <div class="px-3 py-2">
+                <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">{{ __('core::core.theme') }}</p>
+                @livewire('theme-switcher')
+            </div>
         </x-filament::dropdown.list>
     @endif
 

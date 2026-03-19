@@ -71,6 +71,13 @@
 
         {{ \Filament\Support\Facades\FilamentView::renderHook(\Filament\View\PanelsRenderHook::STYLES_AFTER, scopes: $livewire?->getRenderHookScopes()) }}
 
+        @php
+            // Get theme from user's database settings, fallback to default
+            $userTheme = auth()->check()
+                ? auth()->user()->getSetting('dashboard.theme', filament()->getDefaultThemeMode()->value)
+                : filament()->getDefaultThemeMode()->value;
+        @endphp
+
         @if (! filament()->hasDarkMode())
             <script>
                 localStorage.setItem('theme', 'light')
@@ -82,7 +89,10 @@
         @else
             <script>
                 const loadDarkMode = () => {
-                    window.theme = localStorage.getItem('theme') ?? @js(filament()->getDefaultThemeMode()->value)
+                    // Use user's saved theme from database, synced to localStorage
+                    const userTheme = @js($userTheme);
+                    window.theme = userTheme;
+                    localStorage.setItem('theme', userTheme);
 
                     if (
                         window.theme === 'dark' ||
@@ -91,6 +101,8 @@
                                 .matches)
                     ) {
                         document.documentElement.classList.add('dark')
+                    } else {
+                        document.documentElement.classList.remove('dark')
                     }
                 }
 

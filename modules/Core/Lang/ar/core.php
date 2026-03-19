@@ -68,10 +68,11 @@ return [
     'none' => 'لا شيء',
     'general' => 'عام',
 
-    // Language
+    // Language & Theme
     'language' => 'اللغة',
     'english' => 'الإنجليزية',
     'arabic' => 'العربية',
+    'theme' => 'المظهر',
 
     'minutes' => 'دقائق',
     'hours' => 'ساعات',
