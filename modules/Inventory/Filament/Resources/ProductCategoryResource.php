@@ -8,9 +8,10 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Modules\Inventory\Models\ProductCategory;
-use Modules\Inventory\Filament\Resources\ProductCategoryResource\Pages;
 use Illuminate\Database\Eloquent\Builder;
+use Modules\Accounting\Models\ChartOfAccount;
+use Modules\Inventory\Filament\Resources\ProductCategoryResource\Pages;
+use Modules\Inventory\Models\ProductCategory;
 
 class ProductCategoryResource extends Resource
 {
@@ -66,12 +67,12 @@ class ProductCategoryResource extends Resource
                         Forms\Components\Grid::make(2)
                             ->schema([
                                 Forms\Components\TextInput::make('name.en')
-                                    ->label(__('inventory::inventory.fields.name') . ' (English)')
+                                    ->label(__('inventory::inventory.fields.name').' (English)')
                                     ->required()
                                     ->maxLength(100),
 
                                 Forms\Components\TextInput::make('name.ar')
-                                    ->label(__('inventory::inventory.fields.name') . ' (Arabic)')
+                                    ->label(__('inventory::inventory.fields.name').' (Arabic)')
                                     ->required()
                                     ->maxLength(100),
                             ]),
@@ -79,11 +80,11 @@ class ProductCategoryResource extends Resource
                         Forms\Components\Grid::make(2)
                             ->schema([
                                 Forms\Components\Textarea::make('description.en')
-                                    ->label(__('inventory::inventory.fields.description') . ' (English)')
+                                    ->label(__('inventory::inventory.fields.description').' (English)')
                                     ->rows(3),
 
                                 Forms\Components\Textarea::make('description.ar')
-                                    ->label(__('inventory::inventory.fields.description') . ' (Arabic)')
+                                    ->label(__('inventory::inventory.fields.description').' (Arabic)')
                                     ->rows(3),
                             ]),
 
@@ -104,6 +105,47 @@ class ProductCategoryResource extends Resource
                                     ->default(false),
                             ]),
                     ]),
+
+                Forms\Components\Section::make(__('inventory::inventory.sections.accounting'))
+                    ->description(__('inventory::inventory.sections.accounting_description'))
+                    ->schema([
+                        Forms\Components\Grid::make(2)
+                            ->schema([
+                                Forms\Components\Select::make('stock_valuation_account_id')
+                                    ->label(__('inventory::inventory.fields.stock_valuation_account'))
+                                    ->relationship('stockValuationAccount', 'name')
+                                    ->getOptionLabelFromRecordUsing(fn (ChartOfAccount $record) => "{$record->code} - {$record->name}")
+                                    ->searchable()
+                                    ->preload()
+                                    ->helperText(__('inventory::inventory.fields.stock_valuation_account_help')),
+
+                                Forms\Components\Select::make('stock_input_account_id')
+                                    ->label(__('inventory::inventory.fields.stock_input_account'))
+                                    ->relationship('stockInputAccount', 'name')
+                                    ->getOptionLabelFromRecordUsing(fn (ChartOfAccount $record) => "{$record->code} - {$record->name}")
+                                    ->searchable()
+                                    ->preload()
+                                    ->helperText(__('inventory::inventory.fields.stock_input_account_help')),
+
+                                Forms\Components\Select::make('stock_output_account_id')
+                                    ->label(__('inventory::inventory.fields.stock_output_account'))
+                                    ->relationship('stockOutputAccount', 'name')
+                                    ->getOptionLabelFromRecordUsing(fn (ChartOfAccount $record) => "{$record->code} - {$record->name}")
+                                    ->searchable()
+                                    ->preload()
+                                    ->helperText(__('inventory::inventory.fields.stock_output_account_help')),
+
+                                Forms\Components\Select::make('expense_account_id')
+                                    ->label(__('inventory::inventory.fields.expense_account'))
+                                    ->relationship('expenseAccount', 'name')
+                                    ->getOptionLabelFromRecordUsing(fn (ChartOfAccount $record) => "{$record->code} - {$record->name}")
+                                    ->searchable()
+                                    ->preload()
+                                    ->helperText(__('inventory::inventory.fields.expense_account_help')),
+                            ]),
+                    ])
+                    ->collapsible()
+                    ->collapsed(),
             ]);
     }
 

@@ -2,7 +2,9 @@
 
 namespace Modules\Inventory\Models;
 
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Modules\Accounting\Models\ChartOfAccount;
 use Spatie\Translatable\HasTranslations;
 use XLinic\Framework\Core\Model\BaseModel;
 
@@ -21,6 +23,10 @@ class ProductCategory extends BaseModel
         'parent_id',
         'is_active',
         'allow_negative_stock',
+        'stock_valuation_account_id',
+        'stock_input_account_id',
+        'stock_output_account_id',
+        'expense_account_id',
         'sort_order',
     ];
 
@@ -62,6 +68,38 @@ class ProductCategory extends BaseModel
     public function products(): HasMany
     {
         return $this->hasMany(Product::class, 'category_id');
+    }
+
+    /**
+     * Get the stock valuation account.
+     */
+    public function stockValuationAccount(): BelongsTo
+    {
+        return $this->belongsTo(ChartOfAccount::class, 'stock_valuation_account_id');
+    }
+
+    /**
+     * Get the stock input account.
+     */
+    public function stockInputAccount(): BelongsTo
+    {
+        return $this->belongsTo(ChartOfAccount::class, 'stock_input_account_id');
+    }
+
+    /**
+     * Get the stock output account.
+     */
+    public function stockOutputAccount(): BelongsTo
+    {
+        return $this->belongsTo(ChartOfAccount::class, 'stock_output_account_id');
+    }
+
+    /**
+     * Get the expense account.
+     */
+    public function expenseAccount(): BelongsTo
+    {
+        return $this->belongsTo(ChartOfAccount::class, 'expense_account_id');
     }
 
     /**

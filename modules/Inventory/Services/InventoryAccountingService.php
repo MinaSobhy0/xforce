@@ -17,12 +17,13 @@ use Modules\Inventory\Models\VendorBill;
 class InventoryAccountingService
 {
     protected AccountingIntegrationService $accountingService;
+
     protected DefaultAccountsService $defaultAccounts;
 
     public function __construct(AccountingIntegrationService $accountingService)
     {
         $this->accountingService = $accountingService;
-        $this->defaultAccounts = new DefaultAccountsService();
+        $this->defaultAccounts = new DefaultAccountsService;
     }
 
     /**
@@ -40,7 +41,7 @@ class InventoryAccountingService
         $stockValuationAccount = $this->getStockValuationAccount($product);
         $stockInputAccount = $this->getStockInputAccount($product);
 
-        if (!$stockValuationAccount || !$stockInputAccount) {
+        if (! $stockValuationAccount || ! $stockInputAccount) {
             return null;
         }
 
@@ -84,7 +85,7 @@ class InventoryAccountingService
         $stockValuationAccount = $this->getStockValuationAccount($product);
         $expenseAccount = $this->getExpenseAccount($product);
 
-        if (!$stockValuationAccount || !$expenseAccount) {
+        if (! $stockValuationAccount || ! $expenseAccount) {
             return null;
         }
 
@@ -123,12 +124,13 @@ class InventoryAccountingService
         $adjustment->load('lines.product.stockValuationAccount');
 
         // Check if there are any actual changes
-        $hasChanges = $adjustment->lines->contains(fn ($line) => !$line->isNoChange());
+        $hasChanges = $adjustment->lines->contains(fn ($line) => ! $line->isNoChange());
 
-        if (!$hasChanges) {
+        if (! $hasChanges) {
             \Log::info('InventoryAccountingService: No changes to create journal entry', [
                 'adjustment_id' => $adjustment->id,
             ]);
+
             return null;
         }
 
@@ -140,7 +142,7 @@ class InventoryAccountingService
             }
 
             $product = $line->product;
-            if (!$product) {
+            if (! $product) {
                 continue;
             }
 
@@ -148,11 +150,12 @@ class InventoryAccountingService
             $absValue = abs($line->value_adjustment_minor);
             $productName = $product->getTranslation('name', 'en') ?? $product->sku;
 
-            if (!$stockValuationAccount) {
+            if (! $stockValuationAccount) {
                 \Log::warning('InventoryAccountingService: Skipping line - missing stock valuation account', [
                     'product_id' => $product->id,
                     'product_sku' => $product->sku,
                 ]);
+
                 continue;
             }
 
@@ -160,10 +163,11 @@ class InventoryAccountingService
                 // Stock increase (gain): Debit Inventory (valuation), Credit Stock Input
                 $stockInputAccount = $this->getStockInputAccount($product);
 
-                if (!$stockInputAccount) {
+                if (! $stockInputAccount) {
                     \Log::warning('InventoryAccountingService: Skipping line - missing stock input account', [
                         'product_id' => $product->id,
                     ]);
+
                     continue;
                 }
 
@@ -183,10 +187,11 @@ class InventoryAccountingService
                 // Stock decrease (loss): Debit Stock Output (expense), Credit Inventory (valuation)
                 $stockOutputAccount = $this->getStockOutputAccount($product);
 
-                if (!$stockOutputAccount) {
+                if (! $stockOutputAccount) {
                     \Log::warning('InventoryAccountingService: Skipping line - missing stock output account', [
                         'product_id' => $product->id,
                     ]);
+
                     continue;
                 }
 
@@ -209,6 +214,7 @@ class InventoryAccountingService
             \Log::warning('InventoryAccountingService: No journal lines created - check product account configuration', [
                 'adjustment_id' => $adjustment->id,
             ]);
+
             return null;
         }
 
@@ -238,22 +244,28 @@ class InventoryAccountingService
                 'adjustment_id' => $adjustment->id,
                 'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
 
     /**
      * Get stock valuation account for a product.
-     * Uses product's configured account with fallback to defaults.
+     * Priority: Product -> Category -> System Default
      */
     protected function getStockValuationAccount(Product $product): ?ChartOfAccount
     {
-        // First try product-specific account
+        // 1. First try product-specific account
         if ($product->stock_valuation_account_id) {
             return $product->stockValuationAccount;
         }
 
-        // Fallback to system default
+        // 2. Try category account
+        if ($product->category && $product->category->stock_valuation_account_id) {
+            return $product->category->stockValuationAccount;
+        }
+
+        // 3. Fallback to system default
         $defaultAccount = $this->defaultAccounts->getStockValuationAccount();
         if ($defaultAccount) {
             return $defaultAccount;
@@ -268,17 +280,20 @@ class InventoryAccountingService
     }
 
     /**
-     * Get stock input account (Accounts Payable / Goods Received).
-     * Uses product's stock valuation account, falls back to system default.
+     * Get stock input account (for stock gains/receipts).
+     * Priority: Product -> Category -> System Default
      */
     protected function getStockInputAccount(Product $product): ?ChartOfAccount
     {
-        // First try product's stock valuation account
-        if ($product->stock_valuation_account_id) {
-            return $product->stockValuationAccount;
+        // 1. First try product-specific account (if we add it to products later)
+        // For now, products don't have stock_input_account_id
+
+        // 2. Try category account
+        if ($product->category && $product->category->stock_input_account_id) {
+            return $product->category->stockInputAccount;
         }
 
-        // Fallback to system default
+        // 3. Fallback to system default
         $defaultAccount = $this->defaultAccounts->getStockInputAccount();
         if ($defaultAccount) {
             return $defaultAccount;
@@ -292,17 +307,20 @@ class InventoryAccountingService
     }
 
     /**
-     * Get stock output account (Cost of Goods Sold).
-     * Uses product's stock valuation account, falls back to system default.
+     * Get stock output account (for stock losses/COGS).
+     * Priority: Product -> Category -> System Default
      */
     protected function getStockOutputAccount(Product $product): ?ChartOfAccount
     {
-        // First try product's stock valuation account
-        if ($product->stock_valuation_account_id) {
-            return $product->stockValuationAccount;
+        // 1. First try product-specific account (if we add it to products later)
+        // For now, products don't have stock_output_account_id
+
+        // 2. Try category account
+        if ($product->category && $product->category->stock_output_account_id) {
+            return $product->category->stockOutputAccount;
         }
 
-        // Fallback to system default
+        // 3. Fallback to system default
         $defaultAccount = $this->defaultAccounts->getStockOutputAccount();
         if ($defaultAccount) {
             return $defaultAccount;
@@ -317,16 +335,21 @@ class InventoryAccountingService
 
     /**
      * Get expense account for a product (for consumable products).
-     * Uses product's configured account with fallback to defaults.
+     * Priority: Product -> Category -> System Default
      */
     protected function getExpenseAccount(Product $product): ?ChartOfAccount
     {
-        // First try product-specific account
+        // 1. First try product-specific account
         if ($product->expense_account_id) {
             return $product->expenseAccount;
         }
 
-        // Fallback to system default
+        // 2. Try category account
+        if ($product->category && $product->category->expense_account_id) {
+            return $product->category->expenseAccount;
+        }
+
+        // 3. Fallback to system default
         $defaultAccount = $this->defaultAccounts->getExpenseAccount();
         if ($defaultAccount) {
             return $defaultAccount;
@@ -385,8 +408,9 @@ class InventoryAccountingService
         // Get Accounts Payable account from defaults
         $apAccount = $this->defaultAccounts->getSupplierPayableAccount();
 
-        if (!$apAccount) {
+        if (! $apAccount) {
             \Log::error('VendorBill: Accounts Payable account not found');
+
             return null;
         }
 
@@ -424,24 +448,25 @@ class InventoryAccountingService
             }
 
             // Fallback to line's account
-            if (!$debitAccount && $line->account_id) {
+            if (! $debitAccount && $line->account_id) {
                 $debitAccount = $line->account;
             }
 
             // Fallback to default stock valuation (for storable) or expense (for consumable)
-            if (!$debitAccount) {
-                if ($product && !$product->tracksInventory()) {
+            if (! $debitAccount) {
+                if ($product && ! $product->tracksInventory()) {
                     $debitAccount = $this->defaultAccounts->getExpenseAccount();
                 } else {
                     $debitAccount = $this->defaultAccounts->getStockValuationAccount();
                 }
             }
 
-            if (!$debitAccount) {
+            if (! $debitAccount) {
                 \Log::warning('VendorBill: No debit account found for line', [
                     'line_id' => $line->id,
                     'product_id' => $product?->id,
                 ]);
+
                 continue;
             }
 
@@ -486,8 +511,8 @@ class InventoryAccountingService
                 }
 
                 if ($taxAccountId) {
-                    $key = $taxAccountId . '_' . ($isPositiveTax ? 'debit' : 'credit');
-                    if (!isset($taxByAccount[$key])) {
+                    $key = $taxAccountId.'_'.($isPositiveTax ? 'debit' : 'credit');
+                    if (! isset($taxByAccount[$key])) {
                         $taxByAccount[$key] = [
                             'account_id' => $taxAccountId,
                             'amount' => 0,
@@ -508,6 +533,7 @@ class InventoryAccountingService
 
         if (empty($lines)) {
             \Log::warning('VendorBill: No journal lines created');
+
             return null;
         }
 
@@ -547,13 +573,14 @@ class InventoryAccountingService
 
         // Get Purchase Journal
         $purchaseJournal = Journal::getPurchaseJournal();
-        if (!$purchaseJournal) {
+        if (! $purchaseJournal) {
             \Log::warning('VendorBill: Purchase journal not found, using General Journal');
             $purchaseJournal = Journal::getMiscJournal();
         }
 
-        if (!$purchaseJournal) {
+        if (! $purchaseJournal) {
             \Log::error('VendorBill: No suitable journal found');
+
             return null;
         }
 
@@ -574,8 +601,9 @@ class InventoryAccountingService
             // Create journal entry lines
             foreach ($lines as $lineData) {
                 $account = ChartOfAccount::where('code', $lineData['account_code'])->first();
-                if (!$account) {
+                if (! $account) {
                     \Log::warning('VendorBill: Account not found', ['code' => $lineData['account_code']]);
+
                     continue;
                 }
 
@@ -607,6 +635,7 @@ class InventoryAccountingService
                 'bill_id' => $bill->id,
                 'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
@@ -623,7 +652,7 @@ class InventoryAccountingService
     ): ?JournalEntry {
         // Get Accounts Payable account from defaults
         $apAccount = $this->defaultAccounts->getSupplierPayableAccount();
-        if (!$apAccount) {
+        if (! $apAccount) {
             return null;
         }
 
@@ -632,7 +661,7 @@ class InventoryAccountingService
             ? $this->defaultAccounts->getBankAccount()
             : $this->defaultAccounts->getCashAccount();
 
-        if (!$paymentAccount) {
+        if (! $paymentAccount) {
             return null;
         }
 
@@ -668,6 +697,7 @@ class InventoryAccountingService
                 'bill_id' => $bill->id,
                 'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
