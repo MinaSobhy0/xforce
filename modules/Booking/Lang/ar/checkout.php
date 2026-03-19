@@ -37,6 +37,9 @@ return [
         'paying_now' => 'الدفع الآن',
         'balance_later' => 'الرصيد المتبقي لاحقاً',
         'overall_discount' => 'الخصم الإجمالي',
+        'before_discount' => 'قبل الخصم',
+        'session_discount' => 'خصم الجلسة',
+        'checkout_discount' => 'خصم الدفع',
         'discount' => 'الخصم',
         'total' => 'الإجمالي',
     ],
@@ -70,6 +73,8 @@ return [
         'confirm_checkout' => 'إتمام الدفع',
         'generate_invoice' => 'إنشاء الفاتورة',
         'remove_package' => 'إزالة الباقة',
+        'remove_discount' => 'إزالة الخصم',
+        'add_discount' => 'إضافة خصم',
     ],
 
     'modals' => [

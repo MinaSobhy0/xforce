@@ -37,6 +37,9 @@ return [
         'paying_now' => 'Paying Now',
         'balance_later' => 'Balance Due Later',
         'overall_discount' => 'Overall Discount',
+        'before_discount' => 'Before Discount',
+        'session_discount' => 'Session Discount',
+        'checkout_discount' => 'Checkout Discount',
         'discount' => 'Discount',
         'total' => 'Total',
     ],
@@ -70,6 +73,8 @@ return [
         'confirm_checkout' => 'Complete Checkout',
         'generate_invoice' => 'Generate Invoice',
         'remove_package' => 'Remove Package',
+        'remove_discount' => 'Remove Discount',
+        'add_discount' => 'Add Discount',
     ],
 
     'modals' => [

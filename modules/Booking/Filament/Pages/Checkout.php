@@ -6,7 +6,6 @@ use App\Traits\ChecksResourcePermissions;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
-use Filament\Forms;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Notifications\Notification;
@@ -19,18 +18,24 @@ use Modules\Booking\Models\Visit;
 use Modules\Booking\Services\VisitService;
 use Modules\Patients\Models\Patient;
 
-class Checkout extends Page implements HasForms, HasActions
+class Checkout extends Page implements HasActions, HasForms
 {
-    use InteractsWithForms;
-    use InteractsWithActions;
     use ChecksResourcePermissions;
+    use InteractsWithActions;
+    use InteractsWithForms;
 
     protected static ?string $moduleCode = 'booking';
+
     protected static ?string $permissionKey = 'checkout';
+
     protected static ?string $navigationIcon = 'heroicon-o-shopping-cart';
+
     protected static ?string $navigationGroup = 'Operations';
+
     protected static ?int $navigationSort = 16;
+
     protected static ?string $slug = 'checkout';
+
     protected static bool $shouldRegisterNavigation = false; // Accessed via visit link
 
     protected static string $view = 'booking::filament.pages.checkout';
@@ -39,6 +44,7 @@ class Checkout extends Page implements HasForms, HasActions
     public ?string $visit_id = null;
 
     public ?Visit $visit = null;
+
     public ?Patient $patient = null;
 
     // Session actions for open sessions
@@ -49,14 +55,22 @@ class Checkout extends Page implements HasForms, HasActions
 
     // Discount settings
     public ?string $overallDiscountType = 'none';
+
     public ?float $overallDiscountValue = 0;
+
     public ?string $overallDiscountReason = null;
 
     // Computed values
     public int $subtotalMinor = 0;
+
     public int $discountMinor = 0;
+
+    public int $lineDiscountsMinor = 0; // Discounts already applied to appointments/products
+
     public int $totalMinor = 0;
+
     public int $packagesSubtotalMinor = 0; // Full package prices
+
     public int $packagesPayableMinor = 0;  // Amount to pay (full or deposit)
 
     public static function getNavigationLabel(): string
@@ -74,6 +88,7 @@ class Checkout extends Page implements HasForms, HasActions
         if ($this->visit) {
             return __('booking::checkout.heading', ['code' => $this->visit->code]);
         }
+
         return __('booking::checkout.title');
     }
 
@@ -81,12 +96,13 @@ class Checkout extends Page implements HasForms, HasActions
     {
         $this->loadVisit();
 
-        if (!$this->visit) {
+        if (! $this->visit) {
             Notification::make()
                 ->title(__('booking::checkout.messages.visit_not_found'))
                 ->danger()
                 ->send();
             $this->redirect(ReceptionDashboard::getUrl());
+
             return;
         }
 
@@ -97,6 +113,7 @@ class Checkout extends Page implements HasForms, HasActions
                 ->warning()
                 ->send();
             $this->redirect(InvoiceResource::getUrl('view', ['record' => $this->visit->invoice_id]));
+
             return;
         }
 
@@ -106,6 +123,7 @@ class Checkout extends Page implements HasForms, HasActions
                 ->danger()
                 ->send();
             $this->redirect(ReceptionDashboard::getUrl());
+
             return;
         }
 
@@ -145,7 +163,7 @@ class Checkout extends Page implements HasForms, HasActions
 
     public function getOpenAppointments(): Collection
     {
-        if (!$this->visit) {
+        if (! $this->visit) {
             return collect();
         }
 
@@ -161,7 +179,7 @@ class Checkout extends Page implements HasForms, HasActions
 
     public function getCompletedAppointments(): Collection
     {
-        if (!$this->visit) {
+        if (! $this->visit) {
             return collect();
         }
 
@@ -170,7 +188,7 @@ class Checkout extends Page implements HasForms, HasActions
 
     public function getCancelledAppointments(): Collection
     {
-        if (!$this->visit) {
+        if (! $this->visit) {
             return collect();
         }
 
@@ -182,7 +200,7 @@ class Checkout extends Page implements HasForms, HasActions
 
     public function getSoldProducts(): Collection
     {
-        if (!$this->visit) {
+        if (! $this->visit) {
             return collect();
         }
 
@@ -202,7 +220,7 @@ class Checkout extends Page implements HasForms, HasActions
 
     public function getPendingPackages(): Collection
     {
-        if (!$this->visit) {
+        if (! $this->visit) {
             return collect();
         }
 
@@ -213,25 +231,33 @@ class Checkout extends Page implements HasForms, HasActions
     {
         $servicesTotal = 0;
         $productsTotal = 0;
+        $this->lineDiscountsMinor = 0;
 
         // Add completed appointments
         foreach ($this->getCompletedAppointments() as $apt) {
-            if (!$apt->is_package_session) {
+            if (! $apt->is_package_session) {
                 $servicesTotal += $apt->net_price ?? $apt->price_minor ?? 0;
+                // Use the model's method to get actual discount amount
+                $this->lineDiscountsMinor += $apt->getDiscountAmountMinor();
             }
         }
 
         // Add open appointments that will be completed
         foreach ($this->getOpenAppointments() as $apt) {
             $action = $this->sessionActions[$apt->id] ?? 'complete';
-            if ($action === 'complete' && !$apt->is_package_session) {
+            if ($action === 'complete' && ! $apt->is_package_session) {
                 $servicesTotal += $apt->net_price ?? $apt->price_minor ?? 0;
+                // Use the model's method to get actual discount amount
+                $this->lineDiscountsMinor += $apt->getDiscountAmountMinor();
             }
         }
 
         // Add sold products
         foreach ($this->getSoldProducts() as $prod) {
             $productsTotal += $prod->total_price_minor ?? 0;
+            // Calculate actual discount for products (unit_price * qty - total)
+            $grossPrice = (int) (($prod->unit_price_minor ?? 0) * ($prod->quantity ?? 1));
+            $this->lineDiscountsMinor += max(0, $grossPrice - ($prod->total_price_minor ?? 0));
         }
 
         // Calculate package totals
@@ -253,6 +279,7 @@ class Checkout extends Page implements HasForms, HasActions
         }
 
         // Subtotal includes full package prices (for invoice line items)
+        // Note: servicesTotal and productsTotal already have line discounts applied (net_price)
         $this->subtotalMinor = $servicesTotal + $productsTotal + $this->packagesSubtotalMinor;
 
         // Calculate discount on services + products only (not packages)
@@ -265,7 +292,7 @@ class Checkout extends Page implements HasForms, HasActions
 
     protected function calculateOverallDiscount(int $subtotal): int
     {
-        if ($this->overallDiscountType === 'none' || !$this->overallDiscountValue) {
+        if ($this->overallDiscountType === 'none' || ! $this->overallDiscountValue) {
             return 0;
         }
 
@@ -367,7 +394,7 @@ class Checkout extends Page implements HasForms, HasActions
                 ]);
 
                 if ($openCount > 0) {
-                    $message .= "\n\n" . __('booking::checkout.modals.open_sessions_warning', [
+                    $message .= "\n\n".__('booking::checkout.modals.open_sessions_warning', [
                         'count' => $openCount,
                     ]);
                 }
@@ -394,19 +421,18 @@ class Checkout extends Page implements HasForms, HasActions
                 ]);
             }
 
-            // Process checkout
-            $invoice = $visitService->checkout($this->visit, $this->sessionActions);
-
-            // Apply overall discount to invoice if any
+            // Build discount info for invoice line distribution
+            $discountInfo = [];
             if ($this->discountMinor > 0) {
-                $invoice->update([
-                    'discount_minor' => $this->discountMinor,
-                    'total_minor' => max(0, $invoice->subtotal_minor - $this->discountMinor),
-                    'notes' => trim(($invoice->notes ?? '') . "\n" . __('booking::checkout.invoice_notes.discount', [
-                        'reason' => $this->overallDiscountReason ?? __('booking::checkout.invoice_notes.checkout_discount'),
-                    ])),
-                ]);
+                $discountInfo = [
+                    'amount_minor' => $this->discountMinor,
+                    'type' => $this->overallDiscountType,
+                    'reason' => $this->overallDiscountReason ?? __('booking::checkout.invoice_notes.checkout_discount'),
+                ];
             }
+
+            // Process checkout with discount info
+            $invoice = $visitService->checkout($this->visit, $this->sessionActions, $discountInfo);
 
             Notification::make()
                 ->title(__('booking::checkout.messages.checkout_success'))
@@ -428,7 +454,7 @@ class Checkout extends Page implements HasForms, HasActions
 
     public function getVisitDuration(): string
     {
-        if (!$this->visit || !$this->visit->check_in_at) {
+        if (! $this->visit || ! $this->visit->check_in_at) {
             return '-';
         }
 
@@ -445,7 +471,7 @@ class Checkout extends Page implements HasForms, HasActions
 
     public function getPackageSessionsCount(): int
     {
-        if (!$this->visit) {
+        if (! $this->visit) {
             return 0;
         }
 
@@ -456,7 +482,7 @@ class Checkout extends Page implements HasForms, HasActions
 
     public function getPackageDeductionTotal(): int
     {
-        if (!$this->visit) {
+        if (! $this->visit) {
             return 0;
         }
 

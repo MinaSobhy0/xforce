@@ -179,9 +179,9 @@
                                             <span class="font-semibold text-gray-900 dark:text-white">
                                                 {{ number_format(($appointment->net_price ?? $appointment->price_minor ?? 0) / 100, 2) }} {{ current_currency() }}
                                             </span>
-                                            @if($appointment->discount_minor > 0)
+                                            @if($appointment->hasDiscount())
                                                 <div class="text-xs text-red-500">
-                                                    -{{ number_format($appointment->discount_minor / 100, 2) }} {{ __('booking::checkout.discount') }}
+                                                    -{{ number_format($appointment->getDiscountAmountMinor() / 100, 2) }} {{ __('booking::checkout.discount') }}
                                                 </div>
                                             @endif
                                         @endif
@@ -399,8 +399,34 @@
                         </div>
                     </x-slot>
 
+                    @php
+                        $totalDiscounts = $lineDiscountsMinor + $discountMinor;
+                        $beforeDiscountAmount = $subtotalMinor + $lineDiscountsMinor;
+                    @endphp
+
                     <div class="space-y-4">
-                        {{-- Subtotal --}}
+                        {{-- Before Discount (only show if there are any discounts) --}}
+                        @if($totalDiscounts > 0)
+                            <div class="flex justify-between text-gray-500 dark:text-gray-400">
+                                <span>{{ __('booking::checkout.summary.before_discount') }}</span>
+                                <span class="line-through">
+                                    {{ number_format($beforeDiscountAmount / 100, 2) }} {{ current_currency() }}
+                                </span>
+                            </div>
+                        @endif
+
+                        {{-- Session/Line Discounts (discounts already applied to appointments) --}}
+                        @if($lineDiscountsMinor > 0)
+                            <div class="flex justify-between text-red-600 dark:text-red-400">
+                                <span class="flex items-center gap-2">
+                                    <x-heroicon-o-tag class="w-4 h-4" />
+                                    {{ __('booking::checkout.summary.session_discount') }}
+                                </span>
+                                <span>-{{ number_format($lineDiscountsMinor / 100, 2) }} {{ current_currency() }}</span>
+                            </div>
+                        @endif
+
+                        {{-- Subtotal (after line discounts) --}}
                         <div class="flex justify-between text-gray-600 dark:text-gray-400">
                             <span>{{ __('booking::checkout.summary.subtotal') }}</span>
                             <span class="font-medium text-gray-900 dark:text-white">
@@ -444,66 +470,81 @@
                             @endif
                         @endif
 
-                        {{-- Discount Section --}}
-                        <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
-                            <div class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                                {{ __('booking::checkout.summary.overall_discount') }}
-                            </div>
-
-                            @if($overallDiscountType === 'none')
-                                <div class="flex gap-2">
-                                    <select
-                                        wire:model.live="overallDiscountType"
-                                        class="flex-1 text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg"
-                                    >
-                                        <option value="none">{{ __('booking::checkout.discount_types.none') }}</option>
-                                        <option value="percent">{{ __('booking::checkout.discount_types.percent') }}</option>
-                                        <option value="fixed">{{ __('booking::checkout.discount_types.fixed') }}</option>
-                                    </select>
-                                </div>
-                            @else
-                                <div class="space-y-2">
-                                    <div class="flex gap-2">
-                                        <select
-                                            wire:model.live="overallDiscountType"
-                                            class="w-24 text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg"
-                                        >
-                                            <option value="percent">%</option>
-                                            <option value="fixed">{{ current_currency() }}</option>
-                                        </select>
-                                        <input
-                                            type="number"
-                                            wire:model.live="overallDiscountValue"
-                                            min="0"
-                                            step="{{ $overallDiscountType === 'percent' ? '1' : '0.01' }}"
-                                            max="{{ $overallDiscountType === 'percent' ? '100' : '' }}"
-                                            class="flex-1 text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg"
-                                            placeholder="{{ $overallDiscountType === 'percent' ? '10' : '50.00' }}"
-                                        />
+                        {{-- Overall Checkout Discount Section --}}
+                        @if($discountMinor > 0)
+                            {{-- Overall discount applied --}}
+                            <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
+                                <div class="flex justify-between items-center text-red-600 dark:text-red-400">
+                                    <span class="flex items-center gap-2">
+                                        <x-heroicon-o-receipt-percent class="w-4 h-4" />
+                                        {{ __('booking::checkout.summary.checkout_discount') }}
+                                        @if($overallDiscountReason)
+                                            <span class="text-xs text-gray-500 dark:text-gray-400">({{ $overallDiscountReason }})</span>
+                                        @endif
+                                    </span>
+                                    <span class="flex items-center gap-2">
+                                        <span>-{{ number_format($discountMinor / 100, 2) }} {{ current_currency() }}</span>
                                         <button
                                             wire:click="removeDiscount"
-                                            class="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
+                                            class="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
+                                            title="{{ __('booking::checkout.actions.remove_discount') }}"
                                         >
-                                            <x-heroicon-o-x-mark class="w-5 h-5" />
+                                            <x-heroicon-o-x-mark class="w-4 h-4" />
                                         </button>
-                                    </div>
-
-                                    <input
-                                        type="text"
-                                        wire:model.blur="overallDiscountReason"
-                                        class="w-full text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg"
-                                        placeholder="{{ __('booking::checkout.discount_reason_placeholder') }}"
-                                    />
-
-                                    @if($discountMinor > 0)
-                                        <div class="flex justify-between text-red-600 dark:text-red-400">
-                                            <span>{{ __('booking::checkout.summary.discount') }}</span>
-                                            <span>-{{ number_format($discountMinor / 100, 2) }} {{ current_currency() }}</span>
+                                    </span>
+                                </div>
+                            </div>
+                        @elseif($lineDiscountsMinor == 0)
+                            {{-- No discounts at all - show Add Discount option --}}
+                            @if($overallDiscountType === 'none')
+                                <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
+                                    <button
+                                        wire:click="$set('overallDiscountType', 'percent')"
+                                        class="flex items-center gap-2 text-sm text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300"
+                                    >
+                                        <x-heroicon-o-plus-circle class="w-4 h-4" />
+                                        {{ __('booking::checkout.actions.add_discount') }}
+                                    </button>
+                                </div>
+                            @else
+                                {{-- Discount form --}}
+                                <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
+                                    <div class="space-y-2">
+                                        <div class="flex gap-2">
+                                            <select
+                                                wire:model.live="overallDiscountType"
+                                                class="w-24 text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg"
+                                            >
+                                                <option value="percent">%</option>
+                                                <option value="fixed">{{ current_currency() }}</option>
+                                            </select>
+                                            <input
+                                                type="number"
+                                                wire:model.live="overallDiscountValue"
+                                                min="0"
+                                                step="{{ $overallDiscountType === 'percent' ? '1' : '0.01' }}"
+                                                max="{{ $overallDiscountType === 'percent' ? '100' : '' }}"
+                                                class="flex-1 text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg"
+                                                placeholder="{{ $overallDiscountType === 'percent' ? '10' : '50.00' }}"
+                                            />
+                                            <button
+                                                wire:click="removeDiscount"
+                                                class="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
+                                            >
+                                                <x-heroicon-o-x-mark class="w-5 h-5" />
+                                            </button>
                                         </div>
-                                    @endif
+
+                                        <input
+                                            type="text"
+                                            wire:model.blur="overallDiscountReason"
+                                            class="w-full text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg"
+                                            placeholder="{{ __('booking::checkout.discount_reason_placeholder') }}"
+                                        />
+                                    </div>
                                 </div>
                             @endif
-                        </div>
+                        @endif
 
                         {{-- Total --}}
                         <div class="border-t border-gray-200 dark:border-gray-700 pt-4">

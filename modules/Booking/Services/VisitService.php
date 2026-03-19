@@ -2,21 +2,20 @@
 
 namespace Modules\Booking\Services;
 
-use Modules\Booking\Models\Visit;
-use Modules\Booking\Models\Appointment;
-use Modules\Booking\Models\SessionProduct;
-use Modules\Patients\Models\Patient;
-use Modules\Core\Models\Branch;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Modules\Billing\Models\Invoice;
 use Modules\Billing\Models\InvoiceLine;
+use Modules\Booking\Models\Appointment;
+use Modules\Booking\Models\SessionProduct;
+use Modules\Booking\Models\Visit;
+use Modules\Core\Models\Branch;
 use Modules\Packages\Models\Package;
 use Modules\Packages\Models\PackageSubscription;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Collection;
+use Modules\Patients\Models\Patient;
 
 class VisitService
 {
-
     /**
      * Create a new visit for a patient
      */
@@ -68,7 +67,7 @@ class VisitService
     ): Visit {
         $visit = $this->findOpenVisit($patient, $branch);
 
-        if (!$visit) {
+        if (! $visit) {
             $visit = $this->createVisit($patient, $branch, $source, $chiefComplaint);
         }
 
@@ -164,17 +163,18 @@ class VisitService
     /**
      * Process checkout for a visit
      *
-     * @param Visit $visit
-     * @param array $sessionActions Actions for each open session ['appointment_id' => 'complete|cancel|reschedule']
-     * @return Invoice
+     * @param  array  $sessionActions  Actions for each open session ['appointment_id' => 'complete|cancel|reschedule']
+     * @param  array  $discountInfo  Overall discount info ['amount_minor' => int, 'type' => string, 'reason' => string]
      */
-    public function checkout(Visit $visit, array $sessionActions = []): Invoice
+    public function checkout(Visit $visit, array $sessionActions = [], array $discountInfo = []): Invoice
     {
-        return DB::transaction(function () use ($visit, $sessionActions) {
+        return DB::transaction(function () use ($visit, $sessionActions, $discountInfo) {
             // Process open sessions based on actions
             foreach ($sessionActions as $appointmentId => $action) {
                 $appointment = Appointment::find($appointmentId);
-                if (!$appointment) continue;
+                if (! $appointment) {
+                    continue;
+                }
 
                 switch ($action) {
                     case 'complete':
@@ -194,8 +194,8 @@ class VisitService
             $visit->refresh();
             $visit->load(['appointments', 'products']);
 
-            // Create invoice
-            $invoice = $this->createInvoiceFromVisit($visit);
+            // Create invoice with discount info
+            $invoice = $this->createInvoiceFromVisit($visit, $discountInfo);
 
             // Mark visit as invoiced
             $visit->markInvoiced($invoice);
@@ -206,8 +206,10 @@ class VisitService
 
     /**
      * Create invoice from visit
+     *
+     * @param  array  $discountInfo  Overall discount info ['amount_minor' => int, 'type' => string, 'reason' => string]
      */
-    protected function createInvoiceFromVisit(Visit $visit): Invoice
+    protected function createInvoiceFromVisit(Visit $visit, array $discountInfo = []): Invoice
     {
         // Get completed appointments (excluding package sessions)
         $billableAppointments = $visit->appointments()
@@ -230,6 +232,7 @@ class VisitService
 
         // Calculate totals
         $subtotalMinor = 0;
+        $discountableSubtotal = 0; // Services + products (excluding packages)
         $lines = [];
         $createdSubscriptions = [];
 
@@ -237,17 +240,22 @@ class VisitService
         foreach ($billableAppointments as $apt) {
             $lineTotal = $apt->net_price ?? $apt->price_minor ?? 0;
             $subtotalMinor += $lineTotal;
+            $discountableSubtotal += $lineTotal;
 
             // Get revenue account from service category
             $accountId = $apt->service?->category?->service_revenue_account_id;
+
+            // Get actual discount amount (not percentage)
+            $discountAmount = $apt->getDiscountAmountMinor();
 
             $lines[] = [
                 'line_type' => 'service',
                 'description' => $apt->service?->translated_name ?? 'Service',
                 'quantity' => $apt->quantity ?? 1,
                 'unit_price_minor' => $apt->price_minor,
-                'discount_minor' => $apt->discount_minor ?? 0,
-                'total_minor' => $lineTotal,
+                'original_discount_minor' => $discountAmount,
+                'line_subtotal' => $lineTotal,
+                'is_discountable' => true,
                 'service_id' => $apt->service_id,
                 'account_id' => $accountId,
                 'appointment_id' => $apt->id,
@@ -257,17 +265,23 @@ class VisitService
         // Add product lines
         foreach ($soldProducts as $prod) {
             $subtotalMinor += $prod->total_price_minor;
+            $discountableSubtotal += $prod->total_price_minor;
 
             // Get income account from product
             $accountId = $prod->product?->income_account_id;
+
+            // Calculate actual discount for products (unit_price * qty - total)
+            $grossPrice = (int) (($prod->unit_price_minor ?? 0) * ($prod->quantity ?? 1));
+            $discountAmount = max(0, $grossPrice - ($prod->total_price_minor ?? 0));
 
             $lines[] = [
                 'line_type' => 'product',
                 'description' => $prod->product?->translated_name ?? $prod->product?->name ?? 'Product',
                 'quantity' => $prod->quantity,
                 'unit_price_minor' => $prod->unit_price_minor,
-                'discount_minor' => $prod->discount_minor ?? 0,
-                'total_minor' => $prod->total_price_minor,
+                'original_discount_minor' => $discountAmount,
+                'line_subtotal' => $prod->total_price_minor,
+                'is_discountable' => true,
                 'product_id' => $prod->product_id,
                 'account_id' => $accountId,
             ];
@@ -276,7 +290,7 @@ class VisitService
             $prod->markAsInvoiced();
         }
 
-        // Add package lines and create subscriptions
+        // Add package lines and create subscriptions (not discountable)
         foreach ($pendingPackages as $package) {
             $priceMinor = $package->pivot->package_price_minor;
             $subtotalMinor += $priceMinor;
@@ -290,13 +304,38 @@ class VisitService
                 'description' => $package->translated_name ?? $package->name,
                 'quantity' => 1,
                 'unit_price_minor' => $priceMinor,
-                'discount_minor' => 0,
-                'total_minor' => $priceMinor,
+                'original_discount_minor' => 0,
+                'line_subtotal' => $priceMinor,
+                'is_discountable' => false,
                 'package_subscription_id' => $subscription->id,
             ];
         }
 
-        // Create invoice using InvoiceService
+        // Distribute overall discount proportionally to discountable lines
+        $overallDiscountMinor = $discountInfo['amount_minor'] ?? 0;
+        $discountReason = $discountInfo['reason'] ?? null;
+
+        if ($overallDiscountMinor > 0 && $discountableSubtotal > 0) {
+            foreach ($lines as &$line) {
+                if ($line['is_discountable']) {
+                    // Calculate this line's share of the discount proportionally
+                    $proportion = $line['line_subtotal'] / $discountableSubtotal;
+                    $lineDiscount = (int) round($overallDiscountMinor * $proportion);
+
+                    // Add to any existing line discount
+                    $line['distributed_discount'] = $lineDiscount;
+                }
+            }
+            unset($line);
+        }
+
+        // Build invoice notes
+        $notes = "Visit: {$visit->code}";
+        if ($overallDiscountMinor > 0 && $discountReason) {
+            $notes .= "\n".__('booking::checkout.invoice_notes.discount', ['reason' => $discountReason]);
+        }
+
+        // Create invoice
         $invoice = Invoice::create([
             'tenant_id' => $visit->tenant_id,
             'branch_id' => $visit->branch_id,
@@ -306,14 +345,18 @@ class VisitService
             'due_date' => now()->toDateString(),
             'status' => Invoice::STATUS_DRAFT,
             'subtotal_minor' => $subtotalMinor,
-            'tax_minor' => 0, // Calculate if needed
-            'discount_minor' => 0,
-            'total_minor' => $subtotalMinor,
-            'notes' => "Visit: {$visit->code}",
+            'tax_minor' => 0,
+            'discount_minor' => $overallDiscountMinor,
+            'total_minor' => max(0, $subtotalMinor - $overallDiscountMinor),
+            'notes' => $notes,
         ]);
 
-        // Create invoice lines
+        // Create invoice lines with distributed discount
         foreach ($lines as $lineData) {
+            // Total discount = original line discount + distributed overall discount
+            $totalDiscount = ($lineData['original_discount_minor'] ?? 0) + ($lineData['distributed_discount'] ?? 0);
+            $lineTotal = max(0, $lineData['line_subtotal'] - ($lineData['distributed_discount'] ?? 0));
+
             InvoiceLine::create([
                 'tenant_id' => $visit->tenant_id,
                 'invoice_id' => $invoice->id,
@@ -321,9 +364,10 @@ class VisitService
                 'description' => $lineData['description'],
                 'quantity' => $lineData['quantity'],
                 'unit_price_minor' => $lineData['unit_price_minor'],
-                'discount_minor' => $lineData['discount_minor'],
+                'discount_minor' => $totalDiscount,
+                'discount_type' => $totalDiscount > 0 ? InvoiceLine::DISCOUNT_FIXED : null,
                 'tax_minor' => 0,
-                'total_minor' => $lineData['total_minor'],
+                'total_minor' => $lineTotal,
                 'service_id' => $lineData['service_id'] ?? null,
                 'product_id' => $lineData['product_id'] ?? null,
                 'account_id' => $lineData['account_id'] ?? null,
