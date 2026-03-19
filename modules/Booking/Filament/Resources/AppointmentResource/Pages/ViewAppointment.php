@@ -267,6 +267,7 @@ class ViewAppointment extends BaseViewRecord
                     Appointment::STATUS_SCHEDULED,
                     Appointment::STATUS_CONFIRMED,
                     Appointment::STATUS_CHECKED_IN,
+                    Appointment::STATUS_CLOSED,
                 ]))
                 ->url(fn (): string => \Modules\Booking\Filament\Pages\CreateBooking::getUrl().'?reschedule_appointment_id='.$this->record->id
                 ),

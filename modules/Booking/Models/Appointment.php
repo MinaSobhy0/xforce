@@ -430,7 +430,7 @@ class Appointment extends BaseModel
             self::STATUS_CHECKED_IN => [self::STATUS_IN_PROGRESS, self::STATUS_CANCELLED],
             self::STATUS_IN_PROGRESS => [self::STATUS_COMPLETED, self::STATUS_CLOSED, self::STATUS_CANCELLED],
             self::STATUS_COMPLETED => [],
-            self::STATUS_CLOSED => [],
+            self::STATUS_CLOSED => [self::STATUS_RESCHEDULED],
             self::STATUS_CANCELLED => [],
             self::STATUS_NO_SHOW => [],
             self::STATUS_RESCHEDULED => [],

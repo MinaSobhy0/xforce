@@ -3,37 +3,32 @@
 namespace Modules\Booking\Filament\Pages;
 
 use App\Traits\ChecksResourcePermissions;
-use Filament\Forms;
+use Carbon\Carbon;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Forms\Contracts\HasForms;
-use Filament\Pages\Page;
-use Filament\Notifications\Notification;
 use Filament\Notifications\Actions\Action as NotificationAction;
-use Filament\Actions\Action;
+use Filament\Notifications\Notification;
+use Filament\Pages\Page;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\HtmlString;
-use Livewire\Attributes\On;
 use Livewire\WithFileUploads;
+use Modules\Auth\Models\User;
 use Modules\Booking\Models\Appointment;
 use Modules\Patients\Models\Patient;
+use Modules\Patients\Models\PatientMedicalHistory;
 use Modules\Patients\Models\PatientNote;
 use Modules\Patients\Models\PatientPhoto;
-use Modules\Patients\Models\PatientMedicalHistory;
+use Modules\Services\Models\Service;
 use Modules\TreatmentPlans\Models\TreatmentPlan;
 use Modules\TreatmentPlans\Models\TreatmentPlanItem;
-use Modules\TreatmentPlans\Models\TreatmentPlanAppointment;
-use Modules\Services\Models\Service;
-use Modules\Auth\Models\User;
-use Carbon\Carbon;
 
 class DoctorDashboard extends Page implements HasForms
 {
-    use InteractsWithForms;
     use ChecksResourcePermissions;
+    use InteractsWithForms;
     use WithFileUploads;
 
     protected static ?string $moduleCode = 'booking';
@@ -52,17 +47,23 @@ class DoctorDashboard extends Page implements HasForms
 
     // Active session data
     public ?string $activeAppointmentId = null;
+
     public ?array $activePatientData = null;
+
     public string $activeTab = 'info';
 
     // Session note form
     public ?string $sessionNoteContent = null;
+
     public ?string $sessionNoteType = 'treatment';
 
     // Photo upload
     public $photoUpload = null;
+
     public ?string $photoType = 'progress';
+
     public ?string $photoBodyArea = null;
+
     public ?string $photoDescription = null;
 
     // Treatment plan form
@@ -108,9 +109,10 @@ class DoctorDashboard extends Page implements HasForms
     {
         // Only show for practitioners
         $user = auth()->user();
-        if (!$user) {
+        if (! $user) {
             return false;
         }
+
         return $user->hasAnyRole(['doctor', 'nurse', 'technician', 'admin', 'manager']);
     }
 
@@ -119,7 +121,7 @@ class DoctorDashboard extends Page implements HasForms
         $this->treatmentPlanData = [
             'name' => '',
             'services' => [
-                ['service_id' => null, 'sessions' => 1, 'interval' => 7]
+                ['service_id' => null, 'sessions' => 1, 'interval' => 7],
             ],
             'recommended_package_id' => null,
             'notes' => '',
@@ -139,6 +141,7 @@ class DoctorDashboard extends Page implements HasForms
     public function canSelectPractitioner(): bool
     {
         $user = auth()->user();
+
         return $user && $user->hasAnyRole(['super_admin', 'admin', 'manager']);
     }
 
@@ -163,11 +166,12 @@ class DoctorDashboard extends Page implements HasForms
      */
     public function getSelectedPractitionerName(): ?string
     {
-        if (!$this->selectedPractitionerId) {
+        if (! $this->selectedPractitionerId) {
             return null;
         }
 
         $user = User::find($this->selectedPractitionerId);
+
         return $user?->full_name;
     }
 
@@ -176,7 +180,7 @@ class DoctorDashboard extends Page implements HasForms
      */
     public function selectPractitioner(string $practitionerId): void
     {
-        if (!$this->canSelectPractitioner()) {
+        if (! $this->canSelectPractitioner()) {
             return;
         }
 
@@ -216,9 +220,10 @@ class DoctorDashboard extends Page implements HasForms
      */
     public function isViewingPastDate(): bool
     {
-        if (!$this->selectedDate) {
+        if (! $this->selectedDate) {
             return false;
         }
+
         // Compare date strings to avoid timezone issues
         return $this->selectedDate < today()->format('Y-m-d');
     }
@@ -228,9 +233,10 @@ class DoctorDashboard extends Page implements HasForms
      */
     public function isViewingToday(): bool
     {
-        if (!$this->selectedDate) {
+        if (! $this->selectedDate) {
             return true;
         }
+
         // Compare date strings to avoid timezone issues
         return $this->selectedDate === today()->format('Y-m-d');
     }
@@ -295,7 +301,7 @@ class DoctorDashboard extends Page implements HasForms
      */
     public function getActiveAppointment(): ?Appointment
     {
-        if (!$this->activeAppointmentId) {
+        if (! $this->activeAppointmentId) {
             return null;
         }
 
@@ -316,12 +322,13 @@ class DoctorDashboard extends Page implements HasForms
             Appointment::STATUS_CONFIRMED,
         ];
 
-        if (!in_array($appointment->status, $allowedStatuses)) {
+        if (! in_array($appointment->status, $allowedStatuses)) {
             Notification::make()
                 ->title(__('booking::dashboard.messages.cannot_start'))
                 ->body(__('booking::dashboard.messages.must_be_confirmed'))
                 ->danger()
                 ->send();
+
             return;
         }
 
@@ -338,7 +345,7 @@ class DoctorDashboard extends Page implements HasForms
             ->send();
 
         // Redirect to the Treatment Session page
-        $this->redirect(TreatmentSession::getUrl() . '?appointment_id=' . $appointment->id);
+        $this->redirect(TreatmentSession::getUrl().'?appointment_id='.$appointment->id);
     }
 
     /**
@@ -353,11 +360,12 @@ class DoctorDashboard extends Page implements HasForms
                 ->title(__('booking::dashboard.messages.cannot_resume'))
                 ->danger()
                 ->send();
+
             return;
         }
 
         // Redirect to the Treatment Session page
-        $this->redirect(TreatmentSession::getUrl() . '?appointment_id=' . $appointment->id);
+        $this->redirect(TreatmentSession::getUrl().'?appointment_id='.$appointment->id);
     }
 
     /**
@@ -368,7 +376,7 @@ class DoctorDashboard extends Page implements HasForms
         $appointment = Appointment::findOrFail($appointmentId);
 
         // Redirect to the Treatment Session page in view mode
-        $this->redirect(TreatmentSession::getUrl() . '?appointment_id=' . $appointment->id . '&view_mode=1');
+        $this->redirect(TreatmentSession::getUrl().'?appointment_id='.$appointment->id.'&view_mode=1');
     }
 
     /**
@@ -378,24 +386,26 @@ class DoctorDashboard extends Page implements HasForms
     {
         $appointment = Appointment::findOrFail($appointmentId);
 
-        // Only allow rescheduling for appointments that haven't started or completed
+        // Only allow rescheduling for appointments that haven't completed
         $allowedStatuses = [
             Appointment::STATUS_SCHEDULED,
             Appointment::STATUS_CONFIRMED,
             Appointment::STATUS_CHECKED_IN,
+            Appointment::STATUS_CLOSED,
         ];
 
-        if (!in_array($appointment->status, $allowedStatuses)) {
+        if (! in_array($appointment->status, $allowedStatuses)) {
             Notification::make()
                 ->title(__('booking::dashboard.messages.cannot_reschedule'))
                 ->body(__('booking::dashboard.messages.appointment_already_started'))
                 ->danger()
                 ->send();
+
             return;
         }
 
         // Redirect to the booking page with reschedule parameter
-        $this->redirect(CreateBooking::getUrl() . '?reschedule_appointment_id=' . $appointment->id);
+        $this->redirect(CreateBooking::getUrl().'?reschedule_appointment_id='.$appointment->id);
     }
 
     /**
@@ -405,7 +415,7 @@ class DoctorDashboard extends Page implements HasForms
     {
         $patient = Patient::with(['medicalHistory'])->find($patientId);
 
-        if (!$patient) {
+        if (! $patient) {
             return;
         }
 
@@ -428,11 +438,12 @@ class DoctorDashboard extends Page implements HasForms
     {
         $appointment = $this->getActiveAppointment();
 
-        if (!$appointment || $appointment->status !== Appointment::STATUS_IN_PROGRESS) {
+        if (! $appointment || $appointment->status !== Appointment::STATUS_IN_PROGRESS) {
             Notification::make()
                 ->title(__('booking::dashboard.messages.cannot_complete'))
                 ->danger()
                 ->send();
+
             return;
         }
 
@@ -483,11 +494,12 @@ class DoctorDashboard extends Page implements HasForms
                 ->title(__('booking::dashboard.messages.note_required'))
                 ->warning()
                 ->send();
+
             return;
         }
 
         $appointment = $this->getActiveAppointment();
-        if (!$appointment) {
+        if (! $appointment) {
             return;
         }
 
@@ -495,7 +507,7 @@ class DoctorDashboard extends Page implements HasForms
             'patient_id' => $appointment->patient_id,
             'appointment_id' => $appointment->id,
             'type' => $this->sessionNoteType,
-            'subject' => 'Session Note - ' . $appointment->service?->translated_name,
+            'subject' => 'Session Note - '.$appointment->service?->translated_name,
             'content' => $this->sessionNoteContent,
             'created_by' => auth()->id(),
         ]);
@@ -513,16 +525,17 @@ class DoctorDashboard extends Page implements HasForms
      */
     public function uploadPhoto(): void
     {
-        if (!$this->photoUpload) {
+        if (! $this->photoUpload) {
             Notification::make()
                 ->title(__('booking::dashboard.messages.photo_required'))
                 ->warning()
                 ->send();
+
             return;
         }
 
         $appointment = $this->getActiveAppointment();
-        if (!$appointment) {
+        if (! $appointment) {
             return;
         }
 
@@ -556,16 +569,16 @@ class DoctorDashboard extends Page implements HasForms
     protected function getSessionDescription(): string
     {
         $appointment = $this->getActiveAppointment();
-        if (!$appointment) {
+        if (! $appointment) {
             return 'Session photo';
         }
 
         $sessionNum = '';
         if ($planAppointment = $appointment->treatmentPlanAppointment) {
-            $sessionNum = ' - Session ' . $planAppointment->session_number;
+            $sessionNum = ' - Session '.$planAppointment->session_number;
         }
 
-        return $appointment->service?->translated_name . $sessionNum . ' - ' . now()->format('M d, Y');
+        return $appointment->service?->translated_name.$sessionNum.' - '.now()->format('M d, Y');
     }
 
     /**
@@ -574,7 +587,8 @@ class DoctorDashboard extends Page implements HasForms
     protected function getPhotoName(): string
     {
         $appointment = $this->getActiveAppointment();
-        return 'patient_' . ($appointment?->patient_id ?? 'unknown') . '_' . now()->format('Y-m-d_His');
+
+        return 'patient_'.($appointment?->patient_id ?? 'unknown').'_'.now()->format('Y-m-d_His');
     }
 
     /**
@@ -583,7 +597,7 @@ class DoctorDashboard extends Page implements HasForms
     public function getPatientNotes(): Collection
     {
         $appointment = $this->getActiveAppointment();
-        if (!$appointment) {
+        if (! $appointment) {
             return collect();
         }
 
@@ -600,7 +614,7 @@ class DoctorDashboard extends Page implements HasForms
     public function getPatientPhotos(): Collection
     {
         $appointment = $this->getActiveAppointment();
-        if (!$appointment) {
+        if (! $appointment) {
             return collect();
         }
 
@@ -617,7 +631,7 @@ class DoctorDashboard extends Page implements HasForms
     public function getPatientMedicalHistory(): ?PatientMedicalHistory
     {
         $appointment = $this->getActiveAppointment();
-        if (!$appointment) {
+        if (! $appointment) {
             return null;
         }
 
@@ -630,7 +644,7 @@ class DoctorDashboard extends Page implements HasForms
     public function getPatientTreatmentPlans(): Collection
     {
         $appointment = $this->getActiveAppointment();
-        if (!$appointment) {
+        if (! $appointment) {
             return collect();
         }
 
@@ -647,7 +661,7 @@ class DoctorDashboard extends Page implements HasForms
     public function createTreatmentPlan(): void
     {
         $appointment = $this->getActiveAppointment();
-        if (!$appointment) {
+        if (! $appointment) {
             return;
         }
 
@@ -695,7 +709,7 @@ class DoctorDashboard extends Page implements HasForms
             $this->treatmentPlanData = [
                 'name' => '',
                 'services' => [
-                    ['service_id' => null, 'sessions' => 1, 'interval' => 7]
+                    ['service_id' => null, 'sessions' => 1, 'interval' => 7],
                 ],
                 'recommended_package_id' => null,
                 'notes' => '',
@@ -744,11 +758,12 @@ class DoctorDashboard extends Page implements HasForms
     {
         $appointment = Appointment::findOrFail($appointmentId);
 
-        if (!$appointment->canTransitionTo(Appointment::STATUS_CHECKED_IN)) {
+        if (! $appointment->canTransitionTo(Appointment::STATUS_CHECKED_IN)) {
             Notification::make()
                 ->title(__('booking::dashboard.messages.cannot_check_in'))
                 ->danger()
                 ->send();
+
             return;
         }
 
@@ -801,11 +816,12 @@ class DoctorDashboard extends Page implements HasForms
     {
         $appointment = Appointment::findOrFail($appointmentId);
 
-        if (!$appointment->canTransitionTo(Appointment::STATUS_CONFIRMED)) {
+        if (! $appointment->canTransitionTo(Appointment::STATUS_CONFIRMED)) {
             Notification::make()
                 ->title(__('booking::dashboard.messages.cannot_confirm'))
                 ->danger()
                 ->send();
+
             return;
         }
 
@@ -836,7 +852,7 @@ class DoctorDashboard extends Page implements HasForms
     public function getSessionNumber(): ?string
     {
         $appointment = $this->getActiveAppointment();
-        if (!$appointment || !$appointment->treatmentPlanAppointment) {
+        if (! $appointment || ! $appointment->treatmentPlanAppointment) {
             return null;
         }
 
