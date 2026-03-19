@@ -138,6 +138,7 @@ return [
     // Actions
     'actions' => [
         'complete_session' => 'Complete Session',
+        'close_session' => 'Close Session',
         'back_to_dashboard' => 'Back to Dashboard',
         'apply_discount' => 'Apply Discount',
         'apply' => 'Apply',
@@ -150,9 +151,20 @@ return [
     'modals' => [
         'complete_session' => 'Complete Session',
         'complete_session_desc' => 'Are you sure you want to complete this session? This will mark the appointment as completed.',
+        'close_session' => 'Close Session',
+        'close_session_desc' => 'Are you sure you want to close this session without completing it? The patient will need to schedule a new appointment to continue.',
         'apply_discount' => 'Apply Discount',
         'add_to_plan' => 'Add to Treatment Plan',
         'start_another_session' => 'Start Another Service Session',
+    ],
+
+    // Close session
+    'fields' => [
+        'close_reason' => 'Reason for closing',
+    ],
+
+    'placeholders' => [
+        'close_reason' => 'Why is this session being closed without completion?',
     ],
 
     // Start another session
@@ -214,6 +226,8 @@ return [
         'appointment_not_found' => 'Appointment not found',
         'session_not_active' => 'This session is not active',
         'session_completed' => 'Session completed successfully',
+        'session_closed' => 'Session closed',
+        'session_closed_body' => 'The session has been closed. Patient will need to reschedule to continue.',
         'note_required' => 'Please enter a note',
         'note_added' => 'Note added successfully',
         'photo_required' => 'Please select a photo',

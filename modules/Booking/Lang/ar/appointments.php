@@ -72,6 +72,7 @@ return [
         'checked_in' => 'وصل',
         'in_progress' => 'جاري',
         'completed' => 'مكتمل',
+        'closed' => 'مغلق',
         'cancelled' => 'ملغي',
         'no_show' => 'لم يحضر',
         'rescheduled' => 'أعيدت جدولته',

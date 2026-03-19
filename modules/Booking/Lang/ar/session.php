@@ -138,6 +138,7 @@ return [
     // Actions
     'actions' => [
         'complete_session' => 'إنهاء الجلسة',
+        'close_session' => 'إغلاق الجلسة',
         'back_to_dashboard' => 'العودة للوحة',
         'apply_discount' => 'تطبيق خصم',
         'apply' => 'تطبيق',
@@ -150,9 +151,20 @@ return [
     'modals' => [
         'complete_session' => 'إنهاء الجلسة',
         'complete_session_desc' => 'هل أنت متأكد من إنهاء هذه الجلسة؟ سيتم تحديث حالة الموعد إلى مكتمل.',
+        'close_session' => 'إغلاق الجلسة',
+        'close_session_desc' => 'هل أنت متأكد من إغلاق هذه الجلسة بدون إكمالها؟ سيحتاج المريض لحجز موعد جديد للاستكمال.',
         'apply_discount' => 'تطبيق خصم',
         'add_to_plan' => 'إضافة لخطة العلاج',
         'start_another_session' => 'بدء جلسة خدمة أخرى',
+    ],
+
+    // Close session
+    'fields' => [
+        'close_reason' => 'سبب الإغلاق',
+    ],
+
+    'placeholders' => [
+        'close_reason' => 'لماذا يتم إغلاق هذه الجلسة بدون إكمالها؟',
     ],
 
     // Start another session
@@ -214,6 +226,8 @@ return [
         'appointment_not_found' => 'الموعد غير موجود',
         'session_not_active' => 'هذه الجلسة غير نشطة',
         'session_completed' => 'تم إنهاء الجلسة بنجاح',
+        'session_closed' => 'تم إغلاق الجلسة',
+        'session_closed_body' => 'تم إغلاق الجلسة. سيحتاج المريض لحجز موعد جديد للاستكمال.',
         'note_required' => 'الرجاء إدخال ملاحظة',
         'note_added' => 'تمت إضافة الملاحظة بنجاح',
         'photo_required' => 'الرجاء اختيار صورة',

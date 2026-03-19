@@ -7,56 +7,61 @@ use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
-use Filament\Pages\Page;
-use Filament\Notifications\Notification;
-use Filament\Infolists\Infolist;
+use Filament\Forms\Form;
 use Filament\Infolists\Components;
 use Filament\Infolists\Concerns\InteractsWithInfolists;
 use Filament\Infolists\Contracts\HasInfolists;
+use Filament\Infolists\Infolist;
+use Filament\Notifications\Notification;
+use Filament\Pages\Page;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Url;
 use Livewire\WithFileUploads;
 use Modules\Booking\Models\Appointment;
+use Modules\Booking\Models\SessionConsumable;
+use Modules\Booking\Models\SessionProduct;
 use Modules\Booking\Models\TreatmentSessionData;
-use Modules\Patients\Models\Patient;
-use Modules\Patients\Models\PatientNote;
-use Modules\Patients\Models\PatientPhoto;
-use Modules\Patients\Models\PatientMedicalHistory;
-use Modules\Patients\Models\MedicalProfile;
-use Modules\Patients\Models\PatientAmrSummary;
-use Modules\TreatmentPlans\Models\TreatmentPlan;
-use Modules\TreatmentPlans\Models\TreatmentPlanItem;
-use Modules\Services\Models\Service;
-use Modules\Services\Models\ParameterPreset;
+use Modules\Booking\Models\Visit;
+use Modules\Booking\Services\VisitService;
 use Modules\Equipment\Models\Equipment;
 use Modules\Inventory\Models\Product;
 use Modules\Inventory\Models\StockLevel;
 use Modules\Inventory\Models\StockLocation;
-use Modules\Inventory\Models\StockMovement;
 use Modules\Inventory\Services\StockMoveService;
-use Modules\Booking\Models\SessionConsumable;
-use Modules\Booking\Models\SessionProduct;
-use Modules\Booking\Models\Visit;
-use Modules\Booking\Services\VisitService;
+use Modules\Patients\Models\MedicalProfile;
+use Modules\Patients\Models\Patient;
+use Modules\Patients\Models\PatientAmrSummary;
+use Modules\Patients\Models\PatientMedicalHistory;
+use Modules\Patients\Models\PatientNote;
+use Modules\Patients\Models\PatientPhoto;
+use Modules\Services\Models\ParameterPreset;
+use Modules\Services\Models\Service;
+use Modules\TreatmentPlans\Models\TreatmentPlan;
+use Modules\TreatmentPlans\Models\TreatmentPlanItem;
 
-class TreatmentSession extends Page implements HasForms, HasInfolists, HasActions
+class TreatmentSession extends Page implements HasActions, HasForms, HasInfolists
 {
+    use ChecksResourcePermissions;
+    use InteractsWithActions;
     use InteractsWithForms;
     use InteractsWithInfolists;
-    use InteractsWithActions;
-    use ChecksResourcePermissions;
     use WithFileUploads;
 
     protected static ?string $moduleCode = 'booking';
+
     protected static ?string $permissionKey = 'treatment_session';
+
     protected static ?string $navigationIcon = 'heroicon-o-play-circle';
+
     protected static ?string $navigationGroup = 'Operations';
+
     protected static ?int $navigationSort = 15;
+
     protected static ?string $slug = 'treatment-session';
+
     protected static bool $shouldRegisterNavigation = true;
 
     protected static string $view = 'booking::filament.pages.treatment-session';
@@ -75,36 +80,55 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
     public ?string $view_mode = null;
 
     public ?Appointment $appointment = null;
+
     public ?Visit $visit = null;
+
     public ?Patient $patient = null;
+
     public ?PatientMedicalHistory $medicalHistory = null;
+
     public ?MedicalProfile $medicalProfile = null;
+
     public ?PatientAmrSummary $amrSummary = null;
+
     public ?TreatmentSessionData $sessionData = null;
 
     // Dynamic parameters
     public array $parameterValues = [];
+
     public array $equipmentMetrics = [];
+
     public array $treatmentAreas = [];
+
     public array $preTreatmentChecklist = [];
 
     // Equipment selection
     public array $sessionEquipment = [];
+
     public array $equipmentParameterValues = []; // Equipment-specific parameter values
+
     public ?string $newEquipmentId = null;
+
     public ?string $selectedPresetId = null;
 
     // Clinical notes
     public ?string $clinicalNotes = null;
+
     public ?string $skinReaction = 'none';
+
     public ?string $painLevel = null;
 
     // Forms
     public ?string $noteContent = null;
+
     public ?string $noteType = 'treatment';
+
     public $photoUpload = null;
+
     public ?string $photoType = 'progress';
+
     public ?string $photoBodyArea = null;
+
     public ?string $photoDescription = null;
 
     // Photo upload form data (for Filament FileUpload)
@@ -116,6 +140,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
 
     // Camera photo capture
     public $cameraPhoto = null;
+
     public string $cameraPhotoType = 'progress';
 
     // Treatment plan form
@@ -126,36 +151,50 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
 
     // Consumables & Products
     public array $sessionConsumables = [];
+
     public array $sessionProducts = [];
+
     public ?string $newConsumableId = null;
+
     public ?float $newConsumableQty = 1;
+
     public ?string $newProductId = null;
+
     public ?float $newProductQty = 1;
 
     // Prescription data
     public array $prescriptionMedications = [];
+
     public ?string $prescriptionDiagnosis = null;
+
     public ?string $prescriptionNotes = null;
 
     // Invoice section
     public ?int $servicePriceMinor = null;
+
     public ?string $serviceDiscountType = 'none';
+
     public ?int $serviceDiscountValue = 0;
+
     public ?string $overallDiscountType = 'none';
+
     public ?int $overallDiscountValue = 0;
+
     public ?string $overallDiscountReason = null;
+
     public ?string $editingInvoiceItem = null; // Track which item is being edited: 'service' or 'product-{id}'
 
     public function mount(): void
     {
         $this->loadAppointment();
 
-        if (!$this->appointment) {
+        if (! $this->appointment) {
             Notification::make()
                 ->title(__('booking::session.messages.appointment_not_found'))
                 ->danger()
                 ->send();
             $this->redirect(DoctorDashboard::getUrl());
+
             return;
         }
 
@@ -165,19 +204,20 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
         $isInProgress = $this->appointment->status === Appointment::STATUS_IN_PROGRESS;
 
         // Ensure appointment is in progress OR completed (for view mode)
-        if (!$isInProgress && !($isViewMode && $isCompleted)) {
+        if (! $isInProgress && ! ($isViewMode && $isCompleted)) {
             Notification::make()
                 ->title(__('booking::session.messages.session_not_active'))
                 ->danger()
                 ->send();
             $this->redirect(DoctorDashboard::getUrl());
+
             return;
         }
 
         $this->treatmentPlanData = [
             'name' => '',
             'services' => [
-                ['service_id' => null, 'sessions' => 1, 'interval' => 7]
+                ['service_id' => null, 'sessions' => 1, 'interval' => 7],
             ],
             'notes' => '',
         ];
@@ -191,7 +231,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
 
     protected function loadInvoiceData(): void
     {
-        if (!$this->appointment) {
+        if (! $this->appointment) {
             return;
         }
 
@@ -238,7 +278,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
             $this->visit = $this->appointment->current_visit;
 
             // If no visit exists yet (checked in before visit system), create one now
-            if (!$this->visit && $this->appointment->patient && $this->appointment->isCheckedIn()) {
+            if (! $this->visit && $this->appointment->patient && $this->appointment->isCheckedIn()) {
                 $visitService = app(\Modules\Booking\Services\VisitService::class);
                 $this->visit = $visitService->findOrCreateVisit(
                     $this->appointment->patient,
@@ -263,7 +303,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
      */
     public function getPreviousSessions(): Collection
     {
-        if (!$this->appointment || !$this->patient) {
+        if (! $this->appointment || ! $this->patient) {
             return collect();
         }
 
@@ -283,7 +323,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
      */
     public function getPreviousServiceSessions(): Collection
     {
-        if (!$this->appointment || !$this->patient) {
+        if (! $this->appointment || ! $this->patient) {
             return collect();
         }
 
@@ -304,19 +344,19 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
      */
     public function viewPreviousSession(int $appointmentId): void
     {
-        $this->redirect(static::getUrl() . '?appointment_id=' . $appointmentId . '&view_mode=1');
+        $this->redirect(static::getUrl().'?appointment_id='.$appointmentId.'&view_mode=1');
     }
 
     protected function loadOrCreateSessionData(): void
     {
-        if (!$this->appointment) {
+        if (! $this->appointment) {
             return;
         }
 
         // Try to load existing session data
         $this->sessionData = TreatmentSessionData::where('appointment_id', $this->appointment->id)->first();
 
-        if (!$this->sessionData) {
+        if (! $this->sessionData) {
             // Create new session data
             $this->sessionData = TreatmentSessionData::create([
                 'tenant_id' => $this->appointment->tenant_id,
@@ -382,7 +422,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
 
     protected function loadConsumablesAndProducts(): void
     {
-        if (!$this->appointment) {
+        if (! $this->appointment) {
             return;
         }
 
@@ -439,7 +479,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
     protected function autoPopulateConsumablesFromService(): void
     {
         $service = $this->appointment->service;
-        if (!$service) {
+        if (! $service) {
             return;
         }
 
@@ -450,7 +490,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
             $product = $consumableData['product'];
             $quantity = $consumableData['quantity'] ?? 1;
 
-            if (!$product) {
+            if (! $product) {
                 continue;
             }
 
@@ -490,8 +530,9 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
     public function getHeading(): string
     {
         if ($this->patient) {
-            return $this->patient->full_name . ' - ' . $this->appointment?->service?->translated_name;
+            return $this->patient->full_name.' - '.$this->appointment?->service?->translated_name;
         }
+
         return __('booking::session.heading');
     }
 
@@ -499,11 +540,13 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
     {
         if ($this->appointment?->treatmentPlanAppointment) {
             $planAppt = $this->appointment->treatmentPlanAppointment;
+
             return __('booking::session.session_of', [
                 'current' => $planAppt->session_number,
                 'total' => $planAppt->item->recommended_sessions,
             ]);
         }
+
         return null;
     }
 
@@ -608,17 +651,18 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                                 ->label(__('booking::session.plan_modal.assign_to_doctor'))
                                 ->options(function (Forms\Get $get) {
                                     $serviceId = $get('service_id');
-                                    if (!$serviceId) {
+                                    if (! $serviceId) {
                                         return [];
                                     }
                                     $service = Service::find($serviceId);
-                                    if (!$service) {
+                                    if (! $service) {
                                         return [];
                                     }
                                     $qualified = $service->qualifiedStaff()->with('user')->get();
                                     if ($qualified->isEmpty()) {
                                         return [];
                                     }
+
                                     return $qualified
                                         ->filter(fn ($staff) => $staff->user)
                                         ->mapWithKeys(fn ($staff) => [$staff->user->id => $staff->user->full_name])
@@ -631,7 +675,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                             Forms\Components\Placeholder::make('original_price_display')
                                 ->label(__('booking::session.plan_modal.original_price'))
                                 ->content(fn (Forms\Get $get) => $get('unit_price')
-                                    ? current_currency() . ' ' . number_format((float) $get('unit_price'), 2)
+                                    ? current_currency().' '.number_format((float) $get('unit_price'), 2)
                                     : '-'),
                             Forms\Components\Select::make('discount_type')
                                 ->label(__('booking::session.plan_modal.discount_type'))
@@ -668,7 +712,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                                     }
 
                                     return new \Illuminate\Support\HtmlString(
-                                        '<span class="font-semibold text-success-600">' . current_currency() . ' ' . number_format($finalPrice, 2) . '</span>'
+                                        '<span class="font-semibold text-success-600">'.current_currency().' '.number_format($finalPrice, 2).'</span>'
                                     );
                                 })
                                 ->visible(fn (Forms\Get $get) => $get('unit_price') > 0),
@@ -747,6 +791,22 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                 ->modalDescription(__('booking::session.modals.complete_session_desc'))
                 ->action(fn () => $this->completeSession()),
 
+            Action::make('close')
+                ->label(__('booking::session.actions.close_session'))
+                ->icon('heroicon-o-x-circle')
+                ->color('warning')
+                ->size('lg')
+                ->requiresConfirmation()
+                ->modalHeading(__('booking::session.modals.close_session'))
+                ->modalDescription(__('booking::session.modals.close_session_desc'))
+                ->form([
+                    Forms\Components\Textarea::make('reason')
+                        ->label(__('booking::session.fields.close_reason'))
+                        ->placeholder(__('booking::session.placeholders.close_reason'))
+                        ->rows(3),
+                ])
+                ->action(fn (array $data) => $this->closeSession($data['reason'] ?? null)),
+
             Action::make('startAnotherSession')
                 ->label(__('booking::session.actions.start_another_session'))
                 ->icon('heroicon-o-play')
@@ -780,7 +840,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                         Forms\Components\Select::make('practitioner_id')
                             ->label(__('booking::session.start_another.select_doctor'))
                             ->options($qualifiedPractitioners)
-                            ->visible(fn (Forms\Get $get) => $get('action') === 'assign_doctor' && !empty($qualifiedPractitioners))
+                            ->visible(fn (Forms\Get $get) => $get('action') === 'assign_doctor' && ! empty($qualifiedPractitioners))
                             ->required(fn (Forms\Get $get) => $get('action') === 'assign_doctor')
                             ->searchable(),
 
@@ -804,7 +864,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
 
     public function completeSession(): void
     {
-        if (!$this->appointment) {
+        if (! $this->appointment) {
             return;
         }
 
@@ -842,7 +902,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
             $branchId = $this->appointment->branch_id;
             $sourceLocation = StockLocation::getTreatmentDefaultLocation($branchId);
 
-            if (!$sourceLocation) {
+            if (! $sourceLocation) {
                 // Fallback to default stock location
                 $sourceLocation = StockLocation::getDefaultLocation($branchId);
             }
@@ -872,7 +932,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                         $consumable->uom_id, // Use consumable's UOM
                         SessionConsumable::class,
                         (string) $consumable->id,
-                        'Consumed during appointment #' . $this->appointment->id
+                        'Consumed during appointment #'.$this->appointment->id
                     );
 
                     // Get the stock_movement_id from the transfer's first line
@@ -899,9 +959,58 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
         $this->redirect(DoctorDashboard::getUrl());
     }
 
+    /**
+     * Close the session without completing it.
+     * Patient will need to schedule a new appointment to continue.
+     */
+    public function closeSession(?string $reason = null): void
+    {
+        if (! $this->appointment) {
+            return;
+        }
+
+        DB::transaction(function () use ($reason) {
+            // Save session data but mark as incomplete
+            if ($this->sessionData) {
+                $this->sessionData->update([
+                    'session_ended_at' => now(),
+                    'actual_duration_minutes' => $this->sessionData->session_started_at
+                        ? (int) $this->sessionData->session_started_at->diffInMinutes(now())
+                        : null,
+                    'is_complete' => false,
+                    'parameter_values' => $this->parameterValues,
+                    'equipment_metrics' => $this->equipmentMetrics,
+                    'session_equipment' => $this->sessionEquipment,
+                    'equipment_parameter_values' => $this->equipmentParameterValues,
+                    'treatment_areas' => $this->treatmentAreas,
+                    'pre_treatment_checklist' => $this->preTreatmentChecklist,
+                    'clinical_notes' => $this->clinicalNotes,
+                    'skin_reaction' => $this->skinReaction,
+                    'pain_level' => $this->painLevel,
+                    'close_reason' => $reason,
+                ]);
+            }
+
+            // Close the appointment (does NOT trigger AppointmentCompleted event)
+            // Treatment plan session count is NOT incremented
+            $this->appointment->close($reason);
+
+            // NOTE: Consumables are NOT deducted for closed sessions
+            // They remain pending and can be used in the rescheduled session
+        });
+
+        Notification::make()
+            ->title(__('booking::session.messages.session_closed'))
+            ->body(__('booking::session.messages.session_closed_body'))
+            ->warning()
+            ->send();
+
+        $this->redirect(DoctorDashboard::getUrl());
+    }
+
     public function applyDiscount(array $data): void
     {
-        if (!$this->appointment) {
+        if (! $this->appointment) {
             return;
         }
 
@@ -959,12 +1068,12 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
     {
         $practitionerId = $this->appointment?->practitioner_id ?? auth()->id();
 
-        if (!$practitionerId) {
+        if (! $practitionerId) {
             return false;
         }
 
         $service = Service::find($serviceId);
-        if (!$service) {
+        if (! $service) {
             return false;
         }
 
@@ -993,12 +1102,13 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
         $item = TreatmentPlanItem::withoutGlobalScope('tenant')->find($itemId);
 
         // Allow starting session if item exists, is a service, not completed, and not cancelled
-        if (!$item || !$item->isService() || $item->isCompleted() || $item->isCancelled()) {
+        if (! $item || ! $item->isService() || $item->isCompleted() || $item->isCancelled()) {
             Notification::make()
                 ->title(__('booking::session.messages.error'))
                 ->body(__('booking::session.messages.cannot_start_session'))
                 ->danger()
                 ->send();
+
             return;
         }
 
@@ -1012,7 +1122,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
     public function getQualifiedPractitionersForService(int $serviceId): array
     {
         $service = Service::find($serviceId);
-        if (!$service) {
+        if (! $service) {
             return [];
         }
 
@@ -1040,12 +1150,13 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
         $item = TreatmentPlanItem::withoutGlobalScope('tenant')->find($this->pendingSessionItemId);
 
         // Allow starting if item exists, is a service, not completed, and not cancelled
-        if (!$item || !$item->isService() || $item->isCompleted() || $item->isCancelled()) {
+        if (! $item || ! $item->isService() || $item->isCompleted() || $item->isCancelled()) {
             Notification::make()
                 ->title(__('booking::session.messages.error'))
                 ->body(__('booking::session.messages.cannot_start_session'))
                 ->danger()
                 ->send();
+
             return;
         }
 
@@ -1092,6 +1203,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
 
             $this->pendingSessionItemId = null;
             $this->redirect(static::getUrl(['appointment_id' => $existingAppointment->id]));
+
             return;
         }
 
@@ -1180,7 +1292,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
      */
     public function getDiscountInfo(): array
     {
-        if (!$this->appointment || !$this->appointment->hasDiscount()) {
+        if (! $this->appointment || ! $this->appointment->hasDiscount()) {
             return [
                 'has_discount' => false,
             ];
@@ -1215,7 +1327,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                             ->copyable(),
                         Components\TextEntry::make('age')
                             ->label(__('booking::session.patient.age'))
-                            ->suffix(' ' . __('booking::session.patient.years')),
+                            ->suffix(' '.__('booking::session.patient.years')),
                     ]),
             ]);
     }
@@ -1281,13 +1393,13 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
      */
     public function hasMedicalAlerts(): bool
     {
-        if (!$this->medicalHistory) {
+        if (! $this->medicalHistory) {
             return false;
         }
 
-        return !empty($this->medicalHistory->allergies) ||
-               !empty($this->medicalHistory->contraindications) ||
-               !empty($this->medicalHistory->current_medications);
+        return ! empty($this->medicalHistory->allergies) ||
+               ! empty($this->medicalHistory->contraindications) ||
+               ! empty($this->medicalHistory->current_medications);
     }
 
     /**
@@ -1295,7 +1407,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
      */
     public function hasAmrAlerts(): bool
     {
-        if (!$this->amrSummary) {
+        if (! $this->amrSummary) {
             return false;
         }
 
@@ -1307,7 +1419,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
      */
     public function getAmrSummaryData(): array
     {
-        if (!$this->amrSummary) {
+        if (! $this->amrSummary) {
             return [];
         }
 
@@ -1329,7 +1441,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
      */
     public function getMdroFlags(): array
     {
-        if (!$this->amrSummary || empty($this->amrSummary->mdro_flags)) {
+        if (! $this->amrSummary || empty($this->amrSummary->mdro_flags)) {
             return [];
         }
 
@@ -1343,7 +1455,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
      */
     public function getKnownResistances(): array
     {
-        if (!$this->amrSummary || empty($this->amrSummary->known_resistances)) {
+        if (! $this->amrSummary || empty($this->amrSummary->known_resistances)) {
             return [];
         }
 
@@ -1352,7 +1464,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
 
     public function getPatientNotes(): Collection
     {
-        if (!$this->patient) {
+        if (! $this->patient) {
             return collect();
         }
 
@@ -1369,18 +1481,18 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
     public function processCameraPhoto(): void
     {
         try {
-            if (!$this->cameraPhoto) {
+            if (! $this->cameraPhoto) {
                 return;
             }
 
             $extension = $this->cameraPhoto->getClientOriginalExtension() ?: 'jpg';
-            $fileName = $this->getPhotoName() . '.' . $extension;
+            $fileName = $this->getPhotoName().'.'.$extension;
 
             // Store to tenant disk
             $storedPath = $this->cameraPhoto->storeAs('patient-photos', $fileName, 'tenant');
             $fullPath = \Storage::disk('tenant')->path($storedPath);
 
-            if (!file_exists($fullPath)) {
+            if (! file_exists($fullPath)) {
                 throw new \Exception('Failed to store photo');
             }
 
@@ -1410,7 +1522,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                 ->send();
 
         } catch (\Exception $e) {
-            \Log::error('Camera capture failed: ' . $e->getMessage());
+            \Log::error('Camera capture failed: '.$e->getMessage());
 
             Notification::make()
                 ->title(__('booking::session.messages.error'))
@@ -1451,7 +1563,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                     // Get full path from tenant disk
                     $fullPath = \Storage::disk('tenant')->path($photoPath);
 
-                    if (!file_exists($fullPath)) {
+                    if (! file_exists($fullPath)) {
                         throw new \Exception('Uploaded file not found');
                     }
 
@@ -1468,7 +1580,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
 
                     // Add to media collection from tenant storage
                     $photo->addMedia($fullPath)
-                        ->usingFileName($this->getPhotoName() . '.' . pathinfo($fullPath, PATHINFO_EXTENSION))
+                        ->usingFileName($this->getPhotoName().'.'.pathinfo($fullPath, PATHINFO_EXTENSION))
                         ->usingName($this->getPhotoName())
                         ->toMediaCollection('photos');
 
@@ -1477,7 +1589,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                         ->success()
                         ->send();
                 } catch (\Exception $e) {
-                    \Log::error('Photo upload failed: ' . $e->getMessage());
+                    \Log::error('Photo upload failed: '.$e->getMessage());
 
                     Notification::make()
                         ->title(__('booking::session.messages.error'))
@@ -1490,7 +1602,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
 
     public function getPatientPhotos(): Collection
     {
-        if (!$this->patient) {
+        if (! $this->patient) {
             return collect();
         }
 
@@ -1503,7 +1615,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
 
     public function getActiveTreatmentPlans(): Collection
     {
-        if (!$this->patient) {
+        if (! $this->patient) {
             return collect();
         }
 
@@ -1516,7 +1628,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
 
     public function getCurrentTreatmentPlan(): ?TreatmentPlan
     {
-        if (!$this->appointment?->treatmentPlanAppointment) {
+        if (! $this->appointment?->treatmentPlanAppointment) {
             return null;
         }
 
@@ -1530,9 +1642,9 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
     public function updatedPhotoUpload($value): void
     {
         \Log::info('=== updatedPhotoUpload HOOK TRIGGERED ===', [
-            'hasValue' => !empty($value),
+            'hasValue' => ! empty($value),
             'valueType' => $value ? get_class($value) : 'null',
-            'photoUploadProp' => !empty($this->photoUpload) ? get_class($this->photoUpload) : 'null',
+            'photoUploadProp' => ! empty($this->photoUpload) ? get_class($this->photoUpload) : 'null',
         ]);
 
         if ($this->photoUpload) {
@@ -1555,6 +1667,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                 ->title(__('booking::session.messages.note_required'))
                 ->warning()
                 ->send();
+
             return;
         }
 
@@ -1562,7 +1675,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
             'patient_id' => $this->patient->id,
             'appointment_id' => $this->appointment->id,
             'type' => $this->noteType,
-            'subject' => __('booking::session.notes.session_note') . ' - ' . $this->appointment->service?->translated_name,
+            'subject' => __('booking::session.notes.session_note').' - '.$this->appointment->service?->translated_name,
             'content' => $this->noteContent,
             'created_by' => auth()->id(),
         ]);
@@ -1578,28 +1691,29 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
     public function uploadPhoto(): void
     {
         \Log::info('uploadPhoto called', [
-            'hasFile' => !empty($this->photoUpload),
+            'hasFile' => ! empty($this->photoUpload),
             'fileType' => $this->photoUpload ? get_class($this->photoUpload) : null,
         ]);
 
-        if (!$this->photoUpload) {
+        if (! $this->photoUpload) {
             Notification::make()
                 ->title(__('booking::session.messages.photo_required'))
                 ->warning()
                 ->send();
+
             return;
         }
 
         try {
             // Get the original extension
             $extension = $this->photoUpload->getClientOriginalExtension() ?: 'jpg';
-            $fileName = $this->getPhotoName() . '.' . $extension;
+            $fileName = $this->getPhotoName().'.'.$extension;
 
             \Log::info('Storing temp file', ['fileName' => $fileName, 'extension' => $extension]);
 
             // Store the uploaded file temporarily
             $tempPath = $this->photoUpload->storeAs('temp-photos', $fileName, 'local');
-            $fullPath = storage_path('app/' . $tempPath);
+            $fullPath = storage_path('app/'.$tempPath);
 
             \Log::info('Temp file stored', ['tempPath' => $tempPath, 'fullPath' => $fullPath, 'exists' => file_exists($fullPath)]);
 
@@ -1634,7 +1748,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                 ->success()
                 ->send();
         } catch (\Exception $e) {
-            \Log::error('Photo upload failed: ' . $e->getMessage(), [
+            \Log::error('Photo upload failed: '.$e->getMessage(), [
                 'exception' => $e,
                 'trace' => $e->getTraceAsString(),
                 'patient_id' => $this->patient?->id,
@@ -1653,15 +1767,15 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
     {
         $sessionNum = '';
         if ($planAppointment = $this->appointment?->treatmentPlanAppointment) {
-            $sessionNum = ' - Session ' . $planAppointment->session_number;
+            $sessionNum = ' - Session '.$planAppointment->session_number;
         }
 
-        return $this->appointment?->service?->translated_name . $sessionNum . ' - ' . now()->format('M d, Y');
+        return $this->appointment?->service?->translated_name.$sessionNum.' - '.now()->format('M d, Y');
     }
 
     protected function getPhotoName(): string
     {
-        return 'patient_' . ($this->patient?->id ?? 'unknown') . '_' . now()->format('Y-m-d_His');
+        return 'patient_'.($this->patient?->id ?? 'unknown').'_'.now()->format('Y-m-d_His');
     }
 
     public function deletePhoto(string $photoId): void
@@ -1770,7 +1884,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
 
     public function getPreviousAppointments(): Collection
     {
-        if (!$this->patient) {
+        if (! $this->patient) {
             return collect();
         }
 
@@ -1789,7 +1903,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
 
     public function getServiceParameters(): array
     {
-        if (!$this->appointment?->service) {
+        if (! $this->appointment?->service) {
             return [];
         }
 
@@ -1808,7 +1922,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
     public function hasEquipmentSection(): bool
     {
         // Show if we have session equipment
-        if (!empty($this->sessionEquipment)) {
+        if (! empty($this->sessionEquipment)) {
             return true;
         }
 
@@ -1834,7 +1948,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
 
     public function saveParameterValues(): void
     {
-        if (!$this->sessionData) {
+        if (! $this->sessionData) {
             return;
         }
 
@@ -1849,7 +1963,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
 
     protected function loadSessionEquipment(): void
     {
-        if (!$this->appointment) {
+        if (! $this->appointment) {
             return;
         }
 
@@ -1857,10 +1971,11 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
         $savedEquipment = $this->sessionData->session_equipment ?? [];
         $savedParameterValues = $this->sessionData->equipment_parameter_values ?? [];
 
-        if (!empty($savedEquipment)) {
+        if (! empty($savedEquipment)) {
             // Refresh equipment data to get latest shot counts
             $this->sessionEquipment = $this->refreshEquipmentData($savedEquipment);
             $this->equipmentParameterValues = $savedParameterValues;
+
             return;
         }
 
@@ -1878,6 +1993,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                     if ($equipment->status !== Equipment::STATUS_ACTIVE) {
                         return false;
                     }
+
                     // Include if: no branch set, or matches appointment branch
                     return empty($equipment->branch_id) || $equipment->branch_id == $branchId;
                 });
@@ -1894,7 +2010,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
         }
 
         // Also add equipment from appointment if set
-        if ($this->appointment->equipment_id && !collect($serviceEquipment)->pluck('equipment_id')->contains($this->appointment->equipment_id)) {
+        if ($this->appointment->equipment_id && ! collect($serviceEquipment)->pluck('equipment_id')->contains($this->appointment->equipment_id)) {
             $equipment = Equipment::with('trackingParameters')->find($this->appointment->equipment_id);
             if ($equipment) {
                 $serviceEquipment[] = $this->buildEquipmentData($equipment, true);
@@ -1909,7 +2025,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
         $this->sessionEquipment = $serviceEquipment;
 
         // Save to session data
-        if ($this->sessionData && !empty($serviceEquipment)) {
+        if ($this->sessionData && ! empty($serviceEquipment)) {
             $this->sessionData->update([
                 'session_equipment' => $serviceEquipment,
                 'equipment_parameter_values' => $this->equipmentParameterValues,
@@ -1969,6 +2085,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                 // Refresh has_tracking in case parameters were added/removed
                 $item['has_tracking'] = $equipment->hasTracking();
             }
+
             return $item;
         })->toArray();
     }
@@ -1979,7 +2096,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
     public function getEquipmentInfo(string $equipmentId): ?array
     {
         $equipment = Equipment::find($equipmentId);
-        if (!$equipment) {
+        if (! $equipment) {
             return null;
         }
 
@@ -2004,7 +2121,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
 
     public function getAvailableEquipment(): Collection
     {
-        if (!$this->appointment) {
+        if (! $this->appointment) {
             return collect();
         }
 
@@ -2027,12 +2144,12 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
 
     public function addEquipment(): void
     {
-        if (!$this->newEquipmentId) {
+        if (! $this->newEquipmentId) {
             return;
         }
 
         $equipment = Equipment::with('trackingParameters')->find($this->newEquipmentId);
-        if (!$equipment) {
+        if (! $equipment) {
             return;
         }
 
@@ -2042,6 +2159,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                 ->title(__('booking::session.equipment.already_added'))
                 ->warning()
                 ->send();
+
             return;
         }
 
@@ -2114,7 +2232,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
     {
         $equipment = Equipment::with('trackingParameters')->find($equipmentId);
 
-        if (!$equipment || !$equipment->hasTracking()) {
+        if (! $equipment || ! $equipment->hasTracking()) {
             return [];
         }
 
@@ -2130,7 +2248,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
     {
         $equipment = Equipment::with('trackingParameters')->find($equipmentId);
 
-        if (!$equipment || !$equipment->hasTracking()) {
+        if (! $equipment || ! $equipment->hasTracking()) {
             return [];
         }
 
@@ -2145,7 +2263,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
         // Normalize key to int for consistency
         $normalizedId = (int) $equipmentId;
 
-        if (!isset($this->equipmentParameterValues[$normalizedId])) {
+        if (! isset($this->equipmentParameterValues[$normalizedId])) {
             $this->equipmentParameterValues[$normalizedId] = [];
         }
 
@@ -2176,10 +2294,11 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
     public function hasEquipmentWithTracking(): bool
     {
         foreach ($this->sessionEquipment as $equipment) {
-            if (!empty($equipment['has_tracking'])) {
+            if (! empty($equipment['has_tracking'])) {
                 return true;
             }
         }
+
         return false;
     }
 
@@ -2193,7 +2312,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
             $equipmentId = $equipmentData['equipment_id'];
             $equipment = Equipment::with('trackingParameters')->find($equipmentId);
 
-            if (!$equipment) {
+            if (! $equipment) {
                 continue;
             }
 
@@ -2232,7 +2351,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
             }
 
             // Log cumulative data to equipment shot log for tracking
-            if (!empty($cumulativeData)) {
+            if (! empty($cumulativeData)) {
                 $equipment->shotLogs()->create([
                     'appointment_id' => $this->appointment->id,
                     'shots_count' => $cumulativeData['shots']['value'] ?? $cumulativeData['shots_used']['value'] ?? $cumulativeData['pulses']['value'] ?? 0,
@@ -2253,7 +2372,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
 
     public function getAvailablePresets(): Collection
     {
-        if (!$this->appointment?->service_id) {
+        if (! $this->appointment?->service_id) {
             return collect();
         }
 
@@ -2266,7 +2385,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
     public function applyPreset(string $presetId): void
     {
         $preset = ParameterPreset::find($presetId);
-        if (!$preset) {
+        if (! $preset) {
             return;
         }
 
@@ -2304,10 +2423,11 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
     public function isChecklistComplete(): bool
     {
         foreach ($this->preTreatmentChecklist as $value) {
-            if (!$value) {
+            if (! $value) {
                 return false;
             }
         }
+
         return true;
     }
 
@@ -2329,7 +2449,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
 
     public function saveClinicalNotes(): void
     {
-        if (!$this->sessionData) {
+        if (! $this->sessionData) {
             return;
         }
 
@@ -2424,6 +2544,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
             if ($product->stock_qty > 0) {
                 return true;
             }
+
             // If out of stock, only show if category allows negative stock
             return $product->category?->allow_negative_stock ?? false;
         })->values();
@@ -2431,12 +2552,12 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
 
     public function addConsumable(): void
     {
-        if (!$this->newConsumableId || !$this->appointment) {
+        if (! $this->newConsumableId || ! $this->appointment) {
             return;
         }
 
         $product = Product::find($this->newConsumableId);
-        if (!$product) {
+        if (! $product) {
             return;
         }
 
@@ -2538,6 +2659,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
             if ($product->stock_qty > 0) {
                 return true;
             }
+
             // If out of stock, only show if category allows negative stock
             return $product->category?->allow_negative_stock ?? false;
         })->values();
@@ -2545,12 +2667,12 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
 
     public function addProduct(): void
     {
-        if (!$this->newProductId || !$this->appointment) {
+        if (! $this->newProductId || ! $this->appointment) {
             return;
         }
 
         $product = Product::find($this->newProductId);
-        if (!$product) {
+        if (! $product) {
             return;
         }
 
@@ -2625,7 +2747,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
      */
     public function getAppointmentPrescriptions(): \Illuminate\Support\Collection
     {
-        if (!$this->appointment) {
+        if (! $this->appointment) {
             return collect();
         }
 
@@ -2678,6 +2800,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                 ->title(__('prescriptions::prescription.messages.no_medications'))
                 ->warning()
                 ->send();
+
             return;
         }
 
@@ -2694,6 +2817,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                 ->title(__('prescriptions::prescription.messages.no_medications'))
                 ->warning()
                 ->send();
+
             return;
         }
 
@@ -2712,7 +2836,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
      */
     protected function createPrescription(bool $finalize): ?\Modules\Prescriptions\Models\Prescription
     {
-        if (!$this->appointment || empty($this->prescriptionMedications)) {
+        if (! $this->appointment || empty($this->prescriptionMedications)) {
             return null;
         }
 
@@ -2746,14 +2870,14 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                         'dosage_unit' => $med['dosage_unit'] ?: null,
                         'form' => $med['form'] ?: null,
                         'frequency' => $med['frequency'] ?: null,
-                        'duration' => !empty($med['duration']) ? (int) $med['duration'] : null,
+                        'duration' => ! empty($med['duration']) ? (int) $med['duration'] : null,
                         'duration_unit' => $med['duration_unit'] ?: null,
-                        'quantity' => !empty($med['quantity']) ? (int) $med['quantity'] : null,
+                        'quantity' => ! empty($med['quantity']) ? (int) $med['quantity'] : null,
                         'route' => $med['route'] ?: null,
                         'instructions' => $med['instructions'] ?: null,
                         'special_instructions' => $med['special_instructions'] ?: null,
                         'sort_order' => $index,
-                        'refills_allowed' => !empty($med['refills_allowed']) ? (int) $med['refills_allowed'] : 0,
+                        'refills_allowed' => ! empty($med['refills_allowed']) ? (int) $med['refills_allowed'] : 0,
                     ]);
                 }
 
@@ -2770,6 +2894,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                 ->body($e->getMessage())
                 ->danger()
                 ->send();
+
             return null;
         }
     }
@@ -2841,7 +2966,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
     {
         $medicine = \Modules\Prescriptions\Models\MedicineCatalog::find($medicineId);
 
-        if (!$medicine) {
+        if (! $medicine) {
             return;
         }
 
@@ -2882,7 +3007,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
      */
     public function getPatientActivePackages(): \Illuminate\Support\Collection
     {
-        if (!$this->patient) {
+        if (! $this->patient) {
             return collect();
         }
 
@@ -2915,7 +3040,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
      */
     public function setItemPrice(Forms\Set $set, $itemId, string $type): void
     {
-        if (!$itemId) {
+        if (! $itemId) {
             return;
         }
 
@@ -2944,11 +3069,12 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
      */
     public function addItemsToTreatmentPlan(array $data): void
     {
-        if (!$this->patient) {
+        if (! $this->patient) {
             Notification::make()
                 ->title(__('booking::session.messages.error'))
                 ->danger()
                 ->send();
+
             return;
         }
 
@@ -2970,7 +3096,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                 } else {
                     // Get existing plan
                     $plan = TreatmentPlan::find($data['treatment_plan_id']);
-                    if (!$plan) {
+                    if (! $plan) {
                         throw new \Exception('Treatment plan not found');
                     }
                 }
@@ -3115,7 +3241,9 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                 ->get();
 
             foreach ($activeAppointments as $activeAppt) {
-                if (!$activeAppt->service) continue;
+                if (! $activeAppt->service) {
+                    continue;
+                }
 
                 $planItem = $activeAppt->treatmentPlanAppointment?->item;
                 $unitPrice = $activeAppt->price_minor ?? $planItem?->unit_price_minor ?? $activeAppt->service->base_price_minor ?? 0;
@@ -3194,7 +3322,9 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
 
             foreach ($planProducts as $planItem) {
                 $product = $planItem->itemable;
-                if (!$product) continue;
+                if (! $product) {
+                    continue;
+                }
 
                 $quantity = $planItem->quantity ?? 1;
                 $unitPriceMinor = $planItem->unit_price_minor ?? 0;
@@ -3232,7 +3362,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
      */
     public function getVisitSummary(): ?array
     {
-        if (!$this->visit) {
+        if (! $this->visit) {
             return null;
         }
 
@@ -3246,7 +3376,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                 'service' => $appt->service?->translated_name ?? '-',
                 'practitioner' => $appt->practitioner?->full_name ?? '-',
                 'status' => $appt->status,
-                'status_label' => __('booking::appointments.statuses.' . $appt->status),
+                'status_label' => __('booking::appointments.statuses.'.$appt->status),
                 'price' => $appt->net_price,
             ]);
 
@@ -3276,7 +3406,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
      */
     protected function calculateLineDiscountForDisplay(int $priceMinor, string $discountType, $discountValue): int
     {
-        if ($discountType === 'none' || !$discountValue || $discountValue <= 0) {
+        if ($discountType === 'none' || ! $discountValue || $discountValue <= 0) {
             return 0;
         }
 
@@ -3286,6 +3416,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
 
         // Fixed discount - value is in major units, convert to minor
         $discountMinor = (int) ($discountValue * 100);
+
         return min($discountMinor, $priceMinor);
     }
 
@@ -3524,6 +3655,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
     public function isEditingInvoiceItem(string $type, string $id): bool
     {
         $itemKey = $type === 'service' ? 'service' : "product-{$id}";
+
         return $this->editingInvoiceItem === $itemKey;
     }
 
@@ -3532,7 +3664,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
      */
     protected function saveServiceDiscountToAppointment(): void
     {
-        if (!$this->appointment) {
+        if (! $this->appointment) {
             return;
         }
 
@@ -3586,6 +3718,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
     public function getInvoiceSubtotal(): float
     {
         $items = $this->getInvoiceItems();
+
         return collect($items)->sum('total');
     }
 
@@ -3595,6 +3728,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
     public function getInvoiceSubtotalMinor(): int
     {
         $items = $this->getInvoiceItems();
+
         return (int) collect($items)->sum('total_minor');
     }
 
@@ -3611,7 +3745,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
      */
     public function getOverallDiscountAmountMinor(): int
     {
-        if (!$this->overallDiscountType || $this->overallDiscountType === 'none' || !$this->overallDiscountValue) {
+        if (! $this->overallDiscountType || $this->overallDiscountType === 'none' || ! $this->overallDiscountValue) {
             return 0;
         }
 
@@ -3744,7 +3878,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
      */
     public function hasBillableItems(): bool
     {
-        return !empty($this->getInvoiceItems());
+        return ! empty($this->getInvoiceItems());
     }
 
     /**
@@ -3752,7 +3886,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
      */
     public function getPendingPackages(): \Illuminate\Support\Collection
     {
-        if (!$this->visit) {
+        if (! $this->visit) {
             return collect();
         }
 
@@ -3764,16 +3898,17 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
      */
     public function addPackageToPurchase(int $packageId): void
     {
-        if (!$this->visit) {
+        if (! $this->visit) {
             Notification::make()
                 ->title(__('booking::session.messages.no_visit'))
                 ->danger()
                 ->send();
+
             return;
         }
 
         $package = \Modules\Packages\Models\Package::find($packageId);
-        if (!$package) {
+        if (! $package) {
             return;
         }
 
@@ -3783,6 +3918,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
                 ->title(__('booking::session.messages.package_already_pending'))
                 ->warning()
                 ->send();
+
             return;
         }
 
@@ -3793,7 +3929,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
         Notification::make()
             ->title(__('booking::session.messages.package_added'))
             ->body(__('booking::session.messages.package_added_body', [
-                'package' => $package->translated_name
+                'package' => $package->translated_name,
             ]))
             ->success()
             ->send();
@@ -3804,7 +3940,7 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
      */
     public function removePendingPackage(int $packageId): void
     {
-        if (!$this->visit) {
+        if (! $this->visit) {
             return;
         }
 
@@ -3839,8 +3975,8 @@ class TreatmentSession extends Page implements HasForms, HasInfolists, HasAction
 
         // Filter out already owned or pending packages
         return $packages->filter(function ($package) use ($activeSubscriptionPackageIds, $pendingPackageIds) {
-            return !in_array($package->id, $activeSubscriptionPackageIds)
-                && !in_array($package->id, $pendingPackageIds);
+            return ! in_array($package->id, $activeSubscriptionPackageIds)
+                && ! in_array($package->id, $pendingPackageIds);
         });
     }
 }
