@@ -34,7 +34,7 @@ class LinesRelationManager extends RelationManager
                             ->limit(100)
                             ->get()
                             ->mapWithKeys(fn ($product) => [
-                                $product->id => "[{$product->sku}] " . $product->getTranslation('name', app()->getLocale())
+                                $product->id => "[{$product->sku}] ".$product->getTranslation('name', app()->getLocale()),
                             ]);
                     })
                     ->searchable()
@@ -49,13 +49,15 @@ class LinesRelationManager extends RelationManager
                             ->limit(50)
                             ->get()
                             ->mapWithKeys(fn ($product) => [
-                                $product->id => "[{$product->sku}] " . $product->getTranslation('name', app()->getLocale())
+                                $product->id => "[{$product->sku}] ".$product->getTranslation('name', app()->getLocale()),
                             ]);
                     })
                     ->required()
                     ->live()
                     ->afterStateUpdated(function ($state, Forms\Set $set) {
-                        if (!$state) return;
+                        if (! $state) {
+                            return;
+                        }
 
                         $product = Product::find($state);
                         if ($product) {
@@ -83,21 +85,28 @@ class LinesRelationManager extends RelationManager
                     ->label(__('inventory::inventory.fields.uom'))
                     ->options(function (Forms\Get $get) {
                         $productId = $get('product_id');
-                        if (!$productId) return [];
+                        if (! $productId) {
+                            return [];
+                        }
 
                         $product = Product::find($productId);
-                        if (!$product || !$product->salesUom) return [];
+                        if (! $product || ! $product->salesUom) {
+                            return [];
+                        }
 
                         $categoryId = $product->salesUom->category_id;
+
                         return Uom::where('category_id', $categoryId)
                             ->active()
                             ->get()
                             ->mapWithKeys(fn ($uom) => [
-                                $uom->id => $uom->getTranslation('name', app()->getLocale()) . ' (' . $uom->abbreviation . ')'
+                                $uom->id => $uom->getTranslation('name', app()->getLocale()).' ('.$uom->abbreviation.')',
                             ]);
                     })
                     ->searchable()
                     ->preload()
+                    ->required()
+                    ->dehydrated(true)
                     ->columnSpan(1),
 
                 Forms\Components\TextInput::make('theoretical_qty')
@@ -139,7 +148,7 @@ class LinesRelationManager extends RelationManager
                     ->searchable(query: function ($query, $search) {
                         $query->whereHas('product', function ($q) use ($search) {
                             $q->whereRaw("name->>'en' ILIKE ?", ["%{$search}%"])
-                              ->orWhereRaw("name->>'ar' ILIKE ?", ["%{$search}%"]);
+                                ->orWhereRaw("name->>'ar' ILIKE ?", ["%{$search}%"]);
                         });
                     })
                     ->wrap()
@@ -148,16 +157,17 @@ class LinesRelationManager extends RelationManager
                 Tables\Columns\SelectColumn::make('uom_id')
                     ->label(__('inventory::inventory.fields.uom'))
                     ->options(function ($record) {
-                        if (!$record->product || !$record->product->salesUom) {
+                        if (! $record->product || ! $record->product->salesUom) {
                             return Uom::active()->pluck('abbreviation', 'id')->toArray();
                         }
                         $categoryId = $record->product->salesUom->category_id;
+
                         return Uom::where('category_id', $categoryId)
                             ->active()
                             ->pluck('abbreviation', 'id')
                             ->toArray();
                     })
-                    ->disabled(!$isEditable),
+                    ->disabled(! $isEditable),
 
                 Tables\Columns\TextColumn::make('theoretical_qty')
                     ->label(__('inventory::inventory.fields.theoretical_qty'))
@@ -167,14 +177,14 @@ class LinesRelationManager extends RelationManager
                     ->label(__('inventory::inventory.fields.counted_qty'))
                     ->type('number')
                     ->rules(['required', 'numeric', 'min:0'])
-                    ->disabled(!$isEditable)
+                    ->disabled(! $isEditable)
                     ->alignCenter()
                     ->afterStateUpdated(fn ($record) => $this->recalculate($record)),
 
                 Tables\Columns\TextColumn::make('difference_qty')
                     ->label(__('inventory::inventory.fields.difference'))
                     ->alignCenter()
-                    ->color(fn ($state) => match(true) {
+                    ->color(fn ($state) => match (true) {
                         $state > 0 => 'success',
                         $state < 0 => 'danger',
                         default => 'gray',
@@ -184,7 +194,7 @@ class LinesRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('value_adjustment')
                     ->label(__('inventory::inventory.fields.value_adjustment'))
                     ->money(current_currency())
-                    ->color(fn ($record) => match(true) {
+                    ->color(fn ($record) => match (true) {
                         $record->value_adjustment_minor > 0 => 'success',
                         $record->value_adjustment_minor < 0 => 'danger',
                         default => 'gray',
@@ -199,8 +209,15 @@ class LinesRelationManager extends RelationManager
                 Tables\Actions\CreateAction::make()
                     ->visible($isEditable)
                     ->mutateFormDataUsing(function (array $data): array {
+                        // Ensure UOM is set from product's sales UOM if not provided
+                        if (empty($data['uom_id']) && ! empty($data['product_id'])) {
+                            $product = Product::find($data['product_id']);
+                            $data['uom_id'] = $product?->sales_uom_id;
+                        }
+
                         $data['difference_qty'] = ($data['counted_qty'] ?? 0) - ($data['theoretical_qty'] ?? 0);
                         $data['value_adjustment_minor'] = $data['difference_qty'] * ($data['unit_cost_minor'] ?? 0);
+
                         return $data;
                     })
                     ->after(fn () => $this->ownerRecord->recalculateTotals()),
