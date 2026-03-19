@@ -243,6 +243,19 @@
                 {{ __('billing::billing.sections.summary') }}
             </x-slot>
 
+            @php
+                // Calculate total line discounts
+                $totalLineDiscounts = $record->lines->sum(function ($line) {
+                    if ($line->discount_minor <= 0) return 0;
+                    if ($line->discount_type === 'percent') {
+                        return (int) round(($line->unit_price_minor * $line->quantity) * $line->discount_minor / 100);
+                    }
+                    return $line->discount_minor;
+                });
+                // Total discounts = line discounts + invoice-level discount
+                $totalDiscounts = $totalLineDiscounts + ($record->discount_minor ?? 0);
+            @endphp
+
             <div class="grid grid-cols-2 md:grid-cols-6 gap-4">
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">{{ __('billing::billing.fields.subtotal') }}</p>
@@ -250,7 +263,7 @@
                 </div>
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">{{ __('billing::billing.fields.discount') }}</p>
-                    <p class="text-sm text-danger-600 dark:text-danger-400">{{ $record->discount_minor > 0 ? '-' . format_money($record->discount_minor) : '-' }}</p>
+                    <p class="text-sm text-danger-600 dark:text-danger-400">{{ $totalDiscounts > 0 ? '-' . format_money($totalDiscounts) : '-' }}</p>
                 </div>
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">{{ __('billing::billing.fields.tax') }}</p>
