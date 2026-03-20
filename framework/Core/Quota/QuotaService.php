@@ -74,6 +74,12 @@ class QuotaService
     public function allows(string $quotaType, int $amount = 1, ?int $tenantId = null): bool
     {
         $tenantId = $tenantId ?: $this->getCurrentTenantId();
+
+        // No tenant context - allow operation (e.g., public endpoints)
+        if ($tenantId === null) {
+            return true;
+        }
+
         $quota = $this->getQuota($quotaType, $tenantId);
 
         if (!$quota) {
