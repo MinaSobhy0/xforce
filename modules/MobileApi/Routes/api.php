@@ -112,14 +112,14 @@ Route::middleware([\Modules\MobileApi\Http\Middleware\ResolveTenantFromHeader::c
             Route::post('requests/{id}/cancel', [TimeOffController::class, 'cancel']);
         });
 
-        // Payroll
+        // Payroll / Payslips
         Route::prefix('payroll')->group(function () {
             Route::get('current', [PayrollController::class, 'current']);
             Route::get('history', [PayrollController::class, 'history']);
+            Route::get('summary', [PayrollController::class, 'summary']);
             Route::get('salary-structure', [PayrollController::class, 'salaryStructure']);
-            Route::get('deductions', [PayrollController::class, 'deductions']);
             Route::get('{id}', [PayrollController::class, 'show']);
-            Route::get('{id}/payslip', [PayrollController::class, 'payslip']);
+            Route::get('{id}/download', [PayrollController::class, 'download']);
         });
 
         // Schedule

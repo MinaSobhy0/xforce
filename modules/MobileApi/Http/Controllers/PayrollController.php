@@ -4,217 +4,274 @@ namespace Modules\MobileApi\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Modules\Payroll\Models\PayrollLine;
+use Modules\Payroll\Models\PayrollRun;
 
 class PayrollController extends BaseApiController
 {
     /**
-     * Get current payroll period.
+     * Get current month's payslip.
      * GET /api/v2/payroll/current
      */
     public function current(): JsonResponse
     {
+        $user = $this->user();
         $staffProfile = $this->staffProfile();
 
-        if (!class_exists(\Modules\Payroll\Models\PayrollRecord::class)) {
+        if (!$staffProfile) {
+            return $this->forbidden(__('mobile_api::mobile.auth.not_staff'));
+        }
+
+        if (!class_exists(PayrollLine::class)) {
             return $this->error('Payroll module not available', 503);
         }
 
-        $currentPeriod = \Modules\Payroll\Models\PayrollRecord::where('staff_profile_id', $staffProfile->id)
-            ->whereMonth('period_start', now()->month)
-            ->whereYear('period_start', now()->year)
+        // Get the current month's payslip
+        $payslip = PayrollLine::with('payrollRun')
+            ->where('staff_profile_id', $staffProfile->id)
+            ->whereHas('payrollRun', function ($q) {
+                $q->where('period_year', now()->year)
+                  ->where('period_month', now()->month);
+            })
             ->first();
 
-        if (!$currentPeriod) {
+        if (!$payslip) {
             return $this->success([
                 'status' => 'not_processed',
                 'message' => __('mobile_api::mobile.payroll.no_payslip'),
             ]);
         }
 
-        return $this->success($this->formatPayrollRecord($currentPeriod));
+        return $this->success($this->formatPayslip($payslip));
     }
 
     /**
-     * Get payroll history.
+     * Get payslip history.
      * GET /api/v2/payroll/history
      */
     public function history(Request $request): JsonResponse
     {
         $staffProfile = $this->staffProfile();
 
-        if (!class_exists(\Modules\Payroll\Models\PayrollRecord::class)) {
+        if (!$staffProfile) {
+            return $this->forbidden(__('mobile_api::mobile.auth.not_staff'));
+        }
+
+        if (!class_exists(PayrollLine::class)) {
             return $this->success([]);
         }
 
-        $records = \Modules\Payroll\Models\PayrollRecord::where('staff_profile_id', $staffProfile->id)
-            ->orderByDesc('period_start')
+        $query = PayrollLine::with('payrollRun')
+            ->where('staff_profile_id', $staffProfile->id)
+            ->whereHas('payrollRun', function ($q) {
+                $q->whereIn('status', [PayrollRun::STATUS_APPROVED, PayrollRun::STATUS_PAID]);
+            });
+
+        // Filter by year if provided
+        if ($request->filled('year')) {
+            $query->whereHas('payrollRun', function ($q) use ($request) {
+                $q->where('period_year', $request->year);
+            });
+        }
+
+        $payslips = $query->orderByDesc('created_at')
             ->paginate($this->getPerPage());
 
-        $formatted = collect($records->items())->map(fn($r) => [
-            'id' => $r->id,
-            'period' => $r->period_start->format('F Y'),
-            'net_salary' => $r->net_salary,
-            'status' => $r->status,
-            'paid_at' => $r->paid_at?->toDateString(),
+        $formatted = collect($payslips->items())->map(fn($p) => [
+            'id' => $p->id,
+            'period' => $p->payrollRun->period_label,
+            'period_year' => $p->payrollRun->period_year,
+            'period_month' => $p->payrollRun->period_month,
+            'net_salary' => $p->net_salary,
+            'status' => $p->payrollRun->status,
+            'status_label' => PayrollRun::STATUSES[$p->payrollRun->status] ?? $p->payrollRun->status,
         ]);
 
         return response()->json([
             'success' => true,
             'data' => $formatted,
             'meta' => [
-                'current_page' => $records->currentPage(),
-                'last_page' => $records->lastPage(),
-                'per_page' => $records->perPage(),
-                'total' => $records->total(),
+                'current_page' => $payslips->currentPage(),
+                'last_page' => $payslips->lastPage(),
+                'per_page' => $payslips->perPage(),
+                'total' => $payslips->total(),
             ],
         ]);
     }
 
     /**
-     * Get payroll record details.
+     * Get payslip details.
      * GET /api/v2/payroll/{id}
      */
     public function show(int $id): JsonResponse
     {
         $staffProfile = $this->staffProfile();
 
-        if (!class_exists(\Modules\Payroll\Models\PayrollRecord::class)) {
+        if (!$staffProfile) {
+            return $this->forbidden(__('mobile_api::mobile.auth.not_staff'));
+        }
+
+        if (!class_exists(PayrollLine::class)) {
             return $this->notFound();
         }
 
-        $record = \Modules\Payroll\Models\PayrollRecord::where('staff_profile_id', $staffProfile->id)
+        $payslip = PayrollLine::with('payrollRun')
+            ->where('staff_profile_id', $staffProfile->id)
             ->find($id);
 
-        if (!$record) {
+        if (!$payslip) {
             return $this->notFound();
         }
 
-        return $this->success($this->formatPayrollRecord($record));
+        return $this->success($this->formatPayslip($payslip, true));
     }
 
     /**
-     * Download payslip PDF.
-     * GET /api/v2/payroll/{id}/payslip
+     * Get payslip download URL.
+     * GET /api/v2/payroll/{id}/download
      */
-    public function payslip(int $id): JsonResponse
+    public function download(int $id): JsonResponse
     {
         $staffProfile = $this->staffProfile();
 
-        if (!class_exists(\Modules\Payroll\Models\PayrollRecord::class)) {
+        if (!$staffProfile) {
+            return $this->forbidden(__('mobile_api::mobile.auth.not_staff'));
+        }
+
+        if (!class_exists(PayrollLine::class)) {
             return $this->notFound();
         }
 
-        $record = \Modules\Payroll\Models\PayrollRecord::where('staff_profile_id', $staffProfile->id)
-            ->find($id);
+        $payslip = PayrollLine::where('staff_profile_id', $staffProfile->id)->find($id);
 
-        if (!$record) {
+        if (!$payslip) {
             return $this->notFound();
         }
 
-        // Generate PDF URL (this would typically be a signed URL)
-        $pdfUrl = route('api.v2.payroll.payslip.download', ['id' => $id]);
+        // Generate download URL
+        $downloadUrl = url("/payroll/payslip/{$id}/download");
 
         return $this->success([
-            'download_url' => $pdfUrl,
-            'expires_in' => 3600, // 1 hour
-        ], __('mobile_api::mobile.payroll.payslip_downloaded'));
+            'download_url' => $downloadUrl,
+            'filename' => "payslip_{$payslip->payrollRun->period_label}.pdf",
+        ]);
     }
 
     /**
-     * Get salary structure.
+     * Get salary structure for the staff member.
      * GET /api/v2/payroll/salary-structure
      */
     public function salaryStructure(): JsonResponse
     {
         $staffProfile = $this->staffProfile();
 
-        if (!class_exists(\Modules\Payroll\Models\SalaryStructure::class)) {
-            return $this->success([
-                'base_salary' => $staffProfile->base_salary ?? 0,
-            ]);
+        if (!$staffProfile) {
+            return $this->forbidden(__('mobile_api::mobile.auth.not_staff'));
         }
 
-        $structure = \Modules\Payroll\Models\SalaryStructure::where('staff_profile_id', $staffProfile->id)
-            ->where('is_active', true)
-            ->first();
+        // Get active salary structure
+        if (class_exists(\Modules\Payroll\Models\EmployeeSalaryStructure::class)) {
+            $structure = \Modules\Payroll\Models\EmployeeSalaryStructure::with('salaryStructure')
+                ->where('staff_profile_id', $staffProfile->id)
+                ->where('is_active', true)
+                ->first();
 
-        if (!$structure) {
-            return $this->success([
-                'base_salary' => $staffProfile->base_salary ?? 0,
-            ]);
+            if ($structure) {
+                return $this->success([
+                    'structure_name' => $structure->salaryStructure?->name,
+                    'base_salary' => $staffProfile->base_salary_minor / 100,
+                    'effective_from' => $structure->effective_from?->toDateString(),
+                ]);
+            }
         }
 
         return $this->success([
-            'base_salary' => $structure->base_salary,
-            'allowances' => $structure->allowances ?? [],
-            'deductions' => $structure->deductions ?? [],
-            'effective_from' => $structure->effective_from?->toDateString(),
+            'base_salary' => $staffProfile->base_salary_minor / 100,
         ]);
     }
 
     /**
-     * Get deductions breakdown.
-     * GET /api/v2/payroll/deductions
+     * Get yearly summary.
+     * GET /api/v2/payroll/summary
      */
-    public function deductions(Request $request): JsonResponse
+    public function summary(Request $request): JsonResponse
     {
         $staffProfile = $this->staffProfile();
 
-        if (!class_exists(\Modules\Payroll\Models\PayrollRecord::class)) {
+        if (!$staffProfile) {
+            return $this->forbidden(__('mobile_api::mobile.auth.not_staff'));
+        }
+
+        if (!class_exists(PayrollLine::class)) {
             return $this->success([]);
         }
 
-        $month = $request->month ?? now()->month;
-        $year = $request->year ?? now()->year;
+        $year = $request->integer('year', now()->year);
 
-        $record = \Modules\Payroll\Models\PayrollRecord::where('staff_profile_id', $staffProfile->id)
-            ->whereMonth('period_start', $month)
-            ->whereYear('period_start', $year)
-            ->first();
-
-        if (!$record) {
-            return $this->success([]);
-        }
+        $payslips = PayrollLine::with('payrollRun')
+            ->where('staff_profile_id', $staffProfile->id)
+            ->whereHas('payrollRun', function ($q) use ($year) {
+                $q->where('period_year', $year)
+                  ->whereIn('status', [PayrollRun::STATUS_APPROVED, PayrollRun::STATUS_PAID]);
+            })
+            ->get();
 
         return $this->success([
-            'period' => \Carbon\Carbon::create($year, $month)->format('F Y'),
-            'items' => $record->deductions ?? [],
-            'total' => $record->total_deductions ?? 0,
+            'year' => $year,
+            'total_gross' => $payslips->sum('gross_salary_minor') / 100,
+            'total_net' => $payslips->sum('net_salary_minor') / 100,
+            'total_tax' => $payslips->sum('tax_minor') / 100,
+            'total_deductions' => $payslips->sum('total_deductions_minor') / 100,
+            'total_commissions' => $payslips->sum('commissions_minor') / 100,
+            'total_bonuses' => $payslips->sum('bonuses_minor') / 100,
+            'payslips_count' => $payslips->count(),
         ]);
     }
 
     /**
-     * Format payroll record for response.
+     * Format payslip for response.
      */
-    protected function formatPayrollRecord($record): array
+    protected function formatPayslip(PayrollLine $payslip, bool $detailed = false): array
     {
-        return [
-            'id' => $record->id,
-            'period' => $record->period_start->format('F Y'),
-            'period_start' => $record->period_start->toDateString(),
-            'period_end' => $record->period_end->toDateString(),
-            'status' => $record->status,
+        $run = $payslip->payrollRun;
 
-            // Earnings
-            'base_salary' => $record->base_salary,
-            'allowances' => $record->allowances ?? [],
-            'total_allowances' => $record->total_allowances ?? 0,
-            'commissions' => $record->commissions ?? 0,
-            'bonuses' => $record->bonuses ?? 0,
-            'gross_salary' => $record->gross_salary,
+        $data = [
+            'id' => $payslip->id,
+            'period' => $run->period_label,
+            'period_year' => $run->period_year,
+            'period_month' => $run->period_month,
+            'status' => $run->status,
+            'status_label' => PayrollRun::STATUSES[$run->status] ?? $run->status,
 
-            // Deductions
-            'deductions' => $record->deductions ?? [],
-            'total_deductions' => $record->total_deductions ?? 0,
-            'tax' => $record->tax ?? 0,
-            'social_insurance' => $record->social_insurance ?? 0,
-
-            // Net
-            'net_salary' => $record->net_salary,
-
-            // Payment info
-            'paid_at' => $record->paid_at?->toDateString(),
-            'payment_method' => $record->payment_method,
+            // Summary
+            'gross_salary' => $payslip->gross_salary_minor / 100,
+            'total_deductions' => $payslip->total_deductions_minor / 100,
+            'net_salary' => $payslip->net_salary,
         ];
+
+        if ($detailed) {
+            $data['earnings'] = [
+                'base_salary' => $payslip->base_salary,
+                'allowances' => $payslip->allowances,
+                'commissions' => $payslip->commissions,
+                'bonuses' => $payslip->bonuses,
+            ];
+
+            $data['deductions'] = [
+                'tax' => $payslip->tax,
+                'social_insurance' => $payslip->social_insurance,
+                'other' => $payslip->deductions,
+            ];
+
+            // Include rule breakdown if available
+            if (!empty($payslip->rule_amounts_json)) {
+                $data['rule_breakdown'] = $payslip->rule_amounts_json;
+            }
+
+            $data['notes'] = $payslip->notes;
+            $data['created_at'] = $payslip->created_at->toDateTimeString();
+        }
+
+        return $data;
     }
 }
