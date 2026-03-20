@@ -4,6 +4,7 @@ namespace Modules\MobileApi\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Modules\Staff\Models\StaffCommissionRecord;
 
 class StaffProfileController extends BaseApiController
 {
@@ -137,15 +138,56 @@ class StaffProfileController extends BaseApiController
             return $this->forbidden();
         }
 
-        if (!class_exists(\Modules\Staff\Models\CommissionRecord::class)) {
+        if (!class_exists(StaffCommissionRecord::class)) {
             return $this->success([]);
         }
 
-        $records = \Modules\Staff\Models\CommissionRecord::where('staff_profile_id', $staffProfile->id)
-            ->orderByDesc('created_at')
-            ->paginate($this->getPerPage());
+        $query = StaffCommissionRecord::with(['appointment.service'])
+            ->where('staff_profile_id', $staffProfile->id)
+            ->orderByDesc('created_at');
 
-        return $this->paginated($records);
+        // Filter by status if provided
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        // Filter by date range
+        if ($request->filled('from_date')) {
+            $query->whereDate('created_at', '>=', $request->from_date);
+        }
+        if ($request->filled('to_date')) {
+            $query->whereDate('created_at', '<=', $request->to_date);
+        }
+
+        $records = $query->paginate($this->getPerPage());
+
+        $formatted = collect($records->items())->map(fn($r) => [
+            'id' => $r->id,
+            'amount' => $r->amount, // Uses accessor (amount_minor / 100)
+            'revenue' => $r->revenue, // Uses accessor (revenue_minor / 100)
+            'commission_type' => $r->commission_type,
+            'commission_rate' => $r->commission_rate,
+            'status' => $r->status,
+            'status_label' => StaffCommissionRecord::STATUSES[$r->status] ?? $r->status,
+            'service_name' => $r->appointment?->service?->name,
+            'appointment_id' => $r->appointment_id,
+            'appointment_date' => $r->appointment?->date?->toDateString(),
+            'notes' => $r->notes,
+            'approved_at' => $r->approved_at?->toDateTimeString(),
+            'paid_at' => $r->paid_at?->toDateTimeString(),
+            'created_at' => $r->created_at->toDateTimeString(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => $formatted,
+            'meta' => [
+                'current_page' => $records->currentPage(),
+                'last_page' => $records->lastPage(),
+                'per_page' => $records->perPage(),
+                'total' => $records->total(),
+            ],
+        ]);
     }
 
     /**
@@ -164,25 +206,29 @@ class StaffProfileController extends BaseApiController
             return $this->forbidden();
         }
 
-        if (!class_exists(\Modules\Staff\Models\CommissionRecord::class)) {
+        if (!class_exists(StaffCommissionRecord::class)) {
             return $this->success([
                 'total' => 0,
                 'records' => [],
             ]);
         }
 
-        $records = \Modules\Staff\Models\CommissionRecord::where('staff_profile_id', $staffProfile->id)
-            ->where('status', 'pending')
+        $records = StaffCommissionRecord::with(['appointment.service'])
+            ->where('staff_profile_id', $staffProfile->id)
+            ->pending()
             ->orderByDesc('created_at')
             ->get();
 
         return $this->success([
-            'total' => $records->sum('amount'),
+            'total' => $records->sum('amount'), // Uses accessor
             'count' => $records->count(),
             'records' => $records->map(fn($r) => [
                 'id' => $r->id,
                 'amount' => $r->amount,
-                'service_name' => $r->service_name ?? $r->service?->name,
+                'revenue' => $r->revenue,
+                'commission_type' => $r->commission_type,
+                'commission_rate' => $r->commission_rate,
+                'service_name' => $r->appointment?->service?->name,
                 'appointment_date' => $r->appointment?->date?->toDateString(),
                 'created_at' => $r->created_at->toDateString(),
             ])->all(),
@@ -194,31 +240,42 @@ class StaffProfileController extends BaseApiController
      */
     protected function getCommissionSummary($staffProfile): array
     {
-        if (!class_exists(\Modules\Staff\Models\CommissionRecord::class)) {
+        if (!class_exists(StaffCommissionRecord::class)) {
             return [
                 'this_month' => 0,
                 'pending' => 0,
+                'approved' => 0,
                 'paid' => 0,
             ];
         }
 
-        $thisMonth = \Modules\Staff\Models\CommissionRecord::where('staff_profile_id', $staffProfile->id)
+        // This month total (all statuses except cancelled)
+        $thisMonth = StaffCommissionRecord::where('staff_profile_id', $staffProfile->id)
             ->whereMonth('created_at', now()->month)
             ->whereYear('created_at', now()->year)
-            ->sum('amount');
+            ->where('status', '!=', StaffCommissionRecord::STATUS_CANCELLED)
+            ->sum('amount_minor') / 100;
 
-        $pending = \Modules\Staff\Models\CommissionRecord::where('staff_profile_id', $staffProfile->id)
-            ->where('status', 'pending')
-            ->sum('amount');
+        // Pending total
+        $pending = StaffCommissionRecord::where('staff_profile_id', $staffProfile->id)
+            ->pending()
+            ->sum('amount_minor') / 100;
 
-        $paid = \Modules\Staff\Models\CommissionRecord::where('staff_profile_id', $staffProfile->id)
-            ->where('status', 'paid')
-            ->sum('amount');
+        // Approved (waiting to be paid)
+        $approved = StaffCommissionRecord::where('staff_profile_id', $staffProfile->id)
+            ->approved()
+            ->sum('amount_minor') / 100;
+
+        // Paid total
+        $paid = StaffCommissionRecord::where('staff_profile_id', $staffProfile->id)
+            ->where('status', StaffCommissionRecord::STATUS_PAID)
+            ->sum('amount_minor') / 100;
 
         return [
-            'this_month' => $thisMonth,
-            'pending' => $pending,
-            'paid' => $paid,
+            'this_month' => round($thisMonth, 2),
+            'pending' => round($pending, 2),
+            'approved' => round($approved, 2),
+            'paid' => round($paid, 2),
         ];
     }
 }

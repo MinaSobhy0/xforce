@@ -73,6 +73,17 @@ return [
     'schedule' => [
         'no_schedule' => 'No schedule assigned',
         'no_shift' => 'No shift for this date',
+        'flexible' => 'Flexible schedule',
+        'fixed' => 'Fixed schedule',
+    ],
+
+    'commission' => [
+        'no_plan' => 'No commission plan assigned',
+        'no_records' => 'No commission records found',
+        'status_pending' => 'Pending',
+        'status_approved' => 'Approved',
+        'status_paid' => 'Paid',
+        'status_cancelled' => 'Cancelled',
     ],
 
     'appointments' => [

@@ -73,6 +73,17 @@ return [
     'schedule' => [
         'no_schedule' => 'لا يوجد جدول مخصص',
         'no_shift' => 'لا يوجد دوام لهذا التاريخ',
+        'flexible' => 'جدول مرن',
+        'fixed' => 'جدول ثابت',
+    ],
+
+    'commission' => [
+        'no_plan' => 'لا توجد خطة عمولة مخصصة',
+        'no_records' => 'لا توجد سجلات عمولة',
+        'status_pending' => 'معلقة',
+        'status_approved' => 'موافق عليها',
+        'status_paid' => 'مدفوعة',
+        'status_cancelled' => 'ملغاة',
     ],
 
     'appointments' => [

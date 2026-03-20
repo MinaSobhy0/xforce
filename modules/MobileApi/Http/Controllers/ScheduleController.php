@@ -4,6 +4,8 @@ namespace Modules\MobileApi\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Modules\Booking\Models\PractitionerScheduleAssignment;
+use Modules\Booking\Models\WorkSchedule;
 
 class ScheduleController extends BaseApiController
 {
@@ -15,36 +17,44 @@ class ScheduleController extends BaseApiController
     {
         $staffProfile = $this->staffProfile();
 
-        if (!class_exists(\Modules\Attendance\Models\ScheduleAssignment::class)) {
+        if (!$staffProfile) {
+            return $this->forbidden(__('mobile_api::mobile.auth.not_staff'));
+        }
+
+        if (!class_exists(PractitionerScheduleAssignment::class)) {
             return $this->success([
                 'has_schedule' => false,
                 'message' => __('mobile_api::mobile.schedule.no_schedule'),
             ]);
         }
 
-        $assignment = \Modules\Attendance\Models\ScheduleAssignment::with('schedule')
+        $assignment = PractitionerScheduleAssignment::with('workSchedule')
             ->where('staff_profile_id', $staffProfile->id)
-            ->where('is_active', true)
+            ->active()
+            ->currentlyEffective()
             ->first();
 
-        if (!$assignment || !$assignment->schedule) {
+        if (!$assignment || !$assignment->workSchedule) {
             return $this->success([
                 'has_schedule' => false,
                 'message' => __('mobile_api::mobile.schedule.no_schedule'),
             ]);
         }
 
-        $schedule = $assignment->schedule;
+        $schedule = $assignment->workSchedule;
 
         return $this->success([
             'has_schedule' => true,
             'schedule' => [
                 'id' => $schedule->id,
                 'name' => $schedule->name,
-                'type' => $schedule->type, // fixed, flexible, rotating
-                'working_days' => $schedule->working_days ?? [],
+                'type' => $schedule->schedule_type, // fixed, flexible
+                'total_weekly_hours' => $schedule->total_weekly_hours,
+                'working_days_count' => $schedule->working_days_count,
             ],
             'assigned_from' => $assignment->effective_from?->toDateString(),
+            'assigned_until' => $assignment->effective_until?->toDateString(),
+            'is_primary' => $assignment->is_primary,
         ]);
     }
 
@@ -55,6 +65,10 @@ class ScheduleController extends BaseApiController
     public function shifts(Request $request): JsonResponse
     {
         $staffProfile = $this->staffProfile();
+
+        if (!$staffProfile) {
+            return $this->forbidden(__('mobile_api::mobile.auth.not_staff'));
+        }
 
         $startDate = $request->filled('start_date')
             ? \Carbon\Carbon::parse($request->start_date)
@@ -82,6 +96,10 @@ class ScheduleController extends BaseApiController
     public function shiftForDate(string $date): JsonResponse
     {
         $staffProfile = $this->staffProfile();
+
+        if (!$staffProfile) {
+            return $this->forbidden(__('mobile_api::mobile.auth.not_staff'));
+        }
 
         try {
             $targetDate = \Carbon\Carbon::parse($date);
@@ -116,49 +134,81 @@ class ScheduleController extends BaseApiController
     {
         $staffProfile = $this->staffProfile();
 
-        if (!class_exists(\Modules\Attendance\Models\ScheduleAssignment::class)) {
+        if (!$staffProfile) {
+            return $this->forbidden(__('mobile_api::mobile.auth.not_staff'));
+        }
+
+        if (!class_exists(PractitionerScheduleAssignment::class)) {
             return $this->success([]);
         }
 
-        $assignment = \Modules\Attendance\Models\ScheduleAssignment::with('schedule')
+        $assignment = PractitionerScheduleAssignment::with('workSchedule')
             ->where('staff_profile_id', $staffProfile->id)
-            ->where('is_active', true)
+            ->active()
+            ->currentlyEffective()
             ->first();
 
-        if (!$assignment || !$assignment->schedule) {
+        if (!$assignment || !$assignment->workSchedule) {
             return $this->success([]);
         }
 
-        $schedule = $assignment->schedule;
+        $schedule = $assignment->workSchedule;
 
         // Get working hours for each day
         $workingHours = [];
         $days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 
-        foreach ($days as $index => $day) {
-            $dayConfig = $schedule->working_days[$day] ?? null;
+        // For flexible schedules
+        if ($schedule->schedule_type === WorkSchedule::TYPE_FLEXIBLE) {
+            $workingDays = $schedule->working_days ?? [];
 
-            if ($dayConfig && ($dayConfig['is_working'] ?? false)) {
+            foreach ($days as $index => $day) {
+                $isWorking = in_array($index, $workingDays);
                 $workingHours[] = [
                     'day' => $day,
                     'day_index' => $index,
-                    'is_working' => true,
-                    'start_time' => $dayConfig['start_time'] ?? '09:00',
-                    'end_time' => $dayConfig['end_time'] ?? '17:00',
-                    'break_start' => $dayConfig['break_start'] ?? null,
-                    'break_end' => $dayConfig['break_end'] ?? null,
+                    'is_working' => $isWorking,
+                    'type' => 'flexible',
+                    'required_hours' => $isWorking ? $schedule->required_hours_per_day : null,
+                    'time_window' => $isWorking ? [
+                        'start' => $schedule->flexible_start_time,
+                        'end' => $schedule->flexible_end_time,
+                    ] : null,
                 ];
-            } else {
-                $workingHours[] = [
-                    'day' => $day,
-                    'day_index' => $index,
-                    'is_working' => false,
-                ];
+            }
+        } else {
+            // For fixed schedules - use weekly_hours with numeric keys (0=Sunday, 6=Saturday)
+            $weeklyHours = $schedule->weekly_hours ?? [];
+
+            foreach ($days as $index => $day) {
+                // Check for assignment overrides first
+                $effectiveConfig = $assignment->getEffectiveDaySchedule($index);
+
+                if ($effectiveConfig && ($effectiveConfig['is_working'] ?? false)) {
+                    $workingHours[] = [
+                        'day' => $day,
+                        'day_index' => $index,
+                        'is_working' => true,
+                        'type' => 'fixed',
+                        'start_time' => $effectiveConfig['start_time'] ?? '09:00',
+                        'end_time' => $effectiveConfig['end_time'] ?? '17:00',
+                        'break_start' => $effectiveConfig['break_start'] ?? null,
+                        'break_end' => $effectiveConfig['break_end'] ?? null,
+                    ];
+                } else {
+                    $workingHours[] = [
+                        'day' => $day,
+                        'day_index' => $index,
+                        'is_working' => false,
+                    ];
+                }
             }
         }
 
         return $this->success([
             'schedule_name' => $schedule->name,
+            'schedule_type' => $schedule->schedule_type,
+            'total_weekly_hours' => $schedule->total_weekly_hours,
             'hours' => $workingHours,
         ]);
     }
@@ -192,60 +242,58 @@ class ScheduleController extends BaseApiController
      */
     protected function getShiftForDate($staffProfile, \Carbon\Carbon $date): ?array
     {
-        // Check for specific shift override first
-        if (class_exists(\Modules\Attendance\Models\ShiftOverride::class)) {
-            $override = \Modules\Attendance\Models\ShiftOverride::where('staff_profile_id', $staffProfile->id)
-                ->whereDate('date', $date)
-                ->first();
-
-            if ($override) {
-                if ($override->is_day_off) {
-                    return null;
-                }
-
-                return [
-                    'type' => 'override',
-                    'start_time' => $override->start_time,
-                    'end_time' => $override->end_time,
-                    'break_start' => $override->break_start,
-                    'break_end' => $override->break_end,
-                    'note' => $override->note,
-                ];
-            }
-        }
-
-        // Get from schedule assignment
-        if (!class_exists(\Modules\Attendance\Models\ScheduleAssignment::class)) {
+        if (!class_exists(PractitionerScheduleAssignment::class)) {
             return null;
         }
 
-        $assignment = \Modules\Attendance\Models\ScheduleAssignment::with('schedule')
+        // Get active assignment for this date
+        $assignment = PractitionerScheduleAssignment::with('workSchedule')
             ->where('staff_profile_id', $staffProfile->id)
-            ->where('is_active', true)
+            ->active()
             ->where(function ($q) use ($date) {
                 $q->whereNull('effective_from')
                     ->orWhere('effective_from', '<=', $date);
             })
             ->where(function ($q) use ($date) {
-                $q->whereNull('effective_to')
-                    ->orWhere('effective_to', '>=', $date);
+                $q->whereNull('effective_until')
+                    ->orWhere('effective_until', '>=', $date);
             })
             ->first();
 
-        if (!$assignment || !$assignment->schedule) {
+        if (!$assignment || !$assignment->workSchedule) {
             return null;
         }
 
-        $schedule = $assignment->schedule;
-        $dayName = strtolower($date->format('l'));
-        $dayConfig = $schedule->working_days[$dayName] ?? null;
+        $schedule = $assignment->workSchedule;
+        $dayOfWeek = (int) $date->format('w'); // 0 = Sunday, 6 = Saturday
+
+        // For flexible schedules
+        if ($schedule->schedule_type === WorkSchedule::TYPE_FLEXIBLE) {
+            $workingDays = $schedule->working_days ?? [];
+
+            if (!in_array($dayOfWeek, $workingDays)) {
+                return null;
+            }
+
+            return [
+                'type' => 'flexible',
+                'required_hours' => $schedule->required_hours_per_day,
+                'time_window' => [
+                    'start' => $schedule->flexible_start_time,
+                    'end' => $schedule->flexible_end_time,
+                ],
+            ];
+        }
+
+        // For fixed schedules - get effective day schedule (with overrides applied)
+        $dayConfig = $assignment->getEffectiveDaySchedule($dayOfWeek);
 
         if (!$dayConfig || !($dayConfig['is_working'] ?? false)) {
             return null;
         }
 
         return [
-            'type' => 'scheduled',
+            'type' => 'fixed',
             'start_time' => $dayConfig['start_time'] ?? '09:00',
             'end_time' => $dayConfig['end_time'] ?? '17:00',
             'break_start' => $dayConfig['break_start'] ?? null,
