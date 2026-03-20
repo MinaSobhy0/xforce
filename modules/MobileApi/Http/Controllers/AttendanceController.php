@@ -660,26 +660,30 @@ class AttendanceController extends BaseApiController
             }
         }
 
-        // Get branches with coordinates
+        // Get branches with coordinates (if columns exist)
         if (class_exists(\Modules\Core\Models\Branch::class)) {
-            $branches = \Modules\Core\Models\Branch::active()
-                ->whereNotNull('latitude')
-                ->whereNotNull('longitude')
-                ->get();
+            try {
+                $branches = \Modules\Core\Models\Branch::active()
+                    ->whereNotNull('latitude')
+                    ->whereNotNull('longitude')
+                    ->get();
 
-            foreach ($branches as $branch) {
-                $isAllowed = $allowedBranchIds === null || in_array((int) $branch->id, $allowedBranchIds);
+                foreach ($branches as $branch) {
+                    $isAllowed = $allowedBranchIds === null || in_array((int) $branch->id, $allowedBranchIds);
 
-                $locations[] = [
-                    'id' => $branch->id,
-                    'branch_id' => $branch->id,
-                    'name' => $branch->name,
-                    'latitude' => (float) $branch->latitude,
-                    'longitude' => (float) $branch->longitude,
-                    'radius' => $branch->geofence_radius ?? $defaultRadius,
-                    'source' => 'branch',
-                    'allowed' => $isAllowed,
-                ];
+                    $locations[] = [
+                        'id' => $branch->id,
+                        'branch_id' => $branch->id,
+                        'name' => $branch->name,
+                        'latitude' => (float) $branch->latitude,
+                        'longitude' => (float) $branch->longitude,
+                        'radius' => $branch->geofence_radius ?? $defaultRadius,
+                        'source' => 'branch',
+                        'allowed' => $isAllowed,
+                    ];
+                }
+            } catch (\Illuminate\Database\QueryException $e) {
+                // Columns don't exist yet (migration not run) - skip branch locations
             }
         }
 
@@ -799,27 +803,31 @@ class AttendanceController extends BaseApiController
             }
         }
 
-        // Get branches with coordinates
+        // Get branches with coordinates (if columns exist)
         if (class_exists(\Modules\Core\Models\Branch::class)) {
-            $branchQuery = \Modules\Core\Models\Branch::active()
-                ->whereNotNull('latitude')
-                ->whereNotNull('longitude');
+            try {
+                $branchQuery = \Modules\Core\Models\Branch::active()
+                    ->whereNotNull('latitude')
+                    ->whereNotNull('longitude');
 
-            // Filter by allowed branch IDs if staff has restrictions
-            if ($allowedBranchIds !== null) {
-                $branchQuery->whereIn('id', $allowedBranchIds);
-            }
+                // Filter by allowed branch IDs if staff has restrictions
+                if ($allowedBranchIds !== null) {
+                    $branchQuery->whereIn('id', $allowedBranchIds);
+                }
 
-            $branches = $branchQuery->get();
+                $branches = $branchQuery->get();
 
-            foreach ($branches as $branch) {
-                $allLocations[] = [
-                    'branch_id' => $branch->id,
-                    'name' => $branch->name,
-                    'lat' => (float) $branch->latitude,
-                    'lng' => (float) $branch->longitude,
-                    'radius' => $branch->geofence_radius ?? $defaultRadius,
-                ];
+                foreach ($branches as $branch) {
+                    $allLocations[] = [
+                        'branch_id' => $branch->id,
+                        'name' => $branch->name,
+                        'lat' => (float) $branch->latitude,
+                        'lng' => (float) $branch->longitude,
+                        'radius' => $branch->geofence_radius ?? $defaultRadius,
+                    ];
+                }
+            } catch (\Illuminate\Database\QueryException $e) {
+                // Columns don't exist yet (migration not run) - skip branch locations
             }
         }
 
