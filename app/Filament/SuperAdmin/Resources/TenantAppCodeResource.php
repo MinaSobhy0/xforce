@@ -267,7 +267,16 @@ class TenantAppCodeResource extends Resource
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
                     ->requiresConfirmation()
-                    ->action(fn($records) => $records->each->update(['is_active' => false])),
+                    ->action(function ($records) {
+                        foreach ($records as $record) {
+                            $record->update(['is_active' => false]);
+                        }
+
+                        Notification::make()
+                            ->title('Codes deactivated')
+                            ->success()
+                            ->send();
+                    }),
 
                 Tables\Actions\DeleteBulkAction::make(),
             ])
