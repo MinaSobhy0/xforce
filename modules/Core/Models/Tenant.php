@@ -551,7 +551,7 @@ class Tenant extends Model
     }
 
     /**
-     * Get mobile config setting.
+     * Get mobile config setting by key.
      */
     public function getMobileConfig(string $key, $default = null)
     {
@@ -559,13 +559,126 @@ class Tenant extends Model
     }
 
     /**
-     * Set mobile config setting.
+     * Set mobile config setting by key.
      */
     public function setMobileConfig(string $key, $value): void
     {
         $config = $this->mobile_config ?? [];
         data_set($config, $key, $value);
         $this->mobile_config = $config;
+    }
+
+    /**
+     * Get the full mobile app configuration, merged with defaults.
+     */
+    public function getMobileAppConfig(): array
+    {
+        $defaults = self::getDefaultMobileConfig();
+        $config = $this->mobile_config ?? [];
+
+        return array_replace_recursive($defaults, $config);
+    }
+
+    /**
+     * Set the full mobile app configuration.
+     */
+    public function setMobileAppConfig(array $config): void
+    {
+        $this->mobile_config = array_replace_recursive(
+            self::getDefaultMobileConfig(),
+            $config
+        );
+        $this->save();
+    }
+
+    /**
+     * Get the default mobile app configuration.
+     */
+    public static function getDefaultMobileConfig(): array
+    {
+        return [
+            'branding' => [
+                'app_name' => null, // Falls back to tenant name
+                'primary_color' => '#3B82F6',
+                'secondary_color' => '#1E40AF',
+                'accent_color' => '#F59E0B',
+                'logo_url' => null,
+                'dark_mode_enabled' => true,
+            ],
+            'navigation' => [
+                'tabs' => [
+                    ['id' => 'dashboard', 'enabled' => true, 'sort' => 1],
+                    ['id' => 'appointments', 'enabled' => true, 'sort' => 2],
+                    ['id' => 'attendance', 'enabled' => true, 'sort' => 3],
+                    ['id' => 'schedule', 'enabled' => true, 'sort' => 4],
+                    ['id' => 'more', 'enabled' => true, 'sort' => 5],
+                ],
+                'more_menu' => [
+                    ['id' => 'payslip', 'enabled' => true, 'sort' => 1],
+                    ['id' => 'time_off', 'enabled' => true, 'sort' => 2],
+                    ['id' => 'commission', 'enabled' => true, 'sort' => 3],
+                    ['id' => 'patients', 'enabled' => true, 'sort' => 4],
+                    ['id' => 'profile', 'enabled' => true, 'sort' => 5],
+                ],
+            ],
+            'screens' => [
+                'dashboard' => [
+                    'components' => [
+                        ['type' => 'attendance_status', 'enabled' => true, 'sort' => 1],
+                        ['type' => 'stats_grid', 'enabled' => true, 'sort' => 2],
+                        ['type' => 'upcoming_appointments', 'enabled' => true, 'sort' => 3, 'props' => ['limit' => 3]],
+                        ['type' => 'quick_actions', 'enabled' => true, 'sort' => 4],
+                    ],
+                ],
+            ],
+            'features' => [
+                'attendance_photo_required' => false,
+                'break_tracking' => true,
+                'geofence_check_in' => true,
+                'qr_check_in' => true,
+            ],
+        ];
+    }
+
+    /**
+     * Get available navigation screens for the mobile app.
+     */
+    public static function getAvailableNavigationScreens(): array
+    {
+        return [
+            'dashboard' => 'Dashboard',
+            'appointments' => 'Appointments',
+            'attendance' => 'Attendance',
+            'schedule' => 'Schedule',
+            'more' => 'More Menu',
+        ];
+    }
+
+    /**
+     * Get available more menu screens for the mobile app.
+     */
+    public static function getAvailableMoreMenuScreens(): array
+    {
+        return [
+            'payslip' => 'Payslip',
+            'time_off' => 'Time Off',
+            'commission' => 'Commission',
+            'patients' => 'Patients',
+            'profile' => 'Profile',
+        ];
+    }
+
+    /**
+     * Get available dashboard components for the mobile app.
+     */
+    public static function getAvailableDashboardComponents(): array
+    {
+        return [
+            'attendance_status' => 'Attendance Status Card',
+            'stats_grid' => 'Statistics Grid',
+            'upcoming_appointments' => 'Upcoming Appointments',
+            'quick_actions' => 'Quick Action Buttons',
+        ];
     }
 
     public function addOns(): \Illuminate\Database\Eloquent\Relations\BelongsToMany

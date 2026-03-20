@@ -3,9 +3,14 @@
 namespace Modules\MobileApi\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
+use Modules\MobileApi\Services\SDUIService;
 
 class AppConfigController extends BaseApiController
 {
+    public function __construct(
+        protected SDUIService $sduiService
+    ) {}
+
     /**
      * Get app configuration for the tenant.
      * GET /api/v2/config
@@ -13,6 +18,16 @@ class AppConfigController extends BaseApiController
     public function index(): JsonResponse
     {
         $tenant = $this->tenant();
+        $mobileConfig = $tenant->getMobileAppConfig();
+
+        // Get branding from SDUI service (handles fallbacks)
+        $branding = $this->sduiService->getBranding();
+
+        // Get navigation from SDUI service (applies tenant customizations)
+        $navigation = $this->sduiService->getNavigation();
+
+        // Get features from SDUI service + module availability
+        $sduiFeatures = $this->sduiService->getFeatures();
 
         $config = [
             'tenant' => [
@@ -22,18 +37,25 @@ class AppConfigController extends BaseApiController
                 'currency' => $tenant->currency,
                 'locale' => $tenant->locale ?? 'en',
             ],
-            'features' => [
-                'attendance' => in_array('attendance', $tenant->features ?? []),
-                'payroll' => in_array('payroll', $tenant->features ?? []),
-                'booking' => in_array('appointments', $tenant->features ?? []),
-                'staff' => in_array('staff', $tenant->features ?? []),
-            ],
+            'branding' => $branding,
+            'navigation' => $navigation,
+            'features' => array_merge(
+                // Module availability
+                [
+                    'attendance' => in_array('attendance', $tenant->features ?? []),
+                    'payroll' => in_array('payroll', $tenant->features ?? []),
+                    'booking' => in_array('appointments', $tenant->features ?? []),
+                    'staff' => in_array('staff', $tenant->features ?? []),
+                ],
+                // Mobile app specific features from tenant config
+                $sduiFeatures
+            ),
             'settings' => [
-                'check_in_methods' => $tenant->getMobileConfig('check_in_methods', ['manual', 'qr', 'gps']),
-                'geofence_enabled' => $tenant->getMobileConfig('geofence_enabled', true),
+                'check_in_methods' => $this->getCheckInMethods($mobileConfig),
+                'geofence_enabled' => $mobileConfig['features']['geofence_check_in'] ?? true,
                 'geofence_radius' => $tenant->getMobileConfig('geofence_radius', 100),
-                'break_tracking' => $tenant->getMobileConfig('break_tracking', true),
-                'photo_check_in' => $tenant->getMobileConfig('photo_check_in', false),
+                'break_tracking' => $mobileConfig['features']['break_tracking'] ?? true,
+                'photo_check_in' => $mobileConfig['features']['attendance_photo_required'] ?? false,
             ],
             'sdui' => [
                 'version' => config('mobile_api.sdui.version', '1.0.0'),
@@ -52,17 +74,35 @@ class AppConfigController extends BaseApiController
      */
     public function branding(): JsonResponse
     {
-        $tenant = $this->tenant();
-
-        $branding = [
-            'name' => $tenant->name,
-            'logo_url' => $tenant->getLogoUrl(),
-            'favicon_url' => $tenant->favicon_url ?? $tenant->favicon_path,
-            'primary_color' => $tenant->primary_color ?? '#3B82F6',
-            'secondary_color' => $tenant->secondary_color ?? '#10B981',
-            'theme' => $tenant->getMobileConfig('theme', 'light'),
-        ];
+        $branding = $this->sduiService->getBranding();
 
         return $this->success($branding);
+    }
+
+    /**
+     * Get navigation configuration.
+     * GET /api/v2/navigation
+     */
+    public function navigation(): JsonResponse
+    {
+        return $this->success($this->sduiService->getNavigation());
+    }
+
+    /**
+     * Get available check-in methods based on tenant config.
+     */
+    protected function getCheckInMethods(array $mobileConfig): array
+    {
+        $methods = ['manual'];
+
+        if ($mobileConfig['features']['qr_check_in'] ?? true) {
+            $methods[] = 'qr';
+        }
+
+        if ($mobileConfig['features']['geofence_check_in'] ?? true) {
+            $methods[] = 'gps';
+        }
+
+        return $methods;
     }
 }

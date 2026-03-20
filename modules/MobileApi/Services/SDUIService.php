@@ -4,6 +4,7 @@ namespace Modules\MobileApi\Services;
 
 use Illuminate\Support\Facades\Cache;
 use Modules\Auth\Models\User;
+use Modules\Core\Models\Tenant;
 
 class SDUIService
 {
@@ -20,9 +21,18 @@ class SDUIService
             return [];
         }
 
-        // Filter components based on user permissions
+        // Get tenant config
+        $tenant = $this->getCurrentTenant();
+        $config = $tenant?->getMobileAppConfig() ?? Tenant::getDefaultMobileConfig();
+
+        // Apply tenant customizations to the screen
+        $screen = $this->applyTenantCustomizations($screen, $screenId, $config);
+
+        // Filter components based on user permissions and tenant config
         $screen['components'] = collect($screen['components'] ?? [])
             ->filter(fn($component) => $this->userCanSeeComponent($user, $component))
+            ->filter(fn($component) => $this->isComponentEnabled($component, $screenId, $config))
+            ->sortBy('sort')
             ->map(fn($component) => $this->processComponent($component, $user))
             ->values()
             ->all();
@@ -31,6 +41,184 @@ class SDUIService
         $screen['timestamp'] = now()->toIso8601String();
 
         return $screen;
+    }
+
+    /**
+     * Get the current tenant from the container.
+     */
+    protected function getCurrentTenant(): ?Tenant
+    {
+        return app('currentTenant');
+    }
+
+    /**
+     * Apply tenant customizations to a screen definition.
+     */
+    protected function applyTenantCustomizations(array $screen, string $screenId, array $config): array
+    {
+        $screenConfig = $config['screens'][$screenId] ?? null;
+
+        if (!$screenConfig) {
+            return $screen;
+        }
+
+        // Merge component overrides
+        foreach ($screen['components'] as &$component) {
+            $override = collect($screenConfig['components'] ?? [])
+                ->firstWhere('type', $component['type']);
+
+            if ($override) {
+                $component['enabled'] = $override['enabled'] ?? true;
+                $component['sort'] = $override['sort'] ?? 999;
+                $component['props'] = array_merge(
+                    $component['props'] ?? [],
+                    $override['props'] ?? []
+                );
+            }
+        }
+
+        return $screen;
+    }
+
+    /**
+     * Check if a component is enabled based on tenant config.
+     */
+    protected function isComponentEnabled(array $component, string $screenId, array $config): bool
+    {
+        $screenConfig = $config['screens'][$screenId] ?? null;
+
+        if (!$screenConfig) {
+            return true; // Default: enabled if no screen config
+        }
+
+        $componentConfig = collect($screenConfig['components'] ?? [])
+            ->firstWhere('type', $component['type']);
+
+        if (!$componentConfig) {
+            return true; // Default: enabled if component not in config
+        }
+
+        return $componentConfig['enabled'] ?? true;
+    }
+
+    /**
+     * Get navigation configuration for the tenant.
+     */
+    public function getNavigation(): array
+    {
+        $tenant = $this->getCurrentTenant();
+        $config = $tenant?->getMobileAppConfig() ?? Tenant::getDefaultMobileConfig();
+
+        return [
+            'tabs' => collect($config['navigation']['tabs'] ?? [])
+                ->filter(fn($tab) => $tab['enabled'] ?? true)
+                ->sortBy('sort')
+                ->values()
+                ->map(fn($tab) => [
+                    'id' => $tab['id'],
+                    'label' => $this->getScreenLabel($tab['id']),
+                    'icon' => $this->getScreenIcon($tab['id']),
+                ])
+                ->all(),
+            'more_menu' => collect($config['navigation']['more_menu'] ?? [])
+                ->filter(fn($item) => $item['enabled'] ?? true)
+                ->sortBy('sort')
+                ->values()
+                ->map(fn($item) => [
+                    'id' => $item['id'],
+                    'label' => $this->getScreenLabel($item['id']),
+                    'icon' => $this->getScreenIcon($item['id']),
+                ])
+                ->all(),
+        ];
+    }
+
+    /**
+     * Get the label for a screen.
+     */
+    protected function getScreenLabel(string $screenId): string
+    {
+        return match ($screenId) {
+            'dashboard' => __('mobile_api::mobile.screens.dashboard'),
+            'appointments' => __('mobile_api::mobile.screens.appointments'),
+            'attendance' => __('mobile_api::mobile.screens.attendance'),
+            'schedule' => __('mobile_api::mobile.screens.schedule'),
+            'more' => __('mobile_api::mobile.screens.more'),
+            'payslip' => __('mobile_api::mobile.screens.payslip'),
+            'time_off' => __('mobile_api::mobile.screens.time_off'),
+            'commission' => __('mobile_api::mobile.screens.commission'),
+            'patients' => __('mobile_api::mobile.screens.patients'),
+            'profile' => __('mobile_api::mobile.screens.profile'),
+            default => ucfirst(str_replace('_', ' ', $screenId)),
+        };
+    }
+
+    /**
+     * Get the icon for a screen.
+     */
+    protected function getScreenIcon(string $screenId): string
+    {
+        return match ($screenId) {
+            'dashboard' => 'home',
+            'appointments' => 'calendar',
+            'attendance' => 'clock',
+            'schedule' => 'calendar-days',
+            'more' => 'ellipsis-horizontal',
+            'payslip' => 'document-text',
+            'time_off' => 'sun',
+            'commission' => 'currency-dollar',
+            'patients' => 'users',
+            'profile' => 'user-circle',
+            default => 'squares-2x2',
+        };
+    }
+
+    /**
+     * Get features configuration for the tenant.
+     */
+    public function getFeatures(): array
+    {
+        $tenant = $this->getCurrentTenant();
+        $config = $tenant?->getMobileAppConfig() ?? Tenant::getDefaultMobileConfig();
+
+        return $config['features'] ?? [];
+    }
+
+    /**
+     * Get branding configuration for the tenant.
+     */
+    public function getBranding(): array
+    {
+        $tenant = $this->getCurrentTenant();
+        $config = $tenant?->getMobileAppConfig() ?? Tenant::getDefaultMobileConfig();
+
+        $branding = $config['branding'] ?? [];
+
+        return [
+            'app_name' => $branding['app_name'] ?? $tenant?->name ?? 'Staff App',
+            'primary_color' => $branding['primary_color'] ?? '#3B82F6',
+            'secondary_color' => $branding['secondary_color'] ?? '#1E40AF',
+            'accent_color' => $branding['accent_color'] ?? '#F59E0B',
+            'logo_url' => $this->resolveLogoUrl($branding['logo_url'] ?? null, $tenant),
+            'dark_mode_enabled' => $branding['dark_mode_enabled'] ?? true,
+        ];
+    }
+
+    /**
+     * Resolve the logo URL, falling back to tenant logo if not set.
+     */
+    protected function resolveLogoUrl(?string $logoUrl, ?Tenant $tenant): ?string
+    {
+        if ($logoUrl) {
+            // If it's already a full URL, return as-is
+            if (filter_var($logoUrl, FILTER_VALIDATE_URL)) {
+                return $logoUrl;
+            }
+            // Otherwise, it's a storage path
+            return url('storage/' . $logoUrl);
+        }
+
+        return $tenant?->getLogoUrl();
     }
 
     /**

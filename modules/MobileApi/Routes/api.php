@@ -43,6 +43,7 @@ Route::middleware([\Modules\MobileApi\Http\Middleware\ResolveTenantFromHeader::c
     // App config and branding - public within tenant context
     Route::get('config', [AppConfigController::class, 'index']);
     Route::get('branding', [AppConfigController::class, 'branding']);
+    Route::get('navigation', [AppConfigController::class, 'navigation']);
 
     // Auth routes (tenant context, no auth)
     Route::prefix('auth')->middleware('throttle:mobile-api-auth')->group(function () {

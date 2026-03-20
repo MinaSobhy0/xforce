@@ -647,6 +647,7 @@ class TenantResource extends Resource
             'create' => Pages\CreateTenant::route('/create'),
             'view'   => Pages\ViewTenant::route('/{record}'),
             'edit'   => Pages\EditTenant::route('/{record}/edit'),
+            'mobile-app' => Pages\ManageTenantMobileApp::route('/{record}/mobile-app'),
         ];
     }
 

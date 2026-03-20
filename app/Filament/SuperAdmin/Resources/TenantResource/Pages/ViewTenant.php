@@ -523,6 +523,12 @@ class ViewTenant extends BaseViewRecord
 
             Actions\EditAction::make(),
 
+            Actions\Action::make('configureMobileApp')
+                ->label('Mobile App')
+                ->icon('heroicon-o-device-phone-mobile')
+                ->color('info')
+                ->url(fn () => TenantResource::getUrl('mobile-app', ['record' => $this->record])),
+
             Actions\Action::make('resetDatabase')
                 ->label('Reset Database')
                 ->icon('heroicon-o-arrow-path')
