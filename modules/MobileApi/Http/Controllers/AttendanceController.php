@@ -17,16 +17,21 @@ class AttendanceController extends BaseApiController
     public function types(): JsonResponse
     {
         $branch = $this->branch();
+        $staffProfile = $this->staffProfile();
 
         if (!class_exists(AttendanceTypeSetting::class)) {
             // Return default manual type if module not available
+            $types = [[
+                'type' => 'manual',
+                'label' => 'Manual',
+                'enabled' => true,
+                'allowed' => true,
+                'settings' => [],
+            ]];
+
             return $this->success([
-                [
-                    'type' => 'manual',
-                    'label' => 'Manual',
-                    'enabled' => true,
-                    'settings' => [],
-                ],
+                'types' => $types,
+                'staff_restrictions' => null,
             ]);
         }
 
@@ -35,11 +40,15 @@ class AttendanceController extends BaseApiController
             ->forBranch($branch?->id)
             ->get();
 
+        // Get staff's allowed methods (null = all allowed)
+        $staffAllowedMethods = $staffProfile?->getAllowedCheckInMethods() ?? array_keys(\Modules\Staff\Models\StaffProfile::CHECK_IN_METHODS);
+
         // Always include manual type
         $types = [[
             'type' => Attendance::TYPE_MANUAL,
             'label' => Attendance::TYPES[Attendance::TYPE_MANUAL],
             'enabled' => true,
+            'allowed' => in_array('manual', $staffAllowedMethods),
             'settings' => [],
         ]];
 
@@ -48,11 +57,23 @@ class AttendanceController extends BaseApiController
                 'type' => $setting->type,
                 'label' => Attendance::TYPES[$setting->type] ?? $setting->type,
                 'enabled' => $setting->is_enabled,
+                'allowed' => in_array($setting->type, $staffAllowedMethods),
                 'settings' => $this->getClientSettings($setting),
             ];
         }
 
-        return $this->success($types);
+        // Get allowed geofence locations for this staff
+        $allowedGeofenceLocations = $staffProfile?->getAllowedGeofenceLocations();
+
+        return $this->success([
+            'types' => $types,
+            'staff_restrictions' => [
+                'allowed_methods' => $staffAllowedMethods,
+                'allowed_geofence_locations' => $allowedGeofenceLocations,
+                'has_method_restrictions' => $staffProfile?->allowed_check_in_methods !== null,
+                'has_location_restrictions' => $allowedGeofenceLocations !== null,
+            ],
+        ]);
     }
 
     /**
@@ -150,6 +171,11 @@ class AttendanceController extends BaseApiController
             return $this->error('Attendance module not available', 503);
         }
 
+        // Check if the check-in method is allowed for this staff
+        if (!$staffProfile->isCheckInMethodAllowed($request->method)) {
+            return $this->error(__('mobile_api::mobile.attendance.method_not_allowed'), 403);
+        }
+
         // Check if already has attendance record today (any status)
         $existing = Attendance::where('staff_profile_id', $staffProfile->id)
             ->whereDate('attendance_date', today())
@@ -170,7 +196,7 @@ class AttendanceController extends BaseApiController
             if (!$request->latitude || !$request->longitude) {
                 return $this->error(__('mobile_api::mobile.attendance.location_required'), 400);
             }
-            $validation = $this->validateGeofenceLocation($request->latitude, $request->longitude);
+            $validation = $this->validateGeofenceLocation($request->latitude, $request->longitude, $staffProfile);
             if (!$validation['valid']) {
                 return $this->error(__('mobile_api::mobile.attendance.invalid_location'), 400);
             }
@@ -600,6 +626,10 @@ class AttendanceController extends BaseApiController
     {
         $locations = [];
         $defaultRadius = 100;
+        $staffProfile = $this->staffProfile();
+
+        // Get staff's allowed geofence locations (null = all allowed)
+        $allowedBranchIds = $staffProfile?->getAllowedGeofenceLocations();
 
         // Get geofence settings if available
         if (class_exists(AttendanceTypeSetting::class)) {
@@ -611,13 +641,19 @@ class AttendanceController extends BaseApiController
                 $customLocations = $geofenceSetting->getSetting('locations', []);
                 foreach ($customLocations as $loc) {
                     if (!empty($loc['lat']) && !empty($loc['lng'])) {
+                        $locationBranchId = $loc['branch_id'] ?? null;
+                        $isAllowed = $allowedBranchIds === null ||
+                            ($locationBranchId !== null && in_array((int) $locationBranchId, $allowedBranchIds));
+
                         $locations[] = [
                             'id' => $loc['id'] ?? null,
+                            'branch_id' => $locationBranchId,
                             'name' => $loc['name'] ?? 'Custom Location',
                             'latitude' => (float) $loc['lat'],
                             'longitude' => (float) $loc['lng'],
                             'radius' => $loc['radius'] ?? $defaultRadius,
                             'source' => 'custom',
+                            'allowed' => $isAllowed,
                         ];
                     }
                 }
@@ -632,13 +668,17 @@ class AttendanceController extends BaseApiController
                 ->get();
 
             foreach ($branches as $branch) {
+                $isAllowed = $allowedBranchIds === null || in_array((int) $branch->id, $allowedBranchIds);
+
                 $locations[] = [
                     'id' => $branch->id,
+                    'branch_id' => $branch->id,
                     'name' => $branch->name,
                     'latitude' => (float) $branch->latitude,
                     'longitude' => (float) $branch->longitude,
                     'radius' => $branch->geofence_radius ?? $defaultRadius,
                     'source' => 'branch',
+                    'allowed' => $isAllowed,
                 ];
             }
         }
@@ -646,6 +686,8 @@ class AttendanceController extends BaseApiController
         return $this->success([
             'locations' => $locations,
             'default_radius' => $defaultRadius,
+            'has_location_restrictions' => $allowedBranchIds !== null,
+            'allowed_location_ids' => $allowedBranchIds,
             'settings' => [
                 'require_high_accuracy' => class_exists(AttendanceTypeSetting::class)
                     ? (AttendanceTypeSetting::getForType(Attendance::TYPE_GEOFENCE, $this->branch()?->id)?->getSetting('require_high_accuracy', true) ?? true)
@@ -719,10 +761,13 @@ class AttendanceController extends BaseApiController
         return ['valid' => false, 'reason' => 'unknown_type'];
     }
 
-    protected function validateGeofenceLocation(float $lat, float $lng): array
+    protected function validateGeofenceLocation(float $lat, float $lng, $staffProfile = null): array
     {
         $defaultRadius = 100;
         $allLocations = [];
+
+        // Get staff's allowed geofence locations (null = all allowed)
+        $allowedBranchIds = $staffProfile?->getAllowedGeofenceLocations();
 
         // Get geofence settings
         if (class_exists(AttendanceTypeSetting::class)) {
@@ -734,7 +779,16 @@ class AttendanceController extends BaseApiController
                 $customLocations = $setting->getSetting('locations', []);
                 foreach ($customLocations as $loc) {
                     if (!empty($loc['lat']) && !empty($loc['lng'])) {
+                        // Check if this location is allowed for the staff
+                        $locationBranchId = $loc['branch_id'] ?? null;
+                        if ($allowedBranchIds !== null && $locationBranchId !== null) {
+                            if (!in_array((int) $locationBranchId, $allowedBranchIds)) {
+                                continue; // Skip this location
+                            }
+                        }
+
                         $allLocations[] = [
+                            'branch_id' => $locationBranchId,
                             'name' => $loc['name'] ?? 'Custom Location',
                             'lat' => (float) $loc['lat'],
                             'lng' => (float) $loc['lng'],
@@ -745,19 +799,36 @@ class AttendanceController extends BaseApiController
             }
         }
 
-        // Add current branch location if available
-        $branch = $this->branch();
-        if ($branch && $branch->latitude && $branch->longitude) {
-            $allLocations[] = [
-                'name' => $branch->name,
-                'lat' => (float) $branch->latitude,
-                'lng' => (float) $branch->longitude,
-                'radius' => $branch->geofence_radius ?? $defaultRadius,
-            ];
+        // Get branches with coordinates
+        if (class_exists(\Modules\Core\Models\Branch::class)) {
+            $branchQuery = \Modules\Core\Models\Branch::active()
+                ->whereNotNull('latitude')
+                ->whereNotNull('longitude');
+
+            // Filter by allowed branch IDs if staff has restrictions
+            if ($allowedBranchIds !== null) {
+                $branchQuery->whereIn('id', $allowedBranchIds);
+            }
+
+            $branches = $branchQuery->get();
+
+            foreach ($branches as $branch) {
+                $allLocations[] = [
+                    'branch_id' => $branch->id,
+                    'name' => $branch->name,
+                    'lat' => (float) $branch->latitude,
+                    'lng' => (float) $branch->longitude,
+                    'radius' => $branch->geofence_radius ?? $defaultRadius,
+                ];
+            }
         }
 
-        // If no locations configured, allow check-in
+        // If no locations configured/allowed, allow check-in
         if (empty($allLocations)) {
+            if ($allowedBranchIds !== null) {
+                // Staff has location restrictions but no valid locations found
+                return ['valid' => false, 'distance' => null, 'message' => 'No allowed locations configured'];
+            }
             return ['valid' => true, 'distance' => null, 'message' => 'No geofence configured'];
         }
 
@@ -780,6 +851,7 @@ class AttendanceController extends BaseApiController
                     'distance' => round($distance),
                     'allowed_radius' => $location['radius'],
                     'location_name' => $location['name'],
+                    'branch_id' => $location['branch_id'] ?? null,
                 ];
             }
         }

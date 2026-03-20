@@ -53,6 +53,8 @@ class StaffProfile extends BaseModel
         'user_id',
         'branch_id',
         'commission_plan_id',
+        'allowed_check_in_methods',
+        'allowed_geofence_locations',
         'employee_number',
         'job_title',
         'bio',
@@ -68,6 +70,8 @@ class StaffProfile extends BaseModel
     protected $casts = [
         'bio' => 'array',
         'specializations' => 'array',
+        'allowed_check_in_methods' => 'array',
+        'allowed_geofence_locations' => 'array',
         'commission_percentage' => 'decimal:2',
         'base_salary_minor' => 'integer',
         'hire_date' => 'date',
@@ -334,5 +338,102 @@ class StaffProfile extends BaseModel
     public function hasCommissionPlan(): bool
     {
         return $this->commission_plan_id !== null;
+    }
+
+    // ==========================================
+    // Attendance Settings Methods
+    // ==========================================
+
+    /**
+     * Available check-in method types.
+     */
+    public const CHECK_IN_METHODS = [
+        'manual' => 'Manual',
+        'geofence' => 'Geofence (Location)',
+        'qr_static' => 'Static QR Code',
+        'qr_dynamic' => 'Dynamic QR Code',
+        'biometric' => 'Biometric',
+    ];
+
+    /**
+     * Check if a specific check-in method is allowed for this staff.
+     * If allowed_check_in_methods is null, all methods are allowed.
+     */
+    public function isCheckInMethodAllowed(string $method): bool
+    {
+        $allowedMethods = $this->allowed_check_in_methods;
+
+        // Null means all methods allowed
+        if ($allowedMethods === null) {
+            return true;
+        }
+
+        return in_array($method, $allowedMethods);
+    }
+
+    /**
+     * Get the list of allowed check-in methods.
+     * If null, returns all available methods.
+     */
+    public function getAllowedCheckInMethods(): array
+    {
+        return $this->allowed_check_in_methods ?? array_keys(self::CHECK_IN_METHODS);
+    }
+
+    /**
+     * Check if a specific geofence location (branch) is allowed.
+     * If allowed_geofence_locations is null, all locations are allowed.
+     */
+    public function isGeofenceLocationAllowed(int|string $branchId): bool
+    {
+        $allowedLocations = $this->allowed_geofence_locations;
+
+        // Null means all locations allowed
+        if ($allowedLocations === null) {
+            return true;
+        }
+
+        return in_array((int) $branchId, array_map('intval', $allowedLocations));
+    }
+
+    /**
+     * Get the list of allowed geofence location IDs (branch IDs).
+     * Returns null if all locations are allowed.
+     */
+    public function getAllowedGeofenceLocations(): ?array
+    {
+        return $this->allowed_geofence_locations;
+    }
+
+    /**
+     * Check if geofence check-in is required (i.e., only geofence is allowed).
+     */
+    public function requiresGeofenceCheckIn(): bool
+    {
+        $allowedMethods = $this->allowed_check_in_methods;
+
+        if ($allowedMethods === null) {
+            return false;
+        }
+
+        return count($allowedMethods) === 1 && in_array('geofence', $allowedMethods);
+    }
+
+    /**
+     * Set allowed check-in methods.
+     */
+    public function setAllowedCheckInMethods(?array $methods): self
+    {
+        $this->allowed_check_in_methods = $methods;
+        return $this;
+    }
+
+    /**
+     * Set allowed geofence locations.
+     */
+    public function setAllowedGeofenceLocations(?array $branchIds): self
+    {
+        $this->allowed_geofence_locations = $branchIds ? array_map('intval', $branchIds) : null;
+        return $this;
     }
 }

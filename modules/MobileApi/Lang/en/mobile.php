@@ -55,6 +55,8 @@ return [
         'invalid_qr' => 'Invalid or expired QR code',
         'dispute_submitted' => 'Dispute submitted successfully',
         'cannot_dispute' => 'This violation cannot be disputed',
+        'method_not_allowed' => 'This check-in method is not allowed for you',
+        'location_not_allowed' => 'You are not allowed to check in at this location',
     ],
 
     'time_off' => [
