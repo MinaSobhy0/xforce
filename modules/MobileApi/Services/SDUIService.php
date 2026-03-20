@@ -196,8 +196,8 @@ class SDUIService
 
         return [
             'app_name' => $branding['app_name'] ?? $tenant?->name ?? 'Staff App',
-            'primary_color' => $branding['primary_color'] ?? '#3B82F6',
-            'secondary_color' => $branding['secondary_color'] ?? '#1E40AF',
+            'primary_color' => $branding['primary_color'] ?? $tenant?->primary_color ?? '#3B82F6',
+            'secondary_color' => $branding['secondary_color'] ?? $tenant?->secondary_color ?? '#1E40AF',
             'accent_color' => $branding['accent_color'] ?? '#F59E0B',
             'logo_url' => $this->resolveLogoUrl($branding['logo_url'] ?? null, $tenant),
             'dark_mode_enabled' => $branding['dark_mode_enabled'] ?? true,

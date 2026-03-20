@@ -976,12 +976,21 @@ class Tenant extends Model
 
     public function getLogoUrl(): ?string
     {
+        // Check logo_url first (can be a full URL or a path)
         if ($this->logo_url && filter_var($this->logo_url, FILTER_VALIDATE_URL)) {
             return $this->logo_url;
         }
 
         if ($this->logo_url) {
-            return asset("storage/tenants/{$this->id}/logo/" . $this->logo_url);
+            return asset("storage/" . $this->logo_url);
+        }
+
+        // Then check logo_path (from Filament FileUpload)
+        if ($this->logo_path) {
+            if (filter_var($this->logo_path, FILTER_VALIDATE_URL)) {
+                return $this->logo_path;
+            }
+            return asset("storage/" . $this->logo_path);
         }
 
         return null;
