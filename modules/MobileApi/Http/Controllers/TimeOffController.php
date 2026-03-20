@@ -50,19 +50,16 @@ class TimeOffController extends BaseApiController
             return $this->success([]);
         }
 
-        // Get all active time off types
-        $types = TimeOffType::active()->ordered()->get();
+        // Get user's allocations for current year (only existing ones, don't auto-create)
+        $allocations = TimeOffAllocation::with('timeOffType')
+            ->where('user_id', $user->id)
+            ->forYear(now()->year)
+            ->whereHas('timeOffType', fn($q) => $q->where('is_active', true))
+            ->get();
 
-        $balances = [];
-        foreach ($types as $type) {
-            // Get or create allocation for current year/month
-            $allocation = TimeOffAllocation::getOrCreateForDate(
-                $user->id,
-                $type->id,
-                now()
-            );
-
-            $balances[] = [
+        $balances = $allocations->map(function ($allocation) {
+            $type = $allocation->timeOffType;
+            return [
                 'type_id' => $type->id,
                 'type' => $type->translated_name,
                 'code' => $type->code,
@@ -74,7 +71,7 @@ class TimeOffController extends BaseApiController
                 'remaining' => (float) $allocation->remaining,
                 'unit_label' => $type->getUnitLabel(),
             ];
-        }
+        });
 
         return $this->success($balances);
     }
