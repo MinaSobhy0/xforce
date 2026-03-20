@@ -103,9 +103,21 @@ class TimeOffController extends BaseApiController
             $query->whereYear('start_date', $request->year);
         }
 
-        $requests = $query->paginate($this->getPerPage());
+        $paginator = $query->paginate($this->getPerPage());
 
-        return $this->paginated($requests, fn($r) => $this->formatTimeOffRequest($r));
+        // Map items using the formatter
+        $data = collect($paginator->items())->map(fn($r) => $this->formatTimeOffRequest($r));
+
+        return response()->json([
+            'success' => true,
+            'data' => $data,
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+            ],
+        ]);
     }
 
     /**
