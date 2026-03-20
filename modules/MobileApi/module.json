@@ -1,0 +1,153 @@
+{
+    "name": "MobileApi",
+    "alias": "mobile_api",
+    "description": {
+        "en": "Staff Mobile App API with SDUI technology for attendance, time off, payroll, schedule, commissions, and appointments management",
+        "ar": "واجهة برمجة تطبيق الهاتف للموظفين مع تقنية SDUI للحضور والانصراف والإجازات والرواتب والجداول والعمولات والمواعيد"
+    },
+    "version": "1.0.0",
+    "category": "infrastructure",
+    "icon": "heroicon-o-device-phone-mobile",
+    "keywords": [
+        "mobile",
+        "api",
+        "sdui",
+        "staff",
+        "attendance",
+        "payroll"
+    ],
+    "priority": 56,
+    "providers": [
+        "Modules\\MobileApi\\Providers\\MobileApiServiceProvider",
+        "Modules\\MobileApi\\Providers\\RouteServiceProvider"
+    ],
+    "dependencies": [
+        "Core",
+        "Auth",
+        "Staff"
+    ],
+    "optional_dependencies": [
+        "Attendance",
+        "Payroll",
+        "Booking",
+        "Patients"
+    ],
+    "models": [],
+    "permissions": {
+        "mobile_api.access": "Access mobile API endpoints",
+        "mobile_api.manage_app_codes": "Manage mobile app codes",
+        "attendance.view": "View own attendance",
+        "attendance.check_in": "Check in/out",
+        "time_off.view": "View own leave requests",
+        "time_off.create": "Submit leave requests",
+        "time_off.cancel": "Cancel own pending requests",
+        "payroll.view_own": "View own payslips",
+        "schedule.view": "View own schedule",
+        "commission.view_own": "View own commissions"
+    },
+    "default_role_permissions": {
+        "admin": [
+            "mobile_api.*"
+        ],
+        "manager": [
+            "mobile_api.access"
+        ],
+        "staff": [
+            "mobile_api.access",
+            "attendance.view",
+            "attendance.check_in",
+            "time_off.view",
+            "time_off.create",
+            "time_off.cancel",
+            "payroll.view_own",
+            "schedule.view",
+            "commission.view_own"
+        ],
+        "doctor": [
+            "mobile_api.access",
+            "attendance.view",
+            "attendance.check_in",
+            "time_off.view",
+            "time_off.create",
+            "time_off.cancel",
+            "payroll.view_own",
+            "schedule.view",
+            "commission.view_own",
+            "appointments.view",
+            "appointments.update",
+            "patients.view"
+        ],
+        "nurse": [
+            "mobile_api.access",
+            "attendance.view",
+            "attendance.check_in",
+            "time_off.view",
+            "time_off.create",
+            "time_off.cancel",
+            "payroll.view_own",
+            "schedule.view",
+            "commission.view_own",
+            "appointments.view",
+            "appointments.update",
+            "patients.view"
+        ],
+        "receptionist": [
+            "mobile_api.access",
+            "attendance.view",
+            "attendance.check_in",
+            "time_off.view",
+            "time_off.create",
+            "time_off.cancel",
+            "payroll.view_own",
+            "schedule.view",
+            "appointments.view",
+            "appointments.update",
+            "patients.view"
+        ]
+    },
+    "navigation": [
+        {
+            "id": "mobile_app_qr",
+            "label": {
+                "en": "Mobile App QR",
+                "ar": "رمز QR للتطبيق"
+            },
+            "icon": "heroicon-o-qr-code",
+            "route": "filament.tenant.pages.mobile-app-qr-code",
+            "group": "settings",
+            "order": 100,
+            "permission": "mobile_api.access"
+        }
+    ],
+    "settings": {
+        "mobile_api.token_expiry_days": {
+            "type": "integer",
+            "default": 30,
+            "label": {
+                "en": "Token Expiry (days)",
+                "ar": "انتهاء صلاحية الرمز (أيام)"
+            }
+        },
+        "mobile_api.rate_limit_per_minute": {
+            "type": "integer",
+            "default": 60,
+            "label": {
+                "en": "Rate Limit (requests/minute)",
+                "ar": "حد الطلبات (طلب/دقيقة)"
+            }
+        },
+        "mobile_api.geofence_radius_meters": {
+            "type": "integer",
+            "default": 100,
+            "label": {
+                "en": "Geofence Radius (meters)",
+                "ar": "نطاق الموقع الجغرافي (متر)"
+            }
+        }
+    },
+    "active": true,
+    "display_name": {
+        "en": "Mobile Api",
+        "ar": "واجهة برمجة التطبيق للهاتف"
+    }
+}

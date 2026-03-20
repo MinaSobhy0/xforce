@@ -39,6 +39,7 @@ class Tenant extends Model
         'database_password',
         'status',
         'settings',
+        'mobile_config',
         'features',
         'subscription_plan',
         'subscription_plan_id',
@@ -82,6 +83,7 @@ class Tenant extends Model
 
     protected $casts = [
         'settings' => 'array',
+        'mobile_config' => 'array',
         'features' => 'array',
         'subscription_expires_at' => 'datetime',
         'trial_ends_at' => 'datetime',
@@ -502,6 +504,68 @@ class Tenant extends Model
     public function primaryDomain(): HasOne
     {
         return $this->hasOne(\App\Models\TenantDomain::class)->where('is_primary', true);
+    }
+
+    public function appCodes(): HasMany
+    {
+        return $this->hasMany(\App\Models\TenantAppCode::class);
+    }
+
+    public function activeAppCodes(): HasMany
+    {
+        return $this->appCodes()
+            ->where('is_active', true)
+            ->where(function ($q) {
+                $q->whereNull('expires_at')
+                    ->orWhere('expires_at', '>', now());
+            })
+            ->where(function ($q) {
+                $q->whereNull('max_uses')
+                    ->orWhereRaw('usage_count < max_uses');
+            });
+    }
+
+    public function primaryAppCode(): HasOne
+    {
+        return $this->hasOne(\App\Models\TenantAppCode::class)
+            ->where('type', 'default')
+            ->where('is_active', true);
+    }
+
+    /**
+     * Get or create the primary app code for mobile app access.
+     */
+    public function getOrCreatePrimaryAppCode(): \App\Models\TenantAppCode
+    {
+        $appCode = $this->primaryAppCode;
+
+        if (!$appCode) {
+            $appCode = $this->appCodes()->create([
+                'type' => 'default',
+                'is_active' => true,
+            ]);
+            $this->setRelation('primaryAppCode', $appCode);
+        }
+
+        return $appCode;
+    }
+
+    /**
+     * Get mobile config setting.
+     */
+    public function getMobileConfig(string $key, $default = null)
+    {
+        return data_get($this->mobile_config, $key, $default);
+    }
+
+    /**
+     * Set mobile config setting.
+     */
+    public function setMobileConfig(string $key, $value): void
+    {
+        $config = $this->mobile_config ?? [];
+        data_set($config, $key, $value);
+        $this->mobile_config = $config;
     }
 
     public function addOns(): \Illuminate\Database\Eloquent\Relations\BelongsToMany

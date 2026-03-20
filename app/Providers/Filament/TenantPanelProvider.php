@@ -150,6 +150,9 @@ class TenantPanelProvider extends PanelProvider
             ->discoverResources(in: base_path('modules/Evaluations/Filament/Resources'), for: 'Modules\\Evaluations\\Filament\\Resources')
             ->discoverPages(in: base_path('modules/Evaluations/Filament/Pages'), for: 'Modules\\Evaluations\\Filament\\Pages')
 
+            // Discover MobileApi module pages
+            ->discoverPages(in: base_path('modules/MobileApi/Filament/Pages'), for: 'Modules\\MobileApi\\Filament\\Pages')
+
             // Custom routes for prescription PDF printing
             ->routes(function () {
                 \Illuminate\Support\Facades\Route::get('/prescriptions/{prescription}/print', function (\Modules\Prescriptions\Models\Prescription $prescription) {

@@ -22,5 +22,6 @@
     "TreatmentPlans": true,
     "Prescriptions": true,
     "Assets": true,
-    "Evaluations": true
+    "Evaluations": true,
+    "MobileApi": true
 }
