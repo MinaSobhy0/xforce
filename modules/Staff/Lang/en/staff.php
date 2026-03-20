@@ -28,6 +28,8 @@ return [
         'compensation' => 'Compensation',
         'commission' => 'Commission',
         'commission_description' => 'Assign a commission plan to calculate commissions on service revenue. Commission plans are managed in Settings > Commission Plans.',
+        'attendance_settings' => 'Attendance Settings',
+        'attendance_settings_description' => 'Configure check-in methods and locations allowed for this staff member. Leave empty to allow all methods/locations.',
         'settings' => 'Settings',
         'commission_details' => 'Commission Details',
         'amounts' => 'Amounts',
@@ -86,6 +88,10 @@ return [
         'from' => 'From',
         'until' => 'Until',
         'cancellation_reason' => 'Cancellation Reason',
+        'allowed_check_in_methods' => 'Allowed Check-in Methods',
+        'allowed_check_in_methods_help' => 'Leave empty to allow all methods. If selected, only these methods will be available for this staff.',
+        'allowed_geofence_locations' => 'Allowed Geofence Locations',
+        'allowed_geofence_locations_help' => 'Leave empty to allow all locations. If selected, staff can only check in at these branches.',
     ],
 
     'commission_types' => [

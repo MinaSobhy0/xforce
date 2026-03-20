@@ -178,6 +178,31 @@ class StaffProfileResource extends Resource
                             }),
                     ]),
 
+                Forms\Components\Section::make(__('staff::staff.sections.attendance_settings'))
+                    ->description(__('staff::staff.sections.attendance_settings_description'))
+                    ->schema([
+                        Forms\Components\CheckboxList::make('allowed_check_in_methods')
+                            ->label(__('staff::staff.fields.allowed_check_in_methods'))
+                            ->helperText(__('staff::staff.fields.allowed_check_in_methods_help'))
+                            ->options(StaffProfile::CHECK_IN_METHODS)
+                            ->columns(3)
+                            ->nullable(),
+
+                        Forms\Components\Select::make('allowed_geofence_locations')
+                            ->label(__('staff::staff.fields.allowed_geofence_locations'))
+                            ->helperText(__('staff::staff.fields.allowed_geofence_locations_help'))
+                            ->multiple()
+                            ->options(fn () => Branch::active()->pluck('name', 'id'))
+                            ->searchable()
+                            ->preload()
+                            ->nullable()
+                            ->visible(fn (Forms\Get $get) =>
+                                $get('allowed_check_in_methods') === null ||
+                                in_array('geofence', $get('allowed_check_in_methods') ?? [])
+                            ),
+                    ])
+                    ->collapsed(),
+
                 Forms\Components\Section::make(__('staff::staff.sections.settings'))
                     ->schema([
                         Forms\Components\Toggle::make('is_active')

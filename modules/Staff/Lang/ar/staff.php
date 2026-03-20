@@ -28,6 +28,8 @@ return [
         'compensation' => 'التعويضات',
         'commission' => 'العمولة',
         'commission_description' => 'قم بتعيين خطة عمولة لحساب العمولات على إيرادات الخدمات. يتم إدارة خطط العمولة في الإعدادات > خطط العمولة.',
+        'attendance_settings' => 'إعدادات الحضور',
+        'attendance_settings_description' => 'تكوين طرق تسجيل الحضور والمواقع المسموح بها لهذا الموظف. اتركها فارغة للسماح بجميع الطرق/المواقع.',
         'settings' => 'الإعدادات',
         'commission_details' => 'تفاصيل العمولة',
         'amounts' => 'المبالغ',
@@ -86,6 +88,10 @@ return [
         'from' => 'من',
         'until' => 'إلى',
         'cancellation_reason' => 'سبب الإلغاء',
+        'allowed_check_in_methods' => 'طرق تسجيل الحضور المسموحة',
+        'allowed_check_in_methods_help' => 'اتركها فارغة للسماح بجميع الطرق. إذا تم التحديد، ستكون هذه الطرق فقط متاحة لهذا الموظف.',
+        'allowed_geofence_locations' => 'مواقع السياج الجغرافي المسموحة',
+        'allowed_geofence_locations_help' => 'اتركها فارغة للسماح بجميع المواقع. إذا تم التحديد، يمكن للموظف تسجيل الحضور فقط في هذه الفروع.',
     ],
 
     'commission_types' => [
