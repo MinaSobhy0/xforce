@@ -92,17 +92,25 @@ class AttendanceController extends BaseApiController
             return $this->error('Attendance module not available', 503);
         }
 
+        // Check for attendance record (exclude soft-deleted - those can be restored on check-in)
         $attendance = Attendance::where('staff_profile_id', $staffProfile->id)
             ->whereDate('attendance_date', today())
             ->first();
 
         if (!$attendance) {
+            // Check if there's a soft-deleted record (can be restored)
+            $hasTrashedRecord = Attendance::onlyTrashed()
+                ->where('staff_profile_id', $staffProfile->id)
+                ->whereDate('attendance_date', today())
+                ->exists();
+
             return $this->success([
                 'status' => 'not_checked_in',
                 'can_check_in' => true,
                 'can_check_out' => false,
                 'can_start_break' => false,
                 'can_end_break' => false,
+                'has_deleted_record' => $hasTrashedRecord,
             ]);
         }
 
@@ -176,12 +184,29 @@ class AttendanceController extends BaseApiController
             return $this->error(__('mobile_api::mobile.attendance.method_not_allowed'), 403);
         }
 
-        // Check if already has attendance record today (any status)
-        $existing = Attendance::where('staff_profile_id', $staffProfile->id)
+        // Check if already has attendance record today (including soft-deleted)
+        $existing = Attendance::withTrashed()
+            ->where('staff_profile_id', $staffProfile->id)
             ->whereDate('attendance_date', today())
             ->first();
 
         if ($existing) {
+            // If soft-deleted, restore it instead of creating new
+            if ($existing->trashed()) {
+                $existing->restore();
+                $existing->update([
+                    'check_in_time' => now(),
+                    'check_out_time' => null,
+                    'attendance_type' => $request->method,
+                    'status' => Attendance::STATUS_PRESENT,
+                    'working_hours' => 0,
+                ]);
+                return $this->success([
+                    'id' => $existing->id,
+                    'check_in_time' => $existing->check_in_time->format('H:i'),
+                ], __('mobile_api::mobile.attendance.checked_in'));
+            }
+
             // Already checked in today
             if ($existing->check_out_time) {
                 // Already completed attendance for today
