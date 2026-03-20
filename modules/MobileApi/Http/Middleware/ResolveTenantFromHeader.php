@@ -42,9 +42,12 @@ class ResolveTenantFromHeader
             ], 403);
         }
 
-        // Set the search path for the tenant schema on BOTH connections
+        // Set the search path for the tenant schema ONLY on the 'tenant' connection
+        // IMPORTANT: Do NOT set search_path on 'pgsql' (default) connection!
+        // The 'pgsql' connection must stay on 'public' schema for:
+        // - PersonalAccessToken (Sanctum API tokens)
+        // - Any other central tables accessed during API requests
         try {
-            \DB::statement("SET search_path TO \"{$tenant->database_name}\"");
             \DB::connection('tenant')->statement("SET search_path TO \"{$tenant->database_name}\"");
         } catch (\Exception $e) {
             return response()->json([

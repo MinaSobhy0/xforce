@@ -16,6 +16,7 @@ use Illuminate\Database\Connection;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Sanctum\Sanctum;
 use Livewire\Livewire;
 
 class AppServiceProvider extends ServiceProvider
@@ -36,6 +37,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Configure Sanctum to use our custom PersonalAccessToken model
+        // This ensures tokens are stored in the public schema, not tenant schemas
+        Sanctum::usePersonalAccessTokenModel(\App\Models\PersonalAccessToken::class);
+
         // Register morph map for polymorphic relationships
         // This handles legacy data with short names and makes URLs cleaner
         $this->registerMorphMap();
