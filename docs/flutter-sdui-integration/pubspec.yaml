@@ -1,0 +1,58 @@
+name: xlinic_staff_app
+description: XLinic Staff Mobile App with Server-Driven UI
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.2.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # HTTP Client
+  dio: ^5.4.0
+
+  # State Management
+  flutter_riverpod: ^2.4.9
+  riverpod_annotation: ^2.3.3
+
+  # Secure Storage (for tokens)
+  flutter_secure_storage: ^9.0.0
+
+  # Navigation
+  go_router: ^13.0.0
+
+  # JSON Serialization
+  json_annotation: ^4.8.1
+
+  # UI Components
+  cupertino_icons: ^1.0.6
+
+  # QR Code Scanner (for check-in)
+  # mobile_scanner: ^4.0.0
+
+  # Location (for geofence)
+  # geolocator: ^11.0.0
+
+  # Camera (for photo check-in)
+  # camera: ^0.10.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  # Code Generation
+  build_runner: ^2.4.8
+  riverpod_generator: ^2.3.9
+  json_serializable: ^6.7.1
+
+  # Linting
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+
+  # Add assets if needed
+  # assets:
+  #   - assets/images/
