@@ -4,9 +4,57 @@ namespace Modules\MobileApi\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Modules\Attendance\Models\Attendance;
+use Modules\Attendance\Models\AttendanceTypeSetting;
+use Modules\Attendance\Models\AttendanceViolation;
 
 class AttendanceController extends BaseApiController
 {
+    /**
+     * Get available attendance/check-in types.
+     * GET /api/v2/attendance/types
+     */
+    public function types(): JsonResponse
+    {
+        $branch = $this->branch();
+
+        if (!class_exists(AttendanceTypeSetting::class)) {
+            // Return default manual type if module not available
+            return $this->success([
+                [
+                    'type' => 'manual',
+                    'label' => 'Manual',
+                    'enabled' => true,
+                    'settings' => [],
+                ],
+            ]);
+        }
+
+        // Get enabled types for this branch
+        $settings = AttendanceTypeSetting::enabled()
+            ->forBranch($branch?->id)
+            ->get();
+
+        // Always include manual type
+        $types = [[
+            'type' => Attendance::TYPE_MANUAL,
+            'label' => Attendance::TYPES[Attendance::TYPE_MANUAL],
+            'enabled' => true,
+            'settings' => [],
+        ]];
+
+        foreach ($settings as $setting) {
+            $types[] = [
+                'type' => $setting->type,
+                'label' => Attendance::TYPES[$setting->type] ?? $setting->type,
+                'enabled' => $setting->is_enabled,
+                'settings' => $this->getClientSettings($setting),
+            ];
+        }
+
+        return $this->success($types);
+    }
+
     /**
      * Get current attendance status.
      * GET /api/v2/attendance/status
@@ -15,12 +63,16 @@ class AttendanceController extends BaseApiController
     {
         $staffProfile = $this->staffProfile();
 
-        if (!class_exists(\Modules\Attendance\Models\AttendanceRecord::class)) {
+        if (!$staffProfile) {
+            return $this->forbidden(__('mobile_api::mobile.auth.not_staff'));
+        }
+
+        if (!class_exists(Attendance::class)) {
             return $this->error('Attendance module not available', 503);
         }
 
-        $attendance = \Modules\Attendance\Models\AttendanceRecord::where('staff_profile_id', $staffProfile->id)
-            ->whereDate('check_in', today())
+        $attendance = Attendance::where('staff_profile_id', $staffProfile->id)
+            ->whereDate('attendance_date', today())
             ->first();
 
         if (!$attendance) {
@@ -34,21 +86,20 @@ class AttendanceController extends BaseApiController
         }
 
         $currentBreak = $attendance->breaks()
-            ->whereNull('ended_at')
+            ->whereNull('end_time')
             ->first();
 
         $isOnBreak = $currentBreak !== null;
-        $isCheckedOut = $attendance->check_out !== null;
+        $isCheckedOut = $attendance->check_out_time !== null;
 
         return $this->success([
             'status' => $isCheckedOut ? 'checked_out' : ($isOnBreak ? 'on_break' : 'checked_in'),
-            'check_in_time' => $attendance->check_in->format('H:i'),
-            'check_out_time' => $attendance->check_out?->format('H:i'),
-            'method' => $attendance->check_in_method,
-            'location' => $attendance->check_in_location,
-            'worked_hours' => $this->calculateWorkedHours($attendance),
+            'check_in_time' => $attendance->check_in_time?->format('H:i'),
+            'check_out_time' => $attendance->check_out_time?->format('H:i'),
+            'method' => $attendance->attendance_type,
+            'worked_hours' => (float) $attendance->working_hours,
             'break_minutes' => $attendance->breaks()->sum('duration_minutes'),
-            'current_break_started' => $currentBreak?->started_at?->format('H:i'),
+            'current_break_started' => $currentBreak?->start_time?->format('H:i'),
             'can_check_in' => false,
             'can_check_out' => !$isCheckedOut && !$isOnBreak,
             'can_start_break' => !$isCheckedOut && !$isOnBreak,
@@ -63,14 +114,15 @@ class AttendanceController extends BaseApiController
     public function settings(): JsonResponse
     {
         $tenant = $this->tenant();
+        $mobileConfig = $tenant->getMobileAppConfig();
+        $features = $mobileConfig['features'] ?? [];
 
         return $this->success([
-            'check_in_methods' => $tenant->getMobileConfig('check_in_methods', ['manual', 'qr', 'gps']),
-            'geofence_enabled' => $tenant->getMobileConfig('geofence_enabled', true),
-            'geofence_radius' => $tenant->getMobileConfig('geofence_radius', 100),
-            'break_tracking' => $tenant->getMobileConfig('break_tracking', true),
-            'photo_required' => $tenant->getMobileConfig('photo_check_in', false),
-            'dynamic_qr_enabled' => $tenant->getMobileConfig('dynamic_qr_enabled', false),
+            'check_in_methods' => $this->getEnabledCheckInMethods(),
+            'geofence_enabled' => $features['geofence_check_in'] ?? true,
+            'qr_enabled' => $features['qr_check_in'] ?? true,
+            'break_tracking' => $features['break_tracking'] ?? true,
+            'photo_required' => $features['attendance_photo_required'] ?? false,
         ]);
     }
 
@@ -82,22 +134,26 @@ class AttendanceController extends BaseApiController
     {
         $staffProfile = $this->staffProfile();
 
+        if (!$staffProfile) {
+            return $this->forbidden(__('mobile_api::mobile.auth.not_staff'));
+        }
+
         $request->validate([
-            'method' => 'required|in:manual,qr,gps,biometric',
-            'latitude' => 'required_if:method,gps|numeric',
-            'longitude' => 'required_if:method,gps|numeric',
-            'qr_code' => 'required_if:method,qr|string',
-            'photo' => 'sometimes|string', // base64 encoded
+            'method' => 'required|in:manual,geofence,qr_static,qr_dynamic,biometric',
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
+            'qr_code' => 'required_if:method,qr_static,qr_dynamic|string',
+            'photo' => 'sometimes|string',
         ]);
 
-        if (!class_exists(\Modules\Attendance\Models\AttendanceRecord::class)) {
+        if (!class_exists(Attendance::class)) {
             return $this->error('Attendance module not available', 503);
         }
 
-        // Check if already checked in
-        $existing = \Modules\Attendance\Models\AttendanceRecord::where('staff_profile_id', $staffProfile->id)
-            ->whereDate('check_in', today())
-            ->whereNull('check_out')
+        // Check if already checked in today
+        $existing = Attendance::where('staff_profile_id', $staffProfile->id)
+            ->whereDate('attendance_date', today())
+            ->whereNull('check_out_time')
             ->first();
 
         if ($existing) {
@@ -105,36 +161,37 @@ class AttendanceController extends BaseApiController
         }
 
         // Validate check-in method
-        if ($request->method === 'gps') {
+        if ($request->method === 'geofence') {
+            if (!$request->latitude || !$request->longitude) {
+                return $this->error(__('mobile_api::mobile.attendance.location_required'), 400);
+            }
             $validation = $this->validateGeofenceLocation($request->latitude, $request->longitude);
             if (!$validation['valid']) {
                 return $this->error(__('mobile_api::mobile.attendance.invalid_location'), 400);
             }
         }
 
-        if ($request->method === 'qr') {
-            $validation = $this->validateQrCode($request->qr_code);
+        if (in_array($request->method, ['qr_static', 'qr_dynamic'])) {
+            $validation = $this->validateQrCode($request->qr_code, $request->method);
             if (!$validation['valid']) {
                 return $this->error(__('mobile_api::mobile.attendance.invalid_qr'), 400);
             }
         }
 
         // Create attendance record
-        $attendance = \Modules\Attendance\Models\AttendanceRecord::create([
+        $attendance = Attendance::create([
+            'tenant_id' => current_tenant_id(),
             'staff_profile_id' => $staffProfile->id,
             'branch_id' => $this->branch()?->id,
-            'check_in' => now(),
-            'check_in_method' => $request->method,
-            'check_in_location' => $request->method === 'gps' ? [
-                'latitude' => $request->latitude,
-                'longitude' => $request->longitude,
-            ] : null,
-            'check_in_photo' => $request->photo,
+            'attendance_date' => today(),
+            'check_in_time' => now(),
+            'attendance_type' => $request->method,
+            'status' => Attendance::STATUS_PRESENT,
         ]);
 
         return $this->success([
             'id' => $attendance->id,
-            'check_in_time' => $attendance->check_in->format('H:i'),
+            'check_in_time' => $attendance->check_in_time->format('H:i'),
         ], __('mobile_api::mobile.attendance.checked_in'));
     }
 
@@ -146,13 +203,17 @@ class AttendanceController extends BaseApiController
     {
         $staffProfile = $this->staffProfile();
 
-        if (!class_exists(\Modules\Attendance\Models\AttendanceRecord::class)) {
+        if (!$staffProfile) {
+            return $this->forbidden(__('mobile_api::mobile.auth.not_staff'));
+        }
+
+        if (!class_exists(Attendance::class)) {
             return $this->error('Attendance module not available', 503);
         }
 
-        $attendance = \Modules\Attendance\Models\AttendanceRecord::where('staff_profile_id', $staffProfile->id)
-            ->whereDate('check_in', today())
-            ->whereNull('check_out')
+        $attendance = Attendance::where('staff_profile_id', $staffProfile->id)
+            ->whereDate('attendance_date', today())
+            ->whereNull('check_out_time')
             ->first();
 
         if (!$attendance) {
@@ -161,21 +222,25 @@ class AttendanceController extends BaseApiController
 
         // End any active breaks
         $attendance->breaks()
-            ->whereNull('ended_at')
-            ->update([
-                'ended_at' => now(),
-                'duration_minutes' => \DB::raw('EXTRACT(EPOCH FROM (NOW() - started_at)) / 60'),
-            ]);
+            ->whereNull('end_time')
+            ->each(function ($break) {
+                $break->endBreak();
+            });
+
+        // Calculate working hours
+        $totalMinutes = $attendance->check_in_time->diffInMinutes(now());
+        $breakMinutes = $attendance->breaks()->sum('duration_minutes');
+        $workedHours = round(($totalMinutes - $breakMinutes) / 60, 2);
 
         // Update check out
         $attendance->update([
-            'check_out' => now(),
-            'check_out_method' => $request->method ?? 'manual',
+            'check_out_time' => now(),
+            'working_hours' => $workedHours,
         ]);
 
         return $this->success([
-            'check_out_time' => $attendance->check_out->format('H:i'),
-            'worked_hours' => $this->calculateWorkedHours($attendance),
+            'check_out_time' => $attendance->check_out_time->format('H:i'),
+            'worked_hours' => $workedHours,
         ], __('mobile_api::mobile.attendance.checked_out'));
     }
 
@@ -187,13 +252,17 @@ class AttendanceController extends BaseApiController
     {
         $staffProfile = $this->staffProfile();
 
-        if (!class_exists(\Modules\Attendance\Models\AttendanceRecord::class)) {
+        if (!$staffProfile) {
+            return $this->forbidden(__('mobile_api::mobile.auth.not_staff'));
+        }
+
+        if (!class_exists(Attendance::class)) {
             return $this->error('Attendance module not available', 503);
         }
 
-        $attendance = \Modules\Attendance\Models\AttendanceRecord::where('staff_profile_id', $staffProfile->id)
-            ->whereDate('check_in', today())
-            ->whereNull('check_out')
+        $attendance = Attendance::where('staff_profile_id', $staffProfile->id)
+            ->whereDate('attendance_date', today())
+            ->whereNull('check_out_time')
             ->first();
 
         if (!$attendance) {
@@ -202,7 +271,7 @@ class AttendanceController extends BaseApiController
 
         // Check if already on break
         $existingBreak = $attendance->breaks()
-            ->whereNull('ended_at')
+            ->whereNull('end_time')
             ->first();
 
         if ($existingBreak) {
@@ -211,13 +280,14 @@ class AttendanceController extends BaseApiController
 
         // Create break record
         $break = $attendance->breaks()->create([
-            'started_at' => now(),
-            'type' => $request->type ?? 'regular',
+            'tenant_id' => current_tenant_id(),
+            'start_time' => now(),
+            'reason' => $request->reason,
         ]);
 
         return $this->success([
             'break_id' => $break->id,
-            'started_at' => $break->started_at->format('H:i'),
+            'started_at' => $break->start_time->format('H:i'),
         ], __('mobile_api::mobile.attendance.break_started'));
     }
 
@@ -229,13 +299,17 @@ class AttendanceController extends BaseApiController
     {
         $staffProfile = $this->staffProfile();
 
-        if (!class_exists(\Modules\Attendance\Models\AttendanceRecord::class)) {
+        if (!$staffProfile) {
+            return $this->forbidden(__('mobile_api::mobile.auth.not_staff'));
+        }
+
+        if (!class_exists(Attendance::class)) {
             return $this->error('Attendance module not available', 503);
         }
 
-        $attendance = \Modules\Attendance\Models\AttendanceRecord::where('staff_profile_id', $staffProfile->id)
-            ->whereDate('check_in', today())
-            ->whereNull('check_out')
+        $attendance = Attendance::where('staff_profile_id', $staffProfile->id)
+            ->whereDate('attendance_date', today())
+            ->whereNull('check_out_time')
             ->first();
 
         if (!$attendance) {
@@ -243,20 +317,17 @@ class AttendanceController extends BaseApiController
         }
 
         $break = $attendance->breaks()
-            ->whereNull('ended_at')
+            ->whereNull('end_time')
             ->first();
 
         if (!$break) {
             return $this->error(__('mobile_api::mobile.attendance.not_on_break'), 400);
         }
 
-        $break->update([
-            'ended_at' => now(),
-            'duration_minutes' => $break->started_at->diffInMinutes(now()),
-        ]);
+        $break->endBreak();
 
         return $this->success([
-            'ended_at' => $break->ended_at->format('H:i'),
+            'ended_at' => $break->end_time->format('H:i'),
             'duration_minutes' => $break->duration_minutes,
         ], __('mobile_api::mobile.attendance.break_ended'));
     }
@@ -269,24 +340,48 @@ class AttendanceController extends BaseApiController
     {
         $staffProfile = $this->staffProfile();
 
-        if (!class_exists(\Modules\Attendance\Models\AttendanceRecord::class)) {
+        if (!$staffProfile) {
+            return $this->forbidden(__('mobile_api::mobile.auth.not_staff'));
+        }
+
+        if (!class_exists(Attendance::class)) {
             return $this->success([]);
         }
 
-        $query = \Modules\Attendance\Models\AttendanceRecord::where('staff_profile_id', $staffProfile->id)
-            ->orderByDesc('check_in');
+        $query = Attendance::where('staff_profile_id', $staffProfile->id)
+            ->orderByDesc('attendance_date');
 
         if ($request->filled('month')) {
-            $query->whereMonth('check_in', $request->month);
+            $query->whereMonth('attendance_date', $request->month);
         }
 
         if ($request->filled('year')) {
-            $query->whereYear('check_in', $request->year);
+            $query->whereYear('attendance_date', $request->year);
         }
 
         $records = $query->paginate($this->getPerPage());
 
-        return $this->paginated($records);
+        $formatted = collect($records->items())->map(fn($r) => [
+            'id' => $r->id,
+            'date' => $r->attendance_date->toDateString(),
+            'check_in' => $r->check_in_time?->format('H:i'),
+            'check_out' => $r->check_out_time?->format('H:i'),
+            'worked_hours' => (float) $r->working_hours,
+            'status' => $r->status,
+            'status_label' => Attendance::STATUSES[$r->status] ?? $r->status,
+            'method' => $r->attendance_type,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => $formatted,
+            'meta' => [
+                'current_page' => $records->currentPage(),
+                'last_page' => $records->lastPage(),
+                'per_page' => $records->perPage(),
+                'total' => $records->total(),
+            ],
+        ]);
     }
 
     /**
@@ -297,7 +392,11 @@ class AttendanceController extends BaseApiController
     {
         $staffProfile = $this->staffProfile();
 
-        if (!class_exists(\Modules\Attendance\Models\AttendanceRecord::class)) {
+        if (!$staffProfile) {
+            return $this->forbidden(__('mobile_api::mobile.auth.not_staff'));
+        }
+
+        if (!class_exists(Attendance::class)) {
             return $this->success([
                 'total_days' => 0,
                 'total_hours' => 0,
@@ -305,32 +404,31 @@ class AttendanceController extends BaseApiController
             ]);
         }
 
-        $month = $request->month ?? now()->month;
-        $year = $request->year ?? now()->year;
+        $month = $request->integer('month', now()->month);
+        $year = $request->integer('year', now()->year);
 
-        $records = \Modules\Attendance\Models\AttendanceRecord::where('staff_profile_id', $staffProfile->id)
-            ->whereMonth('check_in', $month)
-            ->whereYear('check_in', $year)
-            ->whereNotNull('check_out')
+        $records = Attendance::where('staff_profile_id', $staffProfile->id)
+            ->whereMonth('attendance_date', $month)
+            ->whereYear('attendance_date', $year)
+            ->whereNotNull('check_out_time')
             ->get();
 
-        $totalMinutes = $records->sum(fn($r) => $r->check_in->diffInMinutes($r->check_out));
+        $totalHours = $records->sum('working_hours');
         $totalBreakMinutes = 0;
 
         foreach ($records as $record) {
             $totalBreakMinutes += $record->breaks()->sum('duration_minutes');
         }
 
-        $workedMinutes = $totalMinutes - $totalBreakMinutes;
-        $workedHours = round($workedMinutes / 60, 1);
-
         return $this->success([
             'month' => $month,
             'year' => $year,
             'total_days' => $records->count(),
-            'total_hours' => $workedHours,
-            'average_hours' => $records->count() > 0 ? round($workedHours / $records->count(), 1) : 0,
+            'total_hours' => round($totalHours, 1),
+            'average_hours' => $records->count() > 0 ? round($totalHours / $records->count(), 1) : 0,
             'total_break_minutes' => $totalBreakMinutes,
+            'present_days' => $records->where('status', Attendance::STATUS_PRESENT)->count(),
+            'half_days' => $records->where('status', Attendance::STATUS_HALF_DAY)->count(),
         ]);
     }
 
@@ -342,15 +440,40 @@ class AttendanceController extends BaseApiController
     {
         $staffProfile = $this->staffProfile();
 
-        if (!class_exists(\Modules\Attendance\Models\AttendanceViolation::class)) {
+        if (!$staffProfile) {
+            return $this->forbidden(__('mobile_api::mobile.auth.not_staff'));
+        }
+
+        if (!class_exists(AttendanceViolation::class)) {
             return $this->success([]);
         }
 
-        $violations = \Modules\Attendance\Models\AttendanceViolation::where('staff_profile_id', $staffProfile->id)
-            ->orderByDesc('created_at')
+        $violations = AttendanceViolation::where('staff_profile_id', $staffProfile->id)
+            ->orderByDesc('violation_date')
             ->paginate($this->getPerPage());
 
-        return $this->paginated($violations);
+        $formatted = collect($violations->items())->map(fn($v) => [
+            'id' => $v->id,
+            'date' => $v->violation_date->toDateString(),
+            'type' => $v->violation_type,
+            'type_label' => AttendanceViolation::TYPES[$v->violation_type] ?? $v->violation_type,
+            'duration' => $v->formatted_violation_duration,
+            'penalty' => $v->formatted_penalty,
+            'status' => $v->status,
+            'status_label' => AttendanceViolation::STATUSES[$v->status] ?? $v->status,
+            'can_dispute' => $v->status === AttendanceViolation::STATUS_PENDING,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => $formatted,
+            'meta' => [
+                'current_page' => $violations->currentPage(),
+                'last_page' => $violations->lastPage(),
+                'per_page' => $violations->perPage(),
+                'total' => $violations->total(),
+            ],
+        ]);
     }
 
     /**
@@ -361,25 +484,32 @@ class AttendanceController extends BaseApiController
     {
         $staffProfile = $this->staffProfile();
 
+        if (!$staffProfile) {
+            return $this->forbidden(__('mobile_api::mobile.auth.not_staff'));
+        }
+
         $request->validate([
             'reason' => 'required|string|max:1000',
         ]);
 
-        if (!class_exists(\Modules\Attendance\Models\AttendanceViolation::class)) {
+        if (!class_exists(AttendanceViolation::class)) {
             return $this->error('Attendance module not available', 503);
         }
 
-        $violation = \Modules\Attendance\Models\AttendanceViolation::where('staff_profile_id', $staffProfile->id)
+        $violation = AttendanceViolation::where('staff_profile_id', $staffProfile->id)
             ->find($id);
 
         if (!$violation) {
             return $this->notFound();
         }
 
+        if ($violation->status !== AttendanceViolation::STATUS_PENDING) {
+            return $this->error(__('mobile_api::mobile.attendance.cannot_dispute'), 400);
+        }
+
         $violation->update([
             'dispute_reason' => $request->reason,
-            'dispute_submitted_at' => now(),
-            'status' => 'disputed',
+            'status' => AttendanceViolation::STATUS_DISPUTED,
         ]);
 
         return $this->success(null, __('mobile_api::mobile.attendance.dispute_submitted'));
@@ -393,9 +523,11 @@ class AttendanceController extends BaseApiController
     {
         $request->validate([
             'qr_code' => 'required|string',
+            'type' => 'sometimes|in:qr_static,qr_dynamic',
         ]);
 
-        $validation = $this->validateQrCode($request->qr_code);
+        $type = $request->type ?? 'qr_static';
+        $validation = $this->validateQrCode($request->qr_code, $type);
 
         return $this->success($validation);
     }
@@ -417,31 +549,6 @@ class AttendanceController extends BaseApiController
     }
 
     /**
-     * Get dynamic QR code.
-     * GET /api/v2/attendance/qr-dynamic/current
-     */
-    public function getDynamicQr(): JsonResponse
-    {
-        $branch = $this->branch();
-
-        if (!$branch) {
-            return $this->error('No branch context', 400);
-        }
-
-        // Generate a time-based QR code that expires
-        $qrData = encrypt([
-            'branch_id' => $branch->id,
-            'timestamp' => now()->timestamp,
-            'expires_at' => now()->addMinutes(5)->timestamp,
-        ]);
-
-        return $this->success([
-            'qr_code' => $qrData,
-            'expires_in' => 300, // 5 minutes
-        ]);
-    }
-
-    /**
      * Get geofence locations.
      * GET /api/v2/attendance/geofence/locations
      */
@@ -449,7 +556,6 @@ class AttendanceController extends BaseApiController
     {
         $tenant = $this->tenant();
 
-        // Get branch locations with geofence config
         if (!class_exists(\Modules\Core\Models\Branch::class)) {
             return $this->success([]);
         }
@@ -458,41 +564,85 @@ class AttendanceController extends BaseApiController
             ->whereNotNull('longitude')
             ->get();
 
-        $defaultRadius = $tenant->getMobileConfig('geofence_radius', 100);
+        $defaultRadius = 100;
+
+        // Get geofence settings if available
+        if (class_exists(AttendanceTypeSetting::class)) {
+            $geofenceSetting = AttendanceTypeSetting::getForType(Attendance::TYPE_GEOFENCE, $this->branch()?->id);
+            if ($geofenceSetting) {
+                $defaultRadius = $geofenceSetting->getSetting('radius_meters', 100);
+            }
+        }
 
         return $this->success($branches->map(fn($b) => [
             'id' => $b->id,
             'name' => $b->name,
-            'latitude' => $b->latitude,
-            'longitude' => $b->longitude,
+            'latitude' => (float) $b->latitude,
+            'longitude' => (float) $b->longitude,
             'radius' => $b->geofence_radius ?? $defaultRadius,
         ])->all());
     }
 
     // Helper methods
 
-    protected function calculateWorkedHours($attendance): float
+    protected function getEnabledCheckInMethods(): array
     {
-        $checkOut = $attendance->check_out ?? now();
-        $totalMinutes = $attendance->check_in->diffInMinutes($checkOut);
-        $breakMinutes = $attendance->breaks()->sum('duration_minutes');
+        $methods = ['manual'];
 
-        return round(($totalMinutes - $breakMinutes) / 60, 1);
+        if (!class_exists(AttendanceTypeSetting::class)) {
+            return $methods;
+        }
+
+        $enabledTypes = AttendanceTypeSetting::getEnabledTypes($this->branch()?->id);
+
+        return array_merge($methods, $enabledTypes);
     }
 
-    protected function validateQrCode(string $qrCode): array
+    protected function getClientSettings(AttendanceTypeSetting $setting): array
     {
-        try {
-            $data = decrypt($qrCode);
+        // Return only settings that the mobile client needs
+        $type = $setting->type;
+        $allSettings = $setting->getMergedSettings();
 
-            if (!isset($data['expires_at']) || $data['expires_at'] < now()->timestamp) {
-                return ['valid' => false, 'reason' => 'expired'];
-            }
+        return match ($type) {
+            Attendance::TYPE_GEOFENCE => [
+                'radius_meters' => $allSettings['radius_meters'] ?? 100,
+                'require_high_accuracy' => $allSettings['require_high_accuracy'] ?? true,
+            ],
+            Attendance::TYPE_QR_STATIC => [
+                'allow_camera_only' => $allSettings['allow_camera_only'] ?? true,
+            ],
+            Attendance::TYPE_QR_DYNAMIC => [
+                'refresh_interval_seconds' => $allSettings['refresh_interval_seconds'] ?? 30,
+                'display_countdown' => $allSettings['display_countdown'] ?? true,
+            ],
+            default => [],
+        };
+    }
 
-            return ['valid' => true, 'branch_id' => $data['branch_id'] ?? null];
-        } catch (\Exception $e) {
-            return ['valid' => false, 'reason' => 'invalid'];
+    protected function validateQrCode(string $qrCode, string $type): array
+    {
+        if (!class_exists(AttendanceTypeSetting::class)) {
+            return ['valid' => false, 'reason' => 'not_configured'];
         }
+
+        $setting = AttendanceTypeSetting::getForType($type, $this->branch()?->id);
+
+        if (!$setting) {
+            return ['valid' => false, 'reason' => 'not_enabled'];
+        }
+
+        if ($type === Attendance::TYPE_QR_STATIC) {
+            $valid = $setting->validateStaticQrCode($qrCode);
+            return ['valid' => $valid, 'reason' => $valid ? null : 'invalid_code'];
+        }
+
+        if ($type === Attendance::TYPE_QR_DYNAMIC) {
+            $valid = $setting->validateDynamicCode($qrCode);
+            return ['valid' => $valid, 'reason' => $valid ? null : 'expired_or_invalid'];
+        }
+
+        return ['valid' => false, 'reason' => 'unknown_type'];
     }
 
     protected function validateGeofenceLocation(float $lat, float $lng): array
@@ -500,23 +650,31 @@ class AttendanceController extends BaseApiController
         $branch = $this->branch();
 
         if (!$branch || !$branch->latitude || !$branch->longitude) {
-            // No geofence configured, allow
-            return ['valid' => true, 'distance' => null];
+            return ['valid' => true, 'distance' => null, 'message' => 'No geofence configured'];
         }
 
-        $radius = $branch->geofence_radius ?? $this->tenant()->getMobileConfig('geofence_radius', 100);
+        $radius = 100;
+
+        // Get geofence settings
+        if (class_exists(AttendanceTypeSetting::class)) {
+            $setting = AttendanceTypeSetting::getForType(Attendance::TYPE_GEOFENCE, $branch->id);
+            if ($setting) {
+                $radius = $setting->getSetting('radius_meters', 100);
+            }
+        }
+
         $distance = $this->calculateDistance($lat, $lng, $branch->latitude, $branch->longitude);
 
         return [
             'valid' => $distance <= $radius,
             'distance' => round($distance),
             'allowed_radius' => $radius,
+            'branch_name' => $branch->name,
         ];
     }
 
     protected function calculateDistance(float $lat1, float $lng1, float $lat2, float $lng2): float
     {
-        // Haversine formula
         $earthRadius = 6371000; // meters
 
         $lat1Rad = deg2rad($lat1);

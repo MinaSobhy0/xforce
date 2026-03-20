@@ -80,11 +80,13 @@ Route::middleware([\Modules\MobileApi\Http\Middleware\ResolveTenantFromHeader::c
 
         // Attendance
         Route::prefix('attendance')->group(function () {
+            Route::get('types', [AttendanceController::class, 'types']);
             Route::get('status', [AttendanceController::class, 'status']);
             Route::get('settings', [AttendanceController::class, 'settings']);
             Route::get('history', [AttendanceController::class, 'history']);
             Route::get('summary', [AttendanceController::class, 'summary']);
             Route::get('violations', [AttendanceController::class, 'violations']);
+            Route::get('geofence/locations', [AttendanceController::class, 'getGeofenceLocations']);
 
             Route::post('check-in', [AttendanceController::class, 'checkIn']);
             Route::post('check-out', [AttendanceController::class, 'checkOut']);
