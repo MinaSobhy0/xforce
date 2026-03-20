@@ -57,10 +57,19 @@ class CommissionRecordResource extends Resource
                     ->dateTime()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('staffProfile.user.name')
+                Tables\Columns\TextColumn::make('staffProfile.user.full_name')
                     ->label(__('staff::staff.fields.staff'))
-                    ->searchable()
-                    ->sortable(),
+                    ->searchable(query: function ($query, string $search) {
+                        return $query->whereHas('staffProfile.user', function ($q) use ($search) {
+                            $q->where('first_name', 'ilike', "%{$search}%")
+                              ->orWhere('last_name', 'ilike', "%{$search}%");
+                        });
+                    })
+                    ->sortable(query: function ($query, string $direction) {
+                        return $query->join('staff_profiles', 'staff_commission_records.staff_profile_id', '=', 'staff_profiles.id')
+                            ->join('users', 'staff_profiles.user_id', '=', 'users.id')
+                            ->orderBy('users.first_name', $direction);
+                    }),
 
                 Tables\Columns\TextColumn::make('appointment.code')
                     ->label(__('staff::staff.fields.appointment'))

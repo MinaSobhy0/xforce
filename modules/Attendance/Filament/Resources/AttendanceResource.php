@@ -215,10 +215,19 @@ class AttendanceResource extends Resource
                     ->date()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('staffProfile.user.name')
+                Tables\Columns\TextColumn::make('staffProfile.user.full_name')
                     ->label(__('attendance::attendance.staff'))
-                    ->searchable()
-                    ->sortable(),
+                    ->searchable(query: function ($query, string $search) {
+                        return $query->whereHas('staffProfile.user', function ($q) use ($search) {
+                            $q->where('first_name', 'ilike', "%{$search}%")
+                              ->orWhere('last_name', 'ilike', "%{$search}%");
+                        });
+                    })
+                    ->sortable(query: function ($query, string $direction) {
+                        return $query->join('staff_profiles', 'attendances.staff_profile_id', '=', 'staff_profiles.id')
+                            ->join('users', 'staff_profiles.user_id', '=', 'users.id')
+                            ->orderBy('users.first_name', $direction);
+                    }),
 
                 Tables\Columns\TextColumn::make('check_in_time')
                     ->label(__('attendance::attendance.check_in'))

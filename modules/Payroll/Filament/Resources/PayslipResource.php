@@ -235,10 +235,19 @@ class PayslipResource extends Resource
                     ->label(__('payroll::payroll.fields.period'))
                     ->sortable(['payroll_runs.period_year', 'payroll_runs.period_month']),
 
-                Tables\Columns\TextColumn::make('staffProfile.user.name')
+                Tables\Columns\TextColumn::make('staffProfile.user.full_name')
                     ->label(__('payroll::payroll.fields.employee'))
-                    ->searchable()
-                    ->sortable(),
+                    ->searchable(query: function ($query, string $search) {
+                        return $query->whereHas('staffProfile.user', function ($q) use ($search) {
+                            $q->where('first_name', 'ilike', "%{$search}%")
+                              ->orWhere('last_name', 'ilike', "%{$search}%");
+                        });
+                    })
+                    ->sortable(query: function ($query, string $direction) {
+                        return $query->join('staff_profiles', 'payroll_lines.staff_profile_id', '=', 'staff_profiles.id')
+                            ->join('users', 'staff_profiles.user_id', '=', 'users.id')
+                            ->orderBy('users.first_name', $direction);
+                    }),
 
                 Tables\Columns\TextColumn::make('staffProfile.job_title')
                     ->label(__('payroll::payroll.fields.job_title'))
