@@ -31,7 +31,7 @@ class AuthController extends BaseApiController
         }
 
         // Check if user is active
-        if ($user->status !== 'active') {
+        if (!$user->isActive()) {
             return $this->error(
                 __('mobile_api::mobile.auth.account_disabled'),
                 403

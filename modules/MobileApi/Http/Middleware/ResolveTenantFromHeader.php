@@ -42,9 +42,10 @@ class ResolveTenantFromHeader
             ], 403);
         }
 
-        // Set the search path for the tenant schema
+        // Set the search path for the tenant schema on BOTH connections
         try {
             \DB::statement("SET search_path TO \"{$tenant->database_name}\"");
+            \DB::connection('tenant')->statement("SET search_path TO \"{$tenant->database_name}\"");
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -54,6 +55,7 @@ class ResolveTenantFromHeader
 
         // Bind the tenant to the container
         app()->instance('currentTenant', $tenant);
+        $request->attributes->set('tenant', $tenant);
 
         // Configure the tenant database connection
         config([
