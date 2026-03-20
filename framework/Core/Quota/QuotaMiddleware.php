@@ -88,7 +88,7 @@ class QuotaMiddleware
     /**
      * Handle quota exceeded scenario
      */
-    protected function handleQuotaExceeded(Request $request, string $quotaType, ?string $tenantId, array $options): Response
+    protected function handleQuotaExceeded(Request $request, string $quotaType, ?int $tenantId, array $options): Response
     {
         $usage = $this->quotaService->getUsage($quotaType, $tenantId);
         $action = $options['action'] ?? QuotaService::ACTION_DENY;
@@ -167,7 +167,7 @@ class QuotaMiddleware
     /**
      * Add quota headers to response
      */
-    protected function addQuotaHeaders(Response $response, string $quotaType, ?string $tenantId): Response
+    protected function addQuotaHeaders(Response $response, string $quotaType, ?int $tenantId): Response
     {
         $usage = $this->quotaService->getUsage($quotaType, $tenantId);
 
@@ -277,24 +277,23 @@ class QuotaMiddleware
     /**
      * Get tenant ID for quota tracking
      */
-    protected function getTenantId(Request $request, array $options): ?string
+    protected function getTenantId(Request $request, array $options): ?int
     {
-        // Check if tenant ID is provided in options
+        // Check if tenant ID is provided in options (must be int)
         if (isset($options['tenant_id'])) {
-            return $options['tenant_id'];
+            return is_int($options['tenant_id']) ? $options['tenant_id'] : (int) $options['tenant_id'];
         }
 
-        // Try to get tenant from request header
-        $tenantId = $request->header('X-Tenant-ID');
-        if ($tenantId) {
-            return $tenantId;
+        // Try to get tenant from request header (X-Tenant-ID should be numeric)
+        $tenantIdHeader = $request->header('X-Tenant-ID');
+        if ($tenantIdHeader && is_numeric($tenantIdHeader)) {
+            return (int) $tenantIdHeader;
         }
 
-        // Try to get tenant from subdomain
-        $host = $request->getHost();
-        $parts = explode('.', $host);
-        if (count($parts) > 2 && $parts[0] !== 'www') {
-            return $parts[0]; // Use subdomain as tenant ID
+        // Try to get tenant from request attribute (set by ResolveTenantFromHeader middleware)
+        $tenant = $request->attributes->get('tenant');
+        if ($tenant && isset($tenant->id)) {
+            return (int) $tenant->id;
         }
 
         // Try to get tenant from current context
@@ -363,7 +362,7 @@ class QuotaMiddleware
     /**
      * Log quota exceeded event
      */
-    protected function logQuotaExceeded(Request $request, string $quotaType, ?string $tenantId, array $usage): void
+    protected function logQuotaExceeded(Request $request, string $quotaType, ?int $tenantId, array $usage): void
     {
         logger()->warning('Quota exceeded', [
             'quota_type' => $quotaType,
