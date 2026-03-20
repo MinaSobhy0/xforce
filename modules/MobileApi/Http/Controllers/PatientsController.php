@@ -120,7 +120,7 @@ class PatientsController extends BaseApiController
 
         // Optionally filter to only this practitioner's appointments
         if ($request->boolean('mine_only')) {
-            $query->where('practitioner_id', $staffProfile->id);
+            $query->where('practitioner_id', $this->user()->id);
         }
 
         // Filter by status

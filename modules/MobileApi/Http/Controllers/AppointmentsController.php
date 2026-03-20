@@ -143,7 +143,7 @@ class AppointmentsController extends BaseApiController
             return $this->error('Booking module not available', 503);
         }
 
-        $appointment = \Modules\Booking\Models\Appointment::where('practitioner_id', $staffProfile->id)
+        $appointment = \Modules\Booking\Models\Appointment::where('practitioner_id', $this->user()->id)
             ->find($id);
 
         if (!$appointment) {
@@ -182,7 +182,7 @@ class AppointmentsController extends BaseApiController
             return $this->error('Booking module not available', 503);
         }
 
-        $appointment = \Modules\Booking\Models\Appointment::where('practitioner_id', $staffProfile->id)
+        $appointment = \Modules\Booking\Models\Appointment::where('practitioner_id', $this->user()->id)
             ->find($id);
 
         if (!$appointment) {
@@ -222,7 +222,7 @@ class AppointmentsController extends BaseApiController
             return $this->error('Booking module not available', 503);
         }
 
-        $appointment = \Modules\Booking\Models\Appointment::where('practitioner_id', $staffProfile->id)
+        $appointment = \Modules\Booking\Models\Appointment::where('practitioner_id', $this->user()->id)
             ->find($id);
 
         if (!$appointment) {
