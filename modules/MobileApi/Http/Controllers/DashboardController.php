@@ -114,7 +114,7 @@ class DashboardController extends BaseApiController
 
         // Today's appointments
         if ($this->hasPermission('appointments.view') && class_exists(\Modules\Booking\Models\Appointment::class)) {
-            $appointments = \Modules\Booking\Models\Appointment::whereDate('scheduled_at', today())
+            $appointments = \Modules\Booking\Models\Appointment::whereDate('date', today())
                 ->where('practitioner_id', $staffProfile->id)
                 ->get();
 
@@ -177,9 +177,16 @@ class DashboardController extends BaseApiController
 
         $appointments = \Modules\Booking\Models\Appointment::with(['patient', 'service'])
             ->where('practitioner_id', $staffProfile->id)
-            ->where('scheduled_at', '>=', now())
+            ->where(function ($q) {
+                $q->whereDate('date', '>', today())
+                  ->orWhere(function ($q2) {
+                      $q2->whereDate('date', today())
+                         ->whereTime('start_time', '>=', now()->format('H:i:s'));
+                  });
+            })
             ->whereIn('status', ['scheduled', 'confirmed'])
-            ->orderBy('scheduled_at')
+            ->orderBy('date')
+            ->orderBy('start_time')
             ->limit($limit)
             ->get();
 
@@ -187,7 +194,7 @@ class DashboardController extends BaseApiController
             'id' => $apt->id,
             'patient_name' => $apt->patient?->full_name,
             'service_name' => $apt->service?->name,
-            'scheduled_at' => $apt->scheduled_at->format('Y-m-d H:i'),
+            'scheduled_at' => $apt->date->format('Y-m-d') . ' ' . $apt->start_time->format('H:i'),
             'duration_minutes' => $apt->duration_minutes,
             'status' => $apt->status,
         ])->all();

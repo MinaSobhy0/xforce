@@ -21,8 +21,9 @@ class AppointmentsController extends BaseApiController
 
         $appointments = \Modules\Booking\Models\Appointment::with(['patient', 'service'])
             ->where('practitioner_id', $staffProfile->id)
-            ->whereDate('scheduled_at', today())
-            ->orderBy('scheduled_at')
+            ->whereDate('date', today())
+            ->orderBy('date')
+            ->orderBy('start_time')
             ->get();
 
         return $this->success([
@@ -50,9 +51,9 @@ class AppointmentsController extends BaseApiController
 
         // Filter by date range
         if ($request->filled('date')) {
-            $query->whereDate('scheduled_at', $request->date);
+            $query->whereDate('date', $request->date);
         } elseif ($request->filled('start_date') && $request->filled('end_date')) {
-            $query->whereBetween('scheduled_at', [$request->start_date, $request->end_date]);
+            $query->whereBetween('date', [$request->start_date, $request->end_date]);
         }
 
         // Filter by status
@@ -60,7 +61,8 @@ class AppointmentsController extends BaseApiController
             $query->where('status', $request->status);
         }
 
-        $appointments = $query->orderBy('scheduled_at')
+        $appointments = $query->orderBy('date')
+            ->orderBy('start_time')
             ->paginate($this->getPerPage());
 
         return $this->paginated($appointments);
@@ -250,8 +252,8 @@ class AppointmentsController extends BaseApiController
                 'id' => $appointment->service?->id,
                 'name' => $appointment->service?->name,
             ],
-            'scheduled_at' => $appointment->scheduled_at->format('Y-m-d H:i'),
-            'time' => $appointment->scheduled_at->format('H:i'),
+            'scheduled_at' => $appointment->date->format('Y-m-d') . ' ' . $appointment->start_time->format('H:i'),
+            'time' => $appointment->start_time->format('H:i'),
             'duration_minutes' => $appointment->duration_minutes,
             'status' => $appointment->status,
             'is_package' => $appointment->package_id !== null,
@@ -282,7 +284,7 @@ class AppointmentsController extends BaseApiController
                 'session_number' => $appointment->session_number,
                 'total_sessions' => $appointment->package->sessions_count,
             ] : null,
-            'scheduled_at' => $appointment->scheduled_at->format('Y-m-d H:i'),
+            'scheduled_at' => $appointment->date->format('Y-m-d') . ' ' . $appointment->start_time->format('H:i'),
             'duration_minutes' => $appointment->duration_minutes,
             'status' => $appointment->status,
             'started_at' => $appointment->started_at?->format('H:i'),

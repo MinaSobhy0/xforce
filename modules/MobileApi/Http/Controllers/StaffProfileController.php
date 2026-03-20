@@ -183,7 +183,7 @@ class StaffProfileController extends BaseApiController
                 'id' => $r->id,
                 'amount' => $r->amount,
                 'service_name' => $r->service_name ?? $r->service?->name,
-                'appointment_date' => $r->appointment?->scheduled_at?->toDateString(),
+                'appointment_date' => $r->appointment?->date?->toDateString(),
                 'created_at' => $r->created_at->toDateString(),
             ])->all(),
         ]);

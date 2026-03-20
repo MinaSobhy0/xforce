@@ -128,7 +128,8 @@ class PatientsController extends BaseApiController
             $query->where('status', $request->status);
         }
 
-        $appointments = $query->orderByDesc('scheduled_at')
+        $appointments = $query->orderByDesc('date')
+            ->orderByDesc('start_time')
             ->paginate($this->getPerPage());
 
         return $this->paginated($appointments);
@@ -166,7 +167,7 @@ class PatientsController extends BaseApiController
             'total_visits' => $visits->count(),
             'visits' => $visits->map(fn($v) => [
                 'id' => $v->id,
-                'date' => $v->completed_at?->toDateString() ?? $v->scheduled_at->toDateString(),
+                'date' => $v->completed_at?->toDateString() ?? $v->date->toDateString(),
                 'service' => $v->service?->name,
                 'practitioner' => $v->practitioner?->user?->full_name,
                 'notes' => $v->practitioner_notes,

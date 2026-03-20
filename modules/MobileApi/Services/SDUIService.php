@@ -630,7 +630,7 @@ class SDUIService
 
         // Today's appointments
         if ($user->can('appointments.view') && class_exists(\Modules\Booking\Models\Appointment::class)) {
-            $appointments = \Modules\Booking\Models\Appointment::whereDate('scheduled_at', today())
+            $appointments = \Modules\Booking\Models\Appointment::whereDate('date', today())
                 ->where('practitioner_id', $staffProfile?->id)
                 ->get();
 
