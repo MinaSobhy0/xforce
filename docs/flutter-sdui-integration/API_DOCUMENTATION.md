@@ -632,6 +632,73 @@ Authorization: Bearer {token}
 
 ## Attendance
 
+### Get Attendance Types
+
+Returns available check-in methods with their enabled/allowed status per staff.
+
+```http
+GET /api/v2/attendance/types
+Authorization: Bearer {token}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "types": [
+      {
+        "type": "manual",
+        "label": "Manual",
+        "enabled": true,
+        "allowed": true,
+        "settings": {}
+      },
+      {
+        "type": "geofence",
+        "label": "Geofence (Location)",
+        "enabled": true,
+        "allowed": true,
+        "settings": {
+          "radius_meters": 100,
+          "require_high_accuracy": true
+        }
+      },
+      {
+        "type": "qr_static",
+        "label": "Static QR Code",
+        "enabled": true,
+        "allowed": false,
+        "settings": {
+          "allow_camera_only": true
+        }
+      },
+      {
+        "type": "qr_dynamic",
+        "label": "Dynamic QR Code",
+        "enabled": true,
+        "allowed": true,
+        "settings": {
+          "refresh_interval_seconds": 30,
+          "display_countdown": true
+        }
+      }
+    ],
+    "staff_restrictions": {
+      "allowed_methods": ["manual", "geofence", "qr_dynamic"],
+      "allowed_geofence_locations": [1, 2],
+      "has_method_restrictions": true,
+      "has_location_restrictions": true
+    }
+  }
+}
+```
+
+**Notes:**
+- `enabled`: Whether the method is enabled for the branch/tenant
+- `allowed`: Whether this specific staff member can use this method
+- `staff_restrictions`: Summary of staff-specific restrictions (null values mean no restrictions)
+
 ### Get Attendance Status
 
 ```http
@@ -644,22 +711,28 @@ Authorization: Bearer {token}
 {
   "success": true,
   "data": {
-    "is_checked_in": true,
-    "check_in_time": "2024-01-15T09:15:00Z",
-    "check_in_method": "qr",
-    "is_on_break": false,
-    "current_break_start": null,
-    "total_break_minutes": 30,
-    "expected_check_out": "2024-01-15T18:00:00Z",
-    "shift": {
-      "id": 1,
-      "name": "Morning Shift",
-      "start_time": "09:00",
-      "end_time": "18:00"
-    }
+    "status": "checked_in",
+    "check_in_time": "09:15",
+    "check_out_time": null,
+    "method": "geofence",
+    "worked_hours": 4.5,
+    "break_minutes": 30,
+    "current_break_started": null,
+    "can_check_in": false,
+    "can_check_out": true,
+    "can_start_break": true,
+    "can_end_break": false
   }
 }
 ```
+
+**Status Values:**
+| Status | Description |
+|--------|-------------|
+| `not_checked_in` | Staff has not checked in today |
+| `checked_in` | Staff is currently checked in |
+| `on_break` | Staff is currently on break |
+| `checked_out` | Staff has checked out for the day |
 
 ### Get Attendance Settings
 
@@ -673,21 +746,11 @@ Authorization: Bearer {token}
 {
   "success": true,
   "data": {
-    "check_in_methods": ["manual", "qr", "gps"],
-    "photo_required": false,
+    "check_in_methods": ["manual", "geofence", "qr_static", "qr_dynamic"],
     "geofence_enabled": true,
-    "geofence_radius": 100,
+    "qr_enabled": true,
     "break_tracking": true,
-    "max_break_minutes": 60,
-    "locations": [
-      {
-        "id": 1,
-        "name": "Main Branch",
-        "latitude": 30.0444,
-        "longitude": 31.2357,
-        "radius": 100
-      }
-    ]
+    "photo_required": false
   }
 }
 ```
@@ -702,7 +765,7 @@ Authorization: Bearer {token}
 **Request Body:**
 ```json
 {
-  "method": "qr",
+  "method": "geofence",
   "qr_code": "QR_CODE_DATA",
   "latitude": 30.0444,
   "longitude": 31.2357,
@@ -713,23 +776,50 @@ Authorization: Bearer {token}
 **Parameters:**
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `method` | string | Yes | `manual`, `qr`, or `gps` |
-| `qr_code` | string | If method=qr | QR code data |
-| `latitude` | number | If method=gps | Current latitude |
-| `longitude` | number | If method=gps | Current longitude |
+| `method` | string | Yes | `manual`, `geofence`, `qr_static`, `qr_dynamic`, `biometric` |
+| `qr_code` | string | If method=qr_* | QR code data |
+| `latitude` | number | If method=geofence | Current latitude |
+| `longitude` | number | If method=geofence | Current longitude |
 | `photo` | string | If required | Base64 image |
 
-**Response:**
+**Success Response:**
 ```json
 {
   "success": true,
-  "message": "Checked in successfully",
+  "message": "تم تسجيل الحضور بنجاح",
   "data": {
-    "attendance_id": 456,
-    "check_in_time": "2024-01-15T09:15:00Z",
-    "method": "qr"
+    "id": 456,
+    "check_in_time": "09:15"
   }
 }
+```
+
+**Error Response (Method Not Allowed):**
+```json
+{
+  "success": false,
+  "message": "طريقة تسجيل الحضور هذه غير مسموح بها لك"
+}
+```
+HTTP Status: 403
+
+**Error Response (Location Not Allowed):**
+```json
+{
+  "success": false,
+  "message": "أنت لست ضمن المنطقة المسموح بها"
+}
+```
+HTTP Status: 400
+
+**Error Response (Already Checked In):**
+```json
+{
+  "success": false,
+  "message": "أنت مسجل حضور بالفعل"
+}
+```
+HTTP Status: 400
 ```
 
 ### Check Out
@@ -843,29 +933,39 @@ Authorization: Bearer {token}
 
 ### Get Attendance Summary
 
+Returns attendance summary for a specific month.
+
 ```http
-GET /api/v2/attendance/summary?month=2024-01
+GET /api/v2/attendance/summary?month=1&year=2024
 Authorization: Bearer {token}
 ```
+
+**Query Parameters:**
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `month` | int | Current month | Month number (1-12) |
+| `year` | int | Current year | Year (e.g., 2024) |
 
 **Response:**
 ```json
 {
   "success": true,
   "data": {
-    "period": "January 2024",
+    "month": 1,
+    "year": 2024,
     "total_days": 22,
+    "total_hours": 176.5,
+    "average_hours": 8.0,
+    "total_break_minutes": 990,
     "present_days": 20,
-    "absent_days": 1,
-    "late_days": 2,
-    "total_hours": "176h 30m",
-    "overtime_hours": "8h 15m",
-    "early_leaves": 0
+    "half_days": 2
   }
 }
 ```
 
 ### Validate QR Code
+
+Validates a QR code for attendance check-in.
 
 ```http
 POST /api/v2/attendance/validate/qr
@@ -875,25 +975,50 @@ Authorization: Bearer {token}
 **Request Body:**
 ```json
 {
-  "qr_code": "QR_CODE_DATA"
+  "qr_code": "QR_CODE_DATA",
+  "type": "qr_static"
 }
 ```
 
-**Response:**
+**Parameters:**
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `qr_code` | string | Yes | The scanned QR code data |
+| `type` | string | No | `qr_static` (default) or `qr_dynamic` |
+
+**Success Response:**
 ```json
 {
   "success": true,
   "data": {
     "valid": true,
-    "branch": {
-      "id": 1,
-      "name": "Main Branch"
-    }
+    "reason": null
   }
 }
 ```
 
+**Error Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "valid": false,
+    "reason": "expired_or_invalid"
+  }
+}
+```
+
+**Reason Values:**
+| Reason | Description |
+|--------|-------------|
+| `not_configured` | QR check-in not configured |
+| `not_enabled` | QR type not enabled for branch |
+| `invalid_code` | Static QR code doesn't match |
+| `expired_or_invalid` | Dynamic QR code expired or invalid |
+
 ### Validate Geofence
+
+Validates if the given coordinates are within an allowed geofence location.
 
 ```http
 POST /api/v2/attendance/validate/geofence
@@ -908,23 +1033,48 @@ Authorization: Bearer {token}
 }
 ```
 
-**Response:**
+**Success Response (Within Radius):**
 ```json
 {
   "success": true,
   "data": {
     "valid": true,
-    "within_radius": true,
-    "distance_meters": 45,
-    "branch": {
-      "id": 1,
-      "name": "Main Branch"
-    }
+    "distance": 45,
+    "allowed_radius": 100,
+    "location_name": "Main Branch",
+    "branch_id": 1
+  }
+}
+```
+
+**Error Response (Outside Radius):**
+```json
+{
+  "success": true,
+  "data": {
+    "valid": false,
+    "distance": 250,
+    "allowed_radius": 100,
+    "location_name": "Main Branch"
+  }
+}
+```
+
+**Error Response (No Allowed Locations):**
+```json
+{
+  "success": true,
+  "data": {
+    "valid": false,
+    "distance": null,
+    "message": "No allowed locations configured"
   }
 }
 ```
 
 ### Get Geofence Locations
+
+Returns all geofence locations with staff-specific access flags.
 
 ```http
 GET /api/v2/attendance/geofence/locations
@@ -935,22 +1085,75 @@ Authorization: Bearer {token}
 ```json
 {
   "success": true,
-  "data": [
-    {
-      "id": 1,
-      "name": "Main Branch",
-      "latitude": 30.0444,
-      "longitude": 31.2357,
-      "radius": 100
-    },
-    {
-      "id": 2,
-      "name": "Downtown Branch",
-      "latitude": 30.0500,
-      "longitude": 31.2400,
-      "radius": 150
+  "data": {
+    "locations": [
+      {
+        "id": 1,
+        "branch_id": 1,
+        "name": "Main Branch",
+        "latitude": 30.0444,
+        "longitude": 31.2357,
+        "radius": 100,
+        "source": "branch",
+        "allowed": true
+      },
+      {
+        "id": 2,
+        "branch_id": 2,
+        "name": "Downtown Branch",
+        "latitude": 30.0500,
+        "longitude": 31.2400,
+        "radius": 150,
+        "source": "branch",
+        "allowed": false
+      },
+      {
+        "id": "custom_1",
+        "branch_id": null,
+        "name": "Warehouse",
+        "latitude": 30.0600,
+        "longitude": 31.2500,
+        "radius": 200,
+        "source": "custom",
+        "allowed": true
+      }
+    ],
+    "default_radius": 100,
+    "has_location_restrictions": true,
+    "allowed_location_ids": [1],
+    "settings": {
+      "require_high_accuracy": true,
+      "min_accuracy_meters": 50
     }
-  ]
+  }
+}
+```
+
+**Notes:**
+- `allowed`: Whether this staff member can check in at this location
+- `source`: `branch` for branch locations, `custom` for admin-defined locations
+- `has_location_restrictions`: true if staff has location restrictions configured
+- `allowed_location_ids`: List of branch IDs staff can check in at (null = all allowed)
+
+### Get Dynamic QR Code
+
+Returns the current dynamic QR code for display (for admins/display screens).
+
+```http
+GET /api/v2/attendance/qr-dynamic/current
+Authorization: Bearer {token}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "code": "XL-DYN-1234567890",
+    "refresh_interval": 30,
+    "seconds_remaining": 15,
+    "expires_at": "2024-01-15T09:15:30Z"
+  }
 }
 ```
 
