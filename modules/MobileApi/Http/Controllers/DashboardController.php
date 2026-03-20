@@ -115,7 +115,7 @@ class DashboardController extends BaseApiController
         // Today's appointments
         if ($this->hasPermission('appointments.view') && class_exists(\Modules\Booking\Models\Appointment::class)) {
             $appointments = \Modules\Booking\Models\Appointment::whereDate('date', today())
-                ->where('practitioner_id', $staffProfile->id)
+                ->where('practitioner_id', $user->id)
                 ->get();
 
             $stats['today_appointments'] = [
@@ -176,7 +176,7 @@ class DashboardController extends BaseApiController
         }
 
         $appointments = \Modules\Booking\Models\Appointment::with(['patient', 'service'])
-            ->where('practitioner_id', $staffProfile->id)
+            ->where('practitioner_id', $this->user()->id)
             ->where(function ($q) {
                 $q->whereDate('date', '>', today())
                   ->orWhere(function ($q2) {

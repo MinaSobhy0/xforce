@@ -20,7 +20,7 @@ class AppointmentsController extends BaseApiController
         }
 
         $appointments = \Modules\Booking\Models\Appointment::with(['patient', 'service'])
-            ->where('practitioner_id', $staffProfile->id)
+            ->where('practitioner_id', $this->user()->id)
             ->whereDate('date', today())
             ->orderBy('date')
             ->orderBy('start_time')
@@ -47,7 +47,7 @@ class AppointmentsController extends BaseApiController
         }
 
         $query = \Modules\Booking\Models\Appointment::with(['patient', 'service'])
-            ->where('practitioner_id', $staffProfile->id);
+            ->where('practitioner_id', $this->user()->id);
 
         // Filter by date range
         if ($request->filled('date')) {
@@ -86,7 +86,7 @@ class AppointmentsController extends BaseApiController
             'package',
             'invoicePayments',
         ])
-            ->where('practitioner_id', $staffProfile->id)
+            ->where('practitioner_id', $this->user()->id)
             ->find($id);
 
         if (!$appointment) {
@@ -109,7 +109,7 @@ class AppointmentsController extends BaseApiController
         }
 
         $appointment = \Modules\Booking\Models\Appointment::with('patient')
-            ->where('practitioner_id', $staffProfile->id)
+            ->where('practitioner_id', $this->user()->id)
             ->find($id);
 
         if (!$appointment || !$appointment->patient) {
