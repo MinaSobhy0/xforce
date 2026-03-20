@@ -21,14 +21,19 @@ class TenantDiscoveryController extends BaseApiController
         $result = $this->discoveryService->resolveByCode($code);
 
         if (!$result) {
-            return $this->error(
-                __('mobile_api::mobile.tenant.invalid_code'),
-                404
-            );
+            return response()->json([
+                'success' => false,
+                'error_code' => 'INVALID_CODE',
+                'message' => __('mobile_api::mobile.tenant.invalid_code'),
+            ], 404);
         }
 
         if (!$result['valid']) {
-            return $this->error($result['error'], 400);
+            return response()->json([
+                'success' => false,
+                'error_code' => $result['error_code'] ?? 'VALIDATION_ERROR',
+                'message' => $result['error'],
+            ], 400);
         }
 
         return $this->success(

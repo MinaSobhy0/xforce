@@ -22,9 +22,11 @@ class TenantDiscoveryService
         }
 
         if (!$appCode->isValid()) {
+            $errorData = $this->getCodeErrorData($appCode);
             return [
                 'valid' => false,
-                'error' => $this->getCodeErrorMessage($appCode),
+                'error_code' => $errorData['code'],
+                'error' => $errorData['message'],
             ];
         }
 
@@ -33,6 +35,7 @@ class TenantDiscoveryService
         if (!$tenant || !$tenant->isActive()) {
             return [
                 'valid' => false,
+                'error_code' => 'TENANT_INACTIVE',
                 'error' => __('mobile_api::mobile.tenant.tenant_inactive'),
             ];
         }
@@ -129,15 +132,39 @@ class TenantDiscoveryService
      */
     protected function getCodeErrorMessage(TenantAppCode $appCode): string
     {
+        return $this->getCodeErrorData($appCode)['message'];
+    }
+
+    /**
+     * Get error code and message for an invalid app code.
+     */
+    protected function getCodeErrorData(TenantAppCode $appCode): array
+    {
         if ($appCode->isExpired()) {
-            return __('mobile_api::mobile.tenant.code_expired');
+            return [
+                'code' => 'CODE_EXPIRED',
+                'message' => __('mobile_api::mobile.tenant.code_expired'),
+            ];
         }
 
         if ($appCode->isMaxedOut()) {
-            return __('mobile_api::mobile.tenant.code_usage_exceeded');
+            return [
+                'code' => 'CODE_USAGE_EXCEEDED',
+                'message' => __('mobile_api::mobile.tenant.code_usage_exceeded'),
+            ];
         }
 
-        return __('mobile_api::mobile.tenant.invalid_code');
+        if (!$appCode->is_active) {
+            return [
+                'code' => 'CODE_INACTIVE',
+                'message' => __('mobile_api::mobile.tenant.invalid_code'),
+            ];
+        }
+
+        return [
+            'code' => 'INVALID_CODE',
+            'message' => __('mobile_api::mobile.tenant.invalid_code'),
+        ];
     }
 
     /**
