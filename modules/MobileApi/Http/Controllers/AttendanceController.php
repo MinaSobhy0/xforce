@@ -525,6 +525,41 @@ class AttendanceController extends BaseApiController
     }
 
     /**
+     * Get current dynamic QR code for display.
+     * GET /api/v2/attendance/qr-dynamic/current
+     */
+    public function getDynamicQr(): JsonResponse
+    {
+        if (!class_exists(AttendanceTypeSetting::class)) {
+            return $this->error('Attendance module not available', 503);
+        }
+
+        $setting = AttendanceTypeSetting::getForType(Attendance::TYPE_QR_DYNAMIC, $this->branch()?->id);
+
+        if (!$setting) {
+            return $this->error('Dynamic QR not enabled', 400);
+        }
+
+        $code = $setting->getCurrentDynamicCode();
+
+        if (!$code) {
+            return $this->error('Dynamic QR not configured', 400);
+        }
+
+        $refreshInterval = $setting->getSetting('refresh_interval_seconds', 30);
+        $currentTime = time();
+        $nextRefresh = (floor($currentTime / $refreshInterval) + 1) * $refreshInterval;
+        $secondsRemaining = $nextRefresh - $currentTime;
+
+        return $this->success([
+            'code' => $code,
+            'refresh_interval' => $refreshInterval,
+            'seconds_remaining' => $secondsRemaining,
+            'expires_at' => now()->addSeconds($secondsRemaining)->toIso8601String(),
+        ]);
+    }
+
+    /**
      * Validate QR code.
      * POST /api/v2/attendance/validate/qr
      */
@@ -563,16 +598,7 @@ class AttendanceController extends BaseApiController
      */
     public function getGeofenceLocations(): JsonResponse
     {
-        $tenant = $this->tenant();
-
-        if (!class_exists(\Modules\Core\Models\Branch::class)) {
-            return $this->success([]);
-        }
-
-        $branches = \Modules\Core\Models\Branch::whereNotNull('latitude')
-            ->whereNotNull('longitude')
-            ->get();
-
+        $locations = [];
         $defaultRadius = 100;
 
         // Get geofence settings if available
@@ -580,16 +606,55 @@ class AttendanceController extends BaseApiController
             $geofenceSetting = AttendanceTypeSetting::getForType(Attendance::TYPE_GEOFENCE, $this->branch()?->id);
             if ($geofenceSetting) {
                 $defaultRadius = $geofenceSetting->getSetting('radius_meters', 100);
+
+                // Get custom locations from settings
+                $customLocations = $geofenceSetting->getSetting('locations', []);
+                foreach ($customLocations as $loc) {
+                    if (!empty($loc['lat']) && !empty($loc['lng'])) {
+                        $locations[] = [
+                            'id' => $loc['id'] ?? null,
+                            'name' => $loc['name'] ?? 'Custom Location',
+                            'latitude' => (float) $loc['lat'],
+                            'longitude' => (float) $loc['lng'],
+                            'radius' => $loc['radius'] ?? $defaultRadius,
+                            'source' => 'custom',
+                        ];
+                    }
+                }
             }
         }
 
-        return $this->success($branches->map(fn($b) => [
-            'id' => $b->id,
-            'name' => $b->name,
-            'latitude' => (float) $b->latitude,
-            'longitude' => (float) $b->longitude,
-            'radius' => $b->geofence_radius ?? $defaultRadius,
-        ])->all());
+        // Get branches with coordinates
+        if (class_exists(\Modules\Core\Models\Branch::class)) {
+            $branches = \Modules\Core\Models\Branch::active()
+                ->whereNotNull('latitude')
+                ->whereNotNull('longitude')
+                ->get();
+
+            foreach ($branches as $branch) {
+                $locations[] = [
+                    'id' => $branch->id,
+                    'name' => $branch->name,
+                    'latitude' => (float) $branch->latitude,
+                    'longitude' => (float) $branch->longitude,
+                    'radius' => $branch->geofence_radius ?? $defaultRadius,
+                    'source' => 'branch',
+                ];
+            }
+        }
+
+        return $this->success([
+            'locations' => $locations,
+            'default_radius' => $defaultRadius,
+            'settings' => [
+                'require_high_accuracy' => class_exists(AttendanceTypeSetting::class)
+                    ? (AttendanceTypeSetting::getForType(Attendance::TYPE_GEOFENCE, $this->branch()?->id)?->getSetting('require_high_accuracy', true) ?? true)
+                    : true,
+                'min_accuracy_meters' => class_exists(AttendanceTypeSetting::class)
+                    ? (AttendanceTypeSetting::getForType(Attendance::TYPE_GEOFENCE, $this->branch()?->id)?->getSetting('min_accuracy_meters', 50) ?? 50)
+                    : 50,
+            ],
+        ]);
     }
 
     // Helper methods
@@ -656,29 +721,75 @@ class AttendanceController extends BaseApiController
 
     protected function validateGeofenceLocation(float $lat, float $lng): array
     {
-        $branch = $this->branch();
-
-        if (!$branch || !$branch->latitude || !$branch->longitude) {
-            return ['valid' => true, 'distance' => null, 'message' => 'No geofence configured'];
-        }
-
-        $radius = 100;
+        $defaultRadius = 100;
+        $allLocations = [];
 
         // Get geofence settings
         if (class_exists(AttendanceTypeSetting::class)) {
-            $setting = AttendanceTypeSetting::getForType(Attendance::TYPE_GEOFENCE, $branch->id);
+            $setting = AttendanceTypeSetting::getForType(Attendance::TYPE_GEOFENCE, $this->branch()?->id);
             if ($setting) {
-                $radius = $setting->getSetting('radius_meters', 100);
+                $defaultRadius = $setting->getSetting('radius_meters', 100);
+
+                // Get custom locations from settings
+                $customLocations = $setting->getSetting('locations', []);
+                foreach ($customLocations as $loc) {
+                    if (!empty($loc['lat']) && !empty($loc['lng'])) {
+                        $allLocations[] = [
+                            'name' => $loc['name'] ?? 'Custom Location',
+                            'lat' => (float) $loc['lat'],
+                            'lng' => (float) $loc['lng'],
+                            'radius' => $loc['radius'] ?? $defaultRadius,
+                        ];
+                    }
+                }
             }
         }
 
-        $distance = $this->calculateDistance($lat, $lng, $branch->latitude, $branch->longitude);
+        // Add current branch location if available
+        $branch = $this->branch();
+        if ($branch && $branch->latitude && $branch->longitude) {
+            $allLocations[] = [
+                'name' => $branch->name,
+                'lat' => (float) $branch->latitude,
+                'lng' => (float) $branch->longitude,
+                'radius' => $branch->geofence_radius ?? $defaultRadius,
+            ];
+        }
 
+        // If no locations configured, allow check-in
+        if (empty($allLocations)) {
+            return ['valid' => true, 'distance' => null, 'message' => 'No geofence configured'];
+        }
+
+        // Find closest location and check if within any radius
+        $closestLocation = null;
+        $closestDistance = PHP_FLOAT_MAX;
+
+        foreach ($allLocations as $location) {
+            $distance = $this->calculateDistance($lat, $lng, $location['lat'], $location['lng']);
+
+            if ($distance < $closestDistance) {
+                $closestDistance = $distance;
+                $closestLocation = $location;
+            }
+
+            // If within this location's radius, return valid immediately
+            if ($distance <= $location['radius']) {
+                return [
+                    'valid' => true,
+                    'distance' => round($distance),
+                    'allowed_radius' => $location['radius'],
+                    'location_name' => $location['name'],
+                ];
+            }
+        }
+
+        // Not within any location
         return [
-            'valid' => $distance <= $radius,
-            'distance' => round($distance),
-            'allowed_radius' => $radius,
-            'branch_name' => $branch->name,
+            'valid' => false,
+            'distance' => round($closestDistance),
+            'allowed_radius' => $closestLocation['radius'] ?? $defaultRadius,
+            'location_name' => $closestLocation['name'] ?? null,
         ];
     }
 

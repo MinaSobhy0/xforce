@@ -22,6 +22,9 @@ class Branch extends BaseModel
         'phone',
         'email',
         'google_maps_url',
+        'latitude',
+        'longitude',
+        'geofence_radius',
         'working_hours',
         'timezone',
         'currency_code',
@@ -31,6 +34,9 @@ class Branch extends BaseModel
     ];
 
     protected $casts = [
+        'latitude' => 'decimal:7',
+        'longitude' => 'decimal:7',
+        'geofence_radius' => 'integer',
         'working_hours' => 'array',
         'is_active' => 'boolean',
         'is_main' => 'boolean',
