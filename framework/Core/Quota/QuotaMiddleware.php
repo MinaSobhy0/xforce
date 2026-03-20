@@ -296,8 +296,16 @@ class QuotaMiddleware
             return (int) $tenant->id;
         }
 
-        // Try to get tenant from current context
-        return $this->quotaService->getCurrentTenantId();
+        // Try to get tenant from current context using helper
+        if (function_exists('current_tenant')) {
+            $currentTenant = current_tenant();
+            if ($currentTenant) {
+                return (int) $currentTenant->id;
+            }
+        }
+
+        // No tenant context available (e.g., public endpoints)
+        return null;
     }
 
     /**
