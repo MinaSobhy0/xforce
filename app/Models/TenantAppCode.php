@@ -180,8 +180,8 @@ class TenantAppCode extends Model
      */
     public function getWebLinkAttribute(): string
     {
-        $baseUrl = config('mobile_api.deep_links.web_base_url', 'https://xlinic.com/app');
-        return "{$baseUrl}/join/{$this->code}";
+        // Use the app's URL for the join route
+        return url("/app/join/{$this->code}");
     }
 
     /**

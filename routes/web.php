@@ -39,3 +39,29 @@ Route::get('/appointment/{appointment}/{action}', function (\Illuminate\Http\Req
     return app(\Modules\Booking\Http\Controllers\AppointmentActionController::class)->handle($request, $appointmentModel, $action);
 })->name('appointment.action');
 
+// Mobile App QR Code Join Route
+Route::get('/app/join/{code}', function (string $code) {
+    $appCode = \App\Models\TenantAppCode::with('tenant')
+        ->where('code', strtoupper($code))
+        ->first();
+
+    if (!$appCode || !$appCode->isValid()) {
+        abort(404, 'Invalid or expired code');
+    }
+
+    $tenant = $appCode->tenant;
+    if (!$tenant || !$tenant->isActive()) {
+        abort(404, 'Clinic not found');
+    }
+
+    // Increment usage
+    $appCode->incrementUsage();
+
+    // Return a simple page with app download links or redirect
+    return view('app-join', [
+        'tenant' => $tenant,
+        'code' => $appCode->code,
+        'deepLink' => $appCode->deep_link,
+    ]);
+})->name('app.join');
+

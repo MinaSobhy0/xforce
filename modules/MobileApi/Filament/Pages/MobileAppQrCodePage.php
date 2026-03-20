@@ -64,7 +64,8 @@ class MobileAppQrCodePage extends Page
         );
         $writer = new Writer($renderer);
 
-        return base64_encode($writer->writeString($appCode->deep_link));
+        // Use web_link for QR (https:// URL works with all QR scanners)
+        return base64_encode($writer->writeString($appCode->web_link));
     }
 
     #[Computed]

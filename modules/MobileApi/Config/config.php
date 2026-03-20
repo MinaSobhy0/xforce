@@ -84,7 +84,7 @@ return [
     |--------------------------------------------------------------------------
     */
     'deep_links' => [
-        'scheme' => 'xlinic',
-        'web_base_url' => 'https://xlinic.com/app',
+        'scheme' => env('MOBILE_APP_SCHEME', 'xlinic'),
+        'web_base_url' => env('MOBILE_APP_WEB_URL', 'https://x-linic.com/app'),
     ],
 ];

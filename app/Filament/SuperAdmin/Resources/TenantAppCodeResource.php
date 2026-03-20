@@ -178,7 +178,8 @@ class TenantAppCodeResource extends Resource
                     ->color('info')
                     ->modalHeading('QR Code')
                     ->modalContent(function (TenantAppCode $record) {
-                        $qrData = $record->deep_link;
+                        // Use web_link for QR (https:// URL works with all QR scanners)
+                        $qrData = $record->web_link;
 
                         $renderer = new ImageRenderer(
                             new RendererStyle(250, 2),
