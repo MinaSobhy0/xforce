@@ -63,6 +63,11 @@ class QuotaMiddleware
         // Process the request
         $response = $next($request);
 
+        // Skip quota tracking if no tenant context
+        if ($tenantId === null) {
+            return $response;
+        }
+
         // Consume quota after successful request
         if ($this->shouldConsumeQuota($response, $options)) {
             $this->quotaService->consume($quotaType, $amount, $tenantId);
