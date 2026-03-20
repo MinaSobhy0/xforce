@@ -482,7 +482,12 @@ class QuotaService
      */
     protected function getCurrentTenantId(): ?int
     {
-        $tenant = $this->tenantManager->getCurrentTenant();
+        // Use the getCurrentTenantId method if available, or fall back to current()
+        if (method_exists($this->tenantManager, 'getCurrentTenantId')) {
+            return $this->tenantManager->getCurrentTenantId();
+        }
+
+        $tenant = $this->tenantManager->current();
         return $tenant?->id;
     }
 
