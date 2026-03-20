@@ -186,6 +186,7 @@ class StaffProfileResource extends Resource
                             ->helperText(__('staff::staff.fields.allowed_check_in_methods_help'))
                             ->options(StaffProfile::CHECK_IN_METHODS)
                             ->columns(3)
+                            ->live()
                             ->nullable(),
 
                         Forms\Components\Select::make('allowed_geofence_locations')
