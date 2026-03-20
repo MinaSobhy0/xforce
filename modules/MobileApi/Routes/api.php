@@ -99,7 +99,6 @@ Route::middleware([\Modules\MobileApi\Http\Middleware\ResolveTenantFromHeader::c
             Route::post('validate/qr', [AttendanceController::class, 'validateQr']);
             Route::post('validate/geofence', [AttendanceController::class, 'validateGeofence']);
             Route::get('qr-dynamic/current', [AttendanceController::class, 'getDynamicQr']);
-            Route::get('geofence/locations', [AttendanceController::class, 'getGeofenceLocations']);
         });
 
         // Time Off / Leave
