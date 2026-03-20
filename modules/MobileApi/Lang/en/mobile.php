@@ -44,14 +44,17 @@ return [
         'checked_in' => 'Checked in successfully',
         'checked_out' => 'Checked out successfully',
         'already_checked_in' => 'You are already checked in',
+        'already_completed_today' => 'Attendance already completed for today',
         'not_checked_in' => 'You are not checked in',
         'break_started' => 'Break started',
         'break_ended' => 'Break ended',
         'not_on_break' => 'You are not on break',
         'already_on_break' => 'You are already on break',
         'invalid_location' => 'You are not within the allowed area',
+        'location_required' => 'Location is required for geofence check-in',
         'invalid_qr' => 'Invalid or expired QR code',
         'dispute_submitted' => 'Dispute submitted successfully',
+        'cannot_dispute' => 'This violation cannot be disputed',
     ],
 
     'time_off' => [

@@ -150,13 +150,18 @@ class AttendanceController extends BaseApiController
             return $this->error('Attendance module not available', 503);
         }
 
-        // Check if already checked in today
+        // Check if already has attendance record today (any status)
         $existing = Attendance::where('staff_profile_id', $staffProfile->id)
             ->whereDate('attendance_date', today())
-            ->whereNull('check_out_time')
             ->first();
 
         if ($existing) {
+            // Already checked in today
+            if ($existing->check_out_time) {
+                // Already completed attendance for today
+                return $this->error(__('mobile_api::mobile.attendance.already_completed_today'), 400);
+            }
+            // Still checked in (no check out yet)
             return $this->error(__('mobile_api::mobile.attendance.already_checked_in'), 400);
         }
 
@@ -178,16 +183,20 @@ class AttendanceController extends BaseApiController
             }
         }
 
-        // Create attendance record
-        $attendance = Attendance::create([
-            'tenant_id' => current_tenant_id(),
-            'staff_profile_id' => $staffProfile->id,
-            'branch_id' => $this->branch()?->id,
-            'attendance_date' => today(),
-            'check_in_time' => now(),
-            'attendance_type' => $request->method,
-            'status' => Attendance::STATUS_PRESENT,
-        ]);
+        // Create attendance record with try-catch for race conditions
+        try {
+            $attendance = Attendance::create([
+                'tenant_id' => current_tenant_id(),
+                'staff_profile_id' => $staffProfile->id,
+                'branch_id' => $this->branch()?->id,
+                'attendance_date' => today(),
+                'check_in_time' => now(),
+                'attendance_type' => $request->method,
+                'status' => Attendance::STATUS_PRESENT,
+            ]);
+        } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+            return $this->error(__('mobile_api::mobile.attendance.already_checked_in'), 400);
+        }
 
         return $this->success([
             'id' => $attendance->id,

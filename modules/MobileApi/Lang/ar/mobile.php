@@ -44,14 +44,17 @@ return [
         'checked_in' => 'تم تسجيل الحضور بنجاح',
         'checked_out' => 'تم تسجيل الانصراف بنجاح',
         'already_checked_in' => 'أنت مسجل حضور بالفعل',
+        'already_completed_today' => 'تم اكتمال الحضور لهذا اليوم',
         'not_checked_in' => 'لم يتم تسجيل حضورك',
         'break_started' => 'بدأت الاستراحة',
         'break_ended' => 'انتهت الاستراحة',
         'not_on_break' => 'أنت لست في استراحة',
         'already_on_break' => 'أنت في استراحة بالفعل',
         'invalid_location' => 'أنت لست ضمن المنطقة المسموح بها',
+        'location_required' => 'الموقع مطلوب لتسجيل الحضور بالموقع الجغرافي',
         'invalid_qr' => 'رمز QR غير صالح أو منتهي الصلاحية',
         'dispute_submitted' => 'تم تقديم الاعتراض بنجاح',
+        'cannot_dispute' => 'لا يمكن الاعتراض على هذه المخالفة',
     ],
 
     'time_off' => [
