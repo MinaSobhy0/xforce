@@ -267,9 +267,6 @@ class AccountingIntegrationService
      */
     public function createPaymentJournalEntry(Payment $payment): ?JournalEntry
     {
-        // Refresh payment to ensure we have the latest code from database
-        $payment->refresh();
-
         // Get payment journal (Cash, Bank, Card, etc.)
         $paymentJournal = $payment->journal;
         if (!$paymentJournal) {
@@ -309,11 +306,14 @@ class AccountingIntegrationService
         $branchId = $invoice?->branch_id ?? $payment->branch_id;
 
         // Build description
-        $description = "Payment {$payment->code}";
+        $description = "Payment";
         if ($invoice) {
             $description .= " for Invoice {$invoice->code}";
         } elseif ($payment->appointment_id) {
             $description .= " for Appointment";
+        }
+        if ($patient) {
+            $description .= " - {$patient->full_name}";
         }
 
         // Create journal entry
