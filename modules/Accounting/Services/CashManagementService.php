@@ -59,7 +59,7 @@ class CashManagementService
     {
         $account = ChartOfAccount::find($accountId);
 
-        if (!$account) {
+        if (! $account) {
             return 0;
         }
 
@@ -117,6 +117,7 @@ class CashManagementService
 
         return $lines->map(function ($line) {
             $entry = $line->journalEntry;
+
             return [
                 'id' => $entry->id,
                 'date' => $entry->date->format('Y-m-d'),
@@ -169,6 +170,81 @@ class CashManagementService
     }
 
     /**
+     * Record a partner-based transaction with automatic account selection.
+     * Uses configured default accounts from DefaultAccountsService.
+     * - Suppliers: Uses Accounts Payable (configured per partner type)
+     * - Patients/Staff: Uses Accounts Receivable (configured per partner type)
+     */
+    public function recordPartnerTransaction(
+        string $cashAccountId,
+        string $partnerKey,
+        int $amountMinor,
+        Carbon $date,
+        bool $isCashIn,
+        ?string $reference = null,
+        ?string $description = null,
+        ?string $journalId = null
+    ): JournalEntry {
+        // Parse partner key
+        $partnerData = $this->parsePartnerKey($partnerKey);
+
+        if (! $partnerData['type'] || ! $partnerData['id']) {
+            throw new \Exception('Invalid partner selected');
+        }
+
+        // Get default accounts service
+        $defaultAccounts = new DefaultAccountsService;
+
+        // Determine partner type key for account lookup
+        $partnerTypeKey = $this->getPartnerTypeKey($partnerData['type']);
+        $isSupplier = $partnerTypeKey === 'supplier';
+
+        // Get counter account from configured defaults
+        // - For suppliers: use payable account
+        // - For patients/staff: use receivable account
+        $counterAccount = $isSupplier
+            ? $defaultAccounts->getPayableAccountForPartner($partnerTypeKey)
+            : $defaultAccounts->getReceivableAccountForPartner($partnerTypeKey);
+
+        if (! $counterAccount) {
+            throw new \Exception($isSupplier
+                ? __('accounting::accounting.messages.payable_not_configured')
+                : __('accounting::accounting.messages.receivable_not_configured'));
+        }
+
+        return $this->createCashTransaction(
+            cashAccountId: $cashAccountId,
+            counterAccountId: $counterAccount->id,
+            amountMinor: $amountMinor,
+            date: $date,
+            isCashIn: $isCashIn,
+            partnerId: $partnerData['id'],
+            partnerType: $partnerData['type'],
+            reference: $reference,
+            description: $description,
+            journalId: $journalId
+        );
+    }
+
+    /**
+     * Get partner type key from morph class.
+     */
+    protected function getPartnerTypeKey(string $morphClass): string
+    {
+        if (str_contains($morphClass, 'Supplier')) {
+            return 'supplier';
+        }
+        if (str_contains($morphClass, 'Patient')) {
+            return 'patient';
+        }
+        if (str_contains($morphClass, 'StaffProfile')) {
+            return 'staff';
+        }
+
+        return 'patient'; // default
+    }
+
+    /**
      * Record a cash in transaction (creates journal entry).
      * Money coming into the cash/bank account.
      *
@@ -183,7 +259,8 @@ class CashManagementService
         ?string $partnerId = null,
         ?string $partnerType = null,
         ?string $reference = null,
-        ?string $description = null
+        ?string $description = null,
+        ?string $journalId = null
     ): JournalEntry {
         return $this->createCashTransaction(
             cashAccountId: $cashAccountId,
@@ -194,7 +271,8 @@ class CashManagementService
             partnerId: $partnerId,
             partnerType: $partnerType,
             reference: $reference,
-            description: $description
+            description: $description,
+            journalId: $journalId
         );
     }
 
@@ -213,7 +291,8 @@ class CashManagementService
         ?string $partnerId = null,
         ?string $partnerType = null,
         ?string $reference = null,
-        ?string $description = null
+        ?string $description = null,
+        ?string $journalId = null
     ): JournalEntry {
         return $this->createCashTransaction(
             cashAccountId: $cashAccountId,
@@ -224,7 +303,8 @@ class CashManagementService
             partnerId: $partnerId,
             partnerType: $partnerType,
             reference: $reference,
-            description: $description
+            description: $description,
+            journalId: $journalId
         );
     }
 
@@ -240,7 +320,8 @@ class CashManagementService
         ?string $partnerId = null,
         ?string $partnerType = null,
         ?string $reference = null,
-        ?string $description = null
+        ?string $description = null,
+        ?string $journalId = null
     ): JournalEntry {
         $tenantId = $this->getTenantId();
 
@@ -254,13 +335,21 @@ class CashManagementService
             $partnerType,
             $reference,
             $description,
-            $tenantId
+            $tenantId,
+            $journalId
         ) {
-            // Get the appropriate journal (Cash or Bank)
-            $cashAccount = ChartOfAccount::find($cashAccountId);
-            $journal = $this->getJournalForAccount($cashAccount);
+            // Use provided journal or determine from account
+            $journal = null;
+            if ($journalId) {
+                $journal = Journal::find($journalId);
+            }
 
-            if (!$journal) {
+            if (! $journal) {
+                $cashAccount = ChartOfAccount::find($cashAccountId);
+                $journal = $this->getJournalForAccount($cashAccount);
+            }
+
+            if (! $journal) {
                 throw new \Exception('No cash or bank journal found');
             }
 
@@ -348,7 +437,7 @@ class CashManagementService
      */
     protected function getJournalForAccount(?ChartOfAccount $account): ?Journal
     {
-        if (!$account) {
+        if (! $account) {
             return Journal::getCashJournal() ?? Journal::getBankJournal();
         }
 
@@ -368,72 +457,177 @@ class CashManagementService
     }
 
     /**
-     * Get partner options for dropdown (Patients, Suppliers, Staff).
+     * Record a transfer between two cash/bank accounts.
+     * This creates a journal entry with:
+     * - Debit: Destination Account
+     * - Credit: Source Account
      */
-    public function getPartnerOptions(?string $partnerType = null): array
+    public function recordTransfer(
+        string $sourceAccountId,
+        string $destinationAccountId,
+        int $amountMinor,
+        \Carbon\Carbon $date,
+        ?string $reference = null,
+        ?string $description = null,
+        ?string $sourceJournalId = null
+    ): JournalEntry {
+        $tenantId = $this->getTenantId();
+
+        return DB::transaction(function () use (
+            $sourceAccountId,
+            $destinationAccountId,
+            $amountMinor,
+            $date,
+            $reference,
+            $description,
+            $tenantId,
+            $sourceJournalId
+        ) {
+            // Use source journal or determine from account
+            $journal = null;
+            if ($sourceJournalId) {
+                $journal = Journal::find($sourceJournalId);
+            }
+
+            if (! $journal) {
+                $sourceAccount = ChartOfAccount::find($sourceAccountId);
+                $journal = $this->getJournalForAccount($sourceAccount);
+            }
+
+            if (! $journal) {
+                throw new \Exception('No cash or bank journal found');
+            }
+
+            // Create journal entry
+            $entry = JournalEntry::create([
+                'tenant_id' => $tenantId,
+                'journal_id' => $journal->id,
+                'date' => $date,
+                'reference' => $reference,
+                'description' => $description ?? 'Transfer between accounts',
+                'status' => JournalEntry::STATUS_DRAFT,
+                'created_by_user_id' => auth()->id(),
+            ]);
+
+            // Create journal entry lines
+            // Debit destination (money coming in)
+            JournalEntryLine::create([
+                'tenant_id' => $tenantId,
+                'journal_entry_id' => $entry->id,
+                'account_id' => $destinationAccountId,
+                'debit_minor' => $amountMinor,
+                'credit_minor' => 0,
+                'description' => $description,
+            ]);
+
+            // Credit source (money going out)
+            JournalEntryLine::create([
+                'tenant_id' => $tenantId,
+                'journal_entry_id' => $entry->id,
+                'account_id' => $sourceAccountId,
+                'debit_minor' => 0,
+                'credit_minor' => $amountMinor,
+                'description' => $description,
+            ]);
+
+            // Recalculate totals and post if balanced
+            $entry->recalculateTotals();
+
+            if ($entry->isBalanced()) {
+                $entry->post();
+            }
+
+            Log::info('CashManagementService: Transfer recorded', [
+                'entry_id' => $entry->id,
+                'code' => $entry->code,
+                'source_account' => $sourceAccountId,
+                'destination_account' => $destinationAccountId,
+                'amount' => $amountMinor,
+                'status' => $entry->status,
+            ]);
+
+            return $entry;
+        });
+    }
+
+    /**
+     * Get partner options for dropdown (Patients, Suppliers, Staff).
+     * Order depends on transaction type:
+     * - Cash In: Patients first (receiving payments), then Suppliers (refunds)
+     * - Cash Out: Suppliers first (making payments), then Patients (refunds)
+     */
+    public function getPartnerOptions(?string $transactionType = null): array
     {
-        $options = [];
+        $patientOptions = [];
+        $supplierOptions = [];
+        $staffOptions = [];
 
         // Patients
-        if (!$partnerType || $partnerType === 'patient') {
-            try {
-                if (class_exists(\Modules\Patients\Models\Patient::class)) {
-                    $patients = \Modules\Patients\Models\Patient::query()
-                        ->where('is_active', true)
-                        ->orderBy('name')
-                        ->limit(100)
-                        ->get();
+        try {
+            if (class_exists(\Modules\Patients\Models\Patient::class)) {
+                $patients = \Modules\Patients\Models\Patient::query()
+                    ->orderBy('first_name')
+                    ->orderBy('last_name')
+                    ->limit(100)
+                    ->get();
 
-                    foreach ($patients as $patient) {
-                        $options["patient:{$patient->id}"] = "[Patient] {$patient->name}";
-                    }
+                foreach ($patients as $patient) {
+                    $patientOptions["patient:{$patient->id}"] = '['.__('accounting::accounting.patient')."] {$patient->full_name}";
                 }
-            } catch (\Exception $e) {
-                // Module not available
             }
+        } catch (\Exception $e) {
+            Log::debug('CashManagement: Patient module not available', ['error' => $e->getMessage()]);
         }
 
         // Suppliers
-        if (!$partnerType || $partnerType === 'supplier') {
-            try {
-                if (class_exists(\Modules\Inventory\Models\Supplier::class)) {
-                    $suppliers = \Modules\Inventory\Models\Supplier::query()
-                        ->where('is_active', true)
-                        ->orderBy('name')
-                        ->limit(100)
-                        ->get();
+        try {
+            if (class_exists(\Modules\Inventory\Models\Supplier::class)) {
+                $suppliers = \Modules\Inventory\Models\Supplier::query()
+                    ->where('is_active', true)
+                    ->limit(100)
+                    ->get();
 
-                    foreach ($suppliers as $supplier) {
-                        $options["supplier:{$supplier->id}"] = "[Supplier] {$supplier->name}";
+                foreach ($suppliers as $supplier) {
+                    $supplierName = $supplier->getTranslation('name', app()->getLocale())
+                        ?? $supplier->getTranslation('name', 'en')
+                        ?? $supplier->name ?? '';
+                    if (is_array($supplierName)) {
+                        $supplierName = $supplierName[app()->getLocale()] ?? $supplierName['en'] ?? '';
                     }
+                    $supplierOptions["supplier:{$supplier->id}"] = '['.__('accounting::accounting.supplier')."] {$supplierName}";
                 }
-            } catch (\Exception $e) {
-                // Module not available
             }
+        } catch (\Exception $e) {
+            Log::debug('CashManagement: Supplier module not available', ['error' => $e->getMessage()]);
         }
 
         // Staff (using StaffProfile which links to User)
-        if (!$partnerType || $partnerType === 'staff') {
-            try {
-                if (class_exists(\Modules\Staff\Models\StaffProfile::class)) {
-                    $staffProfiles = \Modules\Staff\Models\StaffProfile::query()
-                        ->with('user')
-                        ->whereHas('user', fn($q) => $q->where('is_active', true))
-                        ->limit(100)
-                        ->get();
+        try {
+            if (class_exists(\Modules\Staff\Models\StaffProfile::class)) {
+                $staffProfiles = \Modules\Staff\Models\StaffProfile::query()
+                    ->with('user')
+                    ->whereHas('user', fn ($q) => $q->where('is_active', true))
+                    ->limit(100)
+                    ->get();
 
-                    foreach ($staffProfiles as $profile) {
-                        if ($profile->user) {
-                            $options["staff:{$profile->id}"] = "[Staff] {$profile->user->name}";
-                        }
+                foreach ($staffProfiles as $profile) {
+                    if ($profile->user) {
+                        $staffOptions["staff:{$profile->id}"] = '['.__('accounting::accounting.staff')."] {$profile->user->name}";
                     }
                 }
-            } catch (\Exception $e) {
-                // Module not available
             }
+        } catch (\Exception $e) {
+            Log::debug('CashManagement: Staff module not available', ['error' => $e->getMessage()]);
         }
 
-        return $options;
+        // Order based on transaction type
+        if ($transactionType === 'cash_out') {
+            // Cash Out: Suppliers first (paying vendors), then others
+            return array_merge($supplierOptions, $patientOptions, $staffOptions);
+        }
+
+        // Cash In: Patients first (receiving payments), then others
+        return array_merge($patientOptions, $staffOptions, $supplierOptions);
     }
 
     /**
@@ -441,11 +635,12 @@ class CashManagementService
      */
     public function parsePartnerKey(?string $key): array
     {
-        if (!$key || !str_contains($key, ':')) {
+        if (! $key || ! str_contains($key, ':')) {
             return ['type' => null, 'id' => null];
         }
 
         $parts = explode(':', $key, 2);
+
         return [
             'type' => $this->mapPartnerTypeToMorph($parts[0]),
             'id' => $parts[1] ?? null,

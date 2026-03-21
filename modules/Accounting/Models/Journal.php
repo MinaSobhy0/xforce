@@ -2,11 +2,11 @@
 
 namespace Modules\Accounting\Models;
 
-use XLinic\Framework\Core\Model\BaseModel;
-use XLinic\Framework\Core\Model\Traits\HasTenancy;
-use Spatie\Translatable\HasTranslations;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Spatie\Translatable\HasTranslations;
+use XLinic\Framework\Core\Model\BaseModel;
+use XLinic\Framework\Core\Model\Traits\HasTenancy;
 
 class Journal extends BaseModel
 {
@@ -36,10 +36,15 @@ class Journal extends BaseModel
 
     // Journal types
     public const TYPE_SALES = 'sales';
+
     public const TYPE_PURCHASE = 'purchase';
+
     public const TYPE_CASH = 'cash';
+
     public const TYPE_BANK = 'bank';
+
     public const TYPE_GENERAL = 'general';
+
     public const TYPE_GIFT_CARD = 'gift_card';
 
     public const TYPES = [
@@ -89,6 +94,14 @@ class Journal extends BaseModel
     }
 
     // Accessors
+    public function getTranslatedNameAttribute(): string
+    {
+        return $this->getTranslation('name', app()->getLocale())
+            ?? $this->getTranslation('name', 'en')
+            ?? $this->name
+            ?? '';
+    }
+
     public function getTypeLabelAttribute(): string
     {
         return self::TYPES[$this->type] ?? $this->type;
