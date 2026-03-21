@@ -77,6 +77,9 @@ class CashManagementPage extends Page implements HasForms
     // Transaction history
     public array $recentTransactions = [];
 
+    // Filter for transactions
+    public ?string $filter_date = null;
+
     // Last saved entry for printing
     public ?int $lastEntryId = null;
 
@@ -93,6 +96,7 @@ class CashManagementPage extends Page implements HasForms
     public function mount(): void
     {
         $this->date = now()->format('Y-m-d');
+        $this->filter_date = now()->format('Y-m-d');
 
         // Auto-select first cash/bank journal if available
         $journals = $this->getCashBankJournals();
@@ -329,12 +333,21 @@ class CashManagementPage extends Page implements HasForms
             $this->todayCashIn = $todayActivity['cash_in'];
             $this->todayCashOut = $todayActivity['cash_out'];
 
-            $this->recentTransactions = $service->getRecentTransactions($this->selected_account_id, 20)->toArray();
+            $filterDate = $this->filter_date ? Carbon::parse($this->filter_date) : null;
+            $this->recentTransactions = $service->getRecentTransactions($this->selected_account_id, 50, $filterDate)->toArray();
         }
 
         // Reset form fields
         $this->counter_account_id = null;
         $this->partner_id = null;
+    }
+
+    /**
+     * Update filter date and reload transactions.
+     */
+    public function updatedFilterDate(): void
+    {
+        $this->loadJournalData();
     }
 
     public function saveTransaction(): void

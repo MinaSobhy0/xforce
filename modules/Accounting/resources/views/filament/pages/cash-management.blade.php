@@ -64,11 +64,18 @@
             </x-filament-panels::form>
         </x-filament::section>
 
-        {{-- Recent Transactions --}}
+        {{-- Transactions --}}
         <x-filament::section class="mt-6">
             <x-slot name="heading">
                 <div class="flex justify-between items-center w-full">
-                    <span>{{ __('accounting::accounting.recent_transactions') }}</span>
+                    <span>{{ __('accounting::accounting.transactions') }}</span>
+                    <div class="flex items-center gap-2">
+                        <input
+                            type="date"
+                            wire:model.live="filter_date"
+                            class="text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg shadow-sm focus:ring-primary-500 focus:border-primary-500"
+                        />
+                    </div>
                 </div>
             </x-slot>
 
@@ -156,7 +163,8 @@
             @else
                 <div class="text-center py-8 text-gray-500">
                     <x-heroicon-o-banknotes class="mx-auto h-12 w-12 text-gray-400" />
-                    <p class="mt-4">{{ __('accounting::accounting.no_transactions') }}</p>
+                    <p class="mt-4">{{ __('accounting::accounting.no_transactions_on_date') }}</p>
+                    <p class="mt-1 text-sm">{{ $filter_date }}</p>
                 </div>
             @endif
         </x-filament::section>

@@ -267,6 +267,9 @@ class AccountingIntegrationService
      */
     public function createPaymentJournalEntry(Payment $payment): ?JournalEntry
     {
+        // Refresh payment to ensure we have the latest code from database
+        $payment->refresh();
+
         // Get payment journal (Cash, Bank, Card, etc.)
         $paymentJournal = $payment->journal;
         if (!$paymentJournal) {

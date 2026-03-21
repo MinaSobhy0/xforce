@@ -99,13 +99,17 @@ class CashManagementService
 
     /**
      * Get recent transactions for an account.
+     * Optionally filter by a specific date.
      */
-    public function getRecentTransactions(string $accountId, int $limit = 20): Collection
+    public function getRecentTransactions(string $accountId, int $limit = 20, ?Carbon $filterDate = null): Collection
     {
         $lines = JournalEntryLine::with(['journalEntry', 'partner'])
             ->where('account_id', $accountId)
-            ->whereHas('journalEntry', function ($q) {
+            ->whereHas('journalEntry', function ($q) use ($filterDate) {
                 $q->where('status', JournalEntry::STATUS_POSTED);
+                if ($filterDate) {
+                    $q->whereDate('date', $filterDate);
+                }
             })
             ->orderByDesc(
                 JournalEntry::select('date')
