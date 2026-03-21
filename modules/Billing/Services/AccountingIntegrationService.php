@@ -321,7 +321,7 @@ class AccountingIntegrationService
             'tenant_id' => $payment->tenant_id,
             'journal_id' => $paymentJournal->id,
             'date' => $payment->paid_at ?? now(),
-            'reference' => $payment->code,
+            'reference' => $invoice?->code ?? $payment->reference_number,
             'description' => $description,
             'source_type' => Payment::class,
             'source_id' => $payment->id,
