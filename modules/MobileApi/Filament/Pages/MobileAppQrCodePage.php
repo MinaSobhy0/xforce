@@ -15,9 +15,9 @@ class MobileAppQrCodePage extends Page
 {
     protected static ?string $navigationIcon = 'heroicon-o-qr-code';
 
-    protected static ?string $navigationGroup = 'Settings';
+    protected static ?string $navigationGroup = 'Mobile App';
 
-    protected static ?int $navigationSort = 100;
+    protected static ?int $navigationSort = 30;
 
     protected static string $view = 'mobile_api::filament.pages.mobile-app-qr-code';
 
