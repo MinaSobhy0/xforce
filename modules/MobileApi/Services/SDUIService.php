@@ -111,6 +111,7 @@ class SDUIService
         return [
             'tabs' => collect($config['navigation']['tabs'] ?? [])
                 ->filter(fn ($tab) => $tab['enabled'] ?? true)
+                ->unique('id')  // Deduplicate by id
                 ->sortBy('sort')
                 ->values()
                 ->map(fn ($tab) => [
@@ -121,6 +122,7 @@ class SDUIService
                 ->all(),
             'more_menu' => collect($config['navigation']['more_menu'] ?? [])
                 ->filter(fn ($item) => $item['enabled'] ?? true)
+                ->unique('id')  // Deduplicate by id
                 ->sortBy('sort')
                 ->values()
                 ->map(fn ($item) => [
