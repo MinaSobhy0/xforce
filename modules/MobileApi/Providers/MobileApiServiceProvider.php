@@ -2,21 +2,24 @@
 
 namespace Modules\MobileApi\Providers;
 
-use Illuminate\Support\ServiceProvider;
 use Illuminate\Cache\RateLimiting\Limit;
-use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\ServiceProvider;
 use Modules\Attendance\Models\AttendanceViolation;
+use Modules\Booking\Models\Appointment;
 use Modules\Booking\Models\PractitionerTimeOff;
+use Modules\MobileApi\Listeners\SendPayslipReadyPush;
+use Modules\MobileApi\Observers\AppointmentObserver;
 use Modules\MobileApi\Observers\AttendanceViolationObserver;
 use Modules\MobileApi\Observers\TimeOffObserver;
 use Modules\MobileApi\Services\PushNotificationService;
 use Modules\Payroll\Events\PayrollPaid;
-use Modules\MobileApi\Listeners\SendPayslipReadyPush;
 
 class MobileApiServiceProvider extends ServiceProvider
 {
     protected string $moduleName = 'MobileApi';
+
     protected string $moduleNameLower = 'mobile_api';
 
     /**
@@ -44,7 +47,7 @@ class MobileApiServiceProvider extends ServiceProvider
 
         // Register PushNotificationService as singleton
         $this->app->singleton(PushNotificationService::class, function ($app) {
-            return new PushNotificationService();
+            return new PushNotificationService;
         });
     }
 
@@ -54,7 +57,7 @@ class MobileApiServiceProvider extends ServiceProvider
 
         if (file_exists($configPath)) {
             $this->publishes([
-                $configPath => config_path($this->moduleNameLower . '.php'),
+                $configPath => config_path($this->moduleNameLower.'.php'),
             ], 'config');
 
             $this->mergeConfigFrom($configPath, $this->moduleNameLower);
@@ -89,6 +92,7 @@ class MobileApiServiceProvider extends ServiceProvider
         // Mobile API default rate limit
         RateLimiter::for('mobile-api', function (Request $request) {
             $config = config('mobile_api.rate_limits.default');
+
             return Limit::perMinute($config['max_attempts'])
                 ->by($request->user()?->id ?: $request->ip());
         });
@@ -96,6 +100,7 @@ class MobileApiServiceProvider extends ServiceProvider
         // Mobile auth endpoints rate limit
         RateLimiter::for('mobile-api-auth', function (Request $request) {
             $config = config('mobile_api.rate_limits.auth');
+
             return Limit::perMinute($config['max_attempts'])
                 ->by($request->ip());
         });
@@ -103,6 +108,7 @@ class MobileApiServiceProvider extends ServiceProvider
         // Mobile OTP rate limit
         RateLimiter::for('mobile-api-otp', function (Request $request) {
             $config = config('mobile_api.rate_limits.otp');
+
             return Limit::perMinutes($config['decay_minutes'], $config['max_attempts'])
                 ->by($request->ip());
         });
@@ -114,7 +120,7 @@ class MobileApiServiceProvider extends ServiceProvider
     protected function registerObservers(): void
     {
         // Only register if push notifications are enabled
-        if (!config('mobile_api.push_notifications.enabled', true)) {
+        if (! config('mobile_api.push_notifications.enabled', true)) {
             return;
         }
 
@@ -127,6 +133,11 @@ class MobileApiServiceProvider extends ServiceProvider
         if (class_exists(PractitionerTimeOff::class)) {
             PractitionerTimeOff::observe(TimeOffObserver::class);
         }
+
+        // Register Appointment observer if the model exists
+        if (class_exists(Appointment::class)) {
+            Appointment::observe(AppointmentObserver::class);
+        }
     }
 
     /**
@@ -135,14 +146,14 @@ class MobileApiServiceProvider extends ServiceProvider
     protected function registerEventListeners(): void
     {
         // Only register if push notifications are enabled
-        if (!config('mobile_api.push_notifications.enabled', true)) {
+        if (! config('mobile_api.push_notifications.enabled', true)) {
             return;
         }
 
         $events = $this->app->make('events');
 
         foreach ($this->listen as $event => $listeners) {
-            if (!class_exists($event)) {
+            if (! class_exists($event)) {
                 continue;
             }
 

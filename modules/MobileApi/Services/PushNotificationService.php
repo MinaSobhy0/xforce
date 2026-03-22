@@ -11,6 +11,7 @@ use Kreait\Firebase\Messaging\CloudMessage;
 use Kreait\Firebase\Messaging\Notification;
 use Kreait\Laravel\Firebase\Facades\Firebase;
 use Modules\Auth\Models\User;
+use Modules\Core\Models\Setting;
 use Modules\MobileApi\Models\DeviceToken;
 use Modules\MobileApi\Models\NotificationPreference;
 use Modules\MobileApi\Models\PushNotification;
@@ -221,11 +222,49 @@ class PushNotificationService
     }
 
     /**
-     * Check if push notification should be sent based on user preferences.
+     * Check if push notification should be sent based on tenant and user preferences.
      */
     protected function shouldSendPush(User $user, string $type): bool
     {
+        // First check tenant-level setting (master switch)
+        if (! $this->isNotificationTypeEnabledForTenant($type)) {
+            Log::debug('Push notification skipped due to tenant settings', [
+                'user_id' => $user->id,
+                'type' => $type,
+            ]);
+
+            return false;
+        }
+
+        // Then check user preferences
         return NotificationPreference::isPushEnabledFor($user->id, $type);
+    }
+
+    /**
+     * Check if notification type is enabled at the tenant level.
+     */
+    protected function isNotificationTypeEnabledForTenant(string $type): bool
+    {
+        $key = "notification.{$type}.enabled";
+
+        try {
+            $value = Setting::getValue($key, null, true);
+
+            // If not set, default to enabled
+            if ($value === null) {
+                return true;
+            }
+
+            return filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? true;
+        } catch (\Exception $e) {
+            // If settings table doesn't exist or other error, default to enabled
+            Log::warning('Failed to check tenant notification setting', [
+                'key' => $key,
+                'error' => $e->getMessage(),
+            ]);
+
+            return true;
+        }
     }
 
     /**
@@ -239,6 +278,7 @@ class PushNotificationService
             PushNotification::TYPE_CHECK_IN_REMINDER => 'OPEN_ATTENDANCE',
             PushNotification::TYPE_TIME_OFF_APPROVED,
             PushNotification::TYPE_TIME_OFF_REJECTED => 'OPEN_TIME_OFF',
+            PushNotification::TYPE_APPOINTMENT_ASSIGNED,
             PushNotification::TYPE_APPOINTMENT_REMINDER,
             PushNotification::TYPE_APPOINTMENT_CANCELLED => 'OPEN_APPOINTMENTS',
             PushNotification::TYPE_PAYSLIP_READY => 'OPEN_PAYSLIP',
@@ -396,6 +436,32 @@ class PushNotificationService
                 'status' => $status,
             ],
             reference: $timeOffRequest
+        );
+    }
+
+    /**
+     * Send appointment assigned notification to practitioner.
+     */
+    public function sendAppointmentAssignedNotification(
+        User $user,
+        Model $appointment,
+        string $patientName,
+        string $date,
+        string $time
+    ): ?PushNotification {
+        return $this->sendToUser(
+            user: $user,
+            type: PushNotification::TYPE_APPOINTMENT_ASSIGNED,
+            title: __('mobile_api::notifications.appointment.assigned_title'),
+            body: __('mobile_api::notifications.appointment.assigned_body', [
+                'patient_name' => $patientName,
+                'date' => $date,
+                'time' => $time,
+            ]),
+            data: [
+                'appointment_id' => $appointment->id,
+            ],
+            reference: $appointment
         );
     }
 

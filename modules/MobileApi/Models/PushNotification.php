@@ -46,6 +46,8 @@ class PushNotification extends BaseModel
 
     public const TYPE_TIME_OFF_REJECTED = 'time_off_rejected';
 
+    public const TYPE_APPOINTMENT_ASSIGNED = 'appointment_assigned';
+
     public const TYPE_APPOINTMENT_REMINDER = 'appointment_reminder';
 
     public const TYPE_APPOINTMENT_CANCELLED = 'appointment_cancelled';
@@ -62,6 +64,7 @@ class PushNotification extends BaseModel
         self::TYPE_CHECK_IN_REMINDER => 'Check-In Reminder',
         self::TYPE_TIME_OFF_APPROVED => 'Time Off Approved',
         self::TYPE_TIME_OFF_REJECTED => 'Time Off Rejected',
+        self::TYPE_APPOINTMENT_ASSIGNED => 'Appointment Assigned',
         self::TYPE_APPOINTMENT_REMINDER => 'Appointment Reminder',
         self::TYPE_APPOINTMENT_CANCELLED => 'Appointment Cancelled',
         self::TYPE_PAYSLIP_READY => 'Payslip Ready',

@@ -58,6 +58,8 @@ return [
     */
 
     'appointment' => [
+        'assigned_title' => 'موعد جديد مُعين',
+        'assigned_body' => 'لديك موعد جديد مع :patient_name بتاريخ :date الساعة :time.',
         'reminder_title' => 'موعد قادم',
         'reminder_body' => 'لديك موعد مع :patient_name الساعة :time.',
         'cancelled_title' => 'تم إلغاء الموعد',
@@ -121,10 +123,31 @@ return [
         'check_in_reminder' => 'تذكيرات تسجيل الحضور',
         'time_off_approved' => 'الموافقة على الإجازات',
         'time_off_rejected' => 'رفض الإجازات',
+        'appointment_assigned' => 'موعد جديد مُعين',
         'appointment_reminder' => 'تذكيرات المواعيد',
         'appointment_cancelled' => 'إلغاء المواعيد',
         'payslip_ready' => 'إشعارات قسيمة الراتب',
         'commission_earned' => 'إشعارات العمولات',
         'schedule_changed' => 'تغييرات الجدول',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Notification Type Descriptions (for settings page)
+    |--------------------------------------------------------------------------
+    */
+
+    'types_descriptions' => [
+        'attendance_violation' => 'إعلام الموظفين عند تسجيل مخالفات الحضور',
+        'violation_status_changed' => 'إعلام الموظفين عند تغيير حالة المخالفة (موافق عليها/معفى منها)',
+        'check_in_reminder' => 'تذكير الموظفين بتسجيل الحضور قبل بدء دوامهم',
+        'time_off_approved' => 'إعلام الموظفين عند الموافقة على طلب إجازتهم',
+        'time_off_rejected' => 'إعلام الموظفين عند رفض طلب إجازتهم',
+        'appointment_assigned' => 'إعلام الأطباء عند تعيين موعد جديد لهم',
+        'appointment_reminder' => 'تذكير الموظفين بالمواعيد القادمة',
+        'appointment_cancelled' => 'إعلام الموظفين عند إلغاء مواعيدهم',
+        'payslip_ready' => 'إعلام الموظفين عند توفر قسيمة الراتب',
+        'commission_earned' => 'إعلام الموظفين عند تسجيل العمولة',
+        'schedule_changed' => 'إعلام الموظفين عند تعديل جدولهم',
     ],
 ];

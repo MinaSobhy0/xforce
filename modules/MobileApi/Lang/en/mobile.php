@@ -127,4 +127,16 @@ return [
         'link_copied' => 'Link copied to clipboard',
         'clinic_code' => 'Clinic Code',
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Notification Settings
+    |--------------------------------------------------------------------------
+    */
+
+    'notification_settings' => 'Push Notification Settings',
+    'notification_types' => 'Push Notification Types',
+    'notification_types_description' => 'Enable or disable notification types for all staff in your clinic. Disabled notifications will not be sent to any user, regardless of their personal preferences.',
+    'settings_saved' => 'Notification settings saved successfully',
+    'save_settings' => 'Save Settings',
 ];

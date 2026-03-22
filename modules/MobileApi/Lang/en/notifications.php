@@ -58,6 +58,8 @@ return [
     */
 
     'appointment' => [
+        'assigned_title' => 'New Appointment Assigned',
+        'assigned_body' => 'You have a new appointment with :patient_name on :date at :time.',
         'reminder_title' => 'Upcoming Appointment',
         'reminder_body' => 'You have an appointment with :patient_name at :time.',
         'cancelled_title' => 'Appointment Cancelled',
@@ -121,10 +123,31 @@ return [
         'check_in_reminder' => 'Check-In Reminders',
         'time_off_approved' => 'Time Off Approvals',
         'time_off_rejected' => 'Time Off Rejections',
+        'appointment_assigned' => 'New Appointment Assigned',
         'appointment_reminder' => 'Appointment Reminders',
         'appointment_cancelled' => 'Appointment Cancellations',
         'payslip_ready' => 'Payslip Notifications',
         'commission_earned' => 'Commission Notifications',
         'schedule_changed' => 'Schedule Changes',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Notification Type Descriptions (for settings page)
+    |--------------------------------------------------------------------------
+    */
+
+    'types_descriptions' => [
+        'attendance_violation' => 'Notify staff when attendance violations are recorded',
+        'violation_status_changed' => 'Notify staff when violation status changes (approved/waived)',
+        'check_in_reminder' => 'Remind staff to check in before their shift starts',
+        'time_off_approved' => 'Notify staff when their time-off request is approved',
+        'time_off_rejected' => 'Notify staff when their time-off request is rejected',
+        'appointment_assigned' => 'Notify practitioners when a new appointment is assigned to them',
+        'appointment_reminder' => 'Remind staff about upcoming appointments',
+        'appointment_cancelled' => 'Notify staff when their appointments are cancelled',
+        'payslip_ready' => 'Notify staff when their payslip is available',
+        'commission_earned' => 'Notify staff when commission is recorded',
+        'schedule_changed' => 'Notify staff when their schedule is modified',
     ],
 ];
