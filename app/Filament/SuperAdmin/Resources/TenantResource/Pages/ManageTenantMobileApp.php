@@ -240,7 +240,7 @@ class ManageTenantMobileApp extends Page implements HasForms
                                         Forms\Components\Repeater::make('quick_actions')
                                             ->label('')
                                             ->schema([
-                                                Forms\Components\Grid::make(5)
+                                                Forms\Components\Grid::make(4)
                                                     ->schema([
                                                         Forms\Components\Select::make('id')
                                                             ->label('Screen')
@@ -257,11 +257,6 @@ class ManageTenantMobileApp extends Page implements HasForms
                                                         Forms\Components\ColorPicker::make('icon_color')
                                                             ->label('Color')
                                                             ->required(),
-
-                                                        Forms\Components\TextInput::make('requires')
-                                                            ->label('Permission')
-                                                            ->placeholder('e.g., appointments.view')
-                                                            ->helperText('Leave empty for all users'),
 
                                                         Forms\Components\Toggle::make('enabled')
                                                             ->label('Enabled')

@@ -73,7 +73,7 @@ class QuickActionsSettingsPage extends Page implements Forms\Contracts\HasForms
                         Forms\Components\Repeater::make('quick_actions')
                             ->label('')
                             ->schema([
-                                Forms\Components\Grid::make(5)
+                                Forms\Components\Grid::make(4)
                                     ->schema([
                                         Forms\Components\Select::make('id')
                                             ->label(__('mobile_api::mobile.quick_action_screen'))
@@ -90,11 +90,6 @@ class QuickActionsSettingsPage extends Page implements Forms\Contracts\HasForms
                                         Forms\Components\ColorPicker::make('icon_color')
                                             ->label(__('mobile_api::mobile.quick_action_color'))
                                             ->required(),
-
-                                        Forms\Components\TextInput::make('requires')
-                                            ->label(__('mobile_api::mobile.quick_action_permission'))
-                                            ->placeholder('e.g., appointments.view')
-                                            ->helperText(__('mobile_api::mobile.quick_action_permission_help')),
 
                                         Forms\Components\Toggle::make('enabled')
                                             ->label(__('mobile_api::mobile.quick_action_enabled'))

@@ -172,8 +172,6 @@ return [
     'quick_action_screen' => 'الشاشة',
     'quick_action_icon' => 'الأيقونة',
     'quick_action_color' => 'اللون',
-    'quick_action_permission' => 'الصلاحية',
-    'quick_action_permission_help' => 'اتركه فارغاً لإظهاره لجميع المستخدمين',
     'quick_action_enabled' => 'مفعل',
     'add_quick_action' => 'إضافة إجراء سريع',
     'error_no_tenant' => 'لم يتم العثور على سياق العيادة',

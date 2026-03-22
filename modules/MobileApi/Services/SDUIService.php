@@ -202,7 +202,6 @@ class SDUIService
                 'label' => $this->getScreenLabel($action['id']),
                 'icon' => $action['icon'] ?? $this->getScreenIcon($action['id']),
                 'icon_color' => $action['icon_color'] ?? '#3B82F6',
-                'requires' => $action['requires'] ?? null,
             ])
             ->all();
     }
@@ -221,7 +220,6 @@ class SDUIService
             ->values()
             ->map(fn ($action) => [
                 'key' => $action['id'],
-                'requires' => $action['requires'] ?? null,
                 'icon' => $action['icon'] ?? $this->getScreenIcon($action['id']),
                 'icon_color' => $action['icon_color'] ?? '#3B82F6',
             ])

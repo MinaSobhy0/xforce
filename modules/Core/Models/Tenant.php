@@ -659,14 +659,14 @@ class Tenant extends Model
                 'qr_check_in' => true,
             ],
             'quick_actions' => [
-                ['id' => 'appointments', 'enabled' => true, 'sort' => 1, 'icon' => 'calendar', 'icon_color' => '#3B82F6', 'requires' => 'appointments.view'],
-                ['id' => 'schedule', 'enabled' => true, 'sort' => 2, 'icon' => 'calendar-days', 'icon_color' => '#10B981', 'requires' => 'schedule.view'],
-                ['id' => 'time_off', 'enabled' => true, 'sort' => 3, 'icon' => 'sun', 'icon_color' => '#F59E0B', 'requires' => 'time_off.view'],
-                ['id' => 'payslip', 'enabled' => true, 'sort' => 4, 'icon' => 'document-text', 'icon_color' => '#8B5CF6', 'requires' => 'payroll.view_own'],
-                ['id' => 'commission', 'enabled' => true, 'sort' => 5, 'icon' => 'banknotes', 'icon_color' => '#EC4899', 'requires' => 'commission.view_own'],
-                ['id' => 'patients', 'enabled' => true, 'sort' => 6, 'icon' => 'user-group', 'icon_color' => '#06B6D4', 'requires' => 'patients.view'],
-                ['id' => 'attendance', 'enabled' => true, 'sort' => 7, 'icon' => 'clock', 'icon_color' => '#EF4444', 'requires' => 'attendance.view'],
-                ['id' => 'profile', 'enabled' => true, 'sort' => 8, 'icon' => 'user-circle', 'icon_color' => '#6B7280', 'requires' => null],
+                ['id' => 'appointments', 'enabled' => true, 'sort' => 1, 'icon' => 'calendar', 'icon_color' => '#3B82F6'],
+                ['id' => 'schedule', 'enabled' => true, 'sort' => 2, 'icon' => 'calendar-days', 'icon_color' => '#10B981'],
+                ['id' => 'time_off', 'enabled' => true, 'sort' => 3, 'icon' => 'sun', 'icon_color' => '#F59E0B'],
+                ['id' => 'payslip', 'enabled' => true, 'sort' => 4, 'icon' => 'document-text', 'icon_color' => '#8B5CF6'],
+                ['id' => 'commission', 'enabled' => true, 'sort' => 5, 'icon' => 'banknotes', 'icon_color' => '#EC4899'],
+                ['id' => 'patients', 'enabled' => true, 'sort' => 6, 'icon' => 'user-group', 'icon_color' => '#06B6D4'],
+                ['id' => 'attendance', 'enabled' => true, 'sort' => 7, 'icon' => 'clock', 'icon_color' => '#EF4444'],
+                ['id' => 'profile', 'enabled' => true, 'sort' => 8, 'icon' => 'user-circle', 'icon_color' => '#6B7280'],
             ],
         ];
     }

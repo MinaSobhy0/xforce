@@ -172,8 +172,6 @@ return [
     'quick_action_screen' => 'Screen',
     'quick_action_icon' => 'Icon',
     'quick_action_color' => 'Color',
-    'quick_action_permission' => 'Permission',
-    'quick_action_permission_help' => 'Leave empty to show to all users',
     'quick_action_enabled' => 'Enabled',
     'add_quick_action' => 'Add Quick Action',
     'error_no_tenant' => 'No tenant context found',
