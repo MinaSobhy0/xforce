@@ -139,8 +139,13 @@ class PushNotificationService
         }
 
         try {
-            // Get tenant context for data payload
-            $tenant = app('currentTenant');
+            // Get tenant context for data payload (safely handle missing binding)
+            $tenant = null;
+            try {
+                $tenant = app()->bound('currentTenant') ? app('currentTenant') : null;
+            } catch (\Exception $e) {
+                // Tenant context not available (e.g., CLI environment)
+            }
 
             $payload = array_merge($notification->data ?? [], [
                 'notification_id' => (string) $notification->id,
@@ -160,7 +165,14 @@ class PushNotificationService
 
             // Send to all tokens
             if (count($tokens) === 1) {
-                $response = $messaging->send($message->withChangedTarget('token', $tokens[0]));
+                $singleMessage = CloudMessage::new()
+                    ->withNotification(Notification::create(
+                        $notification->title,
+                        $notification->body
+                    ))
+                    ->withData($this->normalizePayload($payload))
+                    ->withToken($tokens[0]);
+                $response = $messaging->send($singleMessage);
                 $notification->markAsSent(is_array($response) ? ($response['name'] ?? null) : $response);
             } else {
                 $report = $messaging->sendMulticast($message, $tokens);
