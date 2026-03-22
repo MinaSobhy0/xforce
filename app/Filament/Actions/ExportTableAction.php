@@ -38,9 +38,11 @@ class ExportTableAction extends Action
 
             // Get permission key from resource
             $resourceClass = $livewire::getResource();
-            $permissionKey = $resourceClass::$permissionKey ?? null;
 
-            if (!$permissionKey) {
+            // Use getter method if available (from ChecksResourcePermissions trait)
+            if (method_exists($resourceClass, 'getPermissionKey')) {
+                $permissionKey = $resourceClass::getPermissionKey();
+            } else {
                 // Fallback: derive from resource name
                 $permissionKey = strtolower(str_replace('Resource', '', class_basename($resourceClass)));
             }

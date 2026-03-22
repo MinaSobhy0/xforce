@@ -106,6 +106,15 @@ trait ChecksResourcePermissions
     }
 
     /**
+     * Get the permission key for this resource.
+     * This is used by external classes (like ExportTableAction) to check permissions.
+     */
+    public static function getPermissionKey(): ?string
+    {
+        return static::$permissionKey ?? static::$moduleCode ?? null;
+    }
+
+    /**
      * Check if user has a specific permission for this resource.
      * Uses Spatie's cached permission check - no database queries.
      */

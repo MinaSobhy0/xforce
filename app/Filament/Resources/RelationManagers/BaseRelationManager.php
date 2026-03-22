@@ -35,9 +35,11 @@ abstract class BaseRelationManager extends RelationManager
         $pageClass = $this->getPageClass();
         if ($pageClass && method_exists($pageClass, 'getResource')) {
             $resourceClass = $pageClass::getResource();
-            $permissionKey = $resourceClass::$permissionKey ?? null;
 
-            if (!$permissionKey) {
+            // Use getter method if available (from ChecksResourcePermissions trait)
+            if (method_exists($resourceClass, 'getPermissionKey')) {
+                $permissionKey = $resourceClass::getPermissionKey();
+            } else {
                 // Fallback: derive from resource name
                 $permissionKey = strtolower(str_replace('Resource', '', class_basename($resourceClass)));
             }
