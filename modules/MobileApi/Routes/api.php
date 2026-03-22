@@ -14,6 +14,7 @@ use Modules\MobileApi\Http\Controllers\ScheduleController;
 use Modules\MobileApi\Http\Controllers\AppointmentsController;
 use Modules\MobileApi\Http\Controllers\PatientsController;
 use Modules\MobileApi\Http\Controllers\DeviceController;
+use Modules\MobileApi\Http\Controllers\CalendarController;
 
 /*
 |--------------------------------------------------------------------------
@@ -127,12 +128,20 @@ Route::middleware([\Modules\MobileApi\Http\Middleware\ResolveTenantFromHeader::c
             Route::get('{id}/download', [PayrollController::class, 'download']);
         });
 
-        // Schedule
+        // Schedule (legacy - use calendar instead)
         Route::prefix('schedule')->group(function () {
             Route::get('current', [ScheduleController::class, 'current']);
             Route::get('shifts', [ScheduleController::class, 'shifts']);
             Route::get('shifts/{date}', [ScheduleController::class, 'shiftForDate']);
             Route::get('working-hours', [ScheduleController::class, 'workingHours']);
+        });
+
+        // Calendar (unified view for doctors)
+        Route::prefix('calendar')->group(function () {
+            Route::get('/', [CalendarController::class, 'index']);           // Monthly calendar
+            Route::get('week', [CalendarController::class, 'week']);         // Weekly calendar
+            Route::get('upcoming', [CalendarController::class, 'upcoming']); // Upcoming events
+            Route::get('{date}', [CalendarController::class, 'day']);        // Day detail
         });
 
         // Appointments

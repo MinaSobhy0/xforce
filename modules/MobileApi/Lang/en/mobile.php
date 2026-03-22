@@ -115,10 +115,21 @@ return [
         'time_off' => 'Time Off',
         'payslip' => 'Payslip',
         'schedule' => 'Schedule',
+        'calendar' => 'Calendar',
         'appointments' => 'Appointments',
         'patients' => 'Patients',
         'profile' => 'Profile',
         'commission' => 'Commission',
+    ],
+
+    'calendar' => [
+        'appointment' => 'Appointment',
+        'time_off' => 'Time Off',
+        'full_day' => 'Full Day',
+        'invalid_date' => 'Invalid date format',
+        'no_events' => 'No events for this day',
+        'working_day' => 'Working Day',
+        'day_off' => 'Day Off',
     ],
 
     'dashboard' => [

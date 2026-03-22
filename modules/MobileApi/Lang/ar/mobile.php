@@ -115,10 +115,21 @@ return [
         'time_off' => 'الإجازات',
         'payslip' => 'كشف الراتب',
         'schedule' => 'الجدول',
+        'calendar' => 'التقويم',
         'appointments' => 'المواعيد',
         'patients' => 'المرضى',
         'profile' => 'الملف الشخصي',
         'commission' => 'العمولات',
+    ],
+
+    'calendar' => [
+        'appointment' => 'موعد',
+        'time_off' => 'إجازة',
+        'full_day' => 'يوم كامل',
+        'invalid_date' => 'صيغة تاريخ غير صالحة',
+        'no_events' => 'لا توجد أحداث لهذا اليوم',
+        'working_day' => 'يوم عمل',
+        'day_off' => 'يوم إجازة',
     ],
 
     'dashboard' => [
