@@ -4,6 +4,9 @@ namespace Modules\MobileApi\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rules\Password;
 use Modules\Staff\Models\StaffCommissionRecord;
 
 class StaffProfileController extends BaseApiController
@@ -16,7 +19,7 @@ class StaffProfileController extends BaseApiController
     {
         $staffProfile = $this->staffProfile();
 
-        if (!$staffProfile) {
+        if (! $staffProfile) {
             return $this->notFound();
         }
 
@@ -59,7 +62,7 @@ class StaffProfileController extends BaseApiController
     {
         $staffProfile = $this->staffProfile();
 
-        if (!$staffProfile) {
+        if (! $staffProfile) {
             return $this->notFound();
         }
 
@@ -78,7 +81,106 @@ class StaffProfileController extends BaseApiController
         // Update staff profile
         $staffProfile->update($validated);
 
-        return $this->success(null, 'Profile updated successfully');
+        return $this->success(null, __('mobile_api::mobile.profile.updated'));
+    }
+
+    /**
+     * Change user password.
+     * POST /api/v2/staff/profile/change-password
+     */
+    public function changePassword(Request $request): JsonResponse
+    {
+        $user = $this->user();
+
+        if (! $user) {
+            return $this->notFound();
+        }
+
+        $validated = $request->validate([
+            'current_password' => ['required', 'string'],
+            'new_password' => ['required', 'string', 'confirmed', Password::min(8)->mixedCase()->numbers()],
+        ]);
+
+        // Verify current password
+        if (! Hash::check($validated['current_password'], $user->password)) {
+            return $this->error(__('mobile_api::mobile.profile.current_password_incorrect'), 422);
+        }
+
+        // Ensure new password is different
+        if (Hash::check($validated['new_password'], $user->password)) {
+            return $this->error(__('mobile_api::mobile.profile.password_same_as_old'), 422);
+        }
+
+        // Update password
+        $user->update([
+            'password' => $validated['new_password'],
+            'must_change_password' => false,
+            'password_expires_at' => now()->addDays(90),
+        ]);
+
+        return $this->success(null, __('mobile_api::mobile.profile.password_changed'));
+    }
+
+    /**
+     * Update user avatar.
+     * POST /api/v2/staff/profile/avatar
+     */
+    public function updateAvatar(Request $request): JsonResponse
+    {
+        $user = $this->user();
+
+        if (! $user) {
+            return $this->notFound();
+        }
+
+        $validated = $request->validate([
+            'avatar' => ['required', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:2048'], // 2MB max
+        ]);
+
+        // Delete old avatar if exists and is not a URL
+        $oldAvatar = $user->getRawOriginal('avatar_url');
+        if ($oldAvatar && ! filter_var($oldAvatar, FILTER_VALIDATE_URL)) {
+            Storage::disk('public')->delete("avatars/{$oldAvatar}");
+        }
+
+        // Generate unique filename
+        $filename = $user->id.'_'.time().'.'.$validated['avatar']->extension();
+
+        // Store new avatar
+        $validated['avatar']->storeAs('avatars', $filename, 'public');
+
+        // Update user
+        $user->update(['avatar_url' => $filename]);
+
+        return $this->success([
+            'avatar_url' => $user->avatar_url,
+        ], __('mobile_api::mobile.profile.avatar_updated'));
+    }
+
+    /**
+     * Delete user avatar (reset to default).
+     * DELETE /api/v2/staff/profile/avatar
+     */
+    public function deleteAvatar(): JsonResponse
+    {
+        $user = $this->user();
+
+        if (! $user) {
+            return $this->notFound();
+        }
+
+        // Delete old avatar if exists and is not a URL
+        $oldAvatar = $user->getRawOriginal('avatar_url');
+        if ($oldAvatar && ! filter_var($oldAvatar, FILTER_VALIDATE_URL)) {
+            Storage::disk('public')->delete("avatars/{$oldAvatar}");
+        }
+
+        // Reset to null (will use Gravatar)
+        $user->update(['avatar_url' => null]);
+
+        return $this->success([
+            'avatar_url' => $user->avatar_url,
+        ], __('mobile_api::mobile.profile.avatar_deleted'));
     }
 
     /**
@@ -89,17 +191,17 @@ class StaffProfileController extends BaseApiController
     {
         $staffProfile = $this->staffProfile();
 
-        if (!$staffProfile) {
+        if (! $staffProfile) {
             return $this->notFound();
         }
 
-        if (!$this->hasPermission('commission.view_own')) {
+        if (! $this->hasPermission('commission.view_own')) {
             return $this->forbidden();
         }
 
         $commissionPlan = $staffProfile->commissionPlan;
 
-        if (!$commissionPlan) {
+        if (! $commissionPlan) {
             return $this->success([
                 'has_plan' => false,
                 'message' => 'No commission plan assigned',
@@ -130,15 +232,15 @@ class StaffProfileController extends BaseApiController
     {
         $staffProfile = $this->staffProfile();
 
-        if (!$staffProfile) {
+        if (! $staffProfile) {
             return $this->notFound();
         }
 
-        if (!$this->hasPermission('commission.view_own')) {
+        if (! $this->hasPermission('commission.view_own')) {
             return $this->forbidden();
         }
 
-        if (!class_exists(StaffCommissionRecord::class)) {
+        if (! class_exists(StaffCommissionRecord::class)) {
             return $this->success([]);
         }
 
@@ -161,7 +263,7 @@ class StaffProfileController extends BaseApiController
 
         $records = $query->paginate($this->getPerPage());
 
-        $formatted = collect($records->items())->map(fn($r) => [
+        $formatted = collect($records->items())->map(fn ($r) => [
             'id' => $r->id,
             'amount' => $r->amount, // Uses accessor (amount_minor / 100)
             'revenue' => $r->revenue, // Uses accessor (revenue_minor / 100)
@@ -198,15 +300,15 @@ class StaffProfileController extends BaseApiController
     {
         $staffProfile = $this->staffProfile();
 
-        if (!$staffProfile) {
+        if (! $staffProfile) {
             return $this->notFound();
         }
 
-        if (!$this->hasPermission('commission.view_own')) {
+        if (! $this->hasPermission('commission.view_own')) {
             return $this->forbidden();
         }
 
-        if (!class_exists(StaffCommissionRecord::class)) {
+        if (! class_exists(StaffCommissionRecord::class)) {
             return $this->success([
                 'total' => 0,
                 'records' => [],
@@ -222,7 +324,7 @@ class StaffProfileController extends BaseApiController
         return $this->success([
             'total' => $records->sum('amount'), // Uses accessor
             'count' => $records->count(),
-            'records' => $records->map(fn($r) => [
+            'records' => $records->map(fn ($r) => [
                 'id' => $r->id,
                 'amount' => $r->amount,
                 'revenue' => $r->revenue,
@@ -240,7 +342,7 @@ class StaffProfileController extends BaseApiController
      */
     protected function getCommissionSummary($staffProfile): array
     {
-        if (!class_exists(StaffCommissionRecord::class)) {
+        if (! class_exists(StaffCommissionRecord::class)) {
             return [
                 'this_month' => 0,
                 'pending' => 0,

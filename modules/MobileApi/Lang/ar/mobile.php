@@ -100,6 +100,15 @@ return [
         'no_results' => 'لم يتم العثور على مرضى',
     ],
 
+    'profile' => [
+        'updated' => 'تم تحديث الملف الشخصي بنجاح',
+        'password_changed' => 'تم تغيير كلمة المرور بنجاح',
+        'current_password_incorrect' => 'كلمة المرور الحالية غير صحيحة',
+        'password_same_as_old' => 'يجب أن تكون كلمة المرور الجديدة مختلفة عن كلمة المرور الحالية',
+        'avatar_updated' => 'تم تحديث الصورة الشخصية بنجاح',
+        'avatar_deleted' => 'تم إزالة الصورة الشخصية بنجاح',
+    ],
+
     'screens' => [
         'dashboard' => 'لوحة التحكم',
         'attendance' => 'الحضور',

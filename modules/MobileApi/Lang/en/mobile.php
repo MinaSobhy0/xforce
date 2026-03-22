@@ -100,6 +100,15 @@ return [
         'no_results' => 'No patients found',
     ],
 
+    'profile' => [
+        'updated' => 'Profile updated successfully',
+        'password_changed' => 'Password changed successfully',
+        'current_password_incorrect' => 'Current password is incorrect',
+        'password_same_as_old' => 'New password must be different from current password',
+        'avatar_updated' => 'Avatar updated successfully',
+        'avatar_deleted' => 'Avatar removed successfully',
+    ],
+
     'screens' => [
         'dashboard' => 'Dashboard',
         'attendance' => 'Attendance',

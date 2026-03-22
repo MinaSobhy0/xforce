@@ -72,6 +72,9 @@ Route::middleware([\Modules\MobileApi\Http\Middleware\ResolveTenantFromHeader::c
 
             Route::get('profile', [StaffProfileController::class, 'show']);
             Route::put('profile', [StaffProfileController::class, 'update']);
+            Route::post('profile/change-password', [StaffProfileController::class, 'changePassword']);
+            Route::post('profile/avatar', [StaffProfileController::class, 'updateAvatar']);
+            Route::delete('profile/avatar', [StaffProfileController::class, 'deleteAvatar']);
 
             // Commission
             Route::get('commission', [StaffProfileController::class, 'commission']);
