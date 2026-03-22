@@ -38,19 +38,28 @@ class SubscriptionPlan extends Model
         'LB' => ['name' => 'Lebanon', 'currency' => 'USD', 'default_tax' => 11],
     ];
 
+    // SECURITY: Only allow non-sensitive fields for mass assignment
+    // Pricing, limits, and features must be set explicitly via admin operations
     protected $fillable = [
         'code',
         'name',
         'description',
-        'price_monthly_minor',
-        'price_yearly_minor',
-        'prices',
         'currency',
         'trial_days',
         'is_active',
         'is_featured',
         'sort_order',
-        // Hard limits
+    ];
+
+    // SECURITY: Guard all pricing, limit, and feature fields to prevent subscription fraud
+    // These define what tenants get - must only be modified through verified admin operations
+    protected $guarded = [
+        'id',
+        // Pricing - manipulation allows free/discounted access
+        'price_monthly_minor',
+        'price_yearly_minor',
+        'prices',
+        // Hard limits - manipulation allows exceeding plan restrictions
         'max_users',
         'max_branches',
         'max_patients',
@@ -59,19 +68,19 @@ class SubscriptionPlan extends Model
         'max_products',
         'max_treatments',
         'max_api_calls_daily',
-        // Soft limits (monthly)
+        // Soft limits - manipulation allows unlimited messaging/appointments
         'max_appointments_monthly',
         'max_whatsapp_monthly',
         'max_sms_monthly',
         'max_emails_monthly',
         'max_campaign_recipients',
-        // Overage pricing
+        // Overage pricing - manipulation to avoid overage charges
         'overage_appointment_minor',
         'overage_whatsapp_minor',
         'overage_sms_minor',
         'overage_email_minor',
         'overage_storage_gb_minor',
-        // Feature flags
+        // Feature flags - manipulation to enable premium features
         'allow_white_label',
         'allow_custom_domain',
         'allow_data_export',
@@ -79,7 +88,7 @@ class SubscriptionPlan extends Model
         'has_priority_support',
         'data_retention_days',
         'max_concurrent_sessions',
-        // Modules included
+        // Modules - manipulation to enable premium modules
         'included_module_codes',
     ];
 

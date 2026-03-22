@@ -130,12 +130,36 @@ class WhatsAppWebhookController extends Controller
         $newStatus = $statusMap[$status['status']] ?? null;
 
         if ($newStatus) {
+            // SECURITY: Sanitize error message from external webhook to prevent stored XSS
+            // The error comes from external API and could contain malicious content
+            $errorMessage = isset($status['error'])
+                ? $this->sanitizeExternalInput((string) $status['error'])
+                : null;
+
             $log->update([
                 'status' => $newStatus,
                 "{$newStatus}_at" => now(),
-                'error' => $status['error'] ?? null,
+                'error_message' => $errorMessage, // Fixed field name: was 'error', should be 'error_message'
             ]);
         }
+    }
+
+    /**
+     * Sanitize external input to prevent XSS.
+     * SECURITY: External webhook data should never be trusted.
+     */
+    protected function sanitizeExternalInput(string $input): string
+    {
+        // Remove any HTML tags and encode special characters
+        $sanitized = strip_tags($input);
+
+        // Limit length to prevent DoS via oversized error messages
+        $sanitized = mb_substr($sanitized, 0, 1000);
+
+        // Remove null bytes and other control characters
+        $sanitized = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $sanitized);
+
+        return $sanitized;
     }
 
     /**

@@ -20,29 +20,41 @@ class PackageSubscription extends BaseModel
 {
     use HasTenancy, HasActivity, SoftDeletes;
 
+    // SECURITY: Only allow non-sensitive fields for mass assignment
+    // Financial and status fields must be modified via controlled service methods
     protected $fillable = [
         'tenant_id',
         'patient_id',
         'package_id',
         'invoice_id',
-        'package_price_minor',
-        'deposit_paid_minor',
-        'balance_remaining_minor',
+        'package_price_minor', // Set once at creation from package
         'activation_rule',
-        'recognized_revenue_minor',
-        'unrecognized_revenue_minor',
         'unearned_revenue_account_id',
         'branch_id',
         'created_by_user_id',
-        'status',
         'purchased_at',
         'expires_at',
         'frozen_at',
         'frozen_until',
-        'completed_at',
-        'cancelled_at',
         'cancellation_reason',
         'notes',
+    ];
+
+    // SECURITY: Guard financial and status fields to prevent payment/revenue fraud
+    // These track money flow - manipulation enables fraudulent revenue recognition or fake payments
+    protected $guarded = [
+        'id',
+        // Payment tracking - manipulation fakes payment records
+        'deposit_paid_minor',
+        'balance_remaining_minor',
+        // Revenue recognition - manipulation inflates/manipulates recognized revenue
+        'recognized_revenue_minor',
+        'unrecognized_revenue_minor',
+        // Status workflow - manipulation bypasses proper state transitions
+        'status',
+        // Completion tracking - manipulation falsifies completion/cancellation dates
+        'completed_at',
+        'cancelled_at',
     ];
 
     protected $casts = [

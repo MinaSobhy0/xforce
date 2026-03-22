@@ -83,10 +83,17 @@ class EmailTemplate extends Model
         $subject = $this->getTranslation('subject', $locale);
         $body = $this->getTranslation('body', $locale);
 
+        // SECURITY: Escape data values to prevent injection via template variables
+        // The body may contain HTML formatting, but injected data should be escaped
         foreach ($data as $key => $value) {
-            $subject = str_replace('{' . $key . '}', $value, $subject);
-            $body = str_replace('{' . $key . '}', $value, $body);
+            $escapedValue = e($value);
+            $subject = str_replace('{' . $key . '}', $escapedValue, $subject);
+            $body = str_replace('{' . $key . '}', $escapedValue, $body);
         }
+
+        // SECURITY: Sanitize the final body to remove dangerous HTML elements
+        // while preserving safe email formatting tags
+        $body = $this->sanitizeHtml($body);
 
         return [
             'subject' => $subject,

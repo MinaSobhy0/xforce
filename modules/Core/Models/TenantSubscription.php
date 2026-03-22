@@ -17,29 +17,42 @@ class TenantSubscription extends Model
     protected $connection = 'central';
     protected $table = 'public.tenant_subscriptions';
 
+    // SECURITY: Only allow non-sensitive fields for mass assignment
+    // Status, pricing, and feature fields must be set via controlled service methods
     protected $fillable = [
         'tenant_id',
         'plan_name',
         'plan_code',
-        'status',
-        'price',
-        'currency',
         'billing_cycle',
-        'started_at',
-        'expires_at',
         'auto_renew',
-        'features',
-        'limits',
         'payment_method',
         'payment_provider',
         'payment_provider_id',
+        'meta',
+    ];
+
+    // SECURITY: Guard sensitive subscription fields to prevent subscription fraud
+    // These control access and billing - manipulation could enable unauthorized features
+    protected $guarded = [
+        'id',
+        // Status - manipulation allows reactivating expired/canceled subscriptions
+        'status',
+        // Pricing - manipulation allows changing subscription cost
+        'price',
+        'currency',
+        // Dates - manipulation extends/modifies subscription period
+        'started_at',
+        'expires_at',
         'last_payment_at',
         'next_payment_at',
-        'failed_payments_count',
         'grace_period_ends_at',
         'canceled_at',
+        // Features and limits - manipulation enables premium features without paying
+        'features',
+        'limits',
+        // Payment tracking - resetting this bypasses payment failure handling
+        'failed_payments_count',
         'cancellation_reason',
-        'meta',
     ];
 
     protected $casts = [

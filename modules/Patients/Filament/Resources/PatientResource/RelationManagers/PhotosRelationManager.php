@@ -2,15 +2,19 @@
 
 namespace Modules\Patients\Filament\Resources\PatientResource\RelationManagers;
 
+use App\Traits\EnforcesStorageQuota;
 use Modules\Patients\Models\PatientPhoto;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Filament\Notifications\Notification;
 
 class PhotosRelationManager extends RelationManager
 {
+    use EnforcesStorageQuota;
+
     protected static string $relationship = 'photos';
 
     protected static ?string $title = 'Photos';
@@ -21,11 +25,29 @@ class PhotosRelationManager extends RelationManager
     {
         return $form
             ->schema([
+                // SECURITY: Limit file size to remaining storage quota
                 Forms\Components\SpatieMediaLibraryFileUpload::make('photo')
                     ->collection('photos')
                     ->image()
                     ->imageEditor()
                     ->required()
+                    ->maxSize(function () {
+                        // Get remaining storage in KB (maxSize expects KB)
+                        $remainingMb = $this->getRemainingStorageMb();
+                        // Cap individual file size at 50MB or remaining quota, whichever is smaller
+                        $maxMb = min(50, $remainingMb);
+                        return $maxMb * 1024; // Convert to KB
+                    })
+                    ->helperText(function () {
+                        $remainingMb = $this->getRemainingStorageMb();
+                        $usagePercent = $this->getStorageUsagePercentage();
+                        if ($usagePercent >= 80) {
+                            return __('patients::patients.photos.storage_warning', [
+                                'remaining' => $remainingMb,
+                            ]);
+                        }
+                        return null;
+                    })
                     ->columnSpanFull(),
 
                 Forms\Components\Grid::make(2)
@@ -111,6 +133,14 @@ class PhotosRelationManager extends RelationManager
                         $data['taken_by'] = auth()->id();
                         $data['taken_at'] = $data['taken_at'] ?? now();
                         return $data;
+                    })
+                    // SECURITY: Enforce storage quota before upload
+                    ->before(function (array $data) {
+                        // Check if nearing quota and warn
+                        $usagePercent = $this->getStorageUsagePercentage();
+                        if ($usagePercent >= 90) {
+                            $this->notifyStorageQuotaWarning($usagePercent, $this->getRemainingStorageMb());
+                        }
                     }),
             ])
             ->actions([

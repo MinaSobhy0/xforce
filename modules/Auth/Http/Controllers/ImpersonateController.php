@@ -23,14 +23,23 @@ class ImpersonateController extends Controller
 
         $hashedToken = hash('sha256', $token);
 
-        // Validate the token using direct DB query to avoid audit triggers
+        // SECURITY: Fetch user data first, then perform timing-safe comparison
+        // This prevents attackers from detecting valid user IDs via timing differences
         $userData = DB::table('users')
             ->where('id', $userId)
-            ->where('impersonation_token', $hashedToken)
-            ->where('impersonation_token_expires_at', '>', now())
-            ->first();
+            ->first(['id', 'impersonation_token', 'impersonation_token_expires_at']);
 
-        if (!$userData) {
+        // SECURITY: Always perform all checks to prevent timing-based enumeration
+        // Use timing-safe comparison for the token to prevent character-by-character guessing
+        $tokenValid = $userData
+            && $userData->impersonation_token !== null
+            && hash_equals((string) $userData->impersonation_token, $hashedToken);
+
+        $tokenNotExpired = $userData
+            && $userData->impersonation_token_expires_at !== null
+            && now()->lt($userData->impersonation_token_expires_at);
+
+        if (!$tokenValid || !$tokenNotExpired) {
             abort(403, 'Invalid or expired impersonation link');
         }
 

@@ -16,6 +16,8 @@ use Filament\Resources\Pages\Page;
 use Filament\Actions;
 use Filament\Notifications\Notification;
 use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 
 class RecordPayment extends Page
 {
@@ -217,84 +219,128 @@ class RecordPayment extends Page
         $journal = Journal::find($data['journal_id']);
         $isGiftCard = $journal?->type === Journal::TYPE_GIFT_CARD;
 
-        // For gift card payments, validate and redeem from the card
-        if ($isGiftCard) {
-            if (empty($data['gift_card_id'])) {
-                Notification::make()
-                    ->title(__('billing::billing.record_payment.select_gift_card'))
-                    ->danger()
-                    ->send();
-                return;
-            }
+        // SECURITY: Idempotency protection - prevent duplicate payments from double-clicks
+        $idempotencyKey = "payment_invoice_{$this->record->id}_" . auth()->id() . '_' . md5(serialize($data));
+        $lockKey = "payment_lock_invoice_{$this->record->id}";
 
-            $card = GiftCard::find($data['gift_card_id']);
-            if (!$card || !$card->canRedeem()) {
-                Notification::make()
-                    ->title(__('billing::billing.record_payment.invalid_gift_card'))
-                    ->danger()
-                    ->send();
-                return;
-            }
-
-            if ($amountMinor > $card->remaining_value_minor) {
-                Notification::make()
-                    ->title(__('billing::billing.record_payment.amount_exceeds_balance'))
-                    ->danger()
-                    ->send();
-                return;
-            }
-
-            // Create payment first
-            $payment = Payment::create([
-                'invoice_id' => $this->record->id,
-                'journal_id' => $data['journal_id'],
-                'amount_minor' => $amountMinor,
-                'paid_at' => $data['paid_at'],
-                'reference_number' => $card->code,
-                'gift_card_id' => $card->id,
-                'notes' => $data['notes'] ?? __('giftcards::giftcards.redemption_for_invoice', ['invoice' => $this->record->code]),
-                'received_by_user_id' => auth()->id(),
-            ]);
-
-            // Redeem from gift card (this handles GL entry)
-            $giftCardService = app(GiftCardService::class);
-            $result = $giftCardService->redeem($card, $amountMinor, $this->record, $payment);
-
-            if (!$result['success']) {
-                // Payment was created but redemption failed - this shouldn't happen
-                // but we log it for debugging
-                \Log::error('Gift card redemption failed after payment created', [
-                    'payment_id' => $payment->id,
-                    'card_id' => $card->id,
-                    'error' => $result['error'] ?? 'Unknown error',
-                ]);
-            }
-
+        // Check if this exact payment was already processed (5 minute window)
+        if (Cache::has($idempotencyKey)) {
             Notification::make()
-                ->title(__('billing::billing.record_payment.payment_recorded'))
-                ->body(__('billing::billing.record_payment.gift_card_redeemed', [
-                    'amount' => format_money($amountMinor),
-                    'remaining' => format_money($result['remaining_balance'] ?? 0),
-                ]))
-                ->success()
+                ->title(__('billing::billing.record_payment.duplicate_prevented'))
+                ->body(__('billing::billing.record_payment.duplicate_prevented_body'))
+                ->warning()
                 ->send();
-        } else {
-            // Regular payment (cash/bank)
-            $payment = Payment::create([
-                'invoice_id' => $this->record->id,
-                'journal_id' => $data['journal_id'],
-                'amount_minor' => $amountMinor,
-                'paid_at' => $data['paid_at'],
-                'reference_number' => $data['reference_number'] ?? null,
-                'notes' => $data['notes'] ?? null,
-                'received_by_user_id' => auth()->id(),
-            ]);
+            $this->redirect($this->getResource()::getUrl('view', ['record' => $this->record]));
+            return;
+        }
 
+        // Use atomic lock to prevent race conditions
+        $lock = Cache::lock($lockKey, 10);
+
+        if (!$lock->get()) {
             Notification::make()
-                ->title(__('billing::billing.record_payment.payment_recorded'))
-                ->body(__('billing::billing.record_payment.amount_label', ['amount' => format_money($amountMinor)]))
-                ->success()
+                ->title(__('billing::billing.record_payment.payment_in_progress'))
+                ->body(__('billing::billing.record_payment.please_wait'))
+                ->warning()
                 ->send();
+            return;
+        }
+
+        try {
+            DB::transaction(function () use ($data, $amountMinor, $isGiftCard, $idempotencyKey) {
+                // Re-fetch invoice with lock to ensure accurate remaining balance
+                $invoice = Invoice::lockForUpdate()->find($this->record->id);
+
+                // Verify payment is still valid
+                if (!$invoice->canRecordPayment()) {
+                    throw new \Exception(__('billing::billing.record_payment.cannot_record'));
+                }
+
+                if ($amountMinor > $invoice->remaining_minor) {
+                    throw new \Exception(__('billing::billing.record_payment.amount_exceeds_remaining'));
+                }
+
+                // For gift card payments, validate and redeem from the card
+                if ($isGiftCard) {
+                    if (empty($data['gift_card_id'])) {
+                        throw new \Exception(__('billing::billing.record_payment.select_gift_card'));
+                    }
+
+                    $card = GiftCard::lockForUpdate()->find($data['gift_card_id']);
+                    if (!$card || !$card->canRedeem()) {
+                        throw new \Exception(__('billing::billing.record_payment.invalid_gift_card'));
+                    }
+
+                    if ($amountMinor > $card->remaining_value_minor) {
+                        throw new \Exception(__('billing::billing.record_payment.amount_exceeds_balance'));
+                    }
+
+                    // Create payment first
+                    $payment = Payment::create([
+                        'invoice_id' => $invoice->id,
+                        'journal_id' => $data['journal_id'],
+                        'amount_minor' => $amountMinor,
+                        'paid_at' => $data['paid_at'],
+                        'reference_number' => $card->code,
+                        'gift_card_id' => $card->id,
+                        'notes' => $data['notes'] ?? __('giftcards::giftcards.redemption_for_invoice', ['invoice' => $invoice->code]),
+                        'received_by_user_id' => auth()->id(),
+                    ]);
+
+                    // Redeem from gift card (this handles GL entry)
+                    $giftCardService = app(GiftCardService::class);
+                    $result = $giftCardService->redeem($card, $amountMinor, $invoice, $payment);
+
+                    if (!$result['success']) {
+                        \Log::error('Gift card redemption failed after payment created', [
+                            'payment_id' => $payment->id,
+                            'card_id' => $card->id,
+                            'error' => $result['error'] ?? 'Unknown error',
+                        ]);
+                    }
+
+                    // Mark as processed to prevent duplicates
+                    Cache::put($idempotencyKey, true, now()->addMinutes(5));
+
+                    Notification::make()
+                        ->title(__('billing::billing.record_payment.payment_recorded'))
+                        ->body(__('billing::billing.record_payment.gift_card_redeemed', [
+                            'amount' => format_money($amountMinor),
+                            'remaining' => format_money($result['remaining_balance'] ?? 0),
+                        ]))
+                        ->success()
+                        ->send();
+                } else {
+                    // Regular payment (cash/bank)
+                    Payment::create([
+                        'invoice_id' => $invoice->id,
+                        'journal_id' => $data['journal_id'],
+                        'amount_minor' => $amountMinor,
+                        'paid_at' => $data['paid_at'],
+                        'reference_number' => $data['reference_number'] ?? null,
+                        'notes' => $data['notes'] ?? null,
+                        'received_by_user_id' => auth()->id(),
+                    ]);
+
+                    // Mark as processed to prevent duplicates
+                    Cache::put($idempotencyKey, true, now()->addMinutes(5));
+
+                    Notification::make()
+                        ->title(__('billing::billing.record_payment.payment_recorded'))
+                        ->body(__('billing::billing.record_payment.amount_label', ['amount' => format_money($amountMinor)]))
+                        ->success()
+                        ->send();
+                }
+            });
+        } catch (\Exception $e) {
+            Notification::make()
+                ->title(__('billing::billing.record_payment.payment_failed'))
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
+            return;
+        } finally {
+            $lock->release();
         }
 
         $this->redirect($this->getResource()::getUrl('view', ['record' => $this->record]));

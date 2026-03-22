@@ -12,6 +12,8 @@ use Filament\Resources\Pages\Page;
 use Filament\Actions;
 use Filament\Notifications\Notification;
 use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 
 class RecordPayment extends Page
 {
@@ -129,25 +131,80 @@ class RecordPayment extends Page
         // Convert amount to minor units
         $amountMinor = (int) ($data['amount_minor'] * 100);
 
-        // Create payment record
-        $payment = Payment::create([
-            'type' => Payment::TYPE_SEND,
-            'vendor_bill_id' => $this->record->id,
-            'supplier_id' => $this->record->supplier_id,
-            'branch_id' => $this->record->branch_id,
-            'journal_id' => $data['journal_id'],
-            'amount_minor' => $amountMinor,
-            'paid_at' => $data['paid_at'],
-            'reference_number' => $data['reference_number'] ?? null,
-            'notes' => $data['notes'] ?? null,
-            'received_by_user_id' => auth()->id(),
-        ]);
+        // SECURITY: Idempotency protection - prevent duplicate payments from double-clicks
+        $idempotencyKey = "payment_vendorbill_{$this->record->id}_" . auth()->id() . '_' . md5(serialize($data));
+        $lockKey = "payment_lock_vendorbill_{$this->record->id}";
 
-        Notification::make()
-            ->title(__('inventory::inventory.messages.payment_recorded'))
-            ->body(__('inventory::inventory.messages.payment_amount', ['amount' => format_money($amountMinor)]))
-            ->success()
-            ->send();
+        // Check if this exact payment was already processed (5 minute window)
+        if (Cache::has($idempotencyKey)) {
+            Notification::make()
+                ->title(__('inventory::inventory.messages.duplicate_prevented'))
+                ->body(__('inventory::inventory.messages.duplicate_prevented_body'))
+                ->warning()
+                ->send();
+            $this->redirect($this->getResource()::getUrl('view', ['record' => $this->record]));
+            return;
+        }
+
+        // Use atomic lock to prevent race conditions
+        $lock = Cache::lock($lockKey, 10);
+
+        if (!$lock->get()) {
+            Notification::make()
+                ->title(__('inventory::inventory.messages.payment_in_progress'))
+                ->body(__('inventory::inventory.messages.please_wait'))
+                ->warning()
+                ->send();
+            return;
+        }
+
+        try {
+            DB::transaction(function () use ($data, $amountMinor, $idempotencyKey) {
+                // Re-fetch vendor bill with lock to ensure accurate remaining balance
+                $bill = VendorBill::lockForUpdate()->find($this->record->id);
+
+                // Verify payment is still valid
+                if (!$bill->canRecordPayment()) {
+                    throw new \Exception(__('inventory::inventory.messages.cannot_record_payment'));
+                }
+
+                if ($amountMinor > $bill->remaining_minor) {
+                    throw new \Exception(__('inventory::inventory.messages.amount_exceeds_remaining'));
+                }
+
+                // Create payment record
+                Payment::create([
+                    'type' => Payment::TYPE_SEND,
+                    'vendor_bill_id' => $bill->id,
+                    'supplier_id' => $bill->supplier_id,
+                    'branch_id' => $bill->branch_id,
+                    'journal_id' => $data['journal_id'],
+                    'amount_minor' => $amountMinor,
+                    'paid_at' => $data['paid_at'],
+                    'reference_number' => $data['reference_number'] ?? null,
+                    'notes' => $data['notes'] ?? null,
+                    'received_by_user_id' => auth()->id(),
+                ]);
+
+                // Mark as processed to prevent duplicates
+                Cache::put($idempotencyKey, true, now()->addMinutes(5));
+
+                Notification::make()
+                    ->title(__('inventory::inventory.messages.payment_recorded'))
+                    ->body(__('inventory::inventory.messages.payment_amount', ['amount' => format_money($amountMinor)]))
+                    ->success()
+                    ->send();
+            });
+        } catch (\Exception $e) {
+            Notification::make()
+                ->title(__('inventory::inventory.messages.payment_failed'))
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
+            return;
+        } finally {
+            $lock->release();
+        }
 
         $this->redirect($this->getResource()::getUrl('view', ['record' => $this->record]));
     }

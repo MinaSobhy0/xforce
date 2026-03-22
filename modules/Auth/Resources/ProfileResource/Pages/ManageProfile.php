@@ -11,6 +11,7 @@ use Filament\Forms\Contracts\HasForms;
 use Filament\Resources\Pages\Page;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Auth\Events\Registered;
 use Modules\Auth\Models\User;
 
 class ManageProfile extends Page implements HasForms
@@ -88,12 +89,14 @@ class ManageProfile extends Page implements HasForms
                                             ->required()
                                             ->maxLength(255),
 
+                                        // SECURITY: Email changes require password verification
                                         Forms\Components\TextInput::make('email')
                                             ->label(__('Email Address'))
                                             ->email()
                                             ->required()
                                             ->unique(User::class, 'email', ignoreRecord: fn () => auth()->user())
-                                            ->maxLength(255),
+                                            ->maxLength(255)
+                                            ->helperText(fn () => __('Changing email requires password verification')),
                                     ]),
 
                                 Forms\Components\Grid::make(2)
@@ -181,14 +184,15 @@ class ManageProfile extends Page implements HasForms
                             ->schema([
                                 Forms\Components\Grid::make(2)
                                     ->schema([
+                                        // SECURITY: Current password required for email or password changes
                                         Forms\Components\TextInput::make('current_password')
                                             ->label(__('Current Password'))
                                             ->password()
                                             ->revealable()
-                                            ->nullable()
                                             ->dehydrated(false)
                                             ->rules(['current_password'])
-                                            ->helperText(__('Required to change password')),
+                                            ->requiredWith('new_password')
+                                            ->helperText(__('Required to change email or password')),
 
                                         Forms\Components\TextInput::make('new_password')
                                             ->label(__('New Password'))
@@ -229,6 +233,32 @@ class ManageProfile extends Page implements HasForms
         $data = $this->form->getState();
         $user = auth()->user();
 
+        // Check if email is being changed
+        $emailChanged = $user->email !== ($data['email'] ?? $user->email);
+
+        // SECURITY: Require current password for email changes (account takeover prevention)
+        if ($emailChanged) {
+            $currentPassword = $data['current_password'] ?? null;
+
+            if (empty($currentPassword)) {
+                Notification::make()
+                    ->title(__('Password required'))
+                    ->body(__('You must enter your current password to change your email address.'))
+                    ->danger()
+                    ->send();
+                return;
+            }
+
+            if (!Hash::check($currentPassword, $user->password)) {
+                Notification::make()
+                    ->title(__('Invalid password'))
+                    ->body(__('The current password you entered is incorrect.'))
+                    ->danger()
+                    ->send();
+                return;
+            }
+        }
+
         // Handle password change
         if (filled($data['new_password'] ?? null)) {
             $data['password'] = Hash::make($data['new_password']);
@@ -238,18 +268,19 @@ class ManageProfile extends Page implements HasForms
         // Remove password fields from data
         unset($data['current_password'], $data['new_password'], $data['new_password_confirmation']);
 
-        // Check if email changed
-        $emailChanged = $user->email !== ($data['email'] ?? $user->email);
-
         // Update user
         $user->update($data);
 
+        // SECURITY: Require email re-verification after email change
         if ($emailChanged) {
             $user->update(['email_verified_at' => null]);
 
+            // Send verification email via Laravel's built-in mechanism
+            event(new Registered($user));
+
             Notification::make()
                 ->title(__('Email verification required'))
-                ->body(__('Your email has been changed. Please check your inbox for verification.'))
+                ->body(__('Your email has been changed. Please check your inbox for a verification link.'))
                 ->warning()
                 ->persistent()
                 ->send();
@@ -260,6 +291,9 @@ class ManageProfile extends Page implements HasForms
             activity()
                 ->causedBy($user)
                 ->performedOn($user)
+                ->withProperties([
+                    'email_changed' => $emailChanged,
+                ])
                 ->log('Profile updated');
         }
 

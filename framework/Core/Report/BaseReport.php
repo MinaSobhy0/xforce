@@ -411,11 +411,12 @@ abstract class BaseReport
 
     /**
      * Export to HTML
+     * SECURITY: All output is escaped to prevent XSS attacks
      */
     protected function exportToHtml(array $options = []): string
     {
         $metadata = static::getMetadata();
-        $title = $options['title'] ?? $metadata['name'];
+        $title = $this->escapeHtml($options['title'] ?? $metadata['name']);
 
         $html = "<html><head><title>{$title}</title></head><body>";
         $html .= "<h1>{$title}</h1>";
@@ -426,7 +427,9 @@ abstract class BaseReport
             $headers = array_keys($this->data->first()->toArray());
             $html .= "<tr>";
             foreach ($headers as $header) {
-                $html .= "<th>" . ucwords(str_replace('_', ' ', $header)) . "</th>";
+                // SECURITY: Escape header names to prevent XSS
+                $safeHeader = $this->escapeHtml(ucwords(str_replace('_', ' ', $header)));
+                $html .= "<th>{$safeHeader}</th>";
             }
             $html .= "</tr>";
 
@@ -434,7 +437,9 @@ abstract class BaseReport
             foreach ($this->data as $row) {
                 $html .= "<tr>";
                 foreach ($row->toArray() as $value) {
-                    $html .= "<td>{$value}</td>";
+                    // SECURITY: Escape all cell values to prevent XSS
+                    $safeValue = $this->escapeHtml($value);
+                    $html .= "<td>{$safeValue}</td>";
                 }
                 $html .= "</tr>";
             }
@@ -443,6 +448,24 @@ abstract class BaseReport
         $html .= "</table></body></html>";
 
         return $html;
+    }
+
+    /**
+     * Escape HTML special characters to prevent XSS
+     * SECURITY: Used for all user-controlled data in HTML output
+     */
+    protected function escapeHtml(mixed $value): string
+    {
+        if ($value === null) {
+            return '';
+        }
+
+        if (is_array($value) || is_object($value)) {
+            // For arrays/objects, convert to JSON and escape
+            $value = json_encode($value);
+        }
+
+        return htmlspecialchars((string) $value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
     }
 
     /**
