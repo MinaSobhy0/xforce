@@ -317,11 +317,9 @@ None - all critical issues from previous audits are fixed.
    // routes/web.php - throttle:3,5 added
    ```
 
-3. **Change Database Password** (MANUAL ACTION REQUIRED)
+3. **~~Change Database Password~~** ✅ FIXED
    ```bash
-   # Generate and apply new password
-   openssl rand -base64 32
-   # Update .env and PostgreSQL
+   # Strong 32-byte password applied to PostgreSQL and .env
    ```
 
 4. **Verify Production Environment Variables** (MANUAL ACTION REQUIRED)
