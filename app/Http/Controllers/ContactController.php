@@ -138,19 +138,27 @@ class ContactController extends Controller
             'LB' => 'Lebanon',
         ];
 
-        $countryName = $countries[$inquiry->country] ?? $inquiry->country;
+        $countryName = $countries[$inquiry->country] ?? e($inquiry->country);
+
+        // SECURITY: Escape all user-provided data to prevent HTML injection/XSS
+        $clinicName = e($inquiry->clinic_name);
+        $contactName = e($inquiry->contact_name);
+        $email = e($inquiry->email);
+        $phone = e($inquiry->phone);
+        $message = nl2br(e($inquiry->message)); // Preserve newlines but escape HTML
+        $platformNameEscaped = e($platformName);
 
         return "
             <h2>New Contact Inquiry</h2>
-            <p>A new inquiry has been submitted on {$platformName}.</p>
+            <p>A new inquiry has been submitted on {$platformNameEscaped}.</p>
             <hr>
-            <p><strong>Clinic Name:</strong> {$inquiry->clinic_name}</p>
-            <p><strong>Contact Name:</strong> {$inquiry->contact_name}</p>
-            <p><strong>Email:</strong> <a href='mailto:{$inquiry->email}'>{$inquiry->email}</a></p>
-            <p><strong>Phone:</strong> {$inquiry->phone}</p>
+            <p><strong>Clinic Name:</strong> {$clinicName}</p>
+            <p><strong>Contact Name:</strong> {$contactName}</p>
+            <p><strong>Email:</strong> <a href='mailto:{$email}'>{$email}</a></p>
+            <p><strong>Phone:</strong> {$phone}</p>
             <p><strong>Country:</strong> {$countryName}</p>
             <p><strong>Message:</strong></p>
-            <p>{$inquiry->message}</p>
+            <p>{$message}</p>
             <hr>
             <p><small>Submitted at: {$inquiry->created_at->format('Y-m-d H:i:s')}</small></p>
             <p><small>IP Address: {$inquiry->ip_address}</small></p>

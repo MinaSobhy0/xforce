@@ -35,17 +35,31 @@ class IdentifyTenant
     {
         $subdomain = $this->extractSubdomain($request);
 
-        // If no subdomain (e.g., IP access), try to get tenant from session or query param
+        // If no subdomain (e.g., IP access), try to get tenant from session
         if (!$subdomain || in_array($subdomain, $this->excludedSubdomains)) {
-            // Check for tenant in query parameter (for development)
-            if ($tenantSlug = $request->query('_tenant')) {
-                session(['_tenant_slug' => $tenantSlug]);
+            // SECURITY: Query parameter tenant override is only allowed in local environment
+            // and only for authenticated platform admins
+            if (app()->environment('local') && $tenantSlug = $request->query('_tenant')) {
+                // Validate the slug format to prevent injection
+                if (preg_match('/^[a-z0-9\-]+$/', $tenantSlug) && auth()->check()) {
+                    $user = auth()->user();
+                    // Only allow platform admins to switch tenant context
+                    if ($user && method_exists($user, 'hasRole') && $user->hasRole(['super_admin', 'platform_admin'])) {
+                        session(['_tenant_slug' => $tenantSlug]);
+                    }
+                }
             }
 
             // Try to get tenant from session
             $sessionTenantSlug = session('_tenant_slug');
 
             if ($sessionTenantSlug) {
+                // Validate session tenant slug format
+                if (!preg_match('/^[a-z0-9\-]+$/', $sessionTenantSlug)) {
+                    session()->forget('_tenant_slug');
+                    return $next($request);
+                }
+
                 // Ensure we query the public schema for tenants table
                 Config::set('database.connections.pgsql.search_path', 'public');
                 DB::purge('pgsql');
@@ -56,6 +70,25 @@ class IdentifyTenant
                     ->first();
 
                 if ($tenant && $tenant->database_name && $this->schemaExists($tenant->database_name)) {
+                    // SECURITY: Verify user has access to this tenant if authenticated
+                    if (auth()->check()) {
+                        $user = auth()->user();
+                        // Platform admins can access any tenant
+                        $isPlatformAdmin = method_exists($user, 'hasRole') &&
+                            $user->hasRole(['super_admin', 'platform_admin']);
+
+                        if (!$isPlatformAdmin) {
+                            // Regular users must belong to this tenant
+                            // Check if user's tenant_id matches or user has explicit tenant access
+                            $userTenantId = $user->tenant_id ?? null;
+                            if ($userTenantId !== $tenant->id) {
+                                // User doesn't belong to this tenant - clear session and deny
+                                session()->forget('_tenant_slug');
+                                abort(403, 'Unauthorized tenant access');
+                            }
+                        }
+                    }
+
                     $this->switchToTenantSchema($tenant);
                     $request->attributes->set('tenant', $tenant);
                     app()->instance('currentTenant', $tenant);
@@ -151,11 +184,51 @@ class IdentifyTenant
     }
 
     /**
+     * Validate schema name to prevent SQL injection.
+     * SECURITY: Schema names must be alphanumeric with underscores only.
+     */
+    protected function validateSchemaName(string $schemaName): bool
+    {
+        // Must start with letter, contain only lowercase alphanumeric and underscores
+        if (!preg_match('/^[a-z][a-z0-9_]*$/', $schemaName)) {
+            return false;
+        }
+
+        // Length limit (PostgreSQL max is 63)
+        if (strlen($schemaName) > 63) {
+            return false;
+        }
+
+        // Block reserved schemas
+        $reserved = ['public', 'pg_catalog', 'information_schema', 'pg_toast', 'pg_temp'];
+        if (in_array(strtolower($schemaName), $reserved)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Safely quote a PostgreSQL identifier.
+     */
+    protected function quoteIdentifier(string $identifier): string
+    {
+        // Escape double quotes by doubling them
+        $escaped = str_replace('"', '""', $identifier);
+        return '"' . $escaped . '"';
+    }
+
+    /**
      * Switch database connection to tenant's PostgreSQL schema.
      */
     protected function switchToTenantSchema(Tenant $tenant): void
     {
         $schemaName = $tenant->database_name;
+
+        // SECURITY: Validate schema name before using in SQL
+        if (!$this->validateSchemaName($schemaName)) {
+            throw new \RuntimeException("Invalid schema name: {$schemaName}");
+        }
 
         // Configure the default pgsql connection to use tenant's schema
         // Using 'options' parameter which is passed to PostgreSQL as connection string options
@@ -171,8 +244,9 @@ class IdentifyTenant
         DB::reconnect('pgsql');
 
         // With PgBouncer in transaction mode, we must SET search_path in each transaction
-        // Use SET LOCAL to ensure it applies to the current transaction
-        DB::statement("SET search_path TO \"{$schemaName}\"");
+        // SECURITY: Use safely quoted identifier
+        $quotedSchema = $this->quoteIdentifier($schemaName);
+        DB::statement("SET search_path TO {$quotedSchema}");
 
         // Also configure a named tenant connection for explicit use
         Config::set('database.connections.tenant', [

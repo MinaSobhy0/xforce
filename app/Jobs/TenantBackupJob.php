@@ -11,6 +11,8 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Process;
 
 class TenantBackupJob implements ShouldQueue
 {
@@ -22,10 +24,25 @@ class TenantBackupJob implements ShouldQueue
     protected Backup $backup;
     protected Tenant $tenant;
 
+    /**
+     * Pattern for valid schema names (alphanumeric and underscores only).
+     */
+    protected const SCHEMA_NAME_PATTERN = '/^[a-z][a-z0-9_]*$/';
+
     public function __construct(Backup $backup)
     {
         $this->backup = $backup;
         $this->tenant = $backup->tenant;
+    }
+
+    /**
+     * Validate schema name to prevent command injection.
+     */
+    protected function validateSchemaName(string $schema): bool
+    {
+        return preg_match(self::SCHEMA_NAME_PATTERN, $schema) === 1
+            && strlen($schema) <= 63
+            && !in_array($schema, ['public', 'pg_catalog', 'information_schema']);
     }
 
     public function handle(): void
@@ -42,8 +59,18 @@ class TenantBackupJob implements ShouldQueue
             $dbPass = $this->tenant->database_password ?? config('database.connections.pgsql.password');
             $schema = $this->tenant->database_name; // Tenant schema name
 
-            // Check if tenant schema exists before attempting backup
-            if (!$this->schemaExists($schema, $dbHost, $dbPort, $dbName, $dbUser, $dbPass)) {
+            // SECURITY: Validate schema name to prevent command injection
+            if (!$this->validateSchemaName($schema)) {
+                Log::error('Invalid schema name - potential security issue', [
+                    'tenant_id' => $this->tenant->id,
+                    'schema' => $schema,
+                ]);
+                $this->backup->markFailed('Invalid schema name');
+                return;
+            }
+
+            // Check if tenant schema exists before attempting backup using safe PDO query
+            if (!$this->schemaExistsSafe($schema)) {
                 Log::warning('Skipping backup - tenant schema not provisioned', [
                     'tenant_id' => $this->tenant->id,
                     'schema' => $schema,
@@ -58,33 +85,51 @@ class TenantBackupJob implements ShouldQueue
                 mkdir($backupDir, 0755, true);
             }
 
-            // Generate backup filename
+            // Generate backup filename with sanitized slug
+            $safeSlug = preg_replace('/[^a-z0-9_-]/', '', $this->tenant->slug);
             $filename = sprintf(
                 'tenant_%s_%s.sql.gz',
-                $this->tenant->slug,
+                $safeSlug,
                 now()->format('Y-m-d_His')
             );
             $backupPath = $backupDir . '/' . $filename;
 
-            // Build pg_dump command for schema-only backup
-            $command = sprintf(
-                'PGPASSWORD=%s pg_dump -h %s -p %s -U %s -d %s -n %s --no-owner --no-acl | gzip > %s 2>&1',
-                escapeshellarg($dbPass),
-                escapeshellarg($dbHost),
-                escapeshellarg($dbPort),
-                escapeshellarg($dbUser),
-                escapeshellarg($dbName),
-                escapeshellarg($schema),
-                escapeshellarg($backupPath)
-            );
+            // SECURITY: Create temporary .pgpass file instead of using PGPASSWORD env var
+            // This prevents password from being visible in process listings
+            $pgpassFile = $this->createSecurePgpassFile($dbHost, $dbPort, $dbName, $dbUser, $dbPass);
 
-            // Execute backup command
-            $output = [];
-            $returnCode = 0;
-            exec($command, $output, $returnCode);
+            try {
+                // Build pg_dump command using connection string (more secure)
+                // Uses .pgpass file for authentication
+                $result = Process::timeout($this->timeout)
+                    ->env([
+                        'PGPASSFILE' => $pgpassFile,
+                        'HOME' => storage_path('app/tmp'), // Required for .pgpass
+                    ])
+                    ->run([
+                        'pg_dump',
+                        '-h', $dbHost,
+                        '-p', (string) $dbPort,
+                        '-U', $dbUser,
+                        '-d', $dbName,
+                        '-n', $schema,
+                        '--no-owner',
+                        '--no-acl',
+                    ]);
 
-            if ($returnCode !== 0) {
-                throw new \Exception('pg_dump failed: ' . implode("\n", $output));
+                if (!$result->successful()) {
+                    throw new \Exception('pg_dump failed: ' . $result->errorOutput());
+                }
+
+                // Compress and save output
+                $compressedData = gzencode($result->output(), 9);
+                file_put_contents($backupPath, $compressedData);
+
+            } finally {
+                // SECURITY: Always clean up the pgpass file
+                if (file_exists($pgpassFile)) {
+                    unlink($pgpassFile);
+                }
             }
 
             // Verify backup file exists and has content
@@ -147,23 +192,42 @@ class TenantBackupJob implements ShouldQueue
     }
 
     /**
-     * Check if the tenant schema exists in the database.
+     * Create a secure .pgpass file for PostgreSQL authentication.
+     * SECURITY: This prevents password exposure in process listings.
      */
-    protected function schemaExists(string $schema, string $host, int $port, string $database, string $user, string $password): bool
+    protected function createSecurePgpassFile(string $host, int $port, string $database, string $user, string $password): string
+    {
+        $tmpDir = storage_path('app/tmp');
+        if (!is_dir($tmpDir)) {
+            mkdir($tmpDir, 0700, true);
+        }
+
+        $pgpassFile = $tmpDir . '/.pgpass_' . uniqid('backup_', true);
+
+        // Format: hostname:port:database:username:password
+        // Escape colons and backslashes in password
+        $escapedPassword = str_replace(['\\', ':'], ['\\\\', '\\:'], $password);
+        $pgpassContent = "{$host}:{$port}:{$database}:{$user}:{$escapedPassword}\n";
+
+        // Write with restrictive permissions (required by PostgreSQL)
+        file_put_contents($pgpassFile, $pgpassContent);
+        chmod($pgpassFile, 0600);
+
+        return $pgpassFile;
+    }
+
+    /**
+     * Check if the tenant schema exists using safe PDO query.
+     * SECURITY: Uses parameterized query instead of shell command.
+     */
+    protected function schemaExistsSafe(string $schema): bool
     {
         try {
-            $command = sprintf(
-                'PGPASSWORD=%s psql -h %s -p %s -U %s -d %s -tAc "SELECT 1 FROM information_schema.schemata WHERE schema_name = %s" 2>/dev/null',
-                escapeshellarg($password),
-                escapeshellarg($host),
-                escapeshellarg($port),
-                escapeshellarg($user),
-                escapeshellarg($database),
-                escapeshellarg($schema)
+            $result = DB::select(
+                "SELECT 1 FROM information_schema.schemata WHERE schema_name = ?",
+                [$schema]
             );
-
-            $output = trim(shell_exec($command) ?? '');
-            return $output === '1';
+            return count($result) > 0;
         } catch (\Exception $e) {
             Log::warning('Failed to check schema existence', [
                 'schema' => $schema,
@@ -171,5 +235,15 @@ class TenantBackupJob implements ShouldQueue
             ]);
             return false;
         }
+    }
+
+    /**
+     * @deprecated Use schemaExistsSafe() instead.
+     * Check if the tenant schema exists in the database.
+     */
+    protected function schemaExists(string $schema, string $host, int $port, string $database, string $user, string $password): bool
+    {
+        // SECURITY: Delegate to safe PDO-based method instead of shell command
+        return $this->schemaExistsSafe($schema);
     }
 }

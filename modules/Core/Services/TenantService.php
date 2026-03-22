@@ -15,9 +15,77 @@ use Illuminate\Support\Str;
 
 class TenantService
 {
+    /**
+     * Maximum length for PostgreSQL identifiers.
+     */
+    protected const MAX_IDENTIFIER_LENGTH = 63;
+
+    /**
+     * Pattern for valid schema names (alphanumeric and underscores only).
+     */
+    protected const SCHEMA_NAME_PATTERN = '/^[a-z][a-z0-9_]*$/';
+
     public function __construct(
         protected TenantManager $tenantManager
     ) {}
+
+    /**
+     * Validate and sanitize a PostgreSQL identifier (schema/table name).
+     * SECURITY: Prevents SQL injection via identifier names.
+     *
+     * @throws \InvalidArgumentException if the identifier is invalid
+     */
+    protected function validateIdentifier(string $identifier, string $type = 'identifier'): string
+    {
+        // Remove any leading/trailing whitespace
+        $identifier = trim($identifier);
+
+        // Check length
+        if (strlen($identifier) === 0) {
+            throw new \InvalidArgumentException("Empty {$type} name is not allowed");
+        }
+
+        if (strlen($identifier) > self::MAX_IDENTIFIER_LENGTH) {
+            throw new \InvalidArgumentException(
+                "{$type} name exceeds maximum length of " . self::MAX_IDENTIFIER_LENGTH . " characters"
+            );
+        }
+
+        // Validate format: must start with letter, contain only lowercase alphanumeric and underscores
+        if (!preg_match(self::SCHEMA_NAME_PATTERN, $identifier)) {
+            throw new \InvalidArgumentException(
+                "Invalid {$type} name format. Must start with a letter and contain only " .
+                "lowercase letters, numbers, and underscores. Got: {$identifier}"
+            );
+        }
+
+        // Block PostgreSQL reserved words and dangerous patterns
+        $reserved = [
+            'public', 'pg_catalog', 'information_schema', 'pg_toast',
+            'pg_temp', 'pg_toast_temp', 'pg_temp_1', 'pg_toast_temp_1',
+        ];
+
+        if (in_array(strtolower($identifier), $reserved)) {
+            throw new \InvalidArgumentException("Reserved {$type} name is not allowed: {$identifier}");
+        }
+
+        return $identifier;
+    }
+
+    /**
+     * Safely quote a PostgreSQL identifier.
+     * Uses double-quoting and escapes any existing double-quotes.
+     */
+    protected function quoteIdentifier(string $identifier): string
+    {
+        // Validate first
+        $identifier = $this->validateIdentifier($identifier);
+
+        // Escape any double quotes by doubling them (PostgreSQL standard)
+        $escaped = str_replace('"', '""', $identifier);
+
+        return '"' . $escaped . '"';
+    }
 
     public function create(array $data): Tenant
     {
@@ -152,6 +220,18 @@ class TenantService
         $schemaName = $tenant->database_name;
         $connectionName = "tenant_{$tenant->id}";
 
+        // SECURITY: Validate schema name to prevent SQL injection
+        try {
+            $schemaName = $this->validateIdentifier($schemaName, 'schema');
+        } catch (\InvalidArgumentException $e) {
+            Log::error('Invalid tenant schema name', [
+                'tenant_id' => $tenant->id,
+                'schema_name' => $schemaName,
+                'error' => $e->getMessage(),
+            ]);
+            throw new \RuntimeException("Invalid schema name for tenant: {$e->getMessage()}");
+        }
+
         Log::info('Creating tenant database schema', [
             'tenant_id' => $tenant->id,
             'tenant_name' => $tenant->name,
@@ -161,11 +241,16 @@ class TenantService
         // Create schema in the main database using explicit connection
         // Schema operations must auto-commit to be visible to other connections
         $pgsqlConn = DB::connection('pgsql');
-        $pgsqlConn->statement("CREATE SCHEMA IF NOT EXISTS \"{$schemaName}\"");
+
+        // SECURITY: Use validated and properly quoted identifier
+        $quotedSchema = $this->quoteIdentifier($schemaName);
+        $pgsqlConn->statement("CREATE SCHEMA IF NOT EXISTS {$quotedSchema}");
 
         // Grant permissions to the database user
         $dbUser = config('database.connections.pgsql.username');
-        $pgsqlConn->statement("GRANT ALL ON SCHEMA \"{$schemaName}\" TO \"{$dbUser}\"");
+        // SECURITY: Validate database username as well
+        $quotedUser = $this->quoteIdentifier($this->validateIdentifier($dbUser, 'username'));
+        $pgsqlConn->statement("GRANT ALL ON SCHEMA {$quotedSchema} TO {$quotedUser}");
 
         // Verify schema was created
         $schemaExists = $pgsqlConn->selectOne("
@@ -214,8 +299,9 @@ class TenantService
         DB::reconnect('tenant');
 
         // Explicitly set search_path for PgBouncer compatibility on both connections
-        DB::connection($connectionName)->statement("SET search_path TO \"{$schemaName}\"");
-        DB::connection('tenant')->statement("SET search_path TO \"{$schemaName}\"");
+        // SECURITY: Schema name was already validated above
+        DB::connection($connectionName)->statement("SET search_path TO {$quotedSchema}");
+        DB::connection('tenant')->statement("SET search_path TO {$quotedSchema}");
 
         // Verify search_path is set correctly
         $result = DB::connection($connectionName)->select('SHOW search_path');

@@ -34,6 +34,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Add IdentifyTenant middleware globally for web routes
         // It will skip sys.x-linic.com and other excluded subdomains
         $middleware->web(append: [
+            \App\Http\Middleware\SecurityHeaders::class, // SECURITY: Add security headers to all responses
             \App\Http\Middleware\IdentifyTenant::class,
             \App\Http\Middleware\SetLocale::class,
         ]);

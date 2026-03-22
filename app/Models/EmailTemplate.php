@@ -144,6 +144,43 @@ class EmailTemplate extends Model
             $body = str_replace('{' . $key . '}', $value, $body);
         }
 
-        return $body;
+        // SECURITY: Sanitize HTML to prevent XSS attacks
+        return $this->sanitizeHtml($body);
+    }
+
+    /**
+     * Sanitize HTML content to prevent XSS attacks.
+     * Allows safe HTML tags for email formatting while removing dangerous elements.
+     */
+    protected function sanitizeHtml(string $html): string
+    {
+        // List of allowed tags for email content
+        $allowedTags = '<p><br><strong><b><em><i><u><a><ul><ol><li><h1><h2><h3><h4><h5><h6><div><span><table><tr><td><th><thead><tbody><img><hr>';
+
+        // Strip tags that aren't in the allowed list
+        $sanitized = strip_tags($html, $allowedTags);
+
+        // Remove dangerous attributes using regex
+        // This removes onclick, onerror, onload, javascript:, and similar event handlers
+        $dangerousPatterns = [
+            // Event handlers
+            '/\s+on\w+\s*=\s*["\'][^"\']*["\']/i',
+            '/\s+on\w+\s*=\s*[^\s>]*/i',
+            // JavaScript URLs
+            '/href\s*=\s*["\']?\s*javascript:[^"\'>\s]*/i',
+            '/src\s*=\s*["\']?\s*javascript:[^"\'>\s]*/i',
+            // Data URLs with potentially dangerous content
+            '/src\s*=\s*["\']?\s*data:(?!image\/)[^"\'>\s]*/i',
+            // Expression (IE CSS)
+            '/expression\s*\([^)]*\)/i',
+            // Style with JavaScript
+            '/style\s*=\s*["\'][^"\']*(?:expression|javascript|behavior)[^"\']*["\']/i',
+        ];
+
+        foreach ($dangerousPatterns as $pattern) {
+            $sanitized = preg_replace($pattern, '', $sanitized);
+        }
+
+        return $sanitized;
     }
 }

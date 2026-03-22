@@ -6,10 +6,13 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Config;
 use Modules\Marketing\Services\WhatsAppService;
 use Modules\Marketing\Models\NotificationLog;
 use Modules\Marketing\Models\MessageTemplate;
 use Modules\Booking\Models\Appointment;
+use Modules\Core\Models\Tenant;
 
 class WhatsAppWebhookController extends Controller
 {
@@ -24,10 +27,16 @@ class WhatsAppWebhookController extends Controller
     {
         $verifyToken = config('marketing.whatsapp.webhook_verify_token');
 
+        // SECURITY: Use constant-time comparison to prevent timing attacks
         if ($request->get('hub_mode') === 'subscribe' &&
-            $request->get('hub_verify_token') === $verifyToken) {
+            hash_equals($verifyToken ?? '', $request->get('hub_verify_token') ?? '')) {
             return response($request->get('hub_challenge'));
         }
+
+        Log::warning('WhatsApp webhook verification failed', [
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
 
         return response('Forbidden', 403);
     }
@@ -37,9 +46,22 @@ class WhatsAppWebhookController extends Controller
      */
     public function handle(Request $request): JsonResponse
     {
+        // SECURITY: Verify webhook signature from Meta
+        if (!$this->verifyWebhookSignature($request)) {
+            Log::warning('WhatsApp webhook signature verification failed', [
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
+            return response()->json(['error' => 'Invalid signature'], 401);
+        }
+
         $payload = $request->all();
 
-        Log::debug('WhatsApp webhook received', ['payload' => $payload]);
+        // Don't log full payload in production to avoid exposing sensitive data
+        Log::debug('WhatsApp webhook received', [
+            'has_statuses' => isset($payload['entry'][0]['changes'][0]['value']['statuses']),
+            'has_messages' => isset($payload['entry'][0]['changes'][0]['value']['messages']),
+        ]);
 
         // Handle status updates
         $status = $this->whatsAppService->parseWebhookStatus($payload);
@@ -54,6 +76,33 @@ class WhatsAppWebhookController extends Controller
         }
 
         return response()->json(['status' => 'ok']);
+    }
+
+    /**
+     * Verify the webhook signature from Meta.
+     * Meta signs webhooks with HMAC-SHA256 using your app secret.
+     */
+    protected function verifyWebhookSignature(Request $request): bool
+    {
+        $signature = $request->header('X-Hub-Signature-256');
+
+        if (!$signature) {
+            return false;
+        }
+
+        $appSecret = config('marketing.whatsapp.app_secret');
+
+        if (!$appSecret) {
+            // If app secret is not configured, log and reject
+            Log::error('WhatsApp app secret not configured - cannot verify webhook signatures');
+            return false;
+        }
+
+        $payload = $request->getContent();
+        $expectedSignature = 'sha256=' . hash_hmac('sha256', $payload, $appSecret);
+
+        // Use constant-time comparison to prevent timing attacks
+        return hash_equals($expectedSignature, $signature);
     }
 
     /**
@@ -130,17 +179,95 @@ class WhatsAppWebhookController extends Controller
     }
 
     /**
+     * Find appointment with proper tenant context.
+     * SECURITY: Never query appointments globally - always with tenant scoping.
+     *
+     * The appointment ID should be in format: {tenant_id}:{appointment_id}
+     * to ensure we can properly scope the query.
+     */
+    protected function findAppointmentWithTenant(string $referenceId): ?Appointment
+    {
+        // Parse the reference ID - expected format: {tenant_id}:{appointment_id}
+        // This ensures webhook callbacks include tenant context
+        if (str_contains($referenceId, ':')) {
+            [$tenantId, $appointmentId] = explode(':', $referenceId, 2);
+        } else {
+            // Legacy format - try to find via notification log which has tenant context
+            $notificationLog = NotificationLog::where('reference_id', $referenceId)
+                ->orWhere('reference_id', 'appointment:' . $referenceId)
+                ->first();
+
+            if (!$notificationLog || !$notificationLog->tenant_id) {
+                Log::warning('Cannot determine tenant for appointment callback', [
+                    'reference_id' => $referenceId,
+                ]);
+                return null;
+            }
+
+            $tenantId = $notificationLog->tenant_id;
+            $appointmentId = $referenceId;
+        }
+
+        // Validate appointment ID is numeric to prevent injection
+        if (!is_numeric($appointmentId)) {
+            Log::warning('Invalid appointment ID format', ['appointment_id' => $appointmentId]);
+            return null;
+        }
+
+        // Find the tenant
+        $tenant = Tenant::find($tenantId);
+        if (!$tenant || !$tenant->database_name) {
+            Log::warning('Tenant not found for appointment callback', ['tenant_id' => $tenantId]);
+            return null;
+        }
+
+        // Switch to tenant schema
+        $this->switchToTenantSchema($tenant);
+
+        // Now find the appointment within the tenant's schema
+        return Appointment::find($appointmentId);
+    }
+
+    /**
+     * Switch to tenant's database schema.
+     */
+    protected function switchToTenantSchema(Tenant $tenant): void
+    {
+        $schemaName = $tenant->database_name;
+
+        Config::set('database.connections.pgsql.search_path', $schemaName);
+        DB::purge('pgsql');
+        DB::reconnect('pgsql');
+        DB::statement("SET search_path TO \"{$schemaName}\"");
+    }
+
+    /**
      * Handle appointment confirmation from button click.
      */
     protected function handleAppointmentConfirmation(string $appointmentId, ?string $phone): void
     {
-        // Find appointment across all tenants (webhook doesn't have tenant context)
-        // In production, you'd want to include tenant_id in the button payload
-        $appointment = Appointment::find($appointmentId);
+        // SECURITY: Find appointment with proper tenant context
+        $appointment = $this->findAppointmentWithTenant($appointmentId);
 
         if (!$appointment) {
             Log::warning('Appointment not found for confirmation', ['id' => $appointmentId]);
             return;
+        }
+
+        // Validate phone matches appointment patient (optional additional security)
+        if ($phone && $appointment->patient) {
+            $patientPhone = preg_replace('/[^0-9]/', '', $appointment->patient->phone ?? '');
+            $callbackPhone = preg_replace('/[^0-9]/', '', $phone);
+            // Check if last 9 digits match (to handle country code variations)
+            if (strlen($patientPhone) >= 9 && strlen($callbackPhone) >= 9) {
+                if (substr($patientPhone, -9) !== substr($callbackPhone, -9)) {
+                    Log::warning('Phone mismatch in appointment confirmation', [
+                        'appointment_id' => $appointmentId,
+                        'callback_phone' => substr($callbackPhone, -4), // Log only last 4 digits
+                    ]);
+                    // Continue anyway - phone verification is optional
+                }
+            }
         }
 
         // Only confirm if pending
@@ -152,8 +279,7 @@ class WhatsAppWebhookController extends Controller
             ]);
 
             Log::info('Appointment confirmed via WhatsApp button', [
-                'appointment_id' => $appointmentId,
-                'phone' => $phone,
+                'appointment_id' => $appointment->id,
             ]);
 
             // Send confirmation acknowledgment
@@ -171,7 +297,8 @@ class WhatsAppWebhookController extends Controller
      */
     protected function handleAppointmentReschedule(string $appointmentId, ?string $phone): void
     {
-        $appointment = Appointment::find($appointmentId);
+        // SECURITY: Find appointment with proper tenant context
+        $appointment = $this->findAppointmentWithTenant($appointmentId);
 
         if (!$appointment) {
             Log::warning('Appointment not found for reschedule', ['id' => $appointmentId]);
@@ -186,8 +313,7 @@ class WhatsAppWebhookController extends Controller
         ]);
 
         Log::info('Appointment reschedule requested via WhatsApp button', [
-            'appointment_id' => $appointmentId,
-            'phone' => $phone,
+            'appointment_id' => $appointment->id,
         ]);
 
         // Send acknowledgment with instructions
@@ -204,7 +330,8 @@ class WhatsAppWebhookController extends Controller
      */
     protected function handleAppointmentCancellation(string $appointmentId, ?string $phone): void
     {
-        $appointment = Appointment::find($appointmentId);
+        // SECURITY: Find appointment with proper tenant context
+        $appointment = $this->findAppointmentWithTenant($appointmentId);
 
         if (!$appointment) {
             Log::warning('Appointment not found for cancellation', ['id' => $appointmentId]);
@@ -221,8 +348,7 @@ class WhatsAppWebhookController extends Controller
             ]);
 
             Log::info('Appointment cancelled via WhatsApp button', [
-                'appointment_id' => $appointmentId,
-                'phone' => $phone,
+                'appointment_id' => $appointment->id,
             ]);
 
             // Send cancellation confirmation
