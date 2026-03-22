@@ -15,11 +15,14 @@ class BookingController extends BaseApiController
 {
     /**
      * Get available services for booking
+     * SECURITY: Limited to 100 results to prevent memory exhaustion
      */
     public function services(Request $request): JsonResponse
     {
         $services = Service::where('is_active', true)
             ->where('is_bookable_online', true)
+            ->orderBy('name')
+            ->limit(100)
             ->get()
             ->map(fn ($s) => [
                 'id' => $s->id,
@@ -35,10 +38,13 @@ class BookingController extends BaseApiController
 
     /**
      * Get available branches
+     * SECURITY: Limited to 50 results to prevent memory exhaustion
      */
     public function branches(Request $request): JsonResponse
     {
         $branches = Branch::where('is_active', true)
+            ->orderBy('name')
+            ->limit(50)
             ->get()
             ->map(fn ($b) => [
                 'id' => $b->id,

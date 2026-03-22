@@ -498,13 +498,15 @@ class TenantResource extends Resource
                             $schemaName = $record->database_name;
                             \DB::statement("SET search_path TO \"{$schemaName}\"");
 
+                            // SECURITY: Generate cryptographically secure random token
                             $token = \Illuminate\Support\Str::random(64);
                             $expiresAt = now()->addMinutes(5);
 
+                            // SECURITY: Use bcrypt for token storage (slow hash to resist brute-force)
                             \DB::table('users')
                                 ->where('id', $data['user_id'])
                                 ->update([
-                                    'impersonation_token' => hash('sha256', $token),
+                                    'impersonation_token' => password_hash($token, PASSWORD_BCRYPT),
                                     'impersonation_token_expires_at' => $expiresAt,
                                 ]);
 

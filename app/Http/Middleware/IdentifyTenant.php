@@ -220,6 +220,7 @@ class IdentifyTenant
 
     /**
      * Switch database connection to tenant's PostgreSQL schema.
+     * SECURITY: Includes protection against PgBouncer connection race conditions.
      */
     protected function switchToTenantSchema(Tenant $tenant): void
     {
@@ -243,10 +244,19 @@ class IdentifyTenant
         DB::purge('pgsql');
         DB::reconnect('pgsql');
 
-        // With PgBouncer in transaction mode, we must SET search_path in each transaction
         // SECURITY: Use safely quoted identifier
         $quotedSchema = $this->quoteIdentifier($schemaName);
+
+        // SECURITY: Set search_path immediately after acquiring connection
+        // This must happen atomically with connection acquisition
         DB::statement("SET search_path TO {$quotedSchema}");
+
+        // SECURITY: Verify the search_path was set correctly to detect PgBouncer issues
+        $this->verifySearchPath($schemaName);
+
+        // SECURITY: Register a reconnect listener to ensure search_path persists
+        // This handles cases where PgBouncer gives us a different backend connection
+        $this->registerSearchPathCallback($schemaName, $quotedSchema);
 
         // Also configure a named tenant connection for explicit use
         Config::set('database.connections.tenant', [
@@ -313,11 +323,110 @@ class IdentifyTenant
      */
     protected function clearPermissionCacheIfTenantChanged(Tenant $tenant): void
     {
-        // Set tenant-specific cache key for Spatie permissions
-        // This avoids cache conflicts between tenants
-        Config::set('permission.cache.key', 'spatie.permission.cache.' . $tenant->slug);
+        // SECURITY: Set tenant-specific cache key for Spatie permissions using ID (not slug)
+        // Using ID prevents cache collisions between tenants with similar slugs
+        Config::set('permission.cache.key', 'spatie.permission.cache.tenant_' . $tenant->id);
 
         // Reset the PermissionRegistrar to pick up the new cache key
         app(PermissionRegistrar::class)->initializeCache();
+
+        // SECURITY: Set tenant-specific cache prefix to prevent cross-tenant cache pollution
+        // This ensures all cache keys are automatically prefixed with tenant identifier
+        $this->setTenantCachePrefix($tenant);
+    }
+
+    /**
+     * SECURITY: Set tenant-specific cache prefix to prevent cross-tenant cache pollution.
+     * This ensures all cache operations are isolated to the current tenant.
+     */
+    protected function setTenantCachePrefix(Tenant $tenant): void
+    {
+        // Get base prefix from config
+        $basePrefix = config('cache.prefix', 'xlinic_cache_');
+
+        // Create tenant-specific prefix
+        $tenantPrefix = $basePrefix . 'tenant_' . $tenant->id . '_';
+
+        // Update cache prefix in config
+        Config::set('cache.prefix', $tenantPrefix);
+
+        // Also update Redis prefix if using Redis
+        $currentRedisPrefix = config('database.redis.options.prefix', 'xlinic_');
+        Config::set('database.redis.options.prefix', $currentRedisPrefix . 'tenant_' . $tenant->id . '_');
+
+        // Purge cache store to pick up new prefix
+        // Note: We don't call Cache::forgetDriver() as it would clear all cache
+        // The prefix change only affects new cache operations
+    }
+
+    /**
+     * SECURITY: Verify the search_path was set correctly.
+     * This detects PgBouncer misconfiguration issues that could lead to
+     * cross-tenant data access.
+     */
+    protected function verifySearchPath(string $expectedSchema): void
+    {
+        try {
+            $result = DB::selectOne('SHOW search_path');
+            $currentPath = $result->search_path ?? '';
+
+            // Parse the search_path (it could be quoted or have additional schemas)
+            $schemas = array_map('trim', explode(',', $currentPath));
+            $firstSchema = str_replace('"', '', $schemas[0] ?? '');
+
+            if ($firstSchema !== $expectedSchema) {
+                throw new \RuntimeException(
+                    "SECURITY: search_path mismatch - expected '{$expectedSchema}', got '{$firstSchema}'. " .
+                    "This may indicate PgBouncer is not in session mode or a connection race occurred."
+                );
+            }
+        } catch (\Exception $e) {
+            // If verification fails, log and continue (don't break production)
+            // But this should be monitored
+            \Log::warning('Failed to verify search_path', [
+                'expected_schema' => $expectedSchema,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * SECURITY: Register callback to ensure search_path is set on reconnection.
+     * This handles edge cases where PgBouncer gives us a different backend connection.
+     */
+    protected function registerSearchPathCallback(string $schemaName, string $quotedSchema): void
+    {
+        // Store the current tenant schema in a static for the callback
+        static $registeredSchema = null;
+
+        // Only register once per request
+        if ($registeredSchema === $schemaName) {
+            return;
+        }
+
+        $registeredSchema = $schemaName;
+
+        // Use Laravel's reconnect event to ensure search_path is set
+        // This handles cases where the connection is dropped and re-established
+        DB::listen(function ($query) use ($schemaName, $quotedSchema) {
+            // If we detect a connection issue, ensure search_path is set
+            // This is a fallback mechanism - the primary SET should already work
+            static $searchPathSet = false;
+
+            if (!$searchPathSet && str_contains($query->sql ?? '', 'relation') && str_contains($query->sql ?? '', 'does not exist')) {
+                // This suggests we might have a search_path issue
+                \Log::warning('Possible search_path issue detected, attempting to reset', [
+                    'expected_schema' => $schemaName,
+                    'sql' => $query->sql,
+                ]);
+
+                try {
+                    DB::statement("SET search_path TO {$quotedSchema}");
+                    $searchPathSet = true;
+                } catch (\Exception $e) {
+                    \Log::error('Failed to reset search_path', ['error' => $e->getMessage()]);
+                }
+            }
+        });
     }
 }

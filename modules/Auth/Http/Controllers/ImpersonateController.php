@@ -21,19 +21,17 @@ class ImpersonateController extends Controller
 
         $userId = (int) $userId;
 
-        $hashedToken = hash('sha256', $token);
-
         // SECURITY: Fetch user data first, then perform timing-safe comparison
         // This prevents attackers from detecting valid user IDs via timing differences
         $userData = DB::table('users')
             ->where('id', $userId)
             ->first(['id', 'impersonation_token', 'impersonation_token_expires_at']);
 
-        // SECURITY: Always perform all checks to prevent timing-based enumeration
-        // Use timing-safe comparison for the token to prevent character-by-character guessing
+        // SECURITY: Use password_verify for bcrypt tokens (timing-safe comparison built-in)
+        // Bcrypt is computationally expensive, making brute-force attacks impractical
         $tokenValid = $userData
             && $userData->impersonation_token !== null
-            && hash_equals((string) $userData->impersonation_token, $hashedToken);
+            && password_verify($token, (string) $userData->impersonation_token);
 
         $tokenNotExpired = $userData
             && $userData->impersonation_token_expires_at !== null

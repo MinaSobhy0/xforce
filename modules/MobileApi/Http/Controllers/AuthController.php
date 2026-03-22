@@ -6,6 +6,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\RateLimiter;
 use Modules\Auth\Models\User;
 
 class AuthController extends BaseApiController
@@ -67,6 +69,9 @@ class AuthController extends BaseApiController
     /**
      * Verify 2FA code.
      * POST /api/v2/auth/staff/2fa
+     *
+     * SECURITY: Rate limiting + failed attempt tracking to prevent brute force.
+     * A 6-digit code has only 1 million combinations - must strictly limit attempts.
      */
     public function verify2fa(Request $request): JsonResponse
     {
@@ -84,6 +89,18 @@ class AuthController extends BaseApiController
             );
         }
 
+        // SECURITY: Check if user is locked out from 2FA attempts
+        $lockoutKey = "2fa_lockout:{$user->id}";
+        $attemptsKey = "2fa_attempts:{$user->id}";
+
+        if (Cache::has($lockoutKey)) {
+            $lockoutMinutes = Cache::get($lockoutKey);
+            return $this->error(
+                __('mobile_api::mobile.auth.2fa_locked_out', ['minutes' => $lockoutMinutes]),
+                429
+            );
+        }
+
         // Verify the 2FA code
         $google2fa = app(\PragmaRX\Google2FA\Google2FA::class);
         $valid = $google2fa->verifyKey(
@@ -92,11 +109,34 @@ class AuthController extends BaseApiController
         );
 
         if (!$valid) {
+            // SECURITY: Track failed attempts with exponential backoff
+            $attempts = Cache::increment($attemptsKey);
+            Cache::put($attemptsKey, $attempts, now()->addMinutes(30));
+
+            // Lock out after 5 failed attempts with exponential backoff
+            if ($attempts >= 5) {
+                $lockoutMinutes = min(60, pow(2, $attempts - 5) * 5); // 5, 10, 20, 40, 60 max
+                Cache::put($lockoutKey, $lockoutMinutes, now()->addMinutes($lockoutMinutes));
+                Cache::forget($attemptsKey);
+
+                return $this->error(
+                    __('mobile_api::mobile.auth.2fa_locked_out', ['minutes' => $lockoutMinutes]),
+                    429
+                );
+            }
+
+            $remainingAttempts = 5 - $attempts;
             return $this->error(
-                __('mobile_api::mobile.auth.2fa_invalid'),
+                __('mobile_api::mobile.auth.2fa_invalid_attempts', [
+                    'remaining' => $remainingAttempts,
+                ]),
                 401
             );
         }
+
+        // SECURITY: Clear failed attempts on success
+        Cache::forget($attemptsKey);
+        Cache::forget($lockoutKey);
 
         // Create token
         $token = $this->createToken($user);

@@ -22,6 +22,12 @@ return [
             'max_attempts' => 3,
             'decay_minutes' => 5,
         ],
+        // SECURITY: Stricter rate limiting for tenant discovery
+        // to prevent enumeration attacks
+        'discovery' => [
+            'max_attempts' => 10,
+            'decay_minutes' => 1,
+        ],
     ],
 
     /*

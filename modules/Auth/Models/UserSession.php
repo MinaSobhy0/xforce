@@ -24,6 +24,30 @@ class UserSession extends Model
         'is_active' => 'boolean',
     ];
 
+    /**
+     * SECURITY: Override resolveRouteBinding to scope sessions to authenticated user.
+     * This prevents cross-user session deletion via API routes.
+     */
+    public function resolveRouteBinding($value, $field = null)
+    {
+        $user = auth()->user();
+
+        // If no authenticated user, return null (will trigger 404)
+        if (!$user) {
+            return null;
+        }
+
+        // Admins can access any session (for user management)
+        if (method_exists($user, 'hasRole') && $user->hasRole(['super_admin', 'admin'])) {
+            return $this->where($field ?? $this->getRouteKeyName(), $value)->first();
+        }
+
+        // Regular users can only access their own sessions
+        return $this->where($field ?? $this->getRouteKeyName(), $value)
+            ->where('user_id', $user->id)
+            ->first();
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

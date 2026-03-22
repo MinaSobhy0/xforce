@@ -2,12 +2,14 @@
 
 namespace Modules\Prescriptions\Services;
 
+use App\Traits\SanitizesPdfData;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Modules\Prescriptions\Models\Prescription;
 use Illuminate\Support\Facades\Storage;
 
 class PrescriptionPdfService
 {
+    use SanitizesPdfData;
     /**
      * Generate PDF for a prescription.
      */
@@ -61,6 +63,7 @@ class PrescriptionPdfService
 
     /**
      * Prepare data for the prescription PDF view.
+     * SECURITY: All user-controlled data is sanitized to prevent HTML injection.
      */
     protected function prepareData(Prescription $prescription): array
     {
@@ -68,36 +71,56 @@ class PrescriptionPdfService
         $locale = app()->getLocale();
         $isRtl = $locale === 'ar';
 
+        // SECURITY: Sanitize all user-controlled string data
+        $clinic = $this->sanitizeUserDataForPdf([
+            'name' => $tenant?->name ?? config('app.name'),
+            'address' => $tenant?->settings['address'] ?? '',
+            'phone' => $tenant?->settings['phone'] ?? '',
+            'email' => $tenant?->settings['email'] ?? '',
+            'license' => $tenant?->settings['medical_license'] ?? '',
+            'logo' => $tenant?->settings['logo'] ?? null,
+        ]);
+
+        $patient = $this->sanitizeUserDataForPdf([
+            'name' => $prescription->patient?->full_name ?? 'N/A',
+            'code' => $prescription->patient?->code ?? '',
+            'phone' => $prescription->patient?->phone ?? '',
+            'age' => $prescription->patient?->age ?? '',
+            'gender' => $prescription->patient?->gender ?? '',
+            'address' => $prescription->patient?->address ?? '',
+        ]);
+
+        $prescriber = $this->sanitizeUserDataForPdf([
+            'name' => $prescription->prescriber?->name ?? 'N/A',
+            'license' => $prescription->prescriber?->license_number ?? '',
+            'specialty' => $prescription->prescriber?->specialty ?? '',
+            'title' => $prescription->prescriber?->title ?? 'Dr.',
+        ]);
+
+        $branch = $this->sanitizeUserDataForPdf([
+            'name' => $this->getTranslatedName($prescription->branch?->name),
+            'address' => $prescription->branch?->address ?? '',
+            'phone' => $prescription->branch?->phone ?? '',
+        ]);
+
+        $meta = $this->sanitizeUserDataForPdf([
+            'prescription_number' => $prescription->prescription_number,
+            'diagnosis' => $prescription->diagnosis,
+            'notes' => $prescription->notes,
+            'issued_at' => $prescription->issued_at?->format('d/m/Y H:i'),
+            'issued_date' => $prescription->issued_at?->format('d/m/Y'),
+            'valid_until' => $prescription->valid_until?->format('d/m/Y'),
+            'status' => $prescription->status,
+            'is_expired' => $prescription->is_expired,
+        ]);
+
         return [
             'prescription' => $prescription,
-            'clinic' => [
-                'name' => $tenant?->name ?? config('app.name'),
-                'address' => $tenant?->settings['address'] ?? '',
-                'phone' => $tenant?->settings['phone'] ?? '',
-                'email' => $tenant?->settings['email'] ?? '',
-                'license' => $tenant?->settings['medical_license'] ?? '',
-                'logo' => $tenant?->settings['logo'] ?? null,
-            ],
-            'patient' => [
-                'name' => $prescription->patient?->full_name ?? 'N/A',
-                'code' => $prescription->patient?->code ?? '',
-                'phone' => $prescription->patient?->phone ?? '',
-                'age' => $prescription->patient?->age ?? '',
-                'gender' => $prescription->patient?->gender ?? '',
-                'address' => $prescription->patient?->address ?? '',
-            ],
-            'prescriber' => [
-                'name' => $prescription->prescriber?->name ?? 'N/A',
-                'license' => $prescription->prescriber?->license_number ?? '',
-                'specialty' => $prescription->prescriber?->specialty ?? '',
-                'title' => $prescription->prescriber?->title ?? 'Dr.',
-            ],
-            'branch' => [
-                'name' => $this->getTranslatedName($prescription->branch?->name),
-                'address' => $prescription->branch?->address ?? '',
-                'phone' => $prescription->branch?->phone ?? '',
-            ],
-            'medications' => $prescription->items->map(fn ($item) => [
+            'clinic' => $clinic,
+            'patient' => $patient,
+            'prescriber' => $prescriber,
+            'branch' => $branch,
+            'medications' => $prescription->items->map(fn ($item) => $this->sanitizeUserDataForPdf([
                 'number' => $item->sort_order + 1,
                 'medication_name' => $item->medication_name,
                 'generic_name' => $item->generic_name,
@@ -110,17 +133,8 @@ class PrescriptionPdfService
                 'instructions' => $item->instructions_label,
                 'special_instructions' => $item->special_instructions,
                 'refills' => $item->refills_allowed,
-            ]),
-            'meta' => [
-                'prescription_number' => $prescription->prescription_number,
-                'diagnosis' => $prescription->diagnosis,
-                'notes' => $prescription->notes,
-                'issued_at' => $prescription->issued_at?->format('d/m/Y H:i'),
-                'issued_date' => $prescription->issued_at?->format('d/m/Y'),
-                'valid_until' => $prescription->valid_until?->format('d/m/Y'),
-                'status' => $prescription->status,
-                'is_expired' => $prescription->is_expired,
-            ],
+            ])),
+            'meta' => $meta,
             'locale' => $locale,
             'isRtl' => $isRtl,
         ];

@@ -147,6 +147,8 @@ class PaymentsRelationManager extends RelationManager
             ->actions([
                 Tables\Actions\ViewAction::make(),
 
+                // SECURITY: Prevent unlinking payments from paid/refunded invoices
+                // to maintain financial integrity
                 Tables\Actions\Action::make('unlink')
                     ->label(__('billing::billing.relation.unlink'))
                     ->icon('heroicon-o-x-mark')
@@ -154,13 +156,32 @@ class PaymentsRelationManager extends RelationManager
                     ->requiresConfirmation()
                     ->modalHeading(__('billing::billing.relation.unlink_payment'))
                     ->modalDescription(__('billing::billing.relation.unlink_description'))
+                    ->visible(function () {
+                        /** @var Invoice $invoice */
+                        $invoice = $this->ownerRecord;
+                        // SECURITY: Don't allow unlinking from paid/refunded invoices
+                        return !in_array($invoice->status, [
+                            Invoice::STATUS_PAID,
+                            Invoice::STATUS_REFUNDED,
+                        ]);
+                    })
                     ->action(function (Payment $record) {
+                        /** @var Invoice $invoice */
+                        $invoice = $this->ownerRecord;
+
+                        // SECURITY: Double-check status to prevent race conditions
+                        if (in_array($invoice->status, [Invoice::STATUS_PAID, Invoice::STATUS_REFUNDED])) {
+                            Notification::make()
+                                ->title(__('billing::billing.errors.cannot_unlink_paid'))
+                                ->danger()
+                                ->send();
+                            return;
+                        }
+
                         $record->invoice_id = null;
                         $record->save();
 
                         // Recalculate invoice paid amount and status
-                        /** @var Invoice $invoice */
-                        $invoice = $this->ownerRecord;
                         $invoice->paid_minor = $invoice->payments()->sum('amount_minor');
 
                         // Update status based on paid amount

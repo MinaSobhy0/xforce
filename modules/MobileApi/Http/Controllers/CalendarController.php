@@ -67,15 +67,18 @@ class CalendarController extends BaseApiController
             $timeOffStart = Carbon::parse($timeOff['start_date']);
             $timeOffEnd = Carbon::parse($timeOff['end_date']);
 
-            $timeOffCurrent = $timeOffStart->copy();
-            while ($timeOffCurrent <= $timeOffEnd && $timeOffCurrent <= $endDate) {
-                if ($timeOffCurrent >= $startDate) {
-                    $dateKey = $timeOffCurrent->toDateString();
-                    if (isset($calendarDays[$dateKey])) {
-                        $calendarDays[$dateKey]['events'][] = array_merge($timeOff, [
-                            'date' => $dateKey,
-                        ]);
-                    }
+            // SECURITY: Clamp iteration to the requested date range to prevent DoS
+            // from time-off entries spanning very long periods
+            $iterStart = $timeOffStart->lt($startDate) ? $startDate->copy() : $timeOffStart->copy();
+            $iterEnd = $timeOffEnd->gt($endDate) ? $endDate : $timeOffEnd;
+
+            $timeOffCurrent = $iterStart;
+            while ($timeOffCurrent <= $iterEnd) {
+                $dateKey = $timeOffCurrent->toDateString();
+                if (isset($calendarDays[$dateKey])) {
+                    $calendarDays[$dateKey]['events'][] = array_merge($timeOff, [
+                        'date' => $dateKey,
+                    ]);
                 }
                 $timeOffCurrent->addDay();
             }
@@ -219,15 +222,18 @@ class CalendarController extends BaseApiController
             $timeOffStart = Carbon::parse($timeOff['start_date']);
             $timeOffEnd = Carbon::parse($timeOff['end_date']);
 
-            $timeOffCurrent = $timeOffStart->copy();
-            while ($timeOffCurrent <= $timeOffEnd && $timeOffCurrent <= $endDate) {
-                if ($timeOffCurrent >= $startDate) {
-                    $dateKey = $timeOffCurrent->toDateString();
-                    if (isset($weekDays[$dateKey])) {
-                        $weekDays[$dateKey]['events'][] = array_merge($timeOff, [
-                            'date' => $dateKey,
-                        ]);
-                    }
+            // SECURITY: Clamp iteration to the requested date range to prevent DoS
+            // from time-off entries spanning very long periods
+            $iterStart = $timeOffStart->lt($startDate) ? $startDate->copy() : $timeOffStart->copy();
+            $iterEnd = $timeOffEnd->gt($endDate) ? $endDate : $timeOffEnd;
+
+            $timeOffCurrent = $iterStart;
+            while ($timeOffCurrent <= $iterEnd) {
+                $dateKey = $timeOffCurrent->toDateString();
+                if (isset($weekDays[$dateKey])) {
+                    $weekDays[$dateKey]['events'][] = array_merge($timeOff, [
+                        'date' => $dateKey,
+                    ]);
                 }
                 $timeOffCurrent->addDay();
             }

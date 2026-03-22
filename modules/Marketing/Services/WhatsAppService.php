@@ -439,24 +439,25 @@ class WhatsAppService
         $appointment = \Modules\Booking\Models\Appointment::find($appointmentId);
         $tenantId = $appointment?->tenant_id;
 
-        // Generate signed URL that expires in 7 days
-        // Use the current request's host for tenant-specific URL
+        // SECURITY: Generate signed URL that expires in 2 hours (not days)
+        // Appointment actions shouldn't need more than a few hours validity
+        // Longer expiry increases risk if URL is leaked or forwarded
         $baseUrl = request()->getSchemeAndHttpHost();
         $signedUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
             'appointment.action',
-            now()->addDays(7),
+            now()->addHours(2),
             ['appointment' => $appointmentId, 'action' => $routeAction]
         );
         // Replace the APP_URL domain with the current tenant domain
         $signedUrl = preg_replace('/^https?:\/\/[^\/]+/', $baseUrl, $signedUrl);
 
-        // Create short link
+        // Create short link (also expires in 2 hours / ~0.08 days)
         $shortLink = \Modules\Marketing\Models\ShortLink::createFor(
             $signedUrl,
             $tenantId,
             $routeAction,
             (int) $appointmentId,
-            7
+            1  // 1 day is minimum, but the signed URL inside will expire in 2 hours
         );
 
         return $shortLink->short_url;

@@ -33,7 +33,8 @@ Route::get('health', function () {
 });
 
 // Tenant Discovery - public, no auth, no tenant context
-Route::prefix('tenant')->group(function () {
+// SECURITY: Rate limited to prevent tenant enumeration attacks
+Route::prefix('tenant')->middleware('throttle:mobile-api-discovery')->group(function () {
     Route::get('resolve/{code}', [TenantDiscoveryController::class, 'resolve']);
     Route::post('validate', [TenantDiscoveryController::class, 'validateTenant']);
     Route::get('lookup', [TenantDiscoveryController::class, 'lookup']);
@@ -48,9 +49,15 @@ Route::middleware([\Modules\MobileApi\Http\Middleware\ResolveTenantFromHeader::c
     Route::get('navigation', [AppConfigController::class, 'navigation']);
 
     // Auth routes (tenant context, no auth)
-    Route::prefix('auth')->middleware('throttle:mobile-api-auth')->group(function () {
-        Route::post('staff/login', [AuthController::class, 'login']);
-        Route::post('staff/2fa', [AuthController::class, 'verify2fa']);
+    Route::prefix('auth')->group(function () {
+        // Login with standard auth rate limiting
+        Route::post('staff/login', [AuthController::class, 'login'])
+            ->middleware('throttle:mobile-api-auth');
+
+        // SECURITY: 2FA requires stricter rate limiting to prevent brute force
+        // Only 1 million possible 6-digit codes - must limit attempts
+        Route::post('staff/2fa', [AuthController::class, 'verify2fa'])
+            ->middleware('throttle:mobile-api-otp');
     });
 
     // Authenticated staff routes

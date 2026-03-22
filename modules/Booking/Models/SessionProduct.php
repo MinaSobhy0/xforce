@@ -287,6 +287,57 @@ class SessionProduct extends BaseModel
     }
 
     /**
+     * SECURITY: Atomically process invoicing and deduction together.
+     * This prevents is_invoiced and is_deducted flags from getting out of sync.
+     *
+     * @param string|null $invoiceLineId The invoice line ID if invoiced
+     * @return bool True if successful
+     */
+    public function processInvoiceAndDeduction(?string $invoiceLineId = null): bool
+    {
+        return \DB::transaction(function () use ($invoiceLineId) {
+            // Lock the row for update to prevent race conditions
+            $locked = static::lockForUpdate()->find($this->id);
+
+            if (!$locked) {
+                return false;
+            }
+
+            // Skip if already processed
+            if ($locked->is_invoiced && $locked->is_deducted) {
+                return true;
+            }
+
+            // Update both flags atomically
+            $locked->update([
+                'is_invoiced' => true,
+                'invoice_line_id' => $invoiceLineId,
+                'is_deducted' => true,
+                'deducted_at' => now(),
+            ]);
+
+            return true;
+        });
+    }
+
+    /**
+     * SECURITY: Check if flags are in sync.
+     * Returns true if both flags are in same state (both true or both false).
+     */
+    public function flagsInSync(): bool
+    {
+        return $this->is_invoiced === $this->is_deducted;
+    }
+
+    /**
+     * SECURITY: Scope to find records with desynchronized flags.
+     */
+    public function scopeDesynchronized($query)
+    {
+        return $query->whereRaw('is_invoiced != is_deducted');
+    }
+
+    /**
      * Return product to inventory.
      * Used when a sold product is cancelled at checkout.
      * Odoo-like: Creates reverse transfer (Customer → Treatment Location)

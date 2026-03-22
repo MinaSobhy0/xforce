@@ -112,6 +112,25 @@ class MobileApiServiceProvider extends ServiceProvider
             return Limit::perMinutes($config['decay_minutes'], $config['max_attempts'])
                 ->by($request->ip());
         });
+
+        // SECURITY: Tenant discovery rate limit - prevents enumeration attacks
+        // More restrictive to prevent attackers from discovering valid tenant slugs/codes
+        RateLimiter::for('mobile-api-discovery', function (Request $request) {
+            $config = config('mobile_api.rate_limits.discovery', [
+                'max_attempts' => 10,
+                'decay_minutes' => 1,
+            ]);
+
+            return Limit::perMinutes($config['decay_minutes'], $config['max_attempts'])
+                ->by($request->ip())
+                ->response(function () {
+                    return response()->json([
+                        'success' => false,
+                        'error_code' => 'RATE_LIMITED',
+                        'message' => 'Too many requests. Please try again later.',
+                    ], 429);
+                });
+        });
     }
 
     /**

@@ -57,9 +57,13 @@ class ViewNotificationLog extends BaseViewRecord
                             ->label(__('marketing::marketing.fields.subject'))
                             ->visible(fn () => $this->record->channel === 'email'),
 
+                        // SECURITY: Display content as plain text to prevent XSS
+                        // Content may contain user-provided data (patient names, etc.)
+                        // that could include malicious HTML/scripts
                         Infolists\Components\TextEntry::make('content')
                             ->label(__('marketing::marketing.fields.content'))
-                            ->markdown()
+                            ->formatStateUsing(fn (?string $state) => $state)
+                            ->html(false)
                             ->columnSpanFull(),
                     ]),
 

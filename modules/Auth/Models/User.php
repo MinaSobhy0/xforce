@@ -196,6 +196,29 @@ class User extends BaseModel implements
                 'items_per_page' => 25,
             ], $user->preferences ?? []);
         });
+
+        // SECURITY: Invalidate password reset tokens when password is changed
+        // This prevents tokens from being reused after password is changed via other flows
+        static::updating(function (self $user) {
+            if ($user->isDirty('password')) {
+                $user->invalidatePasswordResetTokens();
+            }
+        });
+    }
+
+    /**
+     * SECURITY: Invalidate all password reset tokens for this user.
+     * Called automatically when password is changed via any flow.
+     */
+    public function invalidatePasswordResetTokens(): void
+    {
+        // Get the password reset table name from config
+        $table = config('auth.passwords.users.table', 'password_reset_tokens');
+
+        // Delete all password reset tokens for this user's email
+        \Illuminate\Support\Facades\DB::table($table)
+            ->where('email', $this->email)
+            ->delete();
     }
 
     public function tenant(): BelongsTo

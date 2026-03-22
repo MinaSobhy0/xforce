@@ -41,10 +41,22 @@ class TenantManager
 
     /**
      * Clear the current tenant context.
+     * SECURITY: Also removes the app('currentTenant') binding to prevent tenant data leakage
+     * between requests in long-running processes or queues.
      */
     public function clearCurrentTenant(): void
     {
         $this->currentTenant = null;
+
+        // SECURITY: Also remove the container binding to prevent stale tenant context
+        if (app()->bound('currentTenant')) {
+            app()->forgetInstance('currentTenant');
+        }
+
+        // Also clear tenant_schema binding if set
+        if (app()->bound('tenant_schema')) {
+            app()->forgetInstance('tenant_schema');
+        }
     }
 
     /**
