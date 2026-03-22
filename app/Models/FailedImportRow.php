@@ -18,7 +18,12 @@ class FailedImportRow extends Model
         'data' => 'array',
     ];
 
-    protected $guarded = [];
+    // SECURITY: Explicit fillable instead of $guarded = [] to prevent mass assignment
+    protected $fillable = [
+        'import_id',
+        'data',
+        'validation_error',
+    ];
 
     public function import(): BelongsTo
     {

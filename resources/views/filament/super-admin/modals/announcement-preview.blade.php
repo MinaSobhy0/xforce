@@ -14,8 +14,9 @@
         </span>
     </div>
 
+    {{-- SECURITY: Use getSanitizedBody() to prevent XSS attacks --}}
     <div class="prose dark:prose-invert max-w-none">
-        {!! $record->getTranslation('body', 'en') !!}
+        {!! $record->getSanitizedBody('en') !!}
     </div>
 
     @if ($record->target_plans)

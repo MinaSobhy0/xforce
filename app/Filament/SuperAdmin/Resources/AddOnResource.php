@@ -262,12 +262,18 @@ class AddOnResource extends Resource
                 Tables\Columns\TextColumn::make('prices.EG.monthly')
                     ->label('Monthly (EGP)')
                     ->money('EGP')
-                    ->sortable(query: fn ($query, $direction) => $query->orderByRaw("(prices->>'EG'->>'monthly')::numeric {$direction}")),
+                    // SECURITY: Validate sort direction to prevent SQL injection
+                    ->sortable(query: fn ($query, $direction) => $query->orderByRaw(
+                        "(prices->>'EG'->>'monthly')::numeric " . (strtolower($direction) === 'desc' ? 'DESC' : 'ASC')
+                    )),
 
                 Tables\Columns\TextColumn::make('prices.EG.yearly')
                     ->label('Yearly (EGP)')
                     ->money('EGP')
-                    ->sortable(query: fn ($query, $direction) => $query->orderByRaw("(prices->>'EG'->>'yearly')::numeric {$direction}")),
+                    // SECURITY: Validate sort direction to prevent SQL injection
+                    ->sortable(query: fn ($query, $direction) => $query->orderByRaw(
+                        "(prices->>'EG'->>'yearly')::numeric " . (strtolower($direction) === 'desc' ? 'DESC' : 'ASC')
+                    )),
 
                 Tables\Columns\TextColumn::make('prices')
                     ->label('Countries')

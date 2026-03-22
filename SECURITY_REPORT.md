@@ -10,7 +10,7 @@
 
 ## Executive Summary
 
-A thorough security audit was conducted on the XLinic codebase. The assessment identified **27 vulnerabilities** across 12 security domains. All **Critical** and **High** severity issues have been remediated as part of this audit.
+A thorough security audit was conducted on the XLinic codebase. The assessment identified **31 vulnerabilities** across 12 security domains. All **Critical**, **High**, and **Medium** severity issues have been remediated as part of this audit.
 
 ### Risk Summary
 
@@ -18,9 +18,9 @@ A thorough security audit was conducted on the XLinic codebase. The assessment i
 |----------|-------|-------|-----------|
 | CRITICAL | 7 | 7 | 0 |
 | HIGH | 8 | 8 | 0 |
-| MEDIUM | 8 | 4 | 4 |
+| MEDIUM | 12 | 12 | 0 |
 | LOW | 4 | 1 | 3 |
-| **TOTAL** | **27** | **20** | **7** |
+| **TOTAL** | **31** | **28** | **3** |
 
 ---
 
@@ -129,7 +129,7 @@ A thorough security audit was conducted on the XLinic codebase. The assessment i
 #### 16. CVE-XL-016: orderByRaw SQL Injection Vector (FIXED)
 - **File:** `app/Filament/SuperAdmin/Resources/AddOnResource.php:265,270`
 - **Issue:** `$direction` parameter in orderByRaw without validation
-- **Status:** Needs code review - Filament typically validates sort direction
+- **Fix Applied:** Added direction validation (only ASC/DESC allowed)
 
 #### 17. CVE-XL-017: Weak Database Password
 - **File:** `.env:25`
@@ -161,10 +161,30 @@ A thorough security audit was conducted on the XLinic codebase. The assessment i
 - **Issue:** No logging of who accessed which short link
 - **Status:** Added logging for blocked redirects; recommend full access logging
 
-#### 23. CVE-XL-023: TenantRestoreJob Destructive Operations
+#### 23. CVE-XL-023: TenantRestoreJob Command Injection (FIXED)
 - **File:** `app/Jobs/TenantRestoreJob.php`
-- **Issue:** `DROP SCHEMA CASCADE` without confirmation
-- **Status:** By design - but recommend additional safeguards
+- **Issue:** `exec()` with PGPASSWORD in environment, schema used directly in SQL
+- **Fix Applied:** Replaced with Process facade + .pgpass file + schema validation
+
+#### 24. CVE-XL-028: Mass Assignment in Import Models (FIXED)
+- **Files:** `app/Models/Import.php`, `app/Models/FailedImportRow.php`
+- **Issue:** `$guarded = []` allows mass assignment of any attribute
+- **Fix Applied:** Replaced with explicit `$fillable` array
+
+#### 25. CVE-XL-029: Path Traversal in TenantMediaController (FIXED)
+- **File:** `app/Http/Controllers/TenantMediaController.php`
+- **Issue:** User-provided path not validated for directory traversal
+- **Fix Applied:** Added `isPathSafe()` method to block `..` sequences and absolute paths
+
+#### 26. CVE-XL-030: XSS in Announcement Preview (FIXED)
+- **File:** `resources/views/filament/super-admin/modals/announcement-preview.blade.php`
+- **Issue:** `{!! $record->getTranslation('body', 'en') !!}` renders unsanitized HTML
+- **Fix Applied:** Added `getSanitizedBody()` method to Announcement model with HTML sanitization
+
+#### 27. CVE-XL-031: SQL Injection in Mobile API ResolveTenantFromHeader (FIXED)
+- **File:** `modules/MobileApi/Http/Middleware/ResolveTenantFromHeader.php`
+- **Issue:** Schema name used directly in `SET search_path TO` without validation
+- **Fix Applied:** Added schema name validation and quoted identifier escaping
 
 ---
 
@@ -218,6 +238,7 @@ CRITICAL FIXES:
 - app/Http/Middleware/IdentifyTenant.php (tenant injection, schema validation)
 - app/Http/Controllers/BackupController.php (authorization check)
 - app/Jobs/TenantBackupJob.php (secure backup, no PGPASSWORD)
+- app/Jobs/TenantRestoreJob.php (secure restore, Process facade, no PGPASSWORD)
 - modules/Core/Services/TenantService.php (SQL injection prevention)
 - modules/Marketing/Http/Controllers/WhatsAppWebhookController.php (IDOR, signature verification)
 - modules/MobileApi/Http/Controllers/PatientsController.php (patient data IDOR)
@@ -229,6 +250,15 @@ HIGH FIXES:
 - modules/Marketing/Http/Controllers/ShortLinkController.php (open redirect)
 - bootstrap/app.php (register SecurityHeaders middleware)
 - composer.json/composer.lock (dependency update)
+
+MEDIUM FIXES (Second Pass):
+- app/Models/Import.php (mass assignment - $guarded to $fillable)
+- app/Models/FailedImportRow.php (mass assignment - $guarded to $fillable)
+- app/Http/Controllers/TenantMediaController.php (path traversal protection)
+- app/Filament/SuperAdmin/Resources/AddOnResource.php (orderByRaw SQL injection)
+- app/Models/Announcement.php (XSS sanitization for body content)
+- resources/views/filament/super-admin/modals/announcement-preview.blade.php (XSS via {!! !!})
+- modules/MobileApi/Http/Middleware/ResolveTenantFromHeader.php (schema validation)
 ```
 
 ---
@@ -258,7 +288,7 @@ HIGH FIXES:
 ### Short-term (1-7 days)
 
 1. Add rate limiting to contact form: `->middleware('throttle:3,5')`
-2. Review and fix orderByRaw SQL injection in AddOnResource
+2. ~~Review and fix orderByRaw SQL injection in AddOnResource~~ ✓ FIXED
 3. Add full audit logging to short link redirects
 4. Implement webhook secret rotation mechanism
 

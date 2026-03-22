@@ -42,12 +42,28 @@ class ResolveTenantFromHeader
             ], 403);
         }
 
+        // SECURITY: Validate schema name before using in SQL to prevent injection
+        $schemaName = $tenant->database_name;
+        if (!$this->validateSchemaName($schemaName)) {
+            \Illuminate\Support\Facades\Log::warning('Invalid tenant schema name', [
+                'tenant_id' => $tenant->id,
+                'schema_name' => $schemaName,
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid tenant configuration',
+            ], 500);
+        }
+
+        // SECURITY: Use quoted identifier to prevent SQL injection
+        $quotedSchema = '"' . str_replace('"', '""', $schemaName) . '"';
+
         // Set the search path for the tenant schema on BOTH connections
         // Note: PersonalAccessToken uses fully qualified table name (public.personal_access_tokens)
         // so it works correctly even when search_path is set to tenant schema
         try {
-            \DB::statement("SET search_path TO \"{$tenant->database_name}\"");
-            \DB::connection('tenant')->statement("SET search_path TO \"{$tenant->database_name}\"");
+            \DB::statement("SET search_path TO {$quotedSchema}");
+            \DB::connection('tenant')->statement("SET search_path TO {$quotedSchema}");
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -78,5 +94,29 @@ class ResolveTenantFromHeader
         } catch (\Exception $e) {
             // Ignore errors on terminate
         }
+    }
+
+    /**
+     * SECURITY: Validate schema name to prevent SQL injection.
+     */
+    protected function validateSchemaName(string $schemaName): bool
+    {
+        // Schema names must be lowercase alphanumeric with underscores
+        if (!preg_match('/^[a-z][a-z0-9_]*$/', $schemaName)) {
+            return false;
+        }
+
+        // Max length for PostgreSQL identifiers
+        if (strlen($schemaName) > 63) {
+            return false;
+        }
+
+        // Reserved schema names that shouldn't be used as tenant schemas
+        $reserved = ['public', 'pg_catalog', 'information_schema', 'pg_toast', 'pg_temp'];
+        if (in_array(strtolower($schemaName), $reserved)) {
+            return false;
+        }
+
+        return true;
     }
 }

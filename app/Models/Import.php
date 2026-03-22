@@ -29,7 +29,17 @@ class Import extends Model
         'successful_rows' => 'integer',
     ];
 
-    protected $guarded = [];
+    // SECURITY: Explicit fillable instead of $guarded = [] to prevent mass assignment
+    protected $fillable = [
+        'user_id',
+        'file_name',
+        'file_path',
+        'importer',
+        'total_rows',
+        'processed_rows',
+        'successful_rows',
+        'completed_at',
+    ];
 
     public function failedRows(): HasMany
     {

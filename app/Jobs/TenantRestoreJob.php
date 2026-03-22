@@ -13,6 +13,7 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Process;
 
 class TenantRestoreJob implements ShouldQueue
 {
@@ -35,6 +36,8 @@ class TenantRestoreJob implements ShouldQueue
     public function handle(): void
     {
         $this->restoreRequest->markInProgress();
+        $pgpassFile = null;
+        $tempFile = null;
 
         try {
             // Verify backup exists
@@ -50,36 +53,39 @@ class TenantRestoreJob implements ShouldQueue
             $dbPass = $this->tenant->database_password ?? config('database.connections.pgsql.password');
             $schema = $this->tenant->database_name;
 
+            // SECURITY: Validate schema name to prevent SQL injection
+            if (!$this->validateSchemaName($schema)) {
+                throw new \Exception('Invalid schema name format');
+            }
+
             // Get the backup file path
             $backupFilePath = $this->getBackupFilePath();
 
             // Create a temporary file if backup is compressed
-            $tempFile = null;
             $sqlFile = $backupFilePath;
 
             if (str_ends_with($backupFilePath, '.gz')) {
                 $tempFile = tempnam(sys_get_temp_dir(), 'restore_');
                 $sqlFile = $tempFile;
 
-                // Decompress the backup
-                $decompressCommand = sprintf(
-                    'gunzip -c %s > %s 2>&1',
-                    escapeshellarg($backupFilePath),
-                    escapeshellarg($tempFile)
-                );
+                // SECURITY: Use Process facade instead of exec()
+                $result = Process::timeout(600)->run([
+                    'gunzip', '-c', $backupFilePath,
+                ]);
 
-                $output = [];
-                $returnCode = 0;
-                exec($decompressCommand, $output, $returnCode);
-
-                if ($returnCode !== 0) {
-                    throw new \Exception('Failed to decompress backup: ' . implode("\n", $output));
+                if (!$result->successful()) {
+                    throw new \Exception('Failed to decompress backup: ' . $result->errorOutput());
                 }
+
+                file_put_contents($tempFile, $result->output());
             }
+
+            // SECURITY: Create secure .pgpass file instead of using PGPASSWORD in command
+            $pgpassFile = $this->createSecurePgpassFile($dbHost, (int) $dbPort, $dbName, $dbUser, $dbPass);
 
             // Step 1: Drop existing schema objects (but keep the schema)
             Log::info('Dropping existing schema objects', ['schema' => $schema]);
-            $this->dropSchemaObjects($schema);
+            $this->dropSchemaObjects($schema, $pgpassFile);
 
             // Step 2: Restore from backup
             Log::info('Restoring from backup', [
@@ -87,30 +93,25 @@ class TenantRestoreJob implements ShouldQueue
                 'schema' => $schema,
             ]);
 
-            $restoreCommand = sprintf(
-                'PGPASSWORD=%s psql -h %s -p %s -U %s -d %s -f %s 2>&1',
-                escapeshellarg($dbPass),
-                escapeshellarg($dbHost),
-                escapeshellarg($dbPort),
-                escapeshellarg($dbUser),
-                escapeshellarg($dbName),
-                escapeshellarg($sqlFile)
-            );
+            // SECURITY: Use Process facade with .pgpass file for authentication
+            $result = Process::timeout(1200)
+                ->env(['PGPASSFILE' => $pgpassFile])
+                ->run([
+                    'psql',
+                    '-h', $dbHost,
+                    '-p', (string) $dbPort,
+                    '-U', $dbUser,
+                    '-d', $dbName,
+                    '-f', $sqlFile,
+                ]);
 
-            $output = [];
-            $returnCode = 0;
-            exec($restoreCommand, $output, $returnCode);
-
-            // Clean up temp file
-            if ($tempFile && file_exists($tempFile)) {
-                unlink($tempFile);
-            }
+            $outputStr = $result->output() . $result->errorOutput();
 
             // Check for critical errors (some warnings are okay)
-            $outputStr = implode("\n", $output);
-            if ($returnCode !== 0 && strpos($outputStr, 'ERROR') !== false) {
+            if (!$result->successful() && strpos($outputStr, 'ERROR') !== false) {
                 // Filter out common non-critical errors
-                $criticalErrors = array_filter($output, function ($line) {
+                $lines = explode("\n", $outputStr);
+                $criticalErrors = array_filter($lines, function ($line) {
                     return strpos($line, 'ERROR') !== false
                         && strpos($line, 'already exists') === false
                         && strpos($line, 'does not exist') === false;
@@ -131,8 +132,6 @@ class TenantRestoreJob implements ShouldQueue
                 'restore_request_id' => $this->restoreRequest->id,
             ]);
 
-            // TODO: Send notification to tenant admin
-
         } catch (\Exception $e) {
             Log::error('Tenant restore failed', [
                 'tenant_id' => $this->tenant->id,
@@ -143,6 +142,14 @@ class TenantRestoreJob implements ShouldQueue
             $this->restoreRequest->markFailed($e->getMessage());
 
             throw $e;
+        } finally {
+            // SECURITY: Always clean up temp files
+            if ($tempFile && file_exists($tempFile)) {
+                unlink($tempFile);
+            }
+            if ($pgpassFile && file_exists($pgpassFile)) {
+                unlink($pgpassFile);
+            }
         }
     }
 
@@ -163,41 +170,85 @@ class TenantRestoreJob implements ShouldQueue
         return $tempFile;
     }
 
-    protected function dropSchemaObjects(string $schema): void
+    protected function dropSchemaObjects(string $schema, string $pgpassFile): void
     {
         $dbHost = $this->tenant->database_host ?? config('database.connections.pgsql.host');
         $dbPort = $this->tenant->database_port ?? config('database.connections.pgsql.port');
         $dbName = config('database.connections.pgsql.database');
         $dbUser = $this->tenant->database_username ?? config('database.connections.pgsql.username');
-        $dbPass = $this->tenant->database_password ?? config('database.connections.pgsql.password');
+
+        // SECURITY: Use quoted identifier for schema name
+        $quotedSchema = '"' . str_replace('"', '""', $schema) . '"';
 
         // Drop all objects in schema but recreate the schema
-        $sql = sprintf(
-            "DROP SCHEMA IF EXISTS %s CASCADE; CREATE SCHEMA %s;",
-            $schema,
-            $schema
-        );
+        $sql = "DROP SCHEMA IF EXISTS {$quotedSchema} CASCADE; CREATE SCHEMA {$quotedSchema};";
 
-        $command = sprintf(
-            'PGPASSWORD=%s psql -h %s -p %s -U %s -d %s -c %s 2>&1',
-            escapeshellarg($dbPass),
-            escapeshellarg($dbHost),
-            escapeshellarg($dbPort),
-            escapeshellarg($dbUser),
-            escapeshellarg($dbName),
-            escapeshellarg($sql)
-        );
+        // SECURITY: Use Process facade with .pgpass file for authentication
+        $result = Process::timeout(120)
+            ->env(['PGPASSFILE' => $pgpassFile])
+            ->run([
+                'psql',
+                '-h', $dbHost,
+                '-p', (string) $dbPort,
+                '-U', $dbUser,
+                '-d', $dbName,
+                '-c', $sql,
+            ]);
 
-        $output = [];
-        $returnCode = 0;
-        exec($command, $output, $returnCode);
-
-        if ($returnCode !== 0) {
+        if (!$result->successful()) {
             Log::warning('Schema drop/recreate had issues', [
                 'schema' => $schema,
-                'output' => $output,
+                'output' => $result->errorOutput(),
             ]);
         }
+    }
+
+    /**
+     * SECURITY: Create a secure .pgpass file for PostgreSQL authentication.
+     * This avoids exposing the password in command line arguments or process list.
+     */
+    protected function createSecurePgpassFile(string $host, int $port, string $database, string $user, string $password): string
+    {
+        $tmpDir = storage_path('app/tmp');
+        if (!is_dir($tmpDir)) {
+            mkdir($tmpDir, 0700, true);
+        }
+
+        $pgpassFile = $tmpDir . '/.pgpass_' . uniqid('restore_', true);
+
+        // Escape special characters in password for .pgpass format
+        $escapedPassword = str_replace(['\\', ':'], ['\\\\', '\\:'], $password);
+
+        $pgpassContent = "{$host}:{$port}:{$database}:{$user}:{$escapedPassword}\n";
+
+        file_put_contents($pgpassFile, $pgpassContent);
+        chmod($pgpassFile, 0600);
+
+        return $pgpassFile;
+    }
+
+    /**
+     * SECURITY: Validate schema name to prevent SQL injection.
+     */
+    protected function validateSchemaName(string $schemaName): bool
+    {
+        // Schema names must be lowercase alphanumeric with underscores
+        if (!preg_match('/^[a-z][a-z0-9_]*$/', $schemaName)) {
+            return false;
+        }
+
+        // Max length for PostgreSQL identifiers
+        if (strlen($schemaName) > 63) {
+            return false;
+        }
+
+        // Reserved schema names
+        $reserved = ['public', 'pg_catalog', 'information_schema', 'pg_toast', 'pg_temp'];
+        if (in_array(strtolower($schemaName), $reserved)) {
+            return false;
+        }
+
+        return true;
     }
 
     public function failed(\Throwable $exception): void

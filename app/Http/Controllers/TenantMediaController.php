@@ -24,6 +24,17 @@ class TenantMediaController extends Controller
             abort(403, 'Tenant access required');
         }
 
+        // SECURITY: Prevent path traversal attacks
+        if (!$this->isPathSafe($path)) {
+            \Illuminate\Support\Facades\Log::warning('Path traversal attempt blocked', [
+                'path' => $path,
+                'tenant_id' => $tenant->id ?? null,
+                'user_id' => $request->user()?->id,
+                'ip' => $request->ip(),
+            ]);
+            abort(400, 'Invalid file path');
+        }
+
         // Use the tenant disk (already configured by middleware)
         $disk = Storage::disk('tenant');
 
@@ -49,5 +60,49 @@ class TenantMediaController extends Controller
                 'Cache-Control' => 'private, max-age=3600',
             ]
         );
+    }
+
+    /**
+     * SECURITY: Check if a path is safe (no directory traversal).
+     */
+    protected function isPathSafe(string $path): bool
+    {
+        // Reject paths with null bytes
+        if (str_contains($path, "\0")) {
+            return false;
+        }
+
+        // Reject paths with directory traversal patterns
+        if (preg_match('/\.\.[\\/]|[\\/]\.\./', $path)) {
+            return false;
+        }
+
+        // Reject absolute paths
+        if (str_starts_with($path, '/') || str_starts_with($path, '\\')) {
+            return false;
+        }
+
+        // Reject Windows-style drive letters
+        if (preg_match('/^[a-zA-Z]:/', $path)) {
+            return false;
+        }
+
+        // Normalize and check the path
+        $normalized = str_replace('\\', '/', $path);
+        $parts = explode('/', $normalized);
+
+        $depth = 0;
+        foreach ($parts as $part) {
+            if ($part === '..') {
+                $depth--;
+                if ($depth < 0) {
+                    return false;
+                }
+            } elseif ($part !== '' && $part !== '.') {
+                $depth++;
+            }
+        }
+
+        return true;
     }
 }
