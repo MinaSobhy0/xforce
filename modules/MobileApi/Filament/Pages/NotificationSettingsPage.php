@@ -93,7 +93,7 @@ class NotificationSettingsPage extends Page implements Forms\Contracts\HasForms
 
     protected function loadSettings(): array
     {
-        $settings = [];
+        $settings = ['notification' => []];
 
         foreach (PushNotification::TYPES as $type => $label) {
             $key = "notification.{$type}.enabled";
@@ -101,10 +101,12 @@ class NotificationSettingsPage extends Page implements Forms\Contracts\HasForms
 
             // Handle null (not set) as true (enabled by default)
             if ($value === null) {
-                $settings[$key] = true;
+                $enabled = true;
             } else {
-                $settings[$key] = filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? true;
+                $enabled = filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? true;
             }
+
+            $settings['notification'][$type] = ['enabled' => $enabled];
         }
 
         return $settings;
@@ -114,8 +116,15 @@ class NotificationSettingsPage extends Page implements Forms\Contracts\HasForms
     {
         $data = $this->form->getState();
 
-        foreach ($data as $key => $value) {
-            Setting::setValue($key, (bool) $value, null, 'notifications');
+        // Data is nested: ['notification' => ['type' => ['enabled' => bool]]]
+        // We need to flatten it to: 'notification.type.enabled' => bool
+        if (isset($data['notification']) && is_array($data['notification'])) {
+            foreach ($data['notification'] as $type => $settings) {
+                if (isset($settings['enabled'])) {
+                    $key = "notification.{$type}.enabled";
+                    Setting::setValue($key, (bool) $settings['enabled'], null, 'notifications');
+                }
+            }
         }
 
         Notification::make()
