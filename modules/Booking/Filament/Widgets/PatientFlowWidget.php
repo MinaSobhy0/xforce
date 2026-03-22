@@ -384,18 +384,29 @@ class PatientFlowWidget extends Widget implements HasForms
     {
         $branchId = BranchContext::currentId();
 
+        // If no branch selected, try to get user's allowed branches
         if (! $branchId) {
-            return [];
+            $allowedBranchIds = BranchContext::userAllowedIds();
+            if (! empty($allowedBranchIds)) {
+                // Use the first allowed branch as fallback
+                $branchId = $allowedBranchIds[0];
+            }
         }
 
         $locale = app()->getLocale();
         $fallbackLocale = config('app.fallback_locale', 'en');
 
-        return DB::table('rooms')
-            ->where('branch_id', $branchId)
+        $query = DB::table('rooms')
             ->where('is_active', true)
             ->where('is_bookable', true)
-            ->whereIn('room_type', ['treatment', 'consultation'])
+            ->whereIn('room_type', ['treatment', 'consultation']);
+
+        // Filter by branch if we have one, otherwise show all rooms
+        if ($branchId) {
+            $query->where('branch_id', $branchId);
+        }
+
+        return $query
             ->orderBy('sort_order')
             ->orderBy('name')
             ->select('id', 'name')
