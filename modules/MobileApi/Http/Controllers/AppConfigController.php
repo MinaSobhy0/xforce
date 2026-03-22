@@ -57,6 +57,7 @@ class AppConfigController extends BaseApiController
                 'break_tracking' => $mobileConfig['features']['break_tracking'] ?? true,
                 'photo_check_in' => $mobileConfig['features']['attendance_photo_required'] ?? false,
             ],
+            'quick_actions' => $this->sduiService->getQuickActions(),
             'sdui' => [
                 'version' => config('mobile_api.sdui.version', '1.0.0'),
             ],
@@ -86,6 +87,17 @@ class AppConfigController extends BaseApiController
     public function navigation(): JsonResponse
     {
         return $this->success($this->sduiService->getNavigation());
+    }
+
+    /**
+     * Get quick actions configuration.
+     * GET /api/v2/quick-actions
+     */
+    public function quickActions(): JsonResponse
+    {
+        return $this->success([
+            'quick_actions' => $this->sduiService->getQuickActions(),
+        ]);
     }
 
     /**

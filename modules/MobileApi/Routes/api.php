@@ -47,6 +47,7 @@ Route::middleware([\Modules\MobileApi\Http\Middleware\ResolveTenantFromHeader::c
     Route::get('config', [AppConfigController::class, 'index']);
     Route::get('branding', [AppConfigController::class, 'branding']);
     Route::get('navigation', [AppConfigController::class, 'navigation']);
+    Route::get('quick-actions', [AppConfigController::class, 'quickActions']);
 
     // Auth routes (tenant context, no auth)
     Route::prefix('auth')->group(function () {

@@ -157,6 +157,24 @@ return [
     'notification_settings' => 'Push Notification Settings',
     'notification_types' => 'Push Notification Types',
     'notification_types_description' => 'Enable or disable notification types for all staff in your clinic. Disabled notifications will not be sent to any user, regardless of their personal preferences.',
-    'settings_saved' => 'Notification settings saved successfully',
+    'settings_saved' => 'Settings saved successfully',
     'save_settings' => 'Save Settings',
+
+    /*
+    |--------------------------------------------------------------------------
+    | Quick Actions Settings
+    |--------------------------------------------------------------------------
+    */
+
+    'quick_actions_settings' => 'Dashboard Quick Actions',
+    'quick_actions_section' => 'Quick Actions',
+    'quick_actions_description' => 'Configure the quick action buttons that appear on the mobile app dashboard. Staff can tap these to quickly navigate to different sections of the app.',
+    'quick_action_screen' => 'Screen',
+    'quick_action_icon' => 'Icon',
+    'quick_action_color' => 'Color',
+    'quick_action_permission' => 'Permission',
+    'quick_action_permission_help' => 'Leave empty to show to all users',
+    'quick_action_enabled' => 'Enabled',
+    'add_quick_action' => 'Add Quick Action',
+    'error_no_tenant' => 'No tenant context found',
 ];

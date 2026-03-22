@@ -186,6 +186,49 @@ class SDUIService
     }
 
     /**
+     * Get quick actions configuration for the tenant.
+     */
+    public function getQuickActions(): array
+    {
+        $tenant = $this->getCurrentTenant();
+        $config = $tenant?->getMobileAppConfig() ?? Tenant::getDefaultMobileConfig();
+
+        return collect($config['quick_actions'] ?? [])
+            ->filter(fn ($action) => $action['enabled'] ?? false)
+            ->sortBy('sort')
+            ->values()
+            ->map(fn ($action) => [
+                'id' => $action['id'],
+                'label' => $this->getScreenLabel($action['id']),
+                'icon' => $action['icon'] ?? $this->getScreenIcon($action['id']),
+                'icon_color' => $action['icon_color'] ?? '#3B82F6',
+                'requires' => $action['requires'] ?? null,
+            ])
+            ->all();
+    }
+
+    /**
+     * Get quick action items for dashboard component.
+     */
+    protected function getQuickActionsItems(): array
+    {
+        $tenant = $this->getCurrentTenant();
+        $config = $tenant?->getMobileAppConfig() ?? Tenant::getDefaultMobileConfig();
+
+        return collect($config['quick_actions'] ?? [])
+            ->filter(fn ($action) => $action['enabled'] ?? false)
+            ->sortBy('sort')
+            ->values()
+            ->map(fn ($action) => [
+                'key' => $action['id'],
+                'requires' => $action['requires'] ?? null,
+                'icon' => $action['icon'] ?? $this->getScreenIcon($action['id']),
+                'icon_color' => $action['icon_color'] ?? '#3B82F6',
+            ])
+            ->all();
+    }
+
+    /**
      * Get branding configuration for the tenant.
      */
     public function getBranding(): array
@@ -375,12 +418,7 @@ class SDUIService
                 [
                     'type' => 'quick_actions',
                     'props' => [
-                        'items' => [
-                            ['key' => 'schedule', 'requires' => 'schedule.view', 'icon' => 'calendar'],
-                            ['key' => 'time_off', 'requires' => 'time_off.view', 'icon' => 'clock'],
-                            ['key' => 'payslip', 'requires' => 'payroll.view_own', 'icon' => 'document'],
-                            ['key' => 'patients', 'requires' => 'patients.view', 'icon' => 'users'],
-                        ],
+                        'items' => $this->getQuickActionsItems(),
                     ],
                 ],
             ],

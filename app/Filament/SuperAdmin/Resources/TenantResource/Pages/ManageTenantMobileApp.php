@@ -3,16 +3,15 @@
 namespace App\Filament\SuperAdmin\Resources\TenantResource\Pages;
 
 use App\Filament\SuperAdmin\Resources\TenantResource;
-use Modules\Core\Models\Tenant;
 use Filament\Actions;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
+use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Page;
 use Filament\Support\Exceptions\Halt;
-use Illuminate\Support\Facades\Storage;
+use Modules\Core\Models\Tenant;
 
 class ManageTenantMobileApp extends Page implements HasForms
 {
@@ -124,8 +123,7 @@ class ManageTenantMobileApp extends Page implements HasForms
                                             ->maxItems(5)
                                             ->minItems(1)
                                             ->defaultItems(5)
-                                            ->itemLabel(fn (array $state): ?string =>
-                                                Tenant::getAvailableNavigationScreens()[$state['id'] ?? ''] ?? 'Select screen'
+                                            ->itemLabel(fn (array $state): ?string => Tenant::getAvailableNavigationScreens()[$state['id'] ?? ''] ?? 'Select screen'
                                             )
                                             ->collapsible()
                                             ->afterStateUpdated(function ($state, Forms\Set $set) {
@@ -164,8 +162,7 @@ class ManageTenantMobileApp extends Page implements HasForms
                                             ->columns(2)
                                             ->reorderable()
                                             ->reorderableWithButtons()
-                                            ->itemLabel(fn (array $state): ?string =>
-                                                Tenant::getAvailableMoreMenuScreens()[$state['id'] ?? ''] ?? 'Select screen'
+                                            ->itemLabel(fn (array $state): ?string => Tenant::getAvailableMoreMenuScreens()[$state['id'] ?? ''] ?? 'Select screen'
                                             )
                                             ->collapsible()
                                             ->afterStateUpdated(function ($state, Forms\Set $set) {
@@ -214,8 +211,7 @@ class ManageTenantMobileApp extends Page implements HasForms
                                             ->columns(2)
                                             ->reorderable()
                                             ->reorderableWithButtons()
-                                            ->itemLabel(fn (array $state): ?string =>
-                                                Tenant::getAvailableDashboardComponents()[$state['type'] ?? ''] ?? 'Select component'
+                                            ->itemLabel(fn (array $state): ?string => Tenant::getAvailableDashboardComponents()[$state['type'] ?? ''] ?? 'Select component'
                                             )
                                             ->collapsible()
                                             ->collapsed()
@@ -234,7 +230,71 @@ class ManageTenantMobileApp extends Page implements HasForms
                                     ]),
                             ]),
 
-                        // Tab 4: Features
+                        // Tab 4: Quick Actions
+                        Forms\Components\Tabs\Tab::make('Quick Actions')
+                            ->icon('heroicon-o-squares-plus')
+                            ->schema([
+                                Forms\Components\Section::make('Dashboard Quick Actions')
+                                    ->description('Configure quick action buttons on the mobile app dashboard. Staff can tap these to quickly navigate to different sections.')
+                                    ->schema([
+                                        Forms\Components\Repeater::make('quick_actions')
+                                            ->label('')
+                                            ->schema([
+                                                Forms\Components\Grid::make(5)
+                                                    ->schema([
+                                                        Forms\Components\Select::make('id')
+                                                            ->label('Screen')
+                                                            ->options(Tenant::getAvailableQuickActions())
+                                                            ->required()
+                                                            ->searchable(),
+
+                                                        Forms\Components\Select::make('icon')
+                                                            ->label('Icon')
+                                                            ->options(Tenant::getAvailableIcons())
+                                                            ->required()
+                                                            ->searchable(),
+
+                                                        Forms\Components\ColorPicker::make('icon_color')
+                                                            ->label('Color')
+                                                            ->required(),
+
+                                                        Forms\Components\TextInput::make('requires')
+                                                            ->label('Permission')
+                                                            ->placeholder('e.g., appointments.view')
+                                                            ->helperText('Leave empty for all users'),
+
+                                                        Forms\Components\Toggle::make('enabled')
+                                                            ->label('Enabled')
+                                                            ->default(true)
+                                                            ->inline(false),
+                                                    ]),
+
+                                                Forms\Components\Hidden::make('sort'),
+                                            ])
+                                            ->reorderable()
+                                            ->reorderableWithButtons()
+                                            ->collapsible()
+                                            ->itemLabel(fn (array $state): ?string => isset($state['id'])
+                                                    ? (Tenant::getAvailableQuickActions()[$state['id']] ?? $state['id'])
+                                                    : 'Select screen'
+                                            )
+                                            ->defaultItems(0)
+                                            ->addActionLabel('Add Quick Action')
+                                            ->afterStateUpdated(function ($state, Forms\Set $set) {
+                                                if (is_array($state)) {
+                                                    $updated = [];
+                                                    $sort = 1;
+                                                    foreach ($state as $key => $item) {
+                                                        $item['sort'] = $sort++;
+                                                        $updated[$key] = $item;
+                                                    }
+                                                    $set('quick_actions', $updated);
+                                                }
+                                            }),
+                                    ]),
+                            ]),
+
+                        // Tab 5: Features
                         Forms\Components\Tabs\Tab::make('Features')
                             ->icon('heroicon-o-cog-6-tooth')
                             ->schema([
@@ -317,6 +377,10 @@ class ManageTenantMobileApp extends Page implements HasForms
 
             if (isset($data['screens']['dashboard']['components'])) {
                 $data['screens']['dashboard']['components'] = $this->updateSortValues($data['screens']['dashboard']['components']);
+            }
+
+            if (isset($data['quick_actions'])) {
+                $data['quick_actions'] = $this->updateSortValues($data['quick_actions']);
             }
 
             $this->tenant->setMobileAppConfig($data);

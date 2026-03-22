@@ -138,7 +138,7 @@ class Tenant extends Model
             }
 
             if (empty($tenant->database_name)) {
-                $tenant->database_name = 'tenant_' . $tenant->slug;
+                $tenant->database_name = 'tenant_'.$tenant->slug;
             }
 
             // Set default values
@@ -192,12 +192,12 @@ class Tenant extends Model
         // Auto-create subdomain record when tenant is created
         static::created(function (self $tenant) {
             if ($tenant->slug) {
-                \DB::statement("
+                \DB::statement('
                     INSERT INTO tenant_domains (tenant_id, domain, type, is_primary, is_verified, ssl_status, dns_verified_at, created_at, updated_at)
                     VALUES (?, ?, ?, true, true, ?, ?, ?, ?)
-                ", [
+                ', [
                     $tenant->id,
-                    $tenant->slug . '.x-linic.com',
+                    $tenant->slug.'.x-linic.com',
                     'subdomain',
                     'valid',
                     now(),
@@ -208,10 +208,10 @@ class Tenant extends Model
 
             // Also create custom domain if provided
             if ($tenant->domain) {
-                \DB::statement("
+                \DB::statement('
                     INSERT INTO tenant_domains (tenant_id, domain, type, is_primary, is_verified, ssl_status, created_at, updated_at)
                     VALUES (?, ?, ?, false, false, ?, ?, ?)
-                ", [
+                ', [
                     $tenant->id,
                     $tenant->domain,
                     'custom',
@@ -228,7 +228,7 @@ class Tenant extends Model
             if ($tenant->isDirty('slug')) {
                 $tenant->domains()
                     ->where('type', 'subdomain')
-                    ->update(['domain' => $tenant->slug . '.x-linic.com']);
+                    ->update(['domain' => $tenant->slug.'.x-linic.com']);
             }
 
             // Handle custom domain changes
@@ -243,10 +243,10 @@ class Tenant extends Model
 
                 // Add new custom domain if provided
                 if ($newDomain) {
-                    \DB::statement("
+                    \DB::statement('
                         INSERT INTO tenant_domains (tenant_id, domain, type, is_primary, is_verified, ssl_status, created_at, updated_at)
                         VALUES (?, ?, ?, false, false, ?, ?, ?)
-                    ", [
+                    ', [
                         $tenant->id,
                         $newDomain,
                         'custom',
@@ -297,7 +297,7 @@ class Tenant extends Model
     {
         $usage = $this->usage;
 
-        if (!$usage) {
+        if (! $usage) {
             $usage = $this->usage()->create([
                 'tenant_id' => $this->id,
             ]);
@@ -315,14 +315,14 @@ class Tenant extends Model
         $usage = $this->getOrCreateUsage();
 
         // Only compute if tenant has a provisioned database
-        if (!$this->database_name) {
+        if (! $this->database_name) {
             return $usage;
         }
 
         try {
             // Check if schema exists
             $schemaExists = \DB::select(
-                "SELECT schema_name FROM information_schema.schemata WHERE schema_name = ?",
+                'SELECT schema_name FROM information_schema.schemata WHERE schema_name = ?',
                 [$this->database_name]
             );
 
@@ -344,7 +344,7 @@ class Tenant extends Model
             ];
 
             // Reset search path
-            \DB::statement("SET search_path TO public");
+            \DB::statement('SET search_path TO public');
 
             // Calculate database size (in MB)
             $dbSizeMb = $this->calculateDatabaseSize();
@@ -365,8 +365,9 @@ class Tenant extends Model
         } catch (\Exception $e) {
             // Reset search path on error
             try {
-                \DB::statement("SET search_path TO public");
-            } catch (\Exception $ignored) {}
+                \DB::statement('SET search_path TO public');
+            } catch (\Exception $ignored) {
+            }
 
             \Log::warning('Failed to compute tenant usage', [
                 'tenant_id' => $this->id,
@@ -390,12 +391,14 @@ class Tenant extends Model
             ", [$this->database_name]);
 
             $sizeBytes = $result[0]->size_bytes ?? 0;
+
             return (int) ceil($sizeBytes / (1024 * 1024)); // Convert to MB
         } catch (\Exception $e) {
             \Log::warning('Failed to calculate database size', [
                 'tenant_id' => $this->id,
                 'error' => $e->getMessage(),
             ]);
+
             return 0;
         }
     }
@@ -415,25 +418,25 @@ class Tenant extends Model
         // Tenant storage path
         $basePath = storage_path("app/tenants/{$this->id}");
 
-        if (!is_dir($basePath)) {
+        if (! is_dir($basePath)) {
             return $storage;
         }
 
         try {
             // Calculate photos storage
-            $photosPath = $basePath . '/photos';
+            $photosPath = $basePath.'/photos';
             if (is_dir($photosPath)) {
                 $storage['photos'] = $this->getDirectorySizeMb($photosPath);
             }
 
             // Calculate documents storage
-            $documentsPath = $basePath . '/documents';
+            $documentsPath = $basePath.'/documents';
             if (is_dir($documentsPath)) {
                 $storage['documents'] = $this->getDirectorySizeMb($documentsPath);
             }
 
             // Calculate consent forms storage
-            $consentPath = $basePath . '/consent';
+            $consentPath = $basePath.'/consent';
             if (is_dir($consentPath)) {
                 $storage['consent'] = $this->getDirectorySizeMb($consentPath);
             }
@@ -458,7 +461,7 @@ class Tenant extends Model
     {
         $sizeBytes = 0;
 
-        if (!is_dir($path)) {
+        if (! is_dir($path)) {
             return 0;
         }
 
@@ -482,6 +485,7 @@ class Tenant extends Model
     {
         try {
             $result = \DB::select("SELECT COUNT(*) as count FROM \"{$table}\"");
+
             return $result[0]->count ?? 0;
         } catch (\Exception $e) {
             return 0;
@@ -556,7 +560,7 @@ class Tenant extends Model
     {
         $appCode = $this->primaryAppCode;
 
-        if (!$appCode) {
+        if (! $appCode) {
             $appCode = $this->appCodes()->create([
                 'type' => 'default',
                 'is_active' => true,
@@ -654,6 +658,16 @@ class Tenant extends Model
                 'geofence_check_in' => true,
                 'qr_check_in' => true,
             ],
+            'quick_actions' => [
+                ['id' => 'appointments', 'enabled' => true, 'sort' => 1, 'icon' => 'calendar', 'icon_color' => '#3B82F6', 'requires' => 'appointments.view'],
+                ['id' => 'schedule', 'enabled' => true, 'sort' => 2, 'icon' => 'calendar-days', 'icon_color' => '#10B981', 'requires' => 'schedule.view'],
+                ['id' => 'time_off', 'enabled' => true, 'sort' => 3, 'icon' => 'sun', 'icon_color' => '#F59E0B', 'requires' => 'time_off.view'],
+                ['id' => 'payslip', 'enabled' => true, 'sort' => 4, 'icon' => 'document-text', 'icon_color' => '#8B5CF6', 'requires' => 'payroll.view_own'],
+                ['id' => 'commission', 'enabled' => true, 'sort' => 5, 'icon' => 'banknotes', 'icon_color' => '#EC4899', 'requires' => 'commission.view_own'],
+                ['id' => 'patients', 'enabled' => true, 'sort' => 6, 'icon' => 'user-group', 'icon_color' => '#06B6D4', 'requires' => 'patients.view'],
+                ['id' => 'attendance', 'enabled' => true, 'sort' => 7, 'icon' => 'clock', 'icon_color' => '#EF4444', 'requires' => 'attendance.view'],
+                ['id' => 'profile', 'enabled' => true, 'sort' => 8, 'icon' => 'user-circle', 'icon_color' => '#6B7280', 'requires' => null],
+            ],
         ];
     }
 
@@ -695,6 +709,223 @@ class Tenant extends Model
             'stats_grid' => 'Statistics Grid',
             'upcoming_appointments' => 'Upcoming Appointments',
             'quick_actions' => 'Quick Action Buttons',
+        ];
+    }
+
+    /**
+     * Get available quick action screens for the mobile app.
+     */
+    public static function getAvailableQuickActions(): array
+    {
+        return [
+            'appointments' => 'Appointments',
+            'schedule' => 'Schedule',
+            'time_off' => 'Time Off',
+            'payslip' => 'Payslip',
+            'commission' => 'Commission',
+            'patients' => 'Patients',
+            'attendance' => 'Attendance',
+            'profile' => 'Profile',
+        ];
+    }
+
+    /**
+     * Get available icons for quick actions.
+     */
+    public static function getAvailableIcons(): array
+    {
+        return [
+            // Navigation & UI
+            'home' => 'Home',
+            'squares-2x2' => 'Grid',
+            'bars-3' => 'Menu',
+            'ellipsis-horizontal' => 'More',
+            'magnifying-glass' => 'Search',
+            'plus' => 'Plus',
+            'minus' => 'Minus',
+            'x-mark' => 'Close',
+            'check' => 'Check',
+            'chevron-right' => 'Arrow Right',
+            'arrow-path' => 'Refresh',
+
+            // Calendar & Time
+            'calendar' => 'Calendar',
+            'calendar-days' => 'Calendar Days',
+            'clock' => 'Clock',
+            'sun' => 'Sun',
+            'moon' => 'Moon',
+
+            // Documents & Files
+            'document' => 'Document',
+            'document-text' => 'Document Text',
+            'clipboard' => 'Clipboard',
+            'clipboard-document' => 'Clipboard Doc',
+            'folder' => 'Folder',
+            'folder-open' => 'Folder Open',
+            'paper-clip' => 'Attachment',
+            'printer' => 'Printer',
+
+            // Users & People
+            'user' => 'User',
+            'user-circle' => 'User Circle',
+            'user-plus' => 'Add User',
+            'users' => 'Users',
+            'user-group' => 'User Group',
+            'identification' => 'ID Card',
+
+            // Finance & Business
+            'currency-dollar' => 'Dollar',
+            'banknotes' => 'Money',
+            'credit-card' => 'Card',
+            'receipt-percent' => 'Receipt',
+            'calculator' => 'Calculator',
+            'briefcase' => 'Briefcase',
+            'building-office' => 'Office',
+            'chart-bar' => 'Chart Bar',
+            'chart-pie' => 'Chart Pie',
+            'presentation-chart-line' => 'Analytics',
+
+            // Communication
+            'bell' => 'Bell',
+            'bell-alert' => 'Bell Alert',
+            'envelope' => 'Email',
+            'chat-bubble-left' => 'Chat',
+            'phone' => 'Phone',
+            'megaphone' => 'Announcement',
+
+            // Medical & Health
+            'heart' => 'Heart',
+            'beaker' => 'Lab',
+            'eye' => 'Eye',
+            'hand-raised' => 'Stop',
+            'shield-check' => 'Shield',
+
+            // Media
+            'camera' => 'Camera',
+            'photo' => 'Photo',
+            'video-camera' => 'Video',
+            'microphone' => 'Microphone',
+            'musical-note' => 'Music',
+
+            // Tools & Settings
+            'cog-6-tooth' => 'Settings',
+            'cog' => 'Cog',
+            'wrench' => 'Wrench',
+            'wrench-screwdriver' => 'Tools',
+            'adjustments-horizontal' => 'Adjustments',
+            'funnel' => 'Filter',
+            'key' => 'Key',
+            'lock-closed' => 'Lock',
+            'lock-open' => 'Unlock',
+
+            // Status & Feedback
+            'star' => 'Star',
+            'sparkles' => 'Sparkles',
+            'fire' => 'Fire',
+            'bolt' => 'Lightning',
+            'flag' => 'Flag',
+            'bookmark' => 'Bookmark',
+            'tag' => 'Tag',
+            'gift' => 'Gift',
+            'trophy' => 'Trophy',
+
+            // Location & Maps
+            'map-pin' => 'Location',
+            'map' => 'Map',
+            'globe-alt' => 'Globe',
+            'building-storefront' => 'Store',
+
+            // Arrows & Actions
+            'arrow-down-tray' => 'Download',
+            'arrow-up-tray' => 'Upload',
+            'share' => 'Share',
+            'arrow-right-on-rectangle' => 'Logout',
+            'qr-code' => 'QR Code',
+            'link' => 'Link',
+
+            // Other
+            'cube' => 'Cube',
+            'puzzle-piece' => 'Puzzle',
+            'light-bulb' => 'Idea',
+            'academic-cap' => 'Education',
+            'cake' => 'Celebration',
+            'rocket-launch' => 'Rocket',
+            'truck' => 'Delivery',
+            'shopping-cart' => 'Cart',
+            'shopping-bag' => 'Shopping',
+        ];
+    }
+
+    /**
+     * Get available icon colors for quick actions.
+     */
+    public static function getAvailableIconColors(): array
+    {
+        return [
+            // Blues
+            '#3B82F6' => 'Blue',
+            '#2563EB' => 'Blue Dark',
+            '#60A5FA' => 'Blue Light',
+            '#1D4ED8' => 'Blue Deep',
+
+            // Greens
+            '#10B981' => 'Emerald',
+            '#22C55E' => 'Green',
+            '#16A34A' => 'Green Dark',
+            '#4ADE80' => 'Green Light',
+
+            // Yellows & Ambers
+            '#F59E0B' => 'Amber',
+            '#EAB308' => 'Yellow',
+            '#FBBF24' => 'Amber Light',
+            '#D97706' => 'Amber Dark',
+
+            // Purples
+            '#8B5CF6' => 'Violet',
+            '#A855F7' => 'Purple',
+            '#7C3AED' => 'Purple Dark',
+            '#C084FC' => 'Purple Light',
+
+            // Pinks & Reds
+            '#EC4899' => 'Pink',
+            '#F472B6' => 'Pink Light',
+            '#DB2777' => 'Pink Dark',
+            '#EF4444' => 'Red',
+            '#DC2626' => 'Red Dark',
+            '#F87171' => 'Red Light',
+            '#E11D48' => 'Rose',
+
+            // Cyans & Teals
+            '#06B6D4' => 'Cyan',
+            '#14B8A6' => 'Teal',
+            '#0891B2' => 'Cyan Dark',
+            '#2DD4BF' => 'Teal Light',
+
+            // Oranges
+            '#F97316' => 'Orange',
+            '#EA580C' => 'Orange Dark',
+            '#FB923C' => 'Orange Light',
+
+            // Indigo
+            '#6366F1' => 'Indigo',
+            '#4F46E5' => 'Indigo Dark',
+            '#818CF8' => 'Indigo Light',
+
+            // Lime
+            '#84CC16' => 'Lime',
+            '#65A30D' => 'Lime Dark',
+            '#A3E635' => 'Lime Light',
+
+            // Neutrals
+            '#6B7280' => 'Gray',
+            '#4B5563' => 'Gray Dark',
+            '#9CA3AF' => 'Gray Light',
+            '#374151' => 'Slate',
+            '#1F2937' => 'Charcoal',
+
+            // Special
+            '#000000' => 'Black',
+            '#FFFFFF' => 'White',
         ];
     }
 
@@ -771,7 +1002,7 @@ class Tenant extends Model
 
     public function getUsagePercentage(string $metric): float
     {
-        if (!$this->usage) {
+        if (! $this->usage) {
             return 0.0;
         }
 
@@ -801,6 +1032,7 @@ class Tenant extends Model
         // If no plan, use tenant's max_* as the total limit
         if ($this->plan) {
             $additional = $this->{"extra_{$resource}"} ?? 0;
+
             return $planLimit + $additional;
         }
 
@@ -838,9 +1070,12 @@ class Tenant extends Model
     public function canAddUser(): bool
     {
         $limit = $this->getEffectiveLimit('users');
-        if ($limit === null) return true; // unlimited
+        if ($limit === null) {
+            return true;
+        } // unlimited
 
         $current = $this->usage->users ?? 0;
+
         return $current < $limit;
     }
 
@@ -853,9 +1088,12 @@ class Tenant extends Model
     public function canAddBranch(): bool
     {
         $limit = $this->getEffectiveLimit('branches');
-        if ($limit === null) return true; // unlimited
+        if ($limit === null) {
+            return true;
+        } // unlimited
 
         $current = $this->usage->branches ?? 0;
+
         return $current < $limit;
     }
 
@@ -873,11 +1111,12 @@ class Tenant extends Model
      */
     public function getUserOverageGraceDaysRemaining(): ?int
     {
-        if (!$this->users_overage_at) {
+        if (! $this->users_overage_at) {
             return null;
         }
 
         $gracePeriodEnds = $this->users_overage_at->addDays(14);
+
         return (int) now()->diffInDays($gracePeriodEnds, false);
     }
 
@@ -886,7 +1125,7 @@ class Tenant extends Model
      */
     public function isUserOverageGraceExpired(): bool
     {
-        if (!$this->users_overage_at) {
+        if (! $this->users_overage_at) {
             return false;
         }
 
@@ -904,6 +1143,7 @@ class Tenant extends Model
         }
 
         $current = $this->usage->users ?? 0;
+
         return max(0, $current - $limit);
     }
 
@@ -988,7 +1228,7 @@ class Tenant extends Model
             return "https://{$this->domain}";
         }
 
-        return config('app.url') . "/tenant/{$this->slug}";
+        return config('app.url')."/tenant/{$this->slug}";
     }
 
     public function getLogoUrl(): ?string
@@ -999,7 +1239,7 @@ class Tenant extends Model
         }
 
         if ($this->logo_url) {
-            return asset("storage/" . $this->logo_url);
+            return asset('storage/'.$this->logo_url);
         }
 
         // Then check logo_path (from Filament FileUpload)
@@ -1007,7 +1247,8 @@ class Tenant extends Model
             if (filter_var($this->logo_path, FILTER_VALIDATE_URL)) {
                 return $this->logo_path;
             }
-            return asset("storage/" . $this->logo_path);
+
+            return asset('storage/'.$this->logo_path);
         }
 
         return null;
