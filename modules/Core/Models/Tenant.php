@@ -639,7 +639,6 @@ class Tenant extends Model
                     ['id' => 'time_off', 'enabled' => true, 'sort' => 2],
                     ['id' => 'commission', 'enabled' => true, 'sort' => 3],
                     ['id' => 'patients', 'enabled' => true, 'sort' => 4],
-                    ['id' => 'profile', 'enabled' => true, 'sort' => 5],
                 ],
             ],
             'screens' => [
@@ -666,7 +665,6 @@ class Tenant extends Model
                 ['id' => 'commission', 'enabled' => true, 'sort' => 5, 'icon' => 'banknotes', 'icon_color' => '#EC4899'],
                 ['id' => 'patients', 'enabled' => true, 'sort' => 6, 'icon' => 'user-group', 'icon_color' => '#06B6D4'],
                 ['id' => 'attendance', 'enabled' => true, 'sort' => 7, 'icon' => 'clock', 'icon_color' => '#EF4444'],
-                ['id' => 'profile', 'enabled' => true, 'sort' => 8, 'icon' => 'user-circle', 'icon_color' => '#6B7280'],
             ],
         ];
     }
