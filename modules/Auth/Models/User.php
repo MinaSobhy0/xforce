@@ -311,6 +311,30 @@ class User extends BaseModel implements
         );
     }
 
+    /**
+     * Get the user's device tokens for push notifications.
+     */
+    public function deviceTokens(): HasMany
+    {
+        return $this->hasMany(\Modules\MobileApi\Models\DeviceToken::class);
+    }
+
+    /**
+     * Get the user's push notifications.
+     */
+    public function pushNotifications(): HasMany
+    {
+        return $this->hasMany(\Modules\MobileApi\Models\PushNotification::class);
+    }
+
+    /**
+     * Get the user's notification preferences.
+     */
+    public function notificationPreferences(): HasMany
+    {
+        return $this->hasMany(\Modules\MobileApi\Models\NotificationPreference::class);
+    }
+
     // Scopes
     public function scopeActive($query)
     {

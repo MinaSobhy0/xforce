@@ -87,4 +87,29 @@ return [
         'scheme' => env('MOBILE_APP_SCHEME', 'xlinic'),
         'web_base_url' => env('MOBILE_APP_WEB_URL', 'https://x-linic.com/app'),
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Firebase Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Firebase Cloud Messaging settings for push notifications.
+    | The credentials file should be downloaded from Firebase Console:
+    | Project Settings -> Service Accounts -> Generate New Private Key
+    |
+    */
+    'firebase' => [
+        'credentials' => env('FIREBASE_CREDENTIALS', storage_path('firebase-credentials.json')),
+        'project_id' => env('FIREBASE_PROJECT_ID'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Push Notification Settings
+    |--------------------------------------------------------------------------
+    */
+    'push_notifications' => [
+        'enabled' => env('PUSH_NOTIFICATIONS_ENABLED', true),
+        'queue' => env('PUSH_NOTIFICATIONS_QUEUE', 'notifications'),
+    ],
 ];

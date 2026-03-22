@@ -13,6 +13,7 @@ use Modules\MobileApi\Http\Controllers\PayrollController;
 use Modules\MobileApi\Http\Controllers\ScheduleController;
 use Modules\MobileApi\Http\Controllers\AppointmentsController;
 use Modules\MobileApi\Http\Controllers\PatientsController;
+use Modules\MobileApi\Http\Controllers\DeviceController;
 
 /*
 |--------------------------------------------------------------------------
@@ -155,6 +156,23 @@ Route::middleware([\Modules\MobileApi\Http\Middleware\ResolveTenantFromHeader::c
         Route::prefix('screens')->group(function () {
             Route::get('{screen}', [ScreenController::class, 'show']);
             Route::get('{screen}/data', [ScreenController::class, 'data']);
+        });
+
+        // Device Registration (Push Notifications)
+        Route::prefix('devices')->group(function () {
+            Route::get('/', [DeviceController::class, 'listDevices']);
+            Route::post('/', [DeviceController::class, 'register']);
+            Route::delete('{deviceId}', [DeviceController::class, 'unregister']);
+        });
+
+        // Notifications
+        Route::prefix('notifications')->group(function () {
+            Route::get('/', [DeviceController::class, 'index']);
+            Route::get('unread-count', [DeviceController::class, 'unreadCount']);
+            Route::post('{id}/read', [DeviceController::class, 'markRead']);
+            Route::post('read-all', [DeviceController::class, 'markAllRead']);
+            Route::get('preferences', [DeviceController::class, 'preferences']);
+            Route::put('preferences', [DeviceController::class, 'updatePreferences']);
         });
     });
 });

@@ -6,11 +6,27 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Http\Request;
+use Modules\Attendance\Models\AttendanceViolation;
+use Modules\Booking\Models\PractitionerTimeOff;
+use Modules\MobileApi\Observers\AttendanceViolationObserver;
+use Modules\MobileApi\Observers\TimeOffObserver;
+use Modules\MobileApi\Services\PushNotificationService;
+use Modules\Payroll\Events\PayrollPaid;
+use Modules\MobileApi\Listeners\SendPayslipReadyPush;
 
 class MobileApiServiceProvider extends ServiceProvider
 {
     protected string $moduleName = 'MobileApi';
     protected string $moduleNameLower = 'mobile_api';
+
+    /**
+     * The event listener mappings.
+     */
+    protected array $listen = [
+        PayrollPaid::class => [
+            SendPayslipReadyPush::class,
+        ],
+    ];
 
     public function boot(): void
     {
@@ -18,11 +34,18 @@ class MobileApiServiceProvider extends ServiceProvider
         $this->registerTranslations();
         $this->registerViews();
         $this->configureRateLimiting();
+        $this->registerObservers();
+        $this->registerEventListeners();
     }
 
     public function register(): void
     {
         $this->app->register(RouteServiceProvider::class);
+
+        // Register PushNotificationService as singleton
+        $this->app->singleton(PushNotificationService::class, function ($app) {
+            return new PushNotificationService();
+        });
     }
 
     protected function registerConfig(): void
@@ -83,5 +106,49 @@ class MobileApiServiceProvider extends ServiceProvider
             return Limit::perMinutes($config['decay_minutes'], $config['max_attempts'])
                 ->by($request->ip());
         });
+    }
+
+    /**
+     * Register model observers for push notifications.
+     */
+    protected function registerObservers(): void
+    {
+        // Only register if push notifications are enabled
+        if (!config('mobile_api.push_notifications.enabled', true)) {
+            return;
+        }
+
+        // Register AttendanceViolation observer if the model exists
+        if (class_exists(AttendanceViolation::class)) {
+            AttendanceViolation::observe(AttendanceViolationObserver::class);
+        }
+
+        // Register TimeOff observer if the model exists
+        if (class_exists(PractitionerTimeOff::class)) {
+            PractitionerTimeOff::observe(TimeOffObserver::class);
+        }
+    }
+
+    /**
+     * Register event listeners for push notifications.
+     */
+    protected function registerEventListeners(): void
+    {
+        // Only register if push notifications are enabled
+        if (!config('mobile_api.push_notifications.enabled', true)) {
+            return;
+        }
+
+        $events = $this->app->make('events');
+
+        foreach ($this->listen as $event => $listeners) {
+            if (!class_exists($event)) {
+                continue;
+            }
+
+            foreach ($listeners as $listener) {
+                $events->listen($event, $listener);
+            }
+        }
     }
 }

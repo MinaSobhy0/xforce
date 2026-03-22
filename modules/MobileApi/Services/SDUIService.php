@@ -2,7 +2,6 @@
 
 namespace Modules\MobileApi\Services;
 
-use Illuminate\Support\Facades\Cache;
 use Modules\Auth\Models\User;
 use Modules\Core\Models\Tenant;
 
@@ -17,7 +16,7 @@ class SDUIService
     {
         $screen = $this->getScreenDefinition($screenId);
 
-        if (!$screen) {
+        if (! $screen) {
             return [];
         }
 
@@ -30,10 +29,10 @@ class SDUIService
 
         // Filter components based on user permissions and tenant config
         $screen['components'] = collect($screen['components'] ?? [])
-            ->filter(fn($component) => $this->userCanSeeComponent($user, $component))
-            ->filter(fn($component) => $this->isComponentEnabled($component, $screenId, $config))
+            ->filter(fn ($component) => $this->userCanSeeComponent($user, $component))
+            ->filter(fn ($component) => $this->isComponentEnabled($component, $screenId, $config))
             ->sortBy('sort')
-            ->map(fn($component) => $this->processComponent($component, $user))
+            ->map(fn ($component) => $this->processComponent($component, $user))
             ->values()
             ->all();
 
@@ -58,7 +57,7 @@ class SDUIService
     {
         $screenConfig = $config['screens'][$screenId] ?? null;
 
-        if (!$screenConfig) {
+        if (! $screenConfig) {
             return $screen;
         }
 
@@ -87,14 +86,14 @@ class SDUIService
     {
         $screenConfig = $config['screens'][$screenId] ?? null;
 
-        if (!$screenConfig) {
+        if (! $screenConfig) {
             return true; // Default: enabled if no screen config
         }
 
         $componentConfig = collect($screenConfig['components'] ?? [])
             ->firstWhere('type', $component['type']);
 
-        if (!$componentConfig) {
+        if (! $componentConfig) {
             return true; // Default: enabled if component not in config
         }
 
@@ -111,20 +110,20 @@ class SDUIService
 
         return [
             'tabs' => collect($config['navigation']['tabs'] ?? [])
-                ->filter(fn($tab) => $tab['enabled'] ?? true)
+                ->filter(fn ($tab) => $tab['enabled'] ?? true)
                 ->sortBy('sort')
                 ->values()
-                ->map(fn($tab) => [
+                ->map(fn ($tab) => [
                     'id' => $tab['id'],
                     'label' => $this->getScreenLabel($tab['id']),
                     'icon' => $this->getScreenIcon($tab['id']),
                 ])
                 ->all(),
             'more_menu' => collect($config['navigation']['more_menu'] ?? [])
-                ->filter(fn($item) => $item['enabled'] ?? true)
+                ->filter(fn ($item) => $item['enabled'] ?? true)
                 ->sortBy('sort')
                 ->values()
-                ->map(fn($item) => [
+                ->map(fn ($item) => [
                     'id' => $item['id'],
                     'label' => $this->getScreenLabel($item['id']),
                     'icon' => $this->getScreenIcon($item['id']),
@@ -214,8 +213,9 @@ class SDUIService
             if (filter_var($logoUrl, FILTER_VALIDATE_URL)) {
                 return $logoUrl;
             }
+
             // Otherwise, it's a storage path
-            return url('storage/' . $logoUrl);
+            return url('storage/'.$logoUrl);
         }
 
         return $tenant?->getLogoUrl();
@@ -228,7 +228,7 @@ class SDUIService
     {
         $dataProvider = $this->getDataProvider($screenId);
 
-        if (!$dataProvider) {
+        if (! $dataProvider) {
             return [];
         }
 
@@ -251,7 +251,7 @@ class SDUIService
         }
 
         foreach ($requires as $permission) {
-            if (!$user->can($permission)) {
+            if (! $user->can($permission)) {
                 return false;
             }
         }
@@ -271,9 +271,10 @@ class SDUIService
             $props['items'] = collect($props['items'])
                 ->filter(function ($item) use ($user) {
                     $requires = $item['requires'] ?? null;
-                    if (!$requires) {
+                    if (! $requires) {
                         return true;
                     }
+
                     return $user->can($requires);
                 })
                 ->values()
@@ -311,10 +312,10 @@ class SDUIService
     protected function getDataProvider(string $screenId): ?callable
     {
         $providers = [
-            'dashboard' => fn($user) => $this->getDashboardData($user),
-            'attendance' => fn($user) => $this->getAttendanceData($user),
-            'time_off' => fn($user) => $this->getTimeOffData($user),
-            'payslip' => fn($user) => $this->getPayslipData($user),
+            'dashboard' => fn ($user) => $this->getDashboardData($user),
+            'attendance' => fn ($user) => $this->getAttendanceData($user),
+            'time_off' => fn ($user) => $this->getTimeOffData($user),
+            'payslip' => fn ($user) => $this->getPayslipData($user),
         ];
 
         return $providers[$screenId] ?? null;

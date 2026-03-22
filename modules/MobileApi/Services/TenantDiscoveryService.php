@@ -3,8 +3,8 @@
 namespace Modules\MobileApi\Services;
 
 use App\Models\TenantAppCode;
-use Modules\Core\Models\Tenant;
 use Illuminate\Support\Facades\DB;
+use Modules\Core\Models\Tenant;
 
 class TenantDiscoveryService
 {
@@ -17,12 +17,13 @@ class TenantDiscoveryService
             ->byCode($code)
             ->first();
 
-        if (!$appCode) {
+        if (! $appCode) {
             return null;
         }
 
-        if (!$appCode->isValid()) {
+        if (! $appCode->isValid()) {
             $errorData = $this->getCodeErrorData($appCode);
+
             return [
                 'valid' => false,
                 'error_code' => $errorData['code'],
@@ -32,7 +33,7 @@ class TenantDiscoveryService
 
         $tenant = $appCode->tenant;
 
-        if (!$tenant || !$tenant->isActive()) {
+        if (! $tenant || ! $tenant->isActive()) {
             return [
                 'valid' => false,
                 'error_code' => 'TENANT_INACTIVE',
@@ -56,11 +57,11 @@ class TenantDiscoveryService
     {
         $tenant = Tenant::where('slug', $slug)->first();
 
-        if (!$tenant) {
+        if (! $tenant) {
             return null;
         }
 
-        if (!$tenant->isActive()) {
+        if (! $tenant->isActive()) {
             return [
                 'valid' => false,
                 'error' => __('mobile_api::mobile.tenant.tenant_inactive'),
@@ -91,11 +92,11 @@ class TenantDiscoveryService
             $tenant = Tenant::where('domain', $domain)->first();
         }
 
-        if (!$tenant) {
+        if (! $tenant) {
             return null;
         }
 
-        if (!$tenant->isActive()) {
+        if (! $tenant->isActive()) {
             return [
                 'valid' => false,
                 'error' => __('mobile_api::mobile.tenant.tenant_inactive'),
@@ -154,7 +155,7 @@ class TenantDiscoveryService
             ];
         }
 
-        if (!$appCode->is_active) {
+        if (! $appCode->is_active) {
             return [
                 'code' => 'CODE_INACTIVE',
                 'message' => __('mobile_api::mobile.tenant.invalid_code'),
