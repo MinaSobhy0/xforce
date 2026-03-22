@@ -68,6 +68,10 @@ class TenantPanelProvider extends PanelProvider
                 NavigationGroup::make('Settings')
                     ->label(__('Settings'))
                     ->icon('heroicon-o-cog-6-tooth'),
+                NavigationGroup::make('Mobile App')
+                    ->label(__('Mobile App'))
+                    ->icon('heroicon-o-device-phone-mobile')
+                    ->collapsed(),
             ])
 
             // Discover Core module resources and pages
@@ -150,7 +154,8 @@ class TenantPanelProvider extends PanelProvider
             ->discoverResources(in: base_path('modules/Evaluations/Filament/Resources'), for: 'Modules\\Evaluations\\Filament\\Resources')
             ->discoverPages(in: base_path('modules/Evaluations/Filament/Pages'), for: 'Modules\\Evaluations\\Filament\\Pages')
 
-            // Discover MobileApi module pages
+            // Discover MobileApi module resources and pages
+            ->discoverResources(in: base_path('modules/MobileApi/Filament/Resources'), for: 'Modules\\MobileApi\\Filament\\Resources')
             ->discoverPages(in: base_path('modules/MobileApi/Filament/Pages'), for: 'Modules\\MobileApi\\Filament\\Pages')
 
             // Custom routes for prescription PDF printing
