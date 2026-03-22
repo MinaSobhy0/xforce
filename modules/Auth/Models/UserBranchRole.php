@@ -15,16 +15,28 @@ class UserBranchRole extends BaseModel
 {
     use HasTenancy;
 
+    /**
+     * SECURITY: Only allow safe fields for mass assignment.
+     * Role assignments must be validated for authorization before creation.
+     */
     protected $fillable = [
         'tenant_id',
         'user_id',
         'branch_id',
-        'role_id',
-        'is_primary',
-        'is_active',
-        'assigned_at',
-        'assigned_by',
         'expires_at',
+    ];
+
+    /**
+     * SECURITY: Fields that must never be mass-assigned.
+     * These require explicit admin authorization.
+     */
+    protected $guarded = [
+        'id',
+        'role_id',       // CRITICAL: Role assignment must be authorized
+        'is_primary',    // HIGH: Primary role has elevated access
+        'is_active',     // HIGH: Can bypass deactivation
+        'assigned_at',   // MEDIUM: Audit trail
+        'assigned_by',   // MEDIUM: Audit trail manipulation
     ];
 
     protected $casts = [

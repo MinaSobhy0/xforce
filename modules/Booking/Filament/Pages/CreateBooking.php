@@ -2273,7 +2273,8 @@ class CreateBooking extends Page implements HasForms
                     }
                 }
 
-                $appointment = Appointment::create([
+                // SECURITY: Use conflict check to prevent double-booking race conditions
+                $appointment = Appointment::createWithConflictCheck([
                     'patient_id' => $data['patient_id'],
                     'service_id' => $item['service_id'],
                     'branch_id' => $data['branch_id'],
@@ -2298,6 +2299,14 @@ class CreateBooking extends Page implements HasForms
                     // Reschedule tracking
                     'rescheduled_from_id' => $this->rescheduleAppointmentId,
                 ]);
+
+                // Handle slot conflict (race condition detected)
+                if ($appointment === null) {
+                    throw new \Exception(__('booking::booking.errors.slot_no_longer_available', [
+                        'service' => $service?->name ?? 'Unknown',
+                        'time' => $item['start_time'],
+                    ]));
+                }
 
                 $createdAppointments[] = $appointment;
 

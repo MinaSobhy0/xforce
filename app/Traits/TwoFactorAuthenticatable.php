@@ -77,11 +77,20 @@ trait TwoFactorAuthenticatable
     {
         $recoveryCodes = json_decode(decrypt($this->two_factor_recovery_codes), true);
 
-        if (in_array($code, $recoveryCodes)) {
+        // SECURITY: Use constant-time comparison to prevent timing attacks
+        $matchedCode = null;
+        foreach ($recoveryCodes as $validCode) {
+            if (hash_equals($validCode, strtoupper($code))) {
+                $matchedCode = $validCode;
+                break;
+            }
+        }
+
+        if ($matchedCode !== null) {
             // Remove used recovery code
-            $recoveryCodes = array_diff($recoveryCodes, [$code]);
+            $recoveryCodes = array_values(array_filter($recoveryCodes, fn($c) => !hash_equals($c, $matchedCode)));
             $this->forceFill([
-                'two_factor_recovery_codes' => encrypt(json_encode(array_values($recoveryCodes))),
+                'two_factor_recovery_codes' => encrypt(json_encode($recoveryCodes)),
             ])->save();
 
             return true;
@@ -110,11 +119,19 @@ trait TwoFactorAuthenticatable
         return $codes;
     }
 
+    /**
+     * Generate cryptographically secure recovery codes.
+     * SECURITY: Uses random_bytes directly (not MD5) with 16 chars (~80 bits entropy).
+     */
     protected function generateRecoveryCodes(): array
     {
         $codes = [];
-        for ($i = 0; $i < 8; $i++) {
-            $codes[] = strtoupper(substr(md5(random_bytes(16)), 0, 10));
+        // Generate 10 recovery codes (industry standard is 8-16)
+        for ($i = 0; $i < 10; $i++) {
+            // Use bin2hex for better entropy distribution (16 hex chars = 64 bits)
+            // Format as XXXX-XXXX-XXXX-XXXX for readability
+            $raw = bin2hex(random_bytes(8));
+            $codes[] = strtoupper(implode('-', str_split($raw, 4)));
         }
 
         return $codes;

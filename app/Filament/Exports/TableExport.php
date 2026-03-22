@@ -2,6 +2,7 @@
 
 namespace App\Filament\Exports;
 
+use App\Traits\SanitizesExportData;
 use Filament\Tables\Columns\BooleanColumn;
 use Filament\Tables\Columns\Column;
 use Filament\Tables\Columns\IconColumn;
@@ -20,6 +21,7 @@ use Illuminate\Support\Str;
 class TableExport implements FromQuery, WithHeadings, WithMapping, WithStyles, ShouldAutoSize
 {
     use Exportable;
+    use SanitizesExportData;
 
     protected Builder $query;
     protected array $columns;
@@ -50,7 +52,8 @@ class TableExport implements FromQuery, WithHeadings, WithMapping, WithStyles, S
             $row[] = $this->getColumnValue($column, $record);
         }
 
-        return $row;
+        // SECURITY: Sanitize all values to prevent Excel formula injection
+        return $this->sanitizeExportRow($row);
     }
 
     public function styles(Worksheet $sheet): array

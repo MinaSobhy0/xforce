@@ -743,6 +743,58 @@ class Appointment extends BaseModel
         ]);
     }
 
+    /**
+     * SECURITY: Atomically check for slot conflicts and create appointment.
+     * Uses database locking to prevent race conditions (double-booking).
+     *
+     * @param array $data Appointment data
+     * @return static|null Returns created appointment or null if conflict exists
+     * @throws \Exception On database error
+     */
+    public static function createWithConflictCheck(array $data): ?static
+    {
+        return \DB::transaction(function () use ($data) {
+            // Only check conflicts if we have time-based scheduling
+            if (!empty($data['practitioner_id']) && !empty($data['date']) && !empty($data['start_time']) && !empty($data['end_time'])) {
+                // SECURITY: Lock conflicting rows to prevent race conditions
+                $conflict = static::lockForUpdate()
+                    ->where('practitioner_id', $data['practitioner_id'])
+                    ->where('date', $data['date'])
+                    ->active()
+                    ->where(function ($query) use ($data) {
+                        // Time overlap check: existing.start < new.end AND existing.end > new.start
+                        $query->where('start_time', '<', $data['end_time'])
+                              ->where('end_time', '>', $data['start_time']);
+                    })
+                    ->exists();
+
+                if ($conflict) {
+                    return null; // Slot no longer available
+                }
+
+                // Also check room conflicts if room is specified
+                if (!empty($data['room_id'])) {
+                    $roomConflict = static::lockForUpdate()
+                        ->where('room_id', $data['room_id'])
+                        ->where('date', $data['date'])
+                        ->active()
+                        ->where(function ($query) use ($data) {
+                            $query->where('start_time', '<', $data['end_time'])
+                                  ->where('end_time', '>', $data['start_time']);
+                        })
+                        ->exists();
+
+                    if ($roomConflict) {
+                        return null; // Room no longer available
+                    }
+                }
+            }
+
+            // No conflicts - create the appointment
+            return static::create($data);
+        });
+    }
+
     public function scopeCompleted($query)
     {
         return $query->where('status', self::STATUS_COMPLETED);

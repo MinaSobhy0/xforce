@@ -2,6 +2,7 @@
 
 namespace Modules\GiftCards\Services;
 
+use App\Traits\SanitizesExportData;
 use Modules\GiftCards\Models\GiftCard;
 use Modules\GiftCards\Models\GiftCardPrintHistory;
 use Illuminate\Support\Collection;
@@ -10,6 +11,8 @@ use Barryvdh\DomPDF\Facade\Pdf;
 
 class GiftCardExportService
 {
+    use SanitizesExportData;
+
     protected GiftCardGeneratorService $generator;
 
     public function __construct(GiftCardGeneratorService $generator)
@@ -38,7 +41,8 @@ class GiftCardExportService
             ]);
 
             foreach ($cards as $card) {
-                fputcsv($handle, [
+                // SECURITY: Sanitize user-provided data to prevent formula injection
+                fputcsv($handle, $this->sanitizeExportRow([
                     $card->code,
                     $card->initial_value_minor / 100,
                     $card->status_label,
@@ -47,7 +51,7 @@ class GiftCardExportService
                     $card->pin_code ?? '-',
                     $card->purchaser?->full_name ?? '-',
                     $card->recipient?->full_name ?? '-',
-                ]);
+                ]));
             }
 
             fclose($handle);
@@ -82,7 +86,8 @@ class GiftCardExportService
             ], ';');
 
             foreach ($cards as $card) {
-                fputcsv($handle, [
+                // SECURITY: Sanitize user-provided data to prevent formula injection
+                fputcsv($handle, $this->sanitizeExportRow([
                     $card->code,
                     number_format($card->initial_value_minor / 100, 2),
                     number_format($card->remaining_value_minor / 100, 2),
@@ -93,7 +98,7 @@ class GiftCardExportService
                     $card->pin_code ?? '-',
                     $card->purchaser?->full_name ?? '-',
                     $card->recipient?->full_name ?? '-',
-                ], ';');
+                ]), ';');
             }
 
             fclose($handle);

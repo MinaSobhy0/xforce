@@ -39,13 +39,24 @@ class OwnerUser extends Model implements
 
     protected $table = 'users';
 
+    /**
+     * SECURITY: Only allow safe fields for mass assignment.
+     * Tenant and status changes must use dedicated admin methods.
+     */
     protected $fillable = [
         'first_name',
         'last_name',
         'email',
         'password',
-        'tenant_id',
-        'status',
+    ];
+
+    /**
+     * SECURITY: Fields that must never be mass-assigned.
+     */
+    protected $guarded = [
+        'id',
+        'tenant_id',  // CRITICAL: Would allow tenant switching
+        'status',     // HIGH: Would allow reactivating suspended owners
     ];
 
     protected $hidden = [

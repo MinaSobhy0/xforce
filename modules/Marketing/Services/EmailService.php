@@ -131,15 +131,17 @@ class EmailService
 
     /**
      * Build appointment reminder email HTML.
+     * SECURITY: All variables are HTML-escaped to prevent XSS.
      */
     public function buildAppointmentReminderHtml(array $variables): string
     {
-        $patientName = $variables['patient_name'] ?? 'Valued Patient';
-        $appointmentDate = $variables['appointment_date'] ?? '';
-        $appointmentTime = $variables['appointment_time'] ?? '';
-        $treatmentName = $variables['treatment_name'] ?? '';
-        $clinicName = $variables['clinic_name'] ?? '';
-        $branchName = $variables['branch_name'] ?? '';
+        // SECURITY: Escape all user-provided variables to prevent XSS
+        $patientName = e($variables['patient_name'] ?? 'Valued Patient');
+        $appointmentDate = e($variables['appointment_date'] ?? '');
+        $appointmentTime = e($variables['appointment_time'] ?? '');
+        $treatmentName = e($variables['treatment_name'] ?? '');
+        $clinicName = e($variables['clinic_name'] ?? '');
+        $branchName = e($variables['branch_name'] ?? '');
 
         return <<<HTML
 <!DOCTYPE html>
@@ -181,14 +183,16 @@ HTML;
 
     /**
      * Build invoice receipt email HTML.
+     * SECURITY: All variables are HTML-escaped to prevent XSS.
      */
     public function buildInvoiceReceiptHtml(array $variables): string
     {
-        $patientName = $variables['patient_name'] ?? 'Valued Patient';
-        $invoiceNumber = $variables['invoice_number'] ?? '';
-        $invoiceTotal = $variables['invoice_total'] ?? '';
-        $paymentAmount = $variables['payment_amount'] ?? '';
-        $clinicName = $variables['clinic_name'] ?? '';
+        // SECURITY: Escape all user-provided variables to prevent XSS
+        $patientName = e($variables['patient_name'] ?? 'Valued Patient');
+        $invoiceNumber = e($variables['invoice_number'] ?? '');
+        $invoiceTotal = e($variables['invoice_total'] ?? '');
+        $paymentAmount = e($variables['payment_amount'] ?? '');
+        $clinicName = e($variables['clinic_name'] ?? '');
 
         return <<<HTML
 <!DOCTYPE html>

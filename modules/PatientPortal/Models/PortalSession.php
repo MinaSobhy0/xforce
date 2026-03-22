@@ -86,13 +86,16 @@ class PortalSession extends BaseModel
     }
 
     // Verify OTP
+    // SECURITY: Uses timing-safe comparison to prevent timing attacks
     public function verifyOtp(string $code): bool
     {
         if ($this->isOtpExpired()) {
             return false;
         }
 
-        if ($this->otp_code !== $code) {
+        // SECURITY: Use hash_equals() for timing-safe string comparison
+        // This prevents attackers from guessing OTP digit-by-digit via timing
+        if (!hash_equals((string) $this->otp_code, (string) $code)) {
             return false;
         }
 

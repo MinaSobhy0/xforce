@@ -123,19 +123,30 @@ class MessageTemplate extends BaseModel
 
     /**
      * Render template with variables.
+     * SECURITY: HTML escapes variables for email channel to prevent XSS attacks.
+     *
+     * @param array $variables The variables to substitute
+     * @param string|null $locale The locale to use
+     * @param bool|null $escapeHtml Whether to HTML-escape values (defaults to true for email channel)
      */
-    public function render(array $variables, ?string $locale = null): array
+    public function render(array $variables, ?string $locale = null, ?bool $escapeHtml = null): array
     {
         $locale = $locale ?? app()->getLocale();
+
+        // SECURITY: Auto-enable HTML escaping for email channel
+        $shouldEscapeHtml = $escapeHtml ?? ($this->channel === self::CHANNEL_EMAIL);
 
         $content = $this->getTranslation('content', $locale);
         $subject = $this->getTranslation('subject', $locale);
 
         foreach ($variables as $key => $value) {
             $placeholder = '{{' . $key . '}}';
-            $content = str_replace($placeholder, $value, $content);
+            // SECURITY: Escape HTML entities to prevent XSS in email content
+            $safeValue = $shouldEscapeHtml ? e($value) : $value;
+            $content = str_replace($placeholder, $safeValue, $content);
             if ($subject) {
-                $subject = str_replace($placeholder, $value, $subject);
+                // Subject is always escaped (no HTML in email subjects)
+                $subject = str_replace($placeholder, e($value), $subject);
             }
         }
 
@@ -233,11 +244,13 @@ class MessageTemplate extends BaseModel
 
     /**
      * Build WhatsApp interactive message payload.
+     * SECURITY: Uses plain text (no HTML) for WhatsApp messages - no escaping needed.
      */
     public function buildInteractivePayload(array $variables, ?string $locale = null): array
     {
         $locale = $locale ?? app()->getLocale();
-        $rendered = $this->render($variables, $locale);
+        // WhatsApp uses plain text, not HTML - disable escaping
+        $rendered = $this->render($variables, $locale, false);
 
         $payload = [
             'type' => 'button',
@@ -255,7 +268,9 @@ class MessageTemplate extends BaseModel
         if ($this->footer) {
             $footerText = $this->footer;
             foreach ($variables as $key => $value) {
-                $footerText = str_replace('{{' . $key . '}}', $value, $footerText);
+                // SECURITY: Sanitize values to remove potential injection characters
+                $safeValue = preg_replace('/[\x00-\x1F\x7F]/', '', (string) $value);
+                $footerText = str_replace('{{' . $key . '}}', $safeValue, $footerText);
             }
             $payload['footer'] = ['text' => $footerText];
         }
@@ -272,6 +287,7 @@ class MessageTemplate extends BaseModel
 
     /**
      * Build header for interactive message.
+     * SECURITY: Sanitizes variable values and validates URLs.
      */
     protected function buildHeader(array $variables, string $locale): array
     {
@@ -281,28 +297,55 @@ class MessageTemplate extends BaseModel
             case self::HEADER_TEXT:
                 $text = $headerContent[$locale] ?? $headerContent['en'] ?? '';
                 foreach ($variables as $key => $value) {
-                    $text = str_replace('{{' . $key . '}}', $value, $text);
+                    // SECURITY: Remove control characters from values
+                    $safeValue = preg_replace('/[\x00-\x1F\x7F]/', '', (string) $value);
+                    $text = str_replace('{{' . $key . '}}', $safeValue, $text);
                 }
                 return ['type' => 'text', 'text' => $text];
 
             case self::HEADER_IMAGE:
+                $url = $headerContent['url'] ?? '';
+                // SECURITY: Validate URL scheme to prevent javascript: or data: URLs
+                if (!$this->isValidMediaUrl($url)) {
+                    return [];
+                }
                 return [
                     'type' => 'image',
-                    'image' => ['link' => $headerContent['url'] ?? ''],
+                    'image' => ['link' => $url],
                 ];
 
             case self::HEADER_DOCUMENT:
+                $url = $headerContent['url'] ?? '';
+                // SECURITY: Validate URL scheme
+                if (!$this->isValidMediaUrl($url)) {
+                    return [];
+                }
                 return [
                     'type' => 'document',
                     'document' => [
-                        'link' => $headerContent['url'] ?? '',
-                        'filename' => $headerContent['filename'] ?? 'document.pdf',
+                        'link' => $url,
+                        'filename' => preg_replace('/[^a-zA-Z0-9._-]/', '', $headerContent['filename'] ?? 'document.pdf'),
                     ],
                 ];
 
             default:
                 return [];
         }
+    }
+
+    /**
+     * Validate media URL to prevent injection attacks.
+     */
+    protected function isValidMediaUrl(string $url): bool
+    {
+        if (empty($url)) {
+            return false;
+        }
+
+        $scheme = parse_url($url, PHP_URL_SCHEME);
+
+        // Only allow http and https schemes
+        return in_array(strtolower($scheme ?? ''), ['http', 'https'], true);
     }
 
     /**

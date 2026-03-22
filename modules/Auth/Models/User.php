@@ -6,6 +6,7 @@ use XLinic\Framework\Core\Model\BaseModel;
 use XLinic\Framework\Core\Model\Traits\HasTenancy;
 use XLinic\Framework\Core\Model\Traits\HasPortalAccess;
 use XLinic\Framework\Core\Model\Traits\HasActivity;
+use XLinic\Framework\Core\Model\Traits\EnforcesTenantLimits;
 use Illuminate\Auth\Authenticatable;
 use Illuminate\Auth\MustVerifyEmail;
 use Illuminate\Auth\Passwords\CanResetPassword;
@@ -42,7 +43,14 @@ class User extends BaseModel implements
         HasActivity,
         Notifiable,
         SoftDeletes,
+        EnforcesTenantLimits,
         \App\Traits\TwoFactorAuthenticatable;
+
+    /**
+     * SECURITY: Tenant limit enforcement configuration.
+     */
+    protected string $tenantLimitField = 'max_users';
+    protected string $tenantLimitResourceName = 'users';
 
     /**
      * The database connection for the model.
@@ -50,6 +58,11 @@ class User extends BaseModel implements
      */
     protected $connection = 'tenant';
 
+    /**
+     * SECURITY: Only allow safe fields for mass assignment.
+     * Sensitive fields like permissions_override, impersonation_token,
+     * salary, commission_rate must be set explicitly via dedicated methods.
+     */
     protected $fillable = [
         'tenant_id',
         'first_name',
@@ -59,21 +72,10 @@ class User extends BaseModel implements
         'phone',
         'password',
         'avatar_url',
-        'status',
         'language',
         'timezone',
         'email_verified_at',
         'phone_verified_at',
-        'two_factor_enabled',
-        'two_factor_secret',
-        'two_factor_recovery_codes',
-        'two_factor_confirmed_at',
-        'last_login_at',
-        'last_login_ip',
-        'password_expires_at',
-        'must_change_password',
-        'failed_login_attempts',
-        'locked_until',
         'employee_id',
         'department',
         'job_title',
@@ -82,15 +84,34 @@ class User extends BaseModel implements
         'gender',
         'address',
         'emergency_contact',
-        'salary',
-        'commission_rate',
         'work_schedule',
-        'permissions_override',
         'settings',
         'preferences',
         'meta',
-        'impersonation_token',
+    ];
+
+    /**
+     * SECURITY: Fields that must never be mass-assigned.
+     * These require explicit setter methods with proper authorization.
+     */
+    protected $guarded = [
+        'id',
+        'permissions_override',      // CRITICAL: Allows arbitrary permission grants
+        'impersonation_token',       // CRITICAL: Allows account takeover
         'impersonation_token_expires_at',
+        'salary',                    // HIGH: Financial data
+        'commission_rate',           // HIGH: Financial data
+        'status',                    // HIGH: Can reactivate suspended accounts
+        'failed_login_attempts',     // MEDIUM: Can reset brute-force protection
+        'locked_until',              // MEDIUM: Can unlock locked accounts
+        'two_factor_enabled',        // MEDIUM: Can disable 2FA
+        'two_factor_secret',         // MEDIUM: Can manipulate 2FA
+        'two_factor_recovery_codes', // MEDIUM: Can manipulate 2FA
+        'two_factor_confirmed_at',   // MEDIUM: Can bypass 2FA setup
+        'must_change_password',      // MEDIUM: Security flow bypass
+        'password_expires_at',       // MEDIUM: Security flow bypass
+        'last_login_at',             // LOW: Audit trail
+        'last_login_ip',             // LOW: Audit trail
     ];
 
     protected $hidden = [

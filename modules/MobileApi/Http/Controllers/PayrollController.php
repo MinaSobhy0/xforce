@@ -129,6 +129,7 @@ class PayrollController extends BaseApiController
     /**
      * Get payslip download URL.
      * GET /api/v2/payroll/{id}/download
+     * SECURITY: Returns a signed URL to prevent IDOR attacks
      */
     public function download(int $id): JsonResponse
     {
@@ -148,12 +149,17 @@ class PayrollController extends BaseApiController
             return $this->notFound();
         }
 
-        // Generate download URL
-        $downloadUrl = url("/payroll/payslip/{$id}/download");
+        // SECURITY: Generate signed URL with short expiry to prevent URL sharing/manipulation
+        $downloadUrl = \URL::temporarySignedRoute(
+            'payroll.download',
+            now()->addMinutes(15),
+            ['id' => $id, 'staff' => $staffProfile->id]
+        );
 
         return $this->success([
             'download_url' => $downloadUrl,
             'filename' => "payslip_{$payslip->payrollRun->period_label}.pdf",
+            'expires_in' => 900, // 15 minutes in seconds
         ]);
     }
 

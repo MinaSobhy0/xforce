@@ -66,18 +66,25 @@ class LoyaltyService
         ?string $referenceId = null,
         ?array $metadata = null
     ): LoyaltyTransaction {
-        $currentBalance = $this->getBalance($patient);
-
-        if ($points > $currentBalance) {
-            throw new \InvalidArgumentException(
-                __('loyalty::loyalty.errors.insufficient_points', [
-                    'requested' => $points,
-                    'available' => $currentBalance,
-                ])
-            );
-        }
-
         return DB::transaction(function () use ($patient, $points, $description, $referenceType, $referenceId, $metadata) {
+            // SECURITY: Lock the patient row to prevent race conditions
+            $patient = Patient::lockForUpdate()->find($patient->id);
+
+            if (!$patient) {
+                throw new \InvalidArgumentException('Patient not found');
+            }
+
+            $currentBalance = $patient->loyalty_points ?? 0;
+
+            if ($points > $currentBalance) {
+                throw new \InvalidArgumentException(
+                    __('loyalty::loyalty.errors.insufficient_points', [
+                        'requested' => $points,
+                        'available' => $currentBalance,
+                    ])
+                );
+            }
+
             // Deduct from patient's points balance
             $patient->decrement('loyalty_points', abs($points));
             $newBalance = $patient->fresh()->loyalty_points;

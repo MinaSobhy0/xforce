@@ -269,14 +269,25 @@ class GiftCardService
         ?Invoice $invoice = null,
         ?Payment $payment = null
     ): array {
-        if (!$card->canRedeem()) {
-            return ['success' => false, 'error' => 'Card cannot be redeemed'];
-        }
-
-        $amountToRedeem = min($amountMinor, $card->remaining_value_minor);
         $journalEntry = null;
+        $result = ['success' => false, 'error' => 'Unknown error'];
 
-        DB::transaction(function () use ($card, $amountToRedeem, $invoice, $payment, &$journalEntry) {
+        DB::transaction(function () use ($card, $amountMinor, $invoice, $payment, &$journalEntry, &$result) {
+            // SECURITY: Lock the card row to prevent race conditions
+            $card = GiftCard::lockForUpdate()->find($card->id);
+
+            if (!$card || !$card->canRedeem()) {
+                $result = ['success' => false, 'error' => 'Card cannot be redeemed'];
+                return;
+            }
+
+            $amountToRedeem = min($amountMinor, $card->remaining_value_minor);
+
+            if ($amountToRedeem <= 0) {
+                $result = ['success' => false, 'error' => 'No balance available to redeem'];
+                return;
+            }
+
             // Update balance
             $newBalance = $card->remaining_value_minor - $amountToRedeem;
             $newStatus = $newBalance > 0
@@ -309,19 +320,21 @@ class GiftCardService
                 'notes' => $invoice ? "Redemption for invoice {$invoice->code}" : 'Redemption',
                 'created_by_user_id' => auth()->id(),
             ]);
+
+            Log::info("Gift card redeemed: {$card->code}", [
+                'card_id' => $card->id,
+                'amount' => $amountToRedeem,
+                'invoice_id' => $invoice?->id,
+            ]);
+
+            $result = [
+                'success' => true,
+                'redeemed_amount' => $amountToRedeem,
+                'remaining_balance' => $newBalance,
+            ];
         });
 
-        Log::info("Gift card redeemed: {$card->code}", [
-            'card_id' => $card->id,
-            'amount' => $amountToRedeem,
-            'invoice_id' => $invoice?->id,
-        ]);
-
-        return [
-            'success' => true,
-            'redeemed_amount' => $amountToRedeem,
-            'remaining_balance' => $card->fresh()->remaining_value_minor,
-        ];
+        return $result;
     }
 
     /**

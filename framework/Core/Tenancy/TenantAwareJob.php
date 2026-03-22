@@ -103,7 +103,7 @@ abstract class TenantAwareJob implements ShouldQueue
     public function handle(): void
     {
         if (!$this->tenant) {
-            $this->resolvetenant();
+            $this->resolveTenant();
         }
 
         if (!$this->tenant) {
@@ -160,7 +160,7 @@ abstract class TenantAwareJob implements ShouldQueue
     /**
      * Resolve tenant from stored ID
      */
-    protected function resolveTenan(): void
+    protected function resolveTenant(): void
     {
         if ($this->tenantId) {
             $tenantManager = app(TenantManager::class);

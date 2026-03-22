@@ -28,6 +28,10 @@ class Invoice extends BaseModel
     protected string $sequenceCode = 'invoice';
     protected string $sequenceColumn = 'code';
 
+    /**
+     * SECURITY: Only allow safe fields for mass assignment.
+     * Financial totals, status, and payment fields must be set via service methods.
+     */
     protected $fillable = [
         'tenant_id',
         'code',
@@ -37,22 +41,35 @@ class Invoice extends BaseModel
         'appointment_id',
         'treatment_plan_id',
         'type',
-        'status',
-        'subtotal_minor',
-        'discount_minor',
         'discount_type',
-        'tax_minor',
-        'total_minor',
-        'paid_minor',
-        'deposits_applied_minor',
         'notes',
         'internal_notes',
         'due_date',
-        'issued_at',
+        'created_by_user_id',
+    ];
+
+    /**
+     * SECURITY: Fields that must never be mass-assigned.
+     * These are calculated or set by business logic methods only.
+     */
+    protected $guarded = [
+        'id',
+        // Status - CRITICAL: Must use state machine methods
+        'status',
+        // Calculated totals - CRITICAL: Must be calculated by service
+        'subtotal_minor',
+        'tax_minor',
+        'total_minor',
+        // Payment fields - CRITICAL: Must use recordPayment() method
+        'paid_minor',
         'paid_at',
+        'deposits_applied_minor',
+        // Discount - HIGH: Should be validated before applying
+        'discount_minor',
+        // Workflow timestamps - Must use transition methods
+        'issued_at',
         'cancelled_at',
         'cancellation_reason',
-        'created_by_user_id',
     ];
 
     protected $casts = [

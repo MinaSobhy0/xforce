@@ -5,6 +5,7 @@ namespace Modules\Core\Models;
 use XLinic\Framework\Core\Model\BaseModel;
 use XLinic\Framework\Core\Model\Traits\HasActivity;
 use XLinic\Framework\Core\Model\Traits\HasTenancy;
+use XLinic\Framework\Core\Model\Traits\EnforcesTenantLimits;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -12,6 +13,13 @@ class Branch extends BaseModel
 {
     use HasTenancy;
     use HasActivity;
+    use EnforcesTenantLimits;
+
+    /**
+     * SECURITY: Tenant limit enforcement configuration.
+     */
+    protected string $tenantLimitField = 'max_branches';
+    protected string $tenantLimitResourceName = 'branches';
 
     protected $fillable = [
         'tenant_id',

@@ -104,7 +104,8 @@ class AuthController extends BaseApiController
             'password' => 'required|string',
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        // SECURITY: Exclude soft-deleted users to prevent terminated employee access
+        $user = User::withoutTrashed()->where('email', $request->email)->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
             return $this->error(__('api::api.invalid_credentials'), 401);

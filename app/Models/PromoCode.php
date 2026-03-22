@@ -133,4 +133,25 @@ class PromoCode extends Model
     {
         $this->increment('used_count');
     }
+
+    /**
+     * Atomically validate and use promo code to prevent race conditions.
+     * SECURITY: This method locks the row and validates before incrementing.
+     *
+     * @return bool True if successfully used, false if invalid/exhausted
+     */
+    public function validateAndUse(): bool
+    {
+        return \DB::transaction(function () {
+            // Lock the row to prevent concurrent usage
+            $code = static::lockForUpdate()->find($this->id);
+
+            if (!$code || !$code->isValid()) {
+                return false;
+            }
+
+            $code->increment('used_count');
+            return true;
+        });
+    }
 }

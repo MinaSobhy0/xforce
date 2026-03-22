@@ -10,20 +10,31 @@ class MessageQuotaService
 {
     /**
      * Check if sending is allowed for the given channel and tenant.
+     * SECURITY: Creates usage record if not exists to prevent first-message bypass.
      *
      * @throws QuotaExceededException
      */
     public function checkQuota(string $channel, ?string $tenantId = null, int $count = 1): bool
     {
-        $usage = $this->getUsage($tenantId);
+        // SECURITY: Always get or create usage to prevent bypass on first message
+        $usage = $this->getOrCreateUsage($tenantId);
 
         if (!$usage) {
-            // No usage record - allow (will be created on first use)
-            return true;
+            // No tenant context - deny by default for security
+            throw new QuotaExceededException(
+                channel: $channel,
+                remaining: 0,
+                requested: $count
+            );
         }
 
         $metric = TenantUsage::getChannelMetric($channel);
         $remaining = $usage->getRemainingUsage($metric);
+
+        // SECURITY: Ensure remaining is not negative (prevents bypass via negative balance)
+        if ($remaining < 0) {
+            $remaining = 0;
+        }
 
         if ($remaining < $count) {
             throw new QuotaExceededException(
@@ -34,6 +45,66 @@ class MessageQuotaService
         }
 
         return true;
+    }
+
+    /**
+     * Atomically check quota and track usage to prevent race conditions.
+     * SECURITY: Use this method instead of separate checkQuota() + trackUsage() calls.
+     *
+     * @throws QuotaExceededException
+     */
+    public function checkAndTrack(string $channel, ?string $tenantId = null, int $count = 1): bool
+    {
+        return \DB::transaction(function () use ($channel, $tenantId, $count) {
+            $tenantId = $tenantId ?? tenant('id');
+
+            if (!$tenantId) {
+                throw new QuotaExceededException(
+                    channel: $channel,
+                    remaining: 0,
+                    requested: $count
+                );
+            }
+
+            // SECURITY: Lock the usage row to prevent race conditions
+            $usage = TenantUsage::lockForUpdate()
+                ->where('tenant_id', $tenantId)
+                ->first();
+
+            if (!$usage) {
+                // Create with lock
+                $usage = TenantUsage::create([
+                    'tenant_id' => $tenantId,
+                    'users' => 0,
+                    'branches' => 0,
+                    'patients' => 0,
+                    'appointments' => 0,
+                    'treatments' => 0,
+                    'storage_mb' => 0,
+                    'api_requests' => 0,
+                    'email_sent' => 0,
+                    'sms_sent' => 0,
+                    'whatsapp_sent' => 0,
+                    'reports_generated' => 0,
+                ]);
+            }
+
+            $metric = TenantUsage::getChannelMetric($channel);
+            $remaining = max(0, $usage->getRemainingUsage($metric));
+
+            if ($remaining < $count) {
+                throw new QuotaExceededException(
+                    channel: $channel,
+                    remaining: $remaining,
+                    requested: $count
+                );
+            }
+
+            // Track usage atomically
+            $usage->trackMessageSent($channel, $count);
+
+            return true;
+        });
     }
 
     /**

@@ -32,7 +32,9 @@ class RevenueAnalyticsExport implements FromView, WithTitle, ShouldAutoSize
             $query->whereDate('created_at', '<=', $this->endDate);
         }
 
-        $invoices = $query->get();
+        // SECURITY: Limit results to prevent DoS via unbounded exports
+        $maxRecords = config('app.max_export_rows', 10000);
+        $invoices = $query->limit($maxRecords)->get();
 
         $metrics = [
             'total_revenue' => $invoices->where('status', 'paid')->sum('amount'),

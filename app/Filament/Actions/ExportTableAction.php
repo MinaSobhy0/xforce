@@ -61,6 +61,24 @@ class ExportTableAction extends Action
             $columns = $this->getExportableColumns($table->getVisibleColumns());
             $query = $livewire->getFilteredTableQuery();
 
+            // SECURITY: Limit export to prevent DoS via massive data exports
+            $maxExportRows = config('app.max_export_rows', 10000);
+            $totalRows = $query->count();
+
+            if ($totalRows > $maxExportRows) {
+                \Filament\Notifications\Notification::make()
+                    ->title(__('core::core.export_limit_exceeded'))
+                    ->body(__('core::core.export_limit_exceeded_body', [
+                        'max' => number_format($maxExportRows),
+                        'total' => number_format($totalRows),
+                    ]))
+                    ->warning()
+                    ->send();
+
+                // Apply limit to prevent DoS
+                $query->limit($maxExportRows);
+            }
+
             $filename = $this->generateFilename($livewire);
 
             $export = new TableExport($query, $columns);

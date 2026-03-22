@@ -63,8 +63,9 @@ class OtpService
             ];
         }
 
-        // Verify OTP
-        if ($cached['otp'] !== $otp) {
+        // SECURITY: Use timing-safe comparison to prevent timing attacks
+        // hash_equals() prevents attackers from guessing OTP digit-by-digit
+        if (!hash_equals((string) $cached['otp'], (string) $otp)) {
             // Increment attempts
             $cached['attempts']++;
             Cache::put($cacheKey, $cached, now()->addMinutes($this->otpExpiry));

@@ -28,37 +28,18 @@ class Tenant extends Model
      */
     protected $connection = 'central';
 
+    /**
+     * SECURITY: Only allow safe fields for mass assignment.
+     * Subscription, limits, and database fields must be set via dedicated admin methods.
+     */
     protected $fillable = [
         'name',
         'slug',
         'domain',
-        'database_name',
-        'database_host',
-        'database_port',
-        'database_username',
-        'database_password',
-        'status',
         'settings',
         'mobile_config',
         'features',
-        'subscription_plan',
-        'subscription_plan_id',
-        'subscription_status',
-        'subscription_expires_at',
-        'trial_ends_at',
         'owner_user_id',
-        'max_users',
-        'max_branches',
-        'max_patients',
-        'max_storage_mb',
-        'extra_users',
-        'extra_branches',
-        'extra_patients',
-        'extra_storage_mb',
-        'extra_user_price',
-        'extra_branch_price',
-        'users_overage_at',
-        'users_overage_notified',
         'timezone',
         'locale',
         'currency',
@@ -78,7 +59,43 @@ class Tenant extends Model
         'secondary_color',
         'custom_css',
         'meta',
+    ];
+
+    /**
+     * SECURITY: Fields that must never be mass-assigned.
+     * Subscription, limits, and database credentials require platform admin access.
+     */
+    protected $guarded = [
+        'id',
+        // Database credentials - CRITICAL
+        'database_name',
+        'database_host',
+        'database_port',
+        'database_username',
+        'database_password',
+        // Subscription - CRITICAL (bypass billing)
+        'subscription_plan',
+        'subscription_plan_id',
+        'subscription_status',
+        'subscription_expires_at',
+        'trial_ends_at',
+        // Limits - HIGH (bypass subscription tiers)
+        'max_users',
+        'max_branches',
+        'max_patients',
+        'max_storage_mb',
+        'extra_users',
+        'extra_branches',
+        'extra_patients',
+        'extra_storage_mb',
+        'extra_user_price',
+        'extra_branch_price',
+        // Status - HIGH
+        'status',
         'is_active',
+        // Overage tracking
+        'users_overage_at',
+        'users_overage_notified',
     ];
 
     protected $casts = [

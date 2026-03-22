@@ -68,9 +68,28 @@ class TenantUsageLimit
         }
 
         $currentCount = $modelClass::count();
-        $maxAllowed = $tenant->{$config['limit_field']} ?? PHP_INT_MAX;
+
+        // SECURITY: Calculate total allowed including base limit + extra purchased capacity
+        $baseLimit = $tenant->{$config['limit_field']} ?? 0;
+        $extraField = 'extra_' . $resource;
+        $extraAllowed = $tenant->{$extraField} ?? 0;
+        $maxAllowed = $baseLimit + $extraAllowed;
+
+        // If no limit is set (0), allow unlimited (backwards compatibility)
+        if ($maxAllowed <= 0) {
+            return $next($request);
+        }
 
         if ($currentCount >= $maxAllowed) {
+            // Log the limit enforcement for audit
+            \Log::warning('Tenant usage limit enforced', [
+                'tenant_id' => $tenant->id,
+                'resource' => $resource,
+                'current' => $currentCount,
+                'max' => $maxAllowed,
+                'user_id' => auth()->id(),
+            ]);
+
             return $this->limitExceededResponse($request, $config['name'], $currentCount, $maxAllowed);
         }
 

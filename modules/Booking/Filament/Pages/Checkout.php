@@ -296,12 +296,17 @@ class Checkout extends Page implements HasActions, HasForms
             return 0;
         }
 
+        // SECURITY: Ensure discount value is not negative
+        $discountValue = max(0, (float) $this->overallDiscountValue);
+
         if ($this->overallDiscountType === 'percent') {
-            return (int) round($subtotal * $this->overallDiscountValue / 100);
+            // SECURITY: Cap percentage discount at 100% to prevent over-discounting
+            $cappedPercent = min($discountValue, 100);
+            return (int) round($subtotal * $cappedPercent / 100);
         }
 
-        // Fixed amount (convert from major to minor)
-        return min((int) ($this->overallDiscountValue * 100), $subtotal);
+        // Fixed amount (convert from major to minor), capped at subtotal
+        return min((int) ($discountValue * 100), $subtotal);
     }
 
     public function updateSessionAction(int $appointmentId, string $action): void
@@ -340,6 +345,21 @@ class Checkout extends Page implements HasActions, HasForms
 
     public function applyDiscount(): void
     {
+        // SECURITY: Validate discount value before applying
+        if ($this->overallDiscountValue !== null) {
+            $this->overallDiscountValue = max(0, (float) $this->overallDiscountValue);
+
+            // Cap percentage discounts at 100%
+            if ($this->overallDiscountType === 'percent' && $this->overallDiscountValue > 100) {
+                $this->overallDiscountValue = 100;
+                Notification::make()
+                    ->title(__('booking::checkout.messages.discount_capped'))
+                    ->body(__('booking::checkout.messages.discount_capped_body'))
+                    ->warning()
+                    ->send();
+            }
+        }
+
         $this->calculateTotals();
 
         Notification::make()

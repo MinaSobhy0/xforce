@@ -327,6 +327,7 @@ class PackageService
     /**
      * Use a session from a package subscription.
      * Returns the usage record.
+     * SECURITY: Uses database lock to prevent race conditions.
      */
     public function useSession(
         PackageSubscription $subscription,
@@ -335,34 +336,43 @@ class PackageService
         int $quantityUsed = 1,
         ?string $unitType = null
     ): PackageSessionUsage {
-        // Validate subscription can be used
-        if (!$subscription->isActive()) {
-            throw new \InvalidArgumentException('Package subscription is not active');
-        }
+        return \DB::transaction(function () use ($subscription, $serviceId, $appointmentId, $quantityUsed, $unitType) {
+            // SECURITY: Lock the subscription row to prevent race conditions
+            $subscription = PackageSubscription::lockForUpdate()->find($subscription->id);
 
-        // Validate service is in package and get the item
-        $packageItem = $subscription->package->items()
-            ->where('service_id', $serviceId)
-            ->first();
+            if (!$subscription) {
+                throw new \InvalidArgumentException('Package subscription not found');
+            }
 
-        if (!$packageItem) {
-            throw new \InvalidArgumentException('Service is not included in this package');
-        }
+            // Validate subscription can be used
+            if (!$subscription->isActive()) {
+                throw new \InvalidArgumentException('Package subscription is not active');
+            }
 
-        // Check remaining sessions for this service
-        if ($subscription->getSessionsRemainingByService($serviceId) < $quantityUsed) {
-            throw new \InvalidArgumentException('Not enough remaining sessions for this service');
-        }
+            // Validate service is in package and get the item
+            $packageItem = $subscription->package->items()
+                ->where('service_id', $serviceId)
+                ->first();
 
-        // Determine unit type from the item's consumption type
-        $effectiveUnitType = $unitType ?? ($packageItem->isPulseBased() ? 'pulse' : 'session');
+            if (!$packageItem) {
+                throw new \InvalidArgumentException('Service is not included in this package');
+            }
 
-        return $subscription->recordUsage(
-            $serviceId,
-            $appointmentId,
-            $quantityUsed,
-            $effectiveUnitType
-        );
+            // Check remaining sessions for this service
+            if ($subscription->getSessionsRemainingByService($serviceId) < $quantityUsed) {
+                throw new \InvalidArgumentException('Not enough remaining sessions for this service');
+            }
+
+            // Determine unit type from the item's consumption type
+            $effectiveUnitType = $unitType ?? ($packageItem->isPulseBased() ? 'pulse' : 'session');
+
+            return $subscription->recordUsage(
+                $serviceId,
+                $appointmentId,
+                $quantityUsed,
+                $effectiveUnitType
+            );
+        });
     }
 
     /**

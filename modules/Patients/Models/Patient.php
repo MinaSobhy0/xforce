@@ -6,6 +6,7 @@ use XLinic\Framework\Core\Model\BaseModel;
 use XLinic\Framework\Core\Model\Traits\HasTenancy;
 use XLinic\Framework\Core\Model\Traits\HasActivity;
 use XLinic\Framework\Core\Model\Traits\HasSequence;
+use XLinic\Framework\Core\Model\Traits\EnforcesTenantLimits;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -19,6 +20,7 @@ class Patient extends BaseModel implements Authenticatable
         HasActivity,
         HasSequence,
         SoftDeletes,
+        EnforcesTenantLimits,
         AuthenticatableTrait;
 
     /**
@@ -30,6 +32,12 @@ class Patient extends BaseModel implements Authenticatable
      * Sequence column name.
      */
     protected string $sequenceColumn = 'code';
+
+    /**
+     * SECURITY: Tenant limit enforcement configuration.
+     */
+    protected string $tenantLimitField = 'max_patients';
+    protected string $tenantLimitResourceName = 'patients';
 
     /**
      * The attributes that are mass assignable.
