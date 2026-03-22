@@ -255,17 +255,13 @@ class InventoryAccountingService
      */
     protected function getStockValuationAccount(Product $product): ?ChartOfAccount
     {
-        // 1. First try product-specific account
-        if ($product->stock_valuation_account_id) {
-            return $product->stockValuationAccount;
+        // 1. Use product's effective account (Product -> Category hierarchy)
+        $account = $product->getEffectiveStockValuationAccount();
+        if ($account) {
+            return $account;
         }
 
-        // 2. Try category account
-        if ($product->category && $product->category->stock_valuation_account_id) {
-            return $product->category->stockValuationAccount;
-        }
-
-        // 3. Fallback to system default
+        // 2. Fallback to system default
         $defaultAccount = $this->defaultAccounts->getStockValuationAccount();
         if ($defaultAccount) {
             return $defaultAccount;
@@ -339,17 +335,13 @@ class InventoryAccountingService
      */
     protected function getExpenseAccount(Product $product): ?ChartOfAccount
     {
-        // 1. First try product-specific account
-        if ($product->expense_account_id) {
-            return $product->expenseAccount;
+        // 1. Use product's effective account (Product -> Category hierarchy)
+        $account = $product->getEffectiveExpenseAccount();
+        if ($account) {
+            return $account;
         }
 
-        // 2. Try category account
-        if ($product->category && $product->category->expense_account_id) {
-            return $product->category->expenseAccount;
-        }
-
-        // 3. Fallback to system default
+        // 2. Fallback to system default
         $defaultAccount = $this->defaultAccounts->getExpenseAccount();
         if ($defaultAccount) {
             return $defaultAccount;

@@ -2,13 +2,13 @@
 
 namespace Modules\Billing\Services;
 
+use Modules\Accounting\Models\ChartOfAccount;
+use Modules\Accounting\Models\Journal;
+use Modules\Accounting\Models\JournalEntry;
+use Modules\Accounting\Services\DefaultAccountsService;
 use Modules\Billing\Models\Invoice;
 use Modules\Billing\Models\Payment;
 use Modules\Billing\Models\TaxRate;
-use Modules\Accounting\Models\Journal;
-use Modules\Accounting\Models\JournalEntry;
-use Modules\Accounting\Models\ChartOfAccount;
-use Modules\Accounting\Services\DefaultAccountsService;
 use Modules\Patients\Models\Patient;
 
 class AccountingIntegrationService
@@ -17,7 +17,7 @@ class AccountingIntegrationService
 
     public function __construct()
     {
-        $this->defaultAccounts = new DefaultAccountsService();
+        $this->defaultAccounts = new DefaultAccountsService;
     }
 
     /**
@@ -32,25 +32,27 @@ class AccountingIntegrationService
     public function createInvoiceJournalEntry(Invoice $invoice): ?JournalEntry
     {
         // Only create for issued invoices
-        if (!$invoice->isIssued() && !$invoice->isPartiallyPaid() && !$invoice->isPaid()) {
+        if (! $invoice->isIssued() && ! $invoice->isPartiallyPaid() && ! $invoice->isPaid()) {
             return null;
         }
 
-        // Load relationships
-        $invoice->load('lines.product', 'patient');
+        // Load relationships (including product category for account hierarchy)
+        $invoice->load('lines.product.category', 'lines.service.category', 'patient');
 
         // Get Sales Journal
         $salesJournal = Journal::getSalesJournal();
-        if (!$salesJournal) {
+        if (! $salesJournal) {
             \Log::warning('AccountingIntegrationService: Sales journal not found');
+
             return null;
         }
 
         // Get Accounts Receivable account from defaults
         $arAccount = $this->defaultAccounts->getPatientReceivableAccount();
 
-        if (!$arAccount) {
+        if (! $arAccount) {
             \Log::warning('AccountingIntegrationService: AR account not found');
+
             return null;
         }
 
@@ -76,13 +78,13 @@ class AccountingIntegrationService
 
             $linesSubtotal += $afterDiscount;
 
-            // Revenue - use line account, or product account, or default revenue account
+            // Revenue account hierarchy: Line -> Product -> Product Category -> Service -> Service Category -> Default
             $revenueAccountId = $line->account_id
-                ?? $line->product?->income_account_id
+                ?? $line->product?->getEffectiveIncomeAccountId()
                 ?? $this->getDefaultRevenueAccountForLine($line)?->id;
 
             if ($revenueAccountId) {
-                if (!isset($revenueByAccount[$revenueAccountId])) {
+                if (! isset($revenueByAccount[$revenueAccountId])) {
                     $revenueByAccount[$revenueAccountId] = 0;
                 }
                 $revenueByAccount[$revenueAccountId] += $afterDiscount;
@@ -125,8 +127,8 @@ class AccountingIntegrationService
                 }
 
                 if ($taxAccountId) {
-                    $key = $taxAccountId . '_' . ($isPositiveTax ? 'credit' : 'debit');
-                    if (!isset($taxByAccount[$key])) {
+                    $key = $taxAccountId.'_'.($isPositiveTax ? 'credit' : 'debit');
+                    if (! isset($taxByAccount[$key])) {
                         $taxByAccount[$key] = [
                             'account_id' => $taxAccountId,
                             'amount' => 0,
@@ -199,7 +201,7 @@ class AccountingIntegrationService
                     'account_id' => $accountId,
                     'debit_minor' => 0,
                     'credit_minor' => $amount,
-                    'description' => "Services revenue",
+                    'description' => 'Services revenue',
                     'branch_id' => $invoice->branch_id,
                     'partner_type' => $invoice->patient_id ? Patient::class : null,
                     'partner_id' => $invoice->patient_id,
@@ -269,10 +271,11 @@ class AccountingIntegrationService
     {
         // Get payment journal (Cash, Bank, Card, etc.)
         $paymentJournal = $payment->journal;
-        if (!$paymentJournal) {
+        if (! $paymentJournal) {
             \Log::warning('AccountingIntegrationService: Payment has no journal', [
                 'payment_id' => $payment->id,
             ]);
+
             return null;
         }
 
@@ -290,12 +293,13 @@ class AccountingIntegrationService
             ? ChartOfAccount::find($paymentJournal->default_debit_account_id)
             : $this->getAccountByJournalType($paymentJournal->type);
 
-        if (!$arAccount || !$debitAccount) {
+        if (! $arAccount || ! $debitAccount) {
             \Log::warning('AccountingIntegrationService: Missing AR or debit account for payment', [
                 'payment_id' => $payment->id,
                 'ar_account' => $arAccount?->id,
                 'debit_account' => $debitAccount?->id,
             ]);
+
             return null;
         }
 
@@ -306,11 +310,11 @@ class AccountingIntegrationService
         $branchId = $invoice?->branch_id ?? $payment->branch_id;
 
         // Build description
-        $description = "Payment";
+        $description = 'Payment';
         if ($invoice) {
             $description .= " for Invoice {$invoice->code}";
         } elseif ($payment->appointment_id) {
-            $description .= " for Appointment";
+            $description .= ' for Appointment';
         }
         if ($patient) {
             $description .= " - {$patient->full_name}";
@@ -367,6 +371,7 @@ class AccountingIntegrationService
 
     /**
      * Get default revenue account based on line item type.
+     * This handles the fallback when line.account_id and product.getEffectiveIncomeAccountId() are both null.
      */
     protected function getDefaultRevenueAccountForLine($line): ?ChartOfAccount
     {
@@ -376,12 +381,15 @@ class AccountingIntegrationService
             return $this->defaultAccounts->getPackageUnearnedRevenueAccount();
         }
 
-        // If line has a product, use product revenue account
-        if ($line->product_id && $line->product?->income_account_id) {
-            return ChartOfAccount::find($line->product->income_account_id);
+        // If line has a product, use product's effective revenue account (product -> category -> null)
+        if ($line->product_id && $line->product) {
+            $productAccount = $line->product->getEffectiveIncomeAccount();
+            if ($productAccount) {
+                return $productAccount;
+            }
         }
 
-        // If line has a service, use service's effective revenue account (service -> category -> default)
+        // If line has a service, use service's effective revenue account (service -> category -> null)
         if ($line->service_id && $line->service) {
             $serviceAccount = $line->service->getEffectiveServiceRevenueAccount();
             if ($serviceAccount) {
@@ -389,7 +397,7 @@ class AccountingIntegrationService
             }
         }
 
-        // Default to service revenue
+        // Default to service revenue from system defaults
         return $this->defaultAccounts->getServiceRevenueAccount();
     }
 

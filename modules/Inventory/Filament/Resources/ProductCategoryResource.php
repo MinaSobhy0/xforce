@@ -142,6 +142,14 @@ class ProductCategoryResource extends Resource
                                     ->searchable()
                                     ->preload()
                                     ->helperText(__('inventory::inventory.fields.expense_account_help')),
+
+                                Forms\Components\Select::make('income_account_id')
+                                    ->label(__('inventory::inventory.fields.income_account'))
+                                    ->relationship('incomeAccount', 'name')
+                                    ->getOptionLabelFromRecordUsing(fn (ChartOfAccount $record) => "{$record->code} - {$record->name}")
+                                    ->searchable()
+                                    ->preload()
+                                    ->helperText(__('inventory::inventory.fields.income_account_help')),
                             ]),
                     ])
                     ->collapsible()

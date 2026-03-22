@@ -27,6 +27,7 @@ class ProductCategory extends BaseModel
         'stock_input_account_id',
         'stock_output_account_id',
         'expense_account_id',
+        'income_account_id',
         'sort_order',
     ];
 
@@ -100,6 +101,14 @@ class ProductCategory extends BaseModel
     public function expenseAccount(): BelongsTo
     {
         return $this->belongsTo(ChartOfAccount::class, 'expense_account_id');
+    }
+
+    /**
+     * Get the income account (for sales/invoices).
+     */
+    public function incomeAccount(): BelongsTo
+    {
+        return $this->belongsTo(ChartOfAccount::class, 'income_account_id');
     }
 
     /**

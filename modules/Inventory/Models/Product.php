@@ -14,7 +14,7 @@ use XLinic\Framework\Core\Model\Traits\HasSequence;
 
 class Product extends BaseModel
 {
-    use HasTranslations, HasSequence, HasActivity;
+    use HasActivity, HasSequence, HasTranslations;
 
     protected $table = 'products';
 
@@ -84,7 +84,9 @@ class Product extends BaseModel
 
     // Valuation Methods
     public const VALUATION_STANDARD = 'standard';
+
     public const VALUATION_FIFO = 'fifo';
+
     public const VALUATION_AVERAGE = 'average';
 
     public const VALUATION_METHODS = [
@@ -96,14 +98,19 @@ class Product extends BaseModel
     // Legacy unit constants - deprecated, use salesUom relationship instead
     /** @deprecated Use salesUom relationship instead */
     public const UNIT_PCS = 'pcs';
+
     /** @deprecated Use salesUom relationship instead */
     public const UNIT_BOX = 'box';
+
     /** @deprecated Use salesUom relationship instead */
     public const UNIT_ML = 'ml';
+
     /** @deprecated Use salesUom relationship instead */
     public const UNIT_L = 'l';
+
     /** @deprecated Use salesUom relationship instead */
     public const UNIT_G = 'g';
+
     /** @deprecated Use salesUom relationship instead */
     public const UNIT_KG = 'kg';
 
@@ -252,7 +259,7 @@ class Product extends BaseModel
     public function isLowStock(): bool
     {
         // Consumable products don't have low stock alerts (Odoo-like behavior)
-        if (!$this->tracksInventory()) {
+        if (! $this->tracksInventory()) {
             return false;
         }
 
@@ -315,7 +322,7 @@ class Product extends BaseModel
     /**
      * Convert quantity from purchase UoM to sales UoM (stock UoM).
      *
-     * @param float $purchaseQuantity Quantity in purchase UoM
+     * @param  float  $purchaseQuantity  Quantity in purchase UoM
      * @return float Quantity in sales UoM
      */
     public function convertPurchaseToStock(float $purchaseQuantity): float
@@ -324,7 +331,7 @@ class Product extends BaseModel
         $salesUom = $this->salesUom;
 
         // If no UoMs set or same UoM, return as-is
-        if (!$purchaseUom || !$salesUom || $purchaseUom->id === $salesUom->id) {
+        if (! $purchaseUom || ! $salesUom || $purchaseUom->id === $salesUom->id) {
             return $purchaseQuantity;
         }
 
@@ -334,7 +341,7 @@ class Product extends BaseModel
     /**
      * Convert quantity from sales UoM (stock UoM) to purchase UoM.
      *
-     * @param float $stockQuantity Quantity in sales UoM
+     * @param  float  $stockQuantity  Quantity in sales UoM
      * @return float Quantity in purchase UoM
      */
     public function convertStockToPurchase(float $stockQuantity): float
@@ -343,7 +350,7 @@ class Product extends BaseModel
         $salesUom = $this->salesUom;
 
         // If no UoMs set or same UoM, return as-is
-        if (!$purchaseUom || !$salesUom || $purchaseUom->id === $salesUom->id) {
+        if (! $purchaseUom || ! $salesUom || $purchaseUom->id === $salesUom->id) {
             return $stockQuantity;
         }
 
@@ -391,5 +398,92 @@ class Product extends BaseModel
     public function getUomIdAttribute()
     {
         return $this->sales_uom_id;
+    }
+
+    /**
+     * Get the effective income account for this product.
+     * Priority: Product -> Category -> null (caller handles default)
+     */
+    public function getEffectiveIncomeAccount(): ?ChartOfAccount
+    {
+        // First try product's own account
+        if ($this->income_account_id) {
+            return $this->incomeAccount;
+        }
+
+        // Fall back to category's account
+        if ($this->category && $this->category->income_account_id) {
+            return $this->category->incomeAccount;
+        }
+
+        return null;
+    }
+
+    /**
+     * Get the effective income account ID.
+     * Priority: Product -> Category -> null
+     */
+    public function getEffectiveIncomeAccountId(): ?int
+    {
+        return $this->income_account_id
+            ?? $this->category?->income_account_id;
+    }
+
+    /**
+     * Get the effective expense account for this product.
+     * Priority: Product -> Category -> null (caller handles default)
+     */
+    public function getEffectiveExpenseAccount(): ?ChartOfAccount
+    {
+        // First try product's own account
+        if ($this->expense_account_id) {
+            return $this->expenseAccount;
+        }
+
+        // Fall back to category's account
+        if ($this->category && $this->category->expense_account_id) {
+            return $this->category->expenseAccount;
+        }
+
+        return null;
+    }
+
+    /**
+     * Get the effective expense account ID.
+     * Priority: Product -> Category -> null
+     */
+    public function getEffectiveExpenseAccountId(): ?int
+    {
+        return $this->expense_account_id
+            ?? $this->category?->expense_account_id;
+    }
+
+    /**
+     * Get the effective stock valuation account for this product.
+     * Priority: Product -> Category -> null (caller handles default)
+     */
+    public function getEffectiveStockValuationAccount(): ?ChartOfAccount
+    {
+        // First try product's own account
+        if ($this->stock_valuation_account_id) {
+            return $this->stockValuationAccount;
+        }
+
+        // Fall back to category's account
+        if ($this->category && $this->category->stock_valuation_account_id) {
+            return $this->category->stockValuationAccount;
+        }
+
+        return null;
+    }
+
+    /**
+     * Get the effective stock valuation account ID.
+     * Priority: Product -> Category -> null
+     */
+    public function getEffectiveStockValuationAccountId(): ?int
+    {
+        return $this->stock_valuation_account_id
+            ?? $this->category?->stock_valuation_account_id;
     }
 }

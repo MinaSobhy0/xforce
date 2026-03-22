@@ -164,6 +164,8 @@ return [
         'stock_valuation_account_help' => 'حساب أصول المخزون',
         'expense_account' => 'حساب المصروفات',
         'expense_account_help' => 'حساب مصروفات المنتجات الاستهلاكية',
+        'income_account' => 'حساب الإيرادات',
+        'income_account_help' => 'حساب إيرادات مبيعات المنتجات',
         'validated_by' => 'صُدق بواسطة',
         'validated_at' => 'تاريخ التصديق',
         'journal_entry' => 'قيد يومية',

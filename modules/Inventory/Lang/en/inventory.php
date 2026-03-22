@@ -164,6 +164,8 @@ return [
         'stock_valuation_account_help' => 'Account for inventory asset valuation',
         'expense_account' => 'Expense Account',
         'expense_account_help' => 'Account for consumable product expenses',
+        'income_account' => 'Income Account',
+        'income_account_help' => 'Account for product sales revenue',
         'validated_by' => 'Validated By',
         'validated_at' => 'Validated At',
         'journal_entry' => 'Journal Entry',
