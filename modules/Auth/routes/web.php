@@ -20,12 +20,16 @@ use Modules\Auth\Http\Controllers\RoleController;
 // Authentication Routes
 Route::middleware(['web', 'guest'])->group(function () {
     // Login Routes
+    // SECURITY: Rate limit login attempts to prevent brute force attacks
     Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
-    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/login', [AuthController::class, 'login'])
+        ->middleware('throttle:5,1'); // 5 attempts per minute
 
     // Registration Routes (if enabled)
+    // SECURITY: Rate limit registration to prevent mass account creation
     Route::get('/register', [AuthController::class, 'showRegistrationForm'])->name('register');
-    Route::post('/register', [AuthController::class, 'register']);
+    Route::post('/register', [AuthController::class, 'register'])
+        ->middleware('throttle:3,5'); // 3 attempts per 5 minutes
 
     // Password Reset Routes
     // SECURITY: Rate limit password reset to prevent enumeration and abuse
@@ -83,9 +87,11 @@ Route::middleware(['web', 'auth'])->group(function () {
     });
 
     // Two-Factor Challenge Routes
+    // SECURITY: Rate limit 2FA challenge to prevent code enumeration
     Route::middleware(['guest'])->group(function () {
         Route::get('/two-factor-challenge', [TwoFactorController::class, 'showChallengeForm'])->name('two-factor.login');
-        Route::post('/two-factor-challenge', [TwoFactorController::class, 'challenge']);
+        Route::post('/two-factor-challenge', [TwoFactorController::class, 'challenge'])
+            ->middleware('throttle:5,1'); // 5 attempts per minute
     });
 
     // Admin Routes (Role-based access)

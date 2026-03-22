@@ -21,10 +21,19 @@ use Modules\Auth\Http\Controllers\Api\TwoFactorController;
 Route::middleware(['api'])->prefix('v1')->name('api.v1.')->group(function () {
 
     // Public Authentication Routes
-    Route::post('/login', [AuthController::class, 'login'])->name('login');
-    Route::post('/register', [AuthController::class, 'register'])->name('register');
-    Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->name('password.forgot');
-    Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.reset');
+    // SECURITY: Rate limit all auth endpoints to prevent brute force and abuse
+    Route::post('/login', [AuthController::class, 'login'])
+        ->middleware('throttle:5,1') // 5 attempts per minute
+        ->name('login');
+    Route::post('/register', [AuthController::class, 'register'])
+        ->middleware('throttle:3,5') // 3 attempts per 5 minutes
+        ->name('register');
+    Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])
+        ->middleware('throttle:3,5') // 3 attempts per 5 minutes
+        ->name('password.forgot');
+    Route::post('/reset-password', [AuthController::class, 'resetPassword'])
+        ->middleware('throttle:5,5') // 5 attempts per 5 minutes
+        ->name('password.reset');
 
     // Email Verification
     Route::post('/email/verify/{id}/{hash}', [AuthController::class, 'verifyEmail'])
@@ -36,7 +45,9 @@ Route::middleware(['api'])->prefix('v1')->name('api.v1.')->group(function () {
         ->name('verification.send');
 
     // Two-Factor Authentication Challenge
+    // SECURITY: Rate limit 2FA to prevent code enumeration
     Route::post('/two-factor-challenge', [TwoFactorController::class, 'challenge'])
+        ->middleware('throttle:5,1') // 5 attempts per minute
         ->name('two-factor.challenge');
 
     // Authenticated API Routes

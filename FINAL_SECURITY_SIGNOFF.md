@@ -184,10 +184,15 @@ protected array $sensitiveFields = [
 | API Login | throttle:api-auth | PASS |
 | API 2FA | throttle:api-otp | PASS |
 | Tenant Discovery | throttle:mobile-api-discovery | PASS |
-| **Web Login** | No explicit throttle | **NEEDS REVIEW** |
-| **Password Reset** | No explicit throttle | **NEEDS FIX** |
-| **Registration** | No explicit throttle | **NEEDS FIX** |
-| **Contact Form** | reCAPTCHA only | **NEEDS FIX** |
+| **Web Login** | throttle:5,1 | ✅ FIXED |
+| **Password Reset** | throttle:3,5 and 5,5 | ✅ FIXED |
+| **Registration** | throttle:3,5 | ✅ FIXED |
+| **Contact Form** | throttle:3,5 | ✅ FIXED |
+| **API Login** | throttle:5,1 | ✅ FIXED |
+| **API Register** | throttle:3,5 | ✅ FIXED |
+| **API Password Reset** | throttle:3,5 and 5,5 | ✅ FIXED |
+| **2FA Challenge (Web)** | throttle:5,1 | ✅ FIXED |
+| **2FA Challenge (API)** | throttle:5,1 | ✅ FIXED |
 | Email Verification | throttle:6,1 | PASS |
 
 ### Account Lockout
@@ -384,6 +389,11 @@ All critical and high-severity vulnerabilities from previous audits have been ve
 **Automated Fixes Applied (2026-03-22):**
 - Rate limiting added to password reset routes (throttle:3,5 and throttle:5,5)
 - Rate limiting added to contact form (throttle:3,5)
+- Rate limiting added to web login (throttle:5,1)
+- Rate limiting added to web registration (throttle:3,5)
+- Rate limiting added to web 2FA challenge (throttle:5,1)
+- Rate limiting added to API login/register/password-reset endpoints
+- Rate limiting added to API 2FA challenge (throttle:5,1)
 - X-Frame-Options hardened to DENY
 - CSP frame-ancestors updated to 'none'
 
