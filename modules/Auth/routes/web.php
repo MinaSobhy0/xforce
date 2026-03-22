@@ -28,10 +28,15 @@ Route::middleware(['web', 'guest'])->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
 
     // Password Reset Routes
+    // SECURITY: Rate limit password reset to prevent enumeration and abuse
     Route::get('/forgot-password', [AuthController::class, 'showForgotPasswordForm'])->name('password.request');
-    Route::post('/forgot-password', [AuthController::class, 'sendResetLinkEmail'])->name('password.email');
+    Route::post('/forgot-password', [AuthController::class, 'sendResetLinkEmail'])
+        ->middleware('throttle:3,5')
+        ->name('password.email');
     Route::get('/reset-password/{token}', [AuthController::class, 'showResetPasswordForm'])->name('password.reset');
-    Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.update');
+    Route::post('/reset-password', [AuthController::class, 'resetPassword'])
+        ->middleware('throttle:5,5')
+        ->name('password.update');
 
     // Email Verification Notice
     Route::get('/email/verify', [AuthController::class, 'showVerifyEmailForm'])->name('verification.notice');

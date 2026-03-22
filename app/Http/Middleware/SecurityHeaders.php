@@ -19,8 +19,9 @@ class SecurityHeaders
     {
         $response = $next($request);
 
-        // Prevent clickjacking attacks
-        $response->headers->set('X-Frame-Options', 'SAMEORIGIN');
+        // SECURITY: Prevent clickjacking attacks - DENY is stricter than SAMEORIGIN
+        // Use DENY to prevent any framing, even from same origin (more secure for healthcare data)
+        $response->headers->set('X-Frame-Options', 'DENY');
 
         // Prevent MIME type sniffing
         $response->headers->set('X-Content-Type-Options', 'nosniff');
@@ -77,8 +78,8 @@ class SecurityHeaders
             // Forms can only submit to self
             "form-action 'self'",
 
-            // Only allow framing by same origin
-            "frame-ancestors 'self'",
+            // SECURITY: Disallow framing entirely (matches X-Frame-Options: DENY)
+            "frame-ancestors 'none'",
 
             // Base URI restricted to self
             "base-uri 'self'",

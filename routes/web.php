@@ -15,7 +15,10 @@ Route::get('/login', function () {
     return redirect()->route('filament.tenant.auth.login');
 })->name('login');
 
-Route::post('/contact', [ContactController::class, 'submit'])->name('contact.submit');
+// SECURITY: Rate limit contact form to prevent abuse
+Route::post('/contact', [ContactController::class, 'submit'])
+    ->middleware('throttle:3,5')
+    ->name('contact.submit');
 
 // Two-Factor Authentication Routes
 Route::get('/two-factor-challenge', [TwoFactorChallengeController::class, 'create'])
