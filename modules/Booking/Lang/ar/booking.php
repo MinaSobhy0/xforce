@@ -237,6 +237,11 @@ return [
         'discount_percent_exceeds_max' => 'لا يمكن أن يتجاوز الخصم :max%',
     ],
 
+    // Errors
+    'errors' => [
+        'slot_no_longer_available' => 'الوقت لـ :service في :time لم يعد متاحاً. الرجاء اختيار وقت آخر.',
+    ],
+
     // Minutes
     'minutes' => 'دقيقة',
 

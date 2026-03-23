@@ -237,6 +237,11 @@ return [
         'discount_percent_exceeds_max' => 'Discount cannot exceed :max%',
     ],
 
+    // Errors
+    'errors' => [
+        'slot_no_longer_available' => 'The slot for :service at :time is no longer available. Please select another time.',
+    ],
+
     // Minutes
     'minutes' => 'min',
 
