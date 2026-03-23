@@ -378,30 +378,48 @@ class PatientFlowWidget extends Widget implements HasForms
     }
 
     /**
-     * Get available rooms for the current branch.
+     * Get available rooms for the appointment's service.
      */
     public function getAvailableRooms(): array
     {
-        $branchId = BranchContext::currentId();
+        $locale = app()->getLocale();
+        $fallbackLocale = config('app.fallback_locale', 'en');
 
-        // If no branch selected, try to get user's allowed branches
-        if (! $branchId) {
-            $allowedBranchIds = BranchContext::userAllowedIds();
-            if (! empty($allowedBranchIds)) {
-                // Use the first allowed branch as fallback
-                $branchId = $allowedBranchIds[0];
+        // Get the appointment being edited to find its service
+        $appointment = $this->getEditingAppointment();
+
+        if ($appointment && $appointment->service) {
+            // Get rooms assigned to the service (or its category)
+            $rooms = $appointment->service->getEffectiveRooms()
+                ->filter(fn ($room) => $room->is_active && $room->is_bookable)
+                ->sortBy(['sort_order', 'name']);
+
+            if ($rooms->isNotEmpty()) {
+                return $rooms->mapWithKeys(function ($room) use ($locale, $fallbackLocale) {
+                    $name = $room->getTranslation('name', $locale)
+                        ?? $room->getTranslation('name', $fallbackLocale)
+                        ?? $room->name;
+
+                    return [(string) $room->id => $name];
+                })->toArray();
             }
         }
 
-        $locale = app()->getLocale();
-        $fallbackLocale = config('app.fallback_locale', 'en');
+        // Fallback: Get all active bookable rooms for the current branch
+        $branchId = BranchContext::currentId();
+
+        if (! $branchId) {
+            $allowedBranchIds = BranchContext::userAllowedIds();
+            if (! empty($allowedBranchIds)) {
+                $branchId = $allowedBranchIds[0];
+            }
+        }
 
         $query = DB::table('rooms')
             ->where('is_active', true)
             ->where('is_bookable', true)
             ->whereIn('room_type', ['treatment', 'consultation']);
 
-        // Filter by branch if we have one, otherwise show all rooms
         if ($branchId) {
             $query->where('branch_id', $branchId);
         }
@@ -414,7 +432,6 @@ class PatientFlowWidget extends Widget implements HasForms
             ->mapWithKeys(function ($room) use ($locale, $fallbackLocale) {
                 $name = $room->name;
 
-                // Handle JSON translatable field
                 if (is_string($name) && str_starts_with($name, '{')) {
                     $decoded = json_decode($name, true);
                     if (is_array($decoded)) {
@@ -458,7 +475,7 @@ class PatientFlowWidget extends Widget implements HasForms
             return null;
         }
 
-        return Appointment::with(['patient', 'room', 'practitioner'])->find($this->editingAppointmentId);
+        return Appointment::with(['patient', 'room', 'practitioner', 'service'])->find($this->editingAppointmentId);
     }
 
     /**
