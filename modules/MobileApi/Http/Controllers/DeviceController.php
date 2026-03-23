@@ -28,9 +28,33 @@ class DeviceController extends BaseApiController
             'app_version' => 'nullable|string|max:20',
         ]);
 
+        $userId = $this->user()->id;
+
+        // Check if single device mode is enabled
+        if ($this->isSingleDeviceModeEnabled()) {
+            // Check if this is an existing device for this user
+            $existingDevice = DeviceToken::where('user_id', $userId)
+                ->where('device_id', $validated['device_id'])
+                ->first();
+
+            // If it's not the same device, check for other active devices
+            if (! $existingDevice) {
+                $activeDeviceCount = DeviceToken::where('user_id', $userId)
+                    ->where('is_active', true)
+                    ->count();
+
+                if ($activeDeviceCount > 0) {
+                    return $this->error(
+                        __('mobile_api::notifications.device.single_device_restriction'),
+                        403
+                    );
+                }
+            }
+        }
+
         $device = DeviceToken::updateOrCreate(
             [
-                'user_id' => $this->user()->id,
+                'user_id' => $userId,
                 'device_id' => $validated['device_id'],
             ],
             [
@@ -46,6 +70,16 @@ class DeviceController extends BaseApiController
             'device_id' => $device->device_id,
             'registered' => true,
         ], __('mobile_api::notifications.device.registered'));
+    }
+
+    /**
+     * Check if single device mode is enabled.
+     */
+    protected function isSingleDeviceModeEnabled(): bool
+    {
+        $value = \Modules\Core\Models\Setting::getValue('mobile.single_device_mode', null, false);
+
+        return filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? false;
     }
 
     /**

@@ -11,6 +11,7 @@ return [
         'registered' => 'Device registered for push notifications',
         'unregistered' => 'Device unregistered from push notifications',
         'not_found' => 'Device not found',
+        'single_device_restriction' => 'You already have an active device registered. Please contact your administrator to deactivate your existing device before registering a new one.',
     ],
 
     'not_found' => 'Notification not found',

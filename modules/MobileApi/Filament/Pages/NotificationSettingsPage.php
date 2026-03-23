@@ -6,12 +6,17 @@ use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Tables;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Modules\Core\Models\Setting;
+use Modules\MobileApi\Models\DeviceToken;
 use Modules\MobileApi\Models\PushNotification;
 
-class NotificationSettingsPage extends Page implements Forms\Contracts\HasForms
+class NotificationSettingsPage extends Page implements Forms\Contracts\HasForms, Tables\Contracts\HasTable
 {
     use Forms\Concerns\InteractsWithForms;
+    use Tables\Concerns\InteractsWithTable;
 
     protected static ?string $navigationIcon = 'heroicon-o-bell-alert';
 
@@ -68,12 +73,142 @@ class NotificationSettingsPage extends Page implements Forms\Contracts\HasForms
     {
         return $form
             ->schema([
+                // Device Restriction Section
+                Forms\Components\Section::make(__('mobile_api::mobile.device_restriction'))
+                    ->description(__('mobile_api::mobile.device_restriction_description'))
+                    ->schema([
+                        Forms\Components\Toggle::make('mobile.single_device_mode')
+                            ->label(__('mobile_api::mobile.single_device_mode'))
+                            ->helperText(__('mobile_api::mobile.single_device_mode_help'))
+                            ->default(false)
+                            ->inline(false),
+                    ])
+                    ->columns(1),
+
+                // Notification Types Section
                 Forms\Components\Section::make(__('mobile_api::mobile.notification_types'))
                     ->description(__('mobile_api::mobile.notification_types_description'))
                     ->schema($this->getNotificationToggles())
                     ->columns(1),
             ])
             ->statePath('data');
+    }
+
+    /**
+     * Table for managing registered devices.
+     */
+    public function table(Table $table): Table
+    {
+        return $table
+            ->query(DeviceToken::query()->with('user'))
+            ->columns([
+                Tables\Columns\TextColumn::make('user.full_name')
+                    ->label(__('mobile_api::mobile.device_user'))
+                    ->searchable(['first_name', 'last_name'])
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('device_id')
+                    ->label(__('mobile_api::mobile.device_id'))
+                    ->searchable()
+                    ->limit(20)
+                    ->tooltip(fn ($record) => $record->device_id),
+                Tables\Columns\TextColumn::make('platform')
+                    ->label(__('mobile_api::mobile.device_platform'))
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'ios' => 'info',
+                        'android' => 'success',
+                        default => 'gray',
+                    })
+                    ->formatStateUsing(fn (string $state): string => strtoupper($state)),
+                Tables\Columns\TextColumn::make('app_version')
+                    ->label(__('mobile_api::mobile.device_app_version'))
+                    ->placeholder('-'),
+                Tables\Columns\IconColumn::make('is_active')
+                    ->label(__('mobile_api::mobile.device_active'))
+                    ->boolean(),
+                Tables\Columns\TextColumn::make('last_used_at')
+                    ->label(__('mobile_api::mobile.device_last_used'))
+                    ->since()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('created_at')
+                    ->label(__('mobile_api::mobile.device_registered'))
+                    ->date()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+            ])
+            ->filters([
+                Tables\Filters\SelectFilter::make('platform')
+                    ->options([
+                        'ios' => 'iOS',
+                        'android' => 'Android',
+                    ]),
+                Tables\Filters\TernaryFilter::make('is_active')
+                    ->label(__('mobile_api::mobile.device_active'))
+                    ->trueLabel(__('mobile_api::mobile.active_only'))
+                    ->falseLabel(__('mobile_api::mobile.inactive_only')),
+            ])
+            ->actions([
+                Tables\Actions\Action::make('deactivate')
+                    ->label(__('mobile_api::mobile.deactivate_device'))
+                    ->icon('heroicon-o-x-circle')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->modalHeading(__('mobile_api::mobile.deactivate_device'))
+                    ->modalDescription(__('mobile_api::mobile.deactivate_device_confirm'))
+                    ->visible(fn (DeviceToken $record) => $record->is_active)
+                    ->action(function (DeviceToken $record) {
+                        $record->deactivate();
+                        Notification::make()
+                            ->title(__('mobile_api::mobile.device_deactivated'))
+                            ->success()
+                            ->send();
+                    }),
+                Tables\Actions\Action::make('activate')
+                    ->label(__('mobile_api::mobile.activate_device'))
+                    ->icon('heroicon-o-check-circle')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->visible(fn (DeviceToken $record) => ! $record->is_active)
+                    ->action(function (DeviceToken $record) {
+                        // If single device mode is enabled, deactivate other devices for this user
+                        if ($this->isSingleDeviceModeEnabled()) {
+                            DeviceToken::where('user_id', $record->user_id)
+                                ->where('id', '!=', $record->id)
+                                ->update(['is_active' => false]);
+                        }
+                        $record->activate();
+                        Notification::make()
+                            ->title(__('mobile_api::mobile.device_activated'))
+                            ->success()
+                            ->send();
+                    }),
+            ])
+            ->bulkActions([
+                Tables\Actions\BulkAction::make('deactivate_selected')
+                    ->label(__('mobile_api::mobile.deactivate_selected'))
+                    ->icon('heroicon-o-x-circle')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->action(function ($records) {
+                        $records->each->deactivate();
+                        Notification::make()
+                            ->title(__('mobile_api::mobile.devices_deactivated'))
+                            ->success()
+                            ->send();
+                    }),
+            ])
+            ->defaultSort('last_used_at', 'desc')
+            ->paginated([10, 25, 50]);
+    }
+
+    /**
+     * Check if single device mode is enabled.
+     */
+    public function isSingleDeviceModeEnabled(): bool
+    {
+        $value = Setting::getValue('mobile.single_device_mode', null, false);
+
+        return filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? false;
     }
 
     protected function getNotificationToggles(): array
@@ -93,7 +228,12 @@ class NotificationSettingsPage extends Page implements Forms\Contracts\HasForms
 
     protected function loadSettings(): array
     {
-        $settings = ['notification' => []];
+        $settings = [
+            'mobile' => [
+                'single_device_mode' => $this->isSingleDeviceModeEnabled(),
+            ],
+            'notification' => [],
+        ];
 
         foreach (PushNotification::TYPES as $type => $label) {
             $key = "notification.{$type}.enabled";
@@ -115,6 +255,11 @@ class NotificationSettingsPage extends Page implements Forms\Contracts\HasForms
     public function save(): void
     {
         $data = $this->form->getState();
+
+        // Save single device mode setting
+        if (isset($data['mobile']['single_device_mode'])) {
+            Setting::setValue('mobile.single_device_mode', (bool) $data['mobile']['single_device_mode'], null, 'mobile');
+        }
 
         // Data is nested: ['notification' => ['type' => ['enabled' => bool]]]
         // We need to flatten it to: 'notification.type.enabled' => bool

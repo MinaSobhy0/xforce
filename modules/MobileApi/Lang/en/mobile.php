@@ -175,4 +175,40 @@ return [
     'quick_action_enabled' => 'Enabled',
     'add_quick_action' => 'Add Quick Action',
     'error_no_tenant' => 'No tenant context found',
+
+    /*
+    |--------------------------------------------------------------------------
+    | Device Restriction Settings
+    |--------------------------------------------------------------------------
+    */
+
+    'device_restriction' => 'Device Restriction',
+    'device_restriction_description' => 'Control how many devices a user can use to access the mobile app.',
+    'single_device_mode' => 'Single Device Mode',
+    'single_device_mode_help' => 'When enabled, users can only be logged in on one device at a time. Registering a new device will require admin approval or deactivation of the existing device.',
+
+    /*
+    |--------------------------------------------------------------------------
+    | Device Management
+    |--------------------------------------------------------------------------
+    */
+
+    'registered_devices' => 'Registered Devices',
+    'registered_devices_description' => 'View and manage all devices registered for the mobile app. You can deactivate devices to allow users to register new ones.',
+    'device_user' => 'User',
+    'device_id' => 'Device ID',
+    'device_platform' => 'Platform',
+    'device_app_version' => 'App Version',
+    'device_active' => 'Active',
+    'device_last_used' => 'Last Used',
+    'device_registered' => 'Registered',
+    'deactivate_device' => 'Deactivate Device',
+    'deactivate_device_confirm' => 'Are you sure you want to deactivate this device? The user will need to register their device again to receive push notifications.',
+    'activate_device' => 'Activate Device',
+    'device_deactivated' => 'Device deactivated successfully',
+    'device_activated' => 'Device activated successfully',
+    'devices_deactivated' => 'Selected devices deactivated',
+    'deactivate_selected' => 'Deactivate Selected',
+    'active_only' => 'Active Only',
+    'inactive_only' => 'Inactive Only',
 ];
