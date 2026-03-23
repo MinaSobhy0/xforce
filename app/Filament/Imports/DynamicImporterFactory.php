@@ -115,10 +115,15 @@ class DynamicImporterFactory
                 foreach ($patterns as $pattern) {
                     if (Str::contains($name, $pattern) || $name === $pattern) {
                         // Try to match to a field name
+                        // Note: Use strtolower before Str::snake for all-uppercase names
+                        // because Str::snake('GENDER') produces 'g_e_n_d_e_r' not 'gender'
                         $fieldGuesses = [
+                            Str::singular(strtolower($pattern)),                           // GENDERS -> gender
+                            Str::singular(strtolower($name)),                              // GENDERS -> gender
+                            Str::snake(strtolower(Str::singular($pattern))),               // GENDERS -> gender
+                            strtolower(Str::before($name, '_' . $pattern) ?: $pattern),    // genders
                             Str::snake(Str::singular(Str::before($name, '_' . $pattern) ?: $pattern)),
                             Str::snake(Str::singular($pattern)),
-                            strtolower(Str::before($name, '_' . $pattern) ?: $pattern),
                             Str::snake($name),
                             Str::snake(Str::singular($name)),
                         ];
@@ -705,7 +710,12 @@ class DynamicImporterFactory
                 }
 
                 // Check if column is NOT NULL and has no default
-                $isNotNull = !$column['nullable'];
+                // Note: PostgreSQL schema builder returns:
+                // - false or 'f' or 'NO' for NOT NULL
+                // - true or 't' or 'YES' or '' (empty string) for nullable
+                $nullable = $column['nullable'];
+                $isNullable = $nullable === true || $nullable === 't' || $nullable === 'YES' || $nullable === '';
+                $isNotNull = !$isNullable;
                 $hasDefault = $column['default'] !== null;
 
                 if ($isNotNull && !$hasDefault) {
@@ -714,9 +724,9 @@ class DynamicImporterFactory
             }
         } catch (\Exception $e) {
             // Fallback to common required fields if schema detection fails
-            // Note: 'code' and 'sku' removed as they may be auto-generated
+            // Note: 'code', 'sku', 'last_name' removed - they may be auto-generated or optional
             $commonRequired = [
-                'name', 'email', 'first_name', 'last_name',
+                'name', 'email', 'first_name',
                 'title', 'username', 'brand_name', 'generic_name',
             ];
 

@@ -24,6 +24,39 @@ class Patient extends BaseModel implements Authenticatable
         AuthenticatableTrait;
 
     /**
+     * Gender options (for import/export).
+     */
+    public const GENDERS = [
+        'male' => 'Male',
+        'female' => 'Female',
+        'other' => 'Other',
+    ];
+
+    /**
+     * Status options (for import/export).
+     */
+    public const STATUSES = [
+        'active' => 'Active',
+        'inactive' => 'Inactive',
+        'blocked' => 'Blocked',
+        'deceased' => 'Deceased',
+    ];
+
+    /**
+     * Referral source options (for import/export).
+     */
+    public const REFERRAL_SOURCES = [
+        'walk_in' => 'Walk-in',
+        'social_media' => 'Social Media',
+        'google' => 'Google',
+        'friend' => 'Friend/Family',
+        'doctor' => 'Doctor Referral',
+        'insurance' => 'Insurance',
+        'advertisement' => 'Advertisement',
+        'other' => 'Other',
+    ];
+
+    /**
      * Sequence code for auto-generation.
      */
     protected string $sequenceCode = 'patient';
