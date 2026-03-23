@@ -182,10 +182,6 @@
                     <span class="inline-flex items-center rounded-full bg-green-100 px-1.5 py-0.5 text-xs text-green-700 dark:bg-green-900/30 dark:text-green-400">
                         {{ __('booking::booking.labels.primary') }}
                     </span>
-                @else
-                    <span class="inline-flex items-center rounded-full bg-yellow-100 px-1.5 py-0.5 text-xs text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400">
-                        {{ __('booking::booking.labels.backup') }}
-                    </span>
                 @endif
             </div>
         @elseif($slot['room_name'] ?? null)

@@ -582,14 +582,16 @@ class SlotGenerationService
             return $this->preloadedAppointments
                 ->where($resourceField, $resourceId)
                 ->filter(function ($appointment) use ($startTimeStr, $endTimeStr) {
-                    $apptStart = $appointment->start_time;
-                    $apptEnd = $appointment->end_time
-                        ?? Carbon::createFromFormat('H:i:s', $apptStart)
+                    // Convert Carbon objects to time strings for comparison
+                    $apptStartStr = $this->toTimeString($appointment->start_time);
+                    $apptEndStr = $appointment->end_time
+                        ? $this->toTimeString($appointment->end_time)
+                        : Carbon::createFromFormat('H:i:s', $apptStartStr)
                             ->addMinutes($appointment->duration_minutes)
                             ->format('H:i:s');
 
                     // Check overlap: start1 < end2 AND end1 > start2
-                    return $apptStart < $endTimeStr && $apptEnd > $startTimeStr;
+                    return $apptStartStr < $endTimeStr && $apptEndStr > $startTimeStr;
                 })
                 ->isNotEmpty();
         }
@@ -1214,14 +1216,16 @@ class SlotGenerationService
         $endTimeStr = $end->format('H:i:s');
 
         foreach ($appointments as $appointment) {
-            $apptStart = $appointment->start_time;
-            $apptEnd = $appointment->end_time
-                ?? Carbon::createFromFormat('H:i:s', $apptStart)
+            // Convert Carbon objects to time strings for comparison
+            $apptStartStr = $this->toTimeString($appointment->start_time);
+            $apptEndStr = $appointment->end_time
+                ? $this->toTimeString($appointment->end_time)
+                : Carbon::createFromFormat('H:i:s', $apptStartStr)
                     ->addMinutes($appointment->duration_minutes)
                     ->format('H:i:s');
 
             // Check overlap: start1 < end2 AND end1 > start2
-            if ($apptStart < $endTimeStr && $apptEnd > $startTimeStr) {
+            if ($apptStartStr < $endTimeStr && $apptEndStr > $startTimeStr) {
                 return true;
             }
         }
@@ -1232,6 +1236,30 @@ class SlotGenerationService
     protected function timeSlotsOverlap(string $start1, string $end1, string $start2, string $end2): bool
     {
         return $start1 < $end2 && $end1 > $start2;
+    }
+
+    /**
+     * Convert a time value (Carbon or string) to a time string in H:i:s format.
+     * Handles the datetime:H:i cast which returns Carbon objects for TIME columns.
+     */
+    protected function toTimeString($time): string
+    {
+        if ($time instanceof Carbon) {
+            return $time->format('H:i:s');
+        }
+
+        // If it's already a string, ensure it has seconds
+        if (is_string($time)) {
+            // Handle H:i format (no seconds)
+            if (preg_match('/^\d{2}:\d{2}$/', $time)) {
+                return $time . ':00';
+            }
+
+            return $time;
+        }
+
+        // Fallback for unexpected types
+        return '00:00:00';
     }
 
     /**
@@ -1284,8 +1312,8 @@ class SlotGenerationService
                 // Find next appointment from preloaded data
                 $nextAppointment = $this->preloadedAppointments
                     ->where('practitioner_id', $practitionerId)
-                    ->filter(fn ($a) => $a->start_time >= $slotEndTimeStr)
-                    ->sortBy('start_time')
+                    ->filter(fn ($a) => $this->toTimeString($a->start_time) >= $slotEndTimeStr)
+                    ->sortBy(fn ($a) => $this->toTimeString($a->start_time))
                     ->first();
             } else {
                 $nextAppointment = Appointment::query()
