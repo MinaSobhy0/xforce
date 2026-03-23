@@ -174,118 +174,7 @@ class ViewTenant extends BaseViewRecord
     protected function getViewHeaderActions(): array
     {
         return [
-            Actions\Action::make('provisionDatabase')
-                ->label('Provision Database')
-                ->icon('heroicon-o-server-stack')
-                ->color('success')
-                ->requiresConfirmation()
-                ->modalHeading('Provision Tenant Database')
-                ->modalDescription(fn() => "This will create the PostgreSQL schema '{$this->record->database_name}', run all migrations, and create an owner user with email '{$this->record->contact_email}'. Continue?")
-                ->modalSubmitActionLabel('Yes, provision database')
-                ->visible(fn() => !$this->schemaExists())
-                ->action(function (): void {
-                    try {
-                        $tenantService = app(TenantService::class);
-                        $tenantService->createTenantDatabase($this->record);
-
-                        // Reset search_path to public schema for main connection
-                        DB::statement("SET search_path TO public");
-                        DB::purge('pgsql');
-                        DB::reconnect('pgsql');
-
-                        // Check if owner was created and get password
-                        $this->record->refresh();
-                        $ownerCreated = $this->record->owner_user_id !== null;
-
-                        $body = "Schema '{$this->record->database_name}' has been created and migrations have been run.";
-                        if ($ownerCreated && $this->record->contact_email) {
-                            $body .= "\n\nOwner account created:\nEmail: {$this->record->contact_email}\nLogin URL: https://{$this->record->slug}.x-linic.com/admin";
-                        }
-
-                        Notification::make()
-                            ->title('Database provisioned successfully')
-                            ->body($body)
-                            ->success()
-                            ->persistent()
-                            ->send();
-
-                        $this->refreshFormData(['database_name']);
-
-                    } catch (\Exception $e) {
-                        // Ensure we reset connection even on error
-                        try {
-                            DB::statement("SET search_path TO public");
-                            DB::purge('pgsql');
-                            DB::reconnect('pgsql');
-                        } catch (\Exception $ignored) {}
-
-                        Log::error('Tenant database provisioning failed', [
-                            'tenant_id' => $this->record->id,
-                            'error' => $e->getMessage(),
-                        ]);
-
-                        Notification::make()
-                            ->title('Database provisioning failed')
-                            ->body($e->getMessage())
-                            ->danger()
-                            ->persistent()
-                            ->send();
-                    }
-                }),
-
-            Actions\Action::make('createOwnerUser')
-                ->label('Create/Reset Owner')
-                ->icon('heroicon-o-user-plus')
-                ->color('warning')
-                ->requiresConfirmation()
-                ->modalHeading('Create or Reset Owner User')
-                ->modalDescription(fn() => $this->record->owner_user_id
-                    ? "This will reset the password for the owner user ({$this->record->contact_email}). A new password will be generated."
-                    : "This will create an owner user with email '{$this->record->contact_email}'.")
-                ->modalSubmitActionLabel('Create/Reset Owner')
-                ->visible(fn() => $this->schemaExists() && $this->record->contact_email)
-                ->action(function (): void {
-                    try {
-                        $tenantService = app(TenantService::class);
-                        $result = $tenantService->createOwnerUser($this->record);
-
-                        DB::statement("SET search_path TO public");
-                        DB::purge('pgsql');
-                        DB::reconnect('pgsql');
-
-                        $this->record->refresh();
-
-                        if ($result && $result['password']) {
-                            Notification::make()
-                                ->title('Owner user created/reset')
-                                ->body("Email: {$this->record->contact_email}\nPassword: {$result['password']}\n\nPassword is also visible in the Info tab.")
-                                ->success()
-                                ->persistent()
-                                ->send();
-                        } elseif ($result) {
-                            Notification::make()
-                                ->title('Owner user already exists')
-                                ->body("User with email {$this->record->contact_email} already exists.")
-                                ->info()
-                                ->send();
-                        } else {
-                            Notification::make()
-                                ->title('Failed to create owner user')
-                                ->danger()
-                                ->send();
-                        }
-                    } catch (\Exception $e) {
-                        DB::statement("SET search_path TO public");
-
-                        Notification::make()
-                            ->title('Failed to create owner user')
-                            ->body($e->getMessage())
-                            ->danger()
-                            ->send();
-                    }
-                }),
-
-
+            // Login As - Primary support action (always visible)
             Actions\Action::make('loginAs')
                 ->label('Login As')
                 ->icon('heroicon-o-arrow-right-on-rectangle')
@@ -324,11 +213,9 @@ class ViewTenant extends BaseViewRecord
                         $schemaName = $this->record->database_name;
                         DB::statement("SET search_path TO \"{$schemaName}\"");
 
-                        // SECURITY: Generate cryptographically secure random token
                         $token = \Illuminate\Support\Str::random(64);
                         $expiresAt = now()->addMinutes(5);
 
-                        // SECURITY: Use bcrypt for token storage (slow hash to resist brute-force)
                         DB::table('users')
                             ->where('id', $data['user_id'])
                             ->update([
@@ -338,7 +225,6 @@ class ViewTenant extends BaseViewRecord
 
                         DB::statement("SET search_path TO public");
 
-                        // Build the impersonation URL and open in new tab
                         $url = "https://{$this->record->slug}.x-linic.com/admin/impersonate?token={$token}&user={$data['user_id']}";
 
                         $this->js("window.open('{$url}', '_blank')");
@@ -354,43 +240,183 @@ class ViewTenant extends BaseViewRecord
                     }
                 }),
 
-            Actions\Action::make('emailOwner')
-                ->label('Send Email')
-                ->icon('heroicon-o-envelope')
-                ->color('gray')
-                ->form([
-                    Forms\Components\TextInput::make('subject')->required(),
-                    Forms\Components\RichEditor::make('body')->required(),
-                ])
-                ->action(function (array $data): void {
-                    Notification::make()
-                        ->title('Email sent')
-                        ->success()
-                        ->send();
-                }),
-
-            Actions\Action::make('suspend')
-                ->label('Suspend')
-                ->icon('heroicon-o-pause-circle')
-                ->color('danger')
-                ->requiresConfirmation()
-                ->visible(fn() => in_array(
-                    $this->record->subscription_status,
-                    ['active', 'past_due']
-                ))
-                ->action(function (): void {
-                    $this->record->update([
-                        'subscription_status' => 'suspended',
-                        'status' => 'suspended',
-                    ]);
-                    Notification::make()->title('Clinic suspended')->danger()->send();
-                }),
-
+            // More Actions Dropdown - All other actions grouped here
             Actions\ActionGroup::make([
+                // Database & Setup
+                Actions\Action::make('provisionDatabase')
+                    ->label('Provision Database')
+                    ->icon('heroicon-o-server-stack')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->modalHeading('Provision Tenant Database')
+                    ->modalDescription(fn() => "This will create the PostgreSQL schema '{$this->record->database_name}', run all migrations, and create an owner user with email '{$this->record->contact_email}'. Continue?")
+                    ->modalSubmitActionLabel('Yes, provision database')
+                    ->visible(fn() => !$this->schemaExists())
+                    ->action(function (): void {
+                        try {
+                            $tenantService = app(TenantService::class);
+                            $tenantService->createTenantDatabase($this->record);
+
+                            DB::statement("SET search_path TO public");
+                            DB::purge('pgsql');
+                            DB::reconnect('pgsql');
+
+                            $this->record->refresh();
+                            $ownerCreated = $this->record->owner_user_id !== null;
+
+                            $body = "Schema '{$this->record->database_name}' has been created and migrations have been run.";
+                            if ($ownerCreated && $this->record->contact_email) {
+                                $body .= "\n\nOwner account created:\nEmail: {$this->record->contact_email}\nLogin URL: https://{$this->record->slug}.x-linic.com/admin";
+                            }
+
+                            Notification::make()
+                                ->title('Database provisioned successfully')
+                                ->body($body)
+                                ->success()
+                                ->persistent()
+                                ->send();
+
+                            $this->refreshFormData(['database_name']);
+
+                        } catch (\Exception $e) {
+                            try {
+                                DB::statement("SET search_path TO public");
+                                DB::purge('pgsql');
+                                DB::reconnect('pgsql');
+                            } catch (\Exception $ignored) {}
+
+                            Log::error('Tenant database provisioning failed', [
+                                'tenant_id' => $this->record->id,
+                                'error' => $e->getMessage(),
+                            ]);
+
+                            Notification::make()
+                                ->title('Database provisioning failed')
+                                ->body($e->getMessage())
+                                ->danger()
+                                ->persistent()
+                                ->send();
+                        }
+                    }),
+
+                Actions\Action::make('createOwnerUser')
+                    ->label('Create/Reset Owner')
+                    ->icon('heroicon-o-user-plus')
+                    ->color('warning')
+                    ->requiresConfirmation()
+                    ->modalHeading('Create or Reset Owner User')
+                    ->modalDescription(fn() => $this->record->owner_user_id
+                        ? "This will reset the password for the owner user ({$this->record->contact_email}). A new password will be generated."
+                        : "This will create an owner user with email '{$this->record->contact_email}'.")
+                    ->modalSubmitActionLabel('Create/Reset Owner')
+                    ->visible(fn() => $this->schemaExists() && $this->record->contact_email)
+                    ->action(function (): void {
+                        try {
+                            $tenantService = app(TenantService::class);
+                            $result = $tenantService->createOwnerUser($this->record);
+
+                            DB::statement("SET search_path TO public");
+                            DB::purge('pgsql');
+                            DB::reconnect('pgsql');
+
+                            $this->record->refresh();
+
+                            if ($result && $result['password']) {
+                                Notification::make()
+                                    ->title('Owner user created/reset')
+                                    ->body("Email: {$this->record->contact_email}\nPassword: {$result['password']}\n\nPassword is also visible in the Info tab.")
+                                    ->success()
+                                    ->persistent()
+                                    ->send();
+                            } elseif ($result) {
+                                Notification::make()
+                                    ->title('Owner user already exists')
+                                    ->body("User with email {$this->record->contact_email} already exists.")
+                                    ->info()
+                                    ->send();
+                            } else {
+                                Notification::make()
+                                    ->title('Failed to create owner user')
+                                    ->danger()
+                                    ->send();
+                            }
+                        } catch (\Exception $e) {
+                            DB::statement("SET search_path TO public");
+
+                            Notification::make()
+                                ->title('Failed to create owner user')
+                                ->body($e->getMessage())
+                                ->danger()
+                                ->send();
+                        }
+                    }),
+
+                Actions\Action::make('resetDatabase')
+                    ->label('Reset Database')
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->modalHeading('Reset Tenant Database')
+                    ->modalDescription(fn() => "WARNING: This will DROP the schema '{$this->record->database_name}' and ALL its data, then recreate it with fresh migrations. This action cannot be undone!")
+                    ->modalSubmitActionLabel('Yes, reset database')
+                    ->visible(fn() => $this->schemaExists())
+                    ->action(function (): void {
+                        try {
+                            $tenantService = app(TenantService::class);
+
+                            $tenantService->dropTenantDatabase($this->record);
+                            $tenantService->createTenantDatabase($this->record);
+
+                            DB::statement("SET search_path TO public");
+                            DB::purge('pgsql');
+                            DB::reconnect('pgsql');
+
+                            Notification::make()
+                                ->title('Database reset successfully')
+                                ->body("Schema '{$this->record->database_name}' has been dropped and recreated.")
+                                ->success()
+                                ->send();
+
+                        } catch (\Exception $e) {
+                            try {
+                                DB::statement("SET search_path TO public");
+                                DB::purge('pgsql');
+                                DB::reconnect('pgsql');
+                            } catch (\Exception $ignored) {}
+
+                            Log::error('Tenant database reset failed', [
+                                'tenant_id' => $this->record->id,
+                                'error' => $e->getMessage(),
+                            ]);
+
+                            Notification::make()
+                                ->title('Database reset failed')
+                                ->body($e->getMessage())
+                                ->danger()
+                                ->persistent()
+                                ->send();
+                        }
+                    }),
+
+                // Communication
+                Actions\Action::make('emailOwner')
+                    ->label('Send Email')
+                    ->icon('heroicon-o-envelope')
+                    ->form([
+                        Forms\Components\TextInput::make('subject')->required(),
+                        Forms\Components\RichEditor::make('body')->required(),
+                    ])
+                    ->action(function (array $data): void {
+                        Notification::make()
+                            ->title('Email sent')
+                            ->success()
+                            ->send();
+                    }),
+
+                // Billing Actions
                 Actions\Action::make('changePlan')
                     ->label('Change Plan')
-                    ->icon('heroicon-o-arrow-path')
-                    ->color('info')
+                    ->icon('heroicon-o-credit-card')
                     ->form([
                         Forms\Components\Select::make('subscription_plan_id')
                             ->label('New Plan')
@@ -417,7 +443,6 @@ class ViewTenant extends BaseViewRecord
                 Actions\Action::make('applyDiscount')
                     ->label('Apply Discount')
                     ->icon('heroicon-o-tag')
-                    ->color('warning')
                     ->form([
                         Forms\Components\TextInput::make('discount_percentage')
                             ->label('Discount (%)')
@@ -440,7 +465,6 @@ class ViewTenant extends BaseViewRecord
                             ->rows(2),
                     ])
                     ->action(function (array $data): void {
-                        // Store discount in tenant meta or settings
                         $settings = $this->record->settings ?? [];
                         $settings['discount'] = [
                             'percentage' => $data['discount_percentage'],
@@ -460,7 +484,6 @@ class ViewTenant extends BaseViewRecord
                 Actions\Action::make('addAddOn')
                     ->label('Add Add-On')
                     ->icon('heroicon-o-plus-circle')
-                    ->color('success')
                     ->form([
                         Forms\Components\Select::make('add_on_id')
                             ->label('Add-On')
@@ -495,92 +518,59 @@ class ViewTenant extends BaseViewRecord
                             ->success()
                             ->send();
                     }),
+
+                // Status Actions
+                Actions\Action::make('suspend')
+                    ->label('Suspend')
+                    ->icon('heroicon-o-pause-circle')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->visible(fn() => in_array(
+                        $this->record->subscription_status,
+                        ['active', 'past_due']
+                    ))
+                    ->action(function (): void {
+                        $this->record->update([
+                            'subscription_status' => 'suspended',
+                            'status' => 'suspended',
+                        ]);
+                        Notification::make()->title('Clinic suspended')->danger()->send();
+                    }),
+
+                Actions\Action::make('reactivate')
+                    ->label('Reactivate')
+                    ->icon('heroicon-o-play-circle')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->visible(fn() => $this->record->subscription_status === 'suspended')
+                    ->action(function (): void {
+                        $this->record->update([
+                            'subscription_status' => 'active',
+                            'status' => 'active',
+                        ]);
+
+                        Notification::make()
+                            ->title('Clinic reactivated')
+                            ->success()
+                            ->send();
+                    }),
             ])
-                ->label('Billing Actions')
-                ->icon('heroicon-o-currency-dollar')
-                ->color('gray'),
+                ->label('More Actions')
+                ->icon('heroicon-o-ellipsis-vertical')
+                ->color('gray')
+                ->button(),
 
-            Actions\Action::make('reactivate')
-                ->label('Reactivate')
-                ->icon('heroicon-o-play-circle')
-                ->color('success')
-                ->requiresConfirmation()
-                ->visible(fn() => $this->record->subscription_status === 'suspended')
-                ->action(function (): void {
-                    $this->record->update([
-                        'subscription_status' => 'active',
-                        'status' => 'active',
-                    ]);
-
-                    // Send reactivation email
-                    // TODO: Implement email sending
-
-                    Notification::make()
-                        ->title('Clinic reactivated')
-                        ->success()
-                        ->send();
-                }),
-
-            Actions\EditAction::make(),
-
+            // Mobile App - Keep visible
             Actions\Action::make('configureMobileApp')
                 ->label('Mobile App')
                 ->icon('heroicon-o-device-phone-mobile')
                 ->color('info')
                 ->url(fn () => TenantResource::getUrl('mobile-app', ['record' => $this->record])),
 
-            Actions\Action::make('resetDatabase')
-                ->label('Reset Database')
-                ->icon('heroicon-o-arrow-path')
-                ->color('danger')
-                ->requiresConfirmation()
-                ->modalHeading('Reset Tenant Database')
-                ->modalDescription(fn() => "WARNING: This will DROP the schema '{$this->record->database_name}' and ALL its data, then recreate it with fresh migrations. This action cannot be undone!")
-                ->modalSubmitActionLabel('Yes, reset database')
-                ->visible(fn() => $this->schemaExists())
-                ->action(function (): void {
-                    try {
-                        $tenantService = app(TenantService::class);
+            // Edit - Standard action
+            Actions\EditAction::make(),
 
-                        // Drop existing schema
-                        $tenantService->dropTenantDatabase($this->record);
-
-                        // Recreate schema and run migrations
-                        $tenantService->createTenantDatabase($this->record);
-
-                        // Reset search_path to public schema for main connection
-                        DB::statement("SET search_path TO public");
-                        DB::purge('pgsql');
-                        DB::reconnect('pgsql');
-
-                        Notification::make()
-                            ->title('Database reset successfully')
-                            ->body("Schema '{$this->record->database_name}' has been dropped and recreated.")
-                            ->success()
-                            ->send();
-
-                    } catch (\Exception $e) {
-                        // Ensure we reset connection even on error
-                        try {
-                            DB::statement("SET search_path TO public");
-                            DB::purge('pgsql');
-                            DB::reconnect('pgsql');
-                        } catch (\Exception $ignored) {}
-
-                        Log::error('Tenant database reset failed', [
-                            'tenant_id' => $this->record->id,
-                            'error' => $e->getMessage(),
-                        ]);
-
-                        Notification::make()
-                            ->title('Database reset failed')
-                            ->body($e->getMessage())
-                            ->danger()
-                            ->persistent()
-                            ->send();
-                    }
-                }),
-
+            // Delete - Danger action kept visible
             Actions\Action::make('delete')
                 ->label('Delete')
                 ->icon('heroicon-o-trash')
