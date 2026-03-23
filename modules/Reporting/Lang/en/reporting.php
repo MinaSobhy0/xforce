@@ -6,6 +6,7 @@ return [
     'reports' => 'Reports',
 
     // Navigation & Titles
+    'daily_sales_report' => 'Daily Sales Report',
     'revenue_report' => 'Revenue Report',
     'patient_report' => 'Patient Report',
     'appointment_report' => 'Appointment Report',
@@ -18,6 +19,7 @@ return [
 
     // Filters
     'filters' => 'Filters',
+    'date' => 'Date',
     'start_date' => 'Start Date',
     'end_date' => 'End Date',
     'branch' => 'Branch',
@@ -44,6 +46,13 @@ return [
 
     // Revenue Report
     'total_revenue' => 'Total Revenue',
+    'total_sold_products' => 'Total Sold Products',
+    'highest_sales' => 'Highest Sales',
+    'highest_services' => 'Most Booked Service',
+    'items' => 'items',
+    'bookings' => 'bookings',
+    'uncategorized' => 'Uncategorized',
+    'by' => 'By',
     'total_invoices' => 'Total Invoices',
     'invoices_issued' => 'Invoices Issued',
     'outstanding' => 'Outstanding',
@@ -59,6 +68,11 @@ return [
     // Patient Report
     'new_patients' => 'New Patients',
     'returning_patients' => 'Returning Patients',
+    'followup_patients' => 'Follow-up Patients',
+    'patients' => 'patients',
+    'patient' => 'Patient',
+    'service' => 'Service',
+    'amount' => 'Amount',
     'retention_rate' => 'Retention Rate',
     'vip_patients' => 'VIP Patients',
     'new_patients_trend' => 'New Patients Trend',
@@ -142,6 +156,9 @@ return [
     'campaign' => 'Campaign',
     'channel' => 'Channel',
     'recipients' => 'Recipients',
+
+    // PDF
+    'generated_at' => 'Generated at',
 
     // Financial Summary
     'total_costs' => 'Total Costs',

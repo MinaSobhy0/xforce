@@ -338,12 +338,12 @@ class ProductResource extends Resource
                 Tables\Columns\TextColumn::make('cost_price')
                     ->label(__('inventory::inventory.fields.cost_price'))
                     ->money(current_currency())
-                    ->sortable(),
+                    ->sortable(query: fn ($query, string $direction) => $query->orderBy('cost_price_minor', $direction)),
 
                 Tables\Columns\TextColumn::make('sell_price')
                     ->label(__('inventory::inventory.fields.sell_price'))
                     ->money(current_currency())
-                    ->sortable(),
+                    ->sortable(query: fn ($query, string $direction) => $query->orderBy('sell_price_minor', $direction)),
 
                 Tables\Columns\TextColumn::make('salesUom.abbreviation')
                     ->label(__('inventory::inventory.fields.uom'))

@@ -6,6 +6,7 @@ return [
     'reports' => 'التقارير',
 
     // Navigation & Titles
+    'daily_sales_report' => 'تقرير المبيعات اليومي',
     'revenue_report' => 'تقرير الإيرادات',
     'patient_report' => 'تقرير المرضى',
     'appointment_report' => 'تقرير المواعيد',
@@ -18,6 +19,7 @@ return [
 
     // Filters
     'filters' => 'الفلاتر',
+    'date' => 'التاريخ',
     'start_date' => 'تاريخ البداية',
     'end_date' => 'تاريخ النهاية',
     'branch' => 'الفرع',
@@ -44,6 +46,13 @@ return [
 
     // Revenue Report
     'total_revenue' => 'إجمالي الإيرادات',
+    'total_sold_products' => 'إجمالي المنتجات المباعة',
+    'highest_sales' => 'أعلى مبيعات',
+    'highest_services' => 'أكثر الخدمات حجزاً',
+    'items' => 'عناصر',
+    'bookings' => 'حجوزات',
+    'uncategorized' => 'غير مصنف',
+    'by' => 'بواسطة',
     'total_invoices' => 'إجمالي الفواتير',
     'invoices_issued' => 'الفواتير الصادرة',
     'outstanding' => 'المستحق',
@@ -59,6 +68,11 @@ return [
     // Patient Report
     'new_patients' => 'المرضى الجدد',
     'returning_patients' => 'المرضى العائدون',
+    'followup_patients' => 'مرضى المتابعة',
+    'patients' => 'مرضى',
+    'patient' => 'المريض',
+    'service' => 'الخدمة',
+    'amount' => 'المبلغ',
     'retention_rate' => 'معدل الاحتفاظ',
     'vip_patients' => 'مرضى VIP',
     'new_patients_trend' => 'اتجاه المرضى الجدد',
@@ -142,6 +156,9 @@ return [
     'campaign' => 'الحملة',
     'channel' => 'القناة',
     'recipients' => 'المستلمون',
+
+    // PDF
+    'generated_at' => 'تم الإنشاء في',
 
     // Financial Summary
     'total_costs' => 'إجمالي التكاليف',
