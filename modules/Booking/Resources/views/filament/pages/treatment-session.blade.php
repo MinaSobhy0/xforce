@@ -965,9 +965,11 @@
 
                 @if(!$this->isViewMode())
                     <div class="flex flex-col sm:flex-row gap-2 mb-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg"
+                        wire:key="consumable-picker-{{ count($sessionConsumables) }}"
                         x-data="{
                             search: '',
                             open: false,
+                            selectedName: '',
                             items: @js($this->getAvailableConsumables()->map(fn($p) => ['id' => $p->id, 'name' => $p->getTranslation('name', app()->getLocale()), 'stock' => $p->stock_qty ?? 0, 'uom' => $p->stock_uom ?? 'pcs'])->values()->toArray()),
                             get filtered() {
                                 if (!this.search) return this.items;
@@ -977,15 +979,18 @@
                                 $wire.set('newConsumableId', id);
                                 this.open = false;
                                 const item = this.items.find(i => i.id == id);
-                                this.search = item ? item.name + ' (Stock: ' + item.stock + ' ' + item.uom + ')' : '';
+                                if (item) {
+                                    this.selectedName = item.name;
+                                    this.search = item.name + ' (Stock: ' + item.stock + ' ' + item.uom + ')';
+                                }
                             },
                             clear() {
                                 this.search = '';
+                                this.selectedName = '';
                                 this.open = false;
                             }
                         }"
                         @click.outside="open = false"
-                        @consumable-added.window="clear()"
                     >
                         <div class="flex-1 relative">
                             <input
@@ -1050,9 +1055,11 @@
 
                 @if(!$this->isViewMode())
                     <div class="flex flex-col sm:flex-row gap-2 mb-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg"
+                        wire:key="product-picker-{{ count($sessionProducts) }}"
                         x-data="{
                             search: '',
                             open: false,
+                            selectedName: '',
                             items: @js($this->getAvailableProducts()->map(fn($p) => ['id' => $p->id, 'name' => $p->getTranslation('name', app()->getLocale()), 'price' => $p->sell_price, 'stock' => $p->stock_qty ?? 0, 'uom' => $p->stock_uom ?? 'pcs'])->values()->toArray()),
                             get filtered() {
                                 if (!this.search) return this.items;
@@ -1062,15 +1069,18 @@
                                 $wire.set('newProductId', id);
                                 this.open = false;
                                 const item = this.items.find(i => i.id == id);
-                                this.search = item ? item.name + ' - ' + item.price.toFixed(2) + ' (Stock: ' + item.stock + ' ' + item.uom + ')' : '';
+                                if (item) {
+                                    this.selectedName = item.name;
+                                    this.search = item.name + ' - ' + item.price.toFixed(2) + ' (Stock: ' + item.stock + ' ' + item.uom + ')';
+                                }
                             },
                             clear() {
                                 this.search = '';
+                                this.selectedName = '';
                                 this.open = false;
                             }
                         }"
                         @click.outside="open = false"
-                        @product-added.window="clear()"
                     >
                         <div class="flex-1 relative">
                             <input

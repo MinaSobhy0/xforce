@@ -11,14 +11,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('stock_locations', function (Blueprint $table) {
-            $table->boolean('is_treatment_default')->default(false)->after('is_return_location');
-        });
+        if (!Schema::hasColumn('stock_locations', 'is_treatment_default')) {
+            Schema::table('stock_locations', function (Blueprint $table) {
+                $table->boolean('is_treatment_default')->default(false)->after('is_return_location');
+            });
 
-        // Add index for efficient lookup
-        Schema::table('stock_locations', function (Blueprint $table) {
-            $table->index(['branch_id', 'is_treatment_default']);
-        });
+            // Add index for efficient lookup
+            Schema::table('stock_locations', function (Blueprint $table) {
+                $table->index(['branch_id', 'is_treatment_default']);
+            });
+        }
     }
 
     /**
@@ -26,9 +28,11 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('stock_locations', function (Blueprint $table) {
-            $table->dropIndex(['branch_id', 'is_treatment_default']);
-            $table->dropColumn('is_treatment_default');
-        });
+        if (Schema::hasColumn('stock_locations', 'is_treatment_default')) {
+            Schema::table('stock_locations', function (Blueprint $table) {
+                $table->dropIndex(['branch_id', 'is_treatment_default']);
+                $table->dropColumn('is_treatment_default');
+            });
+        }
     }
 };

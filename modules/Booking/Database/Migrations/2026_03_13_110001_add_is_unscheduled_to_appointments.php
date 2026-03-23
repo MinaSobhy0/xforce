@@ -8,15 +8,19 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('appointments', function (Blueprint $table) {
-            $table->boolean('is_unscheduled')->default(false)->after('status');
-        });
+        if (!Schema::hasColumn('appointments', 'is_unscheduled')) {
+            Schema::table('appointments', function (Blueprint $table) {
+                $table->boolean('is_unscheduled')->default(false)->after('status');
+            });
+        }
     }
 
     public function down(): void
     {
-        Schema::table('appointments', function (Blueprint $table) {
-            $table->dropColumn('is_unscheduled');
-        });
+        if (Schema::hasColumn('appointments', 'is_unscheduled')) {
+            Schema::table('appointments', function (Blueprint $table) {
+                $table->dropColumn('is_unscheduled');
+            });
+        }
     }
 };
