@@ -263,6 +263,9 @@ return [
 
     'messages' => [
         'stock_adjusted' => 'Stock adjusted successfully',
+        'no_change' => 'No change in quantity',
+        'product_not_trackable' => 'Product does not track inventory',
+        'location_required' => 'Stock location is required',
         'order_sent' => 'Purchase order sent successfully',
         'order_cancelled' => 'Purchase order cancelled',
         'items_received' => 'Items received successfully',

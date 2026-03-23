@@ -1045,18 +1045,32 @@ class StockMoveService
 
             $productName = $product->getTranslation('name', 'en') ?? $product->sku;
 
+            // Check if this is an inventory adjustment (not a regular purchase/sale)
+            $isAdjustment = $this->isInventoryAdjustment($transfer);
+
             switch ($transfer->transfer_type) {
                 case StockTransfer::TYPE_RECEIPT:
-                    // No journal entry - vendor bill will create it
-                    // (Debit Inventory, Credit Accounts Payable)
+                    if ($isAdjustment) {
+                        // Inventory gain: Debit Inventory, Credit Stock Input (gain account)
+                        $this->accountingService->createStockReceiptEntry(
+                            $movement,
+                            $valueMajor,
+                            "Inventory gain: {$productName} x {$movement->quantity} (Adjustment)"
+                        );
+                    }
+                    // For regular receipts: No journal entry - vendor bill will create it
                     return;
 
                 case StockTransfer::TYPE_DELIVERY:
-                    // Sale delivery: Debit COGS, Credit Inventory
+                    // Sale delivery or inventory loss: Debit COGS/Loss, Credit Inventory
+                    $description = $isAdjustment
+                        ? "Inventory loss: {$productName} x {$movement->quantity} (Adjustment)"
+                        : "Stock delivery: {$productName} x {$movement->quantity} (Transfer #{$transfer->transfer_number})";
+
                     $this->accountingService->createStockConsumptionEntry(
                         $movement,
                         $valueMajor,
-                        "Stock delivery: {$productName} x {$movement->quantity} (Transfer #{$transfer->transfer_number})"
+                        $description
                     );
                     break;
 
@@ -1082,6 +1096,8 @@ class StockMoveService
                 'movement_id' => $movement->id,
                 'transfer_id' => $transfer->id,
                 'transfer_type' => $transfer->transfer_type,
+                'reference_type' => $transfer->reference_type,
+                'is_adjustment' => $isAdjustment,
                 'product_id' => $product->id,
                 'value_major' => $valueMajor,
             ]);
@@ -1091,5 +1107,36 @@ class StockMoveService
                 'error' => $e->getMessage(),
             ]);
         }
+    }
+
+    /**
+     * Check if a transfer is an inventory adjustment (vs regular purchase/sale).
+     */
+    protected function isInventoryAdjustment(StockTransfer $transfer): bool
+    {
+        // Check reference type for adjustment indicators
+        $adjustmentReferenceTypes = [
+            'stock_level_adjustment',
+            'inventory_adjustment',
+            'inventory_adjustment_line',
+        ];
+
+        if (in_array($transfer->reference_type, $adjustmentReferenceTypes)) {
+            return true;
+        }
+
+        // Check if source or destination is an adjustment location
+        $sourceLocation = $transfer->sourceLocation;
+        $destinationLocation = $transfer->destinationLocation;
+
+        if ($sourceLocation && $sourceLocation->location_type === StockLocation::TYPE_INVENTORY) {
+            return true;
+        }
+
+        if ($destinationLocation && $destinationLocation->location_type === StockLocation::TYPE_INVENTORY) {
+            return true;
+        }
+
+        return false;
     }
 }

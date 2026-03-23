@@ -11,6 +11,7 @@ use Filament\Notifications\Notification;
 use Modules\Core\Models\Branch;
 use Modules\Inventory\Models\StockLevel;
 use Modules\Inventory\Models\StockLocation;
+use Modules\Inventory\Services\StockMoveService;
 
 class StockLevelsRelationManager extends RelationManager
 {
@@ -140,7 +141,51 @@ class StockLevelsRelationManager extends RelationManager
                             ->rows(2),
                     ])
                     ->action(function (StockLevel $record, array $data) {
-                        $record->adjustTo($data['new_quantity'], $data['notes'] ?? null);
+                        $newQuantity = (float) $data['new_quantity'];
+                        $currentQuantity = (float) $record->quantity_on_hand;
+                        $difference = $newQuantity - $currentQuantity;
+
+                        // Skip if no change
+                        if ($difference == 0) {
+                            Notification::make()
+                                ->title(__('inventory::inventory.messages.no_change'))
+                                ->info()
+                                ->send();
+                            return;
+                        }
+
+                        $product = $record->product;
+                        $location = $record->location;
+
+                        // Validate product tracks inventory
+                        if (!$product || !$product->tracksInventory()) {
+                            Notification::make()
+                                ->title(__('inventory::inventory.messages.product_not_trackable'))
+                                ->danger()
+                                ->send();
+                            return;
+                        }
+
+                        // Validate location exists
+                        if (!$location) {
+                            Notification::make()
+                                ->title(__('inventory::inventory.messages.location_required'))
+                                ->danger()
+                                ->send();
+                            return;
+                        }
+
+                        // Use StockMoveService to create proper adjustment with journal entries
+                        $stockMoveService = app(StockMoveService::class);
+                        $stockMoveService->createAdjustment(
+                            $product,
+                            $location,
+                            $difference,
+                            null, // uses product's sales_uom
+                            'stock_level_adjustment',
+                            (string) $record->id,
+                            $data['notes'] ?? null
+                        );
 
                         Notification::make()
                             ->title(__('inventory::inventory.messages.stock_adjusted'))

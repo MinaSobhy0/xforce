@@ -262,6 +262,9 @@ return [
 
     'messages' => [
         'stock_adjusted' => 'تم تعديل المخزون بنجاح',
+        'no_change' => 'لا يوجد تغيير في الكمية',
+        'product_not_trackable' => 'المنتج لا يتتبع المخزون',
+        'location_required' => 'موقع المخزون مطلوب',
         'order_sent' => 'تم إرسال أمر الشراء بنجاح',
         'order_cancelled' => 'تم إلغاء أمر الشراء',
         'items_received' => 'تم استلام العناصر بنجاح',
