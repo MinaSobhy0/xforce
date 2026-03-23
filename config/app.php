@@ -29,6 +29,7 @@ return [
         App\Providers\Filament\AdminPanelProvider::class,
         App\Providers\Filament\TenantPanelProvider::class,
         App\Providers\Filament\SuperAdminPanelProvider::class,
+        Modules\PatientPortal\Providers\PortalPanelProvider::class,
     ])->toArray(),
     'aliases' => Facade::defaultAliases()->merge([
         // Custom aliases...
