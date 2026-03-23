@@ -1219,7 +1219,48 @@ class CreateBooking extends Page implements HasForms
                                                 Forms\Components\DatePicker::make('quick_book_date')
                                                     ->label(__('booking::booking.fields.date'))
                                                     ->required()
-                                                    ->minDate(today())
+                                                    ->minDate(function (Get $get) {
+                                                        $branchId = $get('branch_id');
+                                                        if ($branchId) {
+                                                            $evaluator = app(BookingRuleEvaluator::class)->forContext($branchId);
+                                                            $sameDayConfig = $evaluator->getSameDayBookingConfig();
+
+                                                            // If same-day not allowed, start from tomorrow
+                                                            if (! $sameDayConfig['allowed']) {
+                                                                return today()->addDay();
+                                                            }
+
+                                                            // Check cutoff time for same-day
+                                                            if ($sameDayConfig['cutoff_time']) {
+                                                                $cutoff = Carbon::parse($sameDayConfig['cutoff_time']);
+                                                                if (now()->format('H:i') > $cutoff->format('H:i')) {
+                                                                    return today()->addDay();
+                                                                }
+                                                            }
+
+                                                            // Check min_advance_hours
+                                                            $minHours = $evaluator->getMinAdvanceHours();
+                                                            if ($minHours > 0) {
+                                                                $minDate = now()->addHours($minHours);
+                                                                // If min advance pushes to next day, use that
+                                                                if (! $minDate->isSameDay(today())) {
+                                                                    return $minDate->startOfDay();
+                                                                }
+                                                            }
+                                                        }
+
+                                                        return today();
+                                                    })
+                                                    ->maxDate(function (Get $get) {
+                                                        $branchId = $get('branch_id');
+                                                        if ($branchId) {
+                                                            $evaluator = app(BookingRuleEvaluator::class)->forContext($branchId);
+
+                                                            return today()->addDays($evaluator->getMaxAdvanceDays());
+                                                        }
+
+                                                        return today()->addDays(60);
+                                                    })
                                                     ->default(today())
                                                     ->native(false),
 
@@ -1264,7 +1305,37 @@ class CreateBooking extends Page implements HasForms
                                                 Forms\Components\DatePicker::make('date_from')
                                                     ->label(__('booking::booking.fields.date_from'))
                                                     ->native(false)
-                                                    ->minDate(today())
+                                                    ->minDate(function (Get $get) {
+                                                        $branchId = $get('branch_id');
+                                                        if ($branchId) {
+                                                            $evaluator = app(BookingRuleEvaluator::class)->forContext($branchId);
+                                                            $sameDayConfig = $evaluator->getSameDayBookingConfig();
+
+                                                            // If same-day not allowed, start from tomorrow
+                                                            if (! $sameDayConfig['allowed']) {
+                                                                return today()->addDay();
+                                                            }
+
+                                                            // Check cutoff time for same-day
+                                                            if ($sameDayConfig['cutoff_time']) {
+                                                                $cutoff = Carbon::parse($sameDayConfig['cutoff_time']);
+                                                                if (now()->format('H:i') > $cutoff->format('H:i')) {
+                                                                    return today()->addDay();
+                                                                }
+                                                            }
+
+                                                            // Check min_advance_hours
+                                                            $minHours = $evaluator->getMinAdvanceHours();
+                                                            if ($minHours > 0) {
+                                                                $minDate = now()->addHours($minHours);
+                                                                if (! $minDate->isSameDay(today())) {
+                                                                    return $minDate->startOfDay();
+                                                                }
+                                                            }
+                                                        }
+
+                                                        return today();
+                                                    })
                                                     ->maxDate(function (Get $get) {
                                                         $branchId = $get('branch_id');
                                                         if ($branchId) {
