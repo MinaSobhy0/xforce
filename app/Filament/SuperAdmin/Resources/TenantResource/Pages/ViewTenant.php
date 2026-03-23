@@ -564,7 +564,7 @@ class ViewTenant extends BaseViewRecord
             Actions\Action::make('configureMobileApp')
                 ->label('Mobile App')
                 ->icon('heroicon-o-device-phone-mobile')
-                ->color('info')
+                ->color('success')
                 ->url(fn () => TenantResource::getUrl('mobile-app', ['record' => $this->record])),
 
             // Edit - Standard action
