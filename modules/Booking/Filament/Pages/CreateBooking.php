@@ -67,6 +67,11 @@ class CreateBooking extends Page implements HasForms
     // Initial patient for pre-selection (reschedule, treatment plan, etc.)
     public ?int $initialPatientId = null;
 
+    // Cached patient data to avoid repeated queries on every Livewire request
+    protected ?int $cachedPatientId = null;
+
+    protected ?array $cachedPatientData = null;
+
     public static function getNavigationLabel(): string
     {
         return __('booking::booking.navigation.create_booking');
@@ -389,7 +394,7 @@ class CreateBooking extends Page implements HasForms
                                         // Patient Info Card - shows clickable packages and treatment plans
                                         Forms\Components\Placeholder::make('patient_info')
                                             ->label('')
-                                            ->content(function (Get $get) {
+                                            ->content(function (Get $get, $livewire) {
                                                 $patientId = $get('patient_id');
                                                 $currentBookingType = $get('booking_type');
                                                 $selectedSubscriptionId = $get('package_subscription_id');
@@ -400,29 +405,15 @@ class CreateBooking extends Page implements HasForms
                                                 }
 
                                                 try {
-                                                    $patient = Patient::find($patientId);
-                                                    if (! $patient) {
+                                                    // Use cached patient data to avoid repeated queries
+                                                    $cachedData = $livewire->getCachedPatientData($patientId);
+                                                    if (! $cachedData) {
                                                         return '';
                                                     }
 
-                                                    // Get active packages
-                                                    $activePackages = PackageSubscription::query()
-                                                        ->forPatient($patientId)
-                                                        ->active()
-                                                        ->with(['package.items.service'])
-                                                        ->get();
-
-                                                    // Get active treatment plans
-                                                    $activePlans = collect([]);
-                                                    try {
-                                                        $activePlans = TreatmentPlan::query()
-                                                            ->forPatient($patientId)
-                                                            ->active()
-                                                            ->with(['items.service'])
-                                                            ->get();
-                                                    } catch (\Exception $e) {
-                                                        // Treatment plans table may not exist
-                                                    }
+                                                    $patient = $cachedData['patient'];
+                                                    $activePackages = $cachedData['activePackages'];
+                                                    $activePlans = $cachedData['activePlans'];
 
                                                     // Hide section if no packages and no treatment plans
                                                     if ($activePackages->isEmpty() && $activePlans->isEmpty()) {
@@ -1881,6 +1872,68 @@ class CreateBooking extends Page implements HasForms
     public function getSelectedSlotKeys(): array
     {
         return $this->selectedSlotKeys;
+    }
+
+    /**
+     * Get cached patient data (packages and treatment plans) to avoid repeated queries.
+     * Only reloads when patient ID changes.
+     */
+    public function getCachedPatientData(?int $patientId): ?array
+    {
+        if (! $patientId) {
+            return null;
+        }
+
+        // Return cached data if patient hasn't changed
+        if ($this->cachedPatientId === $patientId && $this->cachedPatientData !== null) {
+            return $this->cachedPatientData;
+        }
+
+        // Load fresh data for new patient
+        $this->cachedPatientId = $patientId;
+
+        $patient = Patient::find($patientId);
+        if (! $patient) {
+            $this->cachedPatientData = null;
+
+            return null;
+        }
+
+        // Get active packages
+        $activePackages = PackageSubscription::query()
+            ->forPatient($patientId)
+            ->active()
+            ->with(['package.items.service'])
+            ->get();
+
+        // Get active treatment plans
+        $activePlans = collect([]);
+        try {
+            $activePlans = TreatmentPlan::query()
+                ->forPatient($patientId)
+                ->active()
+                ->with(['items.service'])
+                ->get();
+        } catch (\Exception $e) {
+            // Treatment plans table may not exist
+        }
+
+        $this->cachedPatientData = [
+            'patient' => $patient,
+            'activePackages' => $activePackages,
+            'activePlans' => $activePlans,
+        ];
+
+        return $this->cachedPatientData;
+    }
+
+    /**
+     * Clear the cached patient data (call when patient changes).
+     */
+    public function clearCachedPatientData(): void
+    {
+        $this->cachedPatientId = null;
+        $this->cachedPatientData = null;
     }
 
     public function removeBookingItem(int $index): void
