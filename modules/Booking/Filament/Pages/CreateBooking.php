@@ -147,7 +147,7 @@ class CreateBooking extends Page implements HasForms
             'date_from' => $dateFrom->format('Y-m-d'),
             'date_to' => $dateFrom->copy()->addWeek()->format('Y-m-d'),
             'booking_type' => $bookingType,
-            'services' => [['service_id' => null, 'duration_override' => null, 'price_minor' => null]],
+            'services' => [['service_id' => null, 'service_name' => null, 'duration_override' => null, 'price_minor' => null]],
             'source' => Appointment::SOURCE_PHONE,
             'preferred_start_time' => $startTimeFromQuery,
         ];
@@ -676,6 +676,8 @@ class CreateBooking extends Page implements HasForms
                                                                                 $set('price_minor', ($service->base_price_minor ?? 0) / 100);
                                                                                 $set('discount_minor', 0);
                                                                                 $set('max_discount_percent', $service->max_discount_percent ?? 100);
+                                                                                // Store service name to avoid N+1 in itemLabel
+                                                                                $set('service_name', $service->translated_name);
                                                                             }
                                                                         }
                                                                     })
@@ -958,9 +960,7 @@ class CreateBooking extends Page implements HasForms
                                                     ->reorderable(false)
                                                     ->defaultItems(1)
                                                     ->live()
-                                                    ->itemLabel(fn (array $state): ?string => isset($state['service_id'])
-                                                            ? Service::find($state['service_id'])?->translated_name
-                                                            : null
+                                                    ->itemLabel(fn (array $state): ?string => $state['service_name'] ?? null
                                                     )
                                                     ->columnSpanFull(),
 
@@ -1926,6 +1926,7 @@ class CreateBooking extends Page implements HasForms
                     // Convert price from piastres to EGP for display
                     $services[] = [
                         'service_id' => $item->service_id,
+                        'service_name' => $item->service->translated_name,
                         'duration_override' => $item->service->duration_minutes,
                         'price_minor' => ($item->unit_price_minor ?? 0) / 100, // EGP for display
                         'discount_minor' => 0,
@@ -1952,7 +1953,7 @@ class CreateBooking extends Page implements HasForms
                 // Also set hidden fields that persist outside conditional sections
                 $this->data['_package_mode'] = 'existing';
                 $this->data['_package_subscription_id'] = $subscriptionId;
-                $this->data['services'] = ! empty($services) ? $services : [['service_id' => null, 'duration_override' => null, 'price_minor' => null]];
+                $this->data['services'] = ! empty($services) ? $services : [['service_id' => null, 'service_name' => null, 'duration_override' => null, 'price_minor' => null]];
                 // Clear treatment plan selection when selecting package
                 $this->data['treatment_plan_id'] = null;
                 $this->data['treatment_plan_item_id'] = null;
@@ -2003,6 +2004,7 @@ class CreateBooking extends Page implements HasForms
                     // Convert price from piastres to EGP for display
                     $services[] = [
                         'service_id' => $item->service_id,
+                        'service_name' => $item->service->translated_name,
                         'duration_override' => $item->service->duration_minutes,
                         'price_minor' => ($item->unit_price_minor ?? 0) / 100, // EGP for display
                         'discount_minor' => 0,
@@ -2028,7 +2030,7 @@ class CreateBooking extends Page implements HasForms
                 // Also set hidden fields that persist outside conditional sections
                 $this->data['_package_mode'] = 'new';
                 $this->data['_new_package_id'] = $packageId;
-                $this->data['services'] = ! empty($services) ? $services : [['service_id' => null, 'duration_override' => null, 'price_minor' => null]];
+                $this->data['services'] = ! empty($services) ? $services : [['service_id' => null, 'service_name' => null, 'duration_override' => null, 'price_minor' => null]];
                 // Clear treatment plan selection when selecting new package
                 $this->data['treatment_plan_id'] = null;
                 $this->data['treatment_plan_item_id'] = null;
@@ -2130,6 +2132,7 @@ class CreateBooking extends Page implements HasForms
 
                     $services[] = [
                         'service_id' => $item->service_id,
+                        'service_name' => $item->service->translated_name,
                         'duration_override' => $durationMinutes,
                         'price_minor' => $priceInEgp, // EGP for display (will be converted back to piastres on save)
                         'discount_minor' => 0,
@@ -2153,7 +2156,7 @@ class CreateBooking extends Page implements HasForms
                 // Update form data
                 $this->data['booking_type'] = 'service'; // Use service mode for cart display
                 $this->data['treatment_plan_id'] = $planId;
-                $this->data['services'] = ! empty($services) ? $services : [['service_id' => null, 'duration_override' => null, 'price_minor' => null]];
+                $this->data['services'] = ! empty($services) ? $services : [['service_id' => null, 'service_name' => null, 'duration_override' => null, 'price_minor' => null]];
 
                 // Clear/set package subscription based on treatment plan source
                 if ($isFromPackage && $plan->packageSubscription) {
