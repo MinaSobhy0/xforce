@@ -57,8 +57,133 @@
 
 <div
     class="space-y-4"
-    x-data="slotGrid()"
-    x-init="init({{ json_encode($slotsDataForAlpine) }}, {{ json_encode($selectedSlots) }}, '{{ $firstDate }}')"
+    x-data="{
+        view: 'cards',
+        selectedDate: '{{ $firstDate }}',
+        slotsData: {{ Js::from($slotsDataForAlpine) }},
+        selections: {{ Js::from($selectedSlots) }},
+
+        get currentDaySlots() {
+            return this.slotsData[this.selectedDate] || [];
+        },
+
+        isSelected(slotKey) {
+            return !!this.selections[slotKey];
+        },
+
+        isSelectedPractitioner(slotKey, practitionerId) {
+            const sel = this.selections[slotKey];
+            return sel && String(sel.practitioner_id) === String(practitionerId);
+        },
+
+        hasSelectionOnDate(date) {
+            const slots = this.slotsData[date] || [];
+            return slots.some(slot => this.selections[slot.key]);
+        },
+
+        toggleSelection(slot, practitioner) {
+            const key = slot.key;
+            const serviceId = slot.service_id;
+            const existingSel = this.selections[key];
+
+            // Check if clicking same practitioner on same slot (toggle off)
+            if (existingSel && String(existingSel.practitioner_id) === String(practitioner.id)) {
+                delete this.selections[key];
+                this.syncToLivewire(slot, null);
+                return;
+            }
+
+            // Remove any previous selection for the same service (different slot)
+            const serviceKeySuffix = '_' + (serviceId || '');
+            Object.keys(this.selections).forEach(existingKey => {
+                if (existingKey.endsWith(serviceKeySuffix) && existingKey !== key) {
+                    delete this.selections[existingKey];
+                }
+            });
+
+            // Add new selection
+            this.selections[key] = {
+                practitioner_id: practitioner.id,
+                practitioner_name: practitioner.name
+            };
+
+            this.syncToLivewire(slot, practitioner);
+        },
+
+        toggleSelectionCompact(slot) {
+            const key = slot.key;
+            const serviceId = slot.service_id;
+
+            // If same slot is already selected, toggle off
+            if (this.selections[key]) {
+                delete this.selections[key];
+                this.syncToLivewire(slot, null);
+                return;
+            }
+
+            // Remove any previous selection for the same service (different slot)
+            const serviceKeySuffix = '_' + (serviceId || '');
+            Object.keys(this.selections).forEach(existingKey => {
+                if (existingKey.endsWith(serviceKeySuffix) && existingKey !== key) {
+                    delete this.selections[existingKey];
+                }
+            });
+
+            // Add new selection with first/recommended practitioner
+            const practitioner = slot.practitioners.find(p => p.is_recommended) || slot.practitioners[0];
+            if (practitioner) {
+                this.selections[key] = {
+                    practitioner_id: practitioner.id,
+                    practitioner_name: practitioner.name
+                };
+                this.syncToLivewire(slot, practitioner);
+            }
+        },
+
+        syncToLivewire(slot, practitioner) {
+            const slotData = {
+                service_id: slot.service_id,
+                service_name: slot.service_name,
+                date: slot.date,
+                start_time: slot.start_time,
+                end_time: slot.end_time,
+                duration: slot.duration,
+                practitioner_id: practitioner ? practitioner.id : null,
+                practitioner_name: practitioner ? practitioner.name : null,
+                room_id: slot.room_id,
+                room_name: slot.room_name,
+                equipment_id: slot.equipment_id,
+                equipment_name: slot.equipment_name,
+                from_package: slot.from_package,
+                new_package_id: slot.new_package_id,
+                treatment_plan_item_id: slot.treatment_plan_item_id
+            };
+            this.$wire.selectSlot(slotData);
+        },
+
+        getPractitionerStyle(slotKey, practitioner) {
+            const isThisSelected = this.isSelectedPractitioner(slotKey, practitioner.id);
+            const isSlotSelected = this.isSelected(slotKey);
+
+            if (practitioner.is_any_available) {
+                return isThisSelected
+                    ? 'background-color: #8b5cf6; color: white; border-color: #7c3aed;'
+                    : (isSlotSelected ? 'background-color: #f3f4f6; color: #6b7280; border-color: #e5e7eb;' : 'background-color: #f5f3ff; color: #6d28d9; border-color: #c4b5fd; border-style: dashed;');
+            }
+            return isThisSelected
+                ? 'background-color: #22c55e; color: white; border-color: #16a34a;'
+                : (isSlotSelected ? 'background-color: #f3f4f6; color: #6b7280; border-color: #e5e7eb;' : 'background-color: white; color: #374151; border-color: #e5e7eb;');
+        },
+
+        formatTime(timeStr) {
+            if (!timeStr) return '';
+            const [hours, minutes] = timeStr.split(':');
+            const h = parseInt(hours);
+            const ampm = h >= 12 ? 'PM' : 'AM';
+            const h12 = h % 12 || 12;
+            return h12 + ':' + minutes + ' ' + ampm;
+        }
+    }"
 >
     {{-- Header --}}
     <div class="flex items-center justify-between border-b border-gray-200 pb-3 dark:border-gray-700">
@@ -183,7 +308,7 @@
                                         <span x-text="isSelected(slot.key) ? '{{ __('booking::booking.labels.click_to_change') }}:' : '{{ __('booking::booking.labels.click_practitioner') }}:'"></span>
                                     </label>
                                     <div class="flex flex-wrap gap-2">
-                                        <template x-for="practitioner in slot.practitioners" :key="practitioner.id || 'any'">
+                                        <template x-for="practitioner in slot.practitioners" :key="(practitioner.id || 'any') + '-' + slot.key">
                                             <button
                                                 type="button"
                                                 @click="toggleSelection(slot, practitioner)"
@@ -327,130 +452,3 @@
         </div>
     @endif
 </div>
-
-<script>
-function slotGrid() {
-    return {
-        view: 'cards',
-        selectedDate: '',
-        slotsData: {},
-        selections: {},
-
-        init(slotsData, initialSelections, firstDate) {
-            this.slotsData = slotsData;
-            this.selectedDate = firstDate;
-            // Convert server selections to our format
-            this.selections = {};
-            Object.keys(initialSelections).forEach(key => {
-                const sel = initialSelections[key];
-                this.selections[key] = {
-                    practitioner_id: sel.practitioner_id,
-                    practitioner_name: sel.practitioner_name
-                };
-            });
-        },
-
-        get currentDaySlots() {
-            return this.slotsData[this.selectedDate] || [];
-        },
-
-        isSelected(slotKey) {
-            return !!this.selections[slotKey];
-        },
-
-        isSelectedPractitioner(slotKey, practitionerId) {
-            const sel = this.selections[slotKey];
-            return sel && String(sel.practitioner_id) === String(practitionerId);
-        },
-
-        hasSelectionOnDate(date) {
-            const slots = this.slotsData[date] || [];
-            return slots.some(slot => this.selections[slot.key]);
-        },
-
-        toggleSelection(slot, practitioner) {
-            const key = slot.key;
-            const existingSel = this.selections[key];
-
-            if (existingSel && String(existingSel.practitioner_id) === String(practitioner.id)) {
-                // Same practitioner clicked - deselect
-                delete this.selections[key];
-            } else {
-                // Select this practitioner (or change to different one)
-                this.selections[key] = {
-                    practitioner_id: practitioner.id,
-                    practitioner_name: practitioner.name
-                };
-            }
-
-            // Sync to Livewire (debounced)
-            this.syncToLivewire(slot, practitioner);
-        },
-
-        toggleSelectionCompact(slot) {
-            const key = slot.key;
-            if (this.selections[key]) {
-                delete this.selections[key];
-                this.syncToLivewire(slot, null);
-            } else {
-                // Select first/recommended practitioner
-                const practitioner = slot.practitioners.find(p => p.is_recommended) || slot.practitioners[0];
-                if (practitioner) {
-                    this.selections[key] = {
-                        practitioner_id: practitioner.id,
-                        practitioner_name: practitioner.name
-                    };
-                    this.syncToLivewire(slot, practitioner);
-                }
-            }
-        },
-
-        syncToLivewire(slot, practitioner) {
-            // Build the slot data for Livewire
-            const slotData = {
-                service_id: slot.service_id,
-                service_name: slot.service_name,
-                date: slot.date,
-                start_time: slot.start_time,
-                end_time: slot.end_time,
-                duration: slot.duration,
-                practitioner_id: practitioner ? practitioner.id : null,
-                practitioner_name: practitioner ? practitioner.name : null,
-                room_id: slot.room_id,
-                room_name: slot.room_name,
-                equipment_id: slot.equipment_id,
-                equipment_name: slot.equipment_name,
-                from_package: slot.from_package,
-                new_package_id: slot.new_package_id,
-                treatment_plan_item_id: slot.treatment_plan_item_id
-            };
-
-            // Call Livewire in background (don't wait for response)
-            this.$wire.selectSlot(slotData);
-        },
-
-        getPractitionerStyle(slotKey, practitioner) {
-            const isThisSelected = this.isSelectedPractitioner(slotKey, practitioner.id);
-            const isSlotSelected = this.isSelected(slotKey);
-
-            if (practitioner.is_any_available) {
-                return isThisSelected
-                    ? 'background-color: #8b5cf6; color: white; border-color: #7c3aed;'
-                    : (isSlotSelected ? 'background-color: #f3f4f6; color: #6b7280; border-color: #e5e7eb;' : 'background-color: #f5f3ff; color: #6d28d9; border-color: #c4b5fd; border-style: dashed;');
-            }
-            return isThisSelected
-                ? 'background-color: #22c55e; color: white; border-color: #16a34a;'
-                : (isSlotSelected ? 'background-color: #f3f4f6; color: #6b7280; border-color: #e5e7eb;' : 'background-color: white; color: #374151; border-color: #e5e7eb;');
-        },
-
-        formatTime(timeStr) {
-            if (!timeStr) return '';
-            const [hours, minutes] = timeStr.split(':');
-            const h = parseInt(hours);
-            const ampm = h >= 12 ? 'PM' : 'AM';
-            const h12 = h % 12 || 12;
-            return `${h12}:${minutes} ${ampm}`;
-        }
-    }
-}
-</script>
