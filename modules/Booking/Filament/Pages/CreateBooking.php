@@ -112,7 +112,7 @@ class CreateBooking extends Page implements HasForms
         }
 
         return $patients->mapWithKeys(fn (Patient $p) => [
-            (string) $p->id => $p->display_name . ($p->trashed() ? ' [' . __('core::core.deleted') . ']' : ''),
+            (string) $p->id => $p->display_name.($p->trashed() ? ' ['.__('core::core.deleted').']' : ''),
         ])->toArray();
     }
 
@@ -1497,6 +1497,9 @@ class CreateBooking extends Page implements HasForms
         $endDate = Carbon::parse($dateTo);
         $allSlots = [];
 
+        // Pre-load all services at once to avoid N+1 queries inside loops
+        $preloadedServices = Service::findMany($serviceIds)->keyBy('id');
+
         // Iterate through each date in the range
         $currentDate = $startDate->copy();
         while ($currentDate->lte($endDate)) {
@@ -1511,7 +1514,7 @@ class CreateBooking extends Page implements HasForms
 
                 foreach ($slots as $slot) {
                     $slot['service_id'] = $serviceId;
-                    $slot['service_name'] = Service::find($serviceId)?->translated_name;
+                    $slot['service_name'] = $preloadedServices->get($serviceId)?->translated_name;
 
                     // Handle package info based on mode
                     // First check service-level package IDs, then fall back to form-level
@@ -1651,6 +1654,10 @@ class CreateBooking extends Page implements HasForms
         $endDate = Carbon::parse($dateTo);
         $allSlots = [];
 
+        // Pre-load service once to avoid N+1 queries inside the date loop
+        $serviceModel = Service::find($serviceId);
+        $serviceName = $serviceModel?->translated_name;
+
         // Get package/treatment plan context if applicable
         $fromPackage = null;
         $slotNewPackageId = null;  // Renamed to avoid shadowing
@@ -1685,7 +1692,7 @@ class CreateBooking extends Page implements HasForms
         }
 
         // Also check form-level treatment_plan_item_id as fallback
-        if ($serviceSourceItemId === null && !empty($data['treatment_plan_item_id'])) {
+        if ($serviceSourceItemId === null && ! empty($data['treatment_plan_item_id'])) {
             $formPlanItem = TreatmentPlanItem::find($data['treatment_plan_item_id']);
             if ($formPlanItem && $formPlanItem->service_id == $serviceId) {
                 $serviceSourceType = 'treatment_plan';
@@ -1750,7 +1757,7 @@ class CreateBooking extends Page implements HasForms
 
             foreach ($slots as $slot) {
                 $slot['service_id'] = $serviceId;
-                $slot['service_name'] = Service::find($serviceId)?->translated_name;
+                $slot['service_name'] = $serviceName;
                 $slot['from_package'] = $fromPackage;
                 $slot['new_package_id'] = $slotNewPackageId;
                 $slot['treatment_plan_item_id'] = $treatmentPlanItemId;
@@ -2264,6 +2271,10 @@ class CreateBooking extends Page implements HasForms
         $createdAppointments = [];
         $newPackageSubscriptions = []; // Track newly created subscriptions
 
+        // Pre-load all services at once to avoid N+1 queries inside the loop
+        $bookingServiceIds = collect($this->bookingItems)->pluck('service_id')->unique()->filter()->values()->toArray();
+        $preloadedServices = Service::findMany($bookingServiceIds)->keyBy('id');
+
         try {
             // Log search path for debugging
             $searchPath = DB::select('SHOW search_path')[0]->search_path ?? 'unknown';
@@ -2316,7 +2327,7 @@ class CreateBooking extends Page implements HasForms
                     'treatment_plan_item_id' => $item['treatment_plan_item_id'] ?? null,
                 ]);
 
-                $service = Service::find($item['service_id']);
+                $service = $preloadedServices->get($item['service_id']);
 
                 // Determine if this is a package session
                 $isPackageSession = ! empty($item['from_package']) || ! empty($item['new_package_id']);
@@ -2613,9 +2624,13 @@ class CreateBooking extends Page implements HasForms
 
         $createdAppointments = [];
 
+        // Pre-load all services at once to avoid N+1 queries inside the loop
+        $quickBookServiceIds = collect($validServices)->pluck('service_id')->unique()->filter()->values()->toArray();
+        $preloadedServices = Service::findMany($quickBookServiceIds)->keyBy('id');
+
         try {
             foreach ($validServices as $serviceData) {
-                $service = Service::find($serviceData['service_id']);
+                $service = $preloadedServices->get($serviceData['service_id']);
                 if (! $service) {
                     continue;
                 }
@@ -2624,7 +2639,7 @@ class CreateBooking extends Page implements HasForms
 
                 // Get price and discount - always calculate and store as fixed amount
                 $priceMinor = (int) ((float) ($serviceData['price_minor'] ?? 0) * 100);
-                if (!$priceMinor) {
+                if (! $priceMinor) {
                     $priceMinor = $service->base_price_minor ?? 0;
                 }
                 $discountType = $serviceData['discount_type'] ?? Appointment::DISCOUNT_FIXED;

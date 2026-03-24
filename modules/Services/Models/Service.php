@@ -2,31 +2,31 @@
 
 namespace Modules\Services\Models;
 
-use XLinic\Framework\Core\Model\BaseModel;
-use XLinic\Framework\Core\Model\Traits\HasTenancy;
-use XLinic\Framework\Core\Model\Traits\HasTranslation;
-use XLinic\Framework\Core\Model\Traits\HasActivity;
-use XLinic\Framework\Core\Model\Traits\HasSequence;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Modules\Accounting\Models\ChartOfAccount;
-use Modules\Equipment\Models\Equipment;
-use Modules\Core\Models\Room;
-use Modules\Auth\Models\User;
-use Modules\Staff\Models\StaffProfile;
-use Modules\Inventory\Models\Product;
-use Carbon\Carbon;
 use Illuminate\Support\Collection;
+use Modules\Accounting\Models\ChartOfAccount;
+use Modules\Core\Models\Room;
+use Modules\Equipment\Models\Equipment;
+use Modules\Inventory\Models\Product;
+use Modules\Staff\Models\StaffProfile;
+use XLinic\Framework\Core\Model\BaseModel;
+use XLinic\Framework\Core\Model\Traits\HasActivity;
+use XLinic\Framework\Core\Model\Traits\HasSequence;
+use XLinic\Framework\Core\Model\Traits\HasTenancy;
+use XLinic\Framework\Core\Model\Traits\HasTranslation;
 
 class Service extends BaseModel
 {
-    use HasTenancy, HasTranslation, HasActivity, HasSequence;
+    use HasActivity, HasSequence, HasTenancy, HasTranslation;
 
     protected $table = 'services';
 
     protected string $sequenceCode = 'service';
+
     protected string $sequenceColumn = 'code';
 
     protected $fillable = [
@@ -106,7 +106,7 @@ class Service extends BaseModel
     {
         static::creating(function (Service $service) {
             // Auto-assign parameter_template_id from category if not set
-            if (!$service->parameter_template_id && $service->category_id) {
+            if (! $service->parameter_template_id && $service->category_id) {
                 $category = ServiceCategory::find($service->category_id);
                 if ($category && $category->default_parameter_template_id) {
                     $service->parameter_template_id = $category->default_parameter_template_id;
@@ -128,7 +128,7 @@ class Service extends BaseModel
 
     public function getFormattedPriceAttribute(): string
     {
-        return number_format($this->base_price_minor / 100, 2) . ' ' . current_currency();
+        return number_format($this->base_price_minor / 100, 2).' '.current_currency();
     }
 
     public function getTotalDurationAttribute(): int
@@ -317,7 +317,7 @@ class Service extends BaseModel
 
         // Check day of week
         if (isset($restrictions['allowed_days']) &&
-            !in_array($dateTime->dayOfWeek, $restrictions['allowed_days'])) {
+            ! in_array($dateTime->dayOfWeek, $restrictions['allowed_days'])) {
             return false;
         }
 
@@ -367,7 +367,7 @@ class Service extends BaseModel
 
     public function isSafeForFitzpatrick(int $type): bool
     {
-        if (!$this->fitzpatrick_min && !$this->fitzpatrick_max) {
+        if (! $this->fitzpatrick_min && ! $this->fitzpatrick_max) {
             return true;
         }
 
@@ -440,7 +440,7 @@ class Service extends BaseModel
         }
 
         if ($this->parameter_mode === 'custom') {
-            return $this->activeParameters->map(fn($p) => $p->toFormField())->toArray();
+            return $this->activeParameters->map(fn ($p) => $p->toFormField())->toArray();
         }
 
         return [];
@@ -464,6 +464,7 @@ class Service extends BaseModel
                     $errors[$key] = $error;
                 }
             }
+
             return $errors;
         }
 
@@ -495,6 +496,7 @@ class Service extends BaseModel
                     $defaults[$param->parameter_key] = $default;
                 }
             }
+
             return $defaults;
         }
 
@@ -518,13 +520,22 @@ class Service extends BaseModel
      */
     public function getEffectiveEquipment(): Collection
     {
+        // Skip query if relationship already eager loaded
+        if ($this->relationLoaded('requiredEquipment') && $this->requiredEquipment->isNotEmpty()) {
+            return $this->requiredEquipment;
+        }
+
         // If service has its own equipment, use it
         if ($this->requiredEquipment()->exists()) {
             return $this->requiredEquipment;
         }
 
-        // Fall back to category's equipment
+        // Fall back to category's equipment (check if loaded first)
         if ($this->category) {
+            if ($this->category->relationLoaded('requiredEquipment')) {
+                return $this->category->requiredEquipment;
+            }
+
             return $this->category->requiredEquipment;
         }
 
@@ -537,13 +548,22 @@ class Service extends BaseModel
      */
     public function getEffectiveQualifiedStaff(): Collection
     {
+        // Skip query if relationship already eager loaded
+        if ($this->relationLoaded('qualifiedStaff') && $this->qualifiedStaff->isNotEmpty()) {
+            return $this->qualifiedStaff;
+        }
+
         // If service has its own qualified staff, use it
         if ($this->qualifiedStaff()->exists()) {
             return $this->qualifiedStaff;
         }
 
-        // Fall back to category's qualified staff
+        // Fall back to category's qualified staff (check if loaded first)
         if ($this->category) {
+            if ($this->category->relationLoaded('qualifiedStaff')) {
+                return $this->category->qualifiedStaff;
+            }
+
             return $this->category->qualifiedStaff;
         }
 
@@ -556,13 +576,22 @@ class Service extends BaseModel
      */
     public function getEffectiveRooms(): Collection
     {
+        // Skip query if relationship already eager loaded
+        if ($this->relationLoaded('rooms') && $this->rooms->isNotEmpty()) {
+            return $this->rooms;
+        }
+
         // If service has its own rooms, use it
         if ($this->rooms()->exists()) {
             return $this->rooms;
         }
 
-        // Fall back to category's rooms
+        // Fall back to category's rooms (check if loaded first)
         if ($this->category) {
+            if ($this->category->relationLoaded('rooms')) {
+                return $this->category->rooms;
+            }
+
             return $this->category->rooms;
         }
 
@@ -576,7 +605,7 @@ class Service extends BaseModel
     public function getEffectiveConsumables(): Collection
     {
         // If service has consumables_required field set, use it
-        if (!empty($this->consumables_required)) {
+        if (! empty($this->consumables_required)) {
             // consumables_required is a JSON array of product IDs with quantities
             return collect($this->consumables_required)->map(function ($item) {
                 return [

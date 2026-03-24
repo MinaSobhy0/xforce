@@ -38,6 +38,11 @@ class SlotGenerationService
 
     protected ?string $preloadedBranchId = null;
 
+    // Cached BookingConfig to avoid repeated queries
+    protected ?BookingConfig $cachedBookingConfig = null;
+
+    protected ?string $cachedBookingConfigBranchId = null;
+
     public function __construct()
     {
         $this->preloadedAppointments = collect();
@@ -88,7 +93,7 @@ class SlotGenerationService
             ->forBranch($branchId)
             ->active()
             ->currentlyEffective()
-            ->with('workSchedule')
+            ->with(['workSchedule', 'staffProfile.user'])
             ->get();
 
         // Key by staff_profile_id as string for consistent lookup
@@ -155,6 +160,8 @@ class SlotGenerationService
         $this->preloadedPractitionerAppointmentCounts = [];
         $this->preloadedDate = null;
         $this->preloadedBranchId = null;
+        $this->cachedBookingConfig = null;
+        $this->cachedBookingConfigBranchId = null;
     }
 
     /**
@@ -294,6 +301,16 @@ class SlotGenerationService
         // Generate all possible slots based on interval
         $possibleSlots = $this->generateTimeSlots($startTime, $endTime, $duration, $slotInterval);
 
+        // Pre-compute equipment requirements ONCE before the loop (avoid N+1)
+        $effectiveEquipment = $service->getEffectiveEquipment();
+        $mandatoryEquipment = $effectiveEquipment->where('pivot.is_mandatory', true);
+        $hasMandatoryEquipment = $mandatoryEquipment->isNotEmpty();
+
+        // Pre-compute primary room IDs for in-memory lookup (avoid N+1)
+        $primaryRoomIds = $service->relationLoaded('rooms')
+            ? $service->rooms->where('pivot.is_primary', true)->pluck('id')->toArray()
+            : [];
+
         // Build available slots with resources
         $availableSlots = collect();
 
@@ -344,7 +361,8 @@ class SlotGenerationService
                 $branchId,
                 $slotStartTime,
                 $totalDuration,
-                $qualifiedPractitioners
+                $qualifiedPractitioners,
+                $service
             );
 
             if ($availablePractitioners->isEmpty()) {
@@ -375,20 +393,18 @@ class SlotGenerationService
                 $service
             );
 
-            // Find available equipment if required
+            // Find available equipment if required (pass pre-computed equipment)
             $equipment = $this->findAvailableEquipment(
                 $serviceId,
                 $branchId,
                 $slotStartTime,
                 $totalDuration,
-                $service
+                $service,
+                $effectiveEquipment
             );
 
-            // Check if equipment is required but not available (cascades: Service → ServiceCategory)
-            $requiredEquipment = $service->getEffectiveEquipment()
-                ->where('pivot.is_mandatory', true);
-
-            if ($requiredEquipment->isNotEmpty() && ! $equipment) {
+            // Check if equipment is required but not available (uses pre-computed value)
+            if ($hasMandatoryEquipment && ! $equipment) {
                 continue;
             }
 
@@ -400,8 +416,8 @@ class SlotGenerationService
                 $totalDuration
             );
 
-            // Check if room is primary for this service
-            $isRoomPrimary = $room ? $this->isRoomPrimaryForService($service, $room->id) : false;
+            // Check if room is primary for this service (uses pre-computed lookup)
+            $isRoomPrimary = $room ? in_array($room->id, $primaryRoomIds) : false;
 
             $availableSlots->push([
                 'start_time' => $slot['start'],
@@ -441,13 +457,20 @@ class SlotGenerationService
         string $branchId,
         Carbon $datetime,
         int $duration,
-        ?Collection $qualifiedPractitioners = null
+        ?Collection $qualifiedPractitioners = null,
+        ?Service $service = null
     ): Collection {
         // Use preloaded data if available, otherwise load fresh
         $usePreloaded = $this->preloadedDate?->isSameDay($datetime) && $this->preloadedBranchId === $branchId;
 
         if (! $qualifiedPractitioners) {
-            $service = Service::find($serviceId);
+            // Reuse provided service or load fresh if not provided
+            if (! $service) {
+                $service = Service::with([
+                    'qualifiedStaff',
+                    'category.qualifiedStaff',
+                ])->find($serviceId);
+            }
             if (! $service) {
                 return collect();
             }
@@ -704,13 +727,16 @@ class SlotGenerationService
     /**
      * Find available equipment for a service.
      * Optimized to use pre-loaded data when available.
+     *
+     * @param  Collection|null  $precomputedEquipment  Pre-computed effective equipment to avoid N+1 queries
      */
     public function findAvailableEquipment(
         string $serviceId,
         string $branchId,
         Carbon $datetime,
         int $duration,
-        ?Service $service = null
+        ?Service $service = null,
+        ?Collection $precomputedEquipment = null
     ): ?Equipment {
         if (! $service) {
             $service = Service::with('category.requiredEquipment')->find($serviceId);
@@ -728,8 +754,8 @@ class SlotGenerationService
         $useServiceEquipment = ! $equipmentReq || $equipmentReq['source'] === 'service';
 
         if ($useServiceEquipment) {
-            // Use getEffectiveEquipment() which cascades: Service → ServiceCategory
-            $effectiveEquipment = $service->getEffectiveEquipment();
+            // Use precomputed equipment if available, otherwise fetch
+            $effectiveEquipment = $precomputedEquipment ?? $service->getEffectiveEquipment();
 
             // Filter for mandatory equipment at this branch
             $requiredEquipment = $effectiveEquipment
@@ -1252,7 +1278,7 @@ class SlotGenerationService
         if (is_string($time)) {
             // Handle H:i format (no seconds)
             if (preg_match('/^\d{2}:\d{2}$/', $time)) {
-                return $time . ':00';
+                return $time.':00';
             }
 
             return $time;
@@ -1281,9 +1307,9 @@ class SlotGenerationService
         $recommendedIndex = 0;
         $slotEndTimeStr = $slotEnd->format('H:i:s');
 
-        // Check if "Any Available Doctor" option should be added
-        $config = BookingConfig::getForBranch($branchId);
-        if ($config->allow_any_available_doctor && $practitioners->isNotEmpty()) {
+        // Check if "Any Available Doctor" option should be added (uses cached config)
+        $config = $this->getCachedBookingConfig($branchId);
+        if ($config && $config->allow_any_available_doctor && $practitioners->isNotEmpty()) {
             $enrichedData[] = [
                 'id' => null,
                 'staff_profile_id' => null,
@@ -1370,6 +1396,21 @@ class SlotGenerationService
             ->wherePivot('is_primary', true)
             ->where('rooms.id', $roomId)
             ->exists();
+    }
+
+    /**
+     * Get cached BookingConfig to avoid repeated queries.
+     */
+    protected function getCachedBookingConfig(string $branchId): ?BookingConfig
+    {
+        if ($this->cachedBookingConfig && $this->cachedBookingConfigBranchId === $branchId) {
+            return $this->cachedBookingConfig;
+        }
+
+        $this->cachedBookingConfigBranchId = $branchId;
+        $this->cachedBookingConfig = BookingConfig::getForBranch($branchId);
+
+        return $this->cachedBookingConfig;
     }
 
     /**
