@@ -16,6 +16,13 @@ class SetLocale
      */
     public function handle(Request $request, Closure $next): Response
     {
+        // Handle locale query parameter for language switching
+        if ($request->has('locale') && in_array($request->locale, ['en', 'ar'])) {
+            session(['locale' => $request->locale]);
+
+            return redirect()->to($request->url());
+        }
+
         // Priority: Session > User preference > Browser > Default
         $locale = session('locale');
 
