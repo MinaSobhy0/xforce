@@ -14,6 +14,7 @@ use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\HtmlString;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
 use Modules\Auth\Models\User;
 use Modules\Booking\Models\Appointment;
@@ -1812,10 +1813,12 @@ class CreateBooking extends Page implements HasForms
                 // Toggle off - remove the booking
                 unset($this->bookingItems[$existingServiceIndex]);
                 $this->bookingItems = array_values($this->bookingItems);
+                unset($this->selectedSlotKeys); // Clear computed cache
             } else {
                 // Case 2: Same slot + different practitioner = change practitioner
                 $this->bookingItems[$existingServiceIndex]['practitioner_id'] = $practitionerId;
                 $this->bookingItems[$existingServiceIndex]['practitioner_name'] = $slot['practitioner_name'] ?? null;
+                unset($this->selectedSlotKeys); // Clear computed cache
             }
         } else {
             // Case 3: Different slot for same service = replace the slot
@@ -1845,14 +1848,17 @@ class CreateBooking extends Page implements HasForms
                 // Add new booking
                 $this->bookingItems[] = $newItem;
             }
+            unset($this->selectedSlotKeys); // Clear computed cache
         }
         // Visual feedback is handled instantly by Alpine.js - no notification needed
     }
 
     /**
      * Get selected slot keys for tracking in the UI.
+     * Uses Computed attribute for caching.
      */
-    public function getSelectedSlotKeys(): array
+    #[Computed]
+    public function selectedSlotKeys(): array
     {
         $keys = [];
         foreach ($this->bookingItems as $item) {
@@ -1867,17 +1873,29 @@ class CreateBooking extends Page implements HasForms
         return $keys;
     }
 
+    /**
+     * Get selected slot keys for tracking in the UI.
+     *
+     * @deprecated Use $this->selectedSlotKeys instead
+     */
+    public function getSelectedSlotKeys(): array
+    {
+        return $this->selectedSlotKeys;
+    }
+
     public function removeBookingItem(int $index): void
     {
         if (isset($this->bookingItems[$index])) {
             unset($this->bookingItems[$index]);
             $this->bookingItems = array_values($this->bookingItems);
+            unset($this->selectedSlotKeys); // Clear computed cache
         }
     }
 
     public function clearCart(): void
     {
         $this->bookingItems = [];
+        unset($this->selectedSlotKeys); // Clear computed cache
     }
 
     /**

@@ -12,7 +12,14 @@
 <div class="space-y-4" x-data="{
     view: 'cards',
     selectedDate: '{{ $firstDate }}',
-    dates: {{ json_encode($dates) }}
+    dates: {{ json_encode($dates) }},
+    pendingSlot: null,
+    selectSlot(slotData, slotKey) {
+        this.pendingSlot = slotKey;
+        $wire.selectSlot(slotData).then(() => {
+            this.pendingSlot = null;
+        });
+    }
 }">
     {{-- Header --}}
     <div class="flex items-center justify-between border-b border-gray-200 pb-3 dark:border-gray-700">
@@ -147,11 +154,11 @@
                         <button
                             type="button"
                             wire:key="compact-slot-{{ $slotKey }}"
-                            wire:click="selectSlot({{ json_encode($slotData) }})"
-                            wire:loading.attr="disabled"
-                            wire:loading.class="opacity-50 cursor-wait"
+                            x-on:click="selectSlot({{ json_encode($slotData) }}, '{{ $slotKey }}')"
+                            x-bind:disabled="pendingSlot !== null"
                             class="group relative flex flex-col items-center rounded-lg border-2 p-2 text-center transition-all active:scale-95"
-                            style="{{ $isSelected ? 'background-color: #f0fdf4; border-color: #22c55e; box-shadow: 0 0 0 2px #bbf7d0;' : 'background-color: white; border-color: #e5e7eb;' }}"
+                            x-bind:class="pendingSlot === '{{ $slotKey }}' ? 'opacity-50 cursor-wait' : ''"
+                            x-bind:style="pendingSlot === '{{ $slotKey }}' ? 'background-color: #dbeafe; border-color: #3b82f6; box-shadow: 0 0 0 2px #bfdbfe;' : '{{ $isSelected ? 'background-color: #f0fdf4; border-color: #22c55e; box-shadow: 0 0 0 2px #bbf7d0;' : 'background-color: white; border-color: #e5e7eb;' }}'"
                         >
                             @if($isSelected)
                                 <span class="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full" style="background-color: #22c55e; color: white;">

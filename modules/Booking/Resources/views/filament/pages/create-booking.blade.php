@@ -9,7 +9,7 @@
         <div class="mt-6">
             @include('booking::components.inline-slot-grid', [
                 'slots' => $this->availableSlots,
-                'selectedSlots' => $this->getSelectedSlotKeys(),
+                'selectedSlots' => $this->selectedSlotKeys,
             ])
         </div>
     @endif

@@ -23,6 +23,7 @@
 
 <div
     wire:key="slot-card-{{ $slotKey }}-{{ $selectedPractitionerId }}"
+    x-data="{ pendingPractitioner: null }"
     class="slot-card relative rounded-lg border-2 p-4 transition-all"
     style="{{ $isSelected ? 'background-color: #f0fdf4; border-color: #22c55e; box-shadow: 0 0 0 2px #bbf7d0;' : ($isLimited ? 'background-color: #fefce8; border-color: #fde047;' : 'background-color: white; border-color: #e5e7eb;') }}"
 >
@@ -114,11 +115,11 @@
                     @endphp
                     <button
                         type="button"
-                        wire:click="selectSlot({{ json_encode($slotData) }})"
-                        wire:loading.attr="disabled"
-                        wire:loading.class="opacity-50 cursor-wait"
+                        x-on:click="pendingPractitioner = '{{ $practitionerId }}'; $wire.selectSlot({{ json_encode($slotData) }}).then(() => pendingPractitioner = null)"
+                        x-bind:disabled="pendingPractitioner !== null"
                         class="practitioner-chip inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer border-2"
-                        style="{{ $buttonStyle }}"
+                        x-bind:class="pendingPractitioner === '{{ $practitionerId }}' ? 'opacity-50 cursor-wait' : ''"
+                        x-bind:style="pendingPractitioner === '{{ $practitionerId }}' ? 'background-color: #dbeafe; border-color: #3b82f6;' : '{{ $buttonStyle }}'"
                     >
                         {{-- Status Dot / Users Icon for Any Available --}}
                         @if($isAnyAvailable)
