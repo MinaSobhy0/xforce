@@ -1781,24 +1781,28 @@ class CreateBooking extends Page implements HasForms
 
     public function selectSlot(array $slot): void
     {
-        $serviceId = $slot['service_id'] ?? null;
+        // Cast IDs to int for consistent comparison (JS may send strings)
+        $serviceId = isset($slot['service_id']) ? (int) $slot['service_id'] : null;
         $slotKey = $slot['date'].'_'.$slot['start_time'].'_'.$serviceId;
-        $practitionerId = $slot['practitioner_id'] ?? $slot['available_practitioners'][0]['id'] ?? null;
+        $practitionerId = isset($slot['practitioner_id']) ? (int) $slot['practitioner_id'] : ($slot['available_practitioners'][0]['id'] ?? null);
 
         // Find if this service already has a booking
         $existingServiceIndex = null;
         $existingSlotKey = null;
         foreach ($this->bookingItems as $index => $item) {
-            if ($item['service_id'] === $serviceId) {
+            $itemServiceId = isset($item['service_id']) ? (int) $item['service_id'] : null;
+            if ($itemServiceId === $serviceId) {
                 $existingServiceIndex = $index;
-                $existingSlotKey = $item['date'].'_'.$item['start_time'].'_'.$item['service_id'];
+                $existingSlotKey = $item['date'].'_'.$item['start_time'].'_'.$itemServiceId;
                 break;
             }
         }
 
         // Case 1: Same slot + same practitioner = toggle off (deselect)
         if ($existingServiceIndex !== null && $existingSlotKey === $slotKey) {
-            $existingPractitionerId = $this->bookingItems[$existingServiceIndex]['practitioner_id'];
+            $existingPractitionerId = isset($this->bookingItems[$existingServiceIndex]['practitioner_id'])
+                ? (int) $this->bookingItems[$existingServiceIndex]['practitioner_id']
+                : null;
 
             if ($existingPractitionerId === $practitionerId) {
                 // Toggle off - remove the booking

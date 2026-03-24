@@ -8,6 +8,10 @@
     $dates = $slotsByDate->keys()->toArray();
     $firstDate = $dates[0] ?? null;
 
+    // Generate a unique key based on slots content to force Alpine re-init when slots change
+    $serviceIds = collect($slots)->pluck('service_id')->unique()->sort()->implode('-');
+    $slotsHash = md5($serviceIds . '-' . count($slots));
+
     // Pre-process slots data for Alpine (minimize what we send)
     $slotsDataForAlpine = [];
     foreach ($slotsByDate as $date => $dateSlots) {
@@ -56,6 +60,7 @@
 @endphp
 
 <div
+    wire:key="slot-grid-{{ $slotsHash }}"
     class="space-y-4"
     x-data="{
         view: 'cards',
