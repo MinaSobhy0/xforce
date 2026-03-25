@@ -261,7 +261,14 @@ class AppointmentResource extends Resource
                 Tables\Columns\TextColumn::make('patient.full_name')
                     ->label(__('booking::appointments.fields.patient'))
                     ->searchable(['first_name', 'last_name'])
-                    ->sortable(),
+                    ->sortable(query: function (Builder $query, string $direction): Builder {
+                        return $query->orderBy(
+                            Patient::select('first_name')
+                                ->whereColumn('patients.id', 'appointments.patient_id')
+                                ->limit(1),
+                            $direction
+                        );
+                    }),
 
                 Tables\Columns\TextColumn::make('service.translated_name')
                     ->label(__('booking::appointments.fields.service'))
@@ -290,7 +297,14 @@ class AppointmentResource extends Resource
                             ? __('booking::booking.needs_scheduling')
                             : ($record->hasPractitionerAssigned() ? $state : __('booking::reception.assign_before_checkin'))
                     )
-                    ->sortable()
+                    ->sortable(query: function (Builder $query, string $direction): Builder {
+                        return $query->orderBy(
+                            User::select('first_name')
+                                ->whereColumn('users.id', 'appointments.practitioner_id')
+                                ->limit(1),
+                            $direction
+                        );
+                    })
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('date')
@@ -313,7 +327,8 @@ class AppointmentResource extends Resource
                         'danger' => Appointment::STATUS_CANCELLED,
                         'gray' => fn ($state) => in_array($state, [Appointment::STATUS_NO_SHOW, Appointment::STATUS_RESCHEDULED]),
                     ])
-                    ->formatStateUsing(fn (string $state): string => Appointment::STATUSES[$state] ?? $state),
+                    ->formatStateUsing(fn (string $state): string => Appointment::STATUSES[$state] ?? $state)
+                    ->sortable(),
 
                 Tables\Columns\IconColumn::make('is_unscheduled')
                     ->label(__('booking::booking.needs_scheduling'))
