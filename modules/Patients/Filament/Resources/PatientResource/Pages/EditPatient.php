@@ -5,10 +5,31 @@ namespace Modules\Patients\Filament\Resources\PatientResource\Pages;
 use Modules\Patients\Filament\Resources\PatientResource;
 use Filament\Actions;
 use App\Filament\Resources\Pages\BaseEditRecord;
+use Filament\Notifications\Notification;
+use Illuminate\Database\UniqueConstraintViolationException;
 
 class EditPatient extends BaseEditRecord
 {
     protected static string $resource = PatientResource::class;
+
+    protected function handleRecordUpdate(\Illuminate\Database\Eloquent\Model $record, array $data): \Illuminate\Database\Eloquent\Model
+    {
+        try {
+            return parent::handleRecordUpdate($record, $data);
+        } catch (UniqueConstraintViolationException $e) {
+            // Check if it's a phone uniqueness violation
+            if (str_contains($e->getMessage(), 'phone')) {
+                Notification::make()
+                    ->title(__('patients::patients.validation.phone_exists'))
+                    ->danger()
+                    ->send();
+
+                $this->halt();
+            }
+
+            throw $e;
+        }
+    }
 
     protected function getEditHeaderActions(): array
     {

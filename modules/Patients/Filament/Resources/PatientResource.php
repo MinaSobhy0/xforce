@@ -138,12 +138,6 @@ class PatientResource extends Resource
                                                     ->tel()
                                                     ->required()
                                                     ->maxLength(20)
-                                                    ->unique(
-                                                        table: Patient::class,
-                                                        column: 'phone',
-                                                        ignoreRecord: true,
-                                                        modifyRuleUsing: fn ($rule) => $rule->whereNull('deleted_at'),
-                                                    )
                                                     ->columnSpan(3),
                                             ]),
 

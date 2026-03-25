@@ -234,4 +234,9 @@ return [
         'pay_balance' => 'Pay Balance',
         'view_ledger' => 'View Ledger',
     ],
+
+    // Validation
+    'validation' => [
+        'phone_exists' => 'A patient with this phone number already exists.',
+    ],
 ];

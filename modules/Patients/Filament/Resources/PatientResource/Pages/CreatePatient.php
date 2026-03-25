@@ -5,10 +5,31 @@ namespace Modules\Patients\Filament\Resources\PatientResource\Pages;
 use Modules\Patients\Filament\Resources\PatientResource;
 use Modules\Patients\Models\PatientMedicalHistory;
 use Filament\Resources\Pages\CreateRecord;
+use Filament\Notifications\Notification;
+use Illuminate\Database\UniqueConstraintViolationException;
 
 class CreatePatient extends CreateRecord
 {
     protected static string $resource = PatientResource::class;
+
+    protected function handleRecordCreation(array $data): \Illuminate\Database\Eloquent\Model
+    {
+        try {
+            return parent::handleRecordCreation($data);
+        } catch (UniqueConstraintViolationException $e) {
+            // Check if it's a phone uniqueness violation
+            if (str_contains($e->getMessage(), 'phone')) {
+                Notification::make()
+                    ->title(__('patients::patients.validation.phone_exists'))
+                    ->danger()
+                    ->send();
+
+                $this->halt();
+            }
+
+            throw $e;
+        }
+    }
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
