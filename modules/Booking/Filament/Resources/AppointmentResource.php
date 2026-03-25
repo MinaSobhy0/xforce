@@ -348,6 +348,38 @@ class AppointmentResource extends Resource
                     ->label(__('booking::appointments.fields.source'))
                     ->formatStateUsing(fn (string $state): string => Appointment::SOURCES[$state] ?? $state)
                     ->toggleable(isToggledHiddenByDefault: true),
+
+                Tables\Columns\TextColumn::make('price_minor')
+                    ->label(__('booking::appointments.fields.price'))
+                    ->money(current_currency(), divideBy: 100)
+                    ->sortable()
+                    ->toggleable()
+                    ->action(
+                        Tables\Actions\Action::make('editPrice')
+                            ->label(__('booking::appointments.actions.edit_price'))
+                            ->icon('heroicon-o-pencil')
+                            ->modalHeading(__('booking::appointments.actions.edit_price'))
+                            ->form([
+                                Forms\Components\TextInput::make('price_minor')
+                                    ->label(__('booking::appointments.fields.price'))
+                                    ->numeric()
+                                    ->prefix(current_currency())
+                                    ->required()
+                                    ->default(fn (Appointment $record) => $record->price_minor / 100),
+                            ])
+                            ->action(function (Appointment $record, array $data) {
+                                $record->update(['price_minor' => (int) ($data['price_minor'] * 100)]);
+                                Notification::make()
+                                    ->title(__('booking::appointments.messages.price_updated'))
+                                    ->success()
+                                    ->send();
+                            })
+                            ->visible(fn (Appointment $record): bool => ! in_array($record->status, [
+                                Appointment::STATUS_COMPLETED,
+                                Appointment::STATUS_CANCELLED,
+                                Appointment::STATUS_NO_SHOW,
+                            ]))
+                    ),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('status')

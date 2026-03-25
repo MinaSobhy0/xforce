@@ -88,6 +88,7 @@ return [
         'reschedule' => 'إعادة جدولة',
         'pay_balance' => 'دفع الرصيد',
         'dismiss' => 'تجاهل',
+        'edit_price' => 'تعديل السعر',
     ],
 
     'notifications' => [
@@ -155,5 +156,6 @@ return [
         'cancelled_description' => 'تم إلغاء موعدك. إذا كنت بحاجة لحجز موعد جديد، يرجى التواصل مع العيادة.',
         'reschedule_contact' => 'طلب إعادة جدولة',
         'reschedule_description' => 'لإعادة جدولة موعدك، يرجى التواصل معنا على: :phone',
+        'price_updated' => 'تم تحديث السعر بنجاح',
     ],
 ];

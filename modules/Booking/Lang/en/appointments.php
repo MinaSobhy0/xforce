@@ -88,6 +88,7 @@ return [
         'reschedule' => 'Reschedule',
         'pay_balance' => 'Pay Balance',
         'dismiss' => 'Dismiss',
+        'edit_price' => 'Edit Price',
     ],
 
     'notifications' => [
@@ -155,5 +156,6 @@ return [
         'cancelled_description' => 'Your appointment has been cancelled. If you need to book a new appointment, please contact the clinic.',
         'reschedule_contact' => 'Reschedule Request',
         'reschedule_description' => 'To reschedule your appointment, please contact us at: :phone',
+        'price_updated' => 'Price updated successfully',
     ],
 ];
