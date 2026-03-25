@@ -1041,7 +1041,8 @@ class CreateBooking extends Page implements HasForms
                                                     })
                                                     ->columnSpanFull(),
                                             ])
-                                            ->visible(fn (Get $get) => $get('booking_type') === 'service'),
+                                            ->visible(fn (Get $get) => $get('booking_type') === 'service')
+                                            ->dehydrated(fn (Get $get) => $get('booking_type') === 'service'),
 
                                         // Package Selection (for package booking)
                                         Forms\Components\Section::make(__('booking::booking.fields.package'))
