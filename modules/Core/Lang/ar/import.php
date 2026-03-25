@@ -127,6 +127,7 @@ return [
         'barcode' => 'الباركود',
         'is_consumable' => 'قابل للاستهلاك',
         'is_active' => 'نشط',
+        'full_name' => 'الاسم الكامل',
         'first_name' => 'الاسم الأول',
         'last_name' => 'الاسم الأخير',
         'email' => 'البريد الإلكتروني',

@@ -198,6 +198,46 @@ class Patient extends BaseModel implements Authenticatable
     }
 
     /**
+     * Normalize phone number before saving - strip country code prefix if present.
+     * This prevents double country codes when users paste from international_phone display.
+     */
+    public function setPhoneAttribute(?string $value): void
+    {
+        if ($value === null || $value === '') {
+            $this->attributes['phone'] = $value;
+            return;
+        }
+
+        $phone = trim($value);
+
+        // If phone starts with +, extract and possibly update country code
+        if (str_starts_with($phone, '+')) {
+            // Try to match known country codes (longest first to avoid partial matches)
+            $countryCodes = ['+966', '+971', '+974', '+973', '+965', '+968', '+962', '+961', '+963', '+964', '+212', '+213', '+216', '+218', '+249', '+970', '+967', '+234', '+254', '+20', '+44', '+49', '+33', '+39', '+34', '+31', '+90', '+91', '+92', '+86', '+81', '+82', '+61', '+55', '+27', '+1'];
+
+            foreach ($countryCodes as $code) {
+                if (str_starts_with($phone, $code)) {
+                    // Update country code if not already set
+                    if (empty($this->attributes['phone_country_code'])) {
+                        $this->attributes['phone_country_code'] = $code;
+                    }
+                    // Strip the country code from phone
+                    $phone = substr($phone, strlen($code));
+                    break;
+                }
+            }
+        }
+
+        // Remove any remaining non-numeric characters except for local formatting
+        $phone = preg_replace('/[^\d]/', '', $phone);
+
+        // Remove leading zeros (common in local format)
+        $phone = ltrim($phone, '0');
+
+        $this->attributes['phone'] = $phone;
+    }
+
+    /**
      * Get the international phone number (with country code).
      */
     public function getInternationalPhoneAttribute(): ?string

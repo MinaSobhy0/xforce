@@ -127,6 +127,7 @@ return [
         'barcode' => 'Barcode',
         'is_consumable' => 'Is Consumable',
         'is_active' => 'Is Active',
+        'full_name' => 'Full Name',
         'first_name' => 'First Name',
         'last_name' => 'Last Name',
         'email' => 'Email',

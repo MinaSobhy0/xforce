@@ -372,10 +372,15 @@ class PatientResource extends Resource
                     ->sortable()
                     ->copyable(),
 
-                Tables\Columns\TextColumn::make('full_name')
-                    ->label(__('patients::patients.fields.full_name'))
-                    ->searchable(['first_name', 'last_name'])
-                    ->sortable(['first_name']),
+                Tables\Columns\TextColumn::make('first_name')
+                    ->label(__('patients::patients.fields.first_name'))
+                    ->searchable()
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('last_name')
+                    ->label(__('patients::patients.fields.last_name'))
+                    ->searchable()
+                    ->sortable(),
 
                 Tables\Columns\TextColumn::make('international_phone')
                     ->label(__('patients::patients.fields.phone'))

@@ -169,6 +169,14 @@ class DynamicImporterFactory
         // Fields to allow even if hidden (needed for import)
         $allowHidden = ['password'];
 
+        // Check if model has both first_name and last_name - add virtual full_name column
+        $hasFirstName = in_array('first_name', $config['fillable']);
+        $hasLastName = in_array('last_name', $config['fillable']);
+
+        if ($hasFirstName && $hasLastName) {
+            $columns[] = static::createFullNameColumn();
+        }
+
         foreach ($config['fillable'] as $field) {
             // Skip tenant_id
             if ($field === 'tenant_id') {
@@ -207,6 +215,67 @@ class DynamicImporterFactory
         }
 
         return $columns;
+    }
+
+    /**
+     * Create a virtual full_name column that splits into first_name and last_name.
+     * This handles exports that combine names into a single "Full Name" column.
+     */
+    protected static function createFullNameColumn(): ImportColumn
+    {
+        return ImportColumn::make('full_name')
+            ->label(__('core::import.fields.full_name'))
+            ->fillRecordUsing(function ($record, $state) {
+                if ($state === null || $state === '') {
+                    return;
+                }
+
+                $state = trim((string) $state);
+
+                // If first_name is already set (user mapped separate columns), skip
+                if (!empty($record->first_name)) {
+                    return;
+                }
+
+                // Split the full name into parts
+                $parts = preg_split('/\s+/', $state);
+
+                if (count($parts) === 1) {
+                    // Single name - treat as first name
+                    $record->first_name = $parts[0];
+                    $record->last_name = '';
+                } elseif (count($parts) === 2) {
+                    // Two parts - first and last
+                    $record->first_name = $parts[0];
+                    $record->last_name = $parts[1];
+                } else {
+                    // Multiple parts - first part is first name, rest is last name
+                    $record->first_name = $parts[0];
+                    $record->last_name = implode(' ', array_slice($parts, 1));
+                }
+            })
+            ->rules(['nullable', 'string'])
+            ->guess([
+                'full_name',
+                'Full Name',
+                'full name',
+                'FULL NAME',
+                'fullname',
+                'Fullname',
+                'FullName',
+                'name',
+                'Name',
+                'NAME',
+                'patient_name',
+                'Patient Name',
+                'patient name',
+                'customer_name',
+                'Customer Name',
+                'client_name',
+                'Client Name',
+                'الاسم',
+                'الاسم الكامل',
+            ]);
     }
 
     /**
