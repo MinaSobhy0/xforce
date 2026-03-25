@@ -2354,6 +2354,9 @@ class CreateBooking extends Page implements HasForms
         $bookingServiceIds = collect($this->bookingItems)->pluck('service_id')->unique()->filter()->values()->toArray();
         $preloadedServices = Service::findMany($bookingServiceIds)->keyBy('id');
 
+        // Use database transaction to ensure all-or-nothing booking creation
+        DB::beginTransaction();
+
         try {
             // Log search path for debugging
             $searchPath = DB::select('SHOW search_path')[0]->search_path ?? 'unknown';
@@ -2652,9 +2655,15 @@ class CreateBooking extends Page implements HasForms
                     ->send();
             }
 
+            // Commit transaction only after all appointments are created successfully
+            DB::commit();
+
             $this->redirect(route('filament.tenant.resources.appointments.index'));
 
         } catch (\Exception $e) {
+            // Rollback all changes if any appointment creation fails
+            DB::rollBack();
+
             \Log::error('Booking creation failed', [
                 'message' => $e->getMessage(),
                 'file' => $e->getFile(),
@@ -2706,6 +2715,9 @@ class CreateBooking extends Page implements HasForms
         // Pre-load all services at once to avoid N+1 queries inside the loop
         $quickBookServiceIds = collect($validServices)->pluck('service_id')->unique()->filter()->values()->toArray();
         $preloadedServices = Service::findMany($quickBookServiceIds)->keyBy('id');
+
+        // Use database transaction to ensure all-or-nothing booking creation
+        DB::beginTransaction();
 
         try {
             foreach ($validServices as $serviceData) {
@@ -2769,9 +2781,15 @@ class CreateBooking extends Page implements HasForms
                 ->success()
                 ->send();
 
+            // Commit transaction only after all appointments are created successfully
+            DB::commit();
+
             $this->redirect(route('filament.tenant.resources.appointments.index'));
 
         } catch (\Exception $e) {
+            // Rollback all changes if any appointment creation fails
+            DB::rollBack();
+
             \Log::error('Quick book creation failed', [
                 'message' => $e->getMessage(),
                 'file' => $e->getFile(),
