@@ -264,6 +264,7 @@ class InventoryAdjustment extends BaseModel
     /**
      * Load products for counting from current stock levels.
      * Loads ALL active storable products in the branch/location with their current stock.
+     * Updates existing lines with current product cost.
      */
     public function loadProductsFromStock(): void
     {
@@ -277,24 +278,33 @@ class InventoryAdjustment extends BaseModel
             ->get();
 
         foreach ($products as $product) {
+            // Get stock level for this branch and location
+            $query = StockLevel::where('product_id', $product->id)
+                ->where('branch_id', $this->branch_id);
+
+            // If location is specified, filter by it
+            if ($this->location_id) {
+                $query->where('location_id', $this->location_id);
+            }
+
+            $stockLevel = $query->first();
+            $theoreticalQty = $stockLevel?->quantity_on_hand ?? 0;
+            $currentCost = $product->cost_price_minor ?? 0;
+
             // Check if line already exists
             $existingLine = $this->lines()
                 ->where('product_id', $product->id)
                 ->first();
 
-            if (!$existingLine) {
-                // Get stock level for this branch and location
-                $query = StockLevel::where('product_id', $product->id)
-                    ->where('branch_id', $this->branch_id);
-
-                // If location is specified, filter by it
-                if ($this->location_id) {
-                    $query->where('location_id', $this->location_id);
-                }
-
-                $stockLevel = $query->first();
-                $theoreticalQty = $stockLevel?->quantity_on_hand ?? 0;
-
+            if ($existingLine) {
+                // Update existing line with current cost and recalculate value adjustment
+                $existingLine->unit_cost_minor = $currentCost;
+                $existingLine->theoretical_qty = $theoreticalQty;
+                $existingLine->difference_qty = $existingLine->counted_qty - $theoreticalQty;
+                $existingLine->value_adjustment_minor = $existingLine->difference_qty * $currentCost;
+                $existingLine->save();
+            } else {
+                // Create new line
                 InventoryAdjustmentLine::create([
                     'tenant_id' => $this->tenant_id,
                     'inventory_adjustment_id' => $this->id,
@@ -302,11 +312,14 @@ class InventoryAdjustment extends BaseModel
                     'theoretical_qty' => $theoreticalQty,
                     'counted_qty' => $theoreticalQty, // Default to theoretical
                     'difference_qty' => 0,
-                    'unit_cost_minor' => $product->cost_price_minor ?? 0,
+                    'unit_cost_minor' => $currentCost,
                     'value_adjustment_minor' => 0,
                 ]);
             }
         }
+
+        // Recalculate totals after loading
+        $this->recalculateTotals();
     }
 
     /*
