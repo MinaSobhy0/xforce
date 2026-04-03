@@ -410,6 +410,9 @@ class TenantService
 
                 // Inventory - Stock Locations
                 \Modules\Inventory\Database\Seeders\StockLocationSeeder::class,
+
+                // Projects - default tags
+                \Modules\Projects\Database\Seeders\DefaultProjectTagsSeeder::class,
             ];
 
             foreach ($seeders as $seederClass) {

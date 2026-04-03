@@ -172,6 +172,7 @@ class Tenant extends Model
                 'gift_cards',
                 'packages',
                 'equipment',
+                'projects',
             ];
 
             // Default settings
@@ -197,7 +198,7 @@ class Tenant extends Model
                     VALUES (?, ?, ?, true, true, ?, ?, ?, ?)
                 ', [
                     $tenant->id,
-                    $tenant->slug.'.x-linic.com',
+                    $tenant->slug.'.xforcehr.com',
                     'subdomain',
                     'valid',
                     now(),
@@ -228,7 +229,7 @@ class Tenant extends Model
             if ($tenant->isDirty('slug')) {
                 $tenant->domains()
                     ->where('type', 'subdomain')
-                    ->update(['domain' => $tenant->slug.'.x-linic.com']);
+                    ->update(['domain' => $tenant->slug.'.xforcehr.com']);
             }
 
             // Handle custom domain changes

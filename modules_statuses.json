@@ -23,5 +23,6 @@
     "Prescriptions": true,
     "Assets": true,
     "Evaluations": true,
-    "MobileApi": true
+    "MobileApi": true,
+    "Projects": true
 }

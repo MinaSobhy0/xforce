@@ -1,0 +1,249 @@
+{
+    "name": "Projects",
+    "alias": "projects",
+    "description": {
+        "en": "Project management with Kanban boards, task management, time tracking, and milestones",
+        "ar": "إدارة المشاريع مع لوحات كانبان وإدارة المهام وتتبع الوقت والمراحل"
+    },
+    "version": "1.0.0",
+    "category": "operations",
+    "icon": "heroicon-o-rectangle-stack",
+    "keywords": [
+        "projects",
+        "tasks",
+        "kanban",
+        "time tracking",
+        "milestones",
+        "gantt"
+    ],
+    "priority": 50,
+    "providers": [
+        "Modules\\Projects\\Providers\\ProjectsServiceProvider",
+        "Modules\\Projects\\Providers\\EventServiceProvider"
+    ],
+    "dependencies": [
+        "Core",
+        "Auth"
+    ],
+    "optional_dependencies": [
+        "Patients"
+    ],
+    "models": [
+        "Modules\\Projects\\Models\\Project",
+        "Modules\\Projects\\Models\\ProjectStage",
+        "Modules\\Projects\\Models\\ProjectTask",
+        "Modules\\Projects\\Models\\ProjectTag",
+        "Modules\\Projects\\Models\\ProjectMilestone",
+        "Modules\\Projects\\Models\\ProjectTimeEntry",
+        "Modules\\Projects\\Models\\ProjectTaskDependency",
+        "Modules\\Projects\\Models\\ProjectMember"
+    ],
+    "permissions": {
+        "projects.view_any": "View projects list",
+        "projects.view": "View project details",
+        "projects.create": "Create new projects",
+        "projects.update": "Update projects",
+        "projects.delete": "Delete projects",
+        "projects.manage_stages": "Manage project stages",
+        "tasks.view_any": "View tasks list",
+        "tasks.view": "View task details",
+        "tasks.create": "Create new tasks",
+        "tasks.update": "Update tasks",
+        "tasks.delete": "Delete tasks",
+        "tasks.assign": "Assign tasks to users",
+        "milestones.view_any": "View milestones list",
+        "milestones.manage": "Manage milestones",
+        "time_entries.view_any": "View all time entries",
+        "time_entries.view_own": "View own time entries",
+        "time_entries.create": "Create time entries",
+        "time_entries.manage": "Manage all time entries",
+        "tags.view_any": "View tags list",
+        "tags.manage": "Manage tags",
+        "projects.reports": "View project reports"
+    },
+    "default_role_permissions": {
+        "admin": [
+            "projects.*",
+            "tasks.*",
+            "milestones.*",
+            "time_entries.*",
+            "tags.*"
+        ],
+        "manager": [
+            "projects.*",
+            "tasks.*",
+            "milestones.*",
+            "time_entries.*",
+            "tags.view_any"
+        ],
+        "doctor": [
+            "projects.view_any",
+            "projects.view",
+            "tasks.view_any",
+            "tasks.view",
+            "tasks.update",
+            "time_entries.view_own",
+            "time_entries.create"
+        ],
+        "receptionist": [
+            "projects.view_any",
+            "projects.view",
+            "tasks.view_any",
+            "tasks.view",
+            "tasks.create",
+            "tasks.update",
+            "time_entries.view_own",
+            "time_entries.create"
+        ],
+        "staff": [
+            "projects.view_any",
+            "projects.view",
+            "tasks.view_any",
+            "tasks.view",
+            "time_entries.view_own",
+            "time_entries.create"
+        ]
+    },
+    "navigation": [
+        {
+            "id": "projects",
+            "label": {
+                "en": "Projects",
+                "ar": "المشاريع"
+            },
+            "icon": "heroicon-o-rectangle-stack",
+            "route": "filament.tenant.resources.projects.index",
+            "group": "projects",
+            "order": 1,
+            "permission": "projects.view_any"
+        },
+        {
+            "id": "project-tasks",
+            "label": {
+                "en": "Tasks",
+                "ar": "المهام"
+            },
+            "icon": "heroicon-o-clipboard-document-check",
+            "route": "filament.tenant.resources.project-tasks.index",
+            "group": "projects",
+            "order": 2,
+            "permission": "tasks.view_any"
+        },
+        {
+            "id": "project-kanban",
+            "label": {
+                "en": "Kanban Board",
+                "ar": "لوحة كانبان"
+            },
+            "icon": "heroicon-o-view-columns",
+            "route": "filament.tenant.pages.project-kanban",
+            "group": "projects",
+            "order": 3,
+            "permission": "tasks.view_any"
+        },
+        {
+            "id": "my-tasks",
+            "label": {
+                "en": "My Tasks",
+                "ar": "مهامي"
+            },
+            "icon": "heroicon-o-user-circle",
+            "route": "filament.tenant.pages.my-tasks",
+            "group": "projects",
+            "order": 4,
+            "permission": "tasks.view_any"
+        },
+        {
+            "id": "project-time-entries",
+            "label": {
+                "en": "Time Entries",
+                "ar": "إدخالات الوقت"
+            },
+            "icon": "heroicon-o-clock",
+            "route": "filament.tenant.resources.project-time-entries.index",
+            "group": "projects",
+            "order": 5,
+            "permission": "time_entries.view_own"
+        },
+        {
+            "id": "project-tags",
+            "label": {
+                "en": "Tags",
+                "ar": "العلامات"
+            },
+            "icon": "heroicon-o-tag",
+            "route": "filament.tenant.resources.project-tags.index",
+            "group": "projects",
+            "order": 10,
+            "permission": "tags.view_any"
+        }
+    ],
+    "settings": {
+        "projects.default_task_hours": {
+            "type": "number",
+            "default": 8,
+            "label": {
+                "en": "Default Estimated Hours per Task",
+                "ar": "الساعات المقدرة الافتراضية لكل مهمة"
+            }
+        },
+        "projects.enable_time_tracking": {
+            "type": "boolean",
+            "default": true,
+            "label": {
+                "en": "Enable Time Tracking",
+                "ar": "تفعيل تتبع الوقت"
+            }
+        },
+        "projects.enable_gantt_view": {
+            "type": "boolean",
+            "default": true,
+            "label": {
+                "en": "Enable Gantt View",
+                "ar": "تفعيل عرض جانت"
+            }
+        },
+        "projects.auto_complete_parent_tasks": {
+            "type": "boolean",
+            "default": false,
+            "label": {
+                "en": "Auto-complete parent tasks when all subtasks complete",
+                "ar": "إكمال المهام الأم تلقائياً عند اكتمال جميع المهام الفرعية"
+            }
+        },
+        "projects.default_billable_rate_minor": {
+            "type": "integer",
+            "default": 0,
+            "label": {
+                "en": "Default Billable Hourly Rate (in minor units)",
+                "ar": "معدل الساعة القابل للفوترة الافتراضي (بالوحدات الصغيرة)"
+            }
+        }
+    },
+    "sequences": [
+        {
+            "code": "project",
+            "prefix": "PRJ-",
+            "padding": 6
+        },
+        {
+            "code": "project_task",
+            "prefix": "TASK-",
+            "padding": 6
+        }
+    ],
+    "events": [
+        "ProjectCreated",
+        "ProjectCompleted",
+        "TaskCreated",
+        "TaskCompleted",
+        "TaskAssigned",
+        "TimeEntryLogged",
+        "MilestoneReached"
+    ],
+    "active": true,
+    "display_name": {
+        "en": "Projects",
+        "ar": "المشاريع"
+    }
+}
