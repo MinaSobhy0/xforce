@@ -45,6 +45,8 @@ class ProjectTask extends BaseModel
         'progress_percent',
         'sort_order',
         'custom_fields',
+        'odoo_id',
+        'odoo_synced_at',
     ];
 
     protected $casts = [

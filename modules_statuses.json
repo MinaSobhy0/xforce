@@ -24,5 +24,6 @@
     "Assets": true,
     "Evaluations": true,
     "MobileApi": true,
-    "Projects": true
+    "Projects": true,
+    "OdooIntegration": true
 }

@@ -38,6 +38,8 @@ class Attendance extends BaseModel
         'approved_at',
         'created_by',
         'updated_by',
+        'odoo_id',
+        'odoo_synced_at',
     ];
 
     protected $casts = [

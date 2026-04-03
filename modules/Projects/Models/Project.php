@@ -42,6 +42,8 @@ class Project extends BaseModel
         'allow_timesheets',
         'is_template',
         'is_active',
+        'odoo_id',
+        'odoo_synced_at',
     ];
 
     protected $casts = [

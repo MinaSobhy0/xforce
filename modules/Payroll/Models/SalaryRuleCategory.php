@@ -19,6 +19,8 @@ class SalaryRuleCategory extends BaseModel
         'description',
         'type',
         'is_active',
+        'odoo_id',
+        'odoo_synced_at',
     ];
 
     protected $casts = [

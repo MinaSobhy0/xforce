@@ -88,6 +88,8 @@ class User extends BaseModel implements
         'settings',
         'preferences',
         'meta',
+        'odoo_id',
+        'odoo_synced_at',
     ];
 
     /**

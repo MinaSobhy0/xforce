@@ -20,6 +20,8 @@ class TimeOffAllocation extends BaseModel
         'used_days',
         'carried_over_days',
         'notes',
+        'odoo_id',
+        'odoo_synced_at',
     ];
 
     protected $casts = [

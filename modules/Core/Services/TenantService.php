@@ -413,6 +413,9 @@ class TenantService
 
                 // Projects - default tags
                 \Modules\Projects\Database\Seeders\DefaultProjectTagsSeeder::class,
+
+                // OdooIntegration - default entity mappings
+                \Modules\OdooIntegration\Database\Seeders\DefaultEntityMappingsSeeder::class,
             ];
 
             foreach ($seeders as $seederClass) {

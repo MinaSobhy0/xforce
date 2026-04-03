@@ -1,0 +1,168 @@
+<?php
+
+namespace Modules\OdooIntegration\Models;
+
+use XLinic\Framework\Core\Model\BaseModel;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Modules\OdooIntegration\Enums\SyncDirection;
+use Modules\OdooIntegration\Enums\SyncFrequency;
+use Modules\OdooIntegration\Enums\ConflictResolution;
+
+class OdooEntityMapping extends BaseModel
+{
+    protected $table = 'odoo_entity_mappings';
+
+    protected $fillable = [
+        'tenant_id',
+        'odoo_connection_id',
+        'name',
+        'local_model',
+        'local_table',
+        'odoo_model',
+        'sync_direction',
+        'sync_frequency',
+        'conflict_resolution',
+        'batch_size',
+        'priority',
+        'is_active',
+        'filter_conditions',
+        'settings',
+    ];
+
+    protected $casts = [
+        'batch_size' => 'integer',
+        'priority' => 'integer',
+        'is_active' => 'boolean',
+        'filter_conditions' => 'array',
+        'settings' => 'array',
+        'sync_direction' => SyncDirection::class,
+        'sync_frequency' => SyncFrequency::class,
+        'conflict_resolution' => ConflictResolution::class,
+    ];
+
+    // Relationships
+    public function connection(): BelongsTo
+    {
+        return $this->belongsTo(OdooConnection::class, 'odoo_connection_id');
+    }
+
+    public function fieldMappings(): HasMany
+    {
+        return $this->hasMany(OdooFieldMapping::class, 'entity_mapping_id')->orderBy('sort_order');
+    }
+
+    public function syncRecords(): HasMany
+    {
+        return $this->hasMany(OdooSyncRecord::class, 'entity_mapping_id');
+    }
+
+    public function syncLogs(): HasMany
+    {
+        return $this->hasMany(OdooSyncLog::class, 'entity_mapping_id');
+    }
+
+    public function conflicts(): HasMany
+    {
+        return $this->hasMany(OdooSyncConflict::class, 'entity_mapping_id');
+    }
+
+    // Scopes
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
+
+    public function scopeForModel($query, string $localModel)
+    {
+        return $query->where('local_model', $localModel);
+    }
+
+    public function scopeForOdooModel($query, string $odooModel)
+    {
+        return $query->where('odoo_model', $odooModel);
+    }
+
+    public function scopeImportable($query)
+    {
+        return $query->whereIn('sync_direction', [
+            SyncDirection::IMPORT->value,
+            SyncDirection::BIDIRECTIONAL->value,
+        ]);
+    }
+
+    public function scopeExportable($query)
+    {
+        return $query->whereIn('sync_direction', [
+            SyncDirection::EXPORT->value,
+            SyncDirection::BIDIRECTIONAL->value,
+        ]);
+    }
+
+    public function scopeScheduled($query)
+    {
+        return $query->whereIn('sync_frequency', [
+            SyncFrequency::HOURLY->value,
+            SyncFrequency::DAILY->value,
+        ]);
+    }
+
+    // Helper methods
+    public function allowsImport(): bool
+    {
+        return $this->sync_direction->allowsImport();
+    }
+
+    public function allowsExport(): bool
+    {
+        return $this->sync_direction->allowsExport();
+    }
+
+    public function requiresManualConflictResolution(): bool
+    {
+        return $this->conflict_resolution === ConflictResolution::MANUAL;
+    }
+
+    public function getActiveFieldMappings()
+    {
+        return $this->fieldMappings()->where('is_active', true)->get();
+    }
+
+    public function getKeyFields()
+    {
+        return $this->fieldMappings()->where('is_key_field', true)->where('is_active', true)->get();
+    }
+
+    public function getLocalModelInstance()
+    {
+        if (!class_exists($this->local_model)) {
+            return null;
+        }
+        return new $this->local_model;
+    }
+
+    public function getOdooDomain(): array
+    {
+        return $this->filter_conditions ?? [];
+    }
+
+    public function getPendingConflictsCount(): int
+    {
+        return $this->conflicts()->where('status', 'pending')->count();
+    }
+
+    protected static function booted(): void
+    {
+        parent::booted();
+
+        static::creating(function (OdooEntityMapping $mapping) {
+            if (empty($mapping->name)) {
+                $mapping->name = class_basename($mapping->local_model) . ' ↔ ' . $mapping->odoo_model;
+            }
+            if (empty($mapping->local_table)) {
+                $model = $mapping->getLocalModelInstance();
+                $mapping->local_table = $model?->getTable() ?? str()->snake(str()->plural(class_basename($mapping->local_model)));
+            }
+        });
+    }
+}

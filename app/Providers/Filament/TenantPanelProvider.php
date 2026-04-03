@@ -165,6 +165,11 @@ class TenantPanelProvider extends PanelProvider
             ->discoverResources(in: base_path('modules/Projects/Filament/Resources'), for: 'Modules\\Projects\\Filament\\Resources')
             ->discoverPages(in: base_path('modules/Projects/Filament/Pages'), for: 'Modules\\Projects\\Filament\\Pages')
 
+            // Discover OdooIntegration module resources, pages, and widgets
+            ->discoverResources(in: base_path('modules/OdooIntegration/Filament/Resources'), for: 'Modules\\OdooIntegration\\Filament\\Resources')
+            ->discoverPages(in: base_path('modules/OdooIntegration/Filament/Pages'), for: 'Modules\\OdooIntegration\\Filament\\Pages')
+            ->discoverWidgets(in: base_path('modules/OdooIntegration/Filament/Widgets'), for: 'Modules\\OdooIntegration\\Filament\\Widgets')
+
             // Custom routes for prescription PDF printing
             ->routes(function () {
                 \Illuminate\Support\Facades\Route::get('/prescriptions/{prescription}/print', function (\Modules\Prescriptions\Models\Prescription $prescription) {

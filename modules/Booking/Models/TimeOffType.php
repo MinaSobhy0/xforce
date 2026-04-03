@@ -73,6 +73,8 @@ class TimeOffType extends BaseModel
         'max_per_request',
         'is_active',
         'sort_order',
+        'odoo_id',
+        'odoo_synced_at',
     ];
 
     protected $casts = [

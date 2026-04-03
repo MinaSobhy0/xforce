@@ -27,6 +27,8 @@ class ProjectTimeEntry extends BaseModel
         'is_billable',
         'hourly_rate_minor',
         'timer_started_at',
+        'odoo_id',
+        'odoo_synced_at',
     ];
 
     protected $casts = [

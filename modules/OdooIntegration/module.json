@@ -1,0 +1,164 @@
+{
+    "name": "OdooIntegration",
+    "alias": "odoo-integration",
+    "description": {
+        "en": "Bidirectional sync between XForce and Odoo ERP for Users, Staff, Payroll, Leaves, Projects, and Timesheets",
+        "ar": "مزامنة ثنائية الاتجاه بين XForce و Odoo ERP للمستخدمين والموظفين والرواتب والإجازات والمشاريع وسجلات الوقت"
+    },
+    "version": "1.0.0",
+    "category": "integration",
+    "icon": "heroicon-o-arrow-path-rounded-square",
+    "keywords": [
+        "odoo",
+        "erp",
+        "sync",
+        "integration",
+        "hr",
+        "payroll",
+        "timesheets"
+    ],
+    "priority": 100,
+    "providers": [
+        "Modules\\OdooIntegration\\Providers\\OdooIntegrationServiceProvider",
+        "Modules\\OdooIntegration\\Providers\\EventServiceProvider"
+    ],
+    "dependencies": [
+        "Core",
+        "Auth"
+    ],
+    "optional_dependencies": [
+        "Staff",
+        "Payroll",
+        "Attendance",
+        "Booking",
+        "Projects"
+    ],
+    "models": [
+        "Modules\\OdooIntegration\\Models\\OdooConnection",
+        "Modules\\OdooIntegration\\Models\\OdooEntityMapping",
+        "Modules\\OdooIntegration\\Models\\OdooFieldMapping",
+        "Modules\\OdooIntegration\\Models\\OdooSyncLog",
+        "Modules\\OdooIntegration\\Models\\OdooSyncRecord",
+        "Modules\\OdooIntegration\\Models\\OdooSyncConflict"
+    ],
+    "permissions": {
+        "odoo.view_connections": "View Odoo connections",
+        "odoo.manage_connections": "Manage Odoo connections",
+        "odoo.view_mappings": "View entity/field mappings",
+        "odoo.manage_mappings": "Manage entity/field mappings",
+        "odoo.view_sync_logs": "View sync logs",
+        "odoo.run_sync": "Run manual sync",
+        "odoo.view_conflicts": "View sync conflicts",
+        "odoo.resolve_conflicts": "Resolve sync conflicts",
+        "odoo.view_dashboard": "View sync dashboard"
+    },
+    "default_role_permissions": {
+        "admin": [
+            "odoo.*"
+        ],
+        "manager": [
+            "odoo.view_connections",
+            "odoo.view_mappings",
+            "odoo.view_sync_logs",
+            "odoo.run_sync",
+            "odoo.view_conflicts",
+            "odoo.resolve_conflicts",
+            "odoo.view_dashboard"
+        ],
+        "doctor": [],
+        "receptionist": [],
+        "staff": []
+    },
+    "navigation": [
+        {
+            "id": "odoo-dashboard",
+            "label": {
+                "en": "Odoo Sync",
+                "ar": "مزامنة Odoo"
+            },
+            "icon": "heroicon-o-arrow-path-rounded-square",
+            "route": "filament.tenant.pages.odoo-sync-dashboard",
+            "group": "settings",
+            "order": 90,
+            "permission": "odoo.view_dashboard"
+        },
+        {
+            "id": "odoo-connections",
+            "label": {
+                "en": "Connections",
+                "ar": "الاتصالات"
+            },
+            "icon": "heroicon-o-server-stack",
+            "route": "filament.tenant.resources.odoo-connections.index",
+            "group": "settings",
+            "order": 91,
+            "permission": "odoo.view_connections"
+        },
+        {
+            "id": "odoo-conflicts",
+            "label": {
+                "en": "Sync Conflicts",
+                "ar": "تعارضات المزامنة"
+            },
+            "icon": "heroicon-o-exclamation-triangle",
+            "route": "filament.tenant.pages.odoo-conflict-resolution",
+            "group": "settings",
+            "order": 92,
+            "permission": "odoo.view_conflicts"
+        }
+    ],
+    "settings": {
+        "odoo.sync_enabled": {
+            "type": "boolean",
+            "default": false,
+            "label": {
+                "en": "Enable Odoo Sync",
+                "ar": "تفعيل مزامنة Odoo"
+            }
+        },
+        "odoo.default_timezone": {
+            "type": "string",
+            "default": "Africa/Cairo",
+            "label": {
+                "en": "Default Odoo Timezone",
+                "ar": "المنطقة الزمنية الافتراضية لـ Odoo"
+            }
+        },
+        "odoo.sync_log_retention_days": {
+            "type": "integer",
+            "default": 30,
+            "label": {
+                "en": "Sync Log Retention (Days)",
+                "ar": "مدة الاحتفاظ بسجلات المزامنة (أيام)"
+            }
+        },
+        "odoo.batch_size": {
+            "type": "integer",
+            "default": 100,
+            "label": {
+                "en": "Default Batch Size",
+                "ar": "حجم الدفعة الافتراضي"
+            }
+        },
+        "odoo.notify_on_failure": {
+            "type": "boolean",
+            "default": true,
+            "label": {
+                "en": "Notify on Sync Failure",
+                "ar": "الإشعار عند فشل المزامنة"
+            }
+        }
+    },
+    "events": [
+        "SyncStarted",
+        "SyncCompleted",
+        "SyncFailed",
+        "RecordSynced",
+        "ConflictDetected"
+    ],
+    "active": true,
+    "display_name": {
+        "en": "Odoo Integration",
+        "ar": "تكامل Odoo"
+    }
+}

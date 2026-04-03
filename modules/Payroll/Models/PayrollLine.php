@@ -28,6 +28,8 @@ class PayrollLine extends BaseModel
         'deduction_details_json',
         'rule_amounts_json',
         'notes',
+        'odoo_id',
+        'odoo_synced_at',
     ];
 
     protected $casts = [

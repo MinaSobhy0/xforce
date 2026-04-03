@@ -32,6 +32,8 @@ class PractitionerTimeOff extends BaseModel
         'approved_by_user_id',
         'approved_at',
         'notes',
+        'odoo_id',
+        'odoo_synced_at',
     ];
 
     protected $casts = [

@@ -34,6 +34,8 @@ class PayrollRun extends BaseModel
         'paid_by',
         'paid_at',
         'notes',
+        'odoo_id',
+        'odoo_synced_at',
     ];
 
     protected $casts = [

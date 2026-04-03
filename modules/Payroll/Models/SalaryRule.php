@@ -37,6 +37,8 @@ class SalaryRule extends BaseModel
         'creates_journal_entry',
         'default_debit_account_code',
         'default_credit_account_code',
+        'odoo_id',
+        'odoo_synced_at',
     ];
 
     protected $casts = [

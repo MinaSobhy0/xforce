@@ -65,6 +65,8 @@ class StaffProfile extends BaseModel
         'hire_date',
         'contract_end_date',
         'is_active',
+        'odoo_id',
+        'odoo_synced_at',
     ];
 
     protected $casts = [
