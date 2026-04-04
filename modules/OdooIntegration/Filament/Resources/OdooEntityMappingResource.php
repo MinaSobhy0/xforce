@@ -1,31 +1,71 @@
 <?php
 
-namespace Modules\OdooIntegration\Filament\Resources\OdooConnectionResource\RelationManagers;
+namespace Modules\OdooIntegration\Filament\Resources;
 
-use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Tables;
-use Filament\Tables\Table;
-use Filament\Notifications\Notification;
+use App\Traits\ChecksResourcePermissions;
+use Modules\OdooIntegration\Filament\Resources\OdooEntityMappingResource\Pages;
+use Modules\OdooIntegration\Filament\Resources\OdooEntityMappingResource\RelationManagers;
 use Modules\OdooIntegration\Models\OdooEntityMapping;
+use Modules\OdooIntegration\Models\OdooConnection;
 use Modules\OdooIntegration\Enums\SyncDirection;
 use Modules\OdooIntegration\Enums\SyncFrequency;
 use Modules\OdooIntegration\Enums\ConflictResolution;
 use Modules\OdooIntegration\Jobs\SyncEntityJob;
+use Filament\Forms;
+use Filament\Forms\Form;
+use Filament\Resources\Resource;
+use Filament\Tables;
+use Filament\Tables\Table;
+use Filament\Notifications\Notification;
+use Illuminate\Database\Eloquent\Builder;
 
-class EntityMappingsRelationManager extends RelationManager
+class OdooEntityMappingResource extends Resource
 {
-    protected static string $relationship = 'entityMappings';
+    use ChecksResourcePermissions;
+
+    protected static ?string $model = OdooEntityMapping::class;
+
+    protected static ?string $moduleCode = 'odoo-integration';
+
+    protected static ?string $permissionKey = 'odoo';
+
+    protected static ?string $navigationIcon = 'heroicon-o-arrows-right-left';
+
+    protected static ?string $navigationGroup = 'Settings';
+
+    protected static ?int $navigationSort = 92;
 
     protected static ?string $recordTitleAttribute = 'name';
 
-    public function form(Form $form): Form
+    protected static bool $shouldRegisterNavigation = false;
+
+    public static function getNavigationLabel(): string
+    {
+        return __('odoo-integration::odoo.entity_mappings');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('odoo-integration::odoo.entity_mapping');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('odoo-integration::odoo.entity_mappings');
+    }
+
+    public static function form(Form $form): Form
     {
         return $form
             ->schema([
                 Forms\Components\Section::make(__('odoo-integration::odoo.sections.entity_mapping'))
                     ->schema([
+                        Forms\Components\Select::make('odoo_connection_id')
+                            ->label(__('odoo-integration::odoo.fields.connection'))
+                            ->options(OdooConnection::pluck('name', 'id'))
+                            ->required()
+                            ->searchable(),
+
                         Forms\Components\TextInput::make('name')
                             ->label(__('odoo-integration::odoo.fields.name'))
                             ->required()
@@ -93,21 +133,51 @@ class EntityMappingsRelationManager extends RelationManager
 
                 Forms\Components\Section::make(__('odoo-integration::odoo.sections.filters'))
                     ->schema([
-                        Forms\Components\KeyValue::make('filter_conditions')
+                        Forms\Components\Repeater::make('filter_conditions')
                             ->label(__('odoo-integration::odoo.fields.filter_conditions'))
-                            ->helperText(__('odoo-integration::odoo.helpers.filter_conditions')),
+                            ->schema([
+                                Forms\Components\TextInput::make('field')
+                                    ->label('Field')
+                                    ->required(),
+                                Forms\Components\Select::make('operator')
+                                    ->label('Operator')
+                                    ->options([
+                                        '=' => '= (equals)',
+                                        '!=' => '!= (not equals)',
+                                        '>' => '> (greater than)',
+                                        '<' => '< (less than)',
+                                        '>=' => '>= (greater or equal)',
+                                        '<=' => '<= (less or equal)',
+                                        'like' => 'like (contains)',
+                                        'ilike' => 'ilike (contains, case-insensitive)',
+                                        'in' => 'in (list)',
+                                        'not in' => 'not in (list)',
+                                    ])
+                                    ->required(),
+                                Forms\Components\TextInput::make('value')
+                                    ->label('Value')
+                                    ->required(),
+                            ])
+                            ->columns(3)
+                            ->helperText(__('odoo-integration::odoo.helpers.filter_conditions'))
+                            ->collapsible()
+                            ->defaultItems(0),
                     ])
                     ->collapsed(),
             ]);
     }
 
-    public function table(Table $table): Table
+    public static function table(Table $table): Table
     {
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('name')
                     ->label(__('odoo-integration::odoo.fields.name'))
                     ->searchable()
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('connection.name')
+                    ->label(__('odoo-integration::odoo.fields.connection'))
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('odoo_model')
@@ -134,17 +204,17 @@ class EntityMappingsRelationManager extends RelationManager
                     ->label(__('odoo-integration::odoo.fields.is_active'))
                     ->boolean(),
 
-                Tables\Columns\TextColumn::make('sync_records_count')
-                    ->label(__('odoo-integration::odoo.fields.records'))
-                    ->counts('syncRecords'),
-
-                Tables\Columns\TextColumn::make('pending_conflicts')
-                    ->label(__('odoo-integration::odoo.fields.conflicts'))
-                    ->state(fn (OdooEntityMapping $record) => $record->getPendingConflictsCount())
+                Tables\Columns\TextColumn::make('field_mappings_count')
+                    ->label(__('odoo-integration::odoo.fields.field_mappings'))
+                    ->counts('fieldMappings')
                     ->badge()
-                    ->color(fn ($state) => $state > 0 ? 'danger' : 'gray'),
+                    ->color('gray'),
             ])
             ->filters([
+                Tables\Filters\SelectFilter::make('odoo_connection_id')
+                    ->label(__('odoo-integration::odoo.fields.connection'))
+                    ->options(OdooConnection::pluck('name', 'id')),
+
                 Tables\Filters\TernaryFilter::make('is_active')
                     ->label(__('odoo-integration::odoo.fields.is_active')),
 
@@ -152,20 +222,7 @@ class EntityMappingsRelationManager extends RelationManager
                     ->label(__('odoo-integration::odoo.fields.sync_direction'))
                     ->options(SyncDirection::options()),
             ])
-            ->headerActions([
-                Tables\Actions\CreateAction::make()
-                    ->mutateFormDataUsing(function (array $data): array {
-                        $data['tenant_id'] = current_tenant_id();
-                        return $data;
-                    }),
-            ])
             ->actions([
-                Tables\Actions\Action::make('manage_fields')
-                    ->label(__('odoo-integration::odoo.actions.manage_fields'))
-                    ->icon('heroicon-o-adjustments-horizontal')
-                    ->color('info')
-                    ->url(fn (OdooEntityMapping $record) => \Modules\OdooIntegration\Filament\Resources\OdooEntityMappingResource::getUrl('view', ['record' => $record])),
-
                 Tables\Actions\Action::make('sync')
                     ->label(__('odoo-integration::odoo.actions.sync'))
                     ->icon('heroicon-o-arrow-path')
@@ -183,8 +240,11 @@ class EntityMappingsRelationManager extends RelationManager
                             ->send();
                     }),
 
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\ViewAction::make(),
+                    Tables\Actions\EditAction::make(),
+                    Tables\Actions\DeleteAction::make(),
+                ]),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -192,6 +252,29 @@ class EntityMappingsRelationManager extends RelationManager
                 ]),
             ])
             ->defaultSort('priority');
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            RelationManagers\FieldMappingsRelationManager::class,
+        ];
+    }
+
+    public static function getPages(): array
+    {
+        return [
+            'index' => Pages\ListOdooEntityMappings::route('/'),
+            'create' => Pages\CreateOdooEntityMapping::route('/create'),
+            'view' => Pages\ViewOdooEntityMapping::route('/{record}'),
+            'edit' => Pages\EditOdooEntityMapping::route('/{record}/edit'),
+        ];
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->withCount('fieldMappings');
     }
 
     /**

@@ -4,6 +4,10 @@ return [
     // Navigation & Pages
     'connections' => 'Odoo Connections',
     'connection' => 'Odoo Connection',
+    'entity_mappings' => 'Entity Mappings',
+    'entity_mapping' => 'Entity Mapping',
+    'field_mappings' => 'Field Mappings',
+    'field_mapping' => 'Field Mapping',
     'pages' => [
         'dashboard' => 'Odoo Sync',
         'conflicts' => 'Sync Conflicts',
@@ -15,6 +19,8 @@ return [
         'authentication' => 'Authentication',
         'settings' => 'Settings',
         'entity_mapping' => 'Entity Mapping',
+        'field_mapping' => 'Field Mapping',
+        'transform_config' => 'Transform Configuration',
         'filters' => 'Filters',
         'recent_activity' => 'Recent Activity',
     ],
@@ -70,6 +76,14 @@ return [
         'detected_at' => 'Detected At',
         'detected' => 'Detected',
         'notes' => 'Notes',
+        'local_field' => 'Local Field',
+        'odoo_field' => 'Odoo Field',
+        'transform_type' => 'Transform Type',
+        'is_required' => 'Required',
+        'is_key_field' => 'Key Field',
+        'default_value' => 'Default Value',
+        'sort_order' => 'Sort Order',
+        'connection' => 'Connection',
     ],
 
     // Helpers
@@ -101,6 +115,8 @@ return [
         'dismiss' => 'Dismiss',
         'dismiss_all' => 'Dismiss All',
         'resolve' => 'Resolve',
+        'manage_fields' => 'Manage Fields',
+        'auto_generate' => 'Auto-Generate',
     ],
 
     // Messages

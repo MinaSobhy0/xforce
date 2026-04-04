@@ -4,6 +4,10 @@ return [
     // Navigation & Pages
     'connections' => 'اتصالات Odoo',
     'connection' => 'اتصال Odoo',
+    'entity_mappings' => 'تعيينات الكيانات',
+    'entity_mapping' => 'تعيين الكيان',
+    'field_mappings' => 'تعيينات الحقول',
+    'field_mapping' => 'تعيين الحقل',
     'pages' => [
         'dashboard' => 'مزامنة Odoo',
         'conflicts' => 'تعارضات المزامنة',
@@ -15,6 +19,8 @@ return [
         'authentication' => 'المصادقة',
         'settings' => 'الإعدادات',
         'entity_mapping' => 'تعيين الكيان',
+        'field_mapping' => 'تعيين الحقل',
+        'transform_config' => 'إعدادات التحويل',
         'filters' => 'الفلاتر',
         'recent_activity' => 'النشاط الأخير',
     ],
@@ -70,6 +76,14 @@ return [
         'detected_at' => 'وقت الاكتشاف',
         'detected' => 'مكتشف',
         'notes' => 'ملاحظات',
+        'local_field' => 'الحقل المحلي',
+        'odoo_field' => 'حقل Odoo',
+        'transform_type' => 'نوع التحويل',
+        'is_required' => 'مطلوب',
+        'is_key_field' => 'حقل مفتاحي',
+        'default_value' => 'القيمة الافتراضية',
+        'sort_order' => 'ترتيب الفرز',
+        'connection' => 'الاتصال',
     ],
 
     // Helpers
@@ -101,6 +115,8 @@ return [
         'dismiss' => 'تجاهل',
         'dismiss_all' => 'تجاهل الكل',
         'resolve' => 'حل',
+        'manage_fields' => 'إدارة الحقول',
+        'auto_generate' => 'إنشاء تلقائي',
     ],
 
     // Messages
