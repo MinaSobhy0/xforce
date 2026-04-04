@@ -25,5 +25,6 @@
     "Evaluations": true,
     "MobileApi": true,
     "Projects": true,
-    "OdooIntegration": true
+    "OdooIntegration": true,
+    "KnowledgeBase": true
 }

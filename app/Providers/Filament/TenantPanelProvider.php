@@ -170,6 +170,9 @@ class TenantPanelProvider extends PanelProvider
             ->discoverPages(in: base_path('modules/OdooIntegration/Filament/Pages'), for: 'Modules\\OdooIntegration\\Filament\\Pages')
             ->discoverWidgets(in: base_path('modules/OdooIntegration/Filament/Widgets'), for: 'Modules\\OdooIntegration\\Filament\\Widgets')
 
+            // Discover KnowledgeBase module pages
+            ->discoverPages(in: base_path('modules/KnowledgeBase/Filament/Pages'), for: 'Modules\\KnowledgeBase\\Filament\\Pages')
+
             // Custom routes for prescription PDF printing
             ->routes(function () {
                 \Illuminate\Support\Facades\Route::get('/prescriptions/{prescription}/print', function (\Modules\Prescriptions\Models\Prescription $prescription) {
@@ -197,6 +200,18 @@ class TenantPanelProvider extends PanelProvider
             ->renderHook(
                 PanelsRenderHook::TOPBAR_START,
                 fn (): View => view('filament.hooks.branch-switcher')
+            )
+
+            // Help Button in the topbar (before user menu)
+            ->renderHook(
+                PanelsRenderHook::USER_MENU_BEFORE,
+                fn (): View => view('knowledgebase::hooks.help-button')
+            )
+
+            // Screen Guide overlay (injected at body end)
+            ->renderHook(
+                PanelsRenderHook::BODY_END,
+                fn (): View => view('knowledgebase::hooks.screen-guide')
             )
 
             // User limit warning banner

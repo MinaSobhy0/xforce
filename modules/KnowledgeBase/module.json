@@ -1,0 +1,94 @@
+{
+    "name": "KnowledgeBase",
+    "code": "knowledgebase",
+    "alias": "knowledgebase",
+    "version": "1.0.0",
+    "description": {
+        "en": "Contextual help, interactive guides, and searchable knowledge base",
+        "ar": "المساعدة السياقية والأدلة التفاعلية وقاعدة المعرفة"
+    },
+    "author": "XLinic",
+    "priority": 100,
+    "category": "system",
+    "icon": "heroicon-o-book-open",
+    "dependencies": [
+        "Core",
+        "Auth"
+    ],
+    "providers": [
+        "Modules\\KnowledgeBase\\Providers\\KnowledgeBaseServiceProvider"
+    ],
+    "aliases": [],
+    "files": [
+        "start.php"
+    ],
+    "requires": {
+        "php": "^8.2",
+        "laravel/framework": "^11.0"
+    },
+    "active": true,
+    "order": 100,
+    "tags": [
+        "help",
+        "guides",
+        "documentation",
+        "knowledge-base"
+    ],
+    "permissions": [
+        {
+            "name": "knowledgebase.view",
+            "display_name": {
+                "en": "View Knowledge Base",
+                "ar": "عرض قاعدة المعرفة"
+            },
+            "description": {
+                "en": "Access help articles and guides",
+                "ar": "الوصول إلى مقالات المساعدة والأدلة"
+            }
+        },
+        {
+            "name": "knowledgebase.manage",
+            "display_name": {
+                "en": "Manage Knowledge Base",
+                "ar": "إدارة قاعدة المعرفة"
+            },
+            "description": {
+                "en": "Create and edit help articles and guides",
+                "ar": "إنشاء وتحرير مقالات المساعدة والأدلة"
+            }
+        }
+    ],
+    "models": [
+        "Modules\\KnowledgeBase\\Models\\HelpCategory",
+        "Modules\\KnowledgeBase\\Models\\HelpArticle",
+        "Modules\\KnowledgeBase\\Models\\HelpScreenGuide",
+        "Modules\\KnowledgeBase\\Models\\HelpGuideStep",
+        "Modules\\KnowledgeBase\\Models\\HelpArticleFeedback",
+        "Modules\\KnowledgeBase\\Models\\HelpSearchLog",
+        "Modules\\KnowledgeBase\\Models\\HelpUserProgress"
+    ],
+    "navigation": [
+        {
+            "id": "knowledgebase.browse",
+            "label": {
+                "en": "Help Center",
+                "ar": "مركز المساعدة"
+            },
+            "icon": "heroicon-o-book-open",
+            "route": "filament.tenant.pages.knowledge-base",
+            "group": "Settings",
+            "order": 95,
+            "permission": "knowledgebase.view"
+        }
+    ],
+    "settings": {
+        "enable_contextual_help": true,
+        "enable_interactive_guides": true,
+        "enable_feedback": true,
+        "enable_search_logging": true
+    },
+    "display_name": {
+        "en": "Knowledge Base",
+        "ar": "قاعدة المعرفة"
+    }
+}

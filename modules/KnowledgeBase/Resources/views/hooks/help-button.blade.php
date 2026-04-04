@@ -1,0 +1,1 @@
+<livewire:knowledgebase::help-button />
