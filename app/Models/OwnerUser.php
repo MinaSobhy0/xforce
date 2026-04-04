@@ -16,7 +16,7 @@ use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 
 /**
- * OwnerUser model for the Owner Portal at sys.x-linic.com/admin
+ * OwnerUser model for the Owner Portal at sys.xforcehr.com/admin
  * Uses the central database connection (public schema)
  */
 class OwnerUser extends Model implements

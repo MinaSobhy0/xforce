@@ -91,7 +91,7 @@ return [
     */
     'deep_links' => [
         'scheme' => env('MOBILE_APP_SCHEME', 'xlinic'),
-        'web_base_url' => env('MOBILE_APP_WEB_URL', 'https://x-linic.com/app'),
+        'web_base_url' => env('MOBILE_APP_WEB_URL', 'https://xforcehr.com/app'),
     ],
 
     /*

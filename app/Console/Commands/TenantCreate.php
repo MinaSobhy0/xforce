@@ -58,7 +58,7 @@ class TenantCreate extends Command
             $tenant = $this->tenantService->create([
                 'name' => $name,
                 'slug' => $slug,
-                'domain' => $slug . '.x-linic.com',
+                'domain' => $slug . '.xforcehr.com',
                 'contact_email' => $this->option('email'),
                 'status' => TenantStatus::ACTIVE,
                 'settings' => [
@@ -98,7 +98,7 @@ class TenantCreate extends Command
                     [
                         ['Email', $tenant->contact_email],
                         ['Password', $ownerPassword],
-                        ['Login URL', "https://{$slug}.x-linic.com/admin"],
+                        ['Login URL', "https://{$slug}.xforcehr.com/admin"],
                     ]
                 );
                 $this->warn("Please save these credentials - the password cannot be retrieved later!");

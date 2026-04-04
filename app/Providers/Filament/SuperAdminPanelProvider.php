@@ -28,8 +28,8 @@ class SuperAdminPanelProvider extends PanelProvider
             // Identity
             ->id('super-admin')
             ->path('platform')
-            ->domain('sys.x-linic.com')
-            ->brandName(PlatformSetting::get('platform_name', 'XLinic Platform'))
+            ->domain('xforcehr.com')
+            ->brandName(PlatformSetting::get('platform_name', 'XForce Platform'))
             ->brandLogo(function () {
                 $logo = PlatformSetting::get('platform_logo');
                 return $logo ? asset('storage/' . $logo) : null;

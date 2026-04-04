@@ -18,12 +18,12 @@ use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 /**
- * Clinic Owner Portal - sys.x-linic.com/admin
+ * Clinic Owner Portal - sys.xforcehr.com/admin
  *
  * This panel is for clinic OWNERS to manage their SUBSCRIPTION.
  * NOT for managing clinic operations (patients, services, etc.)
  *
- * For clinic operations, use TenantPanelProvider at tenant.x-linic.com/admin
+ * For clinic operations, use TenantPanelProvider at tenant.xforcehr.com/admin
  */
 class AdminPanelProvider extends PanelProvider
 {
@@ -33,10 +33,10 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
-            ->domain('sys.x-linic.com')
+            ->domain('xforcehr.com')
             ->login()
             ->authGuard('owner')
-            ->brandName('XLinic')
+            ->brandName('XForce')
             ->colors([
                 'primary' => Color::Blue,
             ])

@@ -152,7 +152,7 @@ class IdentifyTenant
         $host = $request->getHost();
         $parts = explode('.', $host);
 
-        // Need at least 3 parts for subdomain (tenant.x-linic.com)
+        // Need at least 3 parts for subdomain (tenant.xforcehr.com)
         if (count($parts) < 3) {
             return null;
         }
@@ -301,8 +301,8 @@ class IdentifyTenant
         }
 
         // Build tenant URL using the tenant's subdomain
-        // e.g., https://tenant-slug.x-linic.com/tenant-storage
-        $baseHost = env('APP_DOMAIN', 'x-linic.com');
+        // e.g., https://tenant-slug.xforcehr.com/tenant-storage
+        $baseHost = env('APP_DOMAIN', 'xforcehr.com');
         $scheme = request()->secure() ? 'https' : 'http';
         $tenantUrl = "{$scheme}://{$tenantSlug}.{$baseHost}/tenant-storage";
 

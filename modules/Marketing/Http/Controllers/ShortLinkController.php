@@ -14,7 +14,7 @@ class ShortLinkController extends Controller
      * SECURITY: Only these domains are allowed for external redirects.
      */
     protected array $allowedExternalDomains = [
-        'x-linic.com',
+        'xforcehr.com',
         'xlinic.com',
     ];
 
@@ -84,7 +84,7 @@ class ShortLinkController extends Controller
         $host = strtolower($parsed['host']);
 
         // Check if it's a subdomain of the app domain
-        $appDomain = env('APP_DOMAIN', 'x-linic.com');
+        $appDomain = env('APP_DOMAIN', 'xforcehr.com');
         if ($host === $appDomain || str_ends_with($host, '.' . $appDomain)) {
             return true;
         }

@@ -324,12 +324,12 @@ class TwoFactorEnforce
         // Determine the correct URL based on the current panel/domain
         $host = request()->getHost();
 
-        // SuperAdmin panel (sys.x-linic.com)
+        // SuperAdmin panel (sys.xforcehr.com)
         if (str_contains($host, 'sys.')) {
             return url('/platform/two-factor-settings');
         }
 
-        // Tenant panel (tenant.x-linic.com)
+        // Tenant panel (tenant.xforcehr.com)
         return url('/admin/two-factor-settings');
     }
 }

@@ -108,7 +108,7 @@ class TenantAppCodeResource extends Resource
                     ->label('Clinic')
                     ->searchable()
                     ->sortable()
-                    ->description(fn(TenantAppCode $record) => $record->tenant?->slug . '.x-linic.com'),
+                    ->description(fn(TenantAppCode $record) => $record->tenant?->slug . '.xforcehr.com'),
 
                 Tables\Columns\TextColumn::make('code')
                     ->label('Code')

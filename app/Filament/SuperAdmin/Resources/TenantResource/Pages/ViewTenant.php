@@ -225,7 +225,7 @@ class ViewTenant extends BaseViewRecord
 
                         DB::statement("SET search_path TO public");
 
-                        $url = "https://{$this->record->slug}.x-linic.com/admin/impersonate?token={$token}&user={$data['user_id']}";
+                        $url = "https://{$this->record->slug}.xforcehr.com/admin/impersonate?token={$token}&user={$data['user_id']}";
 
                         $this->js("window.open('{$url}', '_blank')");
 
@@ -266,7 +266,7 @@ class ViewTenant extends BaseViewRecord
 
                             $body = "Schema '{$this->record->database_name}' has been created and migrations have been run.";
                             if ($ownerCreated && $this->record->contact_email) {
-                                $body .= "\n\nOwner account created:\nEmail: {$this->record->contact_email}\nLogin URL: https://{$this->record->slug}.x-linic.com/admin";
+                                $body .= "\n\nOwner account created:\nEmail: {$this->record->contact_email}\nLogin URL: https://{$this->record->slug}.xforcehr.com/admin";
                             }
 
                             Notification::make()
@@ -610,7 +610,7 @@ class ViewTenant extends BaseViewRecord
                             Components\TextEntry::make('slug')
                                 ->label('')
                                 ->formatStateUsing(fn(string $state) =>
-                                    "{$state}.x-linic.com"
+                                    "{$state}.xforcehr.com"
                                 )
                                 ->color('gray')
                                 ->copyable(),

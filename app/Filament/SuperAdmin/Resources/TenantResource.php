@@ -79,7 +79,7 @@ class TenantResource extends Resource
                         ->unique(ignoreRecord: true)
                         ->maxLength(100)
                         ->prefix('https://')
-                        ->suffix('.x-linic.com')
+                        ->suffix('.xforcehr.com')
                         ->helperText('This will be the clinic\'s URL'),
 
                     Forms\Components\TextInput::make('database_name')
@@ -328,7 +328,7 @@ class TenantResource extends Resource
                     ->sortable()
                     ->weight(FontWeight::Bold)
                     ->description(fn(Tenant $record): string =>
-                        $record->slug . '.x-linic.com'
+                        $record->slug . '.xforcehr.com'
                     ),
 
                 // Plan Column
@@ -512,7 +512,7 @@ class TenantResource extends Resource
 
                             \DB::statement("SET search_path TO public");
 
-                            $url = "https://{$record->slug}.x-linic.com/admin/impersonate?token={$token}&user={$data['user_id']}";
+                            $url = "https://{$record->slug}.xforcehr.com/admin/impersonate?token={$token}&user={$data['user_id']}";
 
                             return redirect()->away($url);
 

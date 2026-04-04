@@ -185,7 +185,7 @@ class TenantDomain extends Model
             '-d', $this->domain,
             '--non-interactive',
             '--agree-tos',
-            '--email', 'ssl@x-linic.com',
+            '--email', 'ssl@xforcehr.com',
         ]);
 
         if (!$result->successful()) {

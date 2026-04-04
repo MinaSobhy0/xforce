@@ -38,7 +38,7 @@ class RequireTenant
 
             if ($subdomain && in_array($subdomain, $excludedSubdomains)) {
                 // Redirect to clinic owner portal
-                return redirect('https://sys.x-linic.com/admin');
+                return redirect('https://sys.xforcehr.com/admin');
             }
 
             // If accessing via IP (no subdomain), redirect to tenant selection or show helpful message

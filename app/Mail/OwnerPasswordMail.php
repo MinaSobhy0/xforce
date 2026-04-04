@@ -32,7 +32,7 @@ class OwnerPasswordMail extends Mailable
             with: [
                 'user' => $this->user,
                 'password' => $this->password,
-                'loginUrl' => 'https://sys.x-linic.com/admin/login',
+                'loginUrl' => 'https://sys.xforcehr.com/admin/login',
             ],
         );
     }

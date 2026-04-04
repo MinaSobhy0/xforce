@@ -32,7 +32,7 @@ class WelcomeProvisioned extends Mailable implements ShouldQueue
             markdown: 'emails.onboarding.welcome',
             with: [
                 'request' => $this->request,
-                'loginUrl' => "https://{$this->request->slug}.x-linic.com/admin",
+                'loginUrl' => "https://{$this->request->slug}.xforcehr.com/admin",
                 'temporaryPassword' => $this->temporaryPassword,
             ],
         );
