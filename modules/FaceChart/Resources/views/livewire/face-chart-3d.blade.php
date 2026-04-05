@@ -102,12 +102,43 @@
 
                 {{-- Edit Mode Instructions --}}
                 <div
-                    x-show="isEditing"
+                    x-show="isEditing && !isDrawingArrow"
                     x-transition
-                    class="absolute bottom-4 left-4 right-4 bg-primary-500/90 text-white px-4 py-2 rounded-lg text-center"
+                    class="absolute bottom-4 left-4 right-4 bg-primary-500/90 text-white px-4 py-3 rounded-lg"
                     style="z-index: 15; pointer-events: none;"
                 >
-                    {{ __('face_chart::face_chart.viewer.click_to_add') }}
+                    <div class="flex items-center justify-center gap-6 text-sm">
+                        <div class="flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+                            </svg>
+                            <span>{{ __('face_chart::face_chart.viewer.click_to_add') }}</span>
+                        </div>
+                        <div class="w-px h-4 bg-white/40"></div>
+                        <div class="flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                            <span>{{ __('face_chart::face_chart.viewer.drag_to_draw') }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Drawing Arrow Indicator --}}
+                <div
+                    x-show="isDrawingArrow"
+                    x-transition
+                    class="absolute bottom-4 left-4 right-4 bg-teal-600/95 text-white px-4 py-3 rounded-lg"
+                    style="z-index: 15; pointer-events: none;"
+                >
+                    <div class="flex items-center justify-center gap-3 text-sm">
+                        <svg class="w-5 h-5 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        <span>{{ __('face_chart::face_chart.viewer.drawing_arrow') }}</span>
+                        <span class="text-white/70">|</span>
+                        <span class="text-white/80 text-xs">{{ __('face_chart::face_chart.viewer.press_esc') }}</span>
+                    </div>
                 </div>
 
                 {{-- Marker Tooltip --}}
@@ -273,35 +304,93 @@
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                     {{ __('face_chart::face_chart.fields.direction') }}
                                 </label>
-                                <div class="flex gap-3">
-                                    <select
-                                        x-model="pendingMarker.direction_preset"
-                                        @change="applyDirectionPreset()"
-                                        :disabled="isEditingMarker && !pendingMarker.is_editable"
-                                        class="flex-1 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-primary-500 focus:border-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        <option value="">-- Select Direction --</option>
-                                        <option value="perpendicular">Perpendicular (90°)</option>
-                                        <option value="angled_down">Angled Down (45°)</option>
-                                        <option value="angled_up">Angled Up (45°)</option>
-                                        <option value="horizontal">Horizontal</option>
-                                        <option value="custom">Custom</option>
-                                    </select>
-                                    <div class="w-20">
-                                        <input
-                                            type="number"
-                                            step="1"
-                                            min="1"
-                                            max="20"
-                                            x-model="pendingMarker.depth_mm"
-                                            :disabled="isEditingMarker && !pendingMarker.is_editable"
-                                            class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-primary-500 focus:border-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                                            placeholder="mm"
-                                            title="{{ __('face_chart::face_chart.fields.depth') }}"
-                                        >
+
+                                {{-- Visual instruction for drag-to-draw --}}
+                                <template x-if="!isEditingMarker || pendingMarker.is_editable">
+                                    <div class="mb-3 p-3 bg-primary-50 dark:bg-primary-900/30 border border-primary-200 dark:border-primary-800 rounded-lg">
+                                        <div class="flex items-start gap-2">
+                                            <svg class="w-5 h-5 text-primary-600 dark:text-primary-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                            </svg>
+                                            <div>
+                                                <p class="text-sm font-medium text-primary-800 dark:text-primary-200">
+                                                    {{ __('face_chart::face_chart.fields.drag_instruction_title') }}
+                                                </p>
+                                                <p class="text-xs text-primary-600 dark:text-primary-400 mt-0.5">
+                                                    {{ __('face_chart::face_chart.fields.drag_instruction_desc') }}
+                                                </p>
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ __('face_chart::face_chart.fields.depth') }}</p>
+                                </template>
+
+                                {{-- Current direction indicator (if set) --}}
+                                <template x-if="pendingMarker.direction_x !== null && pendingMarker.direction_y !== null && pendingMarker.direction_z !== null">
+                                    <div class="mb-3 p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg flex items-center gap-3">
+                                        <div class="flex items-center justify-center w-10 h-10 bg-teal-100 dark:bg-teal-900/50 rounded-full">
+                                            <svg class="w-5 h-5 text-teal-600 dark:text-teal-400" viewBox="0 0 24 24" fill="currentColor"
+                                                :style="'transform: rotate(' + (Math.atan2(pendingMarker.direction_x, -pendingMarker.direction_y) * 180 / Math.PI) + 'deg)'">
+                                                <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/>
+                                            </svg>
+                                        </div>
+                                        <div class="flex-1">
+                                            <p class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                {{ __('face_chart::face_chart.fields.direction_set') }}
+                                            </p>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400">
+                                                <template x-if="pendingMarker.depth_mm">
+                                                    <span>{{ __('face_chart::face_chart.fields.depth') }}: <span x-text="pendingMarker.depth_mm"></span>mm</span>
+                                                </template>
+                                            </p>
+                                        </div>
+                                        <button
+                                            @click="pendingMarker.direction_x = null; pendingMarker.direction_y = null; pendingMarker.direction_z = null; pendingMarker.depth_mm = ''; pendingMarker.direction_preset = '';"
+                                            x-show="!isEditingMarker || pendingMarker.is_editable"
+                                            type="button"
+                                            class="p-1 text-gray-400 hover:text-red-500 transition"
+                                            title="{{ __('face_chart::face_chart.fields.clear_direction') }}"
+                                        >
+                                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </template>
+
+                                {{-- Fallback direction preset dropdown (collapsed by default) --}}
+                                <details class="text-sm">
+                                    <summary class="cursor-pointer text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+                                        {{ __('face_chart::face_chart.fields.use_preset') }}
+                                    </summary>
+                                    <div class="mt-2 flex gap-3">
+                                        <select
+                                            x-model="pendingMarker.direction_preset"
+                                            @change="applyDirectionPreset()"
+                                            :disabled="isEditingMarker && !pendingMarker.is_editable"
+                                            class="flex-1 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-primary-500 focus:border-primary-500 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                                        >
+                                            <option value="">-- Select Direction --</option>
+                                            <option value="perpendicular">Perpendicular (90°)</option>
+                                            <option value="angled_down">Angled Down (45°)</option>
+                                            <option value="angled_up">Angled Up (45°)</option>
+                                            <option value="horizontal">Horizontal</option>
+                                            <option value="custom">Custom</option>
+                                        </select>
+                                        <div class="w-20">
+                                            <input
+                                                type="number"
+                                                step="1"
+                                                min="1"
+                                                max="20"
+                                                x-model="pendingMarker.depth_mm"
+                                                :disabled="isEditingMarker && !pendingMarker.is_editable"
+                                                class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-primary-500 focus:border-primary-500 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                                                placeholder="mm"
+                                                title="{{ __('face_chart::face_chart.fields.depth') }}"
+                                            >
+                                        </div>
+                                    </div>
+                                </details>
                             </div>
 
                             {{-- Notes --}}
@@ -693,6 +782,14 @@ Alpine.data('faceChart3D', function(config) {
         hoveredMarker: null,
         tooltipStyle: '',
 
+        // Arrow drawing state (drag-to-draw)
+        isDrawingArrow: false,
+        drawingMarkerId: null,
+        drawStartPoint: null,      // THREE.Vector3
+        drawCurrentPoint: null,    // THREE.Vector3
+        previewArrowGroup: null,   // THREE.Group for preview arrow
+        drawingMarkerPosition: null, // Original marker position for arrow base
+
         // Modal state
         showMarkerModal: false,
         isEditingMarker: false,  // true = editing existing, false = adding new
@@ -718,7 +815,7 @@ Alpine.data('faceChart3D', function(config) {
         },
 
         init() {
-            console.log('[FC3D] Init v19 - 3D arrows with lighting and depth');
+            console.log('[FC3D] Init v20 - Drag-to-draw arrows');
             // Prevent re-initialization
             if (this.$el._fc3dInit) {
                 console.log('[FC3D] Already initialized, skipping');
@@ -859,10 +956,29 @@ Alpine.data('faceChart3D', function(config) {
                 console.log('[FC3D] Pointerdown on canvas at', e.clientX, e.clientY, 'type:', e.pointerType);
                 this._pointerDownTime = Date.now();
                 this._pointerDownPos = { x: e.clientX, y: e.clientY };
+
+                // Check if clicking on a marker to potentially start arrow drawing
+                if (this.isEditing) {
+                    this.handlePointerDown(e);
+                }
+            });
+
+            canvasElement.addEventListener('pointermove', (e) => {
+                // Handle arrow drawing preview
+                if (this.isDrawingArrow && this.drawStartPoint) {
+                    this.handlePointerMove(e);
+                }
             });
 
             canvasElement.addEventListener('pointerup', (e) => {
                 console.log('[FC3D] Pointerup on canvas at', e.clientX, e.clientY);
+
+                // If we were drawing an arrow, finish it
+                if (this.isDrawingArrow) {
+                    this.handlePointerUp(e);
+                    return;
+                }
+
                 // Detect click (short press without much movement)
                 const elapsed = Date.now() - (this._pointerDownTime || 0);
                 const moved = this._pointerDownPos ?
@@ -876,8 +992,52 @@ Alpine.data('faceChart3D', function(config) {
                 }
             });
 
+            // Listen for Escape key to cancel drawing
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && this.isDrawingArrow) {
+                    this.cancelDrawingArrow();
+                }
+            });
+
+            // Touch events for tablet support
+            canvasElement.addEventListener('touchstart', (e) => {
+                if (this.isEditing && e.touches.length === 1) {
+                    // Convert touch to pointer-like event
+                    const touch = e.touches[0];
+                    this.handlePointerDown({
+                        clientX: touch.clientX,
+                        clientY: touch.clientY
+                    });
+                }
+            }, { passive: true });
+
+            canvasElement.addEventListener('touchmove', (e) => {
+                if (this.isDrawingArrow && e.touches.length === 1) {
+                    const touch = e.touches[0];
+                    this.handlePointerMove({
+                        clientX: touch.clientX,
+                        clientY: touch.clientY
+                    });
+                }
+            }, { passive: true });
+
+            canvasElement.addEventListener('touchend', (e) => {
+                if (this.isDrawingArrow && e.changedTouches.length === 1) {
+                    const touch = e.changedTouches[0];
+                    this.handlePointerUp({
+                        clientX: touch.clientX,
+                        clientY: touch.clientY
+                    });
+                }
+            });
+
             // Also keep regular click handler as backup
             canvasElement.addEventListener('click', (e) => {
+                // Don't process clicks if we just finished drawing
+                if (this._justFinishedDrawing) {
+                    this._justFinishedDrawing = false;
+                    return;
+                }
                 console.log('[FC3D] Native click event fired!');
                 this.onClick(e);
             });
@@ -1310,44 +1470,300 @@ Alpine.data('faceChart3D', function(config) {
             this.showMarkerModal = true;
         },
 
-        // Apply direction preset
+        // Apply direction preset (legacy - kept for modal dropdown fallback)
         applyDirectionPreset() {
             const preset = this.pendingMarker.direction_preset;
             switch(preset) {
                 case 'perpendicular':
-                    // Pointing straight into face (negative Z)
                     this.pendingMarker.direction_x = 0;
                     this.pendingMarker.direction_y = 0;
                     this.pendingMarker.direction_z = -1;
                     break;
                 case 'angled_down':
-                    // 45 degrees downward
                     this.pendingMarker.direction_x = 0;
                     this.pendingMarker.direction_y = -0.707;
                     this.pendingMarker.direction_z = -0.707;
                     break;
                 case 'angled_up':
-                    // 45 degrees upward
                     this.pendingMarker.direction_x = 0;
                     this.pendingMarker.direction_y = 0.707;
                     this.pendingMarker.direction_z = -0.707;
                     break;
                 case 'horizontal':
-                    // Horizontal into face
                     this.pendingMarker.direction_x = 0;
                     this.pendingMarker.direction_y = 0;
                     this.pendingMarker.direction_z = -1;
                     break;
                 case 'custom':
-                    // Keep existing direction values for custom
                     break;
                 case '':
                 default:
-                    // No direction selected - clear values
                     this.pendingMarker.direction_x = null;
                     this.pendingMarker.direction_y = null;
                     this.pendingMarker.direction_z = null;
             }
+        },
+
+        // ============================================
+        // DRAG-TO-DRAW ARROW FUNCTIONS
+        // ============================================
+
+        // Create a preview arrow during drag
+        createPreviewArrow(startPoint, endPoint) {
+            // Remove any existing preview
+            this.removePreviewArrow();
+
+            if (!startPoint || !endPoint) return;
+
+            const direction = new THREE.Vector3().subVectors(endPoint, startPoint);
+            const length = direction.length();
+
+            // Minimum length check
+            if (length < 0.01) return;
+
+            direction.normalize();
+
+            // Arrow dimensions - scaled to match actual arrows
+            const shaftRadius = 0.004;
+            const headRadius = 0.015;
+            const headLength = 0.03;
+            const shaftLength = Math.max(0.02, length - headLength);
+
+            // Semi-transparent teal material for preview
+            const previewMaterial = new THREE.MeshPhongMaterial({
+                color: 0x2D6B6B,
+                emissive: 0x2D6B6B,
+                emissiveIntensity: 0.3,
+                shininess: 80,
+                transparent: true,
+                opacity: 0.6,
+                side: THREE.DoubleSide
+            });
+
+            // Create arrow group
+            this.previewArrowGroup = new THREE.Group();
+
+            // Shaft
+            const shaftGeo = new THREE.CylinderGeometry(shaftRadius, shaftRadius, shaftLength, 12);
+            const shaft = new THREE.Mesh(shaftGeo, previewMaterial);
+            shaft.position.set(0, shaftLength / 2, 0);
+            this.previewArrowGroup.add(shaft);
+
+            // Arrowhead
+            const headGeo = new THREE.ConeGeometry(headRadius, headLength, 12);
+            const head = new THREE.Mesh(headGeo, previewMaterial);
+            head.position.set(0, shaftLength + headLength / 2, 0);
+            this.previewArrowGroup.add(head);
+
+            // Position at marker location
+            this.previewArrowGroup.position.copy(startPoint);
+
+            // Orient arrow to point in drag direction
+            const quaternion = new THREE.Quaternion();
+            quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction);
+            this.previewArrowGroup.setRotationFromQuaternion(quaternion);
+
+            // Add base sphere
+            const baseSphereGeo = new THREE.SphereGeometry(0.008, 12, 12);
+            const baseSphereMat = new THREE.MeshPhongMaterial({
+                color: 0x2D6B6B,
+                emissive: 0x2D6B6B,
+                emissiveIntensity: 0.4,
+                transparent: true,
+                opacity: 0.7
+            });
+            const baseSphere = new THREE.Mesh(baseSphereGeo, baseSphereMat);
+            baseSphere.position.copy(startPoint);
+            this.previewArrowGroup.add(baseSphere);
+
+            this.previewArrowGroup.userData = { isPreviewArrow: true };
+            scene.add(this.previewArrowGroup);
+        },
+
+        // Update preview arrow during drag
+        updatePreviewArrow(endPoint) {
+            if (!this.drawStartPoint || !endPoint) return;
+
+            // Recreate the arrow with new endpoint
+            this.createPreviewArrow(this.drawStartPoint, endPoint);
+        },
+
+        // Remove preview arrow from scene
+        removePreviewArrow() {
+            if (this.previewArrowGroup && scene) {
+                scene.remove(this.previewArrowGroup);
+                // Dispose of geometries and materials
+                this.previewArrowGroup.traverse((child) => {
+                    if (child.geometry) child.geometry.dispose();
+                    if (child.material) child.material.dispose();
+                });
+                this.previewArrowGroup = null;
+            }
+        },
+
+        // Start drawing arrow on marker click
+        startDrawingArrow(markerId, markerPosition) {
+            console.log('[FC3D] Starting arrow draw for marker:', markerId);
+            this.isDrawingArrow = true;
+            this.drawingMarkerId = markerId;
+            this.drawStartPoint = markerPosition.clone();
+            this.drawingMarkerPosition = markerPosition.clone();
+
+            // Change cursor to grabbing while drawing
+            if (renderer && renderer.domElement) {
+                renderer.domElement.style.cursor = 'grabbing';
+            }
+        },
+
+        // Finish drawing arrow and save direction
+        finishDrawingArrow(endPoint) {
+            if (!this.isDrawingArrow || !this.drawingMarkerId || !this.drawStartPoint) {
+                this.cancelDrawingArrow();
+                return;
+            }
+
+            const direction = new THREE.Vector3().subVectors(endPoint, this.drawStartPoint);
+            const distance = direction.length();
+
+            // Minimum drag distance check (prevents accidental clicks)
+            const MIN_DRAG_DISTANCE = 0.02;  // In 3D units
+            if (distance < MIN_DRAG_DISTANCE) {
+                console.log('[FC3D] Drag too short, canceling');
+                this.cancelDrawingArrow();
+                return;
+            }
+
+            direction.normalize();
+
+            // Calculate depth from drag distance (scale factor)
+            const DEPTH_SCALE = 100; // Convert 3D units to mm
+            const MAX_DEPTH = 20;    // Maximum 20mm
+            const depth = Math.min(distance * DEPTH_SCALE, MAX_DEPTH);
+
+            console.log('[FC3D] Arrow drawn - direction:', direction, 'depth:', depth);
+
+            // Save direction via Livewire
+            this.$wire.onSetDirection(
+                this.drawingMarkerId,
+                direction.x,
+                direction.y,
+                direction.z,
+                depth
+            );
+
+            // Clean up
+            this.removePreviewArrow();
+            this.resetDrawingState();
+        },
+
+        // Cancel arrow drawing (e.g., on Escape)
+        cancelDrawingArrow() {
+            console.log('[FC3D] Canceling arrow draw');
+            this.removePreviewArrow();
+            this.resetDrawingState();
+        },
+
+        // Reset drawing state
+        resetDrawingState() {
+            this.isDrawingArrow = false;
+            this.drawingMarkerId = null;
+            this.drawStartPoint = null;
+            this.drawCurrentPoint = null;
+            this.drawingMarkerPosition = null;
+
+            // Reset cursor
+            if (renderer && renderer.domElement) {
+                renderer.domElement.style.cursor = 'crosshair';
+            }
+        },
+
+        // Project mouse position to 3D plane at marker's depth
+        projectMouseToPlane(mouseEvent, referencePoint) {
+            if (!renderer || !camera || !referencePoint) return null;
+
+            const rect = renderer.domElement.getBoundingClientRect();
+            const mouseNDC = new THREE.Vector2(
+                ((mouseEvent.clientX - rect.left) / rect.width) * 2 - 1,
+                -((mouseEvent.clientY - rect.top) / rect.height) * 2 + 1
+            );
+
+            // Create a plane perpendicular to camera at reference point's depth
+            const cameraDirection = camera.getWorldDirection(new THREE.Vector3());
+            const planeNormal = cameraDirection.clone().negate();
+            const plane = new THREE.Plane(planeNormal);
+            plane.setFromNormalAndCoplanarPoint(planeNormal, referencePoint);
+
+            // Cast ray from mouse position
+            const ray = new THREE.Raycaster();
+            ray.setFromCamera(mouseNDC, camera);
+
+            // Find intersection with plane
+            const intersection = new THREE.Vector3();
+            const hit = ray.ray.intersectPlane(plane, intersection);
+
+            return hit ? intersection : null;
+        },
+
+        // Handle pointer down - check if starting arrow draw on marker
+        handlePointerDown(e) {
+            if (!this.isEditing || !faceModel || !renderer) return;
+
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+
+            // Check if clicking on a marker
+            const markerHits = raycaster.intersectObjects(markerMeshes, true)
+                .filter(hit => hit.object.userData && hit.object.userData.isMarker && hit.object.userData.id);
+
+            if (markerHits.length > 0) {
+                const marker = markerHits[0].object;
+                const markerId = marker.userData.id;
+
+                // Start arrow drawing mode
+                const markerPosition = marker.position.clone();
+                this.startDrawingArrow(markerId, markerPosition);
+
+                // Prevent orbit controls from interfering
+                if (controls) {
+                    controls.enabled = false;
+                }
+            }
+        },
+
+        // Handle pointer move during arrow drawing
+        handlePointerMove(e) {
+            if (!this.isDrawingArrow || !this.drawStartPoint) return;
+
+            // Project mouse to 3D plane
+            const endPoint = this.projectMouseToPlane(e, this.drawStartPoint);
+            if (endPoint) {
+                this.drawCurrentPoint = endPoint;
+                this.updatePreviewArrow(endPoint);
+            }
+        },
+
+        // Handle pointer up - finish arrow drawing
+        handlePointerUp(e) {
+            if (!this.isDrawingArrow) return;
+
+            // Re-enable orbit controls
+            if (controls) {
+                controls.enabled = true;
+            }
+
+            // Project final mouse position
+            const endPoint = this.projectMouseToPlane(e, this.drawStartPoint);
+            if (endPoint) {
+                this.finishDrawingArrow(endPoint);
+            } else {
+                this.cancelDrawingArrow();
+            }
+
+            // Mark that we just finished drawing to prevent click handler
+            this._justFinishedDrawing = true;
         },
 
         // Save marker via Livewire (handles both add and edit)
@@ -1434,8 +1850,18 @@ Alpine.data('faceChart3D', function(config) {
                     unitType: d.unitType
                 };
                 this.tooltipStyle = `left:${e.clientX - rect.left + 10}px;top:${e.clientY - rect.top + 10}px`;
+
+                // Change cursor to indicate draggable in edit mode
+                if (this.isEditing && renderer.domElement) {
+                    renderer.domElement.style.cursor = 'grab';
+                }
             } else {
                 this.hoveredMarker = null;
+
+                // Reset cursor
+                if (renderer.domElement) {
+                    renderer.domElement.style.cursor = this.isEditing ? 'crosshair' : 'default';
+                }
             }
         },
 
