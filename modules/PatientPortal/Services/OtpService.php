@@ -160,8 +160,8 @@ class OtpService
             // Check if Marketing module is available
             if (class_exists(\Modules\Marketing\Services\WhatsAppService::class)) {
                 $whatsapp = app(\Modules\Marketing\Services\WhatsAppService::class);
-                $sent = $whatsapp->sendText($patient->phone, $message);
-                if ($sent) {
+                $result = $whatsapp->sendTextMessage($patient->phone, $message);
+                if ($result['success'] ?? false) {
                     return true;
                 }
             }
