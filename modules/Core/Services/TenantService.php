@@ -416,6 +416,9 @@ class TenantService
 
                 // OdooIntegration - default entity mappings
                 \Modules\OdooIntegration\Database\Seeders\DefaultEntityMappingsSeeder::class,
+
+                // Website - default pages, menus, and settings
+                \Modules\Website\Database\Seeders\DefaultWebsitePagesSeeder::class,
             ];
 
             foreach ($seeders as $seederClass) {

@@ -2,6 +2,7 @@
     "Core": true,
     "Auth": true,
     "Patients": true,
+    "FaceChart": true,
     "Services": true,
     "Equipment": true,
     "Booking": true,
@@ -26,5 +27,6 @@
     "MobileApi": true,
     "Projects": true,
     "OdooIntegration": true,
-    "KnowledgeBase": true
+    "KnowledgeBase": true,
+    "Website": true
 }

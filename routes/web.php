@@ -4,11 +4,16 @@ use App\Http\Controllers\Auth\TwoFactorChallengeController;
 use App\Http\Controllers\BackupController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\TenantMediaController;
+use Modules\Website\Http\Controllers\WebsiteController;
+use Modules\Website\Http\Middleware\WebsiteModuleMiddleware;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('landing');
-})->name('landing');
+// Root route - checks if tenant has Website module enabled
+// If enabled: renders tenant's custom website
+// If disabled or no subdomain: shows platform landing page
+Route::get('/', [WebsiteController::class, 'home'])
+    ->middleware(WebsiteModuleMiddleware::class)
+    ->name('home');
 
 // Define login route for auth middleware redirect
 Route::get('/login', function () {

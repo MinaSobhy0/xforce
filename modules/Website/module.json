@@ -1,0 +1,113 @@
+{
+    "name": "Website",
+    "alias": "website",
+    "description": {
+        "en": "Public website builder with customizable blocks",
+        "ar": "منشئ الموقع العام مع كتل قابلة للتخصيص"
+    },
+    "version": "1.0.0",
+    "category": "marketing",
+    "icon": "heroicon-o-globe-alt",
+    "keywords": [
+        "website",
+        "landing",
+        "pages",
+        "blocks",
+        "cms"
+    ],
+    "priority": 50,
+    "providers": [
+        "Modules\\Website\\Providers\\WebsiteServiceProvider"
+    ],
+    "dependencies": [
+        "Core",
+        "Auth"
+    ],
+    "optional_dependencies": [
+        "Services",
+        "Staff",
+        "Booking"
+    ],
+    "models": [
+        "Modules\\Website\\Models\\WebsitePage",
+        "Modules\\Website\\Models\\WebsiteBlock",
+        "Modules\\Website\\Models\\WebsiteSetting",
+        "Modules\\Website\\Models\\WebsiteMenu"
+    ],
+    "permissions": {
+        "website.view_any": "View website pages",
+        "website.view": "View website page details",
+        "website.create": "Create website pages",
+        "website.update": "Update website pages",
+        "website.delete": "Delete website pages",
+        "website.settings": "Manage website settings",
+        "website.menus": "Manage website menus"
+    },
+    "default_role_permissions": {
+        "admin": [
+            "website.*"
+        ],
+        "manager": [
+            "website.view_any",
+            "website.view",
+            "website.create",
+            "website.update"
+        ],
+        "marketing": [
+            "website.*"
+        ]
+    },
+    "navigation": [
+        {
+            "id": "website.pages",
+            "label": {
+                "en": "Website Pages",
+                "ar": "صفحات الموقع"
+            },
+            "icon": "heroicon-o-document-text",
+            "route": "filament.tenant.resources.website-pages.index",
+            "group": "marketing",
+            "order": 60,
+            "permission": "website.view_any"
+        },
+        {
+            "id": "website.settings",
+            "label": {
+                "en": "Website Settings",
+                "ar": "إعدادات الموقع"
+            },
+            "icon": "heroicon-o-cog-6-tooth",
+            "route": "filament.tenant.pages.website-settings",
+            "group": "marketing",
+            "order": 61,
+            "permission": "website.settings"
+        },
+        {
+            "id": "website.menus",
+            "label": {
+                "en": "Menu Editor",
+                "ar": "محرر القوائم"
+            },
+            "icon": "heroicon-o-bars-3",
+            "route": "filament.tenant.pages.menu-editor",
+            "group": "marketing",
+            "order": 62,
+            "permission": "website.menus"
+        }
+    ],
+    "settings": {
+        "website.enabled": {
+            "type": "boolean",
+            "default": true,
+            "label": {
+                "en": "Enable public website",
+                "ar": "تفعيل الموقع العام"
+            }
+        }
+    },
+    "active": true,
+    "display_name": {
+        "en": "Website",
+        "ar": "الموقع"
+    }
+}
