@@ -22,7 +22,7 @@
     {{-- Background Image --}}
     @if($bgImage)
         <div class="absolute inset-0">
-            <img src="{{ Storage::disk('tenant')->url($bgImage) }}"
+            <img src="{{ website_asset($bgImage) }}"
                  alt=""
                  class="w-full h-full object-cover">
             <div class="absolute inset-0 bg-black" style="opacity: {{ $overlayOpacity }};"></div>

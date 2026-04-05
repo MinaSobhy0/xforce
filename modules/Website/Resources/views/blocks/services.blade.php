@@ -42,7 +42,7 @@
                 <div class="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-200 border border-gray-100">
                     @if($service->image_url)
                         <div class="aspect-video overflow-hidden">
-                            <img src="{{ Storage::disk('tenant')->url($service->image_url) }}"
+                            <img src="{{ website_asset($service->image_url) }}"
                                  alt="{{ $service->translated_name }}"
                                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
                         </div>

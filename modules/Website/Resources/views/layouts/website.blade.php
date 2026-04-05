@@ -9,7 +9,7 @@
     <meta name="description" content="{{ $page->meta_description_for_locale ?? '' }}">
 
     @if($settings['favicon'] ?? false)
-        <link rel="icon" href="{{ Storage::disk('tenant')->url($settings['favicon']) }}">
+        <link rel="icon" href="{{ website_asset($settings['favicon']) }}">
     @endif
 
     {{-- Open Graph --}}
@@ -17,7 +17,7 @@
     <meta property="og:description" content="{{ $page->meta_description_for_locale ?? '' }}">
     <meta property="og:type" content="website">
     @if($settings['logo'] ?? false)
-        <meta property="og:image" content="{{ Storage::disk('tenant')->url($settings['logo']) }}">
+        <meta property="og:image" content="{{ website_asset($settings['logo']) }}">
     @endif
 
     {{-- Fonts --}}

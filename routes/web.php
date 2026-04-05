@@ -41,6 +41,12 @@ Route::get('/tenant-storage/{path}', [TenantMediaController::class, 'show'])
     ->where('path', '.*')
     ->name('tenant.storage');
 
+// Public Website Assets Route - serves public website images (logos, gallery, etc.)
+// No auth required, only allows website/ directory
+Route::get('/website-assets/{path}', [TenantMediaController::class, 'showPublic'])
+    ->where('path', '.*')
+    ->name('website.assets');
+
 // Appointment action via signed URL (confirm, cancel, reschedule)
 Route::get('/appointment/{appointment}/{action}', function (\Illuminate\Http\Request $request, $appointment, $action) {
     $appointmentModel = \Modules\Booking\Models\Appointment::findOrFail($appointment);

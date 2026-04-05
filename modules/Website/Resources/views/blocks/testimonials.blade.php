@@ -23,7 +23,7 @@
                                 <div class="max-w-3xl mx-auto bg-white rounded-2xl shadow-lg p-8 md:p-12 text-center">
                                     {{-- Avatar --}}
                                     @if($testimonial['image'] ?? false)
-                                        <img src="{{ Storage::disk('tenant')->url($testimonial['image']) }}"
+                                        <img src="{{ website_asset($testimonial['image']) }}"
                                              alt="{{ $testimonial['name'] ?? '' }}"
                                              class="w-20 h-20 rounded-full mx-auto mb-6 object-cover">
                                     @else
@@ -94,7 +94,7 @@
                     <div class="bg-white rounded-xl p-6 shadow-sm">
                         <div class="flex items-center mb-4">
                             @if($testimonial['image'] ?? false)
-                                <img src="{{ Storage::disk('tenant')->url($testimonial['image']) }}"
+                                <img src="{{ website_asset($testimonial['image']) }}"
                                      alt="{{ $testimonial['name'] ?? '' }}"
                                      class="w-12 h-12 rounded-full object-cover">
                             @else

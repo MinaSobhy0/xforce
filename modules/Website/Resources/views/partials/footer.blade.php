@@ -4,7 +4,7 @@
             {{-- Logo & Description --}}
             <div class="col-span-1 md:col-span-2">
                 @if($settings['logo'] ?? false)
-                    <img class="h-10 w-auto brightness-0 invert" src="{{ Storage::disk('tenant')->url($settings['logo']) }}" alt="{{ $tenant->name ?? '' }}">
+                    <img class="h-10 w-auto brightness-0 invert" src="{{ website_asset($settings['logo']) }}" alt="{{ $tenant->name ?? '' }}">
                 @else
                     <span class="text-2xl font-bold">{{ $tenant->name ?? config('app.name') }}</span>
                 @endif

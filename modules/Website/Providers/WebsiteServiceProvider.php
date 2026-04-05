@@ -17,6 +17,15 @@ class WebsiteServiceProvider extends ServiceProvider
         $this->registerViews();
         $this->registerTranslations();
         $this->loadMigrationsFrom(module_path($this->moduleName, 'Database/Migrations'));
+        $this->loadHelpers();
+    }
+
+    protected function loadHelpers(): void
+    {
+        $helpersFile = module_path($this->moduleName, 'Helpers/helpers.php');
+        if (file_exists($helpersFile)) {
+            require_once $helpersFile;
+        }
     }
 
     public function register(): void

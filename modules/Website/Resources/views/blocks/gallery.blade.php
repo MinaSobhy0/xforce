@@ -25,8 +25,8 @@
         <div class="grid grid-cols-1 {{ $gridClass }} gap-4">
             @foreach($images as $image)
                 <div class="relative group overflow-hidden rounded-lg aspect-square cursor-pointer"
-                     @if($lightbox) @click="lightboxOpen = true; currentImage = '{{ Storage::disk('tenant')->url($image) }}'" @endif>
-                    <img src="{{ Storage::disk('tenant')->url($image) }}"
+                     @if($lightbox) @click="lightboxOpen = true; currentImage = '{{ website_asset($image) }}'" @endif>
+                    <img src="{{ website_asset($image) }}"
                          alt=""
                          class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110">
                     <div class="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-300 flex items-center justify-center">

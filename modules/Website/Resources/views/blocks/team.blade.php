@@ -39,7 +39,7 @@
                 <div class="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200 text-center">
                     <div class="aspect-square overflow-hidden bg-gray-100">
                         @if($member->photo_url)
-                            <img src="{{ Storage::disk('tenant')->url($member->photo_url) }}"
+                            <img src="{{ website_asset($member->photo_url) }}"
                                  alt="{{ $member->user?->full_name }}"
                                  class="w-full h-full object-cover">
                         @else

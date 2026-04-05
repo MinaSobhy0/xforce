@@ -63,6 +63,73 @@ class TenantMediaController extends Controller
     }
 
     /**
+     * Serve public website assets (logos, images, etc.) from tenant storage.
+     * Route: /website-assets/{path}
+     *
+     * This is for public website content only - no auth required.
+     * Only allows access to website-related directories.
+     */
+    public function showPublic(Request $request, string $path): StreamedResponse
+    {
+        // Get the current tenant (set by IdentifyTenant middleware)
+        $tenant = app()->bound('currentTenant') ? app('currentTenant') : null;
+
+        if (!$tenant) {
+            abort(403, 'Tenant access required');
+        }
+
+        // SECURITY: Prevent path traversal attacks
+        if (!$this->isPathSafe($path)) {
+            \Illuminate\Support\Facades\Log::warning('Path traversal attempt blocked in public assets', [
+                'path' => $path,
+                'tenant_id' => $tenant->id ?? null,
+                'ip' => $request->ip(),
+            ]);
+            abort(400, 'Invalid file path');
+        }
+
+        // SECURITY: Only allow access to website-related directories
+        $allowedPrefixes = ['website/', 'logos/', 'favicons/'];
+        $isAllowed = false;
+        foreach ($allowedPrefixes as $prefix) {
+            if (str_starts_with($path, $prefix)) {
+                $isAllowed = true;
+                break;
+            }
+        }
+
+        if (!$isAllowed) {
+            abort(403, 'Access denied to this directory');
+        }
+
+        // Use the tenant disk
+        $disk = Storage::disk('tenant');
+
+        if (!$disk->exists($path)) {
+            abort(404, 'File not found');
+        }
+
+        $mimeType = $disk->mimeType($path);
+        $size = $disk->size($path);
+
+        return response()->stream(
+            function () use ($disk, $path) {
+                $stream = $disk->readStream($path);
+                fpassthru($stream);
+                if (is_resource($stream)) {
+                    fclose($stream);
+                }
+            },
+            200,
+            [
+                'Content-Type' => $mimeType,
+                'Content-Length' => $size,
+                'Cache-Control' => 'public, max-age=86400', // 24 hours cache for public assets
+            ]
+        );
+    }
+
+    /**
      * SECURITY: Check if a path is safe (no directory traversal).
      */
     protected function isPathSafe(string $path): bool

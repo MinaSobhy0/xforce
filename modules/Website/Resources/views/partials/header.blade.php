@@ -5,7 +5,7 @@
             <div class="flex items-center">
                 <a href="/" class="flex-shrink-0">
                     @if($settings['logo'] ?? false)
-                        <img class="h-10 w-auto" src="{{ Storage::disk('tenant')->url($settings['logo']) }}" alt="{{ $tenant->name ?? '' }}">
+                        <img class="h-10 w-auto" src="{{ website_asset($settings['logo']) }}" alt="{{ $tenant->name ?? '' }}">
                     @else
                         <span class="text-xl font-bold text-primary">{{ $tenant->name ?? config('app.name') }}</span>
                     @endif

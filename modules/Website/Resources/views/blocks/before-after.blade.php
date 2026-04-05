@@ -20,13 +20,13 @@
                         {{-- Before/After Slider --}}
                         <div x-data="{ position: 50 }" class="relative aspect-square overflow-hidden">
                             {{-- After Image (bottom layer) --}}
-                            <img src="{{ Storage::disk('tenant')->url($item['after_image']) }}"
+                            <img src="{{ website_asset($item['after_image']) }}"
                                  alt="{{ $locale === 'ar' ? 'بعد' : 'After' }}"
                                  class="absolute inset-0 w-full h-full object-cover">
 
                             {{-- Before Image (top layer with clip) --}}
                             <div class="absolute inset-0 overflow-hidden" :style="'clip-path: inset(0 ' + (100 - position) + '% 0 0)'">
-                                <img src="{{ Storage::disk('tenant')->url($item['before_image']) }}"
+                                <img src="{{ website_asset($item['before_image']) }}"
                                      alt="{{ $locale === 'ar' ? 'قبل' : 'Before' }}"
                                      class="absolute inset-0 w-full h-full object-cover">
                             </div>
@@ -96,7 +96,7 @@
                     <div class="bg-white rounded-xl overflow-hidden shadow-sm">
                         <div class="grid grid-cols-2 gap-1">
                             <div class="relative">
-                                <img src="{{ Storage::disk('tenant')->url($item['before_image']) }}"
+                                <img src="{{ website_asset($item['before_image']) }}"
                                      alt="{{ $locale === 'ar' ? 'قبل' : 'Before' }}"
                                      class="w-full aspect-square object-cover">
                                 <div class="absolute bottom-4 {{ $locale === 'ar' ? 'right-4' : 'left-4' }} bg-black/50 text-white text-sm font-semibold px-3 py-1 rounded">
@@ -104,7 +104,7 @@
                                 </div>
                             </div>
                             <div class="relative">
-                                <img src="{{ Storage::disk('tenant')->url($item['after_image']) }}"
+                                <img src="{{ website_asset($item['after_image']) }}"
                                      alt="{{ $locale === 'ar' ? 'بعد' : 'After' }}"
                                      class="w-full aspect-square object-cover">
                                 <div class="absolute bottom-4 {{ $locale === 'ar' ? 'left-4' : 'right-4' }} bg-black/50 text-white text-sm font-semibold px-3 py-1 rounded">
