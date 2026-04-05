@@ -747,7 +747,6 @@ Alpine.data('faceChart3D', function(config) {
     let drawStartPoint = null;
     let drawCurrentPoint = null;
     let drawingMarkerPosition = null;
-    let drawingSurfaceNormal = null;  // Face surface normal at marker point for proper 3D direction
 
     // Icon paths configuration
     const iconPaths = {
@@ -818,7 +817,7 @@ Alpine.data('faceChart3D', function(config) {
         },
 
         init() {
-            console.log('[FC3D] Init v23 - Arrows pointing outward from face surface');
+            console.log('[FC3D] Init v24 - Short arrows, simple drag direction');
             // Prevent re-initialization
             if (this.$el._fc3dInit) {
                 console.log('[FC3D] Already initialized, skipping');
@@ -1253,7 +1252,7 @@ Alpine.data('faceChart3D', function(config) {
                 if (marker.directionX !== null && marker.directionY !== null && marker.directionZ !== null) {
                     // Teal color matching anatomical injection charts
                     const arrowColor = 0x2D6B6B;
-                    const arrowOpacity = marker.isCurrent ? 1 : 0.75;
+                    const arrowOpacity = marker.isCurrent ? 1 : 0.85;
 
                     // Direction vector (stored as injection direction - INTO the face)
                     const dirX = parseFloat(marker.directionX) || 0;
@@ -1261,74 +1260,68 @@ Alpine.data('faceChart3D', function(config) {
                     const dirZ = parseFloat(marker.directionZ) || -1;
                     const injectionDir = new THREE.Vector3(dirX, dirY, dirZ).normalize();
 
-                    // For VISUALIZATION: flip direction so arrow points OUTWARD (shows approach angle)
-                    // Arrow tip points toward the injection site, shaft shows where needle comes from
+                    // For VISUALIZATION: flip direction so arrow points OUTWARD
                     const displayDir = injectionDir.clone().negate();
 
-                    // Arrow dimensions - scaled for face model
-                    const arrowLength = (marker.depthMm ? marker.depthMm / 35 : 0.10);
-                    const shaftRadius = 0.004;
-                    const headRadius = 0.015;
-                    const headLength = 0.03;
-                    const shaftLength = Math.max(0.02, arrowLength - headLength);
-                    const totalLength = shaftLength + headLength;
+                    // SHORT fixed arrow length (like real injection needles 3-8mm)
+                    const arrowLength = 0.04;  // Consistent short length
+                    const shaftRadius = 0.003;
+                    const headRadius = 0.008;
+                    const headLength = 0.015;
+                    const shaftLength = arrowLength - headLength;
 
-                    // 3D Material with lighting for depth perception
+                    // 3D Material with lighting
                     const arrowMaterial = new THREE.MeshPhongMaterial({
                         color: arrowColor,
                         emissive: arrowColor,
-                        emissiveIntensity: 0.2,
+                        emissiveIntensity: 0.25,
                         shininess: 80,
                         transparent: arrowOpacity < 1,
                         opacity: arrowOpacity,
                         side: THREE.DoubleSide
                     });
 
-                    // Create arrow group - build arrow with TIP at origin (0,0,0)
-                    // so when positioned at marker, the tip is at the injection site
+                    // Create arrow with TIP at origin
                     const arrowGroup = new THREE.Group();
 
-                    // Arrowhead (cone) with tip at origin, pointing in -Y
-                    const headGeo = new THREE.ConeGeometry(headRadius, headLength, 12);
+                    // Arrowhead (cone) with tip at origin
+                    const headGeo = new THREE.ConeGeometry(headRadius, headLength, 8);
                     const head = new THREE.Mesh(headGeo, arrowMaterial);
-                    head.position.set(0, -headLength / 2, 0);  // Tip at origin
-                    head.rotation.x = Math.PI;  // Flip cone so tip points down (toward origin)
+                    head.position.set(0, -headLength / 2, 0);
+                    head.rotation.x = Math.PI;
                     arrowGroup.add(head);
 
-                    // Shaft (cylinder) extending from cone base outward
-                    const shaftGeo = new THREE.CylinderGeometry(shaftRadius, shaftRadius, shaftLength, 12);
+                    // Shaft extending from cone base
+                    const shaftGeo = new THREE.CylinderGeometry(shaftRadius, shaftRadius, shaftLength, 8);
                     const shaft = new THREE.Mesh(shaftGeo, arrowMaterial);
-                    shaft.position.set(0, -headLength - shaftLength / 2, 0);  // Above the cone
+                    shaft.position.set(0, -headLength - shaftLength / 2, 0);
                     arrowGroup.add(shaft);
 
                     // Position arrow at marker location
-                    arrowGroup.position.set(x, y, z + 0.02);
+                    arrowGroup.position.set(x, y, z + 0.015);
 
-                    // Orient arrow: rotate from default -Y to displayDir
-                    // The arrow is built pointing in -Y, so we rotate to match displayDir
+                    // Orient arrow
                     const quaternion = new THREE.Quaternion();
                     quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), displayDir);
                     arrowGroup.setRotationFromQuaternion(quaternion);
 
                     arrowGroup.userData = { isDirectionLine: true, markerId: marker.id };
-
                     scene.add(arrowGroup);
                     markerMeshes.push(arrowGroup);
 
-                    // Add a small sphere at the injection entry point (tip of arrow)
-                    const tipSphereGeo = new THREE.SphereGeometry(0.006, 12, 12);
+                    // Small sphere at injection point
+                    const tipSphereGeo = new THREE.SphereGeometry(0.004, 8, 8);
                     const tipSphereMat = new THREE.MeshPhongMaterial({
                         color: arrowColor,
                         emissive: arrowColor,
-                        emissiveIntensity: 0.3,
+                        emissiveIntensity: 0.4,
                         shininess: 100,
                         transparent: arrowOpacity < 1,
                         opacity: arrowOpacity
                     });
                     const tipSphere = new THREE.Mesh(tipSphereGeo, tipSphereMat);
-                    tipSphere.position.set(x, y, z + 0.02);
+                    tipSphere.position.set(x, y, z + 0.015);
                     tipSphere.userData = { isDirectionLine: true, markerId: marker.id };
-
                     scene.add(tipSphere);
                     markerMeshes.push(tipSphere);
                 }
@@ -1530,46 +1523,18 @@ Alpine.data('faceChart3D', function(config) {
             // Minimum length check
             if (dragDistance < 0.01) return;
 
-            // Calculate injection direction (same logic as finishDrawingArrow)
-            let injectionDir;
-            if (drawingSurfaceNormal) {
-                // Inward normal (pointing INTO the face)
-                const inwardNormal = drawingSurfaceNormal.clone().negate();
+            // Simple: arrow points opposite to drag direction (into face)
+            // Display direction is the drag direction (showing approach)
+            const displayDir = dragVector.clone().normalize();
 
-                // Lateral direction on tangent plane
-                const lateralDir = dragVector.clone().normalize();
+            // Short fixed arrow length (like real injection needles)
+            const arrowLength = 0.04;  // Short, consistent length
 
-                // Calculate angle based on drag distance
-                const maxAngle = Math.PI / 3;  // 60 degrees max
-                const angleScale = 0.15;
-                const angle = Math.min(dragDistance * angleScale * Math.PI, maxAngle);
-
-                // Blend inward normal with lateral direction
-                const cosAngle = Math.cos(angle);
-                const sinAngle = Math.sin(angle);
-
-                injectionDir = new THREE.Vector3()
-                    .addScaledVector(inwardNormal, cosAngle)
-                    .addScaledVector(lateralDir, sinAngle)
-                    .normalize();
-            } else {
-                injectionDir = dragVector.clone().normalize();
-            }
-
-            // For VISUALIZATION: flip direction so arrow points OUTWARD
-            const displayDir = injectionDir.clone().negate();
-
-            // Arrow length based on depth
-            const DEPTH_SCALE = 100;
-            const MAX_DEPTH = 20;
-            const depth = Math.min(dragDistance * DEPTH_SCALE, MAX_DEPTH);
-            const arrowLength = Math.max(0.05, depth / 35);  // Scale to match saved arrows
-
-            // Arrow dimensions
-            const shaftRadius = 0.004;
-            const headRadius = 0.015;
-            const headLength = 0.03;
-            const shaftLength = Math.max(0.02, arrowLength - headLength);
+            // Arrow dimensions - small and proportional
+            const shaftRadius = 0.003;
+            const headRadius = 0.008;
+            const headLength = 0.015;
+            const shaftLength = arrowLength - headLength;
 
             // Semi-transparent teal material for preview
             const previewMaterial = new THREE.MeshPhongMaterial({
@@ -1578,46 +1543,45 @@ Alpine.data('faceChart3D', function(config) {
                 emissiveIntensity: 0.3,
                 shininess: 80,
                 transparent: true,
-                opacity: 0.6,
+                opacity: 0.7,
                 side: THREE.DoubleSide
             });
 
-            // Create arrow group with TIP at origin (same as saved arrow rendering)
+            // Create arrow group with TIP at origin
             previewArrowGroup = new THREE.Group();
 
-            // Arrowhead (cone) with tip at origin, pointing in -Y
-            const headGeo = new THREE.ConeGeometry(headRadius, headLength, 12);
+            // Arrowhead (cone) with tip at origin
+            const headGeo = new THREE.ConeGeometry(headRadius, headLength, 8);
             const head = new THREE.Mesh(headGeo, previewMaterial);
             head.position.set(0, -headLength / 2, 0);
-            head.rotation.x = Math.PI;  // Flip cone so tip points down
+            head.rotation.x = Math.PI;
             previewArrowGroup.add(head);
 
-            // Shaft extending from cone base outward
-            const shaftGeo = new THREE.CylinderGeometry(shaftRadius, shaftRadius, shaftLength, 12);
+            // Shaft extending from cone base
+            const shaftGeo = new THREE.CylinderGeometry(shaftRadius, shaftRadius, shaftLength, 8);
             const shaft = new THREE.Mesh(shaftGeo, previewMaterial);
             shaft.position.set(0, -headLength - shaftLength / 2, 0);
             previewArrowGroup.add(shaft);
 
             // Position at marker location
             previewArrowGroup.position.copy(startPoint);
-            previewArrowGroup.position.z += 0.02;  // Slight offset in front of face
+            previewArrowGroup.position.z += 0.015;
 
-            // Orient arrow: rotate from default -Y to displayDir
+            // Orient arrow to point in drag direction
             const quaternion = new THREE.Quaternion();
             quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), displayDir);
             previewArrowGroup.setRotationFromQuaternion(quaternion);
 
-            // Add tip sphere at injection point
-            const tipSphereGeo = new THREE.SphereGeometry(0.008, 12, 12);
+            // Add small sphere at injection point
+            const tipSphereGeo = new THREE.SphereGeometry(0.005, 8, 8);
             const tipSphereMat = new THREE.MeshPhongMaterial({
                 color: 0x2D6B6B,
                 emissive: 0x2D6B6B,
-                emissiveIntensity: 0.4,
+                emissiveIntensity: 0.5,
                 transparent: true,
-                opacity: 0.7
+                opacity: 0.8
             });
             const tipSphere = new THREE.Mesh(tipSphereGeo, tipSphereMat);
-            // Tip sphere at the arrow tip position (which is at group origin after rotation)
             tipSphere.position.set(0, 0, 0);
             previewArrowGroup.add(tipSphere);
 
@@ -1647,13 +1611,12 @@ Alpine.data('faceChart3D', function(config) {
         },
 
         // Start drawing arrow on marker click
-        startDrawingArrow(markerId, markerPosition, surfaceNormal) {
-            console.log('[FC3D] Starting arrow draw for marker:', markerId, 'normal:', surfaceNormal);
+        startDrawingArrow(markerId, markerPosition) {
+            console.log('[FC3D] Starting arrow draw for marker:', markerId);
             this.isDrawingArrow = true;
             this.drawingMarkerId = markerId;
             drawStartPoint = markerPosition.clone();
             drawingMarkerPosition = markerPosition.clone();
-            drawingSurfaceNormal = surfaceNormal ? surfaceNormal.clone() : new THREE.Vector3(0, 0, 1);
 
             // Change cursor to grabbing while drawing
             if (renderer && renderer.domElement) {
@@ -1668,58 +1631,26 @@ Alpine.data('faceChart3D', function(config) {
                 return;
             }
 
-            // Calculate drag vector on the tangent plane
+            // Calculate drag vector
             const dragVector = new THREE.Vector3().subVectors(endPoint, drawStartPoint);
             const dragDistance = dragVector.length();
 
             // Minimum drag distance check (prevents accidental clicks)
-            const MIN_DRAG_DISTANCE = 0.02;  // In 3D units
+            const MIN_DRAG_DISTANCE = 0.015;
             if (dragDistance < MIN_DRAG_DISTANCE) {
                 console.log('[FC3D] Drag too short, canceling');
                 this.cancelDrawingArrow();
                 return;
             }
 
-            // Calculate injection direction:
-            // - The inward normal is the base direction (perpendicular injection)
-            // - The drag adds an angle to the injection (angled injection)
-            let direction;
+            // Simple approach: direction points from drag end toward drag start (into face)
+            // This gives intuitive control - drag outward shows where needle comes from
+            const direction = dragVector.clone().normalize().negate();
 
-            if (drawingSurfaceNormal) {
-                // Inward normal (opposite of surface normal - pointing INTO the face)
-                const inwardNormal = drawingSurfaceNormal.clone().negate();
+            // Fixed short depth for injections (3-8mm typical)
+            const depth = Math.min(Math.max(dragDistance * 50, 3), 8);
 
-                // Normalize the drag vector (lateral component on tangent plane)
-                const lateralDir = dragVector.clone().normalize();
-
-                // Calculate angle based on drag distance
-                // Longer drag = more angled injection (up to ~60 degrees from perpendicular)
-                const maxAngle = Math.PI / 3;  // 60 degrees max
-                const angleScale = 0.15;       // How fast angle increases with drag
-                const angle = Math.min(dragDistance * angleScale * Math.PI, maxAngle);
-
-                // Blend between inward normal (perpendicular) and lateral direction (angled)
-                // Using spherical interpolation concept: mostly inward with some lateral
-                const cosAngle = Math.cos(angle);
-                const sinAngle = Math.sin(angle);
-
-                direction = new THREE.Vector3()
-                    .addScaledVector(inwardNormal, cosAngle)
-                    .addScaledVector(lateralDir, sinAngle)
-                    .normalize();
-
-                console.log('[FC3D] Injection direction - angle:', (angle * 180 / Math.PI).toFixed(1), 'deg');
-            } else {
-                // Fallback: just use the drag direction
-                direction = dragVector.clone().normalize();
-            }
-
-            // Calculate depth from drag distance
-            const DEPTH_SCALE = 100; // Convert 3D units to mm
-            const MAX_DEPTH = 20;    // Maximum 20mm
-            const depth = Math.min(dragDistance * DEPTH_SCALE, MAX_DEPTH);
-
-            console.log('[FC3D] Arrow drawn - direction:', direction, 'depth:', depth.toFixed(1), 'mm');
+            console.log('[FC3D] Arrow - direction:', direction, 'depth:', depth.toFixed(1), 'mm');
 
             // Save direction via Livewire
             this.$wire.onSetDirection(
@@ -1749,7 +1680,6 @@ Alpine.data('faceChart3D', function(config) {
             drawStartPoint = null;
             drawCurrentPoint = null;
             drawingMarkerPosition = null;
-            drawingSurfaceNormal = null;
 
             // Reset cursor
             if (renderer && renderer.domElement) {
@@ -1757,7 +1687,7 @@ Alpine.data('faceChart3D', function(config) {
             }
         },
 
-        // Project mouse position to 3D plane tangent to face surface
+        // Project mouse position to 3D plane at marker's depth
         projectMouseToPlane(mouseEvent, referencePoint) {
             if (!renderer || !camera || !referencePoint) return null;
 
@@ -1767,17 +1697,9 @@ Alpine.data('faceChart3D', function(config) {
                 -((mouseEvent.clientY - rect.top) / rect.height) * 2 + 1
             );
 
-            // Use the face surface normal if available, otherwise fallback to camera-perpendicular
-            let planeNormal;
-            if (drawingSurfaceNormal) {
-                // Use face surface normal - the plane is tangent to the face at the marker point
-                planeNormal = drawingSurfaceNormal.clone();
-            } else {
-                // Fallback: plane perpendicular to camera
-                const cameraDirection = camera.getWorldDirection(new THREE.Vector3());
-                planeNormal = cameraDirection.clone().negate();
-            }
-
+            // Simple: plane perpendicular to camera at reference point
+            const cameraDirection = camera.getWorldDirection(new THREE.Vector3());
+            const planeNormal = cameraDirection.clone().negate();
             const plane = new THREE.Plane();
             plane.setFromNormalAndCoplanarPoint(planeNormal, referencePoint);
 
@@ -1811,30 +1733,8 @@ Alpine.data('faceChart3D', function(config) {
                 const markerId = marker.userData.id;
                 const markerPosition = marker.position.clone();
 
-                // Get face surface normal at the marker position by raycasting to face
-                let surfaceNormal = null;
-                const faceHits = raycaster.intersectObject(faceModel, true);
-                if (faceHits.length > 0) {
-                    // Get the face normal at the intersection point
-                    surfaceNormal = faceHits[0].face ? faceHits[0].face.normal.clone() : null;
-
-                    // Transform normal from local to world space
-                    if (surfaceNormal && faceHits[0].object) {
-                        surfaceNormal.transformDirection(faceHits[0].object.matrixWorld);
-                    }
-
-                    console.log('[FC3D] Face surface normal:', surfaceNormal);
-                }
-
-                // If no face hit, estimate normal from marker position (radial from center)
-                if (!surfaceNormal) {
-                    // Assume face center is roughly at origin, normal points outward
-                    surfaceNormal = markerPosition.clone().normalize();
-                    console.log('[FC3D] Estimated radial normal:', surfaceNormal);
-                }
-
-                // Start arrow drawing mode with surface normal
-                this.startDrawingArrow(markerId, markerPosition, surfaceNormal);
+                // Start arrow drawing mode
+                this.startDrawingArrow(markerId, markerPosition);
 
                 // Prevent orbit controls from interfering
                 if (controls) {
