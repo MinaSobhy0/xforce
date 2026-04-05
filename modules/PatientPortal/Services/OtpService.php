@@ -169,7 +169,10 @@ class OtpService
             // Fallback to SMS
             if (class_exists(\Modules\Marketing\Services\SmsService::class)) {
                 $sms = app(\Modules\Marketing\Services\SmsService::class);
-                return $sms->send($patient->phone, $message);
+                $result = $sms->send($patient->phone, $message);
+                if ($result['success'] ?? false) {
+                    return true;
+                }
             }
 
             // Log for development
