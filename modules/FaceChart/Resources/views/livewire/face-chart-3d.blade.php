@@ -824,7 +824,7 @@ Alpine.data('faceChart3D', function(config) {
         },
 
         init() {
-            console.log('[FC3D] Init v38 - Fixed: dragging model no longer opens add point popup');
+            console.log('[FC3D] Init v39 - Fixed: suppress native click event after drag detection');
             // Prevent re-initialization
             if (this.$el._fc3dInit) {
                 console.log('[FC3D] Already initialized, skipping');
@@ -835,6 +835,7 @@ Alpine.data('faceChart3D', function(config) {
             this._pointerDownTime = 0;
             this._pointerDownPos = null;
             this._maxMovement = 0;
+            this._wasDrag = false; // Flag to suppress native click event after drag
             this.$el._fc3dInit = true;
 
             // Delay setup to ensure DOM is fully rendered
@@ -1009,9 +1010,13 @@ Alpine.data('faceChart3D', function(config) {
                 // Increased threshold to 20px to avoid false clicks during orbit control drags
                 if (elapsed < 500 && moved < 20) {
                     console.log('[FC3D] Detected as click! (elapsed:', elapsed, 'ms, max moved:', moved, 'px)');
+                    this._wasDrag = false; // Not a drag, allow native click to fire
                     this.onClick(e);
                 } else {
                     console.log('[FC3D] Not a click - treated as drag (elapsed:', elapsed, 'ms, max moved:', moved, 'px)');
+                    this._wasDrag = true; // Set flag to suppress native click event
+                    // Use setTimeout to reset flag after native click would have fired
+                    setTimeout(() => { this._wasDrag = false; }, 50);
                 }
 
                 // Clear clicked marker and movement tracking
@@ -1063,6 +1068,11 @@ Alpine.data('faceChart3D', function(config) {
                 // Don't process clicks if we just finished drawing
                 if (this._justFinishedDrawing) {
                     this._justFinishedDrawing = false;
+                    return;
+                }
+                // Don't process native click if it was actually a drag (orbit controls)
+                if (this._wasDrag) {
+                    console.log('[FC3D] Native click event fired but suppressed (was a drag)');
                     return;
                 }
                 console.log('[FC3D] Native click event fired!');
