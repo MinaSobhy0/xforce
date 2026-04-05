@@ -747,6 +747,7 @@ Alpine.data('faceChart3D', function(config) {
     let drawStartPoint = null;
     let drawCurrentPoint = null;
     let drawingMarkerPosition = null;
+    let drawingSurfaceNormal = null;  // Face surface normal at marker point for proper 3D direction
 
     // Icon paths configuration
     const iconPaths = {
@@ -817,7 +818,7 @@ Alpine.data('faceChart3D', function(config) {
         },
 
         init() {
-            console.log('[FC3D] Init v21 - Drag-to-draw arrows (fixed proxy issue)');
+            console.log('[FC3D] Init v22 - Face surface-relative arrow directions');
             // Prevent re-initialization
             if (this.$el._fc3dInit) {
                 console.log('[FC3D] Already initialized, skipping');
@@ -1517,19 +1518,50 @@ Alpine.data('faceChart3D', function(config) {
 
             if (!startPoint || !endPoint) return;
 
-            const direction = new THREE.Vector3().subVectors(endPoint, startPoint);
-            const length = direction.length();
+            // Calculate drag vector
+            const dragVector = new THREE.Vector3().subVectors(endPoint, startPoint);
+            const dragDistance = dragVector.length();
 
             // Minimum length check
-            if (length < 0.01) return;
+            if (dragDistance < 0.01) return;
 
-            direction.normalize();
+            // Calculate injection direction (same logic as finishDrawingArrow)
+            let direction;
+            if (drawingSurfaceNormal) {
+                // Inward normal (pointing INTO the face)
+                const inwardNormal = drawingSurfaceNormal.clone().negate();
 
-            // Arrow dimensions - scaled to match actual arrows
+                // Lateral direction on tangent plane
+                const lateralDir = dragVector.clone().normalize();
+
+                // Calculate angle based on drag distance
+                const maxAngle = Math.PI / 3;  // 60 degrees max
+                const angleScale = 0.15;
+                const angle = Math.min(dragDistance * angleScale * Math.PI, maxAngle);
+
+                // Blend inward normal with lateral direction
+                const cosAngle = Math.cos(angle);
+                const sinAngle = Math.sin(angle);
+
+                direction = new THREE.Vector3()
+                    .addScaledVector(inwardNormal, cosAngle)
+                    .addScaledVector(lateralDir, sinAngle)
+                    .normalize();
+            } else {
+                direction = dragVector.clone().normalize();
+            }
+
+            // Arrow length based on depth
+            const DEPTH_SCALE = 100;
+            const MAX_DEPTH = 20;
+            const depth = Math.min(dragDistance * DEPTH_SCALE, MAX_DEPTH);
+            const arrowLength = depth / 35;  // Scale to match saved arrows
+
+            // Arrow dimensions
             const shaftRadius = 0.004;
             const headRadius = 0.015;
             const headLength = 0.03;
-            const shaftLength = Math.max(0.02, length - headLength);
+            const shaftLength = Math.max(0.02, arrowLength - headLength);
 
             // Semi-transparent teal material for preview
             const previewMaterial = new THREE.MeshPhongMaterial({
@@ -1604,12 +1636,13 @@ Alpine.data('faceChart3D', function(config) {
         },
 
         // Start drawing arrow on marker click
-        startDrawingArrow(markerId, markerPosition) {
-            console.log('[FC3D] Starting arrow draw for marker:', markerId);
+        startDrawingArrow(markerId, markerPosition, surfaceNormal) {
+            console.log('[FC3D] Starting arrow draw for marker:', markerId, 'normal:', surfaceNormal);
             this.isDrawingArrow = true;
             this.drawingMarkerId = markerId;
             drawStartPoint = markerPosition.clone();
             drawingMarkerPosition = markerPosition.clone();
+            drawingSurfaceNormal = surfaceNormal ? surfaceNormal.clone() : new THREE.Vector3(0, 0, 1);
 
             // Change cursor to grabbing while drawing
             if (renderer && renderer.domElement) {
@@ -1624,25 +1657,58 @@ Alpine.data('faceChart3D', function(config) {
                 return;
             }
 
-            const direction = new THREE.Vector3().subVectors(endPoint, drawStartPoint);
-            const distance = direction.length();
+            // Calculate drag vector on the tangent plane
+            const dragVector = new THREE.Vector3().subVectors(endPoint, drawStartPoint);
+            const dragDistance = dragVector.length();
 
             // Minimum drag distance check (prevents accidental clicks)
             const MIN_DRAG_DISTANCE = 0.02;  // In 3D units
-            if (distance < MIN_DRAG_DISTANCE) {
+            if (dragDistance < MIN_DRAG_DISTANCE) {
                 console.log('[FC3D] Drag too short, canceling');
                 this.cancelDrawingArrow();
                 return;
             }
 
-            direction.normalize();
+            // Calculate injection direction:
+            // - The inward normal is the base direction (perpendicular injection)
+            // - The drag adds an angle to the injection (angled injection)
+            let direction;
 
-            // Calculate depth from drag distance (scale factor)
+            if (drawingSurfaceNormal) {
+                // Inward normal (opposite of surface normal - pointing INTO the face)
+                const inwardNormal = drawingSurfaceNormal.clone().negate();
+
+                // Normalize the drag vector (lateral component on tangent plane)
+                const lateralDir = dragVector.clone().normalize();
+
+                // Calculate angle based on drag distance
+                // Longer drag = more angled injection (up to ~60 degrees from perpendicular)
+                const maxAngle = Math.PI / 3;  // 60 degrees max
+                const angleScale = 0.15;       // How fast angle increases with drag
+                const angle = Math.min(dragDistance * angleScale * Math.PI, maxAngle);
+
+                // Blend between inward normal (perpendicular) and lateral direction (angled)
+                // Using spherical interpolation concept: mostly inward with some lateral
+                const cosAngle = Math.cos(angle);
+                const sinAngle = Math.sin(angle);
+
+                direction = new THREE.Vector3()
+                    .addScaledVector(inwardNormal, cosAngle)
+                    .addScaledVector(lateralDir, sinAngle)
+                    .normalize();
+
+                console.log('[FC3D] Injection direction - angle:', (angle * 180 / Math.PI).toFixed(1), 'deg');
+            } else {
+                // Fallback: just use the drag direction
+                direction = dragVector.clone().normalize();
+            }
+
+            // Calculate depth from drag distance
             const DEPTH_SCALE = 100; // Convert 3D units to mm
             const MAX_DEPTH = 20;    // Maximum 20mm
-            const depth = Math.min(distance * DEPTH_SCALE, MAX_DEPTH);
+            const depth = Math.min(dragDistance * DEPTH_SCALE, MAX_DEPTH);
 
-            console.log('[FC3D] Arrow drawn - direction:', direction, 'depth:', depth);
+            console.log('[FC3D] Arrow drawn - direction:', direction, 'depth:', depth.toFixed(1), 'mm');
 
             // Save direction via Livewire
             this.$wire.onSetDirection(
@@ -1672,6 +1738,7 @@ Alpine.data('faceChart3D', function(config) {
             drawStartPoint = null;
             drawCurrentPoint = null;
             drawingMarkerPosition = null;
+            drawingSurfaceNormal = null;
 
             // Reset cursor
             if (renderer && renderer.domElement) {
@@ -1679,7 +1746,7 @@ Alpine.data('faceChart3D', function(config) {
             }
         },
 
-        // Project mouse position to 3D plane at marker's depth
+        // Project mouse position to 3D plane tangent to face surface
         projectMouseToPlane(mouseEvent, referencePoint) {
             if (!renderer || !camera || !referencePoint) return null;
 
@@ -1689,10 +1756,18 @@ Alpine.data('faceChart3D', function(config) {
                 -((mouseEvent.clientY - rect.top) / rect.height) * 2 + 1
             );
 
-            // Create a plane perpendicular to camera at reference point's depth
-            const cameraDirection = camera.getWorldDirection(new THREE.Vector3());
-            const planeNormal = cameraDirection.clone().negate();
-            const plane = new THREE.Plane(planeNormal);
+            // Use the face surface normal if available, otherwise fallback to camera-perpendicular
+            let planeNormal;
+            if (drawingSurfaceNormal) {
+                // Use face surface normal - the plane is tangent to the face at the marker point
+                planeNormal = drawingSurfaceNormal.clone();
+            } else {
+                // Fallback: plane perpendicular to camera
+                const cameraDirection = camera.getWorldDirection(new THREE.Vector3());
+                planeNormal = cameraDirection.clone().negate();
+            }
+
+            const plane = new THREE.Plane();
             plane.setFromNormalAndCoplanarPoint(planeNormal, referencePoint);
 
             // Cast ray from mouse position
@@ -1723,10 +1798,32 @@ Alpine.data('faceChart3D', function(config) {
             if (markerHits.length > 0) {
                 const marker = markerHits[0].object;
                 const markerId = marker.userData.id;
-
-                // Start arrow drawing mode
                 const markerPosition = marker.position.clone();
-                this.startDrawingArrow(markerId, markerPosition);
+
+                // Get face surface normal at the marker position by raycasting to face
+                let surfaceNormal = null;
+                const faceHits = raycaster.intersectObject(faceModel, true);
+                if (faceHits.length > 0) {
+                    // Get the face normal at the intersection point
+                    surfaceNormal = faceHits[0].face ? faceHits[0].face.normal.clone() : null;
+
+                    // Transform normal from local to world space
+                    if (surfaceNormal && faceHits[0].object) {
+                        surfaceNormal.transformDirection(faceHits[0].object.matrixWorld);
+                    }
+
+                    console.log('[FC3D] Face surface normal:', surfaceNormal);
+                }
+
+                // If no face hit, estimate normal from marker position (radial from center)
+                if (!surfaceNormal) {
+                    // Assume face center is roughly at origin, normal points outward
+                    surfaceNormal = markerPosition.clone().normalize();
+                    console.log('[FC3D] Estimated radial normal:', surfaceNormal);
+                }
+
+                // Start arrow drawing mode with surface normal
+                this.startDrawingArrow(markerId, markerPosition, surfaceNormal);
 
                 // Prevent orbit controls from interfering
                 if (controls) {
