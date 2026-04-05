@@ -1,6 +1,14 @@
 @php
     $layout = $settings['layout'] ?? 'carousel';
     $items = $content['items'] ?? [];
+
+    // Normalize image paths in items (handle Builder UUID keys)
+    foreach ($items as &$item) {
+        if (isset($item['image']) && is_array($item['image'])) {
+            $item['image'] = reset($item['image']) ?: null;
+        }
+    }
+    unset($item);
 @endphp
 
 <section class="py-16 lg:py-24">

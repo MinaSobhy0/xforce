@@ -2,7 +2,12 @@
     $height = $settings['height'] ?? 'full';
     $textAlignment = $settings['text_alignment'] ?? 'center';
     $overlayOpacity = $settings['overlay_opacity'] ?? 0.5;
+
+    // Handle background_image (can be string or array from Builder component)
     $bgImage = $content['background_image'] ?? null;
+    if (is_array($bgImage)) {
+        $bgImage = reset($bgImage) ?: null;
+    }
 
     $heightClass = match($height) {
         'full' => 'min-h-screen',

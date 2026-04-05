@@ -1,6 +1,17 @@
 @php
     $layout = $settings['layout'] ?? 'slider';
     $items = $content['items'] ?? [];
+
+    // Normalize image paths in items (handle Builder UUID keys)
+    foreach ($items as &$item) {
+        if (isset($item['before_image']) && is_array($item['before_image'])) {
+            $item['before_image'] = reset($item['before_image']) ?: null;
+        }
+        if (isset($item['after_image']) && is_array($item['after_image'])) {
+            $item['after_image'] = reset($item['after_image']) ?: null;
+        }
+    }
+    unset($item);
 @endphp
 
 <section class="py-16 lg:py-24 bg-gray-50">

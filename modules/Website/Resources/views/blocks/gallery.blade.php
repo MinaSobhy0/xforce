@@ -3,6 +3,15 @@
     $lightbox = $settings['lightbox'] ?? true;
     $images = $content['images'] ?? [];
 
+    // Flatten if images is nested (Builder component stores with UUID keys)
+    if (!empty($images) && is_array($images)) {
+        $firstValue = reset($images);
+        // If first value is an array, this is nested structure - flatten it
+        if (is_array($firstValue)) {
+            $images = array_values(array_filter(array_map(fn($item) => is_string($item) ? $item : reset($item), $images)));
+        }
+    }
+
     $gridClass = match($columns) {
         2 => 'md:grid-cols-2',
         4 => 'md:grid-cols-2 lg:grid-cols-4',
