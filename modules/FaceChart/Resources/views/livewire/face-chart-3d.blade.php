@@ -790,7 +790,7 @@ Alpine.data('faceChart3D', function(config) {
 
         // Arrow drawing state (drag-to-draw) - only primitive values in Alpine reactive data
         isDrawingArrow: false,
-        drawingMarkerId: null
+        drawingMarkerId: null,
 
         // Modal state
         showMarkerModal: false,
