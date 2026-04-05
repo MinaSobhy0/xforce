@@ -29,6 +29,15 @@ return [
     'not_registered' => 'Not registered yet?',
     'visit_clinic' => 'Visit our clinic to create your account',
     'otp_message' => 'Your verification code is :otp. Valid for :minutes minutes.',
+    'new_patient' => 'New Patient',
+    'enter_name_to_register' => 'Please enter your full name to register',
+    'full_name' => 'Full Name',
+    'enter_full_name' => 'Enter your full name',
+    'register_and_send_otp' => 'Register & Send Code',
+    'registration_successful' => 'Registration Successful!',
+    'patient_already_exists' => 'Phone number already registered',
+    'sending_otp' => 'Sending verification code...',
+    'secure_access' => 'Secure access with phone verification',
 
     // Dashboard
     'dashboard' => 'Dashboard',

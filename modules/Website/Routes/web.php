@@ -19,6 +19,6 @@ use Modules\Website\Http\Middleware\WebsiteModuleMiddleware;
 Route::middleware([WebsiteModuleMiddleware::class])->group(function () {
     // Page by slug - must not conflict with admin/api/etc routes
     Route::get('/{slug}', [WebsiteController::class, 'show'])
-        ->where('slug', '^(?!admin|owner|platform|api|login|register|tenant-storage|livewire|filament|_debugbar|sanctum|two-factor-challenge|app|appointment).*$')
+        ->where('slug', '^(?!admin|owner|platform|api|login|register|tenant-storage|livewire|filament|_debugbar|sanctum|two-factor-challenge|app|appointment|book|portal).*$')
         ->name('website.page');
 });

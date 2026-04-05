@@ -20,6 +20,11 @@ Route::get('/login', function () {
     return redirect()->route('filament.tenant.auth.login');
 })->name('login');
 
+// Book appointment route - redirects to patient portal
+Route::get('/book', function () {
+    return redirect()->route('filament.portal.auth.login');
+})->name('book');
+
 // SECURITY: Rate limit contact form to prevent abuse
 Route::post('/contact', [ContactController::class, 'submit'])
     ->middleware('throttle:3,5')

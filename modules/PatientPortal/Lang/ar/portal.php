@@ -29,6 +29,15 @@ return [
     'not_registered' => 'غير مسجل بعد؟',
     'visit_clinic' => 'قم بزيارة عيادتنا لإنشاء حسابك',
     'otp_message' => 'رمز التحقق الخاص بك هو :otp. صالح لمدة :minutes دقائق.',
+    'new_patient' => 'مريض جديد',
+    'enter_name_to_register' => 'الرجاء إدخال اسمك الكامل للتسجيل',
+    'full_name' => 'الاسم الكامل',
+    'enter_full_name' => 'أدخل اسمك الكامل',
+    'register_and_send_otp' => 'تسجيل وإرسال الرمز',
+    'registration_successful' => 'تم التسجيل بنجاح!',
+    'patient_already_exists' => 'رقم الهاتف مسجل بالفعل',
+    'sending_otp' => 'جارٍ إرسال رمز التحقق...',
+    'secure_access' => 'وصول آمن عبر التحقق من الهاتف',
 
     // Dashboard
     'dashboard' => 'لوحة التحكم',

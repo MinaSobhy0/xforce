@@ -22,11 +22,14 @@ class PortalLogin extends BaseLogin
     public ?string $otp = null;
     public bool $otpSent = false;
     public ?string $pendingPhone = null;
+    public bool $isNewPatient = false;
+    public ?string $fullName = null;
 
     public function mount(): void
     {
         parent::mount();
         $this->otpSent = false;
+        $this->isNewPatient = false;
     }
 
     public function form(Form $form): Form
@@ -34,9 +37,20 @@ class PortalLogin extends BaseLogin
         return $form
             ->schema([
                 $this->getPhoneFormComponent(),
+                $this->getNameFormComponent(),
                 $this->getOtpFormComponent(),
             ])
             ->statePath('data');
+    }
+
+    protected function getNameFormComponent(): Component
+    {
+        return TextInput::make('full_name')
+            ->label(__('patientportal::portal.full_name'))
+            ->required()
+            ->visible(fn () => $this->isNewPatient && !$this->otpSent)
+            ->prefixIcon('heroicon-o-user')
+            ->placeholder(__('patientportal::portal.enter_full_name'));
     }
 
     protected function getPhoneFormComponent(): Component
@@ -94,12 +108,24 @@ class PortalLogin extends BaseLogin
             ->first();
 
         if (!$patient) {
+            // New patient - show registration form
+            $this->isNewPatient = true;
             Notification::make()
-                ->title(__('patientportal::portal.patient_not_found'))
-                ->body(__('patientportal::portal.register_at_clinic'))
-                ->danger()
+                ->title(__('patientportal::portal.new_patient'))
+                ->body(__('patientportal::portal.enter_name_to_register'))
+                ->info()
                 ->send();
             return;
+        }
+
+        // Existing patient - check if they filled name when they shouldn't
+        if ($this->isNewPatient) {
+            Notification::make()
+                ->title(__('patientportal::portal.patient_already_exists'))
+                ->body(__('patientportal::portal.sending_otp'))
+                ->info()
+                ->send();
+            $this->isNewPatient = false;
         }
 
         if (!$patient->is_active) {
@@ -110,6 +136,69 @@ class PortalLogin extends BaseLogin
             return;
         }
 
+        $this->sendOtpToPatient($patient, $phone);
+    }
+
+    public function registerAndSendOtp(): void
+    {
+        try {
+            $this->rateLimit(5);
+        } catch (TooManyRequestsException $exception) {
+            Notification::make()
+                ->title(__('patientportal::portal.too_many_requests'))
+                ->danger()
+                ->send();
+            return;
+        }
+
+        $data = $this->form->getState();
+        $phone = $this->normalizePhone($data['phone'] ?? '');
+        $fullName = trim($data['full_name'] ?? '');
+
+        if (empty($phone) || empty($fullName)) {
+            Notification::make()
+                ->title(__('patientportal::portal.invalid_input'))
+                ->danger()
+                ->send();
+            return;
+        }
+
+        // Check if patient already exists (phone might have been registered while form was open)
+        $existing = Patient::where('phone', $phone)
+            ->orWhere('phone', 'LIKE', '%' . substr($phone, -10))
+            ->first();
+
+        if ($existing) {
+            Notification::make()
+                ->title(__('patientportal::portal.patient_already_exists'))
+                ->body(__('patientportal::portal.sending_otp'))
+                ->info()
+                ->send();
+            $this->isNewPatient = false;
+            $this->sendOtpToPatient($existing, $phone);
+            return;
+        }
+
+        // Create new patient
+        $patient = Patient::create([
+            'name' => $fullName,
+            'phone' => $phone,
+            'is_active' => true,
+            'source' => 'portal_registration',
+        ]);
+
+        Notification::make()
+            ->title(__('patientportal::portal.registration_successful'))
+            ->body(__('patientportal::portal.sending_otp'))
+            ->success()
+            ->send();
+
+        $this->isNewPatient = false;
+        $this->sendOtpToPatient($patient, $phone);
+    }
+
+    protected function sendOtpToPatient(Patient $patient, string $phone): void
+    {
         // Generate and send OTP
         $otpService = app(OtpService::class);
         if ($otpService->generateAndSend($patient)) {
