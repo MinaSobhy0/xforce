@@ -165,7 +165,8 @@ class PortalLogin extends BaseLogin
             $this->isNewPatient = false;
         }
 
-        if (!$patient->is_active) {
+        // Check if patient status is active and portal access is enabled
+        if ($patient->status !== 'active' || !$patient->portal_access_enabled) {
             Notification::make()
                 ->title(__('patientportal::portal.account_inactive'))
                 ->danger()
@@ -216,12 +217,19 @@ class PortalLogin extends BaseLogin
             return;
         }
 
+        // Split full name into first and last name
+        $nameParts = explode(' ', $fullName, 2);
+        $firstName = $nameParts[0];
+        $lastName = $nameParts[1] ?? '';
+
         // Create new patient
         $patient = Patient::create([
-            'name' => $fullName,
+            'first_name' => $firstName,
+            'last_name' => $lastName,
             'phone' => $phone,
-            'is_active' => true,
-            'source' => 'portal_registration',
+            'status' => 'active',
+            'portal_access_enabled' => true,
+            'referral_source' => 'portal_registration',
         ]);
 
         Notification::make()
