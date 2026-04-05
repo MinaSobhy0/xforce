@@ -5,6 +5,7 @@ namespace Modules\PatientPortal\Filament\Pages\Auth;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Component;
 use Filament\Forms\Form;
+use Filament\Forms;
 use Filament\Pages\Auth\Login as BaseLogin;
 use Filament\Http\Responses\Auth\Contracts\LoginResponse;
 use Illuminate\Support\Facades\Auth;
@@ -40,8 +41,12 @@ class PortalLogin extends BaseLogin
     {
         return $form
             ->schema([
-                $this->getCountryCodeFormComponent(),
-                $this->getPhoneFormComponent(),
+                Forms\Components\Grid::make(3)
+                    ->schema([
+                        $this->getCountryCodeFormComponent(),
+                        $this->getPhoneFormComponent(),
+                    ])
+                    ->visible(fn () => !$this->otpSent),
                 $this->getNameFormComponent(),
                 $this->getOtpFormComponent(),
             ])
@@ -53,24 +58,24 @@ class PortalLogin extends BaseLogin
         return \Filament\Forms\Components\Select::make('country_code')
             ->label(__('patientportal::portal.country_code'))
             ->options([
-                '+20' => '🇪🇬 Egypt (+20)',
-                '+966' => '🇸🇦 Saudi Arabia (+966)',
-                '+971' => '🇦🇪 UAE (+971)',
-                '+965' => '🇰🇼 Kuwait (+965)',
-                '+974' => '🇶🇦 Qatar (+974)',
-                '+968' => '🇴🇲 Oman (+968)',
-                '+973' => '🇧🇭 Bahrain (+973)',
-                '+962' => '🇯🇴 Jordan (+962)',
-                '+961' => '🇱🇧 Lebanon (+961)',
-                '+964' => '🇮🇶 Iraq (+964)',
-                '+1' => '🇺🇸 USA/Canada (+1)',
-                '+44' => '🇬🇧 UK (+44)',
+                '+20' => '🇪🇬 +20',
+                '+966' => '🇸🇦 +966',
+                '+971' => '🇦🇪 +971',
+                '+965' => '🇰🇼 +965',
+                '+974' => '🇶🇦 +974',
+                '+968' => '🇴🇲 +968',
+                '+973' => '🇧🇭 +973',
+                '+962' => '🇯🇴 +962',
+                '+961' => '🇱🇧 +961',
+                '+964' => '🇮🇶 +964',
+                '+1' => '🇺🇸 +1',
+                '+44' => '🇬🇧 +44',
             ])
             ->default($this->countryCode ?? '+20')
             ->required()
             ->searchable()
             ->disabled(fn () => $this->otpSent)
-            ->prefixIcon('heroicon-o-globe-alt');
+            ->columnSpan(1);
     }
 
     protected function getNameFormComponent(): Component
@@ -93,7 +98,8 @@ class PortalLogin extends BaseLogin
             ->helperText(__('patientportal::portal.phone_helper'))
             ->prefixIcon('heroicon-o-phone')
             ->disabled(fn () => $this->otpSent)
-            ->autofocus();
+            ->autofocus()
+            ->columnSpan(2);
     }
 
     protected function getOtpFormComponent(): Component
