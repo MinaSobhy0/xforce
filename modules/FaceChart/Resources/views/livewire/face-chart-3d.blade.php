@@ -732,7 +732,7 @@
 @script
 <script>
 Alpine.data('faceChart3D', function(config) {
-    // Private variables - NOT reactive
+    // Private variables - NOT reactive (Three.js objects must NOT be in Alpine reactive data)
     let scene, camera, renderer, controls, faceModel, raycaster, mouse;
     let markerMeshes = [];
     let animationId = null;
@@ -741,6 +741,12 @@ Alpine.data('faceChart3D', function(config) {
     // Texture loader and cache for PNG icons
     let textureLoader = null;
     let textureCache = {};
+
+    // Arrow drawing state - private (Three.js objects)
+    let previewArrowGroup = null;
+    let drawStartPoint = null;
+    let drawCurrentPoint = null;
+    let drawingMarkerPosition = null;
 
     // Icon paths configuration
     const iconPaths = {
@@ -782,13 +788,9 @@ Alpine.data('faceChart3D', function(config) {
         hoveredMarker: null,
         tooltipStyle: '',
 
-        // Arrow drawing state (drag-to-draw)
+        // Arrow drawing state (drag-to-draw) - only primitive values in Alpine reactive data
         isDrawingArrow: false,
-        drawingMarkerId: null,
-        drawStartPoint: null,      // THREE.Vector3
-        drawCurrentPoint: null,    // THREE.Vector3
-        previewArrowGroup: null,   // THREE.Group for preview arrow
-        drawingMarkerPosition: null, // Original marker position for arrow base
+        drawingMarkerId: null
 
         // Modal state
         showMarkerModal: false,
@@ -815,7 +817,7 @@ Alpine.data('faceChart3D', function(config) {
         },
 
         init() {
-            console.log('[FC3D] Init v20 - Drag-to-draw arrows');
+            console.log('[FC3D] Init v21 - Drag-to-draw arrows (fixed proxy issue)');
             // Prevent re-initialization
             if (this.$el._fc3dInit) {
                 console.log('[FC3D] Already initialized, skipping');
@@ -965,7 +967,7 @@ Alpine.data('faceChart3D', function(config) {
 
             canvasElement.addEventListener('pointermove', (e) => {
                 // Handle arrow drawing preview
-                if (this.isDrawingArrow && this.drawStartPoint) {
+                if (this.isDrawingArrow && drawStartPoint) {
                     this.handlePointerMove(e);
                 }
             });
@@ -1540,28 +1542,28 @@ Alpine.data('faceChart3D', function(config) {
                 side: THREE.DoubleSide
             });
 
-            // Create arrow group
-            this.previewArrowGroup = new THREE.Group();
+            // Create arrow group (stored in private variable, not Alpine reactive)
+            previewArrowGroup = new THREE.Group();
 
             // Shaft
             const shaftGeo = new THREE.CylinderGeometry(shaftRadius, shaftRadius, shaftLength, 12);
             const shaft = new THREE.Mesh(shaftGeo, previewMaterial);
             shaft.position.set(0, shaftLength / 2, 0);
-            this.previewArrowGroup.add(shaft);
+            previewArrowGroup.add(shaft);
 
             // Arrowhead
             const headGeo = new THREE.ConeGeometry(headRadius, headLength, 12);
             const head = new THREE.Mesh(headGeo, previewMaterial);
             head.position.set(0, shaftLength + headLength / 2, 0);
-            this.previewArrowGroup.add(head);
+            previewArrowGroup.add(head);
 
             // Position at marker location
-            this.previewArrowGroup.position.copy(startPoint);
+            previewArrowGroup.position.copy(startPoint);
 
             // Orient arrow to point in drag direction
             const quaternion = new THREE.Quaternion();
             quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction);
-            this.previewArrowGroup.setRotationFromQuaternion(quaternion);
+            previewArrowGroup.setRotationFromQuaternion(quaternion);
 
             // Add base sphere
             const baseSphereGeo = new THREE.SphereGeometry(0.008, 12, 12);
@@ -1574,30 +1576,30 @@ Alpine.data('faceChart3D', function(config) {
             });
             const baseSphere = new THREE.Mesh(baseSphereGeo, baseSphereMat);
             baseSphere.position.copy(startPoint);
-            this.previewArrowGroup.add(baseSphere);
+            previewArrowGroup.add(baseSphere);
 
-            this.previewArrowGroup.userData = { isPreviewArrow: true };
-            scene.add(this.previewArrowGroup);
+            previewArrowGroup.userData = { isPreviewArrow: true };
+            scene.add(previewArrowGroup);
         },
 
         // Update preview arrow during drag
         updatePreviewArrow(endPoint) {
-            if (!this.drawStartPoint || !endPoint) return;
+            if (!drawStartPoint || !endPoint) return;
 
             // Recreate the arrow with new endpoint
-            this.createPreviewArrow(this.drawStartPoint, endPoint);
+            this.createPreviewArrow(drawStartPoint, endPoint);
         },
 
         // Remove preview arrow from scene
         removePreviewArrow() {
-            if (this.previewArrowGroup && scene) {
-                scene.remove(this.previewArrowGroup);
+            if (previewArrowGroup && scene) {
+                scene.remove(previewArrowGroup);
                 // Dispose of geometries and materials
-                this.previewArrowGroup.traverse((child) => {
+                previewArrowGroup.traverse((child) => {
                     if (child.geometry) child.geometry.dispose();
                     if (child.material) child.material.dispose();
                 });
-                this.previewArrowGroup = null;
+                previewArrowGroup = null;
             }
         },
 
@@ -1606,8 +1608,8 @@ Alpine.data('faceChart3D', function(config) {
             console.log('[FC3D] Starting arrow draw for marker:', markerId);
             this.isDrawingArrow = true;
             this.drawingMarkerId = markerId;
-            this.drawStartPoint = markerPosition.clone();
-            this.drawingMarkerPosition = markerPosition.clone();
+            drawStartPoint = markerPosition.clone();
+            drawingMarkerPosition = markerPosition.clone();
 
             // Change cursor to grabbing while drawing
             if (renderer && renderer.domElement) {
@@ -1617,12 +1619,12 @@ Alpine.data('faceChart3D', function(config) {
 
         // Finish drawing arrow and save direction
         finishDrawingArrow(endPoint) {
-            if (!this.isDrawingArrow || !this.drawingMarkerId || !this.drawStartPoint) {
+            if (!this.isDrawingArrow || !this.drawingMarkerId || !drawStartPoint) {
                 this.cancelDrawingArrow();
                 return;
             }
 
-            const direction = new THREE.Vector3().subVectors(endPoint, this.drawStartPoint);
+            const direction = new THREE.Vector3().subVectors(endPoint, drawStartPoint);
             const distance = direction.length();
 
             // Minimum drag distance check (prevents accidental clicks)
@@ -1667,9 +1669,9 @@ Alpine.data('faceChart3D', function(config) {
         resetDrawingState() {
             this.isDrawingArrow = false;
             this.drawingMarkerId = null;
-            this.drawStartPoint = null;
-            this.drawCurrentPoint = null;
-            this.drawingMarkerPosition = null;
+            drawStartPoint = null;
+            drawCurrentPoint = null;
+            drawingMarkerPosition = null;
 
             // Reset cursor
             if (renderer && renderer.domElement) {
@@ -1735,12 +1737,12 @@ Alpine.data('faceChart3D', function(config) {
 
         // Handle pointer move during arrow drawing
         handlePointerMove(e) {
-            if (!this.isDrawingArrow || !this.drawStartPoint) return;
+            if (!this.isDrawingArrow || !drawStartPoint) return;
 
             // Project mouse to 3D plane
-            const endPoint = this.projectMouseToPlane(e, this.drawStartPoint);
+            const endPoint = this.projectMouseToPlane(e, drawStartPoint);
             if (endPoint) {
-                this.drawCurrentPoint = endPoint;
+                drawCurrentPoint = endPoint;
                 this.updatePreviewArrow(endPoint);
             }
         },
@@ -1755,7 +1757,7 @@ Alpine.data('faceChart3D', function(config) {
             }
 
             // Project final mouse position
-            const endPoint = this.projectMouseToPlane(e, this.drawStartPoint);
+            const endPoint = this.projectMouseToPlane(e, drawStartPoint);
             if (endPoint) {
                 this.finishDrawingArrow(endPoint);
             } else {
