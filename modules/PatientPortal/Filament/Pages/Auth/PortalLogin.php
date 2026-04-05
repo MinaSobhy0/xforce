@@ -34,7 +34,7 @@ class PortalLogin extends BaseLogin
         $this->isNewPatient = false;
 
         // Detect country code by IP location
-        $this->countryCode = $this->detectCountryCode();
+        $this->countryCode = $this->getDetectedCountryCode();
     }
 
     public function form(Form $form): Form
@@ -369,7 +369,7 @@ class PortalLogin extends BaseLogin
         return '+' . $countryCode . $phone;
     }
 
-    protected function detectCountryCode(): string
+    protected function getDetectedCountryCode(): string
     {
         try {
             // Get client IP
