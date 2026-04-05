@@ -1,0 +1,52 @@
+{
+    "name": "FaceChart",
+    "alias": "face_chart",
+    "description": {
+        "en": "3D Face Chart for visualizing and documenting facial procedures",
+        "ar": "مخطط الوجه ثلاثي الأبعاد لتصور وتوثيق إجراءات الوجه"
+    },
+    "version": "1.0.0",
+    "category": "clinical",
+    "icon": "heroicon-o-cube-transparent",
+    "priority": 35,
+    "providers": [
+        "Modules\\FaceChart\\Providers\\FaceChartServiceProvider"
+    ],
+    "dependencies": ["Core", "Patients", "Booking"],
+    "optional_dependencies": ["Services", "TreatmentPlans"],
+    "models": [
+        "Modules\\FaceChart\\Models\\FaceChartMarker"
+    ],
+    "permissions": {
+        "face_chart.view_any": "View face chart markers",
+        "face_chart.view": "View individual marker details",
+        "face_chart.create": "Create new markers",
+        "face_chart.update": "Update existing markers",
+        "face_chart.delete": "Delete markers"
+    },
+    "default_role_permissions": {
+        "admin": ["face_chart.*"],
+        "doctor": ["face_chart.*"],
+        "nurse": ["face_chart.view_any", "face_chart.view", "face_chart.create"],
+        "receptionist": ["face_chart.view_any", "face_chart.view"]
+    },
+    "settings": {
+        "face_chart.default_marker_color": {
+            "type": "string",
+            "default": "#FF6B6B",
+            "label": {
+                "en": "Default marker color",
+                "ar": "لون العلامة الافتراضي"
+            }
+        },
+        "face_chart.marker_size": {
+            "type": "number",
+            "default": 1.0,
+            "label": {
+                "en": "Default marker size",
+                "ar": "حجم العلامة الافتراضي"
+            }
+        }
+    },
+    "active": true
+}
