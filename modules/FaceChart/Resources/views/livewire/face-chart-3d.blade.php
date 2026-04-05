@@ -824,12 +824,17 @@ Alpine.data('faceChart3D', function(config) {
         },
 
         init() {
-            console.log('[FC3D] Init v37 - Enhanced pointer interaction: drag from marker to draw arrow, click on face to add point');
+            console.log('[FC3D] Init v38 - Fixed: dragging model no longer opens add point popup');
             // Prevent re-initialization
             if (this.$el._fc3dInit) {
                 console.log('[FC3D] Already initialized, skipping');
                 return;
             }
+
+            // Initialize pointer tracking
+            this._pointerDownTime = 0;
+            this._pointerDownPos = null;
+            this._maxMovement = 0;
             this.$el._fc3dInit = true;
 
             // Delay setup to ensure DOM is fully rendered
@@ -965,6 +970,7 @@ Alpine.data('faceChart3D', function(config) {
                 console.log('[FC3D] Pointerdown on canvas at', e.clientX, e.clientY, 'type:', e.pointerType);
                 this._pointerDownTime = Date.now();
                 this._pointerDownPos = { x: e.clientX, y: e.clientY };
+                this._maxMovement = 0; // Track maximum movement during this pointer session
 
                 // Check if clicking on a marker to potentially start arrow drawing
                 if (this.isEditing) {
@@ -973,6 +979,12 @@ Alpine.data('faceChart3D', function(config) {
             });
 
             canvasElement.addEventListener('pointermove', (e) => {
+                // Track maximum movement for click detection
+                if (this._pointerDownPos) {
+                    const moved = Math.hypot(e.clientX - this._pointerDownPos.x, e.clientY - this._pointerDownPos.y);
+                    this._maxMovement = Math.max(this._maxMovement || 0, moved);
+                }
+
                 // Handle arrow drawing: preview if already drawing, or check if should start drawing
                 if ((this.isDrawingArrow && drawStartPoint) || (clickedMarker && this._pointerDownPos)) {
                     this.handlePointerMove(e);
@@ -986,23 +998,25 @@ Alpine.data('faceChart3D', function(config) {
                 if (this.isDrawingArrow) {
                     this.handlePointerUp(e);
                     clickedMarker = null; // Clear clicked marker
+                    this._maxMovement = 0;
                     return;
                 }
 
                 // Detect click (short press without much movement)
                 const elapsed = Date.now() - (this._pointerDownTime || 0);
-                const moved = this._pointerDownPos ?
-                    Math.hypot(e.clientX - this._pointerDownPos.x, e.clientY - this._pointerDownPos.y) : 999;
+                const moved = this._maxMovement || 0; // Use tracked max movement, not just final position
 
-                if (elapsed < 300 && moved < 10) {
-                    console.log('[FC3D] Detected as click! Calling onClick...');
+                // Increased threshold to 20px to avoid false clicks during orbit control drags
+                if (elapsed < 500 && moved < 20) {
+                    console.log('[FC3D] Detected as click! (elapsed:', elapsed, 'ms, max moved:', moved, 'px)');
                     this.onClick(e);
                 } else {
-                    console.log('[FC3D] Not a click (elapsed:', elapsed, 'ms, moved:', moved, 'px)');
+                    console.log('[FC3D] Not a click - treated as drag (elapsed:', elapsed, 'ms, max moved:', moved, 'px)');
                 }
 
-                // Clear clicked marker after handling
+                // Clear clicked marker and movement tracking
                 clickedMarker = null;
+                this._maxMovement = 0;
             });
 
             // Listen for Escape key to cancel drawing
