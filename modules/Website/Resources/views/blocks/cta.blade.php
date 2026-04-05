@@ -3,15 +3,15 @@
     $bgColor = $settings['background_color'] ?? null;
 
     $bgClass = match($style) {
-        'gradient' => 'bg-gradient-to-r from-primary to-secondary',
+        'gradient' => 'bg-gradient-primary',
         'solid' => 'bg-primary',
         'outline' => 'bg-transparent border-2 border-primary',
-        default => 'bg-gradient-to-r from-primary to-secondary',
+        default => 'bg-gradient-primary',
     };
 
     $textClass = $style === 'outline' ? 'text-primary' : 'text-white';
     $buttonClass = $style === 'outline'
-        ? 'bg-primary text-white hover:bg-primary/90'
+        ? 'bg-primary text-white'
         : 'bg-white text-primary hover:bg-gray-100';
 @endphp
 

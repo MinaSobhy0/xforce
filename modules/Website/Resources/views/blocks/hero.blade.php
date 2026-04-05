@@ -28,7 +28,7 @@
             <div class="absolute inset-0 bg-black" style="opacity: {{ $overlayOpacity }};"></div>
         </div>
     @else
-        <div class="absolute inset-0 bg-gradient-to-br from-primary to-secondary"></div>
+        <div class="absolute inset-0 bg-gradient-primary"></div>
     @endif
 
     {{-- Content --}}
