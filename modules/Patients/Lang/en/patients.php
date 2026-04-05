@@ -49,11 +49,17 @@ return [
         'referral_source' => 'Referral Source',
         'referred_by' => 'Referred By',
         'status' => 'Status',
+        'portal_access_enabled' => 'Patient Portal Access',
         'tags' => 'Tags',
         'notes' => 'Notes',
         'branch' => 'Branch',
         'created_at' => 'Created At',
         'last_visit' => 'Last Visit',
+    ],
+
+    // Help Text
+    'help' => [
+        'portal_access_enabled' => 'Allow this patient to login and book appointments via the patient portal',
     ],
 
     // Medical History

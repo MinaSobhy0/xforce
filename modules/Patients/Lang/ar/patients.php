@@ -49,11 +49,17 @@ return [
         'referral_source' => 'مصدر الإحالة',
         'referred_by' => 'تمت الإحالة بواسطة',
         'status' => 'الحالة',
+        'portal_access_enabled' => 'الوصول إلى بوابة المريض',
         'tags' => 'الوسوم',
         'notes' => 'ملاحظات',
         'branch' => 'الفرع',
         'created_at' => 'تاريخ التسجيل',
         'last_visit' => 'آخر زيارة',
+    ],
+
+    // Help Text
+    'help' => [
+        'portal_access_enabled' => 'السماح لهذا المريض بتسجيل الدخول وحجز المواعيد عبر بوابة المريض',
     ],
 
     // Medical History

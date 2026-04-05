@@ -219,6 +219,12 @@ class PatientResource extends Resource
                                             ->default('active')
                                             ->required(),
 
+                                        Forms\Components\Toggle::make('portal_access_enabled')
+                                            ->label(__('patients::patients.fields.portal_access_enabled'))
+                                            ->helperText(__('patients::patients.help.portal_access_enabled'))
+                                            ->default(true)
+                                            ->inline(false),
+
                                         Forms\Components\TagsInput::make('tags')
                                             ->label(__('patients::patients.fields.tags'))
                                             ->columnSpanFull(),
@@ -420,6 +426,15 @@ class PatientResource extends Resource
                         'blocked' => 'danger',
                         default => 'gray',
                     }),
+
+                Tables\Columns\IconColumn::make('portal_access_enabled')
+                    ->label(__('patients::patients.fields.portal_access_enabled'))
+                    ->boolean()
+                    ->trueIcon('heroicon-o-check-circle')
+                    ->falseIcon('heroicon-o-x-circle')
+                    ->trueColor('success')
+                    ->falseColor('gray')
+                    ->toggleable(),
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->label(__('patients::patients.fields.created_at'))

@@ -61,7 +61,7 @@ return new class extends Migration
             $table->text('notes')->nullable();
 
             // Portal Access
-            $table->boolean('portal_access_enabled')->default(false);
+            $table->boolean('portal_access_enabled')->default(true);
             $table->string('portal_password')->nullable();
 
             // Statistics
