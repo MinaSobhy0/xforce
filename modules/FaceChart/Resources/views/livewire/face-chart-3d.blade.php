@@ -817,7 +817,7 @@ Alpine.data('faceChart3D', function(config) {
         },
 
         init() {
-            console.log('[FC3D] Init v25 - Fixed arrow direction and geometry');
+            console.log('[FC3D] Init v26 - Flexible arrow size based on drag');
             // Prevent re-initialization
             if (this.$el._fc3dInit) {
                 console.log('[FC3D] Already initialized, skipping');
@@ -1259,12 +1259,13 @@ Alpine.data('faceChart3D', function(config) {
                     const dirZ = parseFloat(marker.directionZ) || 1;
                     const arrowDir = new THREE.Vector3(dirX, dirY, dirZ).normalize();
 
-                    // Arrow dimensions - short like injection needles
-                    const arrowLength = 0.035;
+                    // Arrow dimensions - flexible based on stored depth
+                    const depthMm = marker.depthMm || 5;  // Default 5mm if not set
+                    const arrowLength = depthMm / 150;    // Scale mm to 3D units
                     const shaftRadius = 0.002;
-                    const headRadius = 0.006;
-                    const headLength = 0.012;
-                    const shaftLength = arrowLength - headLength;
+                    const headRadius = Math.min(0.008, arrowLength * 0.25);
+                    const headLength = Math.min(0.015, arrowLength * 0.35);
+                    const shaftLength = Math.max(0.005, arrowLength - headLength);
 
                     const arrowMaterial = new THREE.MeshPhongMaterial({
                         color: arrowColor,
@@ -1519,12 +1520,12 @@ Alpine.data('faceChart3D', function(config) {
 
             const arrowDir = dragVector.clone().normalize();
 
-            // Arrow dimensions - short like injection needles
-            const arrowLength = 0.035;
+            // Arrow dimensions - flexible based on drag distance
+            const arrowLength = Math.max(0.02, dragDistance * 0.8);  // Scale with drag
             const shaftRadius = 0.002;
-            const headRadius = 0.006;
-            const headLength = 0.012;
-            const shaftLength = arrowLength - headLength;
+            const headRadius = Math.min(0.008, arrowLength * 0.25);
+            const headLength = Math.min(0.015, arrowLength * 0.35);
+            const shaftLength = Math.max(0.005, arrowLength - headLength);
 
             // Semi-transparent teal material for preview
             const previewMaterial = new THREE.MeshPhongMaterial({
@@ -1635,8 +1636,8 @@ Alpine.data('faceChart3D', function(config) {
             // Direction follows the drag (intuitive - drag where you want arrow to point)
             const direction = dragVector.clone().normalize();
 
-            // Fixed short depth for injections (3-8mm typical)
-            const depth = Math.min(Math.max(dragDistance * 50, 3), 8);
+            // Depth based on drag distance (flexible size)
+            const depth = dragDistance * 80;  // Scale drag to mm
 
             console.log('[FC3D] Arrow - direction:', direction, 'depth:', depth.toFixed(1), 'mm');
 
