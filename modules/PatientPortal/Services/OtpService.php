@@ -22,7 +22,7 @@ class OtpService
     /**
      * Generate and send OTP to patient
      */
-    public function generateAndSend(Patient $patient): bool
+    public function generateAndSend(Patient $patient): array
     {
         $otp = $this->generateOtp();
         $phone = $patient->phone;
@@ -36,7 +36,12 @@ class OtpService
         ], now()->addMinutes($this->otpExpiry));
 
         // Send OTP via WhatsApp or SMS
-        return $this->sendOtp($patient, $otp);
+        $sent = $this->sendOtp($patient, $otp);
+
+        return [
+            'success' => $sent,
+            'otp' => $otp, // Return OTP for development/testing
+        ];
     }
 
     /**
@@ -114,10 +119,13 @@ class OtpService
         $cooldownSeconds = config('patientportal.otp.cooldown_seconds', 60);
         Cache::put($cooldownKey, $cooldownSeconds, now()->addSeconds($cooldownSeconds));
 
-        if ($this->generateAndSend($patient)) {
+        $result = $this->generateAndSend($patient);
+
+        if ($result['success']) {
             return [
                 'success' => true,
                 'message' => __('patientportal::portal.otp_sent'),
+                'otp' => $result['otp'],
             ];
         }
 
