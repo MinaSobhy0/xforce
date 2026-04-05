@@ -24,8 +24,8 @@
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700|cairo:400,500,600,700" rel="stylesheet" />
 
-    {{-- Tailwind CSS CDN --}}
-    <script src="https://cdn.tailwindcss.com"></script>
+    {{-- Tailwind CSS from allowed CDN --}}
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 
     {{-- Custom Styles with CSS Variables --}}
     <style>
