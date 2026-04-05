@@ -748,6 +748,7 @@ Alpine.data('faceChart3D', function(config) {
     let drawCurrentPoint = null;
     let drawingMarkerPosition = null;
     let drawingSurfaceNormal = null;  // Surface normal at marker point
+    let clickedMarker = null;  // Marker clicked on pointerdown (before drawing starts)
 
     // Performance optimization: cache face meshes for raycasting
     let faceMeshes = [];
@@ -823,7 +824,7 @@ Alpine.data('faceChart3D', function(config) {
         },
 
         init() {
-            console.log('[FC3D] Init v36 - Debug: full logging to find why arrows disappeared');
+            console.log('[FC3D] Init v37 - Enhanced pointer interaction: drag from marker to draw arrow, click on face to add point');
             // Prevent re-initialization
             if (this.$el._fc3dInit) {
                 console.log('[FC3D] Already initialized, skipping');
@@ -972,8 +973,8 @@ Alpine.data('faceChart3D', function(config) {
             });
 
             canvasElement.addEventListener('pointermove', (e) => {
-                // Handle arrow drawing preview
-                if (this.isDrawingArrow && drawStartPoint) {
+                // Handle arrow drawing: preview if already drawing, or check if should start drawing
+                if ((this.isDrawingArrow && drawStartPoint) || (clickedMarker && this._pointerDownPos)) {
                     this.handlePointerMove(e);
                 }
             });
@@ -984,6 +985,7 @@ Alpine.data('faceChart3D', function(config) {
                 // If we were drawing an arrow, finish it
                 if (this.isDrawingArrow) {
                     this.handlePointerUp(e);
+                    clickedMarker = null; // Clear clicked marker
                     return;
                 }
 
@@ -998,6 +1000,9 @@ Alpine.data('faceChart3D', function(config) {
                 } else {
                     console.log('[FC3D] Not a click (elapsed:', elapsed, 'ms, moved:', moved, 'px)');
                 }
+
+                // Clear clicked marker after handling
+                clickedMarker = null;
             });
 
             // Listen for Escape key to cancel drawing
@@ -1020,7 +1025,7 @@ Alpine.data('faceChart3D', function(config) {
             }, { passive: true });
 
             canvasElement.addEventListener('touchmove', (e) => {
-                if (this.isDrawingArrow && e.touches.length === 1) {
+                if ((this.isDrawingArrow || clickedMarker) && e.touches.length === 1) {
                     const touch = e.touches[0];
                     this.handlePointerMove({
                         clientX: touch.clientX,
@@ -1970,19 +1975,48 @@ Alpine.data('faceChart3D', function(config) {
                     console.log('[FC3D] Estimated surface normal:', surfaceNormal);
                 }
 
-                // Start arrow drawing mode with surface normal
-                this.startDrawingArrow(markerId, markerPosition, surfaceNormal);
-
-                // Prevent orbit controls from interfering
-                if (controls) {
-                    controls.enabled = false;
-                }
+                // Store clicked marker info - drawing will start only if user drags
+                clickedMarker = {
+                    id: markerId,
+                    position: markerPosition,
+                    surfaceNormal: surfaceNormal
+                };
+                console.log('[FC3D] Marker', markerId, 'clicked. Waiting for drag (>15px) to draw arrow, or release for edit modal...');
+            } else {
+                // Clear clicked marker if clicking elsewhere
+                clickedMarker = null;
             }
         },
 
         // Handle pointer move during arrow drawing - raycast to face surface
         handlePointerMove(e) {
-            if (!this.isDrawingArrow || !drawStartPoint || !faceModel || !renderer) return;
+            if (!faceModel || !renderer) return;
+
+            // Check if we have a clicked marker but haven't started drawing yet
+            if (clickedMarker && !this.isDrawingArrow && this._pointerDownPos) {
+                const moved = Math.hypot(e.clientX - this._pointerDownPos.x, e.clientY - this._pointerDownPos.y);
+
+                // Start drawing if moved more than threshold (15px = clear drag intent)
+                if (moved > 15) {
+                    console.log('[FC3D] Drag detected, starting arrow drawing...');
+                    this.startDrawingArrow(
+                        clickedMarker.id,
+                        clickedMarker.position,
+                        clickedMarker.surfaceNormal
+                    );
+
+                    // Disable orbit controls during drawing
+                    if (controls) {
+                        controls.enabled = false;
+                    }
+
+                    // Clear clicked marker
+                    clickedMarker = null;
+                }
+            }
+
+            // Continue arrow drawing if already started
+            if (!this.isDrawingArrow || !drawStartPoint) return;
 
             const rect = renderer.domElement.getBoundingClientRect();
             mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
