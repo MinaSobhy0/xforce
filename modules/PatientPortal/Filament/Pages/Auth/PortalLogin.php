@@ -252,27 +252,6 @@ class PortalLogin extends BaseLogin
             $this->otpSent = true;
             $this->pendingPhone = $phone;
 
-            // Check if messaging services are configured
-            $whatsappEnabled = class_exists(\Modules\Marketing\Services\WhatsAppService::class)
-                && app(\Modules\Marketing\Services\WhatsAppService::class)->isEnabled();
-            $smsEnabled = class_exists(\Modules\Marketing\Services\SmsService::class)
-                && app(\Modules\Marketing\Services\SmsService::class)->isEnabled();
-
-            // Show OTP in notification if no messaging service is configured (development mode)
-            if (!$whatsappEnabled && !$smsEnabled) {
-                Notification::make()
-                    ->title(__('patientportal::portal.otp_sent'))
-                    ->body('Your verification code is: **' . $result['otp'] . '** (Valid for 5 minutes)')
-                    ->success()
-                    ->duration(30000) // Show for 30 seconds
-                    ->send();
-            } else {
-                Notification::make()
-                    ->title(__('patientportal::portal.otp_sent'))
-                    ->body(__('patientportal::portal.check_phone'))
-                    ->success()
-                    ->send();
-            }
         } else {
             Notification::make()
                 ->title(__('patientportal::portal.otp_send_failed'))
@@ -350,33 +329,10 @@ class PortalLogin extends BaseLogin
         $otpService = app(OtpService::class);
         $result = $otpService->resend($this->pendingPhone);
 
-        if ($result['success']) {
-            // Check if messaging services are configured
-            $whatsappEnabled = class_exists(\Modules\Marketing\Services\WhatsAppService::class)
-                && app(\Modules\Marketing\Services\WhatsAppService::class)->isEnabled();
-            $smsEnabled = class_exists(\Modules\Marketing\Services\SmsService::class)
-                && app(\Modules\Marketing\Services\SmsService::class)->isEnabled();
-
-            // Show OTP in notification if no messaging service is configured
-            if (!$whatsappEnabled && !$smsEnabled && isset($result['otp'])) {
-                Notification::make()
-                    ->title($result['message'])
-                    ->body('Your verification code is: **' . $result['otp'] . '** (Valid for 5 minutes)')
-                    ->success()
-                    ->duration(30000)
-                    ->send();
-            } else {
-                Notification::make()
-                    ->title($result['message'])
-                    ->success()
-                    ->send();
-            }
-        } else {
-            Notification::make()
-                ->title($result['message'])
-                ->danger()
-                ->send();
-        }
+        Notification::make()
+            ->title($result['message'])
+            ->color($result['success'] ? 'success' : 'danger')
+            ->send();
     }
 
     public function changePhone(): void
