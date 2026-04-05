@@ -53,15 +53,16 @@ class EditWebsitePage extends EditRecord
         // Delete existing blocks
         $this->record->blocks()->delete();
 
-        // Create new blocks
-        foreach ($blocksData as $index => $blockData) {
+        // Create new blocks (use numeric index for sort_order, not UUID keys)
+        $sortOrder = 0;
+        foreach ($blocksData as $blockData) {
             WebsiteBlock::create([
                 'page_id' => $this->record->id,
                 'type' => $blockData['type'],
                 'content' => $blockData['data']['content'] ?? [],
                 'settings' => $blockData['data']['settings'] ?? [],
                 'is_visible' => $blockData['data']['is_visible'] ?? true,
-                'sort_order' => $index,
+                'sort_order' => $sortOrder++,
             ]);
         }
     }

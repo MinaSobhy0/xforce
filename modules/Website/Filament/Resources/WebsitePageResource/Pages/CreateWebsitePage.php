@@ -19,14 +19,16 @@ class CreateWebsitePage extends CreateRecord
     {
         $blocksData = $this->data['blocks_data'] ?? [];
 
-        foreach ($blocksData as $index => $blockData) {
+        // Use numeric index for sort_order, not UUID keys from Builder
+        $sortOrder = 0;
+        foreach ($blocksData as $blockData) {
             WebsiteBlock::create([
                 'page_id' => $this->record->id,
                 'type' => $blockData['type'],
                 'content' => $blockData['data']['content'] ?? [],
                 'settings' => $blockData['data']['settings'] ?? [],
                 'is_visible' => $blockData['data']['is_visible'] ?? true,
-                'sort_order' => $index,
+                'sort_order' => $sortOrder++,
             ]);
         }
     }
