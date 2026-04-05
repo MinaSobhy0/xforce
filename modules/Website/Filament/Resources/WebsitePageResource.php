@@ -204,7 +204,9 @@ class WebsitePageResource extends Resource
                 Forms\Components\FileUpload::make('content.background_image')
                     ->label(__('website::website.block_fields.background_image'))
                     ->image()
-                    ->directory('website/heroes'),
+                    ->disk('tenant')
+                    ->directory('website/heroes')
+                    ->visibility('private'),
                 Forms\Components\Section::make(__('website::website.sections.settings'))->schema([
                     Forms\Components\Select::make('settings.height')
                         ->label(__('website::website.block_fields.height'))
@@ -399,7 +401,9 @@ class WebsitePageResource extends Resource
                         Forms\Components\FileUpload::make('image')
                             ->label(__('website::website.block_fields.photo'))
                             ->image()
+                            ->disk('tenant')
                             ->directory('website/testimonials')
+                            ->visibility('private')
                             ->circleCropper(),
                         Forms\Components\Grid::make(2)->schema([
                             Forms\Components\Textarea::make('text.en')
@@ -486,7 +490,9 @@ class WebsitePageResource extends Resource
                     ->label(__('website::website.block_fields.images'))
                     ->multiple()
                     ->image()
+                    ->disk('tenant')
                     ->directory('website/gallery')
+                    ->visibility('private')
                     ->reorderable(),
                 Forms\Components\Select::make('settings.columns')
                     ->label(__('website::website.block_fields.columns'))
@@ -608,12 +614,16 @@ class WebsitePageResource extends Resource
                             Forms\Components\FileUpload::make('before_image')
                                 ->label(__('website::website.block_fields.before_image'))
                                 ->image()
+                                ->disk('tenant')
                                 ->directory('website/before-after')
+                                ->visibility('private')
                                 ->required(),
                             Forms\Components\FileUpload::make('after_image')
                                 ->label(__('website::website.block_fields.after_image'))
                                 ->image()
+                                ->disk('tenant')
                                 ->directory('website/before-after')
+                                ->visibility('private')
                                 ->required(),
                         ]),
                     ])

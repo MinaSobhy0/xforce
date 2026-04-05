@@ -66,13 +66,17 @@ class WebsiteSettings extends Page implements Forms\Contracts\HasForms
                                         Forms\Components\FileUpload::make('logo')
                                             ->label(__('website::website.fields.logo'))
                                             ->image()
+                                            ->disk('tenant')
                                             ->directory('website/branding')
+                                            ->visibility('private')
                                             ->helperText(__('website::website.fields.logo_help')),
 
                                         Forms\Components\FileUpload::make('favicon')
                                             ->label(__('website::website.fields.favicon'))
                                             ->image()
+                                            ->disk('tenant')
                                             ->directory('website/branding')
+                                            ->visibility('private')
                                             ->helperText(__('website::website.fields.favicon_help')),
                                     ])
                                     ->columns(2),
