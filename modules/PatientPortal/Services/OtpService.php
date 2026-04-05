@@ -157,11 +157,27 @@ class OtpService
                 'minutes' => $this->otpExpiry,
             ]);
 
+            Log::info("Attempting to send OTP", [
+                'phone' => $patient->phone,
+                'otp' => $otp,
+                'message' => $message,
+            ]);
+
             // Check if Marketing module is available
             if (class_exists(\Modules\Marketing\Services\WhatsAppService::class)) {
                 $whatsapp = app(\Modules\Marketing\Services\WhatsAppService::class);
+
+                Log::info("Trying WhatsApp", [
+                    'enabled' => $whatsapp->isEnabled(),
+                    'provider' => $whatsapp->getProvider(),
+                ]);
+
                 $result = $whatsapp->sendTextMessage($patient->phone, $message);
+
+                Log::info("WhatsApp send result", ['result' => $result]);
+
                 if ($result['success'] ?? false) {
+                    Log::info("OTP sent successfully via WhatsApp");
                     return true;
                 }
             }
@@ -169,18 +185,35 @@ class OtpService
             // Fallback to SMS
             if (class_exists(\Modules\Marketing\Services\SmsService::class)) {
                 $sms = app(\Modules\Marketing\Services\SmsService::class);
+
+                Log::info("Trying SMS", [
+                    'enabled' => $sms->isEnabled(),
+                    'provider' => $sms->getProvider(),
+                ]);
+
                 $result = $sms->send($patient->phone, $message);
+
+                Log::info("SMS send result", ['result' => $result]);
+
                 if ($result['success'] ?? false) {
+                    Log::info("OTP sent successfully via SMS");
                     return true;
                 }
             }
 
-            // Log for development
-            Log::info("OTP for {$patient->phone}: {$otp}");
+            // Log for development (no WhatsApp/SMS configured)
+            Log::warning("No messaging service configured, logging OTP", [
+                'phone' => $patient->phone,
+                'otp' => $otp,
+            ]);
+
             return true;
 
         } catch (\Exception $e) {
-            Log::error("Failed to send OTP: " . $e->getMessage());
+            Log::error("Failed to send OTP", [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             return false;
         }
     }
