@@ -213,18 +213,7 @@ class WebsiteSettings extends Page implements Forms\Contracts\HasForms
 
     protected function loadSettings(): array
     {
-        $settings = WebsiteSetting::getAllForTenant();
-
-        // FileUpload fields with ->directory() expect just the filename, not the full path
-        // Strip the directory prefix for logo and favicon
-        if (isset($settings['logo']) && str_starts_with($settings['logo'], 'website/branding/')) {
-            $settings['logo'] = str_replace('website/branding/', '', $settings['logo']);
-        }
-        if (isset($settings['favicon']) && str_starts_with($settings['favicon'], 'website/branding/')) {
-            $settings['favicon'] = str_replace('website/branding/', '', $settings['favicon']);
-        }
-
-        return $settings;
+        return WebsiteSetting::getAllForTenant();
     }
 
     protected function getFormActions(): array
