@@ -41,23 +41,37 @@
 
         /* Primary color utilities */
         .bg-primary { background-color: var(--color-primary) !important; }
-        .bg-primary\/90 { background-color: color-mix(in srgb, var(--color-primary) 90%, transparent) !important; }
+        .bg-primary\/10 { background-color: rgba(59, 130, 246, 0.1) !important; }
+        .bg-primary\/20 { background-color: rgba(59, 130, 246, 0.2) !important; }
+        .bg-primary\/30 { background-color: rgba(59, 130, 246, 0.3) !important; }
         .text-primary { color: var(--color-primary) !important; }
+        .text-primary-200 { color: rgba(255, 255, 255, 0.8) !important; }
+        .text-primary\/30 { color: rgba(59, 130, 246, 0.3) !important; }
         .border-primary { border-color: var(--color-primary) !important; }
-        .from-primary { --tw-gradient-from: var(--color-primary); }
+        .ring-primary { --tw-ring-color: var(--color-primary) !important; }
+        .hover\:text-primary:hover { color: var(--color-primary) !important; }
+        .hover\:bg-primary:hover { background-color: var(--color-primary) !important; }
+        .hover\:border-primary:hover { border-color: var(--color-primary) !important; }
+        .focus\:ring-primary:focus { --tw-ring-color: var(--color-primary) !important; }
+        .from-primary { --tw-gradient-from: var(--color-primary); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); }
         .to-primary { --tw-gradient-to: var(--color-primary); }
+        .from-primary\/10 { --tw-gradient-from: rgba(59, 130, 246, 0.1); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); }
 
         /* Secondary color utilities */
         .bg-secondary { background-color: var(--color-secondary) !important; }
+        .bg-secondary\/10 { background-color: rgba(16, 185, 129, 0.1) !important; }
         .text-secondary { color: var(--color-secondary) !important; }
         .border-secondary { border-color: var(--color-secondary) !important; }
-        .from-secondary { --tw-gradient-from: var(--color-secondary); }
+        .hover\:text-secondary:hover { color: var(--color-secondary) !important; }
+        .from-secondary { --tw-gradient-from: var(--color-secondary); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); }
         .to-secondary { --tw-gradient-to: var(--color-secondary); }
+        .to-secondary\/10 { --tw-gradient-to: rgba(16, 185, 129, 0.1); }
 
         /* Accent color utilities */
         .bg-accent { background-color: var(--color-accent) !important; }
         .text-accent { color: var(--color-accent) !important; }
         .border-accent { border-color: var(--color-accent) !important; }
+        .hover\:text-accent:hover { color: var(--color-accent) !important; }
 
         /* Button styles */
         .btn-primary {
