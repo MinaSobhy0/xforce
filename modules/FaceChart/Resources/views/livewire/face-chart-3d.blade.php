@@ -749,6 +749,11 @@ Alpine.data('faceChart3D', function(config) {
     let drawingMarkerPosition = null;
     let drawingSurfaceNormal = null;  // Surface normal at marker point
 
+    // Performance optimization: cache face meshes for raycasting
+    let faceMeshes = [];
+    let modelCenter = null;
+    let modelBox = null;
+
     // Icon paths configuration
     const iconPaths = {
         'injection': '/images/markers/injection.png',
@@ -818,7 +823,7 @@ Alpine.data('faceChart3D', function(config) {
         },
 
         init() {
-            console.log('[FC3D] Init v27 - Arrows perpendicular to face surface');
+            console.log('[FC3D] Init v36 - Debug: full logging to find why arrows disappeared');
             // Prevent re-initialization
             if (this.$el._fc3dInit) {
                 console.log('[FC3D] Already initialized, skipping');
@@ -1103,6 +1108,20 @@ Alpine.data('faceChart3D', function(config) {
 
                     scene.add(faceModel);
                     console.log('[FC3D] Model added to scene');
+
+                    // Cache face meshes for faster raycasting
+                    faceMeshes = [];
+                    faceModel.traverse((child) => {
+                        if (child.isMesh) {
+                            faceMeshes.push(child);
+                        }
+                    });
+                    console.log('[FC3D] Cached', faceMeshes.length, 'meshes for raycasting');
+
+                    // Cache model bounds
+                    modelBox = new THREE.Box3().setFromObject(faceModel);
+                    modelCenter = modelBox.getCenter(new THREE.Vector3());
+
                     this.loading = false;
                     console.log('[FC3D] Loading set to false, clicks should now work. isEditing:', this.isEditing);
 
@@ -1138,13 +1157,27 @@ Alpine.data('faceChart3D', function(config) {
         renderMarkers(markers) {
             if (!faceModel || !scene) return;
 
+            console.log('[FC3D] renderMarkers called with', markers.length, 'markers');
+
             // Clear old markers and direction lines
-            markerMeshes.forEach(m => scene.remove(m));
+            markerMeshes.forEach(m => {
+                scene.remove(m);
+                // Dispose geometries and materials to free memory
+                if (m.geometry) m.geometry.dispose();
+                if (m.material) {
+                    if (Array.isArray(m.material)) {
+                        m.material.forEach(mat => mat.dispose());
+                    } else {
+                        m.material.dispose();
+                    }
+                }
+            });
             markerMeshes = [];
 
-            const box = new THREE.Box3().setFromObject(faceModel);
+            // Use cached model box (faster than recalculating)
+            const box = modelBox || new THREE.Box3().setFromObject(faceModel);
             const size = box.getSize(new THREE.Vector3());
-            const center = box.getCenter(new THREE.Vector3());
+            const center = modelCenter || box.getCenter(new THREE.Vector3());
 
             // Map marker types to icon files
             const typeToIcon = {
@@ -1160,6 +1193,8 @@ Alpine.data('faceChart3D', function(config) {
             };
 
             markers.forEach(marker => {
+                console.log('[FC3D] Processing marker', marker.id, 'arrowEnd:', marker.arrowEndX, marker.arrowEndY, marker.arrowEndZ);
+
                 // Calculate base position
                 const baseX = (marker.x || 0) * (size.x / 2) + center.x;
                 const baseY = (marker.y || 0) * (size.y / 2) + center.y;
@@ -1175,8 +1210,6 @@ Alpine.data('faceChart3D', function(config) {
                 const iconType = typeToIcon[markerType] || typeToIcon[marker.icon] || 'injection';
                 const iconPath = iconPaths[iconType] || iconPaths['default'];
                 const spriteSize = 0.06 * (marker.size || 1);
-
-                console.log('[FC3D] Marker', marker.id, 'using PNG icon:', iconPath);
 
                 // Create sprite with PNG texture
                 const createSprite = (texture) => {
@@ -1249,8 +1282,51 @@ Alpine.data('faceChart3D', function(config) {
                     );
                 }
 
-                // Draw 3D direction arrow if direction data exists (teal arrow like anatomical charts)
-                if (marker.directionX !== null && marker.directionY !== null && marker.directionZ !== null) {
+                // Draw surface-following arrow if endpoint data exists (new style)
+                if (marker.arrowEndX !== null && marker.arrowEndX !== undefined &&
+                    marker.arrowEndY !== null && marker.arrowEndY !== undefined &&
+                    marker.arrowEndZ !== null && marker.arrowEndZ !== undefined) {
+
+                    console.log('[FC3D] Creating arrow for marker', marker.id, 'endpoint:', marker.arrowEndX, marker.arrowEndY, marker.arrowEndZ);
+
+                    // Teal arrow color (anatomical chart style)
+                    const arrowColor = 0x2D6B6B;
+                    const arrowOpacity = marker.isCurrent ? 1 : 0.85;
+
+                    // Calculate end position from normalized coordinates
+                    const endX = (marker.arrowEndX || 0) * (size.x / 2) + center.x;
+                    const endY = (marker.arrowEndY || 0) * (size.y / 2) + center.y;
+                    const endZ = (marker.arrowEndZ || 0) * (size.z / 2) + center.z;
+
+                    // Start and end points on the surface
+                    const startPoint = new THREE.Vector3(x, y, z);
+                    const endPoint = new THREE.Vector3(endX, endY, endZ);
+
+                    console.log('[FC3D] Start:', startPoint, 'End:', endPoint);
+
+                    // Sample points along surface path (5 points = good balance)
+                    // The sampleSurfacePath function will handle offsetting above surface
+                    const surfacePoints = this.sampleSurfacePath(startPoint, endPoint, 5);
+                    console.log('[FC3D] Surface points:', surfacePoints.length);
+
+                    if (surfacePoints.length >= 2) {
+                        // Create surface-following ribbon arrow
+                        const arrowGroup = this.createSurfaceArrow(surfacePoints, arrowColor, arrowOpacity);
+                        console.log('[FC3D] Arrow group:', arrowGroup);
+                        if (arrowGroup) {
+                            arrowGroup.userData = { isDirectionLine: true, markerId: marker.id };
+                            scene.add(arrowGroup);
+                            markerMeshes.push(arrowGroup);
+                            console.log('[FC3D] Arrow added to scene');
+                        } else {
+                            console.error('[FC3D] createSurfaceArrow returned null!');
+                        }
+                    } else {
+                        console.error('[FC3D] Not enough surface points!', surfacePoints.length);
+                    }
+                }
+                // Legacy: Draw 3D direction arrow if direction data exists (old style)
+                else if (marker.directionX !== null && marker.directionY !== null && marker.directionZ !== null) {
                     const arrowColor = 0x2D6B6B;
                     const arrowOpacity = marker.isCurrent ? 1 : 0.85;
 
@@ -1502,83 +1578,236 @@ Alpine.data('faceChart3D', function(config) {
         },
 
         // ============================================
-        // DRAG-TO-DRAW ARROW FUNCTIONS
+        // SURFACE-FOLLOWING ARROW FUNCTIONS
         // ============================================
+
+        // Sample points along the face surface between start and end
+        sampleSurfacePath(startPoint, endPoint, numSamples = 5) {
+            console.log('[FC3D] sampleSurfacePath called with', numSamples, 'samples');
+
+            if (!faceModel) {
+                console.error('[FC3D] sampleSurfacePath: no faceModel');
+                return [startPoint, endPoint];
+            }
+
+            if (faceMeshes.length === 0) {
+                console.warn('[FC3D] sampleSurfacePath: faceMeshes is empty! Rebuilding cache...');
+                // Rebuild cache
+                faceMeshes = [];
+                faceModel.traverse((child) => {
+                    if (child.isMesh) {
+                        faceMeshes.push(child);
+                    }
+                });
+                console.log('[FC3D] Rebuilt cache with', faceMeshes.length, 'meshes');
+            }
+
+            const points = [];
+
+            // Use cached model center (much faster than recalculating)
+            const center = modelCenter || new THREE.Vector3();
+            console.log('[FC3D] Using', faceMeshes.length, 'meshes for raycasting');
+
+            for (let i = 0; i <= numSamples; i++) {
+                const t = i / numSamples;
+                // Linear interpolation between start and end
+                const interpPoint = new THREE.Vector3().lerpVectors(startPoint, endPoint, t);
+
+                // Raycast from model center outward through the interpolated point
+                // This ensures we hit the face surface from inside
+                const rayDir = new THREE.Vector3().subVectors(interpPoint, center).normalize();
+                const rayOrigin = center.clone();
+                const tempRaycaster = new THREE.Raycaster(rayOrigin, rayDir);
+                tempRaycaster.firstHitOnly = true; // Optimize: only need first hit
+
+                // Use cached faceMeshes instead of traversing entire model (10-100x faster!)
+                const hits = tempRaycaster.intersectObjects(faceMeshes, false);
+
+                if (hits.length > 0) {
+                    // Use the first hit point on the surface
+                    const surfacePoint = hits[0].point.clone();
+
+                    // Calculate outward direction from center (always points away from model)
+                    const outwardDir = new THREE.Vector3().subVectors(surfacePoint, center).normalize();
+
+                    if (hits[0].face) {
+                        const normal = hits[0].face.normal.clone();
+                        normal.transformDirection(hits[0].object.matrixWorld);
+
+                        // Check if normal points outward or inward by comparing with outward direction
+                        const dotProduct = normal.dot(outwardDir);
+
+                        if (dotProduct > 0) {
+                            // Normal points outward, use it
+                            surfacePoint.add(normal.multiplyScalar(0.03));
+                        } else {
+                            // Normal points inward, flip it
+                            surfacePoint.add(normal.multiplyScalar(-0.03));
+                        }
+                    } else {
+                        // No face normal, use outward direction from center
+                        surfacePoint.add(outwardDir.multiplyScalar(0.03));
+                    }
+                    points.push(surfacePoint);
+                } else {
+                    // Fallback: offset outward from center
+                    const outwardDir = new THREE.Vector3().subVectors(interpPoint, center).normalize();
+                    interpPoint.add(outwardDir.multiplyScalar(0.03));
+                    points.push(interpPoint);
+                }
+            }
+
+            return points;
+        },
+
+        // Create a flat ribbon arrow that follows the surface
+        createSurfaceArrow(points, color = 0x2D6B6B, opacity = 0.85) {
+            console.log('[FC3D] createSurfaceArrow called with', points.length, 'points, color:', color.toString(16));
+
+            if (points.length < 2) {
+                console.error('[FC3D] createSurfaceArrow: need at least 2 points, got', points.length);
+                return null;
+            }
+
+            try {
+                const group = new THREE.Group();
+                console.log('[FC3D] Creating arrow group');
+
+                // Create smooth curve through points (balanced smoothness vs performance)
+                const curve = new THREE.CatmullRomCurve3(points);
+                const curvePoints = curve.getPoints(Math.max(20, points.length * 3));
+
+                // Arrow line width (increased for visibility)
+                const lineWidth = 0.016;
+
+            // Create ribbon geometry using BufferGeometry
+            const positions = [];
+            const indices = [];
+
+            for (let i = 0; i < curvePoints.length; i++) {
+                const point = curvePoints[i];
+
+                // Get tangent direction
+                const t = i / (curvePoints.length - 1);
+                const tangent = curve.getTangentAt(t);
+
+                // Get perpendicular direction (cross with approximate up or camera direction)
+                let up = new THREE.Vector3(0, 1, 0);
+                if (Math.abs(tangent.dot(up)) > 0.9) {
+                    up = new THREE.Vector3(0, 0, 1);
+                }
+                const perp = new THREE.Vector3().crossVectors(tangent, up).normalize();
+
+                // Create two vertices perpendicular to the curve
+                const v1 = point.clone().add(perp.clone().multiplyScalar(lineWidth));
+                const v2 = point.clone().add(perp.clone().multiplyScalar(-lineWidth));
+
+                positions.push(v1.x, v1.y, v1.z);
+                positions.push(v2.x, v2.y, v2.z);
+
+                // Create triangles
+                if (i > 0) {
+                    const idx = i * 2;
+                    indices.push(idx - 2, idx - 1, idx);
+                    indices.push(idx - 1, idx + 1, idx);
+                }
+            }
+
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+            geometry.setIndex(indices);
+            geometry.computeVertexNormals();
+
+            const material = new THREE.MeshPhongMaterial({
+                color: color,
+                emissive: color,
+                emissiveIntensity: 0.4,
+                shininess: 80,
+                side: THREE.DoubleSide,
+                transparent: opacity < 1,
+                opacity: opacity,
+                depthTest: true, // Enable depth test for proper occlusion
+                depthWrite: true // Write depth to avoid transparency issues
+            });
+
+            const ribbon = new THREE.Mesh(geometry, material);
+            group.add(ribbon);
+
+            // Add arrowhead at the end
+            const lastPoint = curvePoints[curvePoints.length - 1];
+            const secondLast = curvePoints[curvePoints.length - 2];
+            const arrowDir = new THREE.Vector3().subVectors(lastPoint, secondLast).normalize();
+
+            // Create flat triangle arrowhead
+            const headSize = lineWidth * 3;
+            const headLength = lineWidth * 4;
+
+            // Perpendicular to arrow direction
+            let headUp = new THREE.Vector3(0, 1, 0);
+            if (Math.abs(arrowDir.dot(headUp)) > 0.9) {
+                headUp = new THREE.Vector3(0, 0, 1);
+            }
+            const headPerp = new THREE.Vector3().crossVectors(arrowDir, headUp).normalize();
+
+            // Triangle vertices
+            const tip = lastPoint.clone().add(arrowDir.clone().multiplyScalar(headLength));
+            const base1 = lastPoint.clone().add(headPerp.clone().multiplyScalar(headSize));
+            const base2 = lastPoint.clone().add(headPerp.clone().multiplyScalar(-headSize));
+
+            const headGeo = new THREE.BufferGeometry();
+            headGeo.setAttribute('position', new THREE.Float32BufferAttribute([
+                tip.x, tip.y, tip.z,
+                base1.x, base1.y, base1.z,
+                base2.x, base2.y, base2.z
+            ], 3));
+            headGeo.setIndex([0, 1, 2]);
+            headGeo.computeVertexNormals();
+
+            const headMat = new THREE.MeshPhongMaterial({
+                color: color,
+                emissive: color,
+                emissiveIntensity: 0.4,
+                shininess: 80,
+                side: THREE.DoubleSide,
+                transparent: opacity < 1,
+                opacity: opacity,
+                depthTest: true, // Enable depth test for proper occlusion
+                depthWrite: true // Write depth to avoid transparency issues
+            });
+
+            const arrowHead = new THREE.Mesh(headGeo, headMat);
+            group.add(arrowHead);
+
+            console.log('[FC3D] Arrow created successfully, group has', group.children.length, 'children');
+            return group;
+            } catch (error) {
+                console.error('[FC3D] Error creating surface arrow:', error, error.stack);
+                return null;
+            }
+        },
 
         // Create a preview arrow during drag
         createPreviewArrow(startPoint, endPoint) {
             // Remove any existing preview
             this.removePreviewArrow();
 
-            if (!startPoint || !endPoint) return;
+            if (!startPoint || !endPoint || !faceModel) return;
 
-            // Calculate drag vector - arrow points in drag direction
-            const dragVector = new THREE.Vector3().subVectors(endPoint, startPoint);
-            const dragDistance = dragVector.length();
-
-            // Minimum length check
+            const dragDistance = startPoint.distanceTo(endPoint);
             if (dragDistance < 0.01) return;
 
-            // Arrow direction is the SURFACE NORMAL (perpendicular to face)
-            const arrowDir = drawingSurfaceNormal ? drawingSurfaceNormal.clone() : new THREE.Vector3(0, 0, 1);
+            // Sample points along the surface (fewer for preview = better performance)
+            const surfacePoints = this.sampleSurfacePath(startPoint, endPoint, 4);
 
-            // Arrow length - flexible based on drag distance
-            const arrowLength = Math.max(0.02, dragDistance * 0.8);  // Scale with drag
-            const shaftRadius = 0.002;
-            const headRadius = Math.min(0.008, arrowLength * 0.25);
-            const headLength = Math.min(0.015, arrowLength * 0.35);
-            const shaftLength = Math.max(0.005, arrowLength - headLength);
+            if (surfacePoints.length < 2) return;
 
-            // Semi-transparent teal material for preview
-            const previewMaterial = new THREE.MeshPhongMaterial({
-                color: 0x2D6B6B,
-                emissive: 0x2D6B6B,
-                emissiveIntensity: 0.3,
-                shininess: 80,
-                transparent: true,
-                opacity: 0.7,
-                side: THREE.DoubleSide
-            });
+            // Create surface-following arrow
+            previewArrowGroup = this.createSurfaceArrow(surfacePoints, 0x2D6B6B, 0.7);
 
-            // Build arrow pointing in +Y direction, then rotate
-            previewArrowGroup = new THREE.Group();
-
-            // Shaft (cylinder along Y axis)
-            const shaftGeo = new THREE.CylinderGeometry(shaftRadius, shaftRadius, shaftLength, 8);
-            const shaft = new THREE.Mesh(shaftGeo, previewMaterial);
-            shaft.position.set(0, shaftLength / 2, 0);
-            previewArrowGroup.add(shaft);
-
-            // Arrowhead (cone at top of shaft)
-            const headGeo = new THREE.ConeGeometry(headRadius, headLength, 8);
-            const head = new THREE.Mesh(headGeo, previewMaterial);
-            head.position.set(0, shaftLength + headLength / 2, 0);
-            previewArrowGroup.add(head);
-
-            // Position at marker (slightly offset from surface)
-            previewArrowGroup.position.copy(startPoint);
-            previewArrowGroup.position.z += 0.01;
-
-            // Rotate from +Y to arrow direction
-            const quaternion = new THREE.Quaternion();
-            quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), arrowDir);
-            previewArrowGroup.setRotationFromQuaternion(quaternion);
-
-            // Small sphere at arrow base
-            const baseSphereGeo = new THREE.SphereGeometry(0.004, 8, 8);
-            const baseSphereMat = new THREE.MeshPhongMaterial({
-                color: 0x2D6B6B,
-                emissive: 0x2D6B6B,
-                emissiveIntensity: 0.5,
-                transparent: true,
-                opacity: 0.8
-            });
-            const baseSphere = new THREE.Mesh(baseSphereGeo, baseSphereMat);
-            baseSphere.position.set(0, 0, 0);
-            previewArrowGroup.add(baseSphere);
-
-            previewArrowGroup.userData = { isPreviewArrow: true };
-            scene.add(previewArrowGroup);
+            if (previewArrowGroup) {
+                previewArrowGroup.userData = { isPreviewArrow: true };
+                scene.add(previewArrowGroup);
+            }
         },
 
         // Update preview arrow during drag
@@ -1617,14 +1846,14 @@ Alpine.data('faceChart3D', function(config) {
             }
         },
 
-        // Finish drawing arrow and save direction
+        // Finish drawing arrow and save endpoint for surface-following arrow
         finishDrawingArrow(endPoint) {
-            if (!this.isDrawingArrow || !this.drawingMarkerId || !drawStartPoint) {
+            if (!this.isDrawingArrow || !this.drawingMarkerId || !drawStartPoint || !faceModel) {
                 this.cancelDrawingArrow();
                 return;
             }
 
-            // Calculate drag distance for arrow length
+            // Calculate drag distance
             const dragVector = new THREE.Vector3().subVectors(endPoint, drawStartPoint);
             const dragDistance = dragVector.length();
 
@@ -1636,23 +1865,20 @@ Alpine.data('faceChart3D', function(config) {
                 return;
             }
 
-            // Direction is the SURFACE NORMAL (perpendicular to face surface)
-            // This makes arrows stick out properly from curved surfaces
-            const direction = drawingSurfaceNormal ? drawingSurfaceNormal.clone() : new THREE.Vector3(0, 0, 1);
+            // Convert endpoint from 3D world coordinates to normalized coordinates for storage
+            const box = new THREE.Box3().setFromObject(faceModel);
+            const size = box.getSize(new THREE.Vector3());
+            const center = box.getCenter(new THREE.Vector3());
 
-            // Depth based on drag distance (flexible size)
-            const depth = dragDistance * 80;  // Scale drag to mm
+            // Convert to normalized coordinates (-1 to 1 range)
+            const endX = (endPoint.x - center.x) / (size.x / 2);
+            const endY = (endPoint.y - center.y) / (size.y / 2);
+            const endZ = (endPoint.z - center.z) / (size.z / 2);
 
-            console.log('[FC3D] Arrow - normal direction:', direction, 'depth:', depth.toFixed(1), 'mm');
+            console.log('[FC3D] Surface arrow endpoint (normalized):', endX.toFixed(3), endY.toFixed(3), endZ.toFixed(3));
 
-            // Save direction via Livewire
-            this.$wire.onSetDirection(
-                this.drawingMarkerId,
-                direction.x,
-                direction.y,
-                direction.z,
-                depth
-            );
+            // Save arrow endpoint via Livewire (this clears old direction data)
+            this.$wire.onSetArrowEndpoint(this.drawingMarkerId, endX, endY, endZ);
 
             // Clean up
             this.removePreviewArrow();
@@ -1754,15 +1980,35 @@ Alpine.data('faceChart3D', function(config) {
             }
         },
 
-        // Handle pointer move during arrow drawing
+        // Handle pointer move during arrow drawing - raycast to face surface
         handlePointerMove(e) {
-            if (!this.isDrawingArrow || !drawStartPoint) return;
+            if (!this.isDrawingArrow || !drawStartPoint || !faceModel || !renderer) return;
 
-            // Project mouse to 3D plane
-            const endPoint = this.projectMouseToPlane(e, drawStartPoint);
-            if (endPoint) {
-                drawCurrentPoint = endPoint;
-                this.updatePreviewArrow(endPoint);
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+
+            // Raycast to face surface for accurate surface-following
+            const faceHits = raycaster.intersectObject(faceModel, true);
+            if (faceHits.length > 0) {
+                // Use hit point on face surface with small offset
+                const hitPoint = faceHits[0].point.clone();
+                if (faceHits[0].face) {
+                    const normal = faceHits[0].face.normal.clone();
+                    normal.transformDirection(faceHits[0].object.matrixWorld);
+                    hitPoint.add(normal.multiplyScalar(0.003)); // Offset to avoid z-fighting
+                }
+                drawCurrentPoint = hitPoint;
+                this.updatePreviewArrow(hitPoint);
+            } else {
+                // Fallback: project mouse to plane at marker's depth
+                const endPoint = this.projectMouseToPlane(e, drawStartPoint);
+                if (endPoint) {
+                    drawCurrentPoint = endPoint;
+                    this.updatePreviewArrow(endPoint);
+                }
             }
         },
 
@@ -1775,8 +2021,33 @@ Alpine.data('faceChart3D', function(config) {
                 controls.enabled = true;
             }
 
-            // Project final mouse position
-            const endPoint = this.projectMouseToPlane(e, drawStartPoint);
+            // Use the stored current point from last pointer move, or raycast to face surface
+            let endPoint = drawCurrentPoint;
+
+            if (!endPoint && faceModel && renderer) {
+                // Raycast to face surface
+                const rect = renderer.domElement.getBoundingClientRect();
+                mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+                mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+                raycaster.setFromCamera(mouse, camera);
+                const faceHits = raycaster.intersectObject(faceModel, true);
+
+                if (faceHits.length > 0) {
+                    endPoint = faceHits[0].point.clone();
+                    if (faceHits[0].face) {
+                        const normal = faceHits[0].face.normal.clone();
+                        normal.transformDirection(faceHits[0].object.matrixWorld);
+                        endPoint.add(normal.multiplyScalar(0.003));
+                    }
+                }
+            }
+
+            if (!endPoint) {
+                // Final fallback: project to plane
+                endPoint = this.projectMouseToPlane(e, drawStartPoint);
+            }
+
             if (endPoint) {
                 this.finishDrawingArrow(endPoint);
             } else {

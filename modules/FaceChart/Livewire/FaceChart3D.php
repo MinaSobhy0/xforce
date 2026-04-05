@@ -83,6 +83,7 @@ class FaceChart3D extends Component
         'refreshMarkers' => 'loadMarkers',
         'setService' => 'setService',
         'setDirection' => 'onSetDirection',
+        'setArrowEndpoint' => 'onSetArrowEndpoint',
     ];
 
     public function boot(FaceChartService $faceChartService): void
@@ -487,7 +488,7 @@ class FaceChart3D extends Component
     }
 
     /**
-     * Handle setting direction for a marker (drag to set injection angle).
+     * Handle setting direction for a marker (legacy - direction vector).
      */
     public function onSetDirection(int $markerId, float $dirX, float $dirY, float $dirZ, ?float $depthMm = null): void
     {
@@ -502,6 +503,31 @@ class FaceChart3D extends Component
             'direction_y' => $dirY,
             'direction_z' => $dirZ,
             'depth_mm' => $depthMm,
+        ]);
+
+        $this->loadMarkers();
+    }
+
+    /**
+     * Handle setting arrow endpoint for surface-following arrows.
+     */
+    public function onSetArrowEndpoint(int $markerId, float $endX, float $endY, float $endZ): void
+    {
+        // Check if editable
+        $marker = FaceChartMarker::find($markerId);
+        if (!$marker || $marker->appointment_id !== $this->appointmentId) {
+            return;
+        }
+
+        $this->faceChartService->updateMarker($markerId, [
+            'arrow_end_x' => $endX,
+            'arrow_end_y' => $endY,
+            'arrow_end_z' => $endZ,
+            // Clear old direction data
+            'direction_x' => null,
+            'direction_y' => null,
+            'direction_z' => null,
+            'depth_mm' => null,
         ]);
 
         $this->loadMarkers();
