@@ -6,7 +6,10 @@ return [
 
     // Auth
     'login' => 'Login',
+    'country_code' => 'Country',
     'phone' => 'Phone Number',
+    'phone_placeholder' => '1XX XXX XXXX',
+    'phone_helper' => 'Enter your phone number without country code',
     'otp_code' => 'Verification Code',
     'send_otp' => 'Send Code',
     'verify_login' => 'Verify & Login',

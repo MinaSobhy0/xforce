@@ -6,7 +6,10 @@ return [
 
     // Auth
     'login' => 'تسجيل الدخول',
+    'country_code' => 'الدولة',
     'phone' => 'رقم الهاتف',
+    'phone_placeholder' => '1XX XXX XXXX',
+    'phone_helper' => 'أدخل رقم هاتفك بدون رمز الدولة',
     'otp_code' => 'رمز التحقق',
     'send_otp' => 'إرسال الرمز',
     'verify_login' => 'تحقق وسجل الدخول',

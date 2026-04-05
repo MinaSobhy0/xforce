@@ -19,6 +19,7 @@ class PortalLogin extends BaseLogin
     protected static string $view = 'patientportal::filament.pages.auth.login';
 
     public ?string $phone = null;
+    public ?string $countryCode = null;
     public ?string $otp = null;
     public bool $otpSent = false;
     public ?string $pendingPhone = null;
@@ -30,17 +31,46 @@ class PortalLogin extends BaseLogin
         parent::mount();
         $this->otpSent = false;
         $this->isNewPatient = false;
+
+        // Detect country code by IP location
+        $this->countryCode = $this->detectCountryCode();
     }
 
     public function form(Form $form): Form
     {
         return $form
             ->schema([
+                $this->getCountryCodeFormComponent(),
                 $this->getPhoneFormComponent(),
                 $this->getNameFormComponent(),
                 $this->getOtpFormComponent(),
             ])
             ->statePath('data');
+    }
+
+    protected function getCountryCodeFormComponent(): Component
+    {
+        return \Filament\Forms\Components\Select::make('country_code')
+            ->label(__('patientportal::portal.country_code'))
+            ->options([
+                '+20' => '🇪🇬 Egypt (+20)',
+                '+966' => '🇸🇦 Saudi Arabia (+966)',
+                '+971' => '🇦🇪 UAE (+971)',
+                '+965' => '🇰🇼 Kuwait (+965)',
+                '+974' => '🇶🇦 Qatar (+974)',
+                '+968' => '🇴🇲 Oman (+968)',
+                '+973' => '🇧🇭 Bahrain (+973)',
+                '+962' => '🇯🇴 Jordan (+962)',
+                '+961' => '🇱🇧 Lebanon (+961)',
+                '+964' => '🇮🇶 Iraq (+964)',
+                '+1' => '🇺🇸 USA/Canada (+1)',
+                '+44' => '🇬🇧 UK (+44)',
+            ])
+            ->default($this->countryCode ?? '+20')
+            ->required()
+            ->searchable()
+            ->disabled(fn () => $this->otpSent)
+            ->prefixIcon('heroicon-o-globe-alt');
     }
 
     protected function getNameFormComponent(): Component
@@ -59,7 +89,8 @@ class PortalLogin extends BaseLogin
             ->label(__('patientportal::portal.phone'))
             ->tel()
             ->required()
-            ->placeholder('+20 1XX XXX XXXX')
+            ->placeholder(__('patientportal::portal.phone_placeholder'))
+            ->helperText(__('patientportal::portal.phone_helper'))
             ->prefixIcon('heroicon-o-phone')
             ->disabled(fn () => $this->otpSent)
             ->autofocus();
@@ -92,7 +123,7 @@ class PortalLogin extends BaseLogin
         }
 
         $data = $this->form->getState();
-        $phone = $this->normalizePhone($data['phone'] ?? '');
+        $phone = $this->normalizePhone($data['phone'] ?? '', $data['country_code'] ?? null);
 
         if (empty($phone)) {
             Notification::make()
@@ -152,7 +183,7 @@ class PortalLogin extends BaseLogin
         }
 
         $data = $this->form->getState();
-        $phone = $this->normalizePhone($data['phone'] ?? '');
+        $phone = $this->normalizePhone($data['phone'] ?? '', $data['country_code'] ?? null);
         $fullName = trim($data['full_name'] ?? '');
 
         if (empty($phone) || empty($fullName)) {
@@ -231,7 +262,7 @@ class PortalLogin extends BaseLogin
         }
 
         $data = $this->form->getState();
-        $phone = $this->normalizePhone($this->pendingPhone ?? $data['phone'] ?? '');
+        $phone = $this->normalizePhone($this->pendingPhone ?? $data['phone'] ?? '', $data['country_code'] ?? null);
         $otp = $data['otp'] ?? '';
 
         if (empty($phone) || empty($otp)) {
@@ -300,19 +331,73 @@ class PortalLogin extends BaseLogin
         $this->otp = null;
     }
 
-    protected function normalizePhone(string $phone): string
+    protected function normalizePhone(string $phone, ?string $countryCode = null): string
     {
         // Remove all non-numeric characters except +
         $phone = preg_replace('/[^0-9+]/', '', $phone);
 
-        // Egyptian phone normalization
-        if (str_starts_with($phone, '0')) {
-            $phone = '+20' . substr($phone, 1);
-        } elseif (!str_starts_with($phone, '+')) {
-            $phone = '+' . $phone;
+        // If phone already has country code, return as is
+        if (str_starts_with($phone, '+')) {
+            return $phone;
         }
 
-        return $phone;
+        // Remove leading zero if present
+        if (str_starts_with($phone, '0')) {
+            $phone = substr($phone, 1);
+        }
+
+        // Use provided country code or default to +20 (Egypt)
+        $countryCode = $countryCode ?? '+20';
+
+        // Remove + from country code and add it back
+        $countryCode = str_replace('+', '', $countryCode);
+
+        return '+' . $countryCode . $phone;
+    }
+
+    protected function detectCountryCode(): string
+    {
+        try {
+            // Get client IP
+            $ip = request()->ip();
+
+            // Don't detect for local IPs
+            if (in_array($ip, ['127.0.0.1', 'localhost', '::1'])) {
+                return '+20'; // Default to Egypt
+            }
+
+            // Use ip-api.com for geolocation (free, no API key needed)
+            $response = \Illuminate\Support\Facades\Http::timeout(3)
+                ->get("http://ip-api.com/json/{$ip}?fields=countryCode");
+
+            if ($response->successful()) {
+                $data = $response->json();
+                $countryCode = $data['countryCode'] ?? 'EG';
+
+                // Map country codes to phone codes
+                $phoneCodeMap = [
+                    'EG' => '+20',
+                    'SA' => '+966',
+                    'AE' => '+971',
+                    'KW' => '+965',
+                    'QA' => '+974',
+                    'OM' => '+968',
+                    'BH' => '+973',
+                    'JO' => '+962',
+                    'LB' => '+961',
+                    'IQ' => '+964',
+                    'US' => '+1',
+                    'CA' => '+1',
+                    'GB' => '+44',
+                ];
+
+                return $phoneCodeMap[$countryCode] ?? '+20';
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning('Country detection failed: ' . $e->getMessage());
+        }
+
+        return '+20'; // Default to Egypt
     }
 
     protected function getCredentialsFromFormData(array $data): array
