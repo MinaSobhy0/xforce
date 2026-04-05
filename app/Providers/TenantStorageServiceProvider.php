@@ -54,6 +54,19 @@ class TenantStorageServiceProvider extends ServiceProvider
         // Update the tenant disk configuration
         Config::set('filesystems.disks.tenant.root', $tenantPath);
 
+        // Set the URL to use the current request URL (includes subdomain)
+        // This ensures FileUpload previews work correctly in Filament
+        if ($this->app->runningInConsole()) {
+            // For console commands, use the base APP_URL
+            $baseUrl = config('app.url');
+        } else {
+            // For web requests, use the current request URL
+            $request = $this->app->make('request');
+            $baseUrl = $request->getSchemeAndHttpHost();
+        }
+
+        Config::set('filesystems.disks.tenant.url', $baseUrl . '/tenant-storage');
+
         // Purge the disk instance so it picks up the new config
         Storage::forgetDisk('tenant');
     }
