@@ -747,6 +747,7 @@ Alpine.data('faceChart3D', function(config) {
     let drawStartPoint = null;
     let drawCurrentPoint = null;
     let drawingMarkerPosition = null;
+    let drawingSurfaceNormal = null;  // Surface normal at marker point
 
     // Icon paths configuration
     const iconPaths = {
@@ -817,7 +818,7 @@ Alpine.data('faceChart3D', function(config) {
         },
 
         init() {
-            console.log('[FC3D] Init v26 - Flexible arrow size based on drag');
+            console.log('[FC3D] Init v27 - Arrows perpendicular to face surface');
             // Prevent re-initialization
             if (this.$el._fc3dInit) {
                 console.log('[FC3D] Already initialized, skipping');
@@ -1518,9 +1519,10 @@ Alpine.data('faceChart3D', function(config) {
             // Minimum length check
             if (dragDistance < 0.01) return;
 
-            const arrowDir = dragVector.clone().normalize();
+            // Arrow direction is the SURFACE NORMAL (perpendicular to face)
+            const arrowDir = drawingSurfaceNormal ? drawingSurfaceNormal.clone() : new THREE.Vector3(0, 0, 1);
 
-            // Arrow dimensions - flexible based on drag distance
+            // Arrow length - flexible based on drag distance
             const arrowLength = Math.max(0.02, dragDistance * 0.8);  // Scale with drag
             const shaftRadius = 0.002;
             const headRadius = Math.min(0.008, arrowLength * 0.25);
@@ -1601,12 +1603,13 @@ Alpine.data('faceChart3D', function(config) {
         },
 
         // Start drawing arrow on marker click
-        startDrawingArrow(markerId, markerPosition) {
-            console.log('[FC3D] Starting arrow draw for marker:', markerId);
+        startDrawingArrow(markerId, markerPosition, surfaceNormal) {
+            console.log('[FC3D] Starting arrow draw for marker:', markerId, 'normal:', surfaceNormal);
             this.isDrawingArrow = true;
             this.drawingMarkerId = markerId;
             drawStartPoint = markerPosition.clone();
             drawingMarkerPosition = markerPosition.clone();
+            drawingSurfaceNormal = surfaceNormal ? surfaceNormal.clone() : new THREE.Vector3(0, 0, 1);
 
             // Change cursor to grabbing while drawing
             if (renderer && renderer.domElement) {
@@ -1621,7 +1624,7 @@ Alpine.data('faceChart3D', function(config) {
                 return;
             }
 
-            // Calculate drag vector
+            // Calculate drag distance for arrow length
             const dragVector = new THREE.Vector3().subVectors(endPoint, drawStartPoint);
             const dragDistance = dragVector.length();
 
@@ -1633,13 +1636,14 @@ Alpine.data('faceChart3D', function(config) {
                 return;
             }
 
-            // Direction follows the drag (intuitive - drag where you want arrow to point)
-            const direction = dragVector.clone().normalize();
+            // Direction is the SURFACE NORMAL (perpendicular to face surface)
+            // This makes arrows stick out properly from curved surfaces
+            const direction = drawingSurfaceNormal ? drawingSurfaceNormal.clone() : new THREE.Vector3(0, 0, 1);
 
             // Depth based on drag distance (flexible size)
             const depth = dragDistance * 80;  // Scale drag to mm
 
-            console.log('[FC3D] Arrow - direction:', direction, 'depth:', depth.toFixed(1), 'mm');
+            console.log('[FC3D] Arrow - normal direction:', direction, 'depth:', depth.toFixed(1), 'mm');
 
             // Save direction via Livewire
             this.$wire.onSetDirection(
@@ -1669,6 +1673,7 @@ Alpine.data('faceChart3D', function(config) {
             drawStartPoint = null;
             drawCurrentPoint = null;
             drawingMarkerPosition = null;
+            drawingSurfaceNormal = null;
 
             // Reset cursor
             if (renderer && renderer.domElement) {
@@ -1722,8 +1727,25 @@ Alpine.data('faceChart3D', function(config) {
                 const markerId = marker.userData.id;
                 const markerPosition = marker.position.clone();
 
-                // Start arrow drawing mode
-                this.startDrawingArrow(markerId, markerPosition);
+                // Get face surface normal at this point by raycasting to the face model
+                let surfaceNormal = null;
+                const faceHits = raycaster.intersectObject(faceModel, true);
+                if (faceHits.length > 0 && faceHits[0].face) {
+                    // Get the face normal and transform to world space
+                    surfaceNormal = faceHits[0].face.normal.clone();
+                    surfaceNormal.transformDirection(faceHits[0].object.matrixWorld);
+                    console.log('[FC3D] Got surface normal from face:', surfaceNormal);
+                }
+
+                // Fallback: estimate normal as pointing outward from face center
+                if (!surfaceNormal) {
+                    // Assume face center is around (0, 0, 0), normal points outward
+                    surfaceNormal = markerPosition.clone().normalize();
+                    console.log('[FC3D] Estimated surface normal:', surfaceNormal);
+                }
+
+                // Start arrow drawing mode with surface normal
+                this.startDrawingArrow(markerId, markerPosition, surfaceNormal);
 
                 // Prevent orbit controls from interfering
                 if (controls) {
