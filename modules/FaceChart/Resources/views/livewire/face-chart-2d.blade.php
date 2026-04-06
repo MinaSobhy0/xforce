@@ -338,9 +338,10 @@ Alpine.data('faceChart2DComponent', () => ({
     fabricCanvas: null,
     backgroundImage: null, // Store reference to background
     initialized: false,
-    selectedTool: 'marker', // marker, text, arrow, pen, select
+    selectedTool: 'marker', // marker, text, arrow, pen, select, eraser
     isDrawingArrow: false,
     arrowStartPoint: null,
+    previewArrow: null, // Live preview arrow during drag
     drawingColor: '#FF0000', // Default red
     strokeWidth: 3, // Default stroke width
     config: @js([
@@ -576,9 +577,7 @@ Alpine.data('faceChart2DComponent', () => ({
             case 'text':
                 this.addTextAnnotation(pointer.x, pointer.y, x, y);
                 break;
-            case 'arrow':
-                this.handleArrowClick(pointer.x, pointer.y, x, y);
-                break;
+            // Arrow is handled by drag events (mouse:down, mouse:move, mouse:up)
         }
     },
 
@@ -609,12 +608,29 @@ Alpine.data('faceChart2DComponent', () => ({
         this.fabricCanvas.renderAll();
 
         // Notify Livewire to save marker
-        this.$wire.canvasClick({
+        console.log('💾 Saving marker to Livewire...', {
             x: normalizedX,
             y: normalizedY,
             type: 'marker',
-            color: this.drawingColor
+            color: this.drawingColor,
+            isEditing: this.config.isEditing,
+            appointmentId: this.config.appointmentId
         });
+
+        if (this.$wire) {
+            this.$wire.canvasClick({
+                x: normalizedX,
+                y: normalizedY,
+                type: 'marker',
+                color: this.drawingColor
+            }).then(() => {
+                console.log('✅ Marker saved successfully');
+            }).catch((error) => {
+                console.error('❌ Error saving marker:', error);
+            });
+        } else {
+            console.error('❌ $wire not available!');
+        }
     },
 
     addTextAnnotation(canvasX, canvasY, normalizedX, normalizedY) {
@@ -664,119 +680,181 @@ Alpine.data('faceChart2DComponent', () => ({
         });
     },
 
-    handleArrowClick(canvasX, canvasY, normalizedX, normalizedY) {
-        if (!this.isDrawingArrow) {
-            // Start arrow
-            console.log('🏹 Arrow start at', canvasX, canvasY);
-            this.isDrawingArrow = true;
-            this.arrowStartPoint = { canvasX, canvasY, normalizedX, normalizedY };
+    startArrowDrag(canvasX, canvasY, normalizedX, normalizedY) {
+        console.log('🏹 Arrow drag started at', canvasX, canvasY);
+        this.isDrawingArrow = true;
+        this.arrowStartPoint = { canvasX, canvasY, normalizedX, normalizedY };
 
-            // Show temporary marker
-            const startMarker = new fabric.Circle({
-                left: canvasX,
-                top: canvasY,
-                radius: 5,
-                fill: '#00FF00',
-                originX: 'center',
-                originY: 'center',
-                selectable: false,
-                hasControls: false,
-            });
-            startMarker.isTemporary = true;
-            this.fabricCanvas.add(startMarker);
-            this.fabricCanvas.renderAll();
-        } else {
-            // End arrow
-            console.log('🏹 Arrow end at', canvasX, canvasY);
+        // Create preview arrow
+        this.previewArrow = this.createArrowGroup(canvasX, canvasY, canvasX, canvasY, true);
+        this.fabricCanvas.add(this.previewArrow);
+        this.fabricCanvas.renderAll();
+    },
 
-            // Remove temporary markers first
-            const objects = this.fabricCanvas.getObjects().slice();
-            objects.forEach(obj => {
-                if (obj.isTemporary) {
-                    this.fabricCanvas.remove(obj);
-                }
-            });
+    updateArrowPreview(canvasX, canvasY) {
+        if (!this.isDrawingArrow || !this.previewArrow) return;
 
-            // Draw the arrow
-            this.drawArrow(
+        // Remove old preview
+        this.fabricCanvas.remove(this.previewArrow);
+
+        // Create new preview at current position
+        this.previewArrow = this.createArrowGroup(
+            this.arrowStartPoint.canvasX,
+            this.arrowStartPoint.canvasY,
+            canvasX,
+            canvasY,
+            true
+        );
+        this.fabricCanvas.add(this.previewArrow);
+        this.fabricCanvas.renderAll();
+    },
+
+    finishArrowDrag(canvasX, canvasY, normalizedX, normalizedY) {
+        if (!this.isDrawingArrow) return;
+
+        console.log('🏹 Arrow drag finished at', canvasX, canvasY);
+
+        // Remove preview arrow
+        if (this.previewArrow) {
+            this.fabricCanvas.remove(this.previewArrow);
+            this.previewArrow = null;
+        }
+
+        // Only create arrow if there's some distance
+        const dx = canvasX - this.arrowStartPoint.canvasX;
+        const dy = canvasY - this.arrowStartPoint.canvasY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance > 10) {
+            // Create final arrow as grouped object
+            const arrow = this.createArrowGroup(
                 this.arrowStartPoint.canvasX,
                 this.arrowStartPoint.canvasY,
                 canvasX,
-                canvasY
+                canvasY,
+                false
             );
+            this.fabricCanvas.add(arrow);
+            this.fabricCanvas.renderAll();
 
             // Save to database
+            console.log('💾 Saving arrow to Livewire...', {
+                x: this.arrowStartPoint.normalizedX,
+                y: this.arrowStartPoint.normalizedY,
+                type: 'arrow',
+                isEditing: this.config.isEditing,
+                appointmentId: this.config.appointmentId
+            });
+
             this.$wire.canvasClick({
                 x: this.arrowStartPoint.normalizedX,
                 y: this.arrowStartPoint.normalizedY,
                 type: 'arrow',
                 direction_x: normalizedX - this.arrowStartPoint.normalizedX,
                 direction_y: normalizedY - this.arrowStartPoint.normalizedY,
+            }).then(() => {
+                console.log('✅ Arrow saved to database');
+            }).catch((err) => {
+                console.error('❌ Error saving arrow:', err);
             });
 
-            this.isDrawingArrow = false;
-            this.arrowStartPoint = null;
-
-            console.log('✅ Arrow completed, background should be visible');
+            console.log('✅ Arrow created as single group');
         }
+
+        this.isDrawingArrow = false;
+        this.arrowStartPoint = null;
     },
 
-    drawArrow(x1, y1, x2, y2) {
-        console.log('🎨 Drawing arrow from', x1, y1, 'to', x2, y2);
-
-        // Calculate arrow angle
+    createArrowGroup(x1, y1, x2, y2, isPreview = false) {
+        // Calculate arrow properties
         const angle = Math.atan2(y2 - y1, x2 - x1);
         const strokeSize = parseInt(this.strokeWidth);
-        const headLength = Math.max(12, strokeSize * 4); // Scale arrowhead with stroke
+        const headLength = Math.max(15, strokeSize * 5);
+        const headAngle = Math.PI / 6; // 30 degrees
 
-        // Draw arrow line
-        const line = new fabric.Line([x1, y1, x2, y2], {
-            stroke: this.drawingColor,
+        // Calculate arrowhead points
+        const x3 = x2 - headLength * Math.cos(angle - headAngle);
+        const y3 = y2 - headLength * Math.sin(angle - headAngle);
+        const x4 = x2 - headLength * Math.cos(angle + headAngle);
+        const y4 = y2 - headLength * Math.sin(angle + headAngle);
+
+        // Create arrow as a single path (line + arrowhead)
+        const pathData = `M ${x1} ${y1} L ${x2} ${y2} M ${x3} ${y3} L ${x2} ${y2} L ${x4} ${y4}`;
+
+        const color = isPreview ? this.drawingColor + '99' : this.drawingColor;
+
+        const arrow = new fabric.Path(pathData, {
+            stroke: color,
             strokeWidth: strokeSize,
-            selectable: false, // Only selectable with select tool
+            fill: null,
+            strokeLineCap: 'round',
+            strokeLineJoin: 'round',
+            selectable: false,
             evented: false,
         });
-        line.annotationType = 'arrow';
 
-        // Draw arrowhead
-        const arrowHead = new fabric.Triangle({
-            left: x2,
-            top: y2,
-            originX: 'center',
-            originY: 'center',
-            width: headLength,
-            height: headLength,
-            fill: this.drawingColor,
-            angle: (angle * 180 / Math.PI) + 90,
-            selectable: false, // Only selectable with select tool
-            evented: false,
-        });
-        arrowHead.annotationType = 'arrow';
+        arrow.annotationType = 'arrow';
+        arrow.isPreview = isPreview;
 
-        // Add both parts separately
-        this.fabricCanvas.add(line);
-        this.fabricCanvas.add(arrowHead);
-        this.fabricCanvas.renderAll();
-
-        console.log('✅ Arrow added, total objects:', this.fabricCanvas.getObjects().length);
+        return arrow;
     },
 
     setupCanvasEvents() {
-        // Click event for tools
+        // Mouse down event
         this.fabricCanvas.on('mouse:down', (e) => {
             if (!this.config.isEditing) return;
 
             // Handle eraser tool - delete clicked object
             if (this.selectedTool === 'eraser' && e.target) {
-                console.log('🗑️ Eraser: deleting object');
-                this.fabricCanvas.remove(e.target);
+                const obj = e.target;
+                console.log('🗑️ Eraser: deleting object', obj.annotationType, obj.markerId);
+
+                // Remove from canvas
+                this.fabricCanvas.remove(obj);
                 this.fabricCanvas.renderAll();
+
+                // If it's a saved marker, delete from database too
+                if (obj.markerId && obj.isEditable) {
+                    console.log('💾 Deleting from database, markerId:', obj.markerId);
+                    this.$wire.onMarkerDelete(obj.markerId).then(() => {
+                        console.log('✅ Deleted from database');
+                    }).catch((err) => {
+                        console.error('❌ Error deleting from database:', err);
+                    });
+                }
+                return;
+            }
+
+            // Handle arrow tool - start drag
+            if (this.selectedTool === 'arrow' && !e.target) {
+                const pointer = this.fabricCanvas.getPointer(e.e);
+                const normalizedX = pointer.x / this.fabricCanvas.width;
+                const normalizedY = pointer.y / this.fabricCanvas.height;
+                this.startArrowDrag(pointer.x, pointer.y, normalizedX, normalizedY);
                 return;
             }
 
             // Handle other tools (only on empty canvas area)
             if (!e.target) {
                 this.onCanvasClick(e);
+            }
+        });
+
+        // Mouse move event - for arrow preview
+        this.fabricCanvas.on('mouse:move', (e) => {
+            if (this.selectedTool === 'arrow' && this.isDrawingArrow) {
+                const pointer = this.fabricCanvas.getPointer(e.e);
+                this.updateArrowPreview(pointer.x, pointer.y);
+            }
+        });
+
+        // Mouse up event - finish arrow
+        this.fabricCanvas.on('mouse:up', (e) => {
+            if (this.selectedTool === 'arrow' && this.isDrawingArrow) {
+                const pointer = this.fabricCanvas.getPointer(e.e);
+                const normalizedX = pointer.x / this.fabricCanvas.width;
+                const normalizedY = pointer.y / this.fabricCanvas.height;
+                this.finishArrowDrag(pointer.x, pointer.y, normalizedX, normalizedY);
             }
         });
 
@@ -836,13 +914,23 @@ Alpine.data('faceChart2DComponent', () => ({
             return;
         }
 
+        // Helper to delete from database
+        const deleteFromDb = (obj) => {
+            if (obj.markerId && obj.isEditable) {
+                console.log('💾 Deleting from database, markerId:', obj.markerId);
+                this.$wire.onMarkerDelete(obj.markerId);
+            }
+        };
+
         // Handle multiple selection
         if (activeObject.type === 'activeSelection') {
             activeObject.forEachObject((obj) => {
+                deleteFromDb(obj);
                 this.fabricCanvas.remove(obj);
             });
             this.fabricCanvas.discardActiveObject();
         } else {
+            deleteFromDb(activeObject);
             this.fabricCanvas.remove(activeObject);
         }
 
@@ -852,7 +940,117 @@ Alpine.data('faceChart2DComponent', () => ({
 
     loadMarkers() {
         console.log('📥 Loading', this.config.markers.length, 'markers');
-        // TODO: Render existing markers from database
+
+        if (!this.fabricCanvas || !this.config.markers) return;
+
+        // Render each marker based on its type
+        this.config.markers.forEach(marker => {
+            const canvasX = marker.x * this.fabricCanvas.width;
+            const canvasY = marker.y * this.fabricCanvas.height;
+            const markerType = marker.type || 'injection'; // 'type' field from toMarkerData()
+
+            console.log('🎨 Rendering marker:', marker.id, markerType, canvasX, canvasY);
+
+            switch (markerType) {
+                case 'arrow':
+                    this.renderArrow(marker, canvasX, canvasY);
+                    break;
+                case 'injection':
+                case 'filler_point':
+                case 'laser_spot':
+                case 'thread_anchor':
+                    this.renderMarker(marker, canvasX, canvasY);
+                    break;
+                case 'marking':
+                    if (marker.annotationText) {
+                        this.renderText(marker, canvasX, canvasY);
+                    } else {
+                        this.renderMarker(marker, canvasX, canvasY);
+                    }
+                    break;
+                default:
+                    this.renderMarker(marker, canvasX, canvasY);
+            }
+        });
+
+        this.fabricCanvas.renderAll();
+        console.log('✅ Loaded', this.config.markers.length, 'markers onto canvas');
+    },
+
+    renderMarker(marker, canvasX, canvasY) {
+        const color = marker.color || '#FF6B6B';
+        const size = marker.size || 8;
+        const isSelectMode = this.selectedTool === 'select';
+        const isEraserMode = this.selectedTool === 'eraser';
+
+        const circle = new fabric.Circle({
+            left: canvasX,
+            top: canvasY,
+            radius: size,
+            fill: color,
+            stroke: '#FFFFFF',
+            strokeWidth: 2,
+            originX: 'center',
+            originY: 'center',
+            selectable: isSelectMode,
+            evented: isSelectMode || isEraserMode,
+            hasControls: false,
+        });
+
+        circle.markerId = marker.id;
+        circle.markerType = marker.type;
+        circle.annotationType = 'marker';
+        circle.isEditable = marker.isEditable;
+
+        this.fabricCanvas.add(circle);
+    },
+
+    renderArrow(marker, canvasX, canvasY) {
+        const color = marker.color || '#FF0000';
+        const isSelectMode = this.selectedTool === 'select';
+        const isEraserMode = this.selectedTool === 'eraser';
+
+        // Calculate end point from direction
+        const endX = canvasX + (marker.directionX || 0) * this.fabricCanvas.width;
+        const endY = canvasY + (marker.directionY || 0) * this.fabricCanvas.height;
+
+        // Create arrow using the same method as drawing
+        const arrow = this.createArrowGroup(canvasX, canvasY, endX, endY, false);
+
+        // Set selectability based on current tool
+        arrow.selectable = isSelectMode;
+        arrow.evented = isSelectMode || isEraserMode;
+
+        arrow.markerId = marker.id;
+        arrow.annotationType = 'arrow';
+        arrow.isEditable = marker.isEditable;
+
+        this.fabricCanvas.add(arrow);
+    },
+
+    renderText(marker, canvasX, canvasY) {
+        const style = marker.annotationStyle || {};
+        const isSelectMode = this.selectedTool === 'select';
+        const isEraserMode = this.selectedTool === 'eraser';
+
+        const text = new fabric.IText(marker.annotationText || '', {
+            left: canvasX,
+            top: canvasY,
+            fontSize: style.fontSize || 16,
+            fill: style.textColor || marker.color || '#000000',
+            fontFamily: style.fontFamily || 'Arial',
+            fontWeight: style.bold ? 'bold' : 'normal',
+            fontStyle: style.italic ? 'italic' : 'normal',
+            selectable: isSelectMode,
+            evented: isSelectMode || isEraserMode,
+            editable: false,
+        });
+
+        text.markerId = marker.id;
+        text.annotationType = 'text';
+        text.isEditable = marker.isEditable;
+
+        this.fabricCanvas.add(text);
     },
 
     clearCanvas() {

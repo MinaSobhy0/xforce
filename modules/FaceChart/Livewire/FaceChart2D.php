@@ -19,6 +19,9 @@ class FaceChart2D extends Component
     public ?string $filterRegion = null;
     public ?string $filterType = null;
 
+    // Service injection
+    protected FaceChartService $faceChartService;
+
     protected $listeners = [
         'refreshMarkers' => 'loadMarkers',
         'canvasClick' => 'onCanvasClick',
@@ -63,15 +66,35 @@ class FaceChart2D extends Component
     public function canvasClick(array $data): void
     {
         if (!$this->isEditing || !$this->appointmentId) {
+            \Log::warning('FaceChart2D: canvasClick rejected', [
+                'isEditing' => $this->isEditing,
+                'appointmentId' => $this->appointmentId,
+            ]);
             return;
         }
 
-        $markerData = array_merge($data, [
+        // Map 'type' to 'marker_type' for database
+        $markerType = $data['type'] ?? 'marking';
+        if ($markerType === 'marker') {
+            $markerType = 'injection'; // Default marker type
+        }
+
+        $markerData = [
             'patient_id' => $this->patientId,
             'appointment_id' => $this->appointmentId,
             'view_type' => '2d',
-            'z' => 0, // 2D marker indicator
-        ]);
+            'x' => $data['x'] ?? 0,
+            'y' => $data['y'] ?? 0,
+            'z' => 0,
+            'marker_type' => $markerType,
+            'color' => $data['color'] ?? '#FF0000',
+            'direction_x' => $data['direction_x'] ?? null,
+            'direction_y' => $data['direction_y'] ?? null,
+            'annotation_text' => $data['annotationText'] ?? null,
+            'annotation_style' => $data['annotationStyle'] ?? null,
+        ];
+
+        \Log::info('FaceChart2D: Creating marker', $markerData);
 
         $this->faceChartService->createMarker($markerData);
         $this->loadMarkers();
