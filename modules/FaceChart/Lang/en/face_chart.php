@@ -8,6 +8,11 @@ return [
     'singular' => 'Marker',
     'plural' => 'Markers',
 
+    'tabs' => [
+        '3d_view' => '3D Chart',
+        '2d_view' => '2D Annotation',
+    ],
+
     'viewer' => [
         'title' => '3D Face Chart',
         'loading' => 'Loading 3D model...',
@@ -137,5 +142,41 @@ return [
         'laser' => 'Laser Treatment',
         'filler' => 'Filler',
         'thread' => 'Thread Lift',
+    ],
+
+    '2d' => [
+        'title' => '2D Face Chart',
+        'tools' => [
+            'marker' => 'Add Marker',
+            'text' => 'Text Annotation',
+            'arrow' => 'Draw Arrow',
+            'pen' => 'Free Drawing (Pen)',
+            'select' => 'Select/Move',
+            'eraser' => 'Tap to Delete',
+            'color' => 'Drawing Color',
+            'size' => 'Stroke Size',
+            'delete' => 'Delete Selected',
+            'clear' => 'Clear All',
+        ],
+        'text_annotation' => [
+            'placeholder' => 'Click to edit text',
+            'font_size' => 'Font Size',
+            'font_color' => 'Text Color',
+            'bold' => 'Bold',
+            'italic' => 'Italic',
+        ],
+        'marker_count' => ':count markers',
+        'markers_list' => 'Markers',
+        'no_markers' => 'No markers yet. Click on the face image to add markers.',
+        'unnamed_marker' => 'Unnamed Marker',
+        'confirm_delete' => 'Are you sure you want to delete this marker?',
+        'confirm_clear' => 'Are you sure you want to clear all editable annotations?',
+    ],
+
+    'statistics' => [
+        'title' => 'Statistics',
+        'total_markers' => 'Total Markers',
+        'total_units' => 'Total Units',
+        'appointments' => 'Appointments',
     ],
 ];
