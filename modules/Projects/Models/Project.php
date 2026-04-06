@@ -22,6 +22,17 @@ class Project extends BaseModel
     protected string $sequenceCode = 'project';
     protected string $sequenceColumn = 'code';
 
+    // Privacy constants
+    public const PRIVACY_EMPLOYEES = 'employees';
+    public const PRIVACY_FOLLOWERS = 'followers';
+    public const PRIVACY_PORTAL = 'portal';
+
+    public const PRIVACY_LEVELS = [
+        self::PRIVACY_EMPLOYEES => 'All Employees',
+        self::PRIVACY_FOLLOWERS => 'Followers Only',
+        self::PRIVACY_PORTAL => 'Portal Users',
+    ];
+
     protected $fillable = [
         'tenant_id',
         'code',
@@ -38,6 +49,7 @@ class Project extends BaseModel
         'budget_minor',
         'actual_cost_minor',
         'color',
+        'privacy',
         'settings',
         'allow_timesheets',
         'is_template',
@@ -98,6 +110,9 @@ class Project extends BaseModel
             }
             if (empty($project->priority)) {
                 $project->priority = self::PRIORITY_MEDIUM;
+            }
+            if (empty($project->privacy)) {
+                $project->privacy = self::PRIVACY_EMPLOYEES;
             }
         });
 
@@ -162,6 +177,11 @@ class Project extends BaseModel
     public function getPriorityLabelAttribute(): string
     {
         return self::PRIORITIES[$this->priority] ?? $this->priority;
+    }
+
+    public function getPrivacyLabelAttribute(): string
+    {
+        return self::PRIVACY_LEVELS[$this->privacy] ?? $this->privacy;
     }
 
     public function getProgressPercentAttribute(): int

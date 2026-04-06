@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Modules\Auth\Models\User;
+use Modules\Projects\Enums\KanbanState;
 
 class ProjectTask extends BaseModel
 {
@@ -42,8 +43,10 @@ class ProjectTask extends BaseModel
         'completed_date',
         'estimated_hours',
         'actual_hours',
+        'remaining_hours',
         'progress_percent',
         'sort_order',
+        'kanban_state',
         'custom_fields',
         'odoo_id',
         'odoo_synced_at',
@@ -59,8 +62,10 @@ class ProjectTask extends BaseModel
         'completed_date' => 'date',
         'estimated_hours' => 'integer',
         'actual_hours' => 'integer',
+        'remaining_hours' => 'decimal:2',
         'progress_percent' => 'integer',
         'sort_order' => 'integer',
+        'kanban_state' => KanbanState::class,
     ];
 
     // Priority constants
@@ -86,6 +91,16 @@ class ProjectTask extends BaseModel
             }
             if (empty($task->created_by_id)) {
                 $task->created_by_id = auth()->id();
+            }
+            if (empty($task->kanban_state)) {
+                $task->kanban_state = KanbanState::NORMAL;
+            }
+        });
+
+        // Update remaining hours when actual_hours or estimated_hours changes
+        static::saving(function (ProjectTask $task) {
+            if ($task->isDirty(['actual_hours', 'estimated_hours'])) {
+                $task->updateRemainingHours(false);
             }
         });
 
@@ -321,5 +336,102 @@ class ProjectTask extends BaseModel
                 ->orWhereRaw("name->>'en' ILIKE ?", ["%{$term}%"])
                 ->orWhereRaw("name->>'ar' ILIKE ?", ["%{$term}%"]);
         });
+    }
+
+    public function scopeBlocked($query)
+    {
+        return $query->where('kanban_state', KanbanState::BLOCKED);
+    }
+
+    public function scopeByKanbanState($query, KanbanState $state)
+    {
+        return $query->where('kanban_state', $state);
+    }
+
+    // Kanban state methods
+
+    /**
+     * Cycle to the next kanban state.
+     * Normal -> Done -> Blocked -> Normal
+     */
+    public function cycleKanbanState(): bool
+    {
+        $this->kanban_state = $this->kanban_state->getNextState();
+        return $this->save();
+    }
+
+    /**
+     * Set the kanban state directly.
+     */
+    public function setKanbanState(KanbanState $state): bool
+    {
+        $this->kanban_state = $state;
+        return $this->save();
+    }
+
+    /**
+     * Mark the task as blocked.
+     */
+    public function markAsBlocked(): bool
+    {
+        return $this->setKanbanState(KanbanState::BLOCKED);
+    }
+
+    /**
+     * Mark the task as ready/done.
+     */
+    public function markAsReady(): bool
+    {
+        return $this->setKanbanState(KanbanState::DONE);
+    }
+
+    /**
+     * Reset kanban state to normal.
+     */
+    public function resetKanbanState(): bool
+    {
+        return $this->setKanbanState(KanbanState::NORMAL);
+    }
+
+    /**
+     * Check if task is blocked.
+     */
+    public function getIsBlockedAttribute(): bool
+    {
+        return $this->kanban_state === KanbanState::BLOCKED;
+    }
+
+    /**
+     * Check if task is marked as ready.
+     */
+    public function getIsReadyAttribute(): bool
+    {
+        return $this->kanban_state === KanbanState::DONE;
+    }
+
+    // Remaining hours methods
+
+    /**
+     * Update remaining hours based on estimated and actual hours.
+     */
+    public function updateRemainingHours(bool $save = true): void
+    {
+        if ($this->estimated_hours !== null) {
+            $this->remaining_hours = max(0, $this->estimated_hours - ($this->actual_hours ?? 0));
+        } else {
+            $this->remaining_hours = null;
+        }
+
+        if ($save) {
+            $this->saveQuietly();
+        }
+    }
+
+    /**
+     * Get effective hours (actual hours logged from time entries).
+     */
+    public function getEffectiveHoursAttribute(): float
+    {
+        return (float) $this->timeEntries()->sum('hours');
     }
 }

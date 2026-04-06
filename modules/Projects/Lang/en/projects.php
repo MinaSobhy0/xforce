@@ -102,6 +102,7 @@ return [
 
     // Timer
     'timer_running' => 'Timer Running',
+    'timer_paused' => 'Timer Paused',
 
     // Stats
     'stats' => [
@@ -115,5 +116,73 @@ return [
         'overdue_tasks_desc' => 'Past deadline',
         'hours_this_week' => 'Hours This Week',
         'hours_this_week_desc' => 'Your logged time',
+    ],
+
+    // Kanban State
+    'kanban_state' => [
+        'normal' => 'In Progress',
+        'blocked' => 'Blocked',
+        'done' => 'Ready',
+    ],
+
+    // Timesheet Status
+    'timesheet_status' => [
+        'draft' => 'Draft',
+        'submitted' => 'Submitted',
+        'approved' => 'Approved',
+        'rejected' => 'Rejected',
+    ],
+
+    // Timesheet Submission
+    'timesheet_submission' => 'Timesheet Submission',
+    'timesheet_submissions' => 'Timesheet Submissions',
+    'timesheet' => [
+        'week_of' => 'Week of :date',
+        'total_hours' => 'Total Hours',
+        'billable_hours' => 'Billable Hours',
+        'non_billable_hours' => 'Non-Billable Hours',
+        'days_worked' => 'Days Worked',
+        'submit_for_approval' => 'Submit for Approval',
+        'approve' => 'Approve',
+        'reject' => 'Reject',
+        'rejection_reason' => 'Rejection Reason',
+        'approved_by' => 'Approved By',
+        'submitted_at' => 'Submitted At',
+        'approved_at' => 'Approved At',
+        'pending_approval' => 'Pending Approval',
+        'no_submissions' => 'No submissions yet',
+        'submit_confirmation' => 'Are you sure you want to submit this timesheet for approval?',
+    ],
+
+    // Privacy
+    'privacy' => [
+        'label' => 'Privacy',
+        'employees' => 'All Employees',
+        'followers' => 'Followers Only',
+        'portal' => 'Portal Users',
+    ],
+
+    // Timer Actions
+    'timer' => [
+        'start' => 'Start Timer',
+        'stop' => 'Stop Timer',
+        'pause' => 'Pause Timer',
+        'resume' => 'Resume Timer',
+        'elapsed' => 'Elapsed Time',
+    ],
+
+    // Task fields
+    'task' => [
+        'remaining_hours' => 'Remaining Hours',
+        'effective_hours' => 'Effective Hours',
+        'kanban_state' => 'Kanban State',
+        'mark_blocked' => 'Mark as Blocked',
+        'mark_ready' => 'Mark as Ready',
+        'reset_state' => 'Reset State',
+    ],
+
+    // Member fields
+    'member' => [
+        'hourly_rate' => 'Hourly Rate',
     ],
 ];

@@ -27,6 +27,9 @@ class ProjectTimeEntry extends BaseModel
         'is_billable',
         'hourly_rate_minor',
         'timer_started_at',
+        'timer_accumulated_seconds',
+        'timer_running',
+        'submission_id',
         'odoo_id',
         'odoo_synced_at',
     ];
@@ -38,6 +41,8 @@ class ProjectTimeEntry extends BaseModel
         'is_billable' => 'boolean',
         'hourly_rate_minor' => 'integer',
         'timer_started_at' => 'datetime',
+        'timer_accumulated_seconds' => 'integer',
+        'timer_running' => 'boolean',
     ];
 
     protected static function booted(): void
@@ -87,6 +92,11 @@ class ProjectTimeEntry extends BaseModel
         return $this->belongsTo(User::class);
     }
 
+    public function submission(): BelongsTo
+    {
+        return $this->belongsTo(TimesheetSubmission::class, 'submission_id');
+    }
+
     // Computed attributes
     public function getDisplayDescriptionAttribute(): string
     {
@@ -99,15 +109,43 @@ class ProjectTimeEntry extends BaseModel
 
     public function getIsTimerRunningAttribute(): bool
     {
-        return $this->timer_started_at !== null;
+        return $this->timer_running || $this->timer_started_at !== null;
+    }
+
+    /**
+     * Get total elapsed seconds including accumulated and current session.
+     */
+    public function getElapsedSecondsAttribute(): int
+    {
+        $total = $this->timer_accumulated_seconds ?? 0;
+
+        if ($this->timer_running && $this->timer_started_at) {
+            $total += now()->diffInSeconds($this->timer_started_at);
+        }
+
+        return $total;
     }
 
     public function getTimerDurationAttribute(): ?int
     {
-        if (!$this->is_timer_running) {
+        if (!$this->is_timer_running && $this->timer_accumulated_seconds == 0) {
             return null;
         }
-        return now()->diffInMinutes($this->timer_started_at);
+        // Return duration in minutes
+        return (int) round($this->elapsed_seconds / 60);
+    }
+
+    /**
+     * Get formatted elapsed time as HH:MM:SS.
+     */
+    public function getFormattedElapsedTimeAttribute(): string
+    {
+        $seconds = $this->elapsed_seconds;
+        $hours = floor($seconds / 3600);
+        $minutes = floor(($seconds % 3600) / 60);
+        $secs = $seconds % 60;
+
+        return sprintf('%02d:%02d:%02d', $hours, $minutes, $secs);
     }
 
     public function getBillableAmountMinorAttribute(): int
@@ -126,20 +164,81 @@ class ProjectTimeEntry extends BaseModel
         }
 
         $this->timer_started_at = now();
+        $this->timer_running = true;
         $this->hours = 0;
+        return $this->save();
+    }
+
+    /**
+     * Pause the running timer.
+     */
+    public function pauseTimer(): bool
+    {
+        if (!$this->timer_running) {
+            return false;
+        }
+
+        // Calculate elapsed seconds since timer_start and add to accumulated
+        $elapsedSeconds = $this->timer_started_at
+            ? now()->diffInSeconds($this->timer_started_at)
+            : 0;
+
+        $this->timer_running = false;
+        $this->timer_started_at = null;
+        $this->timer_accumulated_seconds = ($this->timer_accumulated_seconds ?? 0) + $elapsedSeconds;
+
+        return $this->save();
+    }
+
+    /**
+     * Resume a paused timer.
+     */
+    public function resumeTimer(): bool
+    {
+        if ($this->timer_running) {
+            return false;
+        }
+
+        $this->timer_running = true;
+        $this->timer_started_at = now();
+
         return $this->save();
     }
 
     public function stopTimer(): bool
     {
-        if (!$this->is_timer_running) {
-            return false;
+        // Calculate total seconds
+        $totalSeconds = $this->timer_accumulated_seconds ?? 0;
+
+        // Add current session if still running
+        if ($this->timer_running && $this->timer_started_at) {
+            $totalSeconds += now()->diffInSeconds($this->timer_started_at);
         }
 
-        $durationMinutes = $this->timer_duration;
-        $this->hours = round($durationMinutes / 60, 2);
+        // Convert to hours (rounded to nearest quarter hour)
+        $hours = $this->secondsToHours($totalSeconds);
+
+        $this->timer_running = false;
         $this->timer_started_at = null;
+        $this->timer_accumulated_seconds = 0;
+        $this->hours = $this->hours + $hours;
+
         return $this->save();
+    }
+
+    /**
+     * Convert seconds to hours (rounded to nearest quarter hour).
+     */
+    protected function secondsToHours(int $seconds, bool $round = true): float
+    {
+        $hours = $seconds / 3600;
+
+        if ($round) {
+            // Round to nearest 0.25 (quarter hour)
+            return round($hours * 4) / 4;
+        }
+
+        return round($hours, 2);
     }
 
     // Scopes
@@ -170,7 +269,18 @@ class ProjectTimeEntry extends BaseModel
 
     public function scopeRunningTimers($query)
     {
-        return $query->whereNotNull('timer_started_at');
+        return $query->where('timer_running', true);
+    }
+
+    public function scopePausedTimers($query)
+    {
+        return $query->where('timer_running', false)
+            ->where('timer_accumulated_seconds', '>', 0);
+    }
+
+    public function scopeForSubmission($query, int $submissionId)
+    {
+        return $query->where('submission_id', $submissionId);
     }
 
     public function scopeForDate($query, $date)

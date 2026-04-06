@@ -14,6 +14,11 @@ class ProjectMember extends Model
         'project_id',
         'user_id',
         'role',
+        'hourly_rate_minor',
+    ];
+
+    protected $casts = [
+        'hourly_rate_minor' => 'integer',
     ];
 
     // Role constants
@@ -42,6 +47,22 @@ class ProjectMember extends Model
     public function getRoleLabelAttribute(): string
     {
         return self::ROLES[$this->role] ?? $this->role;
+    }
+
+    /**
+     * Get hourly rate in major currency units.
+     */
+    public function getHourlyRateAttribute(): float
+    {
+        return ($this->hourly_rate_minor ?? 0) / 100;
+    }
+
+    /**
+     * Set hourly rate from major currency units.
+     */
+    public function setHourlyRateAttribute(float $value): void
+    {
+        $this->hourly_rate_minor = (int) round($value * 100);
     }
 
     // Permission checks

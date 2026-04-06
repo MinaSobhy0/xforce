@@ -102,6 +102,7 @@ return [
 
     // Timer
     'timer_running' => 'المؤقت يعمل',
+    'timer_paused' => 'المؤقت متوقف مؤقتاً',
 
     // Stats
     'stats' => [
@@ -115,5 +116,73 @@ return [
         'overdue_tasks_desc' => 'تجاوزت الموعد النهائي',
         'hours_this_week' => 'ساعات هذا الأسبوع',
         'hours_this_week_desc' => 'وقتك المسجل',
+    ],
+
+    // Kanban State
+    'kanban_state' => [
+        'normal' => 'قيد التنفيذ',
+        'blocked' => 'محظور',
+        'done' => 'جاهز',
+    ],
+
+    // Timesheet Status
+    'timesheet_status' => [
+        'draft' => 'مسودة',
+        'submitted' => 'مُرسل',
+        'approved' => 'موافق عليه',
+        'rejected' => 'مرفوض',
+    ],
+
+    // Timesheet Submission
+    'timesheet_submission' => 'تقديم جدول الوقت',
+    'timesheet_submissions' => 'تقديمات جداول الوقت',
+    'timesheet' => [
+        'week_of' => 'أسبوع :date',
+        'total_hours' => 'إجمالي الساعات',
+        'billable_hours' => 'ساعات قابلة للفوترة',
+        'non_billable_hours' => 'ساعات غير قابلة للفوترة',
+        'days_worked' => 'أيام العمل',
+        'submit_for_approval' => 'إرسال للموافقة',
+        'approve' => 'موافقة',
+        'reject' => 'رفض',
+        'rejection_reason' => 'سبب الرفض',
+        'approved_by' => 'موافق عليه من',
+        'submitted_at' => 'تاريخ الإرسال',
+        'approved_at' => 'تاريخ الموافقة',
+        'pending_approval' => 'في انتظار الموافقة',
+        'no_submissions' => 'لا توجد تقديمات بعد',
+        'submit_confirmation' => 'هل أنت متأكد أنك تريد إرسال هذا الجدول للموافقة؟',
+    ],
+
+    // Privacy
+    'privacy' => [
+        'label' => 'الخصوصية',
+        'employees' => 'جميع الموظفين',
+        'followers' => 'المتابعون فقط',
+        'portal' => 'مستخدمو البوابة',
+    ],
+
+    // Timer Actions
+    'timer' => [
+        'start' => 'بدء المؤقت',
+        'stop' => 'إيقاف المؤقت',
+        'pause' => 'إيقاف مؤقت',
+        'resume' => 'استئناف المؤقت',
+        'elapsed' => 'الوقت المنقضي',
+    ],
+
+    // Task fields
+    'task' => [
+        'remaining_hours' => 'الساعات المتبقية',
+        'effective_hours' => 'الساعات الفعلية',
+        'kanban_state' => 'حالة كانبان',
+        'mark_blocked' => 'تعيين كمحظور',
+        'mark_ready' => 'تعيين كجاهز',
+        'reset_state' => 'إعادة تعيين الحالة',
+    ],
+
+    // Member fields
+    'member' => [
+        'hourly_rate' => 'سعر الساعة',
     ],
 ];
