@@ -4,6 +4,7 @@ namespace Modules\OdooIntegration\Filament\Resources\OdooConnectionResource\Rela
 
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Infolists;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -15,6 +16,13 @@ class SyncLogsRelationManager extends RelationManager
     protected static string $relationship = 'syncLogs';
 
     protected static ?string $recordTitleAttribute = 'id';
+
+    protected static ?string $title = null;
+
+    public static function getTitle($ownerRecord, string $pageClass): string
+    {
+        return __('odoo-integration::odoo.labels.sync_logs');
+    }
 
     public function form(Form $form): Form
     {
@@ -99,14 +107,85 @@ class SyncLogsRelationManager extends RelationManager
                     ->options(OdooSyncLog::SYNC_TYPES),
             ])
             ->actions([
-                Tables\Actions\Action::make('view_errors')
-                    ->label(__('odoo-integration::odoo.actions.view_errors'))
-                    ->icon('heroicon-o-exclamation-circle')
-                    ->color('danger')
-                    ->visible(fn (OdooSyncLog $record) => !empty($record->errors))
-                    ->modalContent(fn (OdooSyncLog $record) => view('odoo-integration::filament.components.error-list', [
-                        'errors' => $record->errors,
-                    ])),
+                Tables\Actions\ViewAction::make()
+                    ->slideOver()
+                    ->infolist([
+                        Infolists\Components\Section::make(__('odoo-integration::odoo.sections.sync_summary'))
+                            ->schema([
+                                Infolists\Components\Grid::make(4)
+                                    ->schema([
+                                        Infolists\Components\TextEntry::make('sync_type')
+                                            ->label(__('odoo-integration::odoo.fields.sync_type'))
+                                            ->badge(),
+                                        Infolists\Components\TextEntry::make('direction')
+                                            ->label(__('odoo-integration::odoo.fields.direction'))
+                                            ->badge(),
+                                        Infolists\Components\TextEntry::make('status')
+                                            ->label(__('odoo-integration::odoo.fields.status'))
+                                            ->badge()
+                                            ->formatStateUsing(fn ($state) => $state instanceof SyncStatus ? $state->label() : $state)
+                                            ->color(fn ($state) => $state instanceof SyncStatus ? $state->color() : 'gray'),
+                                        Infolists\Components\TextEntry::make('duration')
+                                            ->label(__('odoo-integration::odoo.fields.duration')),
+                                    ]),
+                            ]),
+
+                        Infolists\Components\Section::make(__('odoo-integration::odoo.sections.statistics'))
+                            ->schema([
+                                Infolists\Components\Grid::make(5)
+                                    ->schema([
+                                        Infolists\Components\TextEntry::make('records_processed')
+                                            ->label(__('odoo-integration::odoo.fields.records_processed')),
+                                        Infolists\Components\TextEntry::make('records_created')
+                                            ->label(__('odoo-integration::odoo.fields.records_created'))
+                                            ->color('success'),
+                                        Infolists\Components\TextEntry::make('records_updated')
+                                            ->label(__('odoo-integration::odoo.fields.records_updated'))
+                                            ->color('info'),
+                                        Infolists\Components\TextEntry::make('records_failed')
+                                            ->label(__('odoo-integration::odoo.fields.records_failed'))
+                                            ->color('danger'),
+                                        Infolists\Components\TextEntry::make('conflicts_detected')
+                                            ->label(__('odoo-integration::odoo.fields.conflicts'))
+                                            ->color('warning'),
+                                    ]),
+                            ]),
+
+                        Infolists\Components\Section::make(__('odoo-integration::odoo.sections.errors'))
+                            ->schema([
+                                Infolists\Components\TextEntry::make('errors_formatted')
+                                    ->label('')
+                                    ->getStateUsing(function ($record) {
+                                        $errors = $record->errors;
+                                        if (empty($errors) || !is_array($errors)) {
+                                            return __('odoo-integration::odoo.messages.no_errors');
+                                        }
+
+                                        return collect($errors)->map(function ($error) {
+                                            return "• " . ($error['message'] ?? 'Unknown error');
+                                        })->implode("\n");
+                                    })
+                                    ->markdown(),
+                            ])
+                            ->collapsible(),
+
+                        Infolists\Components\Section::make(__('odoo-integration::odoo.sections.timestamps'))
+                            ->schema([
+                                Infolists\Components\Grid::make(3)
+                                    ->schema([
+                                        Infolists\Components\TextEntry::make('started_at')
+                                            ->label(__('odoo-integration::odoo.fields.started_at'))
+                                            ->dateTime(),
+                                        Infolists\Components\TextEntry::make('completed_at')
+                                            ->label(__('odoo-integration::odoo.fields.completed_at'))
+                                            ->dateTime()
+                                            ->placeholder('-'),
+                                        Infolists\Components\TextEntry::make('triggeredByUser.name')
+                                            ->label(__('odoo-integration::odoo.fields.triggered_by'))
+                                            ->placeholder('System'),
+                                    ]),
+                            ]),
+                    ]),
             ])
             ->defaultSort('started_at', 'desc')
             ->poll('30s');

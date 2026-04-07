@@ -18,11 +18,16 @@ return [
         'connection_details' => 'Connection Details',
         'authentication' => 'Authentication',
         'settings' => 'Settings',
+        'status' => 'Status',
         'entity_mapping' => 'Entity Mapping',
         'field_mapping' => 'Field Mapping',
         'transform_config' => 'Transform Configuration',
         'filters' => 'Filters',
         'recent_activity' => 'Recent Activity',
+        'sync_summary' => 'Sync Summary',
+        'statistics' => 'Statistics',
+        'errors' => 'Errors',
+        'timestamps' => 'Timestamps',
     ],
 
     // Fields
@@ -84,6 +89,15 @@ return [
         'default_value' => 'Default Value',
         'sort_order' => 'Sort Order',
         'connection' => 'Connection',
+        'url' => 'URL',
+        'records_processed' => 'Processed',
+        'records_created' => 'Created',
+        'records_updated' => 'Updated',
+        'records_failed' => 'Failed',
+        'records_skipped' => 'Skipped',
+        'completed_at' => 'Completed At',
+        'full_sync' => 'Full Sync',
+        'run_in_background' => 'Run in Background',
     ],
 
     // Helpers
@@ -93,6 +107,8 @@ return [
         'is_default' => 'Use this connection as the default for sync operations',
         'priority' => 'Lower numbers sync first (e.g., Users before Employees)',
         'filter_conditions' => 'Odoo domain filters (e.g., [["active", "=", true]])',
+        'full_sync' => 'Process all records, ignoring last sync timestamps',
+        'run_in_background' => 'Queue the sync job to run asynchronously',
     ],
 
     // Units
@@ -106,17 +122,21 @@ return [
         'test_connection' => 'Test Connection',
         'sync_all' => 'Sync All',
         'sync' => 'Sync',
+        'sync_now' => 'Sync Now',
         'full_sync' => 'Full Sync',
         'create_connection' => 'Create Connection',
         'view_errors' => 'View Errors',
         'view_diff' => 'View Differences',
+        'view_details' => 'View Details',
         'keep_local' => 'Keep Local',
         'keep_odoo' => 'Keep Odoo',
         'dismiss' => 'Dismiss',
         'dismiss_all' => 'Dismiss All',
         'resolve' => 'Resolve',
         'manage_fields' => 'Manage Fields',
+        'configure_fields' => 'Configure Fields',
         'auto_generate' => 'Auto-Generate',
+        'add_field_mapping' => 'Add Field Mapping',
     ],
 
     // Messages
@@ -124,10 +144,16 @@ return [
         'connection_success' => 'Connection successful!',
         'connection_failed' => 'Connection failed',
         'sync_queued' => 'Sync job queued successfully',
+        'sync_queued_body' => 'The sync will run in the background. Check the sync logs for progress.',
+        'sync_completed' => 'Sync completed successfully',
+        'sync_partial' => 'Sync completed with errors',
+        'sync_failed' => 'Sync failed',
+        'fields_saved' => 'Field mappings saved successfully',
         'full_sync_warning' => 'Full sync may take a while depending on data volume',
         'conflict_resolved' => 'Conflict resolved successfully',
         'conflict_dismissed' => 'Conflict dismissed',
         'conflicts_dismissed' => 'Selected conflicts dismissed',
+        'no_errors' => 'No errors recorded',
     ],
 
     // Modals
@@ -147,6 +173,15 @@ return [
         'odoo_data' => 'Odoo Data',
         'changed_fields' => 'Changed Fields',
         'record_deleted' => 'Record was deleted',
+        'entity_mappings' => 'Entity Mappings',
+        'sync_logs' => 'Sync Logs',
+        'field_mappings' => 'Field Mappings',
+    ],
+
+    // Direction labels
+    'direction' => [
+        'import' => 'Import from Odoo',
+        'export' => 'Export to Odoo',
     ],
 
     // Empty States

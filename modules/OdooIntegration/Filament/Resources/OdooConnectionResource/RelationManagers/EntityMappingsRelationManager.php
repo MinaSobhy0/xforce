@@ -8,7 +8,9 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Notifications\Notification;
+use Illuminate\Support\Facades\DB;
 use Modules\OdooIntegration\Models\OdooEntityMapping;
+use Modules\OdooIntegration\Models\OdooFieldMapping;
 use Modules\OdooIntegration\Enums\SyncDirection;
 use Modules\OdooIntegration\Enums\SyncFrequency;
 use Modules\OdooIntegration\Enums\ConflictResolution;
@@ -19,6 +21,13 @@ class EntityMappingsRelationManager extends RelationManager
     protected static string $relationship = 'entityMappings';
 
     protected static ?string $recordTitleAttribute = 'name';
+
+    protected static ?string $title = null;
+
+    public static function getTitle($ownerRecord, string $pageClass): string
+    {
+        return __('odoo-integration::odoo.labels.entity_mappings');
+    }
 
     public function form(Form $form): Form
     {
@@ -160,28 +169,181 @@ class EntityMappingsRelationManager extends RelationManager
                     }),
             ])
             ->actions([
-                Tables\Actions\Action::make('manage_fields')
-                    ->label(__('odoo-integration::odoo.actions.manage_fields'))
+                Tables\Actions\Action::make('configureFields')
+                    ->label(__('odoo-integration::odoo.actions.configure_fields'))
                     ->icon('heroicon-o-adjustments-horizontal')
                     ->color('info')
-                    ->url(fn (OdooEntityMapping $record) => \Modules\OdooIntegration\Filament\Resources\OdooEntityMappingResource::getUrl('view', ['record' => $record])),
+                    ->slideOver()
+                    ->modalWidth('5xl')
+                    ->fillForm(function (OdooEntityMapping $record): array {
+                        // If no field mappings exist, create defaults
+                        if ($record->fieldMappings()->count() === 0) {
+                            $this->createDefaultFieldMappings($record);
+                            $record->refresh();
+                        }
+                        return [];
+                    })
+                    ->form(function (OdooEntityMapping $record) {
+                        $localFields = $this->getModelFields($record->local_model);
+                        $requiredColumns = $this->getRequiredColumns($record->local_model);
 
-                Tables\Actions\Action::make('sync')
-                    ->label(__('odoo-integration::odoo.actions.sync'))
-                    ->icon('heroicon-o-arrow-path')
-                    ->color('success')
-                    ->action(function (OdooEntityMapping $record) {
-                        dispatch(new SyncEntityJob(
-                            entityMappingId: $record->id,
-                            syncType: 'delta',
-                            triggeredBy: auth()->id(),
-                        ));
+                        return [
+                            Forms\Components\Placeholder::make('info')
+                                ->label('')
+                                ->content('Configure how fields map between your local database and Odoo. Fields marked with ⚠️ are required.')
+                                ->columnSpanFull(),
 
+                            Forms\Components\Repeater::make('field_mappings')
+                                ->label(__('odoo-integration::odoo.labels.field_mappings'))
+                                ->relationship('fieldMappings')
+                                ->schema([
+                                    Forms\Components\Grid::make(5)
+                                        ->schema([
+                                            Forms\Components\Select::make('local_field')
+                                                ->label(__('odoo-integration::odoo.fields.local_field'))
+                                                ->options($localFields)
+                                                ->searchable()
+                                                ->required(),
+
+                                            Forms\Components\TextInput::make('odoo_field')
+                                                ->label(__('odoo-integration::odoo.fields.odoo_field'))
+                                                ->required()
+                                                ->placeholder('field_name'),
+
+                                            Forms\Components\Select::make('direction')
+                                                ->label(__('odoo-integration::odoo.fields.direction'))
+                                                ->options(SyncDirection::options())
+                                                ->default(SyncDirection::BIDIRECTIONAL->value)
+                                                ->required(),
+
+                                            Forms\Components\Select::make('transform_type')
+                                                ->label(__('odoo-integration::odoo.fields.transform_type'))
+                                                ->options(OdooFieldMapping::transformTypeOptions())
+                                                ->default('direct')
+                                                ->required(),
+
+                                            Forms\Components\Toggle::make('is_active')
+                                                ->label(__('odoo-integration::odoo.fields.is_active'))
+                                                ->default(true)
+                                                ->inline(false),
+                                        ]),
+
+                                    Forms\Components\Grid::make(4)
+                                        ->schema([
+                                            Forms\Components\Toggle::make('is_required')
+                                                ->label(__('odoo-integration::odoo.fields.is_required'))
+                                                ->inline(false),
+
+                                            Forms\Components\Toggle::make('is_key_field')
+                                                ->label(__('odoo-integration::odoo.fields.is_key_field'))
+                                                ->inline(false),
+
+                                            Forms\Components\TextInput::make('default_value')
+                                                ->label(__('odoo-integration::odoo.fields.default_value'))
+                                                ->placeholder('Default if empty'),
+
+                                            Forms\Components\TextInput::make('sort_order')
+                                                ->label(__('odoo-integration::odoo.fields.sort_order'))
+                                                ->numeric()
+                                                ->default(0),
+                                        ]),
+                                ])
+                                ->defaultItems(0)
+                                ->addActionLabel(__('odoo-integration::odoo.actions.add_field_mapping'))
+                                ->reorderable()
+                                ->collapsible()
+                                ->cloneable()
+                                ->itemLabel(function (array $state) use ($requiredColumns): ?string {
+                                    $localField = $state['local_field'] ?? '?';
+                                    $odooField = $state['odoo_field'] ?? '?';
+                                    $requiredBadge = in_array($localField, $requiredColumns) ? ' ⚠️' : '';
+                                    return "{$localField} → {$odooField}{$requiredBadge}";
+                                }),
+                        ];
+                    })
+                    ->action(function (OdooEntityMapping $record, array $data): void {
                         Notification::make()
-                            ->title(__('odoo-integration::odoo.messages.sync_queued'))
+                            ->title(__('odoo-integration::odoo.messages.fields_saved'))
                             ->success()
                             ->send();
                     }),
+
+                Tables\Actions\Action::make('syncNow')
+                    ->label(__('odoo-integration::odoo.actions.sync_now'))
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->form([
+                        Forms\Components\Select::make('direction')
+                            ->label(__('odoo-integration::odoo.fields.direction'))
+                            ->options([
+                                'import' => __('odoo-integration::odoo.direction.import'),
+                                'export' => __('odoo-integration::odoo.direction.export'),
+                            ])
+                            ->default('import')
+                            ->required(),
+
+                        Forms\Components\Toggle::make('full_sync')
+                            ->label(__('odoo-integration::odoo.fields.full_sync'))
+                            ->helperText(__('odoo-integration::odoo.helpers.full_sync'))
+                            ->default(false),
+
+                        Forms\Components\Toggle::make('run_in_background')
+                            ->label(__('odoo-integration::odoo.fields.run_in_background'))
+                            ->helperText(__('odoo-integration::odoo.helpers.run_in_background'))
+                            ->default(true),
+                    ])
+                    ->action(function (OdooEntityMapping $record, array $data): void {
+                        $syncType = ($data['full_sync'] ?? false) ? 'full' : 'delta';
+
+                        if ($data['run_in_background'] ?? true) {
+                            dispatch(new SyncEntityJob(
+                                entityMappingId: $record->id,
+                                syncType: $syncType,
+                                triggeredBy: auth()->id(),
+                            ));
+
+                            Notification::make()
+                                ->title(__('odoo-integration::odoo.messages.sync_queued'))
+                                ->body(__('odoo-integration::odoo.messages.sync_queued_body'))
+                                ->success()
+                                ->send();
+                        } else {
+                            try {
+                                $syncEngine = app(\Modules\OdooIntegration\Services\Sync\SyncEngine::class);
+                                $syncLog = $syncEngine->syncEntity(
+                                    $record,
+                                    $syncType,
+                                    auth()->id()
+                                );
+
+                                if ($syncLog->isComplete()) {
+                                    Notification::make()
+                                        ->title(__('odoo-integration::odoo.messages.sync_completed'))
+                                        ->body("Processed: {$syncLog->records_processed}, Created: {$syncLog->records_created}, Updated: {$syncLog->records_updated}")
+                                        ->success()
+                                        ->send();
+                                } else {
+                                    Notification::make()
+                                        ->title(__('odoo-integration::odoo.messages.sync_partial'))
+                                        ->body("Failed: {$syncLog->records_failed}")
+                                        ->warning()
+                                        ->send();
+                                }
+                            } catch (\Exception $e) {
+                                Notification::make()
+                                    ->title(__('odoo-integration::odoo.messages.sync_failed'))
+                                    ->body(substr($e->getMessage(), 0, 200))
+                                    ->danger()
+                                    ->send();
+                            }
+                        }
+                    }),
+
+                Tables\Actions\Action::make('view_mapping')
+                    ->label(__('odoo-integration::odoo.actions.view_details'))
+                    ->icon('heroicon-o-eye')
+                    ->url(fn (OdooEntityMapping $record) => \Modules\OdooIntegration\Filament\Resources\OdooEntityMappingResource::getUrl('view', ['record' => $record])),
 
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
@@ -261,5 +423,148 @@ class EntityMappingsRelationManager extends RelationManager
             'project.task' => 'project.task (Tasks)',
             'account.analytic.line' => 'account.analytic.line (Timesheets)',
         ];
+    }
+
+    /**
+     * Get all fields from a model for the dropdown.
+     */
+    protected function getModelFields(string $modelClass): array
+    {
+        if (!class_exists($modelClass)) {
+            return [];
+        }
+
+        try {
+            $model = new $modelClass;
+            $table = $model->getTable();
+            $columnDetails = $this->getColumnDetails($table);
+
+            $options = [];
+            foreach ($columnDetails as $column => $details) {
+                $label = str_replace('_', ' ', $column);
+                $label = ucwords($label);
+                $requiredBadge = $details['required'] ? ' ⚠️ REQUIRED' : '';
+                $options[$column] = "{$column} ({$label}){$requiredBadge}";
+            }
+
+            // Sort: required fields first, then alphabetically
+            uksort($options, function ($a, $b) use ($columnDetails) {
+                $aRequired = $columnDetails[$a]['required'] ?? false;
+                $bRequired = $columnDetails[$b]['required'] ?? false;
+
+                if ($aRequired && !$bRequired) return -1;
+                if (!$aRequired && $bRequired) return 1;
+                return strcasecmp($a, $b);
+            });
+
+            return $options;
+        } catch (\Exception $e) {
+            // Fallback to model's fillable
+            try {
+                $model = new $modelClass;
+                $fillable = $model->getFillable();
+
+                $options = [];
+                foreach ($fillable as $field) {
+                    $label = str_replace('_', ' ', $field);
+                    $label = ucwords($label);
+                    $options[$field] = "{$field} ({$label})";
+                }
+
+                asort($options);
+                return $options;
+            } catch (\Exception $e2) {
+                return [];
+            }
+        }
+    }
+
+    /**
+     * Get column details from database including NOT NULL constraint.
+     */
+    protected function getColumnDetails(string $table): array
+    {
+        $columns = [];
+
+        try {
+            $results = DB::connection('tenant')->select("
+                SELECT
+                    column_name,
+                    is_nullable,
+                    column_default,
+                    data_type
+                FROM information_schema.columns
+                WHERE table_name = ?
+                ORDER BY ordinal_position
+            ", [$table]);
+
+            foreach ($results as $row) {
+                $columns[$row->column_name] = [
+                    'required' => $row->is_nullable === 'NO' && $row->column_default === null,
+                    'nullable' => $row->is_nullable === 'YES',
+                    'has_default' => $row->column_default !== null,
+                    'type' => $row->data_type,
+                ];
+            }
+        } catch (\Exception $e) {
+            // Return empty if query fails
+        }
+
+        return $columns;
+    }
+
+    /**
+     * Get only the required (NOT NULL without default) columns.
+     */
+    protected function getRequiredColumns(string $modelClass): array
+    {
+        if (!class_exists($modelClass)) {
+            return [];
+        }
+
+        try {
+            $model = new $modelClass;
+            $table = $model->getTable();
+            $columnDetails = $this->getColumnDetails($table);
+
+            $required = [];
+            foreach ($columnDetails as $column => $details) {
+                // Skip common auto-populated fields
+                if (in_array($column, ['id', 'created_at', 'updated_at', 'deleted_at', 'tenant_id'])) {
+                    continue;
+                }
+
+                if ($details['required']) {
+                    $required[] = $column;
+                }
+            }
+
+            return $required;
+        } catch (\Exception $e) {
+            return [];
+        }
+    }
+
+    /**
+     * Create default field mappings for an entity mapping.
+     */
+    protected function createDefaultFieldMappings(OdooEntityMapping $entityMapping): void
+    {
+        $defaultMappings = config("odoo-integration.default_mappings.{$entityMapping->odoo_model}", []);
+
+        $sortOrder = 0;
+        foreach ($defaultMappings as $mapping) {
+            OdooFieldMapping::create([
+                'entity_mapping_id' => $entityMapping->id,
+                'local_field' => $mapping['local_field'],
+                'odoo_field' => $mapping['odoo_field'],
+                'direction' => $mapping['direction'] ?? SyncDirection::BIDIRECTIONAL->value,
+                'transform_type' => $mapping['transform_type'] ?? 'direct',
+                'is_required' => $mapping['is_required'] ?? false,
+                'is_key_field' => $mapping['is_key_field'] ?? false,
+                'is_active' => true,
+                'sort_order' => $sortOrder++,
+            ]);
+        }
     }
 }

@@ -11,6 +11,8 @@ use Modules\OdooIntegration\Services\Api\OdooApiFactory;
 use Modules\OdooIntegration\Services\Transform\TimezoneConverter;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Infolists;
+use Filament\Infolists\Infolist;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -276,6 +278,81 @@ class OdooConnectionResource extends Resource
                 ]),
             ])
             ->defaultSort('created_at', 'desc');
+    }
+
+    public static function infolist(Infolist $infolist): Infolist
+    {
+        return $infolist
+            ->schema([
+                Infolists\Components\Section::make(__('odoo-integration::odoo.sections.connection_details'))
+                    ->schema([
+                        Infolists\Components\Grid::make(3)
+                            ->schema([
+                                Infolists\Components\TextEntry::make('name')
+                                    ->label(__('odoo-integration::odoo.fields.name')),
+                                Infolists\Components\TextEntry::make('code')
+                                    ->label(__('odoo-integration::odoo.fields.code'))
+                                    ->placeholder('-')
+                                    ->badge()
+                                    ->color('gray'),
+                                Infolists\Components\TextEntry::make('base_url')
+                                    ->label(__('odoo-integration::odoo.fields.url'))
+                                    ->copyable(),
+                            ]),
+
+                        Infolists\Components\Grid::make(3)
+                            ->schema([
+                                Infolists\Components\TextEntry::make('database_name')
+                                    ->label(__('odoo-integration::odoo.fields.database')),
+                                Infolists\Components\TextEntry::make('username')
+                                    ->label(__('odoo-integration::odoo.fields.username')),
+                                Infolists\Components\TextEntry::make('protocol')
+                                    ->label(__('odoo-integration::odoo.fields.protocol'))
+                                    ->badge()
+                                    ->formatStateUsing(fn ($state) => $state instanceof ApiProtocol ? $state->label() : strtoupper($state)),
+                            ]),
+                    ]),
+
+                Infolists\Components\Section::make(__('odoo-integration::odoo.sections.status'))
+                    ->schema([
+                        Infolists\Components\Grid::make(4)
+                            ->schema([
+                                Infolists\Components\IconEntry::make('is_active')
+                                    ->label(__('odoo-integration::odoo.fields.is_active'))
+                                    ->boolean(),
+                                Infolists\Components\IconEntry::make('is_default')
+                                    ->label(__('odoo-integration::odoo.fields.is_default'))
+                                    ->boolean(),
+                                Infolists\Components\TextEntry::make('last_connected_at')
+                                    ->label(__('odoo-integration::odoo.fields.last_connected'))
+                                    ->dateTime()
+                                    ->placeholder('-'),
+                                Infolists\Components\TextEntry::make('last_sync_at')
+                                    ->label(__('odoo-integration::odoo.fields.last_sync'))
+                                    ->dateTime()
+                                    ->placeholder('-'),
+                            ]),
+                    ]),
+
+                Infolists\Components\Section::make(__('odoo-integration::odoo.sections.settings'))
+                    ->schema([
+                        Infolists\Components\Grid::make(4)
+                            ->schema([
+                                Infolists\Components\IconEntry::make('use_ssl')
+                                    ->label(__('odoo-integration::odoo.fields.use_ssl'))
+                                    ->boolean(),
+                                Infolists\Components\TextEntry::make('timeout')
+                                    ->label(__('odoo-integration::odoo.fields.timeout'))
+                                    ->suffix(' ' . __('odoo-integration::odoo.units.seconds')),
+                                Infolists\Components\TextEntry::make('rate_limit_per_minute')
+                                    ->label(__('odoo-integration::odoo.fields.rate_limit'))
+                                    ->suffix(' ' . __('odoo-integration::odoo.units.per_minute')),
+                                Infolists\Components\TextEntry::make('timezone')
+                                    ->label(__('odoo-integration::odoo.fields.timezone')),
+                            ]),
+                    ])
+                    ->collapsed(),
+            ]);
     }
 
     public static function getRelations(): array
