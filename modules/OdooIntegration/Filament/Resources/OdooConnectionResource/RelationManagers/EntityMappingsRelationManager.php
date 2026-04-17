@@ -50,6 +50,16 @@ class EntityMappingsRelationManager extends RelationManager
                                 if ($state && class_exists($state)) {
                                     $model = new $state();
                                     $set('local_table', $model->getTable());
+
+                                    // Auto-set name from model class
+                                    $set('name', class_basename($state));
+
+                                    // Auto-set Odoo model from config mapping
+                                    $modelMapping = config('odoo-integration.model_mapping', []);
+                                    $odooModel = array_search($state, $modelMapping);
+                                    if ($odooModel) {
+                                        $set('odoo_model', $odooModel);
+                                    }
                                 }
                             }),
 
@@ -107,6 +117,28 @@ class EntityMappingsRelationManager extends RelationManager
                             ->helperText(__('odoo-integration::odoo.helpers.filter_conditions')),
                     ])
                     ->collapsed(),
+
+                Forms\Components\Section::make(__('odoo-integration::odoo.sections.date_filter'))
+                    ->description(__('odoo-integration::odoo.helpers.date_filter_description'))
+                    ->schema([
+                        Forms\Components\Select::make('sync_date_field')
+                            ->label(__('odoo-integration::odoo.fields.sync_date_field'))
+                            ->options(static::getDateFieldOptions())
+                            ->searchable()
+                            ->helperText(__('odoo-integration::odoo.helpers.sync_date_field')),
+
+                        Forms\Components\DatePicker::make('sync_from_date')
+                            ->label(__('odoo-integration::odoo.fields.sync_from_date'))
+                            ->helperText(__('odoo-integration::odoo.helpers.sync_from_date'))
+                            ->native(false),
+
+                        Forms\Components\DatePicker::make('sync_to_date')
+                            ->label(__('odoo-integration::odoo.fields.sync_to_date'))
+                            ->helperText(__('odoo-integration::odoo.helpers.sync_to_date'))
+                            ->native(false),
+                    ])
+                    ->columns(3)
+                    ->collapsed(),
             ]);
     }
 
@@ -152,6 +184,15 @@ class EntityMappingsRelationManager extends RelationManager
                     ->state(fn (OdooEntityMapping $record) => $record->getPendingConflictsCount())
                     ->badge()
                     ->color(fn ($state) => $state > 0 ? 'danger' : 'gray'),
+
+                Tables\Columns\IconColumn::make('has_date_filter')
+                    ->label(__('odoo-integration::odoo.sections.date_filter'))
+                    ->state(fn (OdooEntityMapping $record) => $record->hasDateFilter())
+                    ->boolean()
+                    ->trueIcon('heroicon-o-funnel')
+                    ->falseIcon('heroicon-o-minus')
+                    ->trueColor('info')
+                    ->falseColor('gray'),
             ])
             ->filters([
                 Tables\Filters\TernaryFilter::make('is_active')
@@ -207,8 +248,8 @@ class EntityMappingsRelationManager extends RelationManager
 
                                             Forms\Components\TextInput::make('odoo_field')
                                                 ->label(__('odoo-integration::odoo.fields.odoo_field'))
-                                                ->required()
-                                                ->placeholder('field_name'),
+                                                ->required(fn (Forms\Get $get) => empty($get('default_value')))
+                                                ->placeholder('field_name (optional if default set)'),
 
                                             Forms\Components\Select::make('direction')
                                                 ->label(__('odoo-integration::odoo.fields.direction'))
@@ -220,7 +261,8 @@ class EntityMappingsRelationManager extends RelationManager
                                                 ->label(__('odoo-integration::odoo.fields.transform_type'))
                                                 ->options(OdooFieldMapping::transformTypeOptions())
                                                 ->default('direct')
-                                                ->required(),
+                                                ->required()
+                                                ->live(),
 
                                             Forms\Components\Toggle::make('is_active')
                                                 ->label(__('odoo-integration::odoo.fields.is_active'))
@@ -240,13 +282,41 @@ class EntityMappingsRelationManager extends RelationManager
 
                                             Forms\Components\TextInput::make('default_value')
                                                 ->label(__('odoo-integration::odoo.fields.default_value'))
-                                                ->placeholder('Default if empty'),
+                                                ->placeholder('Default value')
+                                                ->live(onBlur: true),
 
                                             Forms\Components\TextInput::make('sort_order')
                                                 ->label(__('odoo-integration::odoo.fields.sort_order'))
                                                 ->numeric()
                                                 ->default(0),
                                         ]),
+
+                                    // Transform config fields
+                                    Forms\Components\Grid::make(3)
+                                        ->schema([
+                                            Forms\Components\Select::make('transform_config.part')
+                                                ->label('Name Part')
+                                                ->options([
+                                                    'first' => 'First Name',
+                                                    'last' => 'Last Name',
+                                                ])
+                                                ->visible(fn (Forms\Get $get) => $get('transform_type') === 'split_name'),
+
+                                            Forms\Components\Select::make('transform_config.model')
+                                                ->label('Related Model')
+                                                ->options(fn () => collect(config('odoo-integration.model_mapping', []))
+                                                    ->mapWithKeys(fn ($local, $odoo) => [$local => class_basename($local)])
+                                                    ->toArray())
+                                                ->searchable()
+                                                ->visible(fn (Forms\Get $get) => $get('transform_type') === 'relation'),
+
+                                            Forms\Components\KeyValue::make('transform_config.mapping')
+                                                ->label('Value Mapping')
+                                                ->keyLabel('Odoo')
+                                                ->valueLabel('Local')
+                                                ->visible(fn (Forms\Get $get) => $get('transform_type') === 'enum'),
+                                        ])
+                                        ->visible(fn (Forms\Get $get) => in_array($get('transform_type'), ['split_name', 'relation', 'enum'])),
                                 ])
                                 ->defaultItems(0)
                                 ->addActionLabel(__('odoo-integration::odoo.actions.add_field_mapping'))
@@ -365,6 +435,10 @@ class EntityMappingsRelationManager extends RelationManager
             // Auth / Users
             \Modules\Auth\Models\User::class => 'User (users)',
 
+            // Core / Organization
+            \Modules\Core\Models\Branch::class => 'Branch (branches)',
+            \Modules\Core\Models\Department::class => 'Department (departments)',
+
             // Staff / HR
             \Modules\Staff\Models\StaffProfile::class => 'Staff Profile (staff_profiles)',
 
@@ -391,16 +465,48 @@ class EntityMappingsRelationManager extends RelationManager
     }
 
     /**
+     * Get date field options for filtering.
+     */
+    protected static function getDateFieldOptions(): array
+    {
+        return [
+            // Standard Odoo date fields available on all models
+            'write_date' => 'write_date (Last Modified)',
+            'create_date' => 'create_date (Created)',
+
+            // Common date fields in HR/Leave modules
+            'date_from' => 'date_from (Start Date)',
+            'date_to' => 'date_to (End Date)',
+            'date' => 'date (Date)',
+            'date_start' => 'date_start (Start Date)',
+            'date_end' => 'date_end (End Date)',
+
+            // Attendance
+            'check_in' => 'check_in (Check In)',
+            'check_out' => 'check_out (Check Out)',
+
+            // Payroll
+            'date_payslip' => 'date_payslip (Payslip Date)',
+
+            // Timesheet
+            'timesheet_date' => 'timesheet_date (Timesheet Date)',
+        ];
+    }
+
+    /**
      * Get list of common Odoo models.
      */
     protected static function getOdooModels(): array
     {
         return [
-            // Users / Employees
+            // Organization
+            'res.company' => 'res.company (Companies/Branches)',
             'res.users' => 'res.users (Users)',
             'res.partner' => 'res.partner (Partners/Contacts)',
-            'hr.employee' => 'hr.employee (Employees)',
+
+            // HR / Employees
             'hr.department' => 'hr.department (Departments)',
+            'hr.employee' => 'hr.employee (Employees)',
             'hr.job' => 'hr.job (Job Positions)',
 
             // Payroll
@@ -550,16 +656,25 @@ class EntityMappingsRelationManager extends RelationManager
      */
     protected function createDefaultFieldMappings(OdooEntityMapping $entityMapping): void
     {
-        $defaultMappings = config("odoo-integration.default_mappings.{$entityMapping->odoo_model}", []);
+        // Use array access because odoo_model contains dots (e.g., 'res.users')
+        // which would be interpreted as nested keys by config()
+        $allMappings = config('odoo-integration.default_mappings', []);
+        $defaultMappings = $allMappings[$entityMapping->odoo_model] ?? [];
+
+        if (empty($defaultMappings)) {
+            return;
+        }
 
         $sortOrder = 0;
         foreach ($defaultMappings as $mapping) {
             OdooFieldMapping::create([
                 'entity_mapping_id' => $entityMapping->id,
                 'local_field' => $mapping['local_field'],
-                'odoo_field' => $mapping['odoo_field'],
+                'odoo_field' => $mapping['odoo_field'] ?? null,
                 'direction' => $mapping['direction'] ?? SyncDirection::BIDIRECTIONAL->value,
                 'transform_type' => $mapping['transform_type'] ?? 'direct',
+                'transform_config' => $mapping['transform_config'] ?? null,
+                'default_value' => $mapping['default_value'] ?? null,
                 'is_required' => $mapping['is_required'] ?? false,
                 'is_key_field' => $mapping['is_key_field'] ?? false,
                 'is_active' => true,

@@ -14,7 +14,7 @@ return new class extends Migration
                 ->constrained('odoo_entity_mappings')
                 ->cascadeOnDelete();
             $table->string('local_field'); // XForce field name
-            $table->string('odoo_field'); // Odoo field name
+            $table->string('odoo_field')->nullable(); // Odoo field name (nullable for default-only fields)
             $table->string('direction')->default('bidirectional'); // import, export, bidirectional
             $table->string('transform_type')->default('direct'); // direct, date, datetime, money, relation, enum, boolean, json, etc.
             $table->jsonb('transform_config')->nullable(); // Transform settings (e.g., enum mappings)
@@ -28,7 +28,8 @@ return new class extends Migration
             $table->index('entity_mapping_id');
             $table->index('is_active');
             $table->index('is_key_field');
-            $table->unique(['entity_mapping_id', 'local_field', 'odoo_field'], 'unique_field_mapping');
+            // Note: odoo_field can be null for default-only mappings
+            $table->index(['entity_mapping_id', 'local_field']);
         });
     }
 

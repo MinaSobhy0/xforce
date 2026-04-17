@@ -13,9 +13,12 @@ class TimeOffAllocation extends BaseModel
     protected $fillable = [
         'tenant_id',
         'user_id',
+        'staff_profile_id',
         'time_off_type_id',
         'year',
         'month',
+        'date_from',
+        'date_to',
         'allocated_days',
         'used_days',
         'carried_over_days',
@@ -27,6 +30,8 @@ class TimeOffAllocation extends BaseModel
     protected $casts = [
         'year' => 'integer',
         'month' => 'integer',
+        'date_from' => 'date',
+        'date_to' => 'date',
         'allocated_days' => 'decimal:2',
         'used_days' => 'decimal:2',
         'carried_over_days' => 'decimal:2',

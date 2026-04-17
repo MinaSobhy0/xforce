@@ -164,6 +164,28 @@ class OdooEntityMappingResource extends Resource
                             ->defaultItems(0),
                     ])
                     ->collapsed(),
+
+                Forms\Components\Section::make(__('odoo-integration::odoo.sections.date_filter'))
+                    ->description(__('odoo-integration::odoo.helpers.date_filter_description'))
+                    ->schema([
+                        Forms\Components\Select::make('sync_date_field')
+                            ->label(__('odoo-integration::odoo.fields.sync_date_field'))
+                            ->options(static::getDateFieldOptions())
+                            ->searchable()
+                            ->helperText(__('odoo-integration::odoo.helpers.sync_date_field')),
+
+                        Forms\Components\DatePicker::make('sync_from_date')
+                            ->label(__('odoo-integration::odoo.fields.sync_from_date'))
+                            ->helperText(__('odoo-integration::odoo.helpers.sync_from_date'))
+                            ->native(false),
+
+                        Forms\Components\DatePicker::make('sync_to_date')
+                            ->label(__('odoo-integration::odoo.fields.sync_to_date'))
+                            ->helperText(__('odoo-integration::odoo.helpers.sync_to_date'))
+                            ->native(false),
+                    ])
+                    ->columns(3)
+                    ->collapsed(),
             ]);
     }
 
@@ -308,6 +330,35 @@ class OdooEntityMappingResource extends Resource
             \Modules\Projects\Models\Project::class => 'Project (projects)',
             \Modules\Projects\Models\ProjectTask::class => 'Project Task (project_tasks)',
             \Modules\Projects\Models\ProjectTimeEntry::class => 'Time Entry (project_time_entries)',
+        ];
+    }
+
+    /**
+     * Get date field options for filtering.
+     */
+    protected static function getDateFieldOptions(): array
+    {
+        return [
+            // Standard Odoo date fields available on all models
+            'write_date' => 'write_date (Last Modified)',
+            'create_date' => 'create_date (Created)',
+
+            // Common date fields in HR/Leave modules
+            'date_from' => 'date_from (Start Date)',
+            'date_to' => 'date_to (End Date)',
+            'date' => 'date (Date)',
+            'date_start' => 'date_start (Start Date)',
+            'date_end' => 'date_end (End Date)',
+
+            // Attendance
+            'check_in' => 'check_in (Check In)',
+            'check_out' => 'check_out (Check Out)',
+
+            // Payroll
+            'date_payslip' => 'date_payslip (Payslip Date)',
+
+            // Timesheet
+            'timesheet_date' => 'timesheet_date (Timesheet Date)',
         ];
     }
 

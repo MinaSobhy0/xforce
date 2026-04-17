@@ -179,4 +179,10 @@ return [
         'total_units' => 'إجمالي الوحدات',
         'appointments' => 'المواعيد',
     ],
+
+    'views' => [
+        'front' => 'أمامي',
+        'left' => 'يسار',
+        'right' => 'يمين',
+    ],
 ];

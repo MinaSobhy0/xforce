@@ -21,11 +21,15 @@ class OtpService
 
     /**
      * Generate and send OTP to patient
+     *
+     * @param Patient $patient The patient to send OTP to
+     * @param string|null $normalizedPhone Optional normalized phone with country code (e.g., +201234567890)
      */
-    public function generateAndSend(Patient $patient): array
+    public function generateAndSend(Patient $patient, ?string $normalizedPhone = null): array
     {
         $otp = $this->generateOtp();
-        $phone = $patient->phone;
+        // Use normalized phone if provided, otherwise use patient's phone
+        $phone = $normalizedPhone ?? $patient->phone;
 
         // Store OTP in cache
         $cacheKey = $this->getCacheKey($phone);
@@ -35,8 +39,8 @@ class OtpService
             'patient_id' => $patient->id,
         ], now()->addMinutes($this->otpExpiry));
 
-        // Send OTP via WhatsApp or SMS
-        $sent = $this->sendOtp($patient, $otp);
+        // Send OTP via WhatsApp or SMS (use the normalized phone)
+        $sent = $this->sendOtp($patient, $otp, $phone);
 
         return [
             'success' => $sent,
@@ -155,9 +159,16 @@ class OtpService
 
     /**
      * Send OTP to patient via WhatsApp/SMS
+     *
+     * @param Patient $patient The patient
+     * @param string $otp The OTP code
+     * @param string|null $phone Optional phone number to send to (defaults to patient's phone)
      */
-    protected function sendOtp(Patient $patient, string $otp): bool
+    protected function sendOtp(Patient $patient, string $otp, ?string $phone = null): bool
     {
+        // Use provided phone or fall back to patient's phone
+        $phone = $phone ?? $patient->phone;
+
         try {
             // Try WhatsApp first, then SMS
             $message = __('patientportal::portal.otp_message', [
@@ -166,7 +177,7 @@ class OtpService
             ]);
 
             Log::info("Attempting to send OTP", [
-                'phone' => $patient->phone,
+                'phone' => $phone,
                 'otp' => $otp,
                 'message' => $message,
             ]);
@@ -180,7 +191,7 @@ class OtpService
                     'provider' => $whatsapp->getProvider(),
                 ]);
 
-                $result = $whatsapp->sendTextMessage($patient->phone, $message);
+                $result = $whatsapp->sendTextMessage($phone, $message);
 
                 Log::info("WhatsApp send result", ['result' => $result]);
 
@@ -199,7 +210,7 @@ class OtpService
                     'provider' => $sms->getProvider(),
                 ]);
 
-                $result = $sms->send($patient->phone, $message);
+                $result = $sms->send($phone, $message);
 
                 Log::info("SMS send result", ['result' => $result]);
 
@@ -211,7 +222,7 @@ class OtpService
 
             // Log for development (no WhatsApp/SMS configured)
             Log::warning("No messaging service configured, logging OTP", [
-                'phone' => $patient->phone,
+                'phone' => $phone,
                 'otp' => $otp,
             ]);
 

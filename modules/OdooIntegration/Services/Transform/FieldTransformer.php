@@ -5,6 +5,7 @@ namespace Modules\OdooIntegration\Services\Transform;
 use Modules\OdooIntegration\Models\OdooEntityMapping;
 use Modules\OdooIntegration\Models\OdooFieldMapping;
 use Modules\OdooIntegration\Exceptions\OdooSyncException;
+use Modules\OdooIntegration\Exceptions\MissingDependencyException;
 
 class FieldTransformer
 {
@@ -28,6 +29,14 @@ class FieldTransformer
 
             $odooField = $fieldMapping->odoo_field;
             $localField = $fieldMapping->local_field;
+
+            // Handle default-only mappings (no odoo_field)
+            if (empty($odooField)) {
+                if ($fieldMapping->default_value !== null) {
+                    $localData[$localField] = $fieldMapping->default_value;
+                }
+                continue;
+            }
 
             // Get value from Odoo data (handle nested fields like user_id[0])
             $value = $this->getOdooValue($odooData, $odooField);
@@ -66,6 +75,11 @@ class FieldTransformer
             $localField = $fieldMapping->local_field;
             $odooField = $fieldMapping->odoo_field;
 
+            // Skip default-only mappings (no odoo_field) - these are for import only
+            if (empty($odooField)) {
+                continue;
+            }
+
             $value = $localData[$localField] ?? null;
 
             // Apply transformation
@@ -88,6 +102,9 @@ class FieldTransformer
 
     /**
      * Apply transformation to a value.
+     *
+     * @throws MissingDependencyException When a required relation can't be resolved
+     * @throws OdooSyncException When transformation fails for other reasons
      */
     protected function applyTransform(
         OdooFieldMapping $fieldMapping,
@@ -104,7 +121,7 @@ class FieldTransformer
                 'date' => $this->transformDate($value, $direction, $config),
                 'datetime' => $this->transformDatetime($value, $direction, $config, $entityMapping),
                 'money' => $this->transformMoney($value, $direction, $config),
-                'relation' => $this->transformRelation($value, $direction, $config, $entityMapping),
+                'relation' => $this->transformRelation($value, $direction, $config, $entityMapping, $fieldMapping),
                 'enum' => $this->transformEnum($value, $direction, $config),
                 'boolean' => $this->transformBoolean($value, $direction),
                 'json' => $this->transformJson($value, $direction),
@@ -112,8 +129,12 @@ class FieldTransformer
                 'split_name' => $this->transformSplitName($value, $direction, $config),
                 'many2many' => $this->transformMany2Many($value, $direction, $config),
                 'percentage' => $this->transformPercentage($value, $direction),
+                'year_from_date' => $this->transformYearFromDate($value, $direction),
                 default => $value,
             };
+        } catch (MissingDependencyException $e) {
+            // Re-throw dependency exceptions as-is for handling at higher level
+            throw $e;
         } catch (\Exception $e) {
             throw OdooSyncException::transformFailed($fieldMapping->local_field, $e->getMessage());
         }
@@ -130,7 +151,14 @@ class FieldTransformer
             return $data[$field][0];
         }
 
-        return $data[$field] ?? null;
+        $value = $data[$field] ?? null;
+
+        // Odoo returns false for empty/null fields - convert to null
+        if ($value === false) {
+            return null;
+        }
+
+        return $value;
     }
 
     /**
@@ -138,6 +166,10 @@ class FieldTransformer
      */
     protected function transformDirect(mixed $value): mixed
     {
+        // Handle Odoo's false for empty values
+        if ($value === false || $value === '') {
+            return null;
+        }
         return $value;
     }
 
@@ -208,28 +240,46 @@ class FieldTransformer
 
     /**
      * Relation transformation (resolve odoo_id <-> local_id).
+     *
+     * @throws MissingDependencyException When related record not found and skip_on_missing is enabled
      */
     protected function transformRelation(
         mixed $value,
         string $direction,
         array $config,
-        OdooEntityMapping $entityMapping
+        OdooEntityMapping $entityMapping,
+        ?OdooFieldMapping $fieldMapping = null
     ): mixed {
+        $relatedModel = $config['model'] ?? null;
+        $relatedOdooModel = $config['odoo_model'] ?? null;
+        $skipOnMissing = $config['skip_on_missing'] ?? true; // Default to skip on missing dependencies
+
+        // Handle empty/false values from Odoo (unset relations)
         if (empty($value) || $value === false) {
+            // If the field requires a relation and value is empty, throw exception
+            if ($skipOnMissing && $fieldMapping?->is_required) {
+                $fieldName = $fieldMapping->local_field ?? 'unknown';
+                throw MissingDependencyException::missingRelation($fieldName, 0, $relatedModel);
+            }
             return null;
         }
 
-        $relatedModel = $config['model'] ?? null;
-        $relatedOdooModel = $config['odoo_model'] ?? null;
-
         if ($direction === 'import') {
             // Resolve Odoo ID to local ID
-            return $this->relationResolver->resolveToLocalId(
+            $localId = $this->relationResolver->resolveToLocalId(
                 $value,
                 $relatedModel,
                 $relatedOdooModel,
                 $entityMapping->odoo_connection_id
             );
+
+            // If relation couldn't be resolved and skip_on_missing is enabled, throw exception
+            if ($localId === null && $skipOnMissing) {
+                $fieldName = $fieldMapping?->local_field ?? 'unknown';
+                throw MissingDependencyException::missingRelation($fieldName, $value, $relatedModel);
+            }
+
+            return $localId;
         }
 
         // Resolve local ID to Odoo ID
@@ -389,5 +439,37 @@ class FieldTransformer
         }
 
         return floatval($value);
+    }
+
+    /**
+     * Extract year from date transformation.
+     */
+    protected function transformYearFromDate(mixed $value, string $direction): mixed
+    {
+        if ($value === null || $value === false || $value === '') {
+            return null;
+        }
+
+        if ($direction === 'import') {
+            // Extract year from date string (e.g., '2021-11-01' -> 2021)
+            if (is_string($value)) {
+                $date = \DateTime::createFromFormat('Y-m-d', $value);
+                if ($date) {
+                    return (int) $date->format('Y');
+                }
+                // Try datetime format
+                $date = \DateTime::createFromFormat('Y-m-d H:i:s', $value);
+                if ($date) {
+                    return (int) $date->format('Y');
+                }
+            }
+            return null;
+        }
+
+        // Export: convert year to date (first day of year)
+        if (is_numeric($value)) {
+            return $value . '-01-01';
+        }
+        return $value;
     }
 }

@@ -22,9 +22,9 @@ class EnsurePatientAuthenticated
             return redirect()->route('filament.portal.auth.login');
         }
 
-        // Check if patient is active
+        // Check if patient is active and has portal access
         $patient = Auth::guard('patient')->user();
-        if ($patient && !$patient->is_active) {
+        if ($patient && ($patient->status !== 'active' || !$patient->portal_access_enabled)) {
             Auth::guard('patient')->logout();
 
             if ($request->expectsJson()) {

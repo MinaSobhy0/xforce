@@ -21,9 +21,14 @@ class SyncEntityJob implements ShouldQueue
     public int $tries = 3;
 
     /**
-     * Backoff between retries.
+     * Backoff between retries (in seconds).
      */
     public array $backoff = [60, 300, 900];
+
+    /**
+     * The job timeout in seconds (30 minutes for large syncs).
+     */
+    public int $timeout = 1800;
 
     /**
      * Create a new job instance.
@@ -34,6 +39,7 @@ class SyncEntityJob implements ShouldQueue
         public ?int $triggeredBy = null,
     ) {
         $this->onQueue(config('odoo-integration.queue_name', 'odoo-sync'));
+        $this->onConnection('tenant'); // Use tenant connection for job storage
     }
 
     /**

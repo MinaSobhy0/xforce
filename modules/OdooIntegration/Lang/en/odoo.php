@@ -23,6 +23,7 @@ return [
         'field_mapping' => 'Field Mapping',
         'transform_config' => 'Transform Configuration',
         'filters' => 'Filters',
+        'date_filter' => 'Date Filter',
         'recent_activity' => 'Recent Activity',
         'sync_summary' => 'Sync Summary',
         'statistics' => 'Statistics',
@@ -95,9 +96,13 @@ return [
         'records_updated' => 'Updated',
         'records_failed' => 'Failed',
         'records_skipped' => 'Skipped',
+        'records_skipped' => 'Skipped',
         'completed_at' => 'Completed At',
         'full_sync' => 'Full Sync',
         'run_in_background' => 'Run in Background',
+        'sync_date_field' => 'Date Field',
+        'sync_from_date' => 'From Date',
+        'sync_to_date' => 'To Date',
     ],
 
     // Helpers
@@ -109,6 +114,10 @@ return [
         'filter_conditions' => 'Odoo domain filters (e.g., [["active", "=", true]])',
         'full_sync' => 'Process all records, ignoring last sync timestamps',
         'run_in_background' => 'Queue the sync job to run asynchronously',
+        'date_filter_description' => 'Filter records by date range when syncing from Odoo',
+        'sync_date_field' => 'Select the Odoo date field to filter by',
+        'sync_from_date' => 'Only sync records with date >= this value',
+        'sync_to_date' => 'Only sync records with date <= this value',
     ],
 
     // Units

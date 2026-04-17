@@ -11,6 +11,7 @@ use Modules\Auth\Models\User;
 use Modules\Booking\Models\PractitionerScheduleAssignment;
 use Modules\Booking\Models\WorkSchedule;
 use Modules\Core\Models\Branch;
+use Modules\Core\Models\Department;
 use Modules\Payroll\Models\EmployeeSalaryComponent;
 use Modules\Payroll\Models\EmployeeSalaryStructure;
 use Spatie\Translatable\HasTranslations;
@@ -52,6 +53,7 @@ class StaffProfile extends BaseModel
         'tenant_id',
         'user_id',
         'branch_id',
+        'department_id',
         'commission_plan_id',
         'allowed_check_in_methods',
         'allowed_geofence_locations',
@@ -115,6 +117,14 @@ class StaffProfile extends BaseModel
     public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);
+    }
+
+    /**
+     * Get the department.
+     */
+    public function department(): BelongsTo
+    {
+        return $this->belongsTo(Department::class);
     }
 
     /**

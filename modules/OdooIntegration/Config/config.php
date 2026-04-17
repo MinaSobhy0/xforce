@@ -54,79 +54,268 @@ return [
     ],
 
     // Entity sync priorities (lower = synced first)
+    // Order: Companies -> Departments -> Users -> Employees -> Other entities
     'entity_priorities' => [
-        'res.users' => 1,
-        'hr.employee' => 2,
-        'hr.leave.type' => 5,
-        'hr.leave.allocation' => 6,
-        'hr.leave' => 7,
-        'hr.salary.rule.category' => 10,
-        'hr.payroll.structure' => 11,
-        'hr.salary.rule' => 12,
-        'hr.payslip' => 20,
-        'hr.payslip.line' => 21,
-        'hr.attendance' => 30,
-        'project.project' => 40,
-        'project.task' => 41,
-        'account.analytic.line' => 42,
+        'res.company' => 1,        // Branches first
+        'hr.department' => 2,      // Departments second
+        'res.users' => 3,          // Users third
+        'hr.employee' => 4,        // Employees fourth (depends on users, departments)
+        'hr.leave.type' => 10,
+        'hr.leave.allocation' => 11,
+        'hr.leave' => 12,
+        'hr.salary.rule.category' => 20,
+        'hr.payroll.structure' => 21,
+        'hr.salary.rule' => 22,
+        'hr.payslip' => 30,
+        'hr.payslip.line' => 31,
+        'hr.attendance' => 40,
+        'project.project' => 50,
+        'project.task' => 51,
+        'account.analytic.line' => 52,
     ],
 
     // Odoo model to XForce model mapping
     'model_mapping' => [
-        'res.users' => \Modules\Auth\Models\User::class,
+        // Organization
+        'res.company' => 'Modules\\Core\\Models\\Branch',
+        'res.users' => 'Modules\\Auth\\Models\\User',
+
+        // HR
+        'hr.department' => 'Modules\\Core\\Models\\Department',
         'hr.employee' => 'Modules\\Staff\\Models\\StaffProfile',
+
+        // Time Off
         'hr.leave.type' => 'Modules\\Booking\\Models\\TimeOffType',
         'hr.leave.allocation' => 'Modules\\Booking\\Models\\TimeOffAllocation',
         'hr.leave' => 'Modules\\Booking\\Models\\PractitionerTimeOff',
+
+        // Payroll
         'hr.salary.rule.category' => 'Modules\\Payroll\\Models\\SalaryRuleCategory',
         'hr.payroll.structure' => 'Modules\\Payroll\\Models\\SalaryStructure',
         'hr.salary.rule' => 'Modules\\Payroll\\Models\\SalaryRule',
         'hr.payslip' => 'Modules\\Payroll\\Models\\PayrollRun',
         'hr.payslip.line' => 'Modules\\Payroll\\Models\\PayrollLine',
+
+        // Attendance
         'hr.attendance' => 'Modules\\Attendance\\Models\\Attendance',
+
+        // Projects
         'project.project' => 'Modules\\Projects\\Models\\Project',
         'project.task' => 'Modules\\Projects\\Models\\ProjectTask',
         'account.analytic.line' => 'Modules\\Projects\\Models\\ProjectTimeEntry',
     ],
 
-    // Default field mappings per entity (used by seeder)
-    'default_field_mappings' => [
+    /*
+    |--------------------------------------------------------------------------
+    | Default Field Mappings (keyed by Odoo model)
+    |--------------------------------------------------------------------------
+    | These mappings are automatically created when a new entity mapping is added.
+    | Format: 'odoo_model' => [ ['local_field' => '', 'odoo_field' => '', ...], ... ]
+    */
+    'default_mappings' => [
+        // =====================================================================
+        // Users (res.users -> User)
+        // =====================================================================
         'res.users' => [
-            ['local' => 'name', 'odoo' => 'name', 'direction' => 'import', 'transform' => 'direct'],
-            ['local' => 'email', 'odoo' => 'login', 'direction' => 'import', 'transform' => 'direct', 'is_key' => true],
-            ['local' => 'is_active', 'odoo' => 'active', 'direction' => 'import', 'transform' => 'boolean'],
+            ['local_field' => 'odoo_id', 'odoo_field' => 'id', 'is_key_field' => true],
+            ['local_field' => 'first_name', 'odoo_field' => 'name', 'transform_type' => 'split_name', 'transform_config' => ['part' => 'first']],
+            ['local_field' => 'last_name', 'odoo_field' => 'name', 'transform_type' => 'split_name', 'transform_config' => ['part' => 'last']],
+            ['local_field' => 'email', 'odoo_field' => 'login', 'is_required' => true],
+            ['local_field' => 'password', 'odoo_field' => null, 'default_value' => 'ChangeMe123!', 'direction' => 'import'],
+            ['local_field' => 'is_active', 'odoo_field' => 'active', 'transform_type' => 'boolean'],
         ],
+
+        // =====================================================================
+        // Departments (hr.department -> Department)
+        // =====================================================================
+        'hr.department' => [
+            ['local_field' => 'odoo_id', 'odoo_field' => 'id', 'is_key_field' => true],
+            ['local_field' => 'name', 'odoo_field' => 'name', 'is_required' => true],
+            ['local_field' => 'code', 'odoo_field' => 'code'],
+            ['local_field' => 'parent_id', 'odoo_field' => 'parent_id', 'transform_type' => 'relation', 'transform_config' => ['model' => 'Modules\\Core\\Models\\Department']],
+            ['local_field' => 'manager_id', 'odoo_field' => 'manager_id', 'transform_type' => 'relation', 'transform_config' => ['model' => 'Modules\\Staff\\Models\\StaffProfile']],
+            ['local_field' => 'is_active', 'odoo_field' => 'active', 'transform_type' => 'boolean', 'default_value' => true],
+        ],
+
+        // =====================================================================
+        // Employees / Staff (hr.employee -> StaffProfile)
+        // =====================================================================
         'hr.employee' => [
-            ['local' => 'user_id', 'odoo' => 'user_id', 'direction' => 'import', 'transform' => 'relation'],
-            ['local' => 'first_name', 'odoo' => 'name', 'direction' => 'import', 'transform' => 'split_name', 'config' => ['part' => 'first']],
-            ['local' => 'last_name', 'odoo' => 'name', 'direction' => 'import', 'transform' => 'split_name', 'config' => ['part' => 'last']],
-            ['local' => 'work_email', 'odoo' => 'work_email', 'direction' => 'import', 'transform' => 'direct'],
-            ['local' => 'work_phone', 'odoo' => 'work_phone', 'direction' => 'import', 'transform' => 'direct'],
-            ['local' => 'mobile_phone', 'odoo' => 'mobile_phone', 'direction' => 'import', 'transform' => 'direct'],
-            ['local' => 'job_title', 'odoo' => 'job_title', 'direction' => 'import', 'transform' => 'direct'],
-            ['local' => 'hire_date', 'odoo' => 'date_start', 'direction' => 'import', 'transform' => 'date'],
-            ['local' => 'is_active', 'odoo' => 'active', 'direction' => 'import', 'transform' => 'boolean'],
+            ['local_field' => 'odoo_id', 'odoo_field' => 'id', 'is_key_field' => true],
+            ['local_field' => 'user_id', 'odoo_field' => 'user_id', 'transform_type' => 'relation', 'transform_config' => ['model' => 'Modules\\Auth\\Models\\User']],
+            ['local_field' => 'department_id', 'odoo_field' => 'department_id', 'transform_type' => 'relation', 'transform_config' => ['model' => 'Modules\\Core\\Models\\Department']],
+            ['local_field' => 'job_title', 'odoo_field' => 'job_title'],
+            ['local_field' => 'work_email', 'odoo_field' => 'work_email'],
+            ['local_field' => 'work_phone', 'odoo_field' => 'work_phone'],
+            ['local_field' => 'mobile_phone', 'odoo_field' => 'mobile_phone'],
+            ['local_field' => 'hire_date', 'odoo_field' => 'date_start', 'transform_type' => 'date'],
+            ['local_field' => 'is_active', 'odoo_field' => 'active', 'transform_type' => 'boolean'],
         ],
+
+        // =====================================================================
+        // Time Off Types (hr.leave.type -> TimeOffType)
+        // =====================================================================
+        'hr.leave.type' => [
+            ['local_field' => 'odoo_id', 'odoo_field' => 'id', 'is_key_field' => true],
+            ['local_field' => 'name', 'odoo_field' => 'name', 'is_required' => true, 'transform_type' => 'translatable'],
+            ['local_field' => 'code', 'odoo_field' => 'code'],
+            ['local_field' => 'is_active', 'odoo_field' => 'active', 'transform_type' => 'boolean'],
+            ['local_field' => 'requires_approval', 'odoo_field' => 'leave_validation_type', 'transform_type' => 'enum', 'transform_config' => ['mapping' => ['no_validation' => false, 'hr' => true, 'manager' => true, 'both' => true]]],
+        ],
+
+        // =====================================================================
+        // Time Off Allocations (hr.leave.allocation -> TimeOffAllocation)
+        // =====================================================================
+        'hr.leave.allocation' => [
+            ['local_field' => 'odoo_id', 'odoo_field' => 'id', 'is_key_field' => true],
+            ['local_field' => 'staff_profile_id', 'odoo_field' => 'employee_id', 'transform_type' => 'relation', 'transform_config' => ['model' => 'Modules\\Staff\\Models\\StaffProfile']],
+            ['local_field' => 'time_off_type_id', 'odoo_field' => 'holiday_status_id', 'transform_type' => 'relation', 'transform_config' => ['model' => 'Modules\\Booking\\Models\\TimeOffType']],
+            ['local_field' => 'allocated_days', 'odoo_field' => 'number_of_days'],
+            ['local_field' => 'date_from', 'odoo_field' => 'date_from', 'transform_type' => 'date'],
+            ['local_field' => 'date_to', 'odoo_field' => 'date_to', 'transform_type' => 'date'],
+        ],
+
+        // =====================================================================
+        // Time Off Requests (hr.leave -> PractitionerTimeOff)
+        // =====================================================================
+        'hr.leave' => [
+            ['local_field' => 'odoo_id', 'odoo_field' => 'id', 'is_key_field' => true],
+            ['local_field' => 'staff_profile_id', 'odoo_field' => 'employee_id', 'transform_type' => 'relation', 'transform_config' => ['model' => 'Modules\\Staff\\Models\\StaffProfile']],
+            ['local_field' => 'time_off_type_id', 'odoo_field' => 'holiday_status_id', 'transform_type' => 'relation', 'transform_config' => ['model' => 'Modules\\Booking\\Models\\TimeOffType']],
+            ['local_field' => 'start_date', 'odoo_field' => 'date_from', 'transform_type' => 'datetime'],
+            ['local_field' => 'end_date', 'odoo_field' => 'date_to', 'transform_type' => 'datetime'],
+            ['local_field' => 'reason', 'odoo_field' => 'name'],
+            ['local_field' => 'status', 'odoo_field' => 'state', 'transform_type' => 'enum', 'transform_config' => ['mapping' => ['draft' => 'pending', 'confirm' => 'pending', 'validate1' => 'approved', 'validate' => 'approved', 'refuse' => 'rejected', 'cancel' => 'cancelled']]],
+        ],
+
+        // =====================================================================
+        // Salary Rule Categories (hr.salary.rule.category -> SalaryRuleCategory)
+        // =====================================================================
+        'hr.salary.rule.category' => [
+            ['local_field' => 'odoo_id', 'odoo_field' => 'id', 'is_key_field' => true],
+            ['local_field' => 'name', 'odoo_field' => 'name', 'is_required' => true, 'transform_type' => 'translatable'],
+            ['local_field' => 'code', 'odoo_field' => 'code', 'is_required' => true],
+            ['local_field' => 'parent_id', 'odoo_field' => 'parent_id', 'transform_type' => 'relation', 'transform_config' => ['model' => 'Modules\\Payroll\\Models\\SalaryRuleCategory']],
+        ],
+
+        // =====================================================================
+        // Salary Structures (hr.payroll.structure -> SalaryStructure)
+        // =====================================================================
+        'hr.payroll.structure' => [
+            ['local_field' => 'odoo_id', 'odoo_field' => 'id', 'is_key_field' => true],
+            ['local_field' => 'name', 'odoo_field' => 'name', 'is_required' => true, 'transform_type' => 'translatable'],
+            ['local_field' => 'code', 'odoo_field' => 'code'],
+            ['local_field' => 'is_active', 'odoo_field' => 'active', 'transform_type' => 'boolean'],
+        ],
+
+        // =====================================================================
+        // Salary Rules (hr.salary.rule -> SalaryRule)
+        // =====================================================================
+        'hr.salary.rule' => [
+            ['local_field' => 'odoo_id', 'odoo_field' => 'id', 'is_key_field' => true],
+            ['local_field' => 'name', 'odoo_field' => 'name', 'is_required' => true, 'transform_type' => 'translatable'],
+            ['local_field' => 'code', 'odoo_field' => 'code', 'is_required' => true],
+            ['local_field' => 'category_id', 'odoo_field' => 'category_id', 'transform_type' => 'relation', 'transform_config' => ['model' => 'Modules\\Payroll\\Models\\SalaryRuleCategory']],
+            ['local_field' => 'structure_id', 'odoo_field' => 'struct_id', 'transform_type' => 'relation', 'transform_config' => ['model' => 'Modules\\Payroll\\Models\\SalaryStructure']],
+            ['local_field' => 'sequence', 'odoo_field' => 'sequence'],
+            ['local_field' => 'condition_type', 'odoo_field' => 'condition_select'],
+            ['local_field' => 'amount_type', 'odoo_field' => 'amount_select'],
+            ['local_field' => 'is_active', 'odoo_field' => 'active', 'transform_type' => 'boolean'],
+        ],
+
+        // =====================================================================
+        // Payslips (hr.payslip -> PayrollRun)
+        // =====================================================================
+        'hr.payslip' => [
+            ['local_field' => 'odoo_id', 'odoo_field' => 'id', 'is_key_field' => true],
+            ['local_field' => 'staff_profile_id', 'odoo_field' => 'employee_id', 'transform_type' => 'relation', 'transform_config' => ['model' => 'Modules\\Staff\\Models\\StaffProfile']],
+            ['local_field' => 'structure_id', 'odoo_field' => 'struct_id', 'transform_type' => 'relation', 'transform_config' => ['model' => 'Modules\\Payroll\\Models\\SalaryStructure']],
+            ['local_field' => 'period_start', 'odoo_field' => 'date_from', 'transform_type' => 'date'],
+            ['local_field' => 'period_end', 'odoo_field' => 'date_to', 'transform_type' => 'date'],
+            ['local_field' => 'status', 'odoo_field' => 'state', 'transform_type' => 'enum', 'transform_config' => ['mapping' => ['draft' => 'draft', 'verify' => 'pending', 'done' => 'completed', 'cancel' => 'cancelled']]],
+        ],
+
+        // =====================================================================
+        // Payslip Lines (hr.payslip.line -> PayrollLine)
+        // =====================================================================
+        'hr.payslip.line' => [
+            ['local_field' => 'odoo_id', 'odoo_field' => 'id', 'is_key_field' => true],
+            ['local_field' => 'payroll_run_id', 'odoo_field' => 'slip_id', 'transform_type' => 'relation', 'transform_config' => ['model' => 'Modules\\Payroll\\Models\\PayrollRun']],
+            ['local_field' => 'salary_rule_id', 'odoo_field' => 'salary_rule_id', 'transform_type' => 'relation', 'transform_config' => ['model' => 'Modules\\Payroll\\Models\\SalaryRule']],
+            ['local_field' => 'category_id', 'odoo_field' => 'category_id', 'transform_type' => 'relation', 'transform_config' => ['model' => 'Modules\\Payroll\\Models\\SalaryRuleCategory']],
+            ['local_field' => 'name', 'odoo_field' => 'name'],
+            ['local_field' => 'code', 'odoo_field' => 'code'],
+            ['local_field' => 'amount', 'odoo_field' => 'total', 'transform_type' => 'money'],
+            ['local_field' => 'quantity', 'odoo_field' => 'quantity'],
+            ['local_field' => 'rate', 'odoo_field' => 'rate'],
+        ],
+
+        // =====================================================================
+        // Attendance (hr.attendance -> Attendance)
+        // =====================================================================
+        'hr.attendance' => [
+            ['local_field' => 'odoo_id', 'odoo_field' => 'id', 'is_key_field' => true],
+            ['local_field' => 'staff_profile_id', 'odoo_field' => 'employee_id', 'transform_type' => 'relation', 'transform_config' => ['model' => 'Modules\\Staff\\Models\\StaffProfile']],
+            ['local_field' => 'check_in', 'odoo_field' => 'check_in', 'transform_type' => 'datetime'],
+            ['local_field' => 'check_out', 'odoo_field' => 'check_out', 'transform_type' => 'datetime'],
+            ['local_field' => 'worked_hours', 'odoo_field' => 'worked_hours'],
+        ],
+
+        // =====================================================================
+        // Projects (project.project -> Project)
+        // =====================================================================
         'project.project' => [
-            ['local' => 'name', 'odoo' => 'name', 'direction' => 'bidirectional', 'transform' => 'translatable'],
-            ['local' => 'description', 'odoo' => 'description', 'direction' => 'bidirectional', 'transform' => 'translatable'],
-            ['local' => 'is_active', 'odoo' => 'active', 'direction' => 'bidirectional', 'transform' => 'boolean'],
-            ['local' => 'start_date', 'odoo' => 'date_start', 'direction' => 'bidirectional', 'transform' => 'date'],
-            ['local' => 'allow_timesheets', 'odoo' => 'allow_timesheets', 'direction' => 'bidirectional', 'transform' => 'boolean'],
+            ['local_field' => 'odoo_id', 'odoo_field' => 'id', 'is_key_field' => true],
+            ['local_field' => 'name', 'odoo_field' => 'name', 'is_required' => true, 'transform_type' => 'translatable'],
+            ['local_field' => 'description', 'odoo_field' => 'description', 'transform_type' => 'translatable'],
+            ['local_field' => 'code', 'odoo_field' => 'sequence_code'],
+            ['local_field' => 'manager_id', 'odoo_field' => 'user_id', 'transform_type' => 'relation', 'transform_config' => ['model' => 'Modules\\Auth\\Models\\User']],
+            ['local_field' => 'start_date', 'odoo_field' => 'date_start', 'transform_type' => 'date'],
+            ['local_field' => 'end_date', 'odoo_field' => 'date', 'transform_type' => 'date'],
+            ['local_field' => 'is_active', 'odoo_field' => 'active', 'transform_type' => 'boolean'],
+            ['local_field' => 'allow_timesheets', 'odoo_field' => 'allow_timesheets', 'transform_type' => 'boolean'],
         ],
+
+        // =====================================================================
+        // Project Tasks (project.task -> ProjectTask)
+        // =====================================================================
         'project.task' => [
-            ['local' => 'project_id', 'odoo' => 'project_id', 'direction' => 'bidirectional', 'transform' => 'relation'],
-            ['local' => 'name', 'odoo' => 'name', 'direction' => 'bidirectional', 'transform' => 'translatable'],
-            ['local' => 'description', 'odoo' => 'description', 'direction' => 'bidirectional', 'transform' => 'translatable'],
-            ['local' => 'start_date', 'odoo' => 'date_deadline', 'direction' => 'bidirectional', 'transform' => 'date'],
-            ['local' => 'estimated_hours', 'odoo' => 'planned_hours', 'direction' => 'bidirectional', 'transform' => 'direct'],
+            ['local_field' => 'odoo_id', 'odoo_field' => 'id', 'is_key_field' => true],
+            ['local_field' => 'project_id', 'odoo_field' => 'project_id', 'transform_type' => 'relation', 'transform_config' => ['model' => 'Modules\\Projects\\Models\\Project'], 'is_required' => true],
+            ['local_field' => 'parent_id', 'odoo_field' => 'parent_id', 'transform_type' => 'relation', 'transform_config' => ['model' => 'Modules\\Projects\\Models\\ProjectTask']],
+            ['local_field' => 'name', 'odoo_field' => 'name', 'is_required' => true, 'transform_type' => 'translatable'],
+            ['local_field' => 'description', 'odoo_field' => 'description', 'transform_type' => 'translatable'],
+            ['local_field' => 'assigned_to', 'odoo_field' => 'user_ids', 'transform_type' => 'relation', 'transform_config' => ['model' => 'Modules\\Auth\\Models\\User']],
+            ['local_field' => 'due_date', 'odoo_field' => 'date_deadline', 'transform_type' => 'date'],
+            ['local_field' => 'estimated_hours', 'odoo_field' => 'planned_hours'],
+            ['local_field' => 'priority', 'odoo_field' => 'priority', 'transform_type' => 'enum', 'transform_config' => ['mapping' => ['0' => 'low', '1' => 'normal', '2' => 'high', '3' => 'urgent']]],
+            ['local_field' => 'is_active', 'odoo_field' => 'active', 'transform_type' => 'boolean'],
         ],
+
+        // =====================================================================
+        // Timesheets (account.analytic.line -> ProjectTimeEntry)
+        // =====================================================================
         'account.analytic.line' => [
-            ['local' => 'task_id', 'odoo' => 'task_id', 'direction' => 'bidirectional', 'transform' => 'relation'],
-            ['local' => 'user_id', 'odoo' => 'user_id', 'direction' => 'bidirectional', 'transform' => 'relation'],
-            ['local' => 'hours', 'odoo' => 'unit_amount', 'direction' => 'bidirectional', 'transform' => 'direct'],
-            ['local' => 'description', 'odoo' => 'name', 'direction' => 'bidirectional', 'transform' => 'direct'],
-            ['local' => 'date', 'odoo' => 'date', 'direction' => 'bidirectional', 'transform' => 'date'],
+            ['local_field' => 'odoo_id', 'odoo_field' => 'id', 'is_key_field' => true],
+            ['local_field' => 'project_id', 'odoo_field' => 'project_id', 'transform_type' => 'relation', 'transform_config' => ['model' => 'Modules\\Projects\\Models\\Project']],
+            ['local_field' => 'task_id', 'odoo_field' => 'task_id', 'transform_type' => 'relation', 'transform_config' => ['model' => 'Modules\\Projects\\Models\\ProjectTask']],
+            ['local_field' => 'user_id', 'odoo_field' => 'user_id', 'transform_type' => 'relation', 'transform_config' => ['model' => 'Modules\\Auth\\Models\\User']],
+            ['local_field' => 'staff_profile_id', 'odoo_field' => 'employee_id', 'transform_type' => 'relation', 'transform_config' => ['model' => 'Modules\\Staff\\Models\\StaffProfile']],
+            ['local_field' => 'date', 'odoo_field' => 'date', 'transform_type' => 'date', 'is_required' => true],
+            ['local_field' => 'hours', 'odoo_field' => 'unit_amount', 'is_required' => true],
+            ['local_field' => 'description', 'odoo_field' => 'name'],
+        ],
+
+        // =====================================================================
+        // Branches/Companies (res.company -> Branch)
+        // =====================================================================
+        'res.company' => [
+            ['local_field' => 'odoo_id', 'odoo_field' => 'id', 'is_key_field' => true],
+            ['local_field' => 'name', 'odoo_field' => 'name', 'is_required' => true, 'transform_type' => 'translatable'],
+            ['local_field' => 'code', 'odoo_field' => 'company_registry'],
+            ['local_field' => 'email', 'odoo_field' => 'email'],
+            ['local_field' => 'phone', 'odoo_field' => 'phone'],
+            ['local_field' => 'is_active', 'odoo_field' => 'active', 'transform_type' => 'boolean'],
         ],
     ],
 ];

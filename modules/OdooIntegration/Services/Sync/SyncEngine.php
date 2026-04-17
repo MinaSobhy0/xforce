@@ -13,6 +13,8 @@ use Modules\OdooIntegration\Events\SyncStarted;
 use Modules\OdooIntegration\Events\SyncCompleted;
 use Modules\OdooIntegration\Events\SyncFailed;
 use Modules\OdooIntegration\Exceptions\OdooSyncException;
+use Modules\OdooIntegration\Exceptions\MissingDependencyException;
+use Modules\OdooIntegration\Exceptions\OdooRateLimitException;
 use Modules\OdooIntegration\Services\Api\OdooApiFactory;
 
 class SyncEngine
@@ -131,26 +133,33 @@ class SyncEngine
 
     /**
      * Run import operation.
+     *
+     * Delta sync: Import new records only (skip existing in local DB)
+     * Full sync: Override existing records with Odoo data
      */
     protected function runImport(OdooEntityMapping $mapping, OdooSyncLog $log, string $syncType): void
     {
         $connection = $mapping->connection;
         $client = $this->apiFactory->make($connection);
 
-        // Get watermark for delta sync
-        $watermark = null;
-        if ($syncType === 'delta') {
-            $watermark = $this->watermarkService->getWatermark($mapping, 'import');
-        }
-
-        // Build domain filters
+        // Build domain filters (from entity mapping configuration)
         $domain = $mapping->getOdooDomain();
-        if ($watermark) {
-            $domain[] = ['write_date', '>', $watermark];
+
+        // Apply date filter if configured
+        $dateFilterDomain = $mapping->getDateFilterDomain();
+        if (!empty($dateFilterDomain)) {
+            $domain = array_merge($domain, $dateFilterDomain);
         }
 
-        // Get total count
-        $totalCount = $client->searchCount($mapping->odoo_model, $domain);
+        // Note: We no longer use watermark for filtering.
+        // Delta vs Full is handled in ImportService:
+        // - Delta: skip records that exist locally
+        // - Full: override existing records
+
+        // Get total count with rate limit retry
+        $totalCount = $this->fetchWithRateLimitRetry(function () use ($client, $mapping, $domain) {
+            return $client->searchCount($mapping->odoo_model, $domain);
+        });
 
         if ($totalCount === 0) {
             return;
@@ -161,32 +170,43 @@ class SyncEngine
         $offset = 0;
 
         while ($offset < $totalCount) {
-            $records = $client->searchRead(
-                $mapping->odoo_model,
-                $domain,
-                $this->getOdooFields($mapping),
-                $offset,
-                $batchSize,
-                'write_date asc'
-            );
+            // Fetch batch with rate limit retry
+            $records = $this->fetchWithRateLimitRetry(function () use ($client, $mapping, $domain, $offset, $batchSize) {
+                return $client->searchRead(
+                    $mapping->odoo_model,
+                    $domain,
+                    $this->getOdooFields($mapping),
+                    $offset,
+                    $batchSize,
+                    'write_date asc'
+                );
+            });
 
             foreach ($records as $record) {
                 try {
-                    $result = $this->importService->importRecord($mapping, $client, $record['id'], $record);
+                    $result = $this->importService->importRecord($mapping, $client, $record['id'], $record, $syncType);
 
                     $log->incrementProcessed();
                     if ($result['action'] === 'created') {
                         $log->incrementCreated();
                     } elseif ($result['action'] === 'updated') {
                         $log->incrementUpdated();
-                    } elseif ($result['action'] === 'conflict') {
-                        $log->incrementConflicts();
+                    } elseif ($result['action'] === 'skipped') {
+                        $log->incrementSkipped();
+                    } elseif ($result['action'] === 'recreated') {
+                        $log->incrementCreated();
                     }
+                } catch (MissingDependencyException $e) {
+                    // Skip records with missing dependencies (e.g., user_id, staff_profile_id not found locally)
+                    $log->incrementSkipped();
 
-                    // Update watermark after each successful record
-                    if (isset($record['write_date'])) {
-                        $this->watermarkService->setWatermark($mapping, 'import', $record['write_date']);
-                    }
+                    Log::info('Record skipped due to missing dependency', [
+                        'mapping_id' => $mapping->id,
+                        'odoo_id' => $record['id'],
+                        'dependency_field' => $e->getDependencyField(),
+                        'dependency_odoo_id' => $e->getDependencyOdooId(),
+                        'dependency_type' => $e->getDependencyType(),
+                    ]);
                 } catch (\Exception $e) {
                     $log->incrementFailed();
                     $log->addError("Failed to import record {$record['id']}: {$e->getMessage()}");
@@ -200,7 +220,43 @@ class SyncEngine
             }
 
             $offset += $batchSize;
+
+            // Rate limit protection: pause between batches to avoid Odoo API throttling
+            if ($offset < $totalCount) {
+                sleep(2); // 2 second delay between batches
+            }
         }
+    }
+
+    /**
+     * Execute a callback with rate limit retry logic.
+     */
+    protected function fetchWithRateLimitRetry(callable $callback, int $maxRetries = 3): mixed
+    {
+        $attempt = 0;
+
+        while ($attempt < $maxRetries) {
+            try {
+                return $callback();
+            } catch (OdooRateLimitException $e) {
+                $attempt++;
+                $retryAfter = $e->getRetryAfter();
+
+                Log::info('Rate limit hit, waiting before retry', [
+                    'attempt' => $attempt,
+                    'retry_after' => $retryAfter,
+                ]);
+
+                if ($attempt >= $maxRetries) {
+                    throw $e;
+                }
+
+                // Wait for the rate limit to reset (add a small buffer)
+                sleep($retryAfter + 2);
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -246,6 +302,9 @@ class SyncEngine
                     ]);
                 }
             }
+
+            // Rate limit protection: pause between batches to avoid Odoo API throttling
+            usleep(500000); // 500ms delay between batches
         });
     }
 
@@ -280,12 +339,14 @@ class SyncEngine
         $fields = ['id', 'write_date', 'create_date'];
 
         foreach ($mapping->getActiveFieldMappings() as $fieldMapping) {
-            if ($fieldMapping->allowsImport()) {
+            // Skip field mappings without an Odoo field (default-only mappings)
+            if ($fieldMapping->allowsImport() && !empty($fieldMapping->odoo_field)) {
                 $fields[] = $fieldMapping->odoo_field;
             }
         }
 
-        return array_unique($fields);
+        // Re-index array to ensure sequential keys (0,1,2...) for XML-RPC encoding
+        return array_values(array_unique($fields));
     }
 
     /**

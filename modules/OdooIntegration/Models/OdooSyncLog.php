@@ -23,6 +23,7 @@ class OdooSyncLog extends BaseModel
         'records_created',
         'records_updated',
         'records_failed',
+        'records_skipped',
         'conflicts_detected',
         'errors',
         'watermark',
@@ -36,6 +37,7 @@ class OdooSyncLog extends BaseModel
         'records_created' => 'integer',
         'records_updated' => 'integer',
         'records_failed' => 'integer',
+        'records_skipped' => 'integer',
         'conflicts_detected' => 'integer',
         'errors' => 'array',
         'started_at' => 'datetime',
@@ -149,6 +151,11 @@ class OdooSyncLog extends BaseModel
     public function incrementFailed(int $count = 1): void
     {
         $this->increment('records_failed', $count);
+    }
+
+    public function incrementSkipped(int $count = 1): void
+    {
+        $this->increment('records_skipped', $count);
     }
 
     public function incrementConflicts(int $count = 1): void

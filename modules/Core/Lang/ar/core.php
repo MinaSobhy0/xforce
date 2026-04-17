@@ -121,6 +121,20 @@ return [
         'saturday' => 'السبت',
     ],
 
+    // Departments
+    'department' => 'قسم',
+    'departments' => 'الأقسام',
+    'department_details' => 'تفاصيل القسم',
+    'parent_department' => 'القسم الرئيسي',
+    'no_parent' => 'لا يوجد قسم أعلى (قسم جذري)',
+    'manager' => 'المدير',
+    'staff_count' => 'عدد الموظفين',
+    'cannot_delete_department_with_children' => 'لا يمكن حذف قسم له أقسام فرعية',
+    'cannot_delete_department_with_staff' => 'لا يمكن حذف قسم به موظفين',
+    'organization' => 'التنظيم',
+    'integration' => 'التكامل',
+    'odoo_id' => 'معرف أودو',
+
     // Rooms
     'room' => 'غرفة',
     'rooms' => 'الغرف',

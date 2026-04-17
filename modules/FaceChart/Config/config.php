@@ -7,6 +7,16 @@ return [
     'model_path' => '/models/face_head.glb',
     'model_scale' => 1.0,
 
+    // 2D Face Image settings
+    'face_2d_image_path' => env('FACE_CHART_2D_IMAGE', '/images/face_2d_front.png'),
+    'face_2d_images' => [
+        'front' => '/images/face_2d_front.png',
+        'left' => '/images/face_2d_left.png',
+        'right' => '/images/face_2d_right.png',
+    ],
+    'face_2d_canvas_max_width' => 1800,
+    'face_2d_canvas_max_height' => 2200,
+
     // Default marker settings
     'default_marker_color' => '#FF6B6B',
     'default_marker_size' => 1.0,

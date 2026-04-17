@@ -32,15 +32,15 @@ class WhatsAppService
 
         // For Meta (Official WhatsApp Business API)
         if ($this->provider === 'meta') {
-            $this->phoneNumber = PlatformSetting::get('whatsapp_phone_number', '');
-            $this->accessToken = PlatformSetting::get('whatsapp_api_key', '');
-            $this->accountSid = null;
+            $this->phoneNumber = PlatformSetting::get('whatsapp_meta_phone_number_id', '');
+            $this->accessToken = PlatformSetting::get('whatsapp_meta_access_token', '');
+            $this->accountSid = PlatformSetting::get('whatsapp_meta_business_id', '');
         }
         // For Twilio
         elseif ($this->provider === 'twilio') {
-            $this->phoneNumber = PlatformSetting::get('whatsapp_phone_number', '');
-            $this->accountSid = PlatformSetting::get('whatsapp_api_key', ''); // Twilio Account SID
-            $this->accessToken = PlatformSetting::get('whatsapp_api_secret', ''); // Twilio Auth Token
+            $this->phoneNumber = PlatformSetting::get('whatsapp_twilio_from_number', '');
+            $this->accountSid = PlatformSetting::get('whatsapp_twilio_account_sid', '');
+            $this->accessToken = PlatformSetting::get('whatsapp_twilio_auth_token', '');
         }
         // Fallback to env config if not set in platform settings
         else {

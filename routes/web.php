@@ -84,3 +84,8 @@ Route::get('/app/join/{code}', function (string $code) {
     ]);
 })->name('app.join');
 
+
+// Dummy route for patient portal email verification (we don't use it)
+Route::get('/portal/email-verification', function () {
+    return redirect('/portal/portal-dashboard');
+})->name('filament.portal.auth.email-verification.prompt');

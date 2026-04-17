@@ -22,6 +22,7 @@ return [
         'field_mapping' => 'تعيين الحقل',
         'transform_config' => 'إعدادات التحويل',
         'filters' => 'الفلاتر',
+        'date_filter' => 'فلتر التاريخ',
         'recent_activity' => 'النشاط الأخير',
     ],
 
@@ -84,6 +85,9 @@ return [
         'default_value' => 'القيمة الافتراضية',
         'sort_order' => 'ترتيب الفرز',
         'connection' => 'الاتصال',
+        'sync_date_field' => 'حقل التاريخ',
+        'sync_from_date' => 'من تاريخ',
+        'sync_to_date' => 'إلى تاريخ',
     ],
 
     // Helpers
@@ -93,6 +97,10 @@ return [
         'is_default' => 'استخدم هذا الاتصال كافتراضي لعمليات المزامنة',
         'priority' => 'الأرقام الأقل تتم مزامنتها أولاً (مثل المستخدمين قبل الموظفين)',
         'filter_conditions' => 'فلاتر نطاق Odoo (مثل [["active", "=", true]])',
+        'date_filter_description' => 'فلترة السجلات حسب نطاق التاريخ عند المزامنة من Odoo',
+        'sync_date_field' => 'حدد حقل التاريخ في Odoo للفلترة',
+        'sync_from_date' => 'مزامنة السجلات التي تاريخها >= هذه القيمة فقط',
+        'sync_to_date' => 'مزامنة السجلات التي تاريخها <= هذه القيمة فقط',
     ],
 
     // Units

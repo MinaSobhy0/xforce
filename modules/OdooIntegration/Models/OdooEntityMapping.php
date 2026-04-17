@@ -28,6 +28,9 @@ class OdooEntityMapping extends BaseModel
         'is_active',
         'filter_conditions',
         'settings',
+        'sync_date_field',
+        'sync_from_date',
+        'sync_to_date',
     ];
 
     protected $casts = [
@@ -39,6 +42,8 @@ class OdooEntityMapping extends BaseModel
         'sync_direction' => SyncDirection::class,
         'sync_frequency' => SyncFrequency::class,
         'conflict_resolution' => ConflictResolution::class,
+        'sync_from_date' => 'date',
+        'sync_to_date' => 'date',
     ];
 
     // Relationships
@@ -144,6 +149,54 @@ class OdooEntityMapping extends BaseModel
     public function getOdooDomain(): array
     {
         return $this->filter_conditions ?? [];
+    }
+
+    /**
+     * Get the date filter domain for Odoo queries.
+     * Returns an array of domain conditions based on sync_date_field, sync_from_date, and sync_to_date.
+     */
+    public function getDateFilterDomain(): array
+    {
+        if (empty($this->sync_date_field)) {
+            return [];
+        }
+
+        $domain = [];
+
+        if ($this->sync_from_date) {
+            $domain[] = [$this->sync_date_field, '>=', $this->sync_from_date->format('Y-m-d')];
+        }
+
+        if ($this->sync_to_date) {
+            $domain[] = [$this->sync_date_field, '<=', $this->sync_to_date->format('Y-m-d')];
+        }
+
+        return $domain;
+    }
+
+    /**
+     * Check if this mapping has a date filter configured.
+     */
+    public function hasDateFilter(): bool
+    {
+        return !empty($this->sync_date_field) && ($this->sync_from_date || $this->sync_to_date);
+    }
+
+    /**
+     * Get available date fields from the field mappings for this entity.
+     * These are fields with 'date' or 'datetime' transform types.
+     */
+    public function getAvailableDateFields(): array
+    {
+        $dateFields = ['write_date', 'create_date']; // Always available in Odoo
+
+        foreach ($this->getActiveFieldMappings() as $fieldMapping) {
+            if (in_array($fieldMapping->transform_type, ['date', 'datetime']) && !empty($fieldMapping->odoo_field)) {
+                $dateFields[] = $fieldMapping->odoo_field;
+            }
+        }
+
+        return array_unique($dateFields);
     }
 
     public function getPendingConflictsCount(): int

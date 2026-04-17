@@ -120,6 +120,20 @@ return [
         'saturday' => 'Saturday',
     ],
 
+    // Departments
+    'department' => 'Department',
+    'departments' => 'Departments',
+    'department_details' => 'Department Details',
+    'parent_department' => 'Parent Department',
+    'no_parent' => 'No Parent (Root Department)',
+    'manager' => 'Manager',
+    'staff_count' => 'Staff Count',
+    'cannot_delete_department_with_children' => 'Cannot delete department with child departments',
+    'cannot_delete_department_with_staff' => 'Cannot delete department with assigned staff',
+    'organization' => 'Organization',
+    'integration' => 'Integration',
+    'odoo_id' => 'Odoo ID',
+
     // Rooms
     'room' => 'Room',
     'rooms' => 'Rooms',

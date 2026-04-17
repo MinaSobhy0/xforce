@@ -1,27 +1,218 @@
-<div class="flex flex-row gap-4" wire:ignore.self
+<div class="flex flex-col gap-4" wire:ignore.self
      x-data="faceChart2DComponent()"
      x-init="startInitCheck()"
      @tab-switched-to-2d.window="console.log('🔔 Tab switched to 2D event received'); triggerInit()"
      @resize.window="if (fabricCanvas) fabricCanvas.renderAll()">
-    {{-- Canvas Area (70%) --}}
-    <div class="flex-1 relative bg-gray-100 dark:bg-gray-900 rounded-lg overflow-hidden" style="min-height: 600px; min-width: 300px;">
-        <div class="w-full h-full flex items-center justify-center p-4">
-            <div id="canvasContainer" wire:ignore style="position: relative; display: inline-block;">
+
+    {{-- Filters Bar (Top) --}}
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+        <div class="flex flex-wrap items-end gap-3">
+            <div class="flex-1 min-w-[150px]">
+                <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {{ __('face_chart::face_chart.filters.date_from') }}
+                </label>
+                <input
+                    type="date"
+                    wire:model.defer="filterDateFrom"
+                    class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm"
+                >
+            </div>
+
+            <div class="flex-1 min-w-[150px]">
+                <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {{ __('face_chart::face_chart.filters.date_to') }}
+                </label>
+                <input
+                    type="date"
+                    wire:model.defer="filterDateTo"
+                    class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm"
+                >
+            </div>
+
+            <div class="flex-1 min-w-[150px]">
+                <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {{ __('face_chart::face_chart.filters.region') }}
+                </label>
+                <select
+                    wire:model.defer="filterRegion"
+                    class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm"
+                >
+                    <option value="">{{ __('face_chart::face_chart.filters.all_regions') }}</option>
+                    @foreach($regions as $region)
+                        <option value="{{ $region }}">
+                            {{ __("face_chart::face_chart.regions.{$region}") }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div class="flex-1 min-w-[150px]">
+                <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {{ __('face_chart::face_chart.filters.type') }}
+                </label>
+                <select
+                    wire:model.defer="filterType"
+                    class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm"
+                >
+                    <option value="">{{ __('face_chart::face_chart.filters.all_types') }}</option>
+                    @foreach($markerTypes as $type)
+                        <option value="{{ $type }}">
+                            {{ __("face_chart::face_chart.marker_types.{$type}") }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div class="flex gap-2">
+                <button
+                    wire:click="applyFilters"
+                    class="bg-primary-500 text-white rounded-md px-4 py-2 text-sm hover:bg-primary-600 transition whitespace-nowrap"
+                >
+                    {{ __('face_chart::face_chart.filters.apply') }}
+                </button>
+                <button
+                    wire:click="clearFilters"
+                    class="bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-md px-4 py-2 text-sm hover:bg-gray-400 dark:hover:bg-gray-500 transition whitespace-nowrap"
+                >
+                    {{ __('face_chart::face_chart.filters.clear') }}
+                </button>
+                @if($isEditing)
+                <button
+                    wire:click="clearAllMarkers"
+                    wire:confirm="Are you sure you want to delete all markers on this face chart?"
+                    class="bg-red-500 text-white rounded-md px-4 py-2 text-sm hover:bg-red-600 transition whitespace-nowrap"
+                >
+                    Clear All Markers
+                </button>
+                @endif
+            </div>
+        </div>
+
+        {{-- Statistics Row --}}
+        <div class="flex flex-wrap gap-6 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 text-sm">
+            <div class="flex gap-2">
+                <span class="text-gray-600 dark:text-gray-400">{{ __('face_chart::face_chart.statistics.total_markers') }}:</span>
+                <span class="font-semibold text-gray-900 dark:text-gray-100">{{ $stats['total_markers'] ?? 0 }}</span>
+            </div>
+            <div class="flex gap-2">
+                <span class="text-gray-600 dark:text-gray-400">{{ __('face_chart::face_chart.statistics.total_units') }}:</span>
+                <span class="font-semibold text-gray-900 dark:text-gray-100">{{ number_format($stats['total_units'] ?? 0, 2) }}</span>
+            </div>
+            <div class="flex gap-2">
+                <span class="text-gray-600 dark:text-gray-400">{{ __('face_chart::face_chart.statistics.appointments') }}:</span>
+                <span class="font-semibold text-gray-900 dark:text-gray-100">{{ $stats['appointments_count'] ?? 0 }}</span>
+            </div>
+        </div>
+    </div>
+
+    {{-- View Tabs (Left/Front/Right) - Centered Pill Design --}}
+    <div class="flex justify-center">
+        <div class="inline-flex bg-gray-100 dark:bg-gray-800 rounded-full p-1 shadow-sm border border-gray-200 dark:border-gray-700">
+            <button
+                @click="switchView('left')"
+                :class="currentView === 'left' ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-md' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'"
+                class="flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-semibold transition-all duration-200"
+            >
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+                {{ __('face_chart::face_chart.views.left') ?: 'Left' }}
+            </button>
+            <button
+                @click="switchView('front')"
+                :class="currentView === 'front' ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-md' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'"
+                class="flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-semibold transition-all duration-200"
+            >
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                </svg>
+                {{ __('face_chart::face_chart.views.front') ?: 'Front' }}
+            </button>
+            <button
+                @click="switchView('right')"
+                :class="currentView === 'right' ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-md' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'"
+                class="flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-semibold transition-all duration-200"
+            >
+                {{ __('face_chart::face_chart.views.right') ?: 'Right' }}
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    {{-- Canvas Area (Full width) --}}
+    <div class="w-full relative rounded-lg overflow-hidden" style="min-height: 700px; touch-action: pan-x pan-y;"
+         @wheel.prevent="handleWheelZoom($event)"
+         @touchstart="handleTouchStart($event)"
+         @touchmove.prevent="handleTouchMove($event)"
+         @touchend="handleTouchEnd($event)">
+        <div class="w-full h-full flex items-center justify-center" style="overflow: auto;">
+            <div id="canvasContainer" wire:ignore
+                 @mousedown="startPan($event)"
+                 @mousemove="doPan($event)"
+                 @mouseup="endPan()"
+                 @mouseleave="endPan()"
+                 @touchstart="startPanTouch($event)"
+                 @touchmove="doPanTouch($event)"
+                 @touchend="endPan()"
+                 :style="`position: relative; display: inline-block; transform: translate(${panX}px, ${panY}px) scale(${zoomLevel}); transform-origin: top left; transition: ${isPanning ? 'none' : 'transform 0.1s'}; cursor: ${panMode ? (isPanning ? 'grabbing' : 'grab') : 'default'};`">
                 <!-- Background Image (HTML layer behind canvas) - will be sized by JS -->
                 <img
                     id="faceBackgroundImage"
-                    src="{{ asset(config('face_chart.face_2d_image_path')) }}"
-                    style="position: absolute; top: 0; left: 0; object-fit: contain; pointer-events: none; z-index: 1; display: block;"
+                    :src="viewImages[currentView]"
+                    :style="`position: absolute; top: 0; left: 0; object-fit: fill; pointer-events: none; z-index: 1; display: block; visibility: ${imageLoading ? 'hidden' : 'visible'};`"
                     alt="Face diagram"
                 />
 
                 <!-- Transparent Canvas layer on top -->
                 <canvas
                     id="faceChart2DCanvas"
-                    class="shadow-lg rounded border border-gray-300 dark:border-gray-600"
                     style="position: relative; display: block; z-index: 2; background: transparent;">
                 </canvas>
             </div>
+        </div>
+
+        {{-- Zoom Controls --}}
+        <div class="absolute bottom-4 right-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-2 flex flex-col gap-1" style="z-index: 50;">
+            <button
+                @click="zoomIn()"
+                class="w-10 h-10 rounded flex items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:opacity-80 transition"
+                title="Zoom In"
+            >
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m-3-3h6" />
+                </svg>
+            </button>
+            <div class="text-xs text-center text-gray-600 dark:text-gray-400 py-1" x-text="Math.round(zoomLevel * 100) + '%'"></div>
+            <button
+                @click="zoomOut()"
+                class="w-10 h-10 rounded flex items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:opacity-80 transition"
+                title="Zoom Out"
+            >
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM7 10h6" />
+                </svg>
+            </button>
+            <button
+                @click="panMode = !panMode"
+                :class="panMode ? 'bg-primary-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'"
+                class="w-10 h-10 rounded flex items-center justify-center hover:opacity-80 transition"
+                title="Pan Mode (drag to move)"
+            >
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 7.5h-.75A2.25 2.25 0 004.5 9.75v7.5a2.25 2.25 0 002.25 2.25h7.5a2.25 2.25 0 002.25-2.25v-7.5a2.25 2.25 0 00-2.25-2.25h-.75m0-3l-3-3m0 0l-3 3m3-3v11.25m6-2.25h.75a2.25 2.25 0 012.25 2.25v7.5a2.25 2.25 0 01-2.25 2.25h-7.5a2.25 2.25 0 01-2.25-2.25v-.75" />
+                </svg>
+            </button>
+            <button
+                @click="resetZoom()"
+                class="w-10 h-10 rounded flex items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:opacity-80 transition"
+                title="Reset Zoom & Position"
+            >
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+            </button>
         </div>
 
         {{-- Toolbar (if editing) --}}
@@ -81,6 +272,17 @@
             >
                 <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+                </svg>
+            </button>
+
+            <button
+                @click="panMode = !panMode; if (panMode && fabricCanvas) { fabricCanvas.isDrawingMode = false; fabricCanvas.selection = false; }"
+                :class="panMode ? 'bg-primary-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'"
+                class="w-10 h-10 rounded flex items-center justify-center hover:opacity-80 transition"
+                title="Pan (drag to move)"
+            >
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 7.5h-.75A2.25 2.25 0 004.5 9.75v7.5a2.25 2.25 0 002.25 2.25h7.5a2.25 2.25 0 002.25-2.25v-7.5a2.25 2.25 0 00-2.25-2.25h-.75m0-3l-3-3m0 0l-3 3m3-3v11.25m6-2.25h.75a2.25 2.25 0 012.25 2.25v7.5a2.25 2.25 0 01-2.25 2.25h-7.5a2.25 2.25 0 01-2.25-2.25v-.75" />
                 </svg>
             </button>
 
@@ -173,111 +375,86 @@
         </div>
     </div>
 
-    {{-- Sidebar (30%) --}}
-    <div class="w-80 flex-shrink-0 space-y-4 overflow-y-auto">
-        {{-- Filters --}}
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-            <h3 class="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">
-                {{ __('face_chart::face_chart.filters.title') }}
-            </h3>
+    {{-- Marker Wizard Modal --}}
+    @if($showMarkerWizard)
+    <div class="fixed inset-0 bg-black/50 flex items-center justify-center" style="z-index: 100;" wire:key="marker-wizard-modal">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Add Injection Point</h3>
+                <button wire:click="cancelMarkerWizard" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
 
-            <div class="space-y-3">
+            <div class="space-y-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        {{ __('face_chart::face_chart.filters.date_from') }}
-                    </label>
-                    <input
-                        type="date"
-                        wire:model.defer="filterDateFrom"
-                        class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-                    >
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        {{ __('face_chart::face_chart.filters.date_to') }}
-                    </label>
-                    <input
-                        type="date"
-                        wire:model.defer="filterDateTo"
-                        class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-                    >
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        {{ __('face_chart::face_chart.filters.region') }}
+                        Consumable Product <span class="text-red-500">*</span>
                     </label>
                     <select
-                        wire:model.defer="filterRegion"
+                        wire:model="wizardProductId"
                         class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                     >
-                        <option value="">{{ __('face_chart::face_chart.filters.all_regions') }}</option>
-                        @foreach($regions as $region)
-                            <option value="{{ $region }}">
-                                {{ __("face_chart::face_chart.regions.{$region}") }}
+                        <option value="">-- Select a product --</option>
+                        @foreach($availableConsumables as $product)
+                            <option value="{{ $product['id'] }}">
+                                {{ $product['name'] }} ({{ $product['price'] }})
                             </option>
                         @endforeach
                     </select>
+                    @error('wizardProductId')
+                        <p class="text-sm text-red-500 mt-1">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        {{ __('face_chart::face_chart.filters.type') }}
+                        Quantity <span class="text-red-500">*</span>
                     </label>
-                    <select
-                        wire:model.defer="filterType"
+                    <input
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        wire:model="wizardQty"
                         class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-                    >
-                        <option value="">{{ __('face_chart::face_chart.filters.all_types') }}</option>
-                        @foreach($markerTypes as $type)
-                            <option value="{{ $type }}">
-                                {{ __("face_chart::face_chart.marker_types.{$type}") }}
-                            </option>
-                        @endforeach
-                    </select>
+                    />
                 </div>
 
-                <div class="flex gap-2">
-                    <button
-                        wire:click="applyFilters"
-                        class="flex-1 bg-primary-500 text-white rounded-md px-4 py-2 hover:bg-primary-600 transition"
-                    >
-                        {{ __('face_chart::face_chart.filters.apply') }}
-                    </button>
-                    <button
-                        wire:click="clearFilters"
-                        class="flex-1 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-md px-4 py-2 hover:bg-gray-400 dark:hover:bg-gray-500 transition"
-                    >
-                        {{ __('face_chart::face_chart.filters.clear') }}
-                    </button>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Notes
+                    </label>
+                    <textarea
+                        wire:model="wizardNotes"
+                        rows="2"
+                        class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                        placeholder="Optional notes about this injection point"
+                    ></textarea>
                 </div>
             </div>
-        </div>
 
-        {{-- Statistics --}}
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-            <h3 class="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">
-                {{ __('face_chart::face_chart.statistics.title') }}
-            </h3>
-
-            <div class="space-y-2 text-sm">
-                <div class="flex justify-between">
-                    <span class="text-gray-600 dark:text-gray-400">{{ __('face_chart::face_chart.statistics.total_markers') }}</span>
-                    <span class="font-semibold text-gray-900 dark:text-gray-100">{{ $stats['total_markers'] ?? 0 }}</span>
-                </div>
-                <div class="flex justify-between">
-                    <span class="text-gray-600 dark:text-gray-400">{{ __('face_chart::face_chart.statistics.total_units') }}</span>
-                    <span class="font-semibold text-gray-900 dark:text-gray-100">{{ number_format($stats['total_units'] ?? 0, 2) }}</span>
-                </div>
-                <div class="flex justify-between">
-                    <span class="text-gray-600 dark:text-gray-400">{{ __('face_chart::face_chart.statistics.appointments') }}</span>
-                    <span class="font-semibold text-gray-900 dark:text-gray-100">{{ $stats['appointments_count'] ?? 0 }}</span>
-                </div>
+            <div class="flex justify-end gap-2 mt-6">
+                <button
+                    wire:click="cancelMarkerWizard"
+                    class="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-300 transition"
+                >
+                    Cancel
+                </button>
+                <button
+                    wire:click="confirmMarkerWizard"
+                    class="px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 transition"
+                >
+                    Add Marker
+                </button>
             </div>
         </div>
+    </div>
+    @endif
 
-        {{-- Marker List --}}
+    {{-- Marker List (Below canvas) --}}
+    <div class="w-full">
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
             <h3 class="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">
                 {{ __('face_chart::face_chart.2d.markers_list') }}
@@ -344,6 +521,171 @@ Alpine.data('faceChart2DComponent', () => ({
     previewArrow: null, // Live preview arrow during drag
     drawingColor: '#FF0000', // Default red
     strokeWidth: 3, // Default stroke width
+    zoomLevel: 1, // Current zoom level (1 = 100%)
+    minZoom: 0.5,
+    maxZoom: 3,
+    zoomStep: 0.2,
+    panX: 0,
+    panY: 0,
+    panMode: false,
+    isPanning: false,
+    panStartX: 0,
+    panStartY: 0,
+    panOriginX: 0,
+    panOriginY: 0,
+
+    startPan(event) {
+        if (!this.panMode) return;
+        event.preventDefault();
+        event.stopPropagation();
+        this.isPanning = true;
+        this.panStartX = event.clientX;
+        this.panStartY = event.clientY;
+        this.panOriginX = this.panX;
+        this.panOriginY = this.panY;
+    },
+
+    doPan(event) {
+        if (!this.isPanning) return;
+        event.preventDefault();
+        const dx = event.clientX - this.panStartX;
+        const dy = event.clientY - this.panStartY;
+        this.panX = this.panOriginX + dx;
+        this.panY = this.panOriginY + dy;
+    },
+
+    endPan() {
+        this.isPanning = false;
+    },
+
+    startPanTouch(event) {
+        if (!this.panMode || event.touches.length !== 1) return;
+        this.isPanning = true;
+        this.panStartX = event.touches[0].clientX;
+        this.panStartY = event.touches[0].clientY;
+        this.panOriginX = this.panX;
+        this.panOriginY = this.panY;
+    },
+
+    doPanTouch(event) {
+        if (!this.isPanning || event.touches.length !== 1) return;
+        event.preventDefault();
+        const dx = event.touches[0].clientX - this.panStartX;
+        const dy = event.touches[0].clientY - this.panStartY;
+        this.panX = this.panOriginX + dx;
+        this.panY = this.panOriginY + dy;
+    },
+    currentView: 'front', // front, left, right
+    imageLoading: false,
+    viewImages: @js([
+        'front' => asset(config('face_chart.face_2d_images.front')),
+        'left' => asset(config('face_chart.face_2d_images.left')),
+        'right' => asset(config('face_chart.face_2d_images.right')),
+    ]),
+
+    switchView(view) {
+        if (this.currentView === view) return;
+
+        this.imageLoading = true; // Hide image until sized correctly
+        this.currentView = view;
+        this.zoomLevel = 1;
+
+        // Clear existing markers on canvas immediately
+        if (this.fabricCanvas) {
+            this.fabricCanvas.clear();
+            this.fabricCanvas.renderAll();
+        }
+
+        // Call Livewire to update markers list server-side, then rebuild canvas
+        const rebuildCanvas = () => {
+            // Read updated markers from Livewire state
+            if (this.$wire && this.$wire.$get) {
+                this.config.markers = this.$wire.$get('markers') || [];
+            }
+
+            // Wait for new image to load (naturalWidth matches new image)
+            const bgImage = document.getElementById('faceBackgroundImage');
+            if (!bgImage) return;
+
+            const doRebuild = () => {
+                if (this.fabricCanvas) {
+                    this.fabricCanvas.dispose();
+                    this.fabricCanvas = null;
+                    this.initialized = false;
+                }
+                this.setupFabricCanvas();
+            };
+
+            if (bgImage.complete && bgImage.naturalWidth > 0) {
+                doRebuild();
+            } else {
+                bgImage.addEventListener('load', doRebuild, { once: true });
+            }
+        };
+
+        if (this.$wire) {
+            // Call Livewire and wait for response (returns filtered markers), then rebuild
+            this.$wire.call('onSwitchView', view).then((markers) => {
+                this.config.markers = markers || [];
+                console.log('🔄 View switched to', view, ', markers:', this.config.markers.length);
+                rebuildCanvas();
+            });
+        } else {
+            rebuildCanvas();
+        }
+    },
+
+    zoomIn() {
+        this.zoomLevel = Math.min(this.maxZoom, this.zoomLevel + this.zoomStep);
+    },
+
+    zoomOut() {
+        this.zoomLevel = Math.max(this.minZoom, this.zoomLevel - this.zoomStep);
+    },
+
+    resetZoom() {
+        this.zoomLevel = 1;
+        this.panX = 0;
+        this.panY = 0;
+    },
+
+    handleWheelZoom(event) {
+        const delta = event.deltaY > 0 ? -this.zoomStep : this.zoomStep;
+        const newZoom = this.zoomLevel + delta;
+        this.zoomLevel = Math.max(this.minZoom, Math.min(this.maxZoom, newZoom));
+    },
+
+    // Touch/Pinch zoom state
+    initialPinchDistance: 0,
+    initialPinchZoom: 1,
+
+    getPinchDistance(touches) {
+        const dx = touches[0].clientX - touches[1].clientX;
+        const dy = touches[0].clientY - touches[1].clientY;
+        return Math.sqrt(dx * dx + dy * dy);
+    },
+
+    handleTouchStart(event) {
+        if (event.touches.length === 2) {
+            this.initialPinchDistance = this.getPinchDistance(event.touches);
+            this.initialPinchZoom = this.zoomLevel;
+        }
+    },
+
+    handleTouchMove(event) {
+        if (event.touches.length === 2 && this.initialPinchDistance > 0) {
+            const currentDistance = this.getPinchDistance(event.touches);
+            const scale = currentDistance / this.initialPinchDistance;
+            const newZoom = this.initialPinchZoom * scale;
+            this.zoomLevel = Math.max(this.minZoom, Math.min(this.maxZoom, newZoom));
+        }
+    },
+
+    handleTouchEnd(event) {
+        if (event.touches.length < 2) {
+            this.initialPinchDistance = 0;
+        }
+    },
     config: @js([
         'patientId' => $patientId,
         'appointmentId' => $appointmentId,
@@ -354,6 +696,13 @@ Alpine.data('faceChart2DComponent', () => ({
 
     startInitCheck() {
         console.log('🎨 Component mounted, starting initialization check...');
+
+        // Preload all view images so switching is instant
+        Object.values(this.viewImages).forEach(src => {
+            const img = new Image();
+            img.src = src;
+        });
+
         const checkInterval = setInterval(() => {
             const el = document.getElementById('faceChart2DCanvas');
             if (el && el.offsetParent !== null && typeof fabric !== 'undefined') {
@@ -362,6 +711,17 @@ Alpine.data('faceChart2DComponent', () => ({
                 this.initCanvas();
             }
         }, 100);
+
+        // Listen for markers update from Livewire
+        this.$wire.on('markersLoaded', (data) => {
+            console.log('📥 Markers updated from Livewire:', data);
+            this.config.markers = data.markers || data[0]?.markers || [];
+            if (this.fabricCanvas) {
+                // Remove all existing markers from canvas and reload
+                this.clearCanvas();
+                this.loadMarkers();
+            }
+        });
     },
 
     triggerInit() {
@@ -414,8 +774,8 @@ Alpine.data('faceChart2DComponent', () => ({
 
         console.log('✅ Fabric.js loaded, version:', fabric.version);
 
-        // Get parent container that should have the flex-1 class (the main canvas area)
-        const canvasArea = canvasEl.closest('.flex-1');
+        // Get parent canvas area container
+        const canvasArea = canvasEl.closest('[class*="rounded-lg"]') || canvasEl.parentElement.parentElement;
         const container = document.getElementById('canvasContainer');
 
         const areaWidth = canvasArea ? canvasArea.offsetWidth : 0;
@@ -433,18 +793,48 @@ Alpine.data('faceChart2DComponent', () => ({
             return;
         }
 
-        // Use the smaller of area dimensions, capped at 800
-        const canvasSize = Math.min(areaWidth - 40, areaHeight - 40, 800); // -40 for padding
-        console.log('📐 Canvas size will be:', canvasSize, 'x', canvasSize);
+        // Match canvas to image's natural aspect ratio
+        const bgImage = document.getElementById('faceBackgroundImage');
+        const maxSize = {{ config('face_chart.face_2d_canvas_max_width', 1200) }};
+
+        // Wait for image to load to get natural dimensions
+        if (bgImage && !bgImage.naturalWidth) {
+            console.log('⏳ Waiting for background image to load...');
+            bgImage.onload = () => this.setupFabricCanvas();
+            return;
+        }
+
+        const imgAspect = bgImage && bgImage.naturalHeight ? (bgImage.naturalWidth / bgImage.naturalHeight) : 1;
+        let canvasWidth, canvasHeight;
+
+        if (imgAspect >= 1) {
+            // Landscape image: constrain by width
+            canvasWidth = Math.min(areaWidth, maxSize);
+            canvasHeight = canvasWidth / imgAspect;
+            if (canvasHeight > areaHeight) {
+                canvasHeight = areaHeight;
+                canvasWidth = canvasHeight * imgAspect;
+            }
+        } else {
+            // Portrait image: constrain by height
+            canvasHeight = Math.min(areaHeight, maxSize);
+            canvasWidth = canvasHeight * imgAspect;
+            if (canvasWidth > areaWidth) {
+                canvasWidth = areaWidth;
+                canvasHeight = canvasWidth / imgAspect;
+            }
+        }
+
+        console.log('📐 Canvas size will be:', canvasWidth, 'x', canvasHeight, '(aspect:', imgAspect, ')');
 
         // Update canvas element size
-        canvasEl.width = canvasSize;
-        canvasEl.height = canvasSize;
+        canvasEl.width = canvasWidth;
+        canvasEl.height = canvasHeight;
 
         // Initialize canvas with transparent background
         this.fabricCanvas = new fabric.Canvas('faceChart2DCanvas', {
-            width: canvasSize,
-            height: canvasSize,
+            width: canvasWidth,
+            height: canvasHeight,
             selection: this.config.isEditing,
             backgroundColor: null, // Transparent - HTML img shows through
         });
@@ -461,13 +851,16 @@ Alpine.data('faceChart2DComponent', () => ({
             console.log('🔧 Fixed canvas wrapper positioning and z-index');
         }
 
-        // Set background image to exact same size as canvas
-        const bgImage = document.getElementById('faceBackgroundImage');
+        // Set background image to exact same size as canvas (fills since aspect matches)
         if (bgImage) {
-            bgImage.style.width = canvasSize + 'px';
-            bgImage.style.height = canvasSize + 'px';
-            console.log('✅ Background image set to', canvasSize, 'x', canvasSize);
+            bgImage.style.width = canvasWidth + 'px';
+            bgImage.style.height = canvasHeight + 'px';
+            bgImage.style.objectFit = 'fill';
+            console.log('✅ Background image set to', canvasWidth, 'x', canvasHeight);
         }
+
+        // Image is sized correctly, show it now
+        this.imageLoading = false;
 
         // Container will auto-size to fit the canvas (inline-block)
         console.log('📦 Container will auto-size to canvas dimensions');
@@ -513,6 +906,7 @@ Alpine.data('faceChart2DComponent', () => ({
     selectTool(tool) {
         console.log('🔧 Tool selected:', tool);
         this.selectedTool = tool;
+        this.panMode = false; // Disable pan when any drawing tool is selected
 
         // Only configure canvas if it exists
         if (!this.fabricCanvas) {
@@ -582,54 +976,16 @@ Alpine.data('faceChart2DComponent', () => ({
     },
 
     addMarker(canvasX, canvasY, normalizedX, normalizedY) {
-        console.log('📍 Adding marker at', canvasX, canvasY);
+        console.log('📍 Opening marker wizard at', canvasX, canvasY);
 
-        const markerSize = Math.max(6, parseInt(this.strokeWidth) + 4);
-        const marker = new fabric.Circle({
-            left: canvasX,
-            top: canvasY,
-            radius: markerSize,
-            fill: this.drawingColor,
-            stroke: '#FFFFFF',
-            strokeWidth: 2,
-            originX: 'center',
-            originY: 'center',
-            selectable: false, // Only selectable with select tool
-            evented: false,
-            hasControls: false,
-            hasBorders: true,
-        });
-
-        marker.normalizedX = normalizedX;
-        marker.normalizedY = normalizedY;
-        marker.markerType = 'injection_point';
-
-        this.fabricCanvas.add(marker);
-        this.fabricCanvas.renderAll();
-
-        // Notify Livewire to save marker
-        console.log('💾 Saving marker to Livewire...', {
-            x: normalizedX,
-            y: normalizedY,
-            type: 'marker',
-            color: this.drawingColor,
-            isEditing: this.config.isEditing,
-            appointmentId: this.config.appointmentId
-        });
-
+        // Send to Livewire - it opens the wizard instead of saving directly
         if (this.$wire) {
             this.$wire.canvasClick({
                 x: normalizedX,
                 y: normalizedY,
                 type: 'marker',
                 color: this.drawingColor
-            }).then(() => {
-                console.log('✅ Marker saved successfully');
-            }).catch((error) => {
-                console.error('❌ Error saving marker:', error);
             });
-        } else {
-            console.error('❌ $wire not available!');
         }
     },
 

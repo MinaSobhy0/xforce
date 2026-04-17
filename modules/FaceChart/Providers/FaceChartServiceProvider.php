@@ -5,6 +5,8 @@ namespace Modules\FaceChart\Providers;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
 use Modules\FaceChart\Livewire\FaceChart3D;
+use Modules\FaceChart\Livewire\FaceChart2D;
+use Modules\FaceChart\Livewire\FaceChartViewer;
 use Modules\FaceChart\Services\FaceChartService;
 
 class FaceChartServiceProvider extends ServiceProvider
@@ -43,6 +45,8 @@ class FaceChartServiceProvider extends ServiceProvider
     protected function registerLivewireComponents(): void
     {
         Livewire::component('face_chart::face-chart-3d', FaceChart3D::class);
+        Livewire::component('face_chart::face-chart-2d', FaceChart2D::class);
+        Livewire::component('face_chart::face-chart-viewer', FaceChartViewer::class);
     }
 
     /**

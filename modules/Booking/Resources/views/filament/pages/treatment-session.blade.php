@@ -1878,6 +1878,32 @@
             </x-filament::section>
         @endif
 
+        {{-- 3D Face Chart Section --}}
+        @if($patient)
+            <x-filament::section>
+                <x-slot name="heading">
+                    <div class="flex items-center gap-2">
+                        <x-heroicon-o-cube-transparent class="w-5 h-5 text-primary-500" />
+                        {{ __('face_chart::face_chart.title') }}
+                        @php
+                            $markerCount = $patient->faceChartMarkers()->count();
+                        @endphp
+                        @if($markerCount > 0)
+                            <span class="text-xs text-gray-500">({{ $markerCount }} {{ __('face_chart::face_chart.plural') }})</span>
+                        @endif
+                    </div>
+                </x-slot>
+
+                <div class="min-h-[600px] w-full" style="width: 100%;">
+                    @livewire('face_chart::face-chart-viewer', [
+                        'patientId' => $patient->id,
+                        'appointmentId' => $appointment?->id,
+                        'editMode' => !$this->isViewMode(),
+                    ], key('face-chart-' . $patient->id))
+                </div>
+            </x-filament::section>
+        @endif
+
         {{-- Previous Sessions Section --}}
         @php $previousSessions = $this->getPreviousServiceSessions(); @endphp
         @if($previousSessions->isNotEmpty())

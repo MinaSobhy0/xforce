@@ -8,6 +8,7 @@ use Filament\Forms\Form;
 use Filament\Forms;
 use Filament\Pages\Auth\Login as BaseLogin;
 use Filament\Http\Responses\Auth\Contracts\LoginResponse;
+use Modules\PatientPortal\Http\Responses\PortalLoginResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 use Modules\Patients\Models\Patient;
@@ -244,14 +245,19 @@ class PortalLogin extends BaseLogin
 
     protected function sendOtpToPatient(Patient $patient, string $phone): void
     {
-        // Generate and send OTP
+        // Generate and send OTP (pass normalized phone with country code)
         $otpService = app(OtpService::class);
-        $result = $otpService->generateAndSend($patient);
+        $result = $otpService->generateAndSend($patient, $phone);
 
         if ($result['success']) {
             $this->otpSent = true;
             $this->pendingPhone = $phone;
 
+            Notification::make()
+                ->title(__('patientportal::portal.otp_sent'))
+                ->body(__('patientportal::portal.check_phone'))
+                ->success()
+                ->send();
         } else {
             Notification::make()
                 ->title(__('patientportal::portal.otp_send_failed'))
@@ -314,9 +320,7 @@ class PortalLogin extends BaseLogin
 
         Auth::guard('patient')->login($patient, true);
 
-        session()->regenerate();
-
-        return app(LoginResponse::class);
+        return new PortalLoginResponse();
     }
 
     public function resendOtp(): void

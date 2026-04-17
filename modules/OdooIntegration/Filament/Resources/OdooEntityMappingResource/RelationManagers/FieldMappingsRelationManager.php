@@ -31,9 +31,9 @@ class FieldMappingsRelationManager extends RelationManager
 
                         Forms\Components\TextInput::make('odoo_field')
                             ->label(__('odoo-integration::odoo.fields.odoo_field'))
-                            ->required()
+                            ->required(fn (Forms\Get $get) => empty($get('default_value')))
                             ->maxLength(255)
-                            ->helperText('The field name in Odoo (e.g., name, login, state)'),
+                            ->helperText('The field name in Odoo (leave empty if using default value only)'),
 
                         Forms\Components\Select::make('direction')
                             ->label(__('odoo-integration::odoo.fields.sync_direction'))
@@ -69,7 +69,8 @@ class FieldMappingsRelationManager extends RelationManager
 
                         Forms\Components\TextInput::make('default_value')
                             ->label(__('odoo-integration::odoo.fields.default_value'))
-                            ->helperText('Default value if source is null'),
+                            ->helperText('Default value (if set, Odoo field is optional)')
+                            ->live(onBlur: true),
                     ])
                     ->columns(2),
 
@@ -144,7 +145,6 @@ class FieldMappingsRelationManager extends RelationManager
                             ->label('Foreign Key in Pivot')
                             ->visible(fn (Forms\Get $get) => $get('transform_type') === 'many2many'),
                     ])
-                    ->collapsed()
                     ->visible(fn (Forms\Get $get) => in_array($get('transform_type'), [
                         'money', 'relation', 'enum', 'translatable', 'split_name', 'many2many'
                     ])),

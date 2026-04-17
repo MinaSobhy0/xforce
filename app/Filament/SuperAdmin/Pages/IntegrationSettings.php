@@ -35,11 +35,15 @@ class IntegrationSettings extends Page implements HasForms
     {
         $this->whatsappData = [
             'whatsapp_enabled' => (bool) PlatformSetting::get('whatsapp_enabled', false),
-            'whatsapp_provider' => PlatformSetting::get('whatsapp_provider', 'meta'),
-            'whatsapp_api_key' => PlatformSetting::get('whatsapp_api_key', ''),
-            'whatsapp_api_secret' => PlatformSetting::get('whatsapp_api_secret', ''),
-            'whatsapp_phone_number' => PlatformSetting::get('whatsapp_phone_number', ''),
-            'whatsapp_business_id' => PlatformSetting::get('whatsapp_business_id', ''),
+            'whatsapp_provider' => PlatformSetting::get('whatsapp_provider', 'twilio'),
+            // Twilio fields
+            'whatsapp_twilio_account_sid' => PlatformSetting::get('whatsapp_twilio_account_sid', ''),
+            'whatsapp_twilio_auth_token' => PlatformSetting::get('whatsapp_twilio_auth_token', ''),
+            'whatsapp_twilio_from_number' => PlatformSetting::get('whatsapp_twilio_from_number', ''),
+            // Meta fields
+            'whatsapp_meta_access_token' => PlatformSetting::get('whatsapp_meta_access_token', ''),
+            'whatsapp_meta_phone_number_id' => PlatformSetting::get('whatsapp_meta_phone_number_id', ''),
+            'whatsapp_meta_business_id' => PlatformSetting::get('whatsapp_meta_business_id', ''),
         ];
 
         $this->smsData = [
@@ -108,31 +112,50 @@ class IntegrationSettings extends Page implements HasForms
                     ->options([
                         'twilio' => 'Twilio',
                         'meta' => 'Meta (Official API)',
-                        '360dialog' => '360Dialog',
-                        'messagebird' => 'MessageBird',
                     ])
+                    ->live()
                     ->visible(fn(Forms\Get $get) => $get('whatsapp_enabled')),
 
-                Forms\Components\TextInput::make('whatsapp_api_key')
-                    ->label('API Key')
-                    ->password()
-                    ->revealable()
-                    ->visible(fn(Forms\Get $get) => $get('whatsapp_enabled')),
+                // Twilio Configuration
+                Forms\Components\Fieldset::make('Twilio Configuration')
+                    ->visible(fn(Forms\Get $get) => $get('whatsapp_enabled') && $get('whatsapp_provider') === 'twilio')
+                    ->schema([
+                        Forms\Components\TextInput::make('whatsapp_twilio_account_sid')
+                            ->label('Account SID')
+                            ->password()
+                            ->revealable()
+                            ->helperText('Your Twilio Account SID from twilio.com/console'),
 
-                Forms\Components\TextInput::make('whatsapp_api_secret')
-                    ->label('API Secret')
-                    ->password()
-                    ->revealable()
-                    ->visible(fn(Forms\Get $get) => $get('whatsapp_enabled')),
+                        Forms\Components\TextInput::make('whatsapp_twilio_auth_token')
+                            ->label('Auth Token')
+                            ->password()
+                            ->revealable()
+                            ->helperText('Your Twilio Auth Token'),
 
-                Forms\Components\TextInput::make('whatsapp_phone_number')
-                    ->label('WhatsApp Phone Number')
-                    ->placeholder('+201234567890')
-                    ->visible(fn(Forms\Get $get) => $get('whatsapp_enabled')),
+                        Forms\Components\TextInput::make('whatsapp_twilio_from_number')
+                            ->label('From Number')
+                            ->placeholder('whatsapp:+14155238886')
+                            ->helperText('Format: whatsapp:+1234567890'),
+                    ]),
 
-                Forms\Components\TextInput::make('whatsapp_business_id')
-                    ->label('Business Account ID')
-                    ->visible(fn(Forms\Get $get) => $get('whatsapp_enabled') && $get('whatsapp_provider') === 'meta'),
+                // Meta Configuration
+                Forms\Components\Fieldset::make('Meta (Official API) Configuration')
+                    ->visible(fn(Forms\Get $get) => $get('whatsapp_enabled') && $get('whatsapp_provider') === 'meta')
+                    ->schema([
+                        Forms\Components\TextInput::make('whatsapp_meta_access_token')
+                            ->label('Access Token')
+                            ->password()
+                            ->revealable()
+                            ->helperText('Your Meta WhatsApp Business API Access Token'),
+
+                        Forms\Components\TextInput::make('whatsapp_meta_phone_number_id')
+                            ->label('Phone Number ID')
+                            ->helperText('Your WhatsApp Business Phone Number ID'),
+
+                        Forms\Components\TextInput::make('whatsapp_meta_business_id')
+                            ->label('Business Account ID')
+                            ->helperText('Your Meta Business Account ID'),
+                    ]),
             ])
             ->statePath('whatsappData');
     }
@@ -400,6 +423,11 @@ class IntegrationSettings extends Page implements HasForms
         $booleanFields = ['whatsapp_enabled'];
 
         foreach ($data as $key => $value) {
+            // Skip empty values to avoid cluttering the database
+            if ($value === null || $value === '') {
+                continue;
+            }
+
             $type = in_array($key, $booleanFields) ? 'boolean' : 'string';
             PlatformSetting::set($key, $value, 'whatsapp', $type);
         }
@@ -407,8 +435,12 @@ class IntegrationSettings extends Page implements HasForms
         // Update local state
         $this->whatsappData = $data;
 
+        // Clear cache to apply new settings immediately
+        \Artisan::call('cache:clear');
+
         Notification::make()
             ->title('WhatsApp settings saved')
+            ->body('Cache cleared. Settings are now active.')
             ->success()
             ->send();
     }
@@ -419,6 +451,11 @@ class IntegrationSettings extends Page implements HasForms
         $booleanFields = ['sms_enabled'];
 
         foreach ($data as $key => $value) {
+            // Skip empty values to avoid cluttering the database
+            if ($value === null || $value === '') {
+                continue;
+            }
+
             $type = in_array($key, $booleanFields) ? 'boolean' : 'string';
             PlatformSetting::set($key, $value, 'sms', $type);
         }
@@ -426,8 +463,12 @@ class IntegrationSettings extends Page implements HasForms
         // Update local state
         $this->smsData = $data;
 
+        // Clear cache to apply new settings immediately
+        \Artisan::call('cache:clear');
+
         Notification::make()
             ->title('SMS settings saved')
+            ->body('Cache cleared. Settings are now active.')
             ->success()
             ->send();
     }

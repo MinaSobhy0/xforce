@@ -354,6 +354,14 @@ class Patient extends BaseModel implements Authenticatable
     }
 
     /**
+     * Get the patient's face chart markers.
+     */
+    public function faceChartMarkers(): HasMany
+    {
+        return $this->hasMany(\Modules\FaceChart\Models\FaceChartMarker::class);
+    }
+
+    /**
      * Get the patient's loyalty transactions.
      */
     public function loyaltyTransactions(): HasMany

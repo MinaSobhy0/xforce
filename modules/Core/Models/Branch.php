@@ -23,6 +23,7 @@ class Branch extends BaseModel
 
     protected $fillable = [
         'tenant_id',
+        'odoo_id',
         'name',
         'code',
         'address',
@@ -39,6 +40,7 @@ class Branch extends BaseModel
         'is_active',
         'is_main',
         'sort_order',
+        'odoo_synced_at',
     ];
 
     protected $casts = [
@@ -49,6 +51,7 @@ class Branch extends BaseModel
         'is_active' => 'boolean',
         'is_main' => 'boolean',
         'sort_order' => 'integer',
+        'odoo_synced_at' => 'datetime',
     ];
 
     /**

@@ -15,6 +15,7 @@ class ProjectStage extends BaseModel
 
     protected $fillable = [
         'tenant_id',
+        'odoo_id',
         'project_id',
         'name',
         'status_type',
@@ -22,6 +23,7 @@ class ProjectStage extends BaseModel
         'color',
         'fold_by_default',
         'is_final',
+        'odoo_synced_at',
     ];
 
     protected $casts = [
@@ -29,6 +31,7 @@ class ProjectStage extends BaseModel
         'sort_order' => 'integer',
         'fold_by_default' => 'boolean',
         'is_final' => 'boolean',
+        'odoo_synced_at' => 'datetime',
     ];
 
     // Status type constants

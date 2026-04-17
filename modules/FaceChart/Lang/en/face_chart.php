@@ -179,4 +179,10 @@ return [
         'total_units' => 'Total Units',
         'appointments' => 'Appointments',
     ],
+
+    'views' => [
+        'front' => 'Front',
+        'left' => 'Left',
+        'right' => 'Right',
+    ],
 ];

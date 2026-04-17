@@ -19,3 +19,8 @@ Route::post('/portal/logout', function () {
     request()->session()->regenerateToken();
     return redirect('/portal/login');
 })->name('portal.logout')->middleware('web');
+
+// Dummy route for email verification (we don't use email verification in portal)
+Route::get('/portal/email-verification', function () {
+    return redirect('/portal');
+})->name('filament.portal.auth.email-verification.prompt')->middleware('web');

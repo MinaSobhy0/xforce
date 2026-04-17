@@ -227,7 +227,21 @@ class ViewTenant extends BaseViewRecord
 
                         $url = "https://{$this->record->slug}.xforcehr.com/admin/impersonate?token={$token}&user={$data['user_id']}";
 
-                        $this->js("window.open('{$url}', '_blank')");
+                        // Try to open new tab via JS; browsers may block this
+                        // so we also provide a clickable link in the notification
+                        $this->js(<<<JS
+                            const newWindow = window.open('{$url}', '_blank');
+                            if (!newWindow || newWindow.closed) {
+                                alert('Popup blocked! Please click the link in the notification to open.');
+                            }
+                        JS);
+
+                        Notification::make()
+                            ->title('Login link generated')
+                            ->body("If a new tab didn't open automatically, <a href='{$url}' target='_blank' class='underline text-primary-600 font-semibold'>click here to open</a> (expires in 5 minutes).")
+                            ->success()
+                            ->persistent()
+                            ->send();
 
                     } catch (\Exception $e) {
                         DB::statement("SET search_path TO public");

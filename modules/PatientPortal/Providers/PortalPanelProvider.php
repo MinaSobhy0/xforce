@@ -20,6 +20,7 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Modules\PatientPortal\Filament\Pages\PortalDashboard;
 use Modules\PatientPortal\Filament\Pages\Auth\PortalLogin;
 use Modules\PatientPortal\Http\Middleware\EnsurePatientAuthenticated;
+use App\Http\Middleware\IdentifyTenant;
 
 class PortalPanelProvider extends PanelProvider
 {
@@ -50,6 +51,7 @@ class PortalPanelProvider extends PanelProvider
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
                 StartSession::class,
+                IdentifyTenant::class,
                 AuthenticateSession::class,
                 ShareErrorsFromSession::class,
                 VerifyCsrfToken::class,

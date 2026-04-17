@@ -66,10 +66,13 @@ class FaceChartMarker extends BaseModel
         'treatment_plan_item_id',
         'appointment_id',
         'service_id',
+        'product_id',
+        'session_consumable_id',
         'service_category_id',
         'x',
         'y',
         'z',
+        'view_type',
         'direction_x',
         'direction_y',
         'direction_z',
@@ -85,6 +88,8 @@ class FaceChartMarker extends BaseModel
         'color',
         'size',
         'notes',
+        'annotation_text',
+        'annotation_style',
         'metadata',
         'performed_by',
         'performed_at',
@@ -106,6 +111,7 @@ class FaceChartMarker extends BaseModel
         'arrow_end_z' => 'decimal:6',
         'units' => 'decimal:2',
         'size' => 'decimal:2',
+        'annotation_style' => 'array',
         'metadata' => 'array',
         'performed_at' => 'date',
     ];
@@ -140,6 +146,22 @@ class FaceChartMarker extends BaseModel
     public function service(): BelongsTo
     {
         return $this->belongsTo(\Modules\Services\Models\Service::class);
+    }
+
+    /**
+     * Get the product (consumable) linked to this marker.
+     */
+    public function product(): BelongsTo
+    {
+        return $this->belongsTo(\Modules\Inventory\Models\Product::class);
+    }
+
+    /**
+     * Get the session consumable record linked to this marker.
+     */
+    public function sessionConsumable(): BelongsTo
+    {
+        return $this->belongsTo(\Modules\Booking\Models\SessionConsumable::class);
     }
 
     /**
@@ -236,6 +258,7 @@ class FaceChartMarker extends BaseModel
             'categoryId' => $this->service_category_id,
             'categoryName' => $this->serviceCategory?->translated_name ?? $this->service?->category?->translated_name,
             // Marker details
+            'viewType' => $this->view_type ?? '3d',
             'region' => $this->face_region,
             'type' => $this->marker_type,
             'product' => $this->product_name,
@@ -243,6 +266,8 @@ class FaceChartMarker extends BaseModel
             'units' => $this->units ? (float) $this->units : null,
             'unitType' => $this->unit_type,
             'notes' => $this->notes,
+            'annotationText' => $this->annotation_text,
+            'annotationStyle' => $this->annotation_style,
             // Service info
             'serviceId' => $this->service_id,
             'serviceName' => $this->service?->translated_name,
@@ -331,5 +356,13 @@ class FaceChartMarker extends BaseModel
     public function scopeLatestFirst($query)
     {
         return $query->orderByDesc('performed_at')->orderByDesc('created_at');
+    }
+
+    /**
+     * Scope: Filter by view type (3d or 2d).
+     */
+    public function scopeForView($query, string $viewType)
+    {
+        return $query->where('view_type', $viewType);
     }
 }

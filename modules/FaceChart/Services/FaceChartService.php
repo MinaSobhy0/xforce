@@ -47,9 +47,10 @@ class FaceChartService
         ?int $currentAppointmentId = null,
         ?string $dateFrom = null,
         ?string $dateTo = null,
-        ?string $region = null
+        ?string $region = null,
+        ?string $markerType = null
     ): array {
-        $markers = $this->getPatientMarkers($patientId, $dateFrom, $dateTo, $region);
+        $markers = $this->getPatientMarkers($patientId, $dateFrom, $dateTo, $region, $markerType);
 
         return $markers->map(function (FaceChartMarker $marker) use ($currentAppointmentId) {
             $data = $marker->toMarkerData();

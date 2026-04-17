@@ -5,6 +5,8 @@ namespace Modules\PatientPortal\Providers;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Gate;
 use Modules\PatientPortal\Services\OtpService;
+use Filament\Http\Responses\Auth\Contracts\LoginResponse as LoginResponseContract;
+use Modules\PatientPortal\Http\Responses\PortalLoginResponse;
 
 class PatientPortalServiceProvider extends ServiceProvider
 {
