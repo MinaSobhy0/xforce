@@ -622,13 +622,17 @@ class FaceChart2D extends Component
         }
 
         // Save free-hand drawing path
-        $markerData = array_merge($data, [
+        $markerData = [
             'patient_id' => $this->patientId,
             'appointment_id' => $this->appointmentId,
             'view_type' => '2d_' . $this->currentView,
+            'x' => $data['x'] ?? 0,
+            'y' => $data['y'] ?? 0,
             'z' => 0,
             'marker_type' => 'marking',
-        ]);
+            'color' => $data['color'] ?? '#FF0000',
+            'metadata' => $data['metadata'] ?? null,
+        ];
 
         $this->faceChartService->createMarker($markerData);
         $this->loadMarkers();

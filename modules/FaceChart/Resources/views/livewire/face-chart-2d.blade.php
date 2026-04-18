@@ -585,15 +585,27 @@
             @else
                 <div class="space-y-2 max-h-96 overflow-y-auto">
                     @foreach($injectionMarkers as $marker)
+                        @php $isPrevious = empty($marker['isEditable']); @endphp
                         <div
                             @click="highlightMarker({{ $marker['id'] }})"
-                            class="border border-gray-200 dark:border-gray-700 rounded p-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition cursor-pointer"
+                            class="border rounded p-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition cursor-pointer
+                                   {{ $isPrevious ? 'border-amber-200 bg-amber-50/50 dark:border-amber-900/40 dark:bg-amber-900/10' : 'border-gray-200 dark:border-gray-700' }}"
                         >
                             <div class="flex justify-between items-start">
                                 <div class="flex-1">
-                                    <div class="font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                                    <div class="font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2 flex-wrap">
                                         <span class="inline-block w-3 h-3 rounded-full flex-shrink-0" style="background-color: {{ $marker['color'] ?? '#FF0000' }};"></span>
-                                        {{ $marker['product'] ?? __('face_chart::face_chart.2d.unnamed_marker') }}
+                                        <span>{{ $marker['product'] ?? __('face_chart::face_chart.2d.unnamed_marker') }}</span>
+                                        @if($isPrevious)
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium rounded-full whitespace-nowrap"
+                                                  style="background-color: #fef3c7; color: #92400e;"
+                                                  title="{{ $marker['performedAt'] ?? '' }}">
+                                                <svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                                </svg>
+                                                Previous Session@if(!empty($marker['performedAt'])) · {{ $marker['performedAt'] }}@endif
+                                            </span>
+                                        @endif
                                     </div>
                                     @if($marker['annotationText'])
                                         <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">
@@ -637,7 +649,7 @@ Alpine.data('faceChart2DComponent', () => ({
     fabricCanvas: null,
     backgroundImage: null, // Store reference to background
     initialized: false,
-    selectedTool: 'marker', // marker, text, arrow, pen, select, eraser
+    selectedTool: null, // null = no tool, or: marker, text, arrow, pen, select, eraser
     isDrawingArrow: false,
     arrowStartPoint: null,
     previewArrow: null, // Live preview arrow during drag
@@ -1005,8 +1017,8 @@ Alpine.data('faceChart2DComponent', () => ({
         // Load existing markers
         this.loadMarkers();
 
-        // Set default tool now that canvas is ready
-        this.selectTool('marker');
+        // Start with no tool selected — user must pick one explicitly
+        this.selectTool(null);
 
         // Watch for color/size changes to update pen brush in real-time
         this.$watch('drawingColor', (color) => {
@@ -1028,6 +1040,17 @@ Alpine.data('faceChart2DComponent', () => ({
 
     selectTool(tool) {
         console.log('🔧 Tool selected:', tool);
+
+        // Before switching, exit any text that's currently in editing mode so we
+        // don't leave placeholder opacity, cursor, or border artifacts behind.
+        if (this.fabricCanvas) {
+            this.fabricCanvas.getObjects().forEach((obj) => {
+                if (obj.annotationType === 'text' && obj.isEditing) {
+                    try { obj.exitEditing(); } catch (_) {}
+                }
+            });
+        }
+
         this.selectedTool = tool;
         this.panMode = (tool === 'pan');
 
@@ -1049,20 +1072,30 @@ Alpine.data('faceChart2DComponent', () => ({
         // Enable/disable selection - only allow selection with select tool
         const isSelectMode = (tool === 'select');
         const isEraserMode = (tool === 'eraser');
-
+        const isTextMode = (tool === 'text');
         const isPanMode = (tool === 'pan');
 
         this.fabricCanvas.selection = isSelectMode;
         this.fabricCanvas.forEachObject((obj) => {
-            obj.selectable = isSelectMode;
             // Markers are always clickable (for details modal) UNLESS in pan mode.
-            // Other objects stay clickable only in select/eraser mode.
+            // Other objects stay clickable only in select/eraser mode — or text tool for text annotations.
             if (obj.annotationType === 'marker') {
+                obj.selectable = isSelectMode;
                 obj.evented = !isPanMode;
                 obj.hoverCursor = isPanMode ? 'grab' : 'pointer';
+            } else if (obj.annotationType === 'text') {
+                // Text is tappable/editable with text tool (on editable markers)
+                const allowTextInteraction = (obj.isEditable !== false) && (isSelectMode || isTextMode);
+                obj.selectable = allowTextInteraction;
+                obj.evented = allowTextInteraction || (isEraserMode && obj.isEditable !== false);
+                obj.editable = isTextMode && obj.isEditable !== false;
+                obj.hoverCursor = isTextMode ? 'text' : (isEraserMode ? 'pointer' : 'default');
             } else {
-                obj.evented = isSelectMode || isEraserMode;
-                if (isEraserMode) {
+                // Arrows, drawings, and other annotations — never interactive if from a previous session
+                const canInteract = obj.isEditable !== false;
+                obj.selectable = isSelectMode && canInteract;
+                obj.evented = (isSelectMode || isEraserMode) && canInteract;
+                if (isEraserMode && canInteract) {
                     obj.hoverCursor = 'pointer';
                 }
             }
@@ -1126,28 +1159,85 @@ Alpine.data('faceChart2DComponent', () => ({
         console.log('📝 Adding text at', canvasX, canvasY);
 
         const fontSize = Math.max(14, parseInt(this.strokeWidth) * 4);
-        const text = new fabric.IText('Click to edit', {
+        const placeholder = 'Click to edit';
+
+        // Start with the placeholder shown in a faded color so the user can see
+        // where to type — but we clear it on first keystroke / entering editing.
+        const text = new fabric.IText(placeholder, {
             left: canvasX,
             top: canvasY,
             fontSize: fontSize,
             fill: this.drawingColor,
+            opacity: 0.4, // Faded = placeholder state
             fontFamily: 'Arial',
+            fontStyle: 'italic',
             editable: true,
-            selectable: true, // Temporarily selectable for editing
+            selectable: true,
             evented: true,
+            // Touch-friendly hit area
+            padding: 14,
+            perPixelTargetFind: false,
+            // No border/handles — clean look; cursor is the only visible edit affordance
+            hasBorders: false,
+            hasControls: false,
+            cursorColor: '#3B82F6',
+            cursorWidth: 3,
         });
 
         text.normalizedX = normalizedX;
         text.normalizedY = normalizedY;
         text.annotationType = 'text';
+        text.isPlaceholder = true;
+
+        // Helper: clear placeholder state (idempotent, safe to call multiple times)
+        const clearPlaceholder = () => {
+            if (!text.isPlaceholder) return;
+            text.text = '';
+            text.opacity = 1;
+            text.fontStyle = 'normal';
+            text.isPlaceholder = false;
+            if (text.hiddenTextarea) text.hiddenTextarea.value = '';
+            this.fabricCanvas.renderAll();
+        };
+
+        // Multiple safety nets so placeholder never gets stuck at 0.4 opacity:
+        // 1. On entering edit mode (fires after enterEditing fully initializes)
+        text.on('editing:entered', clearPlaceholder);
+        // 2. On first content change (keyboard input)
+        text.on('changed', clearPlaceholder);
 
         this.fabricCanvas.add(text);
         this.fabricCanvas.setActiveObject(text);
         text.enterEditing();
-        this.fabricCanvas.renderAll();
+
+        // Synchronous clear too (fast path) + iOS keyboard focus must be in user gesture
+        clearPlaceholder();
+        if (text.hiddenTextarea) {
+            try { text.hiddenTextarea.focus(); } catch (_) {}
+        }
 
         // Save after editing and make non-selectable
         text.on('editing:exited', () => {
+            const finalText = (text.text || '').trim();
+
+            // Clean up visual state: blur hidden textarea (stops cursor) and deselect
+            // (removes the blue selection border/padding).
+            try { text.hiddenTextarea && text.hiddenTextarea.blur(); } catch (_) {}
+            if (this.fabricCanvas.getActiveObject() === text) {
+                this.fabricCanvas.discardActiveObject();
+            }
+
+            // If nothing was typed, discard the object entirely — no DB row
+            if (finalText === '' || finalText === placeholder || text.isPlaceholder) {
+                this.fabricCanvas.remove(text);
+                this.fabricCanvas.renderAll();
+                return;
+            }
+
+            // Final safety: force visual state to fully-opaque, non-italic before save
+            text.opacity = 1;
+            if (text.fontStyle === 'italic') text.fontStyle = 'normal';
+
             // Make non-selectable after editing is done
             text.selectable = false;
             text.evented = false;
@@ -1157,13 +1247,13 @@ Alpine.data('faceChart2DComponent', () => ({
                 x: normalizedX,
                 y: normalizedY,
                 type: 'text',
-                annotationText: text.text,
+                annotationText: finalText,
                 annotationStyle: {
                     fontSize: text.fontSize,
                     fontFamily: text.fontFamily,
                     textColor: text.fill,
                     bold: text.fontWeight === 'bold',
-                    italic: text.fontStyle === 'italic'
+                    italic: false, // Italic is reserved for placeholder state; never save it
                 }
             });
         });
@@ -1334,6 +1424,48 @@ Alpine.data('faceChart2DComponent', () => ({
                 return;
             }
 
+            // Click on an existing text annotation with text tool → enter edit mode
+            if (e.target && e.target.annotationType === 'text' && this.selectedTool === 'text'
+                && e.target.isEditable !== false) {
+                console.log('✏️ Editing text annotation', e.target.markerId);
+                const target = e.target;
+                this.fabricCanvas.setActiveObject(target);
+                target.enterEditing();
+
+                // Place cursor at the tap location instead of selecting all text
+                // so the user can edit inline without losing existing content.
+                try {
+                    if (typeof target.setCursorByClick === 'function') {
+                        target.setCursorByClick(e.e);
+                    } else if (typeof target.getSelectionStartFromPointer === 'function') {
+                        const index = target.getSelectionStartFromPointer(e.e);
+                        target.selectionStart = index;
+                        target.selectionEnd = index;
+                    } else {
+                        // Fallback: place cursor at end of existing text
+                        const end = (target.text || '').length;
+                        target.selectionStart = end;
+                        target.selectionEnd = end;
+                    }
+                    target.initDelayedCursor && target.initDelayedCursor(true);
+                } catch (err) {
+                    console.warn('Could not set cursor position:', err);
+                }
+
+                // iOS requires the focus() to happen inside the touch gesture callback
+                // to bring up the soft keyboard; do it synchronously here.
+                if (target.hiddenTextarea) {
+                    try { target.hiddenTextarea.focus(); } catch (_) {}
+                    // Sync hidden textarea selection with the IText caret position
+                    try {
+                        target.hiddenTextarea.selectionStart = target.selectionStart;
+                        target.hiddenTextarea.selectionEnd = target.selectionEnd;
+                    } catch (_) {}
+                }
+                this.fabricCanvas.renderAll();
+                return;
+            }
+
             // Handle arrow tool - start drag
             if (this.selectedTool === 'arrow' && !e.target) {
                 const pointer = this.fabricCanvas.getPointer(e.e);
@@ -1372,27 +1504,37 @@ Alpine.data('faceChart2DComponent', () => ({
             const path = e.path;
             console.log('✏️ Free-hand drawing created');
 
-            // Make non-selectable (only selectable with select tool)
-            path.selectable = false;
-            path.evented = false;
-
-            // Store normalized path data
-            const pathData = path.path.map(segment => {
-                if (segment[0] === 'M' || segment[0] === 'L') {
-                    return [
-                        segment[0],
-                        segment[1] / this.fabricCanvas.width,
-                        segment[2] / this.fabricCanvas.height
-                    ];
+            // Store normalized path data (coordinates as fractions of canvas size)
+            const pathData = path.path.map((segment) => {
+                const s = segment.slice();
+                // Normalize every x/y pair in the segment (skip the command char at index 0)
+                for (let i = 1; i < s.length; i += 2) {
+                    if (typeof s[i] === 'number') s[i] = s[i] / this.fabricCanvas.width;
+                    if (typeof s[i + 1] === 'number') s[i + 1] = s[i + 1] / this.fabricCanvas.height;
                 }
-                return segment;
+                return s;
             });
 
-            path.normalizedPath = pathData;
-            path.annotationType = 'drawing';
+            const strokeWidth = path.strokeWidth || parseInt(this.strokeWidth) || 3;
+            const color = path.stroke || this.drawingColor;
 
-            // TODO: Save to database
-            // this.$wire.saveDrawing({ path: pathData, ... });
+            path.annotationType = 'drawing';
+            path.isEditable = true;
+            // Keep it interactive for the eraser, but never selectable outside select mode
+            path.selectable = this.selectedTool === 'select';
+            path.evented = this.selectedTool === 'select' || this.selectedTool === 'eraser';
+
+            // Persist to DB; the subsequent markers reload will clear the canvas
+            // and re-render this path with its real markerId attached.
+            this.$wire.saveDrawing({
+                color: color,
+                metadata: {
+                    path_data: pathData,
+                    stroke_width: strokeWidth,
+                },
+            }).catch((err) => {
+                console.error('❌ Error saving drawing:', err);
+            });
         });
 
         // Handle object modifications
@@ -1555,6 +1697,9 @@ Alpine.data('faceChart2DComponent', () => ({
                 case 'arrow':
                     this.renderArrow(marker, canvasX, canvasY);
                     break;
+                case 'text':
+                    this.renderText(marker, canvasX, canvasY);
+                    break;
                 case 'injection':
                 case 'filler_point':
                 case 'laser_spot':
@@ -1562,14 +1707,23 @@ Alpine.data('faceChart2DComponent', () => ({
                     this.renderMarker(marker, canvasX, canvasY);
                     break;
                 case 'marking':
-                    if (marker.annotationText) {
+                    if (marker.pathData) {
+                        this.renderDrawing(marker);
+                    } else if (marker.annotationText) {
                         this.renderText(marker, canvasX, canvasY);
                     } else {
                         this.renderMarker(marker, canvasX, canvasY);
                     }
                     break;
                 default:
-                    this.renderMarker(marker, canvasX, canvasY);
+                    // Fallback: pick the best renderer based on what data is present
+                    if (marker.pathData) {
+                        this.renderDrawing(marker);
+                    } else if (marker.annotationText) {
+                        this.renderText(marker, canvasX, canvasY);
+                    } else {
+                        this.renderMarker(marker, canvasX, canvasY);
+                    }
             }
         });
 
@@ -1665,10 +1819,53 @@ Alpine.data('faceChart2DComponent', () => ({
         this.fabricCanvas.add(arrow);
     },
 
+    renderDrawing(marker) {
+        if (!marker.pathData || !Array.isArray(marker.pathData)) {
+            console.warn('⚠️ Drawing marker has no path data', marker.id);
+            return;
+        }
+
+        const isSelectMode = this.selectedTool === 'select';
+        const isEraserMode = this.selectedTool === 'eraser';
+
+        // Denormalize path (fractions → canvas pixels)
+        const path = marker.pathData.map((segment) => {
+            const s = segment.slice();
+            for (let i = 1; i < s.length; i += 2) {
+                if (typeof s[i] === 'number') s[i] = s[i] * this.fabricCanvas.width;
+                if (typeof s[i + 1] === 'number') s[i + 1] = s[i + 1] * this.fabricCanvas.height;
+            }
+            return s;
+        });
+
+        const strokeWidth = marker.strokeWidth || 3;
+        const color = marker.color || '#FF0000';
+
+        const fabricPath = new fabric.Path(path, {
+            stroke: color,
+            strokeWidth: strokeWidth,
+            fill: null,
+            strokeLineCap: 'round',
+            strokeLineJoin: 'round',
+            // Locked unless select/eraser tool is active AND marker is editable
+            selectable: isSelectMode && marker.isEditable,
+            evented: (isSelectMode || isEraserMode) && marker.isEditable,
+            hasBorders: false,
+            hasControls: false,
+        });
+
+        fabricPath.markerId = marker.id;
+        fabricPath.annotationType = 'drawing';
+        fabricPath.isEditable = marker.isEditable;
+
+        this.fabricCanvas.add(fabricPath);
+    },
+
     renderText(marker, canvasX, canvasY) {
         const style = marker.annotationStyle || {};
         const isSelectMode = this.selectedTool === 'select';
         const isEraserMode = this.selectedTool === 'eraser';
+        const isTextMode = this.selectedTool === 'text';
 
         const text = new fabric.IText(marker.annotationText || '', {
             left: canvasX,
@@ -1678,14 +1875,57 @@ Alpine.data('faceChart2DComponent', () => ({
             fontFamily: style.fontFamily || 'Arial',
             fontWeight: style.bold ? 'bold' : 'normal',
             fontStyle: style.italic ? 'italic' : 'normal',
-            selectable: isSelectMode && marker.isEditable,
-            evented: (isSelectMode || isEraserMode) && marker.isEditable,
-            editable: false,
+            opacity: 1, // Saved text is always fully opaque (prevents placeholder bleed-through)
+            selectable: (isSelectMode || isTextMode) && marker.isEditable,
+            evented: (isSelectMode || isEraserMode || isTextMode) && marker.isEditable,
+            editable: isTextMode && marker.isEditable,
+            // Enlarge hit area for touch: pad the bounding box and hit by box, not glyphs
+            padding: 14,
+            perPixelTargetFind: false,
+            // No border or resize handles — text should look clean when selected.
+            // Users edit via keyboard, not by dragging control points.
+            hasBorders: false,
+            hasControls: false,
+            // More visible cursor when editing (only thing that appears during edit)
+            cursorColor: '#3B82F6',
+            cursorWidth: 3,
         });
 
         text.markerId = marker.id;
         text.annotationType = 'text';
         text.isEditable = marker.isEditable;
+
+        // Save edits back to the DB on exit
+        if (isTextMode && marker.isEditable) {
+            text.on('editing:exited', () => {
+                const newText = (text.text || '').trim();
+
+                // Always clean up the visual state on exit, regardless of save outcome:
+                // blur the hidden textarea so the cursor stops blinking, then deselect
+                // so the blue border/padding box disappears.
+                try { text.hiddenTextarea && text.hiddenTextarea.blur(); } catch (_) {}
+                if (this.fabricCanvas.getActiveObject() === text) {
+                    this.fabricCanvas.discardActiveObject();
+                }
+                this.fabricCanvas.renderAll();
+
+                // Skip DB call if empty or unchanged
+                if (newText === '' || newText === (marker.annotationText || '').trim()) {
+                    return;
+                }
+
+                this.$wire.onMarkerUpdate(marker.id, {
+                    annotation_text: newText,
+                    annotation_style: {
+                        fontSize: text.fontSize,
+                        fontFamily: text.fontFamily,
+                        textColor: text.fill,
+                        bold: text.fontWeight === 'bold',
+                        italic: text.fontStyle === 'italic',
+                    },
+                });
+            });
+        }
 
         this.fabricCanvas.add(text);
     },

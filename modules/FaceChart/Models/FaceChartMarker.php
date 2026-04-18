@@ -304,6 +304,9 @@ class FaceChartMarker extends BaseModel
             'type' => $this->marker_type,
             'product' => $this->product_name,
             'rotation' => (int) (is_array($this->metadata) ? ($this->metadata['rotation'] ?? 0) : 0),
+            // Free-hand drawing data (for marker_type='marking' without annotation text)
+            'pathData' => is_array($this->metadata) ? ($this->metadata['path_data'] ?? null) : null,
+            'strokeWidth' => is_array($this->metadata) ? ($this->metadata['stroke_width'] ?? null) : null,
             'dosage' => $this->formatted_dosage,
             'units' => $this->units ? (float) $this->units : null,
             'unitType' => $this->unit_type,
