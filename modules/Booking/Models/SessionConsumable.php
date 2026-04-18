@@ -5,6 +5,7 @@ namespace Modules\Booking\Models;
 use XLinic\Framework\Core\Model\BaseModel;
 use XLinic\Framework\Core\Model\Traits\HasTenancy;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Modules\Inventory\Models\Product;
 use Modules\Inventory\Models\StockMovement;
 use Modules\Inventory\Models\Uom;
@@ -45,6 +46,12 @@ class SessionConsumable extends BaseModel
         'deducted_at' => 'datetime',
     ];
 
+    /**
+     * Flag to prevent circular cascade when a child FaceChartMarker
+     * is the one initiating the delete.
+     */
+    public static bool $skipMarkerCascade = false;
+
     protected static function booted(): void
     {
         parent::booted();
@@ -52,6 +59,19 @@ class SessionConsumable extends BaseModel
         static::saving(function (self $model) {
             // Auto-calculate total cost
             $model->total_cost_minor = (int) ($model->quantity * $model->unit_cost_minor);
+        });
+
+        static::deleting(function (self $consumable) {
+            if (self::$skipMarkerCascade) {
+                return;
+            }
+
+            // Remove linked face chart markers without triggering consumable adjustment
+            \Modules\FaceChart\Models\FaceChartMarker::$skipConsumableAdjustment = true;
+            \Modules\FaceChart\Models\FaceChartMarker::where('session_consumable_id', $consumable->id)
+                ->get()
+                ->each(fn ($marker) => $marker->delete());
+            \Modules\FaceChart\Models\FaceChartMarker::$skipConsumableAdjustment = false;
         });
     }
 
@@ -109,6 +129,14 @@ class SessionConsumable extends BaseModel
     public function uom(): BelongsTo
     {
         return $this->belongsTo(Uom::class);
+    }
+
+    /**
+     * Get the face chart markers linked to this consumable.
+     */
+    public function faceChartMarkers(): HasMany
+    {
+        return $this->hasMany(\Modules\FaceChart\Models\FaceChartMarker::class);
     }
 
     /**

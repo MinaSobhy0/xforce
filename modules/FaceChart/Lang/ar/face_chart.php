@@ -166,6 +166,7 @@ return [
             'italic' => 'مائل',
         ],
         'marker_count' => ':count علامة',
+        'markers_linked' => ':count علامة مرتبطة بهذا المستهلك',
         'markers_list' => 'العلامات',
         'no_markers' => 'لا توجد علامات حتى الآن. انقر على صورة الوجه لإضافة علامات.',
         'unnamed_marker' => 'علامة بدون اسم',

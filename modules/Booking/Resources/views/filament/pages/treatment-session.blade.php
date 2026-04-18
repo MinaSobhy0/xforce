@@ -1024,9 +1024,18 @@
                     <div class="space-y-1">
                         @foreach($sessionConsumables as $consumable)
                             <div class="flex items-center justify-between p-2 border border-gray-200 dark:border-gray-700 rounded text-sm">
-                                <div>
+                                <div class="flex items-center flex-wrap gap-1">
                                     <span class="font-medium text-gray-900 dark:text-white">{{ $consumable['product_name'] }}</span>
-                                    <span class="text-xs text-gray-500 ml-1">{{ $consumable['quantity'] }} {{ $consumable['unit'] }}</span>
+                                    <span class="text-xs text-gray-500">{{ $consumable['quantity'] }} {{ $consumable['unit'] }}</span>
+                                    @if(($consumable['markers_count'] ?? 0) > 0)
+                                        <span
+                                            class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300"
+                                            title="{{ __('face_chart::face_chart.2d.markers_linked', ['count' => $consumable['markers_count']]) }}"
+                                        >
+                                            <x-heroicon-o-map-pin class="w-3 h-3" />
+                                            {{ $consumable['markers_count'] }}
+                                        </span>
+                                    @endif
                                 </div>
                                 @if(!$this->isViewMode())
                                     <button type="button" wire:click="removeConsumable('{{ $consumable['id'] }}')" class="text-red-500 hover:text-red-700">

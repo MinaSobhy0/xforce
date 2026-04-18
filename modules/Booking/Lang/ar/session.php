@@ -240,6 +240,7 @@ return [
         'checklist_incomplete' => 'قائمة الفحص غير مكتملة',
         'complete_checklist_first' => 'يرجى إكمال جميع عناصر قائمة السلامة قبل إنهاء الجلسة',
         'consumable_added' => 'تمت إضافة المستهلك',
+        'consumable_merged' => 'تمت إضافة :qty :unit إلى سطر :product الحالي',
         'consumable_removed' => 'تم حذف المستهلك',
         'product_added' => 'تمت إضافة المنتج',
         'product_removed' => 'تم حذف المنتج',

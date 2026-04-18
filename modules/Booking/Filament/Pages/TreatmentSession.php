@@ -18,6 +18,7 @@ use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
 use Livewire\WithFileUploads;
 use Modules\Booking\Models\Appointment;
@@ -429,6 +430,7 @@ class TreatmentSession extends Page implements HasActions, HasForms, HasInfolist
         // Load existing session consumables
         $existingConsumables = SessionConsumable::where('appointment_id', $this->appointment->id)
             ->with('product')
+            ->withCount('faceChartMarkers')
             ->get();
 
         // If no consumables exist, auto-populate from service/category using override pattern
@@ -438,6 +440,7 @@ class TreatmentSession extends Page implements HasActions, HasForms, HasInfolist
             // Reload after auto-population
             $existingConsumables = SessionConsumable::where('appointment_id', $this->appointment->id)
                 ->with('product')
+                ->withCount('faceChartMarkers')
                 ->get();
         }
 
@@ -451,6 +454,7 @@ class TreatmentSession extends Page implements HasActions, HasForms, HasInfolist
                 'unit' => $c->unit_abbreviation,
                 'unit_cost' => $c->unit_cost,
                 'total_cost' => $c->total_cost,
+                'markers_count' => $c->face_chart_markers_count ?? 0,
             ])
             ->toArray();
 
@@ -2550,6 +2554,38 @@ class TreatmentSession extends Page implements HasActions, HasForms, HasInfolist
         })->values();
     }
 
+    /**
+     * Reload session consumables list + markers count from DB.
+     * Called after the face-chart marker wizard writes a new SessionConsumable
+     * so the session page reflects the change without a page reload.
+     */
+    #[On('sessionConsumablesRefresh')]
+    public function reloadSessionConsumables(): void
+    {
+        if (! $this->appointment) {
+            return;
+        }
+
+        $existingConsumables = SessionConsumable::where('appointment_id', $this->appointment->id)
+            ->with('product')
+            ->withCount('faceChartMarkers')
+            ->get();
+
+        $this->sessionConsumables = $existingConsumables
+            ->map(fn ($c) => [
+                'id' => $c->id,
+                'product_id' => $c->product_id,
+                'product_name' => $c->product?->getTranslation('name', app()->getLocale()) ?? '',
+                'quantity' => $c->quantity,
+                'base_quantity' => $c->base_quantity ?? $c->quantity,
+                'unit' => $c->unit_abbreviation,
+                'unit_cost' => $c->unit_cost,
+                'total_cost' => $c->total_cost,
+                'markers_count' => $c->face_chart_markers_count ?? 0,
+            ])
+            ->toArray();
+    }
+
     public function addConsumable(): void
     {
         if (! $this->newConsumableId || ! $this->appointment) {
@@ -2561,53 +2597,93 @@ class TreatmentSession extends Page implements HasActions, HasForms, HasInfolist
             return;
         }
 
-        $serviceQty = (float) ($this->appointment->quantity ?? 1);
-        $enteredQty = $this->newConsumableQty ?? 1;
-        // base_quantity = what's needed per 1 service unit
-        $baseQty = $serviceQty > 0 ? $enteredQty / $serviceQty : $enteredQty;
+        $enteredQty = (float) ($this->newConsumableQty ?? 1);
 
-        $consumable = SessionConsumable::create([
-            'tenant_id' => $this->appointment->tenant_id,
+        // Merge with existing row for same (appointment_id, product_id) if present
+        $consumable = SessionConsumable::firstOrNew([
             'appointment_id' => $this->appointment->id,
             'product_id' => $product->id,
-            'branch_id' => $this->appointment->branch_id,
-            'quantity' => $enteredQty,
-            'base_quantity' => $baseQty,
-            'uom_id' => $product->sales_uom_id,
-            'unit' => $product->unit_abbreviation, // Fallback for display
-            'unit_cost_minor' => $product->cost_price_minor,
-            'created_by' => auth()->id(),
         ]);
 
-        $this->sessionConsumables[] = [
+        $wasMerged = $consumable->exists;
+        $newQty = (float) ($consumable->quantity ?? 0) + $enteredQty;
+        $serviceQty = (float) ($this->appointment->quantity ?? 1);
+        $newBaseQty = $serviceQty > 0 ? $newQty / $serviceQty : $newQty;
+
+        if (! $wasMerged) {
+            $consumable->tenant_id = $this->appointment->tenant_id;
+            $consumable->branch_id = $this->appointment->branch_id;
+            $consumable->uom_id = $product->sales_uom_id;
+            $consumable->unit = $product->unit_abbreviation;
+            $consumable->unit_cost_minor = $product->cost_price_minor;
+            $consumable->created_by = auth()->id();
+        }
+
+        $consumable->quantity = $newQty;
+        $consumable->base_quantity = $newBaseQty;
+        $consumable->save();
+
+        // Reflect in in-memory list: update existing entry if merged, otherwise push
+        $productName = $product->getTranslation('name', app()->getLocale());
+        $foundIndex = null;
+        foreach ($this->sessionConsumables as $idx => $row) {
+            if ((int) ($row['product_id'] ?? 0) === (int) $product->id) {
+                $foundIndex = $idx;
+                break;
+            }
+        }
+
+        $rowData = [
             'id' => $consumable->id,
             'product_id' => $consumable->product_id,
-            'product_name' => $product->getTranslation('name', app()->getLocale()),
+            'product_name' => $productName,
             'quantity' => $consumable->quantity,
             'base_quantity' => $consumable->base_quantity,
             'unit' => $consumable->unit_abbreviation,
             'unit_cost' => $consumable->unit_cost,
             'total_cost' => $consumable->total_cost,
+            'markers_count' => $consumable->faceChartMarkers()->count(),
         ];
+
+        if ($foundIndex !== null) {
+            $this->sessionConsumables[$foundIndex] = $rowData;
+        } else {
+            $this->sessionConsumables[] = $rowData;
+        }
 
         $this->newConsumableId = null;
         $this->newConsumableQty = 1;
 
         $this->dispatch('consumable-added');
 
+        $unitLabel = $consumable->unit_abbreviation;
         Notification::make()
-            ->title(__('booking::session.messages.consumable_added'))
+            ->title(
+                $wasMerged
+                    ? __('booking::session.messages.consumable_merged', [
+                        'qty' => rtrim(rtrim(number_format($enteredQty, 2), '0'), '.'),
+                        'unit' => $unitLabel,
+                        'product' => $productName,
+                    ])
+                    : __('booking::session.messages.consumable_added')
+            )
             ->success()
             ->send();
     }
 
     public function removeConsumable(string $consumableId): void
     {
-        SessionConsumable::where('id', $consumableId)->delete();
+        $consumable = SessionConsumable::find($consumableId);
+        if ($consumable) {
+            $consumable->delete();
+        }
 
         $this->sessionConsumables = array_values(
             array_filter($this->sessionConsumables, fn ($c) => (string) $c['id'] !== $consumableId)
         );
+
+        // Refresh face chart markers since linked ones were removed
+        $this->dispatch('faceChartMarkersRefresh');
 
         Notification::make()
             ->title(__('booking::session.messages.consumable_removed'))

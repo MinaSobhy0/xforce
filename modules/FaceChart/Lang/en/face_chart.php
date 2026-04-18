@@ -166,6 +166,7 @@ return [
             'italic' => 'Italic',
         ],
         'marker_count' => ':count markers',
+        'markers_linked' => ':count marker(s) linked to this consumable',
         'markers_list' => 'Markers',
         'no_markers' => 'No markers yet. Click on the face image to add markers.',
         'unnamed_marker' => 'Unnamed Marker',

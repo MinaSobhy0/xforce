@@ -195,8 +195,8 @@
                 </svg>
             </button>
             <button
-                @click="panMode = !panMode"
-                :class="panMode ? 'bg-primary-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'"
+                @click="selectTool('pan')"
+                :class="selectedTool === 'pan' ? 'bg-primary-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'"
                 class="w-10 h-10 rounded flex items-center justify-center hover:opacity-80 transition"
                 title="Pan Mode (drag to move)"
             >
@@ -276,8 +276,8 @@
             </button>
 
             <button
-                @click="panMode = !panMode; if (panMode && fabricCanvas) { fabricCanvas.isDrawingMode = false; fabricCanvas.selection = false; }"
-                :class="panMode ? 'bg-primary-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'"
+                @click="selectTool('pan')"
+                :class="selectedTool === 'pan' ? 'bg-primary-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'"
                 class="w-10 h-10 rounded flex items-center justify-center hover:opacity-80 transition"
                 title="Pan (drag to move)"
             >
@@ -380,7 +380,25 @@
     <div class="fixed inset-0 bg-black/50 flex items-center justify-center" style="z-index: 100;" wire:key="marker-wizard-modal">
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
             <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Add Injection Point</h3>
+                <div class="flex items-center gap-2">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                        @if($wizardReadOnly)
+                            View Injection Point
+                        @elseif($wizardMode === 'edit')
+                            Edit Injection Point
+                        @else
+                            Add Injection Point
+                        @endif
+                    </h3>
+                    @if($wizardReadOnly)
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full" style="background-color: #fef3c7; color: #92400e;">
+                            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                            Previous Session
+                        </span>
+                    @endif
+                </div>
                 <button wire:click="cancelMarkerWizard" class="text-gray-400 hover:text-gray-600">
                     <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -395,18 +413,37 @@
                     </label>
                     <select
                         wire:model="wizardProductId"
-                        class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                        @disabled($wizardReadOnly)
+                        class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                         <option value="">-- Select a product --</option>
                         @foreach($availableConsumables as $product)
                             <option value="{{ $product['id'] }}">
-                                {{ $product['name'] }} ({{ $product['price'] }})
+                                {{ $product['name'] }} · Stock: {{ rtrim(rtrim(number_format((float) ($product['stock_qty'] ?? 0), 2), '0'), '.') }} {{ $product['stock_uom'] ?? 'pcs' }}
                             </option>
                         @endforeach
                     </select>
                     @error('wizardProductId')
                         <p class="text-sm text-red-500 mt-1">{{ $message }}</p>
                     @enderror
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Face Region
+                    </label>
+                    <select
+                        wire:model="wizardRegion"
+                        @disabled($wizardReadOnly)
+                        class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                        <option value="">{{ __('face_chart::face_chart.filters.all_regions') }}</option>
+                        @foreach($regions as $region)
+                            <option value="{{ $region }}">
+                                {{ __("face_chart::face_chart.regions.{$region}") }}
+                            </option>
+                        @endforeach
+                    </select>
                 </div>
 
                 <div>
@@ -418,8 +455,64 @@
                         step="0.01"
                         min="0.01"
                         wire:model="wizardQty"
-                        class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                        @disabled($wizardReadOnly)
+                        class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 disabled:opacity-60 disabled:cursor-not-allowed"
                     />
+                </div>
+
+                <div class="grid grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Color</label>
+                        <input
+                            type="color"
+                            wire:model.live="wizardColor"
+                            @disabled($wizardReadOnly)
+                            class="h-10 w-full rounded cursor-pointer border border-gray-300 dark:border-gray-600 disabled:opacity-60 disabled:cursor-not-allowed"
+                        />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Direction <span class="text-gray-400">({{ $wizardRotation }}°)</span>
+                        </label>
+                        <input
+                            type="range"
+                            min="0"
+                            max="359"
+                            step="15"
+                            wire:model.live="wizardRotation"
+                            @disabled($wizardReadOnly)
+                            class="w-full mt-2.5 disabled:opacity-60 disabled:cursor-not-allowed"
+                        />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Size <span class="text-gray-400">({{ number_format($wizardSize, 1) }}×)</span>
+                        </label>
+                        <input
+                            type="range"
+                            min="0.5"
+                            max="3"
+                            step="0.1"
+                            wire:model.live="wizardSize"
+                            @disabled($wizardReadOnly)
+                            class="w-full mt-2.5 disabled:opacity-60 disabled:cursor-not-allowed"
+                        />
+                    </div>
+                </div>
+
+                {{-- Preview --}}
+                <div class="flex justify-center py-2">
+                    <div class="relative w-24 h-24 flex items-center justify-center bg-gray-100 dark:bg-gray-900 rounded-full overflow-hidden">
+                        <div
+                            style="width: {{ 40 * (float) $wizardSize }}px; height: {{ 40 * (float) $wizardSize }}px;
+                                   -webkit-mask: url('{{ asset('/images/injection-icon.png') }}') no-repeat center / contain;
+                                   mask: url('{{ asset('/images/injection-icon.png') }}') no-repeat center / contain;
+                                   background-color: {{ $wizardColor }};
+                                   transform: rotate({{ $wizardRotation }}deg);
+                                   filter: drop-shadow(0 1px 2px rgba(0,0,0,0.4));
+                                   transition: all 0.1s ease;"
+                        ></div>
+                    </div>
                 </div>
 
                 <div>
@@ -429,25 +522,45 @@
                     <textarea
                         wire:model="wizardNotes"
                         rows="2"
-                        class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                        @disabled($wizardReadOnly)
+                        class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 disabled:opacity-60 disabled:cursor-not-allowed"
                         placeholder="Optional notes about this injection point"
                     ></textarea>
                 </div>
             </div>
 
-            <div class="flex justify-end gap-2 mt-6">
-                <button
-                    wire:click="cancelMarkerWizard"
-                    class="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-300 transition"
-                >
-                    Cancel
-                </button>
-                <button
-                    wire:click="confirmMarkerWizard"
-                    class="px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 transition"
-                >
-                    Add Marker
-                </button>
+            <div class="flex justify-between items-center gap-2 mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                @if($wizardMode === 'edit' && !$wizardReadOnly)
+                    <button
+                        wire:click="deleteWizardMarker"
+                        wire:confirm="Are you sure you want to delete this marker?"
+                        style="background-color: #dc2626; color: #ffffff;"
+                        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md transition font-medium shadow hover:opacity-90"
+                    >
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="#ffffff" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 3h6a1 1 0 011 1v3H8V4a1 1 0 011-1z" />
+                        </svg>
+                        <span style="color: #ffffff;">Delete</span>
+                    </button>
+                @else
+                    <span></span>
+                @endif
+                <div class="flex gap-2">
+                    <button
+                        wire:click="cancelMarkerWizard"
+                        class="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-300 transition"
+                    >
+                        {{ $wizardReadOnly ? 'Close' : 'Cancel' }}
+                    </button>
+                    @if(!$wizardReadOnly)
+                        <button
+                            wire:click="confirmMarkerWizard"
+                            class="px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 transition"
+                        >
+                            {{ $wizardMode === 'edit' ? 'Save Changes' : 'Add Marker' }}
+                        </button>
+                    @endif
+                </div>
             </div>
         </div>
     </div>
@@ -460,17 +573,26 @@
                 {{ __('face_chart::face_chart.2d.markers_list') }}
             </h3>
 
-            @if(empty($markers))
+            @php
+                // Show only injection points in the list (not arrows, text, or freehand drawings)
+                $injectionMarkers = array_values(array_filter($markers, fn ($m) => ($m['type'] ?? null) === 'injection'));
+            @endphp
+
+            @if(empty($injectionMarkers))
                 <p class="text-gray-500 dark:text-gray-400 text-sm text-center py-4">
                     {{ __('face_chart::face_chart.2d.no_markers') }}
                 </p>
             @else
                 <div class="space-y-2 max-h-96 overflow-y-auto">
-                    @foreach($markers as $marker)
-                        <div class="border border-gray-200 dark:border-gray-700 rounded p-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                    @foreach($injectionMarkers as $marker)
+                        <div
+                            @click="highlightMarker({{ $marker['id'] }})"
+                            class="border border-gray-200 dark:border-gray-700 rounded p-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition cursor-pointer"
+                        >
                             <div class="flex justify-between items-start">
                                 <div class="flex-1">
-                                    <div class="font-medium text-gray-900 dark:text-gray-100">
+                                    <div class="font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                                        <span class="inline-block w-3 h-3 rounded-full flex-shrink-0" style="background-color: {{ $marker['color'] ?? '#FF0000' }};"></span>
                                         {{ $marker['product'] ?? __('face_chart::face_chart.2d.unnamed_marker') }}
                                     </div>
                                     @if($marker['annotationText'])
@@ -487,7 +609,7 @@
                                 </div>
                                 @if($marker['isEditable'])
                                     <button
-                                        wire:click="onMarkerDelete({{ $marker['id'] }})"
+                                        @click.stop="$wire.onMarkerDelete({{ $marker['id'] }})"
                                         class="text-red-500 hover:text-red-700 dark:hover:text-red-400"
                                         onclick="return confirm('{{ __('face_chart::face_chart.2d.confirm_delete') }}')"
                                     >
@@ -521,6 +643,7 @@ Alpine.data('faceChart2DComponent', () => ({
     previewArrow: null, // Live preview arrow during drag
     drawingColor: '#FF0000', // Default red
     strokeWidth: 3, // Default stroke width
+    renderToken: 0, // bumps on clearCanvas; in-flight async renders check this to skip stale adds
     zoomLevel: 1, // Current zoom level (1 = 100%)
     minZoom: 0.5,
     maxZoom: 3,
@@ -906,7 +1029,7 @@ Alpine.data('faceChart2DComponent', () => ({
     selectTool(tool) {
         console.log('🔧 Tool selected:', tool);
         this.selectedTool = tool;
-        this.panMode = false; // Disable pan when any drawing tool is selected
+        this.panMode = (tool === 'pan');
 
         // Only configure canvas if it exists
         if (!this.fabricCanvas) {
@@ -927,14 +1050,21 @@ Alpine.data('faceChart2DComponent', () => ({
         const isSelectMode = (tool === 'select');
         const isEraserMode = (tool === 'eraser');
 
+        const isPanMode = (tool === 'pan');
+
         this.fabricCanvas.selection = isSelectMode;
         this.fabricCanvas.forEachObject((obj) => {
             obj.selectable = isSelectMode;
-            // Enable evented for both select and eraser modes (to detect clicks for deletion)
-            obj.evented = isSelectMode || isEraserMode;
-            // Change cursor for eraser mode
-            if (isEraserMode) {
-                obj.hoverCursor = 'pointer';
+            // Markers are always clickable (for details modal) UNLESS in pan mode.
+            // Other objects stay clickable only in select/eraser mode.
+            if (obj.annotationType === 'marker') {
+                obj.evented = !isPanMode;
+                obj.hoverCursor = isPanMode ? 'grab' : 'pointer';
+            } else {
+                obj.evented = isSelectMode || isEraserMode;
+                if (isEraserMode) {
+                    obj.hoverCursor = 'pointer';
+                }
             }
         });
 
@@ -943,10 +1073,13 @@ Alpine.data('faceChart2DComponent', () => ({
             this.fabricCanvas.discardActiveObject();
         }
 
-        // Set canvas cursor for eraser mode
+        // Set canvas cursor per mode
         if (isEraserMode) {
             this.fabricCanvas.defaultCursor = 'crosshair';
             this.fabricCanvas.hoverCursor = 'pointer';
+        } else if (isPanMode) {
+            this.fabricCanvas.defaultCursor = 'grab';
+            this.fabricCanvas.hoverCursor = 'grab';
         } else {
             this.fabricCanvas.defaultCursor = 'default';
             this.fabricCanvas.hoverCursor = 'move';
@@ -1160,9 +1293,20 @@ Alpine.data('faceChart2DComponent', () => ({
         this.fabricCanvas.on('mouse:down', (e) => {
             if (!this.config.isEditing) return;
 
+            // In pan mode, the container's mousedown handler does the panning;
+            // don't perform any fabric-level actions (marker/detail/etc.)
+            if (this.selectedTool === 'pan' || this.panMode) return;
+
             // Handle eraser tool - delete clicked object
             if (this.selectedTool === 'eraser' && e.target) {
                 const obj = e.target;
+
+                // Read-only (previous session) items: block erase entirely
+                if (obj.markerId && obj.isEditable === false) {
+                    console.log('🔒 Cannot erase: marker is from a previous session');
+                    return;
+                }
+
                 console.log('🗑️ Eraser: deleting object', obj.annotationType, obj.markerId);
 
                 // Remove from canvas
@@ -1178,6 +1322,15 @@ Alpine.data('faceChart2DComponent', () => ({
                         console.error('❌ Error deleting from database:', err);
                     });
                 }
+                return;
+            }
+
+            // Click on an existing saved marker (any tool except eraser/select)
+            // → open the detail/edit/delete modal
+            if (e.target && e.target.markerId && e.target.annotationType === 'marker'
+                && this.selectedTool !== 'eraser' && this.selectedTool !== 'select') {
+                console.log('🔍 Opening marker details for', e.target.markerId);
+                this.$wire.showMarkerDetails(e.target.markerId);
                 return;
             }
 
@@ -1263,12 +1416,95 @@ Alpine.data('faceChart2DComponent', () => ({
         });
     },
 
+    highlightMarker(markerId) {
+        if (!this.fabricCanvas) return;
+
+        // Find the fabric object for this marker
+        const target = this.fabricCanvas.getObjects().find(
+            (obj) => obj.markerId === markerId && obj.annotationType === 'marker'
+        );
+
+        if (!target) {
+            console.log('⚠️ Marker not found on canvas:', markerId);
+            return;
+        }
+
+        // Cancel any previous highlight animation
+        if (this._highlightInterval) {
+            clearInterval(this._highlightInterval);
+            this._highlightInterval = null;
+        }
+        if (this._highlightTarget && this._highlightOriginal) {
+            this._highlightTarget.set({
+                shadow: this._highlightOriginal.shadow,
+                scaleX: this._highlightOriginal.scaleX,
+                scaleY: this._highlightOriginal.scaleY,
+            });
+            this._highlightTarget.setCoords();
+        }
+
+        // Store original state so we can restore
+        this._highlightTarget = target;
+        this._highlightOriginal = {
+            shadow: target.shadow,
+            scaleX: target.scaleX,
+            scaleY: target.scaleY,
+        };
+
+        // Scroll the canvas container into view
+        const canvasEl = this.fabricCanvas.getElement();
+        if (canvasEl && canvasEl.scrollIntoView) {
+            canvasEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        // Pulse effect: toggle shadow + scale a few times
+        let pulses = 0;
+        const maxPulses = 6;
+        const baseScaleX = this._highlightOriginal.scaleX;
+        const baseScaleY = this._highlightOriginal.scaleY;
+
+        const applyPulse = (on) => {
+            target.set({
+                shadow: on
+                    ? new fabric.Shadow({ color: '#FFD700', blur: 25, offsetX: 0, offsetY: 0 })
+                    : this._highlightOriginal.shadow,
+                scaleX: baseScaleX * (on ? 1.4 : 1),
+                scaleY: baseScaleY * (on ? 1.4 : 1),
+            });
+            target.setCoords();
+            this.fabricCanvas.renderAll();
+        };
+
+        applyPulse(true);
+        this._highlightInterval = setInterval(() => {
+            pulses++;
+            applyPulse(pulses % 2 === 0);
+            if (pulses >= maxPulses) {
+                clearInterval(this._highlightInterval);
+                this._highlightInterval = null;
+                // Final state: restore original
+                target.set({
+                    shadow: this._highlightOriginal.shadow,
+                    scaleX: baseScaleX,
+                    scaleY: baseScaleY,
+                });
+                target.setCoords();
+                this.fabricCanvas.renderAll();
+                this._highlightTarget = null;
+                this._highlightOriginal = null;
+            }
+        }, 300);
+    },
+
     deleteSelected() {
         const activeObject = this.fabricCanvas.getActiveObject();
         if (!activeObject) {
             console.log('⚠️ No object selected to delete');
             return;
         }
+
+        // Read-only check: skip objects from previous sessions
+        const isLocked = (obj) => obj.markerId && obj.isEditable === false;
 
         // Helper to delete from database
         const deleteFromDb = (obj) => {
@@ -1281,11 +1517,19 @@ Alpine.data('faceChart2DComponent', () => ({
         // Handle multiple selection
         if (activeObject.type === 'activeSelection') {
             activeObject.forEachObject((obj) => {
+                if (isLocked(obj)) {
+                    console.log('🔒 Skipping locked marker from previous session');
+                    return;
+                }
                 deleteFromDb(obj);
                 this.fabricCanvas.remove(obj);
             });
             this.fabricCanvas.discardActiveObject();
         } else {
+            if (isLocked(activeObject)) {
+                console.log('🔒 Cannot delete: marker is from a previous session');
+                return;
+            }
             deleteFromDb(activeObject);
             this.fabricCanvas.remove(activeObject);
         }
@@ -1333,32 +1577,69 @@ Alpine.data('faceChart2DComponent', () => ({
         console.log('✅ Loaded', this.config.markers.length, 'markers onto canvas');
     },
 
+    hexToRgba(hex, alpha = 1) {
+        if (!hex || typeof hex !== 'string') return `rgba(255,107,107,${alpha})`;
+        let h = hex.replace('#', '');
+        if (h.length === 3) h = h.split('').map(c => c + c).join('');
+        const r = parseInt(h.substring(0, 2), 16) || 0;
+        const g = parseInt(h.substring(2, 4), 16) || 0;
+        const b = parseInt(h.substring(4, 6), 16) || 0;
+        return `rgba(${r},${g},${b},${alpha})`;
+    },
+
     renderMarker(marker, canvasX, canvasY) {
-        const color = marker.color || '#FF6B6B';
-        const size = marker.size || 8;
+        const color = marker.color || '#FF0000';
+        const rotation = parseFloat(marker.rotation || 0) || 0;
+        const sizeMultiplier = Math.max(0.3, Math.min(4, parseFloat(marker.size || 1) || 1));
         const isSelectMode = this.selectedTool === 'select';
-        const isEraserMode = this.selectedTool === 'eraser';
+        const targetSize = 36 * sizeMultiplier;
+        const token = this.renderToken; // Capture token at call time
 
-        const circle = new fabric.Circle({
-            left: canvasX,
-            top: canvasY,
-            radius: size,
-            fill: color,
-            stroke: '#FFFFFF',
-            strokeWidth: 2,
-            originX: 'center',
-            originY: 'center',
-            selectable: isSelectMode,
-            evented: isSelectMode || isEraserMode,
-            hasControls: false,
+        fabric.Image.fromURL('/images/injection-icon.png', (img) => {
+            // Skip stale renders (canvas was cleared after this load started)
+            if (token !== this.renderToken) return;
+            if (!img) return;
+
+            // Tint the black silhouette with the marker color
+            img.filters = [
+                new fabric.Image.filters.BlendColor({
+                    color: color,
+                    mode: 'tint',
+                    alpha: 1,
+                }),
+            ];
+            img.applyFilters();
+
+            // Scale so max dimension equals targetSize
+            const scale = targetSize / Math.max(img.width || 1, img.height || 1);
+            img.scale(scale);
+
+            img.set({
+                left: canvasX,
+                top: canvasY,
+                originX: 'center',
+                originY: 'center',
+                angle: rotation,
+                selectable: isSelectMode,
+                evented: true,
+                hoverCursor: 'pointer',
+                hasControls: false,
+                hasBorders: false,
+                shadow: new fabric.Shadow({
+                    color: 'rgba(0,0,0,0.5)',
+                    blur: 4,
+                    offsetX: 0,
+                    offsetY: 1,
+                }),
+            });
+
+            img.markerId = marker.id;
+            img.markerType = marker.type;
+            img.annotationType = 'marker';
+            img.isEditable = marker.isEditable;
+
+            this.fabricCanvas.add(img);
         });
-
-        circle.markerId = marker.id;
-        circle.markerType = marker.type;
-        circle.annotationType = 'marker';
-        circle.isEditable = marker.isEditable;
-
-        this.fabricCanvas.add(circle);
     },
 
     renderArrow(marker, canvasX, canvasY) {
@@ -1373,9 +1654,9 @@ Alpine.data('faceChart2DComponent', () => ({
         // Create arrow using the same method as drawing
         const arrow = this.createArrowGroup(canvasX, canvasY, endX, endY, false);
 
-        // Set selectability based on current tool
-        arrow.selectable = isSelectMode;
-        arrow.evented = isSelectMode || isEraserMode;
+        // Set selectability based on current tool + editability
+        arrow.selectable = isSelectMode && marker.isEditable;
+        arrow.evented = (isSelectMode || isEraserMode) && marker.isEditable;
 
         arrow.markerId = marker.id;
         arrow.annotationType = 'arrow';
@@ -1397,8 +1678,8 @@ Alpine.data('faceChart2DComponent', () => ({
             fontFamily: style.fontFamily || 'Arial',
             fontWeight: style.bold ? 'bold' : 'normal',
             fontStyle: style.italic ? 'italic' : 'normal',
-            selectable: isSelectMode,
-            evented: isSelectMode || isEraserMode,
+            selectable: isSelectMode && marker.isEditable,
+            evented: (isSelectMode || isEraserMode) && marker.isEditable,
             editable: false,
         });
 
@@ -1410,12 +1691,13 @@ Alpine.data('faceChart2DComponent', () => ({
     },
 
     clearCanvas() {
+        this.renderToken++; // Invalidate any in-flight async marker renders
         const objects = this.fabricCanvas.getObjects().slice(); // Clone array to avoid modification during iteration
         objects.forEach(obj => {
             this.fabricCanvas.remove(obj);
         });
         this.fabricCanvas.renderAll();
-        console.log('🗑️ Canvas cleared');
+        console.log('🗑️ Canvas cleared (token=' + this.renderToken + ')');
     }
 }));
 </script>

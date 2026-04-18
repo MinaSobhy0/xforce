@@ -240,6 +240,7 @@ return [
         'checklist_incomplete' => 'Pre-treatment checklist incomplete',
         'complete_checklist_first' => 'Please complete all safety checklist items before finishing the session',
         'consumable_added' => 'Consumable added',
+        'consumable_merged' => 'Added :qty :unit to existing :product line',
         'consumable_removed' => 'Consumable removed',
         'product_added' => 'Product added',
         'product_removed' => 'Product removed',

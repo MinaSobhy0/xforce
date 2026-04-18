@@ -58,6 +58,47 @@ class FaceChartMarker extends BaseModel
     protected bool $autoSetBranchId = false;
 
     /**
+     * Flag to prevent circular cascade deletion when a parent
+     * SessionConsumable is the one initiating the delete.
+     */
+    public static bool $skipConsumableAdjustment = false;
+
+    protected static function booted(): void
+    {
+        parent::booted();
+
+        static::deleting(function (self $marker) {
+            if (self::$skipConsumableAdjustment) {
+                return;
+            }
+
+            if (!$marker->session_consumable_id) {
+                return;
+            }
+
+            $sc = \Modules\Booking\Models\SessionConsumable::find($marker->session_consumable_id);
+            if (!$sc) {
+                return;
+            }
+
+            $markerUnits = (float) ($marker->units ?? 0);
+            $newQty = max(0, (float) $sc->quantity - $markerUnits);
+
+            if ($newQty <= 0) {
+                \Modules\Booking\Models\SessionConsumable::$skipMarkerCascade = true;
+                $sc->delete();
+                \Modules\Booking\Models\SessionConsumable::$skipMarkerCascade = false;
+                return;
+            }
+
+            $sc->quantity = $newQty;
+            $serviceQty = (float) ($sc->appointment?->quantity ?? 1);
+            $sc->base_quantity = $serviceQty > 0 ? $newQty / $serviceQty : $newQty;
+            $sc->save();
+        });
+    }
+
+    /**
      * The attributes that are mass assignable.
      */
     protected $fillable = [
@@ -262,6 +303,7 @@ class FaceChartMarker extends BaseModel
             'region' => $this->face_region,
             'type' => $this->marker_type,
             'product' => $this->product_name,
+            'rotation' => (int) (is_array($this->metadata) ? ($this->metadata['rotation'] ?? 0) : 0),
             'dosage' => $this->formatted_dosage,
             'units' => $this->units ? (float) $this->units : null,
             'unitType' => $this->unit_type,
