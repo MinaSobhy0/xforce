@@ -598,19 +598,49 @@ class Tenant extends Model
         $defaults = self::getDefaultMobileConfig();
         $config = $this->mobile_config ?? [];
 
-        return array_replace_recursive($defaults, $config);
+        return self::mergeMobileConfig($defaults, $config);
     }
 
     /**
      * Set the full mobile app configuration.
+     *
+     * Stored as-is (no default merge) so user deletions of list items
+     * (navigation tabs, more_menu entries, quick_actions, dashboard components)
+     * persist instead of being re-filled from defaults on next read.
      */
     public function setMobileAppConfig(array $config): void
     {
-        $this->mobile_config = array_replace_recursive(
-            self::getDefaultMobileConfig(),
-            $config
-        );
+        $this->mobile_config = $config;
         $this->save();
+    }
+
+    /**
+     * Deep-merge mobile config with defaults.
+     *
+     * Associative arrays are merged key-by-key (so missing scalars fall back
+     * to defaults), but list-style arrays (e.g. quick_actions, navigation.tabs)
+     * are replaced wholesale when present in $config — otherwise deleting an
+     * item and saving would re-populate it from the defaults at the same index.
+     */
+    protected static function mergeMobileConfig(array $defaults, array $config): array
+    {
+        $result = $defaults;
+
+        foreach ($config as $key => $value) {
+            $defaultValue = $result[$key] ?? null;
+
+            if (is_array($value)
+                && is_array($defaultValue)
+                && ! array_is_list($value)
+                && ! array_is_list($defaultValue)
+            ) {
+                $result[$key] = self::mergeMobileConfig($defaultValue, $value);
+            } else {
+                $result[$key] = $value;
+            }
+        }
+
+        return $result;
     }
 
     /**

@@ -148,9 +148,6 @@ class QuickActionsSettingsPage extends Page implements Forms\Contracts\HasForms
             return;
         }
 
-        // Get current config and update quick_actions
-        $config = $tenant->getMobileAppConfig();
-
         // Add sort order based on array position
         $quickActions = collect($data['quick_actions'] ?? [])
             ->values()
@@ -161,9 +158,10 @@ class QuickActionsSettingsPage extends Page implements Forms\Contracts\HasForms
             })
             ->all();
 
+        // Only persist the delta so future default changes still propagate.
+        $config = $tenant->mobile_config ?? [];
         $config['quick_actions'] = $quickActions;
 
-        // Save to tenant
         $tenant->mobile_config = $config;
         $tenant->save();
 
