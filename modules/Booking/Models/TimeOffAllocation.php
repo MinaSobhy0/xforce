@@ -226,6 +226,37 @@ class TimeOffAllocation extends BaseModel
         );
     }
 
+    /**
+     * Convert Odoo allocation fields into the local storage unit before persistence.
+     *
+     * Odoo's `hr.leave.allocation.number_of_days` (and `leaves_taken`) are always expressed
+     * in DAYS, regardless of the type's `request_unit`. Locally we store:
+     *   - hour-based types → in HOURS (× hours_per_day)
+     *   - half_day and day types → in DAYS (copy as-is; half_day only gates request granularity)
+     */
+    public static function applyOdooImport(array $data, $mapping = null, ?array $odooData = null): array
+    {
+        $typeId = $data['time_off_type_id'] ?? null;
+        if (! $typeId) {
+            return $data;
+        }
+
+        $type = TimeOffType::find($typeId);
+        if (! $type || ! $type->isHourBased()) {
+            return $data;
+        }
+
+        $hoursPerDay = (float) ($type->hours_per_day ?: 8);
+
+        foreach (['allocated_days', 'used_days', 'carried_over_days'] as $field) {
+            if (array_key_exists($field, $data) && $data[$field] !== null) {
+                $data[$field] = round((float) $data[$field] * $hoursPerDay, 2);
+            }
+        }
+
+        return $data;
+    }
+
     public function scopeForStaffProfile($query, int $staffProfileId)
     {
         return $query->where('staff_profile_id', $staffProfileId);

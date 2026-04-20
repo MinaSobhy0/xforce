@@ -58,6 +58,11 @@ class ImportService
         // Transform Odoo data to local format
         $localData = $this->transformer->transformImport($mapping, $odooData);
 
+        // Model-level post-transform hook (e.g. unit conversion that needs related type context).
+        if (method_exists($modelClass, 'applyOdooImport')) {
+            $localData = $modelClass::applyOdooImport($localData, $mapping, $odooData);
+        }
+
         // Full sync with existing record: override
         if ($syncType === 'full' && $existingRecord) {
             return $this->updateExistingRecord($existingRecord, $localData, $odooId);

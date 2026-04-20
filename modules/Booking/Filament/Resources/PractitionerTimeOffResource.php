@@ -352,12 +352,13 @@ class PractitionerTimeOffResource extends Resource
                     ->searchable(['first_name', 'last_name'])
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('timeOffType.translated_name')
+                Tables\Columns\TextColumn::make('timeOffType.name')
                     ->label(__('booking::time_off.fields.time_off_type'))
                     ->badge()
                     ->color(fn ($record) => $record->timeOffType?->color ?? 'gray')
+                    ->formatStateUsing(fn ($record) => $record->timeOffType?->translated_name)
                     ->placeholder(fn ($record) => PractitionerTimeOff::TYPES[$record->type] ?? $record->type)
-                    ->sortable(),
+                    ->sortable(['time_off_types.name']),
 
                 Tables\Columns\TextColumn::make('display_duration')
                     ->label(__('booking::time_off.fields.duration'))

@@ -158,14 +158,15 @@ class TimeOffAllocationResource extends Resource
                     ->label(__('booking::time_off.allocations.fields.practitioner'))
                     ->formatStateUsing(fn ($record) => $record->staffProfile?->user?->full_name)
                     ->searchable(['users.first_name', 'users.last_name'])
-                    ->sortable(),
+                    ->sortable(['users.first_name', 'users.last_name']),
 
-                Tables\Columns\TextColumn::make('timeOffType.translated_name')
+                Tables\Columns\TextColumn::make('timeOffType.name')
                     ->label(__('booking::time_off.allocations.fields.type'))
                     ->badge()
                     ->color(fn ($record) => $record->timeOffType?->color ?? 'gray')
+                    ->formatStateUsing(fn ($record) => $record->timeOffType?->translated_name)
                     ->searchable(['time_off_types.name'])
-                    ->sortable(),
+                    ->sortable(['time_off_types.name']),
 
                 Tables\Columns\TextColumn::make('period_label')
                     ->label(__('booking::time_off.allocations.fields.period'))

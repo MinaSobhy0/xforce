@@ -170,7 +170,11 @@ class SyncEngine
         $offset = 0;
 
         while ($offset < $totalCount) {
-            // Fetch batch with rate limit retry
+            // Fetch batch with rate limit retry.
+            // Stable sort: 'id asc' is a primary key in Odoo, so pagination with OFFSET is
+            // deterministic — no records skipped or duplicated across batches.
+            // (Sorting by 'write_date asc' alone lets ties shift between calls, which causes
+            // some records to be silently omitted when bulk-created rows share a write_date.)
             $records = $this->fetchWithRateLimitRetry(function () use ($client, $mapping, $domain, $offset, $batchSize) {
                 return $client->searchRead(
                     $mapping->odoo_model,
@@ -178,7 +182,7 @@ class SyncEngine
                     $this->getOdooFields($mapping),
                     $offset,
                     $batchSize,
-                    'write_date asc'
+                    'id asc'
                 );
             });
 
