@@ -5,6 +5,7 @@ namespace App\Filament\SuperAdmin\Resources\TenantResource\Pages;
 use App\Filament\SuperAdmin\Resources\TenantResource;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
+use Illuminate\Database\Eloquent\Model;
 
 class CreateTenant extends CreateRecord
 {
@@ -22,5 +23,14 @@ class CreateTenant extends CreateRecord
     protected function getRedirectUrl(): string
     {
         return $this->getResource()::getUrl('view', ['record' => $this->record]);
+    }
+
+    protected function handleRecordCreation(array $data): Model
+    {
+        $model = static::getModel();
+        $record = new $model();
+        $record->forceFill($data)->save();
+
+        return $record;
     }
 }

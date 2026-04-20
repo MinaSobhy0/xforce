@@ -287,12 +287,9 @@ class TenantResource extends Resource
                         ->image()
                         ->directory('tenants/logos')
                         ->visibility('public')
-                        ->imageResizeMode('cover')
-                        ->imageCropAspectRatio('1:1')
-                        ->imageResizeTargetWidth('200')
-                        ->imageResizeTargetHeight('200')
-                        ->maxSize(1024)
-                        ->helperText('Square image, max 1MB. Used in navigation and emails.'),
+                        ->imageEditor()
+                        ->maxSize(2048)
+                        ->helperText('Any aspect ratio, max 2MB. Used in navigation and emails.'),
 
                     Forms\Components\FileUpload::make('favicon_path')
                         ->label('Favicon')
