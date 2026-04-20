@@ -3,17 +3,18 @@
 namespace Modules\Booking\Filament\Resources;
 
 use App\Traits\ChecksResourcePermissions;
-use Modules\Booking\Filament\Resources\PractitionerTimeOffResource\Pages;
-use Modules\Booking\Models\PractitionerTimeOff;
-use Modules\Booking\Models\TimeOffAllocation;
-use Modules\Booking\Models\TimeOffType;
-use Modules\Auth\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Modules\Auth\Models\User;
+use Modules\Booking\Filament\Resources\PractitionerTimeOffResource\Pages;
+use Modules\Booking\Models\PractitionerTimeOff;
+use Modules\Booking\Models\TimeOffAllocation;
+use Modules\Booking\Models\TimeOffType;
+use Modules\Staff\Models\StaffProfile;
 
 class PractitionerTimeOffResource extends Resource
 {
@@ -60,7 +61,7 @@ class PractitionerTimeOffResource extends Resource
         $isFullDay = $get('is_full_day');
         $timeOffTypeId = $get('time_off_type_id');
 
-        if (!$startDate) {
+        if (! $startDate) {
             return;
         }
 
@@ -82,7 +83,7 @@ class PractitionerTimeOffResource extends Resource
             }
         } else {
             // Day-based calculation
-            if (!$endDate) {
+            if (! $endDate) {
                 return;
             }
 
@@ -95,7 +96,7 @@ class PractitionerTimeOffResource extends Resource
                 $startTime = $get('start_time');
                 $endTime = $get('end_time');
 
-                if (!$startTime || !$endTime) {
+                if (! $startTime || ! $endTime) {
                     return;
                 }
 
@@ -144,23 +145,28 @@ class PractitionerTimeOffResource extends Resource
                                     ->label(__('booking::time_off.fields.time_off_type'))
                                     ->options(function (Forms\Get $get) {
                                         $userId = $get('user_id');
-                                        if (!$userId) {
+                                        if (! $userId) {
                                             return [];
                                         }
 
-                                        // Get only time off types that have allocations for this user
+                                        $staffProfileId = StaffProfile::query()
+                                            ->where('user_id', $userId)
+                                            ->value('id');
+                                        if (! $staffProfileId) {
+                                            return [];
+                                        }
+
                                         $types = TimeOffType::active()->ordered()->get();
 
-                                        return $types->mapWithKeys(function ($type) use ($userId) {
-                                            // Check if allocation exists for current period
+                                        return $types->mapWithKeys(function ($type) use ($staffProfileId) {
                                             $allocation = TimeOffAllocation::getForDate(
-                                                $userId,
+                                                $staffProfileId,
                                                 $type->id,
                                                 now()
                                             );
 
                                             // Skip types without allocations
-                                            if (!$allocation) {
+                                            if (! $allocation) {
                                                 return [];
                                             }
 
@@ -169,7 +175,7 @@ class PractitionerTimeOffResource extends Resource
                                             $total = $allocation->total_display_value;
 
                                             return [
-                                                $type->id => "{$typeName} ({$remaining} / {$total})"
+                                                $type->id => "{$typeName} ({$remaining} / {$total})",
                                             ];
                                         })->filter()->toArray();
                                     })
@@ -178,7 +184,7 @@ class PractitionerTimeOffResource extends Resource
                                     ->required()
                                     ->live()
                                     ->afterStateUpdated(function ($state, Forms\Get $get, Forms\Set $set) {
-                                        if (!$state) {
+                                        if (! $state) {
                                             return;
                                         }
 
@@ -194,37 +200,41 @@ class PractitionerTimeOffResource extends Resource
                                     })
                                     ->helperText(function (Forms\Get $get) {
                                         $userId = $get('user_id');
-                                        if (!$userId) {
+                                        if (! $userId) {
                                             return __('booking::time_off.fields.select_staff_first');
                                         }
 
-                                        // Check if user has any allocations
-                                        $hasAllocations = TimeOffAllocation::where('user_id', $userId)
-                                            ->where(function ($query) {
-                                                $query->where('year', now()->year)
-                                                    ->where(function ($q) {
-                                                        $q->whereNull('month')
-                                                            ->orWhere('month', now()->month);
-                                                    });
-                                            })
+                                        $staffProfileId = StaffProfile::query()
+                                            ->where('user_id', $userId)
+                                            ->value('id');
+
+                                        if (! $staffProfileId) {
+                                            return __('booking::time_off.fields.no_allocations');
+                                        }
+
+                                        $hasAllocations = TimeOffAllocation::query()
+                                            ->where('staff_profile_id', $staffProfileId)
+                                            ->coveringDate(now())
                                             ->exists();
 
-                                        if (!$hasAllocations) {
+                                        if (! $hasAllocations) {
                                             return __('booking::time_off.fields.no_allocations');
                                         }
 
                                         $typeId = $get('time_off_type_id');
-                                        if ($userId && $typeId) {
+                                        if ($typeId) {
                                             $type = TimeOffType::find($typeId);
-                                            $allocation = TimeOffAllocation::getForDate($userId, $typeId, now());
+                                            $allocation = TimeOffAllocation::getForDate($staffProfileId, $typeId, now());
 
                                             if ($allocation && $type) {
                                                 $periodLabel = $type->isMonthly()
                                                     ? __('booking::time_off.fields.remaining_this_month', ['value' => $allocation->display_value])
                                                     : __('booking::time_off.fields.remaining_this_year', ['value' => $allocation->display_value]);
+
                                                 return $periodLabel;
                                             }
                                         }
+
                                         return null;
                                     }),
                             ]),
@@ -245,7 +255,7 @@ class PractitionerTimeOffResource extends Resource
                             ->label(__('booking::time_off.fields.is_full_day'))
                             ->default(true)
                             ->live()
-                            ->visible(fn (Forms\Get $get) => !($get('time_off_type_id') && TimeOffType::find($get('time_off_type_id'))?->isHourBased()))
+                            ->visible(fn (Forms\Get $get) => ! ($get('time_off_type_id') && TimeOffType::find($get('time_off_type_id'))?->isHourBased()))
                             ->afterStateUpdated(function ($state, Forms\Get $get, Forms\Set $set) {
                                 static::recalculateDays($get, $set);
                             }),
@@ -272,7 +282,7 @@ class PractitionerTimeOffResource extends Resource
                                     ->required()
                                     ->afterOrEqual('start_date')
                                     ->live()
-                                    ->visible(fn (Forms\Get $get) => !($get('time_off_type_id') && TimeOffType::find($get('time_off_type_id'))?->isHourBased()))
+                                    ->visible(fn (Forms\Get $get) => ! ($get('time_off_type_id') && TimeOffType::find($get('time_off_type_id'))?->isHourBased()))
                                     ->afterStateUpdated(function ($state, Forms\Get $get, Forms\Set $set) {
                                         static::recalculateDays($get, $set);
                                     }),
@@ -282,7 +292,7 @@ class PractitionerTimeOffResource extends Resource
                                     ->numeric()
                                     ->step(0.5)
                                     ->minValue(0.5)
-                                    ->visible(fn (Forms\Get $get) => $get('time_off_type_id') && !TimeOffType::find($get('time_off_type_id'))?->isHourBased())
+                                    ->visible(fn (Forms\Get $get) => $get('time_off_type_id') && ! TimeOffType::find($get('time_off_type_id'))?->isHourBased())
                                     ->helperText(__('booking::time_off.fields.days_requested_help')),
 
                                 Forms\Components\TextInput::make('hours_requested')
@@ -299,7 +309,7 @@ class PractitionerTimeOffResource extends Resource
                                 Forms\Components\TimePicker::make('start_time')
                                     ->label(__('booking::time_off.fields.start_time'))
                                     ->seconds(false)
-                                    ->required(fn (Forms\Get $get) => !$get('is_full_day') || ($get('time_off_type_id') && TimeOffType::find($get('time_off_type_id'))?->isHourBased()))
+                                    ->required(fn (Forms\Get $get) => ! $get('is_full_day') || ($get('time_off_type_id') && TimeOffType::find($get('time_off_type_id'))?->isHourBased()))
                                     ->live()
                                     ->afterStateUpdated(function ($state, Forms\Get $get, Forms\Set $set) {
                                         static::recalculateDays($get, $set);
@@ -308,13 +318,13 @@ class PractitionerTimeOffResource extends Resource
                                 Forms\Components\TimePicker::make('end_time')
                                     ->label(__('booking::time_off.fields.end_time'))
                                     ->seconds(false)
-                                    ->required(fn (Forms\Get $get) => !$get('is_full_day') || ($get('time_off_type_id') && TimeOffType::find($get('time_off_type_id'))?->isHourBased()))
+                                    ->required(fn (Forms\Get $get) => ! $get('is_full_day') || ($get('time_off_type_id') && TimeOffType::find($get('time_off_type_id'))?->isHourBased()))
                                     ->live()
                                     ->afterStateUpdated(function ($state, Forms\Get $get, Forms\Set $set) {
                                         static::recalculateDays($get, $set);
                                     }),
                             ])
-                            ->visible(fn (Forms\Get $get) => !$get('is_full_day') || ($get('time_off_type_id') && TimeOffType::find($get('time_off_type_id'))?->isHourBased())),
+                            ->visible(fn (Forms\Get $get) => ! $get('is_full_day') || ($get('time_off_type_id') && TimeOffType::find($get('time_off_type_id'))?->isHourBased())),
                     ]),
 
                 Forms\Components\Section::make(__('booking::time_off.sections.details'))
@@ -359,7 +369,7 @@ class PractitionerTimeOffResource extends Resource
 
                 Tables\Columns\TextColumn::make('duration_days')
                     ->label(__('booking::time_off.fields.days'))
-                    ->suffix(' ' . __('booking::appointments.days')),
+                    ->suffix(' '.__('booking::appointments.days')),
 
                 Tables\Columns\BadgeColumn::make('status')
                     ->label(__('booking::time_off.fields.status'))

@@ -4,9 +4,9 @@ namespace Modules\MobileApi\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Modules\Booking\Models\TimeOffType;
-use Modules\Booking\Models\TimeOffAllocation;
 use Modules\Booking\Models\PractitionerTimeOff;
+use Modules\Booking\Models\TimeOffAllocation;
+use Modules\Booking\Models\TimeOffType;
 
 class TimeOffController extends BaseApiController
 {
@@ -16,14 +16,14 @@ class TimeOffController extends BaseApiController
      */
     public function types(): JsonResponse
     {
-        if (!class_exists(TimeOffType::class)) {
+        if (! class_exists(TimeOffType::class)) {
             return $this->success([]);
         }
 
         $types = TimeOffType::active()
             ->ordered()
             ->get()
-            ->map(fn($t) => [
+            ->map(fn ($t) => [
                 'id' => $t->id,
                 'name' => $t->translated_name,
                 'code' => $t->code,
@@ -44,21 +44,22 @@ class TimeOffController extends BaseApiController
      */
     public function balance(): JsonResponse
     {
-        $user = $this->user();
+        $staffProfile = $this->staffProfile();
 
-        if (!class_exists(TimeOffAllocation::class)) {
+        if (! class_exists(TimeOffAllocation::class) || ! $staffProfile) {
             return $this->success([]);
         }
 
-        // Get user's allocations for current year (only existing ones, don't auto-create)
+        // Return allocations that cover today (Odoo-style validity).
         $allocations = TimeOffAllocation::with('timeOffType')
-            ->where('user_id', $user->id)
-            ->forYear(now()->year)
-            ->whereHas('timeOffType', fn($q) => $q->where('is_active', true))
+            ->forStaffProfile($staffProfile->id)
+            ->coveringDate(now())
+            ->whereHas('timeOffType', fn ($q) => $q->where('is_active', true))
             ->get();
 
         $balances = $allocations->map(function ($allocation) {
             $type = $allocation->timeOffType;
+
             return [
                 'type_id' => $type->id,
                 'type' => $type->translated_name,
@@ -84,7 +85,7 @@ class TimeOffController extends BaseApiController
     {
         $user = $this->user();
 
-        if (!class_exists(PractitionerTimeOff::class)) {
+        if (! class_exists(PractitionerTimeOff::class)) {
             return $this->success([]);
         }
 
@@ -103,7 +104,7 @@ class TimeOffController extends BaseApiController
         $paginator = $query->paginate($this->getPerPage());
 
         // Map items using the formatter
-        $data = collect($paginator->items())->map(fn($r) => $this->formatTimeOffRequest($r));
+        $data = collect($paginator->items())->map(fn ($r) => $this->formatTimeOffRequest($r));
 
         return response()->json([
             'success' => true,
@@ -125,7 +126,7 @@ class TimeOffController extends BaseApiController
     {
         $user = $this->user();
 
-        if (!class_exists(PractitionerTimeOff::class)) {
+        if (! class_exists(PractitionerTimeOff::class)) {
             return $this->notFound();
         }
 
@@ -133,7 +134,7 @@ class TimeOffController extends BaseApiController
             ->where('user_id', $user->id)
             ->find($id);
 
-        if (!$timeOff) {
+        if (! $timeOff) {
             return $this->notFound();
         }
 
@@ -158,12 +159,12 @@ class TimeOffController extends BaseApiController
             'reason' => 'sometimes|string|max:1000',
         ]);
 
-        if (!class_exists(PractitionerTimeOff::class)) {
+        if (! class_exists(PractitionerTimeOff::class)) {
             return $this->error('Time off module not available', 503);
         }
 
         $type = TimeOffType::find($validated['time_off_type_id']);
-        if (!$type || !$type->is_active) {
+        if (! $type || ! $type->is_active) {
             return $this->error(__('mobile_api::mobile.time_off.invalid_type'), 400);
         }
 
@@ -195,16 +196,20 @@ class TimeOffController extends BaseApiController
         } else {
             // Calculate days
             $daysRequested = $startDate->diffInDays($endDate) + 1;
-            if (!$isFullDay && $type->allow_half_day) {
+            if (! $isFullDay && $type->allow_half_day) {
                 $daysRequested = 0.5;
             }
         }
 
-        // Check balance
-        $allocation = TimeOffAllocation::getOrCreateForDate($user->id, $type->id, $startDate);
+        // Check balance (allocation is keyed by staff_profile_id).
+        $staffProfile = $this->staffProfile();
+        if (! $staffProfile) {
+            return $this->error(__('mobile_api::mobile.time_off.no_staff_profile'), 400);
+        }
+        $allocation = TimeOffAllocation::getOrCreateForDate($staffProfile->id, $type->id, $startDate);
         $amountToCheck = $type->isHourBased() ? $hoursRequested : $daysRequested;
 
-        if (!$allocation->hasAvailable($amountToCheck)) {
+        if (! $allocation->hasAvailable($amountToCheck)) {
             return $this->error(__('mobile_api::mobile.time_off.insufficient_balance'), 400);
         }
 
@@ -247,17 +252,17 @@ class TimeOffController extends BaseApiController
     {
         $user = $this->user();
 
-        if (!class_exists(PractitionerTimeOff::class)) {
+        if (! class_exists(PractitionerTimeOff::class)) {
             return $this->error('Time off module not available', 503);
         }
 
         $timeOff = PractitionerTimeOff::where('user_id', $user->id)->find($id);
 
-        if (!$timeOff) {
+        if (! $timeOff) {
             return $this->notFound();
         }
 
-        if (!$timeOff->isPending()) {
+        if (! $timeOff->isPending()) {
             return $this->error(__('mobile_api::mobile.time_off.cannot_cancel'), 400);
         }
 
@@ -274,7 +279,7 @@ class TimeOffController extends BaseApiController
     {
         $branch = $this->branch();
 
-        if (!class_exists(PractitionerTimeOff::class)) {
+        if (! class_exists(PractitionerTimeOff::class)) {
             return $this->success([]);
         }
 
@@ -298,7 +303,7 @@ class TimeOffController extends BaseApiController
         return $this->success([
             'month' => $month,
             'year' => $year,
-            'entries' => $timeOffs->map(fn($t) => [
+            'entries' => $timeOffs->map(fn ($t) => [
                 'id' => $t->id,
                 'staff_name' => $t->practitioner?->full_name ?? 'Unknown',
                 'type' => $t->timeOffType?->translated_name ?? $t->type_label,

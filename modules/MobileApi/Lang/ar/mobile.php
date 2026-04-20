@@ -65,6 +65,8 @@ return [
         'cannot_cancel' => 'لا يمكن إلغاء هذا الطلب',
         'insufficient_balance' => 'رصيد الإجازة غير كافي',
         'dates_overlap' => 'هذه التواريخ تتداخل مع طلب موجود',
+        'exceeds_max_per_request' => 'الطلب يتجاوز الحد الأقصى المسموح به (:max)',
+        'no_staff_profile' => 'لا يوجد ملف موظف مرتبط بهذا الحساب',
     ],
 
     'payroll' => [

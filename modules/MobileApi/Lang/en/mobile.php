@@ -65,6 +65,8 @@ return [
         'cannot_cancel' => 'This request cannot be cancelled',
         'insufficient_balance' => 'Insufficient leave balance',
         'dates_overlap' => 'These dates overlap with an existing request',
+        'exceeds_max_per_request' => 'Request exceeds the maximum allowed (:max)',
+        'no_staff_profile' => 'No staff profile linked to this account',
     ],
 
     'payroll' => [

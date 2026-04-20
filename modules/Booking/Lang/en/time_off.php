@@ -178,6 +178,9 @@ return [
             'type' => 'Time Off Type',
             'year' => 'Year',
             'month' => 'Month',
+            'date_from' => 'Valid From',
+            'date_to' => 'Valid Until',
+            'no_end' => 'no end date',
             'period' => 'Period',
             'allocated' => 'Allocated',
             'allocated_days' => 'Allocated Days',
@@ -199,6 +202,10 @@ return [
             'month' => 'Required for monthly allocation types',
         ],
 
+        'filters' => [
+            'current' => 'Currently valid',
+        ],
+
         'bulk' => [
             'button' => 'Bulk Allocate',
             'title' => 'Bulk Allocation',
@@ -208,6 +215,8 @@ return [
             'all_staff' => 'Select All Staff',
             'all_months' => 'All 12 Months',
             'all_months_help' => 'Create allocations for all 12 months of the year at once',
+            'fan_out_monthly' => 'Split into monthly allocations',
+            'fan_out_monthly_help' => 'Create one allocation per calendar month within the range',
             'select_months' => 'Select Months',
             'amount_help' => 'Amount to allocate (uses default if not changed)',
             'skip_existing' => 'Skip Existing Allocations',

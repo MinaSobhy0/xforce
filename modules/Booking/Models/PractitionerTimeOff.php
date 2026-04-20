@@ -2,11 +2,12 @@
 
 namespace Modules\Booking\Models;
 
-use XLinic\Framework\Core\Model\BaseModel;
-use XLinic\Framework\Core\Model\Traits\HasTenancy;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Modules\Auth\Models\User;
 use Modules\Core\Models\Branch;
+use Modules\Staff\Models\StaffProfile;
+use XLinic\Framework\Core\Model\BaseModel;
+use XLinic\Framework\Core\Model\Traits\HasTenancy;
 
 class PractitionerTimeOff extends BaseModel
 {
@@ -47,9 +48,13 @@ class PractitionerTimeOff extends BaseModel
 
     // Time off types
     public const TYPE_VACATION = 'vacation';
+
     public const TYPE_SICK = 'sick';
+
     public const TYPE_PERSONAL = 'personal';
+
     public const TYPE_TRAINING = 'training';
+
     public const TYPE_OTHER = 'other';
 
     public const TYPES = [
@@ -62,8 +67,11 @@ class PractitionerTimeOff extends BaseModel
 
     // Status
     public const STATUS_PENDING = 'pending';
+
     public const STATUS_APPROVED = 'approved';
+
     public const STATUS_REJECTED = 'rejected';
+
     public const STATUS_CANCELLED = 'cancelled';
 
     public const STATUSES = [
@@ -92,7 +100,7 @@ class PractitionerTimeOff extends BaseModel
                     $timeOff->is_full_day = false;
 
                     // Ensure end_date is same as start_date for hours-based
-                    if ($timeOff->start_date && !$timeOff->end_date) {
+                    if ($timeOff->start_date && ! $timeOff->end_date) {
                         $timeOff->end_date = $timeOff->start_date;
                     }
                 }
@@ -155,15 +163,16 @@ class PractitionerTimeOff extends BaseModel
 
     public function getDurationDaysAttribute(): int
     {
-        if (!$this->start_date || !$this->end_date) {
+        if (! $this->start_date || ! $this->end_date) {
             return 0;
         }
+
         return $this->start_date->diffInDays($this->end_date) + 1;
     }
 
     public function getFormattedPeriodAttribute(): string
     {
-        if (!$this->start_date) {
+        if (! $this->start_date) {
             return '';
         }
 
@@ -171,7 +180,7 @@ class PractitionerTimeOff extends BaseModel
             return $this->start_date->format('M d, Y');
         }
 
-        return $this->start_date->format('M d') . ' - ' . ($this->end_date ?? $this->start_date)->format('M d, Y');
+        return $this->start_date->format('M d').' - '.($this->end_date ?? $this->start_date)->format('M d, Y');
     }
 
     public function isPending(): bool
@@ -196,7 +205,7 @@ class PractitionerTimeOff extends BaseModel
 
     public function approve(string $approvedByUserId): bool
     {
-        if (!$this->isPending()) {
+        if (! $this->isPending()) {
             return false;
         }
 
@@ -209,10 +218,11 @@ class PractitionerTimeOff extends BaseModel
         // Deduct from allocation if using typed time off
         if ($result && $this->time_off_type_id) {
             $deductAmount = $this->getDeductionAmount();
+            $staffProfileId = $this->resolveStaffProfileId();
 
-            if ($deductAmount > 0) {
+            if ($deductAmount > 0 && $staffProfileId) {
                 $allocation = TimeOffAllocation::getOrCreateForDate(
-                    $this->user_id,
+                    $staffProfileId,
                     $this->time_off_type_id,
                     $this->start_date
                 );
@@ -225,7 +235,7 @@ class PractitionerTimeOff extends BaseModel
 
     public function reject(string $approvedByUserId, ?string $notes = null): bool
     {
-        if (!$this->isPending()) {
+        if (! $this->isPending()) {
             return false;
         }
 
@@ -252,10 +262,11 @@ class PractitionerTimeOff extends BaseModel
         // Return allocation if was approved and using typed time off
         if ($result && $wasApproved && $this->time_off_type_id) {
             $returnAmount = $this->getDeductionAmount();
+            $staffProfileId = $this->resolveStaffProfileId();
 
-            if ($returnAmount > 0) {
+            if ($returnAmount > 0 && $staffProfileId) {
                 $allocation = TimeOffAllocation::getForDate(
-                    $this->user_id,
+                    $staffProfileId,
                     $this->time_off_type_id,
                     $this->start_date
                 );
@@ -271,7 +282,7 @@ class PractitionerTimeOff extends BaseModel
 
     public function coversDate(\Carbon\Carbon $date): bool
     {
-        if (!$this->isApproved()) {
+        if (! $this->isApproved()) {
             return false;
         }
 
@@ -280,7 +291,7 @@ class PractitionerTimeOff extends BaseModel
 
     public function coversDateTime(\Carbon\Carbon $datetime): bool
     {
-        if (!$this->coversDate($datetime)) {
+        if (! $this->coversDate($datetime)) {
             return false;
         }
 
@@ -289,6 +300,7 @@ class PractitionerTimeOff extends BaseModel
         }
 
         $time = $datetime->format('H:i');
+
         return $time >= $this->start_time && $time < $this->end_time;
     }
 
@@ -303,6 +315,7 @@ class PractitionerTimeOff extends BaseModel
         if ($branchId === null) {
             return $query;
         }
+
         return $query->where('branch_id', $branchId);
     }
 
@@ -365,7 +378,7 @@ class PractitionerTimeOff extends BaseModel
 
         $type = $this->timeOffType;
 
-        if (!$type) {
+        if (! $type) {
             return ($this->days_requested ?? 0) * 8; // Default 8 hours per day
         }
 
@@ -379,8 +392,8 @@ class PractitionerTimeOff extends BaseModel
     {
         $type = $this->timeOffType;
 
-        if (!$type) {
-            return number_format($this->days_requested ?? 0, 1) . ' ' . __('booking::time_off.request_units.day');
+        if (! $type) {
+            return number_format($this->days_requested ?? 0, 1).' '.__('booking::time_off.request_units.day');
         }
 
         if ($type->isHourBased() && $this->hours_requested !== null) {
@@ -399,11 +412,26 @@ class PractitionerTimeOff extends BaseModel
     }
 
     /**
+     * Resolve this request's owner to a staff_profile_id.
+     * Returns null if the user has no staff profile in the current tenant.
+     */
+    public function resolveStaffProfileId(): ?int
+    {
+        if (! $this->user_id) {
+            return null;
+        }
+
+        return StaffProfile::query()
+            ->where('user_id', $this->user_id)
+            ->value('id');
+    }
+
+    /**
      * Calculate hours from time range.
      */
     public static function calculateHoursFromTimeRange(?string $startTime, ?string $endTime): float
     {
-        if (!$startTime || !$endTime) {
+        if (! $startTime || ! $endTime) {
             return 0;
         }
 

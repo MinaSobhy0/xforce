@@ -2,14 +2,14 @@
 
 namespace Modules\Booking\Filament\Resources\TimeOffAllocationResource\Pages;
 
+use App\Filament\Resources\Pages\BaseListRecords;
 use Filament\Actions;
 use Filament\Forms;
 use Filament\Notifications\Notification;
-use App\Filament\Resources\Pages\BaseListRecords;
-use Modules\Auth\Models\User;
 use Modules\Booking\Filament\Resources\TimeOffAllocationResource;
 use Modules\Booking\Models\TimeOffAllocation;
 use Modules\Booking\Models\TimeOffType;
+use Modules\Staff\Models\StaffProfile;
 
 class ListTimeOffAllocations extends BaseListRecords
 {
@@ -40,41 +40,46 @@ class ListTimeOffAllocations extends BaseListRecords
                     ->required()
                     ->live()
                     ->afterStateUpdated(function ($state, Forms\Set $set) {
-                        if ($state) {
-                            $type = TimeOffType::find($state);
-                            if ($type) {
-                                $set('allocated_amount', $type->getEffectiveDefaultAllocation());
-                            }
+                        if (! $state) {
+                            return;
                         }
+                        $type = TimeOffType::find($state);
+                        if (! $type) {
+                            return;
+                        }
+
+                        $set('allocated_amount', $type->getEffectiveDefaultAllocation());
+                        [$from, $to] = TimeOffAllocation::deriveDateRange($type, now());
+                        $set('date_from', $from->toDateString());
+                        $set('date_to', $to->toDateString());
                     }),
 
-                Forms\Components\TextInput::make('year')
-                    ->label(__('booking::time_off.allocations.fields.year'))
-                    ->numeric()
-                    ->default(now()->year)
+                Forms\Components\DatePicker::make('date_from')
+                    ->label(__('booking::time_off.allocations.fields.date_from'))
+                    ->native(false)
                     ->required()
-                    ->minValue(2020)
-                    ->maxValue(2050),
+                    ->default(now()->startOfYear()),
 
-                Forms\Components\Toggle::make('all_months')
-                    ->label(__('booking::time_off.allocations.bulk.all_months'))
+                Forms\Components\DatePicker::make('date_to')
+                    ->label(__('booking::time_off.allocations.fields.date_to'))
+                    ->native(false)
+                    ->required()
+                    ->after('date_from')
+                    ->default(now()->endOfYear()),
+
+                Forms\Components\Toggle::make('fan_out_monthly')
+                    ->label(__('booking::time_off.allocations.bulk.fan_out_monthly'))
                     ->default(true)
                     ->visible(fn (Forms\Get $get) => $get('time_off_type_id') && TimeOffType::find($get('time_off_type_id'))?->isMonthly())
-                    ->live()
-                    ->helperText(__('booking::time_off.allocations.bulk.all_months_help')),
+                    ->helperText(__('booking::time_off.allocations.bulk.fan_out_monthly_help')),
 
-                Forms\Components\Select::make('months')
-                    ->label(__('booking::time_off.allocations.bulk.select_months'))
-                    ->options(fn () => collect(range(1, 12))->mapWithKeys(fn ($m) => [
-                        $m => \Carbon\Carbon::create()->month($m)->translatedFormat('F')
-                    ])->toArray())
-                    ->multiple()
-                    ->visible(fn (Forms\Get $get) => $get('time_off_type_id') && TimeOffType::find($get('time_off_type_id'))?->isMonthly() && !$get('all_months'))
-                    ->required(fn (Forms\Get $get) => $get('time_off_type_id') && TimeOffType::find($get('time_off_type_id'))?->isMonthly() && !$get('all_months')),
-
-                Forms\Components\Select::make('user_ids')
+                Forms\Components\Select::make('staff_profile_ids')
                     ->label(__('booking::time_off.allocations.bulk.select_staff'))
-                    ->options(fn () => User::query()->get()->pluck('full_name', 'id'))
+                    ->options(fn () => StaffProfile::query()
+                        ->with('user:id,first_name,last_name')
+                        ->get()
+                        ->mapWithKeys(fn (StaffProfile $sp) => [$sp->id => $sp->user?->full_name ?? "#{$sp->id}"])
+                        ->toArray())
                     ->multiple()
                     ->searchable()
                     ->preload()
@@ -86,9 +91,9 @@ class ListTimeOffAllocations extends BaseListRecords
                     ->live()
                     ->afterStateUpdated(function ($state, Forms\Set $set) {
                         if ($state) {
-                            $set('user_ids', User::query()->pluck('id')->toArray());
+                            $set('staff_profile_ids', StaffProfile::query()->pluck('id')->toArray());
                         } else {
-                            $set('user_ids', []);
+                            $set('staff_profile_ids', []);
                         }
                     }),
 
@@ -108,32 +113,36 @@ class ListTimeOffAllocations extends BaseListRecords
             ])
             ->action(function (array $data): void {
                 $type = TimeOffType::find($data['time_off_type_id']);
-                $userIds = $data['user_ids'];
-                $year = $data['year'];
+                $staffProfileIds = $data['staff_profile_ids'] ?? [];
                 $allocatedAmount = $data['allocated_amount'];
                 $skipExisting = $data['skip_existing'] ?? true;
 
-                // Determine which months to allocate
-                $months = [null]; // Default for yearly types
-                if ($type?->isMonthly()) {
-                    if ($data['all_months'] ?? false) {
-                        $months = range(1, 12); // All 12 months
-                    } else {
-                        $months = $data['months'] ?? [];
+                $dateFrom = \Carbon\Carbon::parse($data['date_from'])->startOfDay();
+                $dateTo = \Carbon\Carbon::parse($data['date_to'])->startOfDay();
+
+                // For monthly types, fan out one allocation per calendar month across the range.
+                $ranges = [];
+                if ($type?->isMonthly() && ($data['fan_out_monthly'] ?? true)) {
+                    $cursor = $dateFrom->copy()->startOfMonth();
+                    while ($cursor->lessThanOrEqualTo($dateTo)) {
+                        $ranges[] = [$cursor->copy()->startOfMonth(), $cursor->copy()->endOfMonth()];
+                        $cursor->addMonthNoOverflow();
                     }
+                } else {
+                    $ranges[] = [$dateFrom, $dateTo];
                 }
 
                 $created = 0;
                 $skipped = 0;
 
-                foreach ($userIds as $userId) {
-                    foreach ($months as $month) {
+                foreach ($staffProfileIds as $staffProfileId) {
+                    foreach ($ranges as [$from, $to]) {
                         $criteria = [
                             'tenant_id' => current_tenant_id(),
-                            'user_id' => $userId,
+                            'staff_profile_id' => $staffProfileId,
                             'time_off_type_id' => $data['time_off_type_id'],
-                            'year' => $year,
-                            'month' => $month,
+                            'date_from' => $from->toDateString(),
+                            'date_to' => $to->toDateString(),
                         ];
 
                         $existing = TimeOffAllocation::where($criteria)->first();
@@ -141,13 +150,12 @@ class ListTimeOffAllocations extends BaseListRecords
                         if ($existing) {
                             if ($skipExisting) {
                                 $skipped++;
+
                                 continue;
                             }
-                            // Update existing
                             $existing->update(['allocated_days' => $allocatedAmount]);
                             $created++;
                         } else {
-                            // Create new
                             TimeOffAllocation::create(array_merge($criteria, [
                                 'allocated_days' => $allocatedAmount,
                                 'used_days' => 0,

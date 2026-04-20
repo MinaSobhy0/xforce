@@ -8,11 +8,10 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Modules\Auth\Models\User;
 use Modules\Booking\Filament\Resources\TimeOffAllocationResource\Pages;
 use Modules\Booking\Models\TimeOffAllocation;
 use Modules\Booking\Models\TimeOffType;
+use Modules\Staff\Models\StaffProfile;
 
 class TimeOffAllocationResource extends Resource
 {
@@ -51,11 +50,9 @@ class TimeOffAllocationResource extends Resource
             ->schema([
                 Forms\Components\Section::make(__('booking::time_off.allocations.sections.allocation'))
                     ->schema([
-                        Forms\Components\Select::make('user_id')
+                        Forms\Components\Select::make('staff_profile_id')
                             ->label(__('booking::time_off.allocations.fields.practitioner'))
-                            ->options(fn () => User::query()
-                                ->get()
-                                ->pluck('full_name', 'id'))
+                            ->options(fn () => static::staffProfileOptions())
                             ->searchable()
                             ->preload()
                             ->required(),
@@ -68,31 +65,38 @@ class TimeOffAllocationResource extends Resource
                             ->preload()
                             ->required()
                             ->live()
-                            ->afterStateUpdated(function ($state, Forms\Set $set) {
-                                if ($state) {
-                                    $type = TimeOffType::find($state);
-                                    if ($type) {
-                                        $set('allocated_days', $type->getEffectiveDefaultAllocation());
-                                    }
+                            ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
+                                if (! $state) {
+                                    return;
+                                }
+
+                                $type = TimeOffType::find($state);
+                                if (! $type) {
+                                    return;
+                                }
+
+                                $set('allocated_days', $type->getEffectiveDefaultAllocation());
+
+                                // Seed a sensible date range if empty.
+                                if (! $get('date_from') || ! $get('date_to')) {
+                                    [$from, $to] = TimeOffAllocation::deriveDateRange($type, now());
+                                    $set('date_from', $from->toDateString());
+                                    $set('date_to', $to->toDateString());
                                 }
                             }),
 
-                        Forms\Components\TextInput::make('year')
-                            ->label(__('booking::time_off.allocations.fields.year'))
-                            ->numeric()
-                            ->default(now()->year)
+                        Forms\Components\DatePicker::make('date_from')
+                            ->label(__('booking::time_off.allocations.fields.date_from'))
+                            ->native(false)
                             ->required()
-                            ->minValue(2020)
-                            ->maxValue(2050),
+                            ->default(now()->startOfYear()),
 
-                        Forms\Components\Select::make('month')
-                            ->label(__('booking::time_off.allocations.fields.month'))
-                            ->options(fn () => collect(range(1, 12))->mapWithKeys(fn ($m) => [
-                                $m => \Carbon\Carbon::create()->month($m)->translatedFormat('F')
-                            ])->toArray())
-                            ->visible(fn (Forms\Get $get) => $get('time_off_type_id') && TimeOffType::find($get('time_off_type_id'))?->isMonthly())
-                            ->required(fn (Forms\Get $get) => $get('time_off_type_id') && TimeOffType::find($get('time_off_type_id'))?->isMonthly())
-                            ->helperText(__('booking::time_off.allocations.help.month')),
+                        Forms\Components\DatePicker::make('date_to')
+                            ->label(__('booking::time_off.allocations.fields.date_to'))
+                            ->native(false)
+                            ->required()
+                            ->after('date_from')
+                            ->default(now()->endOfYear()),
                     ])
                     ->columns(2),
 
@@ -150,10 +154,10 @@ class TimeOffAllocationResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('user.first_name')
+                Tables\Columns\TextColumn::make('staffProfile.user.first_name')
                     ->label(__('booking::time_off.allocations.fields.practitioner'))
-                    ->formatStateUsing(fn ($record) => $record->user?->full_name)
-                    ->searchable(['first_name', 'last_name'])
+                    ->formatStateUsing(fn ($record) => $record->staffProfile?->user?->full_name)
+                    ->searchable(['users.first_name', 'users.last_name'])
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('timeOffType.translated_name')
@@ -165,7 +169,7 @@ class TimeOffAllocationResource extends Resource
 
                 Tables\Columns\TextColumn::make('period_label')
                     ->label(__('booking::time_off.allocations.fields.period'))
-                    ->sortable(['year', 'month']),
+                    ->sortable(['date_from']),
 
                 Tables\Columns\TextColumn::make('allocated_days')
                     ->label(__('booking::time_off.allocations.fields.allocated'))
@@ -196,13 +200,11 @@ class TimeOffAllocationResource extends Resource
                     ->limit(30)
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
-            ->defaultSort('year', 'desc')
+            ->defaultSort('date_from', 'desc')
             ->filters([
-                Tables\Filters\SelectFilter::make('user_id')
+                Tables\Filters\SelectFilter::make('staff_profile_id')
                     ->label(__('booking::time_off.allocations.fields.practitioner'))
-                    ->options(fn () => User::query()
-                        ->get()
-                        ->pluck('full_name', 'id'))
+                    ->options(fn () => static::staffProfileOptions())
                     ->searchable()
                     ->preload(),
 
@@ -213,12 +215,10 @@ class TimeOffAllocationResource extends Resource
                     ->searchable()
                     ->preload(),
 
-                Tables\Filters\SelectFilter::make('year')
-                    ->label(__('booking::time_off.allocations.fields.year'))
-                    ->options(fn () => collect(range(now()->year - 2, now()->year + 1))
-                        ->mapWithKeys(fn ($year) => [$year => $year])
-                        ->toArray())
-                    ->default(now()->year),
+                Tables\Filters\Filter::make('covers_today')
+                    ->label(__('booking::time_off.allocations.filters.current'))
+                    ->default()
+                    ->query(fn ($query) => $query->coveringDate(now())),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
@@ -243,5 +243,14 @@ class TimeOffAllocationResource extends Resource
             'create' => Pages\CreateTimeOffAllocation::route('/create'),
             'edit' => Pages\EditTimeOffAllocation::route('/{record}/edit'),
         ];
+    }
+
+    protected static function staffProfileOptions(): array
+    {
+        return StaffProfile::query()
+            ->with('user:id,first_name,last_name')
+            ->get()
+            ->mapWithKeys(fn (StaffProfile $sp) => [$sp->id => $sp->user?->full_name ?? "#{$sp->id}"])
+            ->toArray();
     }
 }

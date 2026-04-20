@@ -171,6 +171,7 @@ return [
             ['local_field' => 'staff_profile_id', 'odoo_field' => 'employee_id', 'transform_type' => 'relation', 'transform_config' => ['model' => 'Modules\\Staff\\Models\\StaffProfile']],
             ['local_field' => 'time_off_type_id', 'odoo_field' => 'holiday_status_id', 'transform_type' => 'relation', 'transform_config' => ['model' => 'Modules\\Booking\\Models\\TimeOffType']],
             ['local_field' => 'allocated_days', 'odoo_field' => 'number_of_days'],
+            ['local_field' => 'used_days', 'odoo_field' => 'leaves_taken'],
             ['local_field' => 'date_from', 'odoo_field' => 'date_from', 'transform_type' => 'date'],
             ['local_field' => 'date_to', 'odoo_field' => 'date_to', 'transform_type' => 'date'],
         ],

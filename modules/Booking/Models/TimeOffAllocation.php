@@ -2,8 +2,9 @@
 
 namespace Modules\Booking\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Modules\Auth\Models\User;
+use Modules\Staff\Models\StaffProfile;
 use XLinic\Framework\Core\Model\BaseModel;
 
 class TimeOffAllocation extends BaseModel
@@ -12,11 +13,8 @@ class TimeOffAllocation extends BaseModel
 
     protected $fillable = [
         'tenant_id',
-        'user_id',
         'staff_profile_id',
         'time_off_type_id',
-        'year',
-        'month',
         'date_from',
         'date_to',
         'allocated_days',
@@ -28,13 +26,12 @@ class TimeOffAllocation extends BaseModel
     ];
 
     protected $casts = [
-        'year' => 'integer',
-        'month' => 'integer',
         'date_from' => 'date',
         'date_to' => 'date',
         'allocated_days' => 'decimal:2',
         'used_days' => 'decimal:2',
         'carried_over_days' => 'decimal:2',
+        'odoo_synced_at' => 'datetime',
     ];
 
     protected $attributes = [
@@ -43,263 +40,217 @@ class TimeOffAllocation extends BaseModel
         'carried_over_days' => 0,
     ];
 
-    /**
-     * Get the practitioner (user).
-     */
-    public function user(): BelongsTo
+    public function staffProfile(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(StaffProfile::class);
     }
 
-    /**
-     * Get the time off type.
-     */
     public function timeOffType(): BelongsTo
     {
         return $this->belongsTo(TimeOffType::class);
     }
 
-    /**
-     * Get total available days (allocated + carried over - used).
-     */
     public function getRemainingDaysAttribute(): float
     {
-        return $this->allocated_days + $this->carried_over_days - $this->used_days;
+        return (float) $this->allocated_days + (float) $this->carried_over_days - (float) $this->used_days;
     }
 
-    /**
-     * Get remaining value (hours or days depending on type).
-     */
     public function getRemainingAttribute(): float
     {
-        return $this->allocated_days + $this->carried_over_days - $this->used_days;
+        return $this->remaining_days;
     }
 
-    /**
-     * Get total days (allocated + carried over).
-     */
     public function getTotalDaysAttribute(): float
     {
-        return $this->allocated_days + $this->carried_over_days;
+        return (float) $this->allocated_days + (float) $this->carried_over_days;
     }
 
-    /**
-     * Get total value (hours or days depending on type).
-     */
     public function getTotalAttribute(): float
     {
-        return $this->allocated_days + $this->carried_over_days;
+        return $this->total_days;
     }
 
-    /**
-     * Get formatted display value with unit label.
-     */
     public function getDisplayValueAttribute(): string
     {
         $type = $this->timeOffType;
-        if (!$type) {
-            return number_format($this->remaining_days, 1) . ' ' . __('booking::time_off.request_units.day');
+        if (! $type) {
+            return number_format($this->remaining_days, 1).' '.__('booking::time_off.request_units.day');
         }
 
         return $type->formatValue($this->remaining_days);
     }
 
-    /**
-     * Get formatted total display value with unit label.
-     */
     public function getTotalDisplayValueAttribute(): string
     {
         $type = $this->timeOffType;
-        if (!$type) {
-            return number_format($this->total_days, 1) . ' ' . __('booking::time_off.request_units.day');
+        if (! $type) {
+            return number_format($this->total_days, 1).' '.__('booking::time_off.request_units.day');
         }
 
         return $type->formatValue($this->total_days);
     }
 
     /**
-     * Get the period label (year or month/year).
+     * Human label for the allocation period, derived from the date range.
+     * - Full calendar year  → "2026"
+     * - Full calendar month → "April 2026"
+     * - Anything else       → "Apr 01 – Apr 15, 2026"
      */
     public function getPeriodLabelAttribute(): string
     {
-        if ($this->month) {
-            $monthName = \Carbon\Carbon::create()->month($this->month)->translatedFormat('F');
-            return "{$monthName} {$this->year}";
+        $from = $this->date_from instanceof Carbon ? $this->date_from : Carbon::parse($this->date_from);
+
+        if ($this->date_to === null) {
+            return $from->translatedFormat('M d, Y').' – '.__('booking::time_off.allocations.fields.no_end');
         }
 
-        return (string) $this->year;
+        $to = $this->date_to instanceof Carbon ? $this->date_to : Carbon::parse($this->date_to);
+
+        if ($from->isSameDay($from->copy()->startOfYear()) && $to->isSameDay($from->copy()->endOfYear())) {
+            return (string) $from->year;
+        }
+
+        if (
+            $from->year === $to->year
+            && $from->month === $to->month
+            && $from->isSameDay($from->copy()->startOfMonth())
+            && $to->isSameDay($from->copy()->endOfMonth())
+        ) {
+            return $from->translatedFormat('F Y');
+        }
+
+        if ($from->year === $to->year) {
+            return $from->translatedFormat('M d').' – '.$to->translatedFormat('M d, Y');
+        }
+
+        return $from->translatedFormat('M d, Y').' – '.$to->translatedFormat('M d, Y');
     }
 
-    /**
-     * Check if user has enough days/hours available.
-     */
     public function hasAvailableDays(float $days): bool
     {
         return $this->remaining_days >= $days;
     }
 
-    /**
-     * Check if user has enough of the allocation unit available.
-     */
     public function hasAvailable(float $amount): bool
     {
         return $this->remaining >= $amount;
     }
 
-    /**
-     * Use days/hours from allocation.
-     */
     public function useDays(float $days): bool
     {
-        if (!$this->hasAvailableDays($days)) {
+        if (! $this->hasAvailableDays($days)) {
             return false;
         }
 
-        $this->used_days += $days;
+        $this->used_days = (float) $this->used_days + $days;
+
         return $this->save();
     }
 
-    /**
-     * Use allocation (works with hours or days).
-     */
     public function use(float $amount): bool
     {
         return $this->useDays($amount);
     }
 
-    /**
-     * Return days/hours to allocation (for cancelled time off).
-     */
     public function returnDays(float $days): bool
     {
-        $this->used_days = max(0, $this->used_days - $days);
+        $this->used_days = max(0, (float) $this->used_days - $days);
+
         return $this->save();
     }
 
-    /**
-     * Return allocation (works with hours or days).
-     */
     public function returnAmount(float $amount): bool
     {
         return $this->returnDays($amount);
     }
 
     /**
-     * Get or create allocation for a user and type for a year (and optionally month).
+     * Build the [date_from, date_to] that should cover $date for a given type.
+     * Mirrors Odoo's allocation validity: monthly types use a calendar month,
+     * yearly types use a calendar year.
+     *
+     * @return array{0: Carbon, 1: Carbon}
      */
-    public static function getOrCreate(string $userId, string $typeId, int $year, ?int $month = null): self
+    public static function deriveDateRange(?TimeOffType $type, Carbon $date): array
     {
+        if ($type?->isMonthly()) {
+            return [$date->copy()->startOfMonth(), $date->copy()->endOfMonth()];
+        }
+
+        return [$date->copy()->startOfYear(), $date->copy()->endOfYear()];
+    }
+
+    /**
+     * Find the allocation that covers $date for this staff profile and type.
+     */
+    public static function getForDate(int $staffProfileId, int $typeId, Carbon $date): ?self
+    {
+        return static::query()
+            ->where('staff_profile_id', $staffProfileId)
+            ->where('time_off_type_id', $typeId)
+            ->where('date_from', '<=', $date->toDateString())
+            ->where(function ($q) use ($date) {
+                $q->whereNull('date_to')
+                    ->orWhere('date_to', '>=', $date->toDateString());
+            })
+            ->orderByDesc('date_from')
+            ->first();
+    }
+
+    /**
+     * Find or create the allocation covering $date (using the type's natural period).
+     */
+    public static function getOrCreateForDate(int $staffProfileId, int $typeId, Carbon $date): self
+    {
+        $existing = static::getForDate($staffProfileId, $typeId, $date);
+        if ($existing) {
+            return $existing;
+        }
+
         $type = TimeOffType::find($typeId);
-
-        // Determine if we need monthly allocation
-        $useMonth = $type?->isMonthly() ? $month : null;
-
-        $criteria = [
-            'tenant_id' => current_tenant_id(),
-            'user_id' => $userId,
-            'time_off_type_id' => $typeId,
-            'year' => $year,
-            'month' => $useMonth,
-        ];
-
-        // Get the default allocation value
-        $defaultAllocation = $type?->getEffectiveDefaultAllocation() ?? 0;
+        [$from, $to] = static::deriveDateRange($type, $date);
 
         return static::firstOrCreate(
-            $criteria,
             [
-                'allocated_days' => $defaultAllocation,
+                'tenant_id' => current_tenant_id(),
+                'staff_profile_id' => $staffProfileId,
+                'time_off_type_id' => $typeId,
+                'date_from' => $from->toDateString(),
+                'date_to' => $to->toDateString(),
+            ],
+            [
+                'allocated_days' => $type?->getEffectiveDefaultAllocation() ?? 0,
                 'used_days' => 0,
                 'carried_over_days' => 0,
             ]
         );
     }
 
-    /**
-     * Get allocation for a specific date (handles both yearly and monthly).
-     */
-    public static function getForDate(string $userId, string $typeId, \Carbon\Carbon $date): ?self
+    public function scopeForStaffProfile($query, int $staffProfileId)
     {
-        $type = TimeOffType::find($typeId);
-
-        if (!$type) {
-            return null;
-        }
-
-        $query = static::where('user_id', $userId)
-            ->where('time_off_type_id', $typeId)
-            ->where('year', $date->year);
-
-        if ($type->isMonthly()) {
-            $query->where('month', $date->month);
-        } else {
-            $query->whereNull('month');
-        }
-
-        return $query->first();
+        return $query->where('staff_profile_id', $staffProfileId);
     }
 
-    /**
-     * Get or create allocation for a specific date (handles both yearly and monthly).
-     */
-    public static function getOrCreateForDate(string $userId, string $typeId, \Carbon\Carbon $date): self
-    {
-        $type = TimeOffType::find($typeId);
-
-        $month = $type?->isMonthly() ? $date->month : null;
-
-        return static::getOrCreate($userId, $typeId, $date->year, $month);
-    }
-
-    /**
-     * Scope to specific year.
-     */
-    public function scopeForYear($query, int $year)
-    {
-        return $query->where('year', $year);
-    }
-
-    /**
-     * Scope to specific user.
-     */
-    public function scopeForUser($query, string $userId)
-    {
-        return $query->where('user_id', $userId);
-    }
-
-    /**
-     * Scope to specific type.
-     */
-    public function scopeForType($query, string $typeId)
+    public function scopeForType($query, int $typeId)
     {
         return $query->where('time_off_type_id', $typeId);
     }
 
-    /**
-     * Scope to specific month (for monthly allocations).
-     */
-    public function scopeForMonth($query, ?int $month)
+    public function scopeCoveringDate($query, Carbon $date)
     {
-        if ($month === null) {
-            return $query->whereNull('month');
-        }
-
-        return $query->where('month', $month);
+        return $query->where('date_from', '<=', $date->toDateString())
+            ->where(function ($q) use ($date) {
+                $q->whereNull('date_to')
+                    ->orWhere('date_to', '>=', $date->toDateString());
+            });
     }
 
-    /**
-     * Scope to yearly allocations only.
-     */
-    public function scopeYearly($query)
+    public function scopeOverlappingRange($query, Carbon $from, Carbon $to)
     {
-        return $query->whereNull('month');
-    }
-
-    /**
-     * Scope to monthly allocations only.
-     */
-    public function scopeMonthly($query)
-    {
-        return $query->whereNotNull('month');
+        return $query->where('date_from', '<=', $to->toDateString())
+            ->where(function ($q) use ($from) {
+                $q->whereNull('date_to')
+                    ->orWhere('date_to', '>=', $from->toDateString());
+            });
     }
 }
