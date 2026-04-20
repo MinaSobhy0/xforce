@@ -710,6 +710,11 @@ class Tenant extends Model
             'appointments' => 'Appointments',
             'attendance' => 'Attendance',
             'schedule' => 'Schedule',
+            'time_off' => 'Time Off (Leaves)',
+            'payslip' => 'Payslip',
+            'commission' => 'Commission',
+            'patients' => 'Patients',
+            'profile' => 'Profile',
             'more' => 'More Menu',
         ];
     }
