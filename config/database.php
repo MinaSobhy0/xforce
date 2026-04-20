@@ -61,7 +61,7 @@ return [
             'charset' => env('DB_CHARSET', 'utf8'),
             'prefix' => '',
             'prefix_indexes' => true,
-            'search_path' => 'public',
+            'search_path' => env('TENANT_SEARCH_PATH', 'public'), // Dynamically switched by IdentifyTenant middleware; overridable via env for queue workers
             'sslmode' => 'prefer',
             // PgBouncer compatibility: emulate prepares to avoid "prepared statement does not exist" errors
             'options' => [
@@ -82,7 +82,7 @@ return [
             'charset' => env('DB_CHARSET', 'utf8'),
             'prefix' => '',
             'prefix_indexes' => true,
-            'search_path' => 'public', // Will be dynamically set to tenant_xxx
+            'search_path' => env('TENANT_SEARCH_PATH', 'public'), // Dynamically switched by request middleware; overridable via env for queue workers
             'sslmode' => 'prefer',
             // PgBouncer compatibility: emulate prepares to avoid "prepared statement does not exist" errors
             'options' => [
