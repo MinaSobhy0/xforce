@@ -1,20 +1,21 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Modules\MobileApi\Http\Controllers\TenantDiscoveryController;
+use Modules\MobileApi\Http\Controllers\AccountController;
 use Modules\MobileApi\Http\Controllers\AppConfigController;
-use Modules\MobileApi\Http\Controllers\AuthController;
-use Modules\MobileApi\Http\Controllers\ScreenController;
-use Modules\MobileApi\Http\Controllers\DashboardController;
-use Modules\MobileApi\Http\Controllers\StaffProfileController;
+use Modules\MobileApi\Http\Controllers\AppointmentsController;
 use Modules\MobileApi\Http\Controllers\AttendanceController;
-use Modules\MobileApi\Http\Controllers\TimeOffController;
+use Modules\MobileApi\Http\Controllers\AuthController;
+use Modules\MobileApi\Http\Controllers\CalendarController;
+use Modules\MobileApi\Http\Controllers\DashboardController;
+use Modules\MobileApi\Http\Controllers\DeviceController;
+use Modules\MobileApi\Http\Controllers\PatientsController;
 use Modules\MobileApi\Http\Controllers\PayrollController;
 use Modules\MobileApi\Http\Controllers\ScheduleController;
-use Modules\MobileApi\Http\Controllers\AppointmentsController;
-use Modules\MobileApi\Http\Controllers\PatientsController;
-use Modules\MobileApi\Http\Controllers\DeviceController;
-use Modules\MobileApi\Http\Controllers\CalendarController;
+use Modules\MobileApi\Http\Controllers\ScreenController;
+use Modules\MobileApi\Http\Controllers\StaffProfileController;
+use Modules\MobileApi\Http\Controllers\TenantDiscoveryController;
+use Modules\MobileApi\Http\Controllers\TimeOffController;
 
 /*
 |--------------------------------------------------------------------------
@@ -74,6 +75,10 @@ Route::middleware([\Modules\MobileApi\Http\Middleware\ResolveTenantFromHeader::c
             Route::post('refresh', [AuthController::class, 'refresh']);
             Route::get('me', [AuthController::class, 'me']);
         });
+
+        // Self-service account deletion (Play Store / App Store compliance)
+        Route::delete('account', [AccountController::class, 'destroy'])
+            ->middleware('throttle:mobile-api-auth');
 
         // Staff Profile & Dashboard
         Route::prefix('staff')->group(function () {

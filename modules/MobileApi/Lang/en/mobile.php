@@ -30,6 +30,11 @@ return [
         'not_staff' => 'Only staff members can access this app',
     ],
 
+    'account' => [
+        'deleted' => 'Your account has been deleted',
+        'password_incorrect' => 'The password you entered is incorrect',
+    ],
+
     'tenant' => [
         'invalid_code' => 'Invalid clinic code',
         'code_expired' => 'This code has expired',
