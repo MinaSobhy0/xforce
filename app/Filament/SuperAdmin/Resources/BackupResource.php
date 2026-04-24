@@ -239,12 +239,16 @@ class BackupResource extends Resource
                         ]);
 
                         // Dispatch appropriate job based on backup type
+                        $sync = config('queue.default') === 'sync';
+
                         if ($data['type'] === 'tenant' && $backup->tenant_id) {
-                            if (config('queue.default') === 'sync') {
-                                \App\Jobs\TenantBackupJob::dispatchSync($backup);
-                            } else {
-                                \App\Jobs\TenantBackupJob::dispatch($backup);
-                            }
+                            $sync
+                                ? \App\Jobs\TenantBackupJob::dispatchSync($backup)
+                                : \App\Jobs\TenantBackupJob::dispatch($backup);
+                        } elseif (in_array($data['type'], ['full', 'database', 'files'], true)) {
+                            $sync
+                                ? \App\Jobs\SystemBackupJob::dispatchSync($backup)
+                                : \App\Jobs\SystemBackupJob::dispatch($backup);
                         }
 
                         Notification::make()
