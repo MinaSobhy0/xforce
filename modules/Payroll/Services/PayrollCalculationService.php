@@ -902,7 +902,7 @@ class PayrollCalculationService
         try {
             $timeOffs = \Modules\Booking\Models\PractitionerTimeOff::on($staff->getConnectionName())
                 ->withoutGlobalScopes()
-                ->where('user_id', $staff->user_id)
+                ->where('staff_profile_id', $staff->id)
                 ->where('status', \Modules\Booking\Models\PractitionerTimeOff::STATUS_APPROVED)
                 ->where(function ($query) use ($start, $end) {
                     // Time off overlaps with the period
@@ -1047,7 +1047,7 @@ class PayrollCalculationService
         try {
             $timeOffs = \Modules\Booking\Models\PractitionerTimeOff::on($staff->getConnectionName())
                 ->withoutGlobalScopes()
-                ->where('user_id', $staff->user_id)
+                ->where('staff_profile_id', $staff->id)
                 ->where('status', \Modules\Booking\Models\PractitionerTimeOff::STATUS_APPROVED)
                 ->where(function ($query) use ($start, $end) {
                     $query->whereBetween('start_date', [$start, $end])
@@ -1166,7 +1166,7 @@ class PayrollCalculationService
         try {
             $timeOffs = \Modules\Booking\Models\PractitionerTimeOff::on($staff->getConnectionName())
                 ->withoutGlobalScopes()
-                ->where('user_id', $staff->user_id)
+                ->where('staff_profile_id', $staff->id)
                 ->where('status', \Modules\Booking\Models\PractitionerTimeOff::STATUS_APPROVED)
                 ->where(function ($query) use ($start, $end) {
                     $query->whereBetween('start_date', [$start, $end])

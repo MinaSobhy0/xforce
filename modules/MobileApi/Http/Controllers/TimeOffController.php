@@ -83,14 +83,14 @@ class TimeOffController extends BaseApiController
      */
     public function requests(Request $request): JsonResponse
     {
-        $user = $this->user();
+        $staffProfile = $this->staffProfile();
 
-        if (! class_exists(PractitionerTimeOff::class)) {
+        if (! class_exists(PractitionerTimeOff::class) || ! $staffProfile) {
             return $this->success([]);
         }
 
         $query = PractitionerTimeOff::with('timeOffType')
-            ->where('user_id', $user->id)
+            ->forStaffProfile($staffProfile->id)
             ->ordered();
 
         if ($request->filled('status')) {
@@ -124,14 +124,14 @@ class TimeOffController extends BaseApiController
      */
     public function show(int $id): JsonResponse
     {
-        $user = $this->user();
+        $staffProfile = $this->staffProfile();
 
-        if (! class_exists(PractitionerTimeOff::class)) {
+        if (! class_exists(PractitionerTimeOff::class) || ! $staffProfile) {
             return $this->notFound();
         }
 
         $timeOff = PractitionerTimeOff::with(['timeOffType', 'approvedBy'])
-            ->where('user_id', $user->id)
+            ->forStaffProfile($staffProfile->id)
             ->find($id);
 
         if (! $timeOff) {
@@ -147,7 +147,10 @@ class TimeOffController extends BaseApiController
      */
     public function store(Request $request): JsonResponse
     {
-        $user = $this->user();
+        $staffProfile = $this->staffProfile();
+        if (! $staffProfile) {
+            return $this->error(__('mobile_api::mobile.time_off.no_staff_profile'), 400);
+        }
 
         $validated = $request->validate([
             'time_off_type_id' => 'required|integer|exists:time_off_types,id',
@@ -169,7 +172,7 @@ class TimeOffController extends BaseApiController
         }
 
         // Check for overlapping requests
-        $overlapping = PractitionerTimeOff::where('user_id', $user->id)
+        $overlapping = PractitionerTimeOff::forStaffProfile($staffProfile->id)
             ->whereIn('status', [PractitionerTimeOff::STATUS_PENDING, PractitionerTimeOff::STATUS_APPROVED])
             ->forDateRange($validated['start_date'], $validated['end_date'])
             ->exists();
@@ -202,10 +205,6 @@ class TimeOffController extends BaseApiController
         }
 
         // Check balance (allocation is keyed by staff_profile_id).
-        $staffProfile = $this->staffProfile();
-        if (! $staffProfile) {
-            return $this->error(__('mobile_api::mobile.time_off.no_staff_profile'), 400);
-        }
         $allocation = TimeOffAllocation::getOrCreateForDate($staffProfile->id, $type->id, $startDate);
         $amountToCheck = $type->isHourBased() ? $hoursRequested : $daysRequested;
 
@@ -224,8 +223,8 @@ class TimeOffController extends BaseApiController
         // Create request
         $timeOff = PractitionerTimeOff::create([
             'tenant_id' => current_tenant_id(),
-            'user_id' => $user->id,
-            'branch_id' => $this->staffProfile()?->branch_id,
+            'staff_profile_id' => $staffProfile->id,
+            'branch_id' => $staffProfile->branch_id,
             'time_off_type_id' => $type->id,
             'start_date' => $validated['start_date'],
             'end_date' => $validated['end_date'],
@@ -250,13 +249,13 @@ class TimeOffController extends BaseApiController
      */
     public function cancel(int $id): JsonResponse
     {
-        $user = $this->user();
+        $staffProfile = $this->staffProfile();
 
-        if (! class_exists(PractitionerTimeOff::class)) {
+        if (! class_exists(PractitionerTimeOff::class) || ! $staffProfile) {
             return $this->error('Time off module not available', 503);
         }
 
-        $timeOff = PractitionerTimeOff::where('user_id', $user->id)->find($id);
+        $timeOff = PractitionerTimeOff::forStaffProfile($staffProfile->id)->find($id);
 
         if (! $timeOff) {
             return $this->notFound();
@@ -289,7 +288,7 @@ class TimeOffController extends BaseApiController
         $startDate = \Carbon\Carbon::create($year, $month, 1)->startOfMonth();
         $endDate = $startDate->copy()->endOfMonth();
 
-        $query = PractitionerTimeOff::with(['practitioner', 'timeOffType'])
+        $query = PractitionerTimeOff::with(['staffProfile.user', 'timeOffType'])
             ->approved()
             ->forDateRange($startDate, $endDate);
 
@@ -305,7 +304,7 @@ class TimeOffController extends BaseApiController
             'year' => $year,
             'entries' => $timeOffs->map(fn ($t) => [
                 'id' => $t->id,
-                'staff_name' => $t->practitioner?->full_name ?? 'Unknown',
+                'staff_name' => $t->staffProfile?->user?->full_name ?? 'Unknown',
                 'type' => $t->timeOffType?->translated_name ?? $t->type_label,
                 'color' => $t->timeOffType?->color ?? 'gray',
                 'start_date' => $t->start_date->toDateString(),

@@ -125,18 +125,22 @@ class PractitionerTimeOffResource extends Resource
                     ->schema([
                         Forms\Components\Grid::make(2)
                             ->schema([
-                                Forms\Components\Select::make('user_id')
+                                Forms\Components\Select::make('staff_profile_id')
                                     ->label(__('booking::time_off.fields.staff'))
-                                    ->options(fn () => User::query()->get()->pluck('full_name', 'id'))
+                                    ->options(fn () => StaffProfile::query()
+                                        ->with('user:id,first_name,last_name')
+                                        ->get()
+                                        ->mapWithKeys(fn (StaffProfile $sp) => [$sp->id => $sp->user?->full_name ?? "#{$sp->id}"])
+                                        ->toArray())
                                     ->searchable()
                                     ->preload()
                                     ->required()
                                     ->live()
                                     ->afterStateUpdated(function ($state, Forms\Set $set) {
                                         if ($state) {
-                                            $user = User::find($state);
-                                            if ($user && $user->branch_id) {
-                                                $set('branch_id', $user->branch_id);
+                                            $sp = StaffProfile::find($state);
+                                            if ($sp && $sp->branch_id) {
+                                                $set('branch_id', $sp->branch_id);
                                             }
                                         }
                                     }),
@@ -144,14 +148,7 @@ class PractitionerTimeOffResource extends Resource
                                 Forms\Components\Select::make('time_off_type_id')
                                     ->label(__('booking::time_off.fields.time_off_type'))
                                     ->options(function (Forms\Get $get) {
-                                        $userId = $get('user_id');
-                                        if (! $userId) {
-                                            return [];
-                                        }
-
-                                        $staffProfileId = StaffProfile::query()
-                                            ->where('user_id', $userId)
-                                            ->value('id');
+                                        $staffProfileId = $get('staff_profile_id');
                                         if (! $staffProfileId) {
                                             return [];
                                         }
@@ -199,17 +196,9 @@ class PractitionerTimeOffResource extends Resource
                                         static::recalculateDays($get, $set);
                                     })
                                     ->helperText(function (Forms\Get $get) {
-                                        $userId = $get('user_id');
-                                        if (! $userId) {
-                                            return __('booking::time_off.fields.select_staff_first');
-                                        }
-
-                                        $staffProfileId = StaffProfile::query()
-                                            ->where('user_id', $userId)
-                                            ->value('id');
-
+                                        $staffProfileId = $get('staff_profile_id');
                                         if (! $staffProfileId) {
-                                            return __('booking::time_off.fields.no_allocations');
+                                            return __('booking::time_off.fields.select_staff_first');
                                         }
 
                                         $hasAllocations = TimeOffAllocation::query()
@@ -346,11 +335,11 @@ class PractitionerTimeOffResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('practitioner.first_name')
+                Tables\Columns\TextColumn::make('staffProfile.user.first_name')
                     ->label(__('booking::time_off.fields.staff'))
-                    ->formatStateUsing(fn ($record) => $record->practitioner?->full_name)
-                    ->searchable(['first_name', 'last_name'])
-                    ->sortable(),
+                    ->formatStateUsing(fn ($record) => $record->staffProfile?->user?->full_name)
+                    ->searchable(['users.first_name', 'users.last_name'])
+                    ->sortable(['users.first_name', 'users.last_name']),
 
                 Tables\Columns\TextColumn::make('timeOffType.name')
                     ->label(__('booking::time_off.fields.time_off_type'))
@@ -499,6 +488,6 @@ class PractitionerTimeOffResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->with(['practitioner', 'branch', 'approvedBy', 'timeOffType']);
+            ->with(['staffProfile.user', 'branch', 'approvedBy', 'timeOffType']);
     }
 }

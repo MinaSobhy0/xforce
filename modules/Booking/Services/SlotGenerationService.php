@@ -125,7 +125,7 @@ class SlotGenerationService
             })
             ->get();
 
-        $this->preloadedTimeOffs = $timeOffs->groupBy(fn ($t) => (string) $t->user_id);
+        $this->preloadedTimeOffs = $timeOffs->groupBy(fn ($t) => (string) $t->staff_profile_id);
 
         // 5. Pre-load room bookings (group all appointments by room_id)
         // This covers both service-specific rooms and fallback to any branch room
@@ -540,9 +540,9 @@ class SlotGenerationService
             if ($checkTimeoff) {
                 // Use preloaded data or query (cast to string for consistent key lookup)
                 $timeOffs = $usePreloaded
-                    ? ($this->preloadedTimeOffs->get((string) $staffProfile->user_id) ?? collect())
+                    ? ($this->preloadedTimeOffs->get((string) $staffProfile->id) ?? collect())
                     : PractitionerTimeOff::query()
-                        ->forPractitioner($staffProfile->user_id)
+                        ->forStaffProfile($staffProfile->id)
                         ->approved()
                         ->where(function ($q) use ($branchId) {
                             $q->whereNull('branch_id')

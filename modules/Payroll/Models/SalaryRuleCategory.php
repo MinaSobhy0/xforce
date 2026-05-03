@@ -33,10 +33,15 @@ class SalaryRuleCategory extends BaseModel
 
     // Category types
     public const TYPE_EARNING = 'earning';
+
     public const TYPE_DEDUCTION = 'deduction';
+
     public const TYPE_ALLOWANCE = 'allowance';
+
     public const TYPE_BENEFIT = 'benefit';
+
     public const TYPE_GROSS = 'gross';
+
     public const TYPE_NET = 'net';
 
     public const TYPES = [
@@ -127,5 +132,63 @@ class SalaryRuleCategory extends BaseModel
     public function getTypeColorAttribute(): string
     {
         return self::TYPE_COLORS[$this->type] ?? 'gray';
+    }
+
+    /**
+     * Derive the local 'type' value from the Odoo category code + name.
+     * Odoo's hr.salary.rule.category has no 'type' field; we infer it from
+     * (1) explicit code map, (2) name keywords, (3) code keywords.
+     */
+    public static function applyOdooImport(array $data, $mapping = null, ?array $odooData = null): array
+    {
+        if (! empty($data['type'])) {
+            return $data;
+        }
+
+        $code = (string) ($data['code'] ?? '');
+        $name = (string) ($data['name'] ?? '');
+        $codeU = strtoupper($code);
+        $nameU = strtoupper($name);
+
+        $explicitCodes = [
+            'BASIC' => self::TYPE_EARNING,
+            'GROSS' => self::TYPE_GROSS,
+            'NET' => self::TYPE_NET,
+            'ALW' => self::TYPE_ALLOWANCE,
+            'BEN' => self::TYPE_BENEFIT,
+            'COMP' => self::TYPE_BENEFIT,
+            'PRS' => self::TYPE_BENEFIT,
+        ];
+
+        if (isset($explicitCodes[$codeU])) {
+            $data['type'] = $explicitCodes[$codeU];
+
+            return $data;
+        }
+
+        // Name-based heuristics (most authoritative for ambiguous codes).
+        $isDeduction = str_contains($nameU, 'DEDUCTION')
+            || str_contains($nameU, 'INSURANCE')
+            || str_contains($nameU, 'TAX')
+            || str_contains($nameU, 'LOAN')
+            || str_contains($nameU, 'PENALTY');
+        $isAllowance = str_contains($nameU, 'ALLOWANCE');
+        $isBonus = str_contains($nameU, 'BONUS') || str_contains($nameU, 'CONTRIBUTION') || str_contains($nameU, 'PROFIT SHARE');
+
+        if ($isDeduction) {
+            $data['type'] = self::TYPE_DEDUCTION;
+        } elseif ($isAllowance) {
+            $data['type'] = self::TYPE_ALLOWANCE;
+        } elseif ($isBonus) {
+            $data['type'] = self::TYPE_BENEFIT;
+        } elseif (str_contains($codeU, 'DED') || str_contains($codeU, 'INS') || str_contains($codeU, 'TAX') || str_contains($codeU, 'LOAN')) {
+            $data['type'] = self::TYPE_DEDUCTION;
+        } elseif (str_contains($codeU, 'ALW') || str_contains($codeU, 'ALLOW')) {
+            $data['type'] = self::TYPE_ALLOWANCE;
+        } else {
+            $data['type'] = self::TYPE_EARNING;
+        }
+
+        return $data;
     }
 }

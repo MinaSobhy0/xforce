@@ -39,14 +39,14 @@ class SendTimeOffStatusPush implements ShouldQueue
             return;
         }
 
-        // Ensure we have the user
-        $this->timeOff->loadMissing(['practitioner']);
-        $user = $this->timeOff->practitioner;
+        // Ensure we have the user (via staff profile)
+        $this->timeOff->loadMissing(['staffProfile.user']);
+        $user = $this->timeOff->staffProfile?->user;
 
         if (! $user) {
             Log::warning('Cannot send push notification: user not found for time off request', [
                 'time_off_id' => $this->timeOff->id,
-                'user_id' => $this->timeOff->user_id,
+                'staff_profile_id' => $this->timeOff->staff_profile_id,
             ]);
 
             return;

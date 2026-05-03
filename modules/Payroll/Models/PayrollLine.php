@@ -3,8 +3,8 @@
 namespace Modules\Payroll\Models;
 
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Modules\Staff\Models\StaffProfile;
 use Modules\Staff\Models\StaffCommissionRecord;
+use Modules\Staff\Models\StaffProfile;
 use XLinic\Framework\Core\Model\BaseModel;
 
 class PayrollLine extends BaseModel
@@ -83,8 +83,14 @@ class PayrollLine extends BaseModel
     {
         parent::booted();
 
-        // Calculate net salary on save
+        // Calculate net salary on save — but trust Odoo's value for synced lines.
+        // Odoo's NET line accounts for company-vs-employee splits we can't always
+        // infer from our category buckets (e.g. "Insurance From Company"), so for
+        // imported rows we keep whatever applyOdooImport wrote.
         static::saving(function (self $line) {
+            if ($line->odoo_id) {
+                return;
+            }
             $line->net_salary_minor = $line->base_salary_minor
                 + $line->allowances_minor
                 + $line->commissions_minor
@@ -109,7 +115,7 @@ class PayrollLine extends BaseModel
      */
     public function markCommissionsAsPaid(): void
     {
-        if (!empty($this->commission_records_json)) {
+        if (! empty($this->commission_records_json)) {
             StaffCommissionRecord::whereIn('id', $this->commission_records_json)
                 ->where('status', StaffCommissionRecord::STATUS_APPROVED)
                 ->each(function ($record) {
@@ -120,9 +126,22 @@ class PayrollLine extends BaseModel
 
     /**
      * Get gross salary (before deductions).
+     *
+     * For Odoo-synced rows, Odoo's GROSS formula includes company-paid contributions
+     * and other items our local "earnings" buckets don't carry. We trust Odoo's GROSS
+     * line stored in rule_amounts_json. For in-app calculations we fall back to the
+     * sum of earnings buckets.
      */
     public function getGrossSalaryMinorAttribute(): int
     {
+        if ($this->odoo_id) {
+            foreach ($this->rule_amounts_json ?? [] as $rule) {
+                if (($rule['rule_code'] ?? null) === 'GROSS') {
+                    return (int) ($rule['amount_minor'] ?? 0);
+                }
+            }
+        }
+
         return $this->base_salary_minor
             + $this->allowances_minor
             + $this->commissions_minor
@@ -280,5 +299,167 @@ class PayrollLine extends BaseModel
 
         // Return monthly tax in minor units
         return (int) ($tax / 12 * 100);
+    }
+
+    /**
+     * Build a PayrollLine from an Odoo hr.payslip.
+     *
+     * Odoo's hr.payslip = one slip per (employee, period). Locally we model that as
+     * a PayrollLine inside a parent PayrollRun (one Run per company-month). This hook:
+     *   1. Pulls date_from + line_ids from Odoo (separate API call — line_ids is one2many).
+     *   2. Finds-or-creates the PayrollRun for (period_year, period_month).
+     *   3. Buckets line totals by the rule's category code (BASIC / ALW / DED / etc.)
+     *      into the local aggregate columns (base_salary_minor, allowances_minor, ...).
+     *   4. Stores the full per-rule breakdown in rule_amounts_json.
+     */
+    public static function applyOdooImport(array $data, $mapping = null, ?array $odooData = null): array
+    {
+        if (! $mapping || ! $odooData || empty($odooData['id'])) {
+            return $data;
+        }
+
+        $connection = \Modules\OdooIntegration\Models\OdooConnection::find($mapping->odoo_connection_id);
+        if (! $connection) {
+            return $data;
+        }
+        $client = app(\Modules\OdooIntegration\Services\Api\OdooApiFactory::class)->make($connection);
+        $client->authenticate();
+
+        // Fetch the slip's period + line IDs (not in default field mapping).
+        $slipDetails = $client->read('hr.payslip', [(int) $odooData['id']], [
+            'date_from', 'date_to', 'state', 'number', 'line_ids',
+        ])[0] ?? null;
+        if (! $slipDetails) {
+            return $data;
+        }
+
+        $dateFrom = $slipDetails['date_from'] ?? null;
+        if (! $dateFrom) {
+            return $data;
+        }
+        $period = \Carbon\Carbon::parse($dateFrom);
+        $year = (int) $period->year;
+        $month = (int) $period->month;
+
+        // Parent PayrollRun — find by (tenant, year, month) or create one.
+        $tenantId = $data['tenant_id'] ?? $mapping->tenant_id ?? current_tenant_id();
+        $run = PayrollRun::query()
+            ->where('tenant_id', $tenantId)
+            ->where('period_year', $year)
+            ->where('period_month', $month)
+            ->first();
+        if (! $run) {
+            $run = PayrollRun::create([
+                'tenant_id' => $tenantId,
+                'period_year' => $year,
+                'period_month' => $month,
+                'status' => PayrollRun::STATUS_DRAFT,
+                'employee_count' => 0,
+                'notes' => 'Imported from Odoo',
+            ]);
+        }
+        $data['payroll_run_id'] = $run->id;
+
+        // Pull the slip's line items + their salary rules + categories.
+        $lineIds = array_values(array_filter((array) ($slipDetails['line_ids'] ?? [])));
+        $bucketedTotals = [
+            'base_salary_minor' => 0, 'allowances_minor' => 0, 'commissions_minor' => 0,
+            'bonuses_minor' => 0, 'deductions_minor' => 0, 'tax_minor' => 0,
+            'social_insurance_minor' => 0, 'net_salary_minor' => 0,
+        ];
+        $ruleBreakdown = [];
+
+        if (! empty($lineIds)) {
+            $lines = $client->read('hr.payslip.line', $lineIds, ['code', 'name', 'category_id', 'salary_rule_id', 'total']);
+            foreach ($lines as $line) {
+                $catOdooId = is_array($line['category_id'] ?? null) ? $line['category_id'][0] : null;
+                $cat = self::resolveCategory($catOdooId);
+                $ruleOdooId = is_array($line['salary_rule_id'] ?? null) ? $line['salary_rule_id'][0] : null;
+                $totalMinor = (int) round(((float) ($line['total'] ?? 0)) * 100);
+
+                // Match the canonical rule_amounts_json shape used by PayrollCalculationService
+                // and consumed by the Filament infolist (resources/views/.../salary-rules-table).
+                $ruleBreakdown[] = [
+                    'rule_id' => self::resolveLocalRuleId($ruleOdooId),
+                    'rule_code' => $line['code'] ?? null,
+                    'rule_name' => $line['name'] ?? null,
+                    'category_type' => $cat['type'] ?? null,
+                    'amount_minor' => $totalMinor,
+                ];
+
+                $bucket = self::categoryToBucket($cat['code'] ?? null);
+                if ($bucket && isset($bucketedTotals[$bucket])) {
+                    $bucketedTotals[$bucket] += $totalMinor;
+                }
+            }
+        }
+
+        $data = array_merge($data, $bucketedTotals);
+        $data['rule_amounts_json'] = $ruleBreakdown;
+
+        return $data;
+    }
+
+    /**
+     * Resolve an Odoo category id to local {code, type} (cached per request).
+     */
+    protected static function resolveCategory(?int $odooCategoryId): array
+    {
+        if (! $odooCategoryId) {
+            return [];
+        }
+        static $cache = [];
+        if (array_key_exists($odooCategoryId, $cache)) {
+            return $cache[$odooCategoryId];
+        }
+        $row = SalaryRuleCategory::query()
+            ->where('odoo_id', $odooCategoryId)
+            ->first(['code', 'type']);
+
+        return $cache[$odooCategoryId] = $row
+            ? ['code' => $row->code, 'type' => $row->type]
+            : [];
+    }
+
+    /**
+     * Resolve an Odoo salary_rule id to a local SalaryRule.id (cached per request).
+     */
+    protected static function resolveLocalRuleId(?int $odooRuleId): ?int
+    {
+        if (! $odooRuleId) {
+            return null;
+        }
+        static $cache = [];
+        if (array_key_exists($odooRuleId, $cache)) {
+            return $cache[$odooRuleId];
+        }
+
+        return $cache[$odooRuleId] = SalaryRule::query()
+            ->where('odoo_id', $odooRuleId)
+            ->value('id');
+    }
+
+    /**
+     * Map a SalaryRuleCategory.code to one of the PayrollLine aggregate columns.
+     * Net is intentionally not bucketed (it's a derived total, not an addition).
+     */
+    protected static function categoryToBucket(?string $categoryCode): ?string
+    {
+        if (! $categoryCode) {
+            return null;
+        }
+        $u = strtoupper($categoryCode);
+
+        return match (true) {
+            $u === 'BASIC' => 'base_salary_minor',
+            $u === 'NET' => 'net_salary_minor',
+            $u === 'ALW' || str_contains($u, 'ALLOW') => 'allowances_minor',
+            str_contains($u, 'TAX') => 'tax_minor',
+            str_contains($u, 'INS') => 'social_insurance_minor',
+            $u === 'COMP' || $u === 'PRS' || str_contains($u, 'BONUS') || str_contains($u, 'COMMISSION') => 'bonuses_minor',
+            str_contains($u, 'DED') || str_contains($u, 'LOAN') || str_contains($u, 'PENALTY') => 'deductions_minor',
+            $u === 'GROSS' => null,  // gross is informational, don't bucket
+            default => 'deductions_minor', // safer default for unknowns
+        };
     }
 }

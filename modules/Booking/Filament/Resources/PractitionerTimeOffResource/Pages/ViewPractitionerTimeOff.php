@@ -2,13 +2,13 @@
 
 namespace Modules\Booking\Filament\Resources\PractitionerTimeOffResource\Pages;
 
-use Modules\Booking\Filament\Resources\PractitionerTimeOffResource;
 use Filament\Actions;
 use Filament\Forms;
-use Filament\Notifications\Notification;
-use Filament\Resources\Pages\ViewRecord;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
+use Filament\Notifications\Notification;
+use Filament\Resources\Pages\ViewRecord;
+use Modules\Booking\Filament\Resources\PractitionerTimeOffResource;
 use Modules\Booking\Models\PractitionerTimeOff;
 
 class ViewPractitionerTimeOff extends ViewRecord
@@ -23,7 +23,7 @@ class ViewPractitionerTimeOff extends ViewRecord
                     ->schema([
                         Infolists\Components\Grid::make(2)
                             ->schema([
-                                Infolists\Components\TextEntry::make('practitioner.full_name')
+                                Infolists\Components\TextEntry::make('staffProfile.user.full_name')
                                     ->label(__('booking::time_off.fields.staff')),
 
                                 Infolists\Components\TextEntry::make('timeOffType.translated_name')
@@ -55,7 +55,7 @@ class ViewPractitionerTimeOff extends ViewRecord
                                 Infolists\Components\TextEntry::make('end_date')
                                     ->label(__('booking::time_off.fields.end_date'))
                                     ->date()
-                                    ->visible(fn ($record) => !$record->isHoursBased()),
+                                    ->visible(fn ($record) => ! $record->isHoursBased()),
 
                                 Infolists\Components\TextEntry::make('display_duration')
                                     ->label(__('booking::time_off.fields.duration')),
@@ -71,11 +71,11 @@ class ViewPractitionerTimeOff extends ViewRecord
 
                                 Infolists\Components\TextEntry::make('start_time')
                                     ->label(__('booking::time_off.fields.start_time'))
-                                    ->visible(fn ($record) => !$record->is_full_day),
+                                    ->visible(fn ($record) => ! $record->is_full_day),
 
                                 Infolists\Components\TextEntry::make('end_time')
                                     ->label(__('booking::time_off.fields.end_time'))
-                                    ->visible(fn ($record) => !$record->is_full_day),
+                                    ->visible(fn ($record) => ! $record->is_full_day),
                             ]),
                     ]),
 

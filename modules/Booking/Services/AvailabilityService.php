@@ -2,18 +2,21 @@
 
 namespace Modules\Booking\Services;
 
+use Carbon\Carbon;
+use Illuminate\Support\Collection;
 use Modules\Booking\Models\Appointment;
 use Modules\Booking\Models\PractitionerSchedule;
 use Modules\Booking\Models\PractitionerTimeOff;
-use Modules\Services\Models\Service;
 use Modules\Equipment\Models\Equipment;
-use Carbon\Carbon;
-use Illuminate\Support\Collection;
+use Modules\Services\Models\Service;
+use Modules\Staff\Models\StaffProfile;
 
 class AvailabilityService
 {
     protected int $slotDuration;
+
     protected int $bufferMinutes;
+
     protected ?BookingRuleEvaluator $ruleEvaluator = null;
 
     public function __construct()
@@ -43,7 +46,7 @@ class AvailabilityService
         string $practitionerId,
         string $branchId,
         Carbon $date,
-        int $durationMinutes = null,
+        ?int $durationMinutes = null,
         ?string $roomId = null,
         ?string $equipmentId = null
     ): array {
@@ -61,24 +64,30 @@ class AvailabilityService
             ->available()
             ->first();
 
-        if (!$schedule) {
+        if (! $schedule) {
             return [];
         }
 
-        // Check for time off
-        $timeOff = PractitionerTimeOff::query()
-            ->forPractitioner($practitionerId)
-            ->approved()
-            ->where(function ($q) use ($branchId) {
-                $q->whereNull('branch_id')
-                    ->orWhere('branch_id', $branchId);
-            })
-            ->where('start_date', '<=', $date)
-            ->where(function ($q) use ($date) {
-                $q->whereNull('end_date')
-                    ->orWhere('end_date', '>=', $date);
-            })
-            ->first();
+        // Check for time off — public API uses user_id, table is keyed by staff_profile_id
+        $staffProfileId = StaffProfile::query()
+            ->where('user_id', $practitionerId)
+            ->value('id');
+
+        $timeOff = $staffProfileId
+            ? PractitionerTimeOff::query()
+                ->forStaffProfile($staffProfileId)
+                ->approved()
+                ->where(function ($q) use ($branchId) {
+                    $q->whereNull('branch_id')
+                        ->orWhere('branch_id', $branchId);
+                })
+                ->where('start_date', '<=', $date)
+                ->where(function ($q) use ($date) {
+                    $q->whereNull('end_date')
+                        ->orWhere('end_date', '>=', $date);
+                })
+                ->first()
+            : null;
 
         if ($timeOff && $timeOff->is_full_day) {
             return [];
@@ -108,16 +117,18 @@ class AvailabilityService
             if ($breakStart && $breakEnd) {
                 if ($current->lt($breakEnd) && $slotEnd->gt($breakStart)) {
                     $current = $breakEnd->copy();
+
                     continue;
                 }
             }
 
             // Check if slot is during time off (partial day)
-            if ($timeOff && !$timeOff->is_full_day) {
+            if ($timeOff && ! $timeOff->is_full_day) {
                 $timeOffStart = Carbon::parse($timeOff->start_time);
                 $timeOffEnd = Carbon::parse($timeOff->end_time);
                 if ($current->lt($timeOffEnd) && $slotEnd->gt($timeOffStart)) {
                     $current->addMinutes($this->slotDuration);
+
                     continue;
                 }
             }
@@ -140,16 +151,18 @@ class AvailabilityService
                 }
             }
 
-            if (!$conflict) {
+            if (! $conflict) {
                 // Check room availability if specified
-                if ($roomId && !$this->isRoomAvailable($roomId, $date, $current, $slotEnd)) {
+                if ($roomId && ! $this->isRoomAvailable($roomId, $date, $current, $slotEnd)) {
                     $current->addMinutes($this->slotDuration);
+
                     continue;
                 }
 
                 // Check equipment availability if specified
-                if ($equipmentId && !$this->isEquipmentAvailable($equipmentId, $date, $current, $slotEnd)) {
+                if ($equipmentId && ! $this->isEquipmentAvailable($equipmentId, $date, $current, $slotEnd)) {
                     $current->addMinutes($this->slotDuration);
+
                     continue;
                 }
 
@@ -191,7 +204,7 @@ class AvailabilityService
             ->available()
             ->first();
 
-        if (!$schedule) {
+        if (! $schedule) {
             return false;
         }
 
@@ -211,20 +224,26 @@ class AvailabilityService
             }
         }
 
-        // Check time off
-        $hasTimeOff = PractitionerTimeOff::query()
-            ->forPractitioner($practitionerId)
-            ->approved()
-            ->where(function ($q) use ($branchId) {
-                $q->whereNull('branch_id')
-                    ->orWhere('branch_id', $branchId);
-            })
-            ->where('start_date', '<=', $date)
-            ->where(function ($q) use ($date) {
-                $q->whereNull('end_date')
-                    ->orWhere('end_date', '>=', $date);
-            })
-            ->exists();
+        // Check time off — translate user_id (public API) to staff_profile_id
+        $staffProfileId = StaffProfile::query()
+            ->where('user_id', $practitionerId)
+            ->value('id');
+
+        $hasTimeOff = $staffProfileId
+            ? PractitionerTimeOff::query()
+                ->forStaffProfile($staffProfileId)
+                ->approved()
+                ->where(function ($q) use ($branchId) {
+                    $q->whereNull('branch_id')
+                        ->orWhere('branch_id', $branchId);
+                })
+                ->where('start_date', '<=', $date)
+                ->where(function ($q) use ($date) {
+                    $q->whereNull('end_date')
+                        ->orWhere('end_date', '>=', $date);
+                })
+                ->exists()
+            : false;
 
         if ($hasTimeOff) {
             return false;
@@ -236,7 +255,7 @@ class AvailabilityService
             ->forDate($date)
             ->active()
             ->where(function ($q) use ($start, $end) {
-                $q->whereRaw("start_time < ?", [$end->format('H:i:s')])
+                $q->whereRaw('start_time < ?', [$end->format('H:i:s')])
                     ->whereRaw("COALESCE(end_time, start_time + (duration_minutes || ' minutes')::interval) > ?", [$start->format('H:i:s')]);
             });
 
@@ -244,7 +263,7 @@ class AvailabilityService
             $conflictQuery->where('id', '!=', $excludeAppointmentId);
         }
 
-        return !$conflictQuery->exists();
+        return ! $conflictQuery->exists();
     }
 
     /**
@@ -252,12 +271,12 @@ class AvailabilityService
      */
     public function isRoomAvailable(string $roomId, Carbon $date, Carbon $start, Carbon $end): bool
     {
-        return !Appointment::query()
+        return ! Appointment::query()
             ->forRoom($roomId)
             ->forDate($date)
             ->active()
             ->where(function ($q) use ($start, $end) {
-                $q->whereRaw("start_time < ?", [$end->format('H:i:s')])
+                $q->whereRaw('start_time < ?', [$end->format('H:i:s')])
                     ->whereRaw("COALESCE(end_time, start_time + (duration_minutes || ' minutes')::interval) > ?", [$start->format('H:i:s')]);
             })
             ->exists();
@@ -268,12 +287,12 @@ class AvailabilityService
      */
     public function isEquipmentAvailable(string $equipmentId, Carbon $date, Carbon $start, Carbon $end): bool
     {
-        return !Appointment::query()
+        return ! Appointment::query()
             ->where('equipment_id', $equipmentId)
             ->forDate($date)
             ->active()
             ->where(function ($q) use ($start, $end) {
-                $q->whereRaw("start_time < ?", [$end->format('H:i:s')])
+                $q->whereRaw('start_time < ?', [$end->format('H:i:s')])
                     ->whereRaw("COALESCE(end_time, start_time + (duration_minutes || ' minutes')::interval) > ?", [$start->format('H:i:s')]);
             })
             ->exists();
@@ -331,7 +350,7 @@ class AvailabilityService
         while ($date->lte($endDate)) {
             $slots = $this->getAvailableSlots($practitionerId, $branchId, $date, $durationMinutes);
 
-            if (!empty($slots)) {
+            if (! empty($slots)) {
                 return [
                     'date' => $date->format('Y-m-d'),
                     'slot' => $slots[0],
@@ -355,7 +374,7 @@ class AvailabilityService
         string $serviceId
     ): array {
         $service = Service::find($serviceId);
-        if (!$service) {
+        if (! $service) {
             return [];
         }
 
@@ -415,7 +434,7 @@ class AvailabilityService
         string $serviceId
     ): array {
         $service = Service::find($serviceId);
-        if (!$service) {
+        if (! $service) {
             return [];
         }
 
@@ -433,7 +452,7 @@ class AvailabilityService
         $allSlots = [];
 
         foreach ($schedules as $schedule) {
-            if (!$schedule->practitioner) {
+            if (! $schedule->practitioner) {
                 continue;
             }
 
@@ -457,6 +476,7 @@ class AvailabilityService
             if ($timeCompare !== 0) {
                 return $timeCompare;
             }
+
             return strcmp($a['practitioner_name'], $b['practitioner_name']);
         });
 

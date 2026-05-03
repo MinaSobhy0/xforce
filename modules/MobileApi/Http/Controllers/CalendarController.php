@@ -61,7 +61,7 @@ class CalendarController extends BaseApiController
         }
 
         // Get time-off
-        $timeOffs = $this->getTimeOffs($user->id, $startDate, $endDate);
+        $timeOffs = $this->getTimeOffs($this->staffProfile()?->id, $startDate, $endDate);
         foreach ($timeOffs as $timeOff) {
             // Time-off can span multiple days
             $timeOffStart = Carbon::parse($timeOff['start_date']);
@@ -139,7 +139,7 @@ class CalendarController extends BaseApiController
         $appointments = $this->getAppointments($user->id, $targetDate, $targetDate);
 
         // Get time-off for the day
-        $timeOffs = $this->getTimeOffsForDate($user->id, $targetDate);
+        $timeOffs = $this->getTimeOffsForDate($this->staffProfile()?->id, $targetDate);
 
         // Get shift for the day
         $shift = $this->getShiftForDate($targetDate);
@@ -217,7 +217,7 @@ class CalendarController extends BaseApiController
         }
 
         // Get time-off
-        $timeOffs = $this->getTimeOffs($user->id, $startDate, $endDate);
+        $timeOffs = $this->getTimeOffs($this->staffProfile()?->id, $startDate, $endDate);
         foreach ($timeOffs as $timeOff) {
             $timeOffStart = Carbon::parse($timeOff['start_date']);
             $timeOffEnd = Carbon::parse($timeOff['end_date']);
@@ -292,7 +292,7 @@ class CalendarController extends BaseApiController
         }
 
         // Get time-off
-        $timeOffs = $this->getTimeOffs($user->id, $startDate, $endDate);
+        $timeOffs = $this->getTimeOffs($this->staffProfile()?->id, $startDate, $endDate);
         foreach ($timeOffs as $timeOff) {
             $events[] = $timeOff;
         }
@@ -365,14 +365,14 @@ class CalendarController extends BaseApiController
     /**
      * Get time-offs for a date range.
      */
-    protected function getTimeOffs(int $userId, Carbon $startDate, Carbon $endDate): array
+    protected function getTimeOffs(?int $staffProfileId, Carbon $startDate, Carbon $endDate): array
     {
-        if (! class_exists(PractitionerTimeOff::class)) {
+        if (! class_exists(PractitionerTimeOff::class) || ! $staffProfileId) {
             return [];
         }
 
         $timeOffs = PractitionerTimeOff::with('timeOffType')
-            ->where('user_id', $userId)
+            ->forStaffProfile($staffProfileId)
             ->whereIn('status', [PractitionerTimeOff::STATUS_PENDING, PractitionerTimeOff::STATUS_APPROVED])
             ->where(function ($q) use ($startDate, $endDate) {
                 $q->whereBetween('start_date', [$startDate, $endDate])
@@ -408,14 +408,14 @@ class CalendarController extends BaseApiController
     /**
      * Get time-offs for a specific date.
      */
-    protected function getTimeOffsForDate(int $userId, Carbon $date): array
+    protected function getTimeOffsForDate(?int $staffProfileId, Carbon $date): array
     {
-        if (! class_exists(PractitionerTimeOff::class)) {
+        if (! class_exists(PractitionerTimeOff::class) || ! $staffProfileId) {
             return [];
         }
 
         $timeOffs = PractitionerTimeOff::with('timeOffType')
-            ->where('user_id', $userId)
+            ->forStaffProfile($staffProfileId)
             ->whereIn('status', [PractitionerTimeOff::STATUS_PENDING, PractitionerTimeOff::STATUS_APPROVED])
             ->where('start_date', '<=', $date)
             ->where('end_date', '>=', $date)

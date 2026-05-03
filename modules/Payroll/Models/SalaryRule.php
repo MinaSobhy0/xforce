@@ -3,8 +3,8 @@
 namespace Modules\Payroll\Models;
 
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Modules\Accounting\Models\ChartOfAccount;
 use XLinic\Framework\Core\Model\BaseModel;
@@ -58,7 +58,9 @@ class SalaryRule extends BaseModel
 
     // Amount types
     public const AMOUNT_TYPE_FIXED = 'fixed';
+
     public const AMOUNT_TYPE_PERCENTAGE = 'percentage';
+
     public const AMOUNT_TYPE_FORMULA = 'formula';
 
     public const AMOUNT_TYPES = [
@@ -69,7 +71,9 @@ class SalaryRule extends BaseModel
 
     // Condition types
     public const CONDITION_ALWAYS = 'always';
+
     public const CONDITION_RANGE = 'range';
+
     public const CONDITION_FORMULA = 'formula';
 
     public const CONDITION_TYPES = [
@@ -274,7 +278,7 @@ class SalaryRule extends BaseModel
     public function calculateAmount(array $context): int
     {
         // Check condition first
-        if (!$this->evaluateCondition($context)) {
+        if (! $this->evaluateCondition($context)) {
             return 0;
         }
 
@@ -291,13 +295,14 @@ class SalaryRule extends BaseModel
      */
     protected function evaluateCondition(array $context): bool
     {
-        if (!$this->condition_type || $this->condition_type === self::CONDITION_ALWAYS) {
+        if (! $this->condition_type || $this->condition_type === self::CONDITION_ALWAYS) {
             return true;
         }
 
         if ($this->condition_type === self::CONDITION_FORMULA && $this->condition_formula) {
             try {
                 $evaluator = app(\Modules\Payroll\Services\FormulaEvaluator::class);
+
                 return (bool) $evaluator->evaluate($this->condition_formula, $context);
             } catch (\Exception $e) {
                 return true; // Default to applying the rule if condition fails
@@ -323,6 +328,7 @@ class SalaryRule extends BaseModel
         }
 
         $percentage = $this->amount_percentage ?? 0;
+
         return (int) round($baseAmount * ($percentage / 100));
     }
 
@@ -331,13 +337,14 @@ class SalaryRule extends BaseModel
      */
     protected function evaluateFormula(array $context): int
     {
-        if (!$this->amount_formula) {
+        if (! $this->amount_formula) {
             return 0;
         }
 
         try {
             $evaluator = app(\Modules\Payroll\Services\FormulaEvaluator::class);
             $result = $evaluator->evaluate($this->amount_formula, $context);
+
             return (int) round($result * 100); // Convert to minor units
         } catch (\Exception $e) {
             logger()->error('Salary rule formula evaluation failed', [
@@ -345,6 +352,7 @@ class SalaryRule extends BaseModel
                 'formula' => $this->amount_formula,
                 'error' => $e->getMessage(),
             ]);
+
             return 0;
         }
     }
@@ -364,9 +372,28 @@ class SalaryRule extends BaseModel
     {
         return match ($this->amount_type) {
             self::AMOUNT_TYPE_FIXED => number_format($this->amount_fixed, 2),
-            self::AMOUNT_TYPE_PERCENTAGE => number_format($this->amount_percentage, 2) . '%',
+            self::AMOUNT_TYPE_PERCENTAGE => number_format($this->amount_percentage, 2).'%',
             self::AMOUNT_TYPE_FORMULA => 'Formula',
             default => '-',
         };
+    }
+
+    /**
+     * Translate Odoo amount_select values to local amount_type values + default
+     * the NOT NULL columns Odoo doesn't carry directly.
+     *
+     * Odoo amount_select: fix | percentage | code
+     * Local amount_type:   fixed | percentage | formula
+     */
+    public static function applyOdooImport(array $data, $mapping = null, ?array $odooData = null): array
+    {
+        $map = ['fix' => self::AMOUNT_TYPE_FIXED, 'code' => self::AMOUNT_TYPE_FORMULA];
+        $current = $data['amount_type'] ?? null;
+        $data['amount_type'] = $map[$current] ?? $current ?? self::AMOUNT_TYPE_FIXED;
+
+        $data['amount_fixed_minor'] = $data['amount_fixed_minor'] ?? 0;
+        $data['sequence'] = $data['sequence'] ?? 0;
+
+        return $data;
     }
 }

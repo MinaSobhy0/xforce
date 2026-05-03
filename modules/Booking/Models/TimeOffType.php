@@ -277,13 +277,16 @@ class TimeOffType extends BaseModel
     }
 
     /**
-     * Get the unit label (hours, half days, or days).
+     * Get the unit label.
+     *
+     * Note: half-day types store values in days; the half_day request_unit only controls
+     * request granularity (allowing 0.5 increments). So the displayed unit for both
+     * `day` and `half_day` types is "Days". Only `hour` types are stored and displayed in hours.
      */
     public function getUnitLabel(): string
     {
         return match ($this->request_unit) {
             self::REQUEST_UNIT_HOUR => __('booking::time_off.request_units.hour'),
-            self::REQUEST_UNIT_HALF_DAY => __('booking::time_off.request_units.half_day'),
             default => __('booking::time_off.request_units.day'),
         };
     }
@@ -295,7 +298,6 @@ class TimeOffType extends BaseModel
     {
         return match ($this->request_unit) {
             self::REQUEST_UNIT_HOUR => __('booking::time_off.request_units_singular.hour'),
-            self::REQUEST_UNIT_HALF_DAY => __('booking::time_off.request_units_singular.half_day'),
             default => __('booking::time_off.request_units_singular.day'),
         };
     }

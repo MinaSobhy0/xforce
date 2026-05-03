@@ -10,10 +10,10 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Modules\Auth\Models\User;
 use Modules\Core\Models\Branch;
-use Modules\Staff\Models\CommissionPlan;
-use Modules\Staff\Models\StaffProfile;
 use Modules\Staff\Filament\Resources\StaffProfileResource\Pages;
 use Modules\Staff\Filament\Resources\StaffProfileResource\RelationManagers;
+use Modules\Staff\Models\CommissionPlan;
+use Modules\Staff\Models\StaffProfile;
 use XLinic\Framework\Core\Filament\RelationManagers\ActivityLogRelationManager;
 
 class StaffProfileResource extends Resource
@@ -75,6 +75,7 @@ class StaffProfileResource extends Resource
                                         if ($branchId = current_branch_id()) {
                                             return $branchId;
                                         }
+
                                         return Branch::active()->main()->value('id')
                                             ?? Branch::active()->ordered()->value('id');
                                     })
@@ -106,26 +107,59 @@ class StaffProfileResource extends Resource
                             ]),
                     ]),
 
+                Forms\Components\Section::make(__('staff::staff.sections.approvers'))
+                    ->description(__('staff::staff.sections.approvers_description'))
+                    ->schema([
+                        Forms\Components\Select::make('hr_responsible_user_id')
+                            ->label(__('staff::staff.fields.hr_responsible'))
+                            ->relationship('hrResponsible', 'email')
+                            ->getOptionLabelFromRecordUsing(fn (User $record) => "{$record->first_name} {$record->last_name} ({$record->email})")
+                            ->searchable(['first_name', 'last_name', 'email'])
+                            ->preload()
+                            ->nullable()
+                            ->helperText(__('staff::staff.fields.hr_responsible_help')),
+
+                        Forms\Components\Select::make('time_off_approver_user_id')
+                            ->label(__('staff::staff.fields.time_off_approver'))
+                            ->relationship('timeOffApprover', 'email')
+                            ->getOptionLabelFromRecordUsing(fn (User $record) => "{$record->first_name} {$record->last_name} ({$record->email})")
+                            ->searchable(['first_name', 'last_name', 'email'])
+                            ->preload()
+                            ->nullable()
+                            ->helperText(__('staff::staff.fields.time_off_approver_help')),
+
+                        Forms\Components\Select::make('attendance_approver_user_id')
+                            ->label(__('staff::staff.fields.attendance_approver'))
+                            ->relationship('attendanceApprover', 'email')
+                            ->getOptionLabelFromRecordUsing(fn (User $record) => "{$record->first_name} {$record->last_name} ({$record->email})")
+                            ->searchable(['first_name', 'last_name', 'email'])
+                            ->preload()
+                            ->nullable()
+                            ->helperText(__('staff::staff.fields.attendance_approver_help')),
+                    ])
+                    ->columns(3)
+                    ->collapsed(),
+
                 Forms\Components\Section::make(__('staff::staff.sections.bio'))
                     ->schema([
                         Forms\Components\Grid::make(2)
                             ->schema([
                                 Forms\Components\Textarea::make('bio.en')
-                                    ->label(__('staff::staff.fields.bio') . ' (English)')
+                                    ->label(__('staff::staff.fields.bio').' (English)')
                                     ->rows(3),
 
                                 Forms\Components\Textarea::make('bio.ar')
-                                    ->label(__('staff::staff.fields.bio') . ' (Arabic)')
+                                    ->label(__('staff::staff.fields.bio').' (Arabic)')
                                     ->rows(3),
                             ]),
 
                         Forms\Components\Grid::make(2)
                             ->schema([
                                 Forms\Components\TagsInput::make('specializations.en')
-                                    ->label(__('staff::staff.fields.specializations') . ' (English)'),
+                                    ->label(__('staff::staff.fields.specializations').' (English)'),
 
                                 Forms\Components\TagsInput::make('specializations.ar')
-                                    ->label(__('staff::staff.fields.specializations') . ' (Arabic)'),
+                                    ->label(__('staff::staff.fields.specializations').' (Arabic)'),
                             ]),
                     ])
                     ->collapsed(),
@@ -174,6 +208,7 @@ class StaffProfileResource extends Resource
                             ])
                             ->createOptionUsing(function (array $data): string {
                                 $data['created_by'] = auth()->id();
+
                                 return CommissionPlan::create($data)->id;
                             }),
                     ]),
@@ -197,8 +232,7 @@ class StaffProfileResource extends Resource
                             ->searchable()
                             ->preload()
                             ->nullable()
-                            ->visible(fn (Forms\Get $get) =>
-                                $get('allowed_check_in_methods') === null ||
+                            ->visible(fn (Forms\Get $get) => $get('allowed_check_in_methods') === null ||
                                 in_array('geofence', $get('allowed_check_in_methods') ?? [])
                             ),
                     ])
@@ -222,7 +256,7 @@ class StaffProfileResource extends Resource
                     ->searchable(query: function ($query, string $search) {
                         return $query->whereHas('user', function ($q) use ($search) {
                             $q->where('first_name', 'ilike', "%{$search}%")
-                              ->orWhere('last_name', 'ilike', "%{$search}%");
+                                ->orWhere('last_name', 'ilike', "%{$search}%");
                         });
                     })
                     ->sortable(query: function ($query, string $direction) {
@@ -265,6 +299,24 @@ class StaffProfileResource extends Resource
                     ->label(__('staff::staff.fields.hire_date'))
                     ->date()
                     ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                Tables\Columns\TextColumn::make('hrResponsible.email')
+                    ->label(__('staff::staff.fields.hr_responsible'))
+                    ->formatStateUsing(fn (StaffProfile $record) => $record->hrResponsible?->full_name)
+                    ->placeholder('—')
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                Tables\Columns\TextColumn::make('timeOffApprover.email')
+                    ->label(__('staff::staff.fields.time_off_approver'))
+                    ->formatStateUsing(fn (StaffProfile $record) => $record->timeOffApprover?->full_name)
+                    ->placeholder('—')
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                Tables\Columns\TextColumn::make('attendanceApprover.email')
+                    ->label(__('staff::staff.fields.attendance_approver'))
+                    ->formatStateUsing(fn (StaffProfile $record) => $record->attendanceApprover?->full_name)
+                    ->placeholder('—')
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([

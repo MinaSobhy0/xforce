@@ -93,8 +93,8 @@ return [
         'hr.salary.rule.category' => 'Modules\\Payroll\\Models\\SalaryRuleCategory',
         'hr.payroll.structure' => 'Modules\\Payroll\\Models\\SalaryStructure',
         'hr.salary.rule' => 'Modules\\Payroll\\Models\\SalaryRule',
-        'hr.payslip' => 'Modules\\Payroll\\Models\\PayrollRun',
-        'hr.payslip.line' => 'Modules\\Payroll\\Models\\PayrollLine',
+        'hr.payslip' => 'Modules\\Payroll\\Models\\PayrollLine',
+        // hr.payslip.line is NOT synced standalone; folded into PayrollLine via the parent slip's applyOdooImport.
 
         // Attendance
         'hr.attendance' => 'Modules\\Attendance\\Models\\Attendance',
@@ -150,6 +150,9 @@ return [
             ['local_field' => 'mobile_phone', 'odoo_field' => 'mobile_phone'],
             ['local_field' => 'hire_date', 'odoo_field' => 'date_start', 'transform_type' => 'date'],
             ['local_field' => 'is_active', 'odoo_field' => 'active', 'transform_type' => 'boolean'],
+            // Approvers — both are res.users many2one in Odoo
+            ['local_field' => 'time_off_approver_user_id', 'odoo_field' => 'leave_manager_id', 'transform_type' => 'relation', 'transform_config' => ['model' => 'Modules\\Auth\\Models\\User']],
+            ['local_field' => 'attendance_approver_user_id', 'odoo_field' => 'attendance_manager_id', 'transform_type' => 'relation', 'transform_config' => ['model' => 'Modules\\Auth\\Models\\User']],
         ],
 
         // =====================================================================
@@ -191,64 +194,55 @@ return [
 
         // =====================================================================
         // Salary Rule Categories (hr.salary.rule.category -> SalaryRuleCategory)
+        // Local table is plain varchar; not translatable. parent_id has no local column.
+        // The local 'type' column is derived from the code via SalaryRuleCategory::applyOdooImport().
         // =====================================================================
         'hr.salary.rule.category' => [
-            ['local_field' => 'odoo_id', 'odoo_field' => 'id', 'is_key_field' => true],
-            ['local_field' => 'name', 'odoo_field' => 'name', 'is_required' => true, 'transform_type' => 'translatable'],
-            ['local_field' => 'code', 'odoo_field' => 'code', 'is_required' => true],
-            ['local_field' => 'parent_id', 'odoo_field' => 'parent_id', 'transform_type' => 'relation', 'transform_config' => ['model' => 'Modules\\Payroll\\Models\\SalaryRuleCategory']],
+            // Note: odoo_id is NOT a key_field — it's null on pre-existing local rows.
+            // The business key is `code`, used to LINK existing rows on first sync.
+            ['local_field' => 'odoo_id', 'odoo_field' => 'id'],
+            ['local_field' => 'code', 'odoo_field' => 'code', 'is_required' => true, 'is_key_field' => true],
+            ['local_field' => 'name', 'odoo_field' => 'name', 'is_required' => true],
         ],
 
         // =====================================================================
         // Salary Structures (hr.payroll.structure -> SalaryStructure)
+        // pay_frequency and currency are NOT NULL locally; defaulted in
+        // SalaryStructure::applyOdooImport().
         // =====================================================================
         'hr.payroll.structure' => [
-            ['local_field' => 'odoo_id', 'odoo_field' => 'id', 'is_key_field' => true],
-            ['local_field' => 'name', 'odoo_field' => 'name', 'is_required' => true, 'transform_type' => 'translatable'],
-            ['local_field' => 'code', 'odoo_field' => 'code'],
-            ['local_field' => 'is_active', 'odoo_field' => 'active', 'transform_type' => 'boolean'],
+            ['local_field' => 'odoo_id', 'odoo_field' => 'id'],
+            ['local_field' => 'code', 'odoo_field' => 'code', 'is_key_field' => true],
+            ['local_field' => 'name', 'odoo_field' => 'name', 'is_required' => true],
+            // Note: hr.payroll.structure has no 'active' field in Odoo; is_active defaults to true via the model.
         ],
 
         // =====================================================================
         // Salary Rules (hr.salary.rule -> SalaryRule)
+        // structure_id has no local column. amount_type values normalised in
+        // SalaryRule::applyOdooImport() (Odoo amount_select is fix/percentage/code).
         // =====================================================================
         'hr.salary.rule' => [
-            ['local_field' => 'odoo_id', 'odoo_field' => 'id', 'is_key_field' => true],
-            ['local_field' => 'name', 'odoo_field' => 'name', 'is_required' => true, 'transform_type' => 'translatable'],
-            ['local_field' => 'code', 'odoo_field' => 'code', 'is_required' => true],
+            ['local_field' => 'odoo_id', 'odoo_field' => 'id'],
+            ['local_field' => 'code', 'odoo_field' => 'code', 'is_required' => true, 'is_key_field' => true],
+            ['local_field' => 'name', 'odoo_field' => 'name', 'is_required' => true],
             ['local_field' => 'category_id', 'odoo_field' => 'category_id', 'transform_type' => 'relation', 'transform_config' => ['model' => 'Modules\\Payroll\\Models\\SalaryRuleCategory']],
-            ['local_field' => 'structure_id', 'odoo_field' => 'struct_id', 'transform_type' => 'relation', 'transform_config' => ['model' => 'Modules\\Payroll\\Models\\SalaryStructure']],
             ['local_field' => 'sequence', 'odoo_field' => 'sequence'],
-            ['local_field' => 'condition_type', 'odoo_field' => 'condition_select'],
             ['local_field' => 'amount_type', 'odoo_field' => 'amount_select'],
             ['local_field' => 'is_active', 'odoo_field' => 'active', 'transform_type' => 'boolean'],
         ],
 
         // =====================================================================
-        // Payslips (hr.payslip -> PayrollRun)
+        // Payslips (hr.payslip -> PayrollLine)
+        // Odoo's hr.payslip = one slip per employee per period; XForce's PayrollLine
+        // is one row per (run, employee). PayrollLine::applyOdooImport() finds-or-
+        // creates the parent PayrollRun (matched by year+month) and buckets the
+        // hr.payslip.line items by SalaryRuleCategory.code into the local aggregate
+        // columns plus rule_amounts_json. Payslip lines are NOT synced standalone.
         // =====================================================================
         'hr.payslip' => [
             ['local_field' => 'odoo_id', 'odoo_field' => 'id', 'is_key_field' => true],
             ['local_field' => 'staff_profile_id', 'odoo_field' => 'employee_id', 'transform_type' => 'relation', 'transform_config' => ['model' => 'Modules\\Staff\\Models\\StaffProfile']],
-            ['local_field' => 'structure_id', 'odoo_field' => 'struct_id', 'transform_type' => 'relation', 'transform_config' => ['model' => 'Modules\\Payroll\\Models\\SalaryStructure']],
-            ['local_field' => 'period_start', 'odoo_field' => 'date_from', 'transform_type' => 'date'],
-            ['local_field' => 'period_end', 'odoo_field' => 'date_to', 'transform_type' => 'date'],
-            ['local_field' => 'status', 'odoo_field' => 'state', 'transform_type' => 'enum', 'transform_config' => ['mapping' => ['draft' => 'draft', 'verify' => 'pending', 'done' => 'completed', 'cancel' => 'cancelled']]],
-        ],
-
-        // =====================================================================
-        // Payslip Lines (hr.payslip.line -> PayrollLine)
-        // =====================================================================
-        'hr.payslip.line' => [
-            ['local_field' => 'odoo_id', 'odoo_field' => 'id', 'is_key_field' => true],
-            ['local_field' => 'payroll_run_id', 'odoo_field' => 'slip_id', 'transform_type' => 'relation', 'transform_config' => ['model' => 'Modules\\Payroll\\Models\\PayrollRun']],
-            ['local_field' => 'salary_rule_id', 'odoo_field' => 'salary_rule_id', 'transform_type' => 'relation', 'transform_config' => ['model' => 'Modules\\Payroll\\Models\\SalaryRule']],
-            ['local_field' => 'category_id', 'odoo_field' => 'category_id', 'transform_type' => 'relation', 'transform_config' => ['model' => 'Modules\\Payroll\\Models\\SalaryRuleCategory']],
-            ['local_field' => 'name', 'odoo_field' => 'name'],
-            ['local_field' => 'code', 'odoo_field' => 'code'],
-            ['local_field' => 'amount', 'odoo_field' => 'total', 'transform_type' => 'money'],
-            ['local_field' => 'quantity', 'odoo_field' => 'quantity'],
-            ['local_field' => 'rate', 'odoo_field' => 'rate'],
         ],
 
         // =====================================================================

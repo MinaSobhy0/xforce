@@ -3,10 +3,9 @@
 namespace Modules\Staff\Models;
 
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasManyThrough;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Modules\Auth\Models\User;
 use Modules\Booking\Models\PractitionerScheduleAssignment;
 use Modules\Booking\Models\WorkSchedule;
@@ -21,9 +20,9 @@ use XLinic\Framework\Core\Model\Traits\HasSequence;
 
 class StaffProfile extends BaseModel
 {
-    use HasTranslations;
     use HasActivity;
     use HasSequence;
+    use HasTranslations;
 
     /**
      * The column that stores the sequence number.
@@ -67,6 +66,9 @@ class StaffProfile extends BaseModel
         'hire_date',
         'contract_end_date',
         'is_active',
+        'hr_responsible_user_id',
+        'time_off_approver_user_id',
+        'attendance_approver_user_id',
         'odoo_id',
         'odoo_synced_at',
     ];
@@ -94,7 +96,9 @@ class StaffProfile extends BaseModel
 
     // Commission types
     public const COMMISSION_FLAT = 'flat';
+
     public const COMMISSION_PERCENTAGE = 'percentage';
+
     public const COMMISSION_TIERED = 'tiered';
 
     public const COMMISSION_TYPES = [
@@ -128,6 +132,32 @@ class StaffProfile extends BaseModel
     }
 
     /**
+     * The HR person responsible for this employee (local-only — not sourced from Odoo).
+     */
+    public function hrResponsible(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'hr_responsible_user_id');
+    }
+
+    /**
+     * The user who approves this employee's time-off requests.
+     * Mirrors Odoo `hr.employee.leave_manager_id`.
+     */
+    public function timeOffApprover(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'time_off_approver_user_id');
+    }
+
+    /**
+     * The user who approves this employee's attendance.
+     * Mirrors Odoo `hr.employee.attendance_manager_id`.
+     */
+    public function attendanceApprover(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'attendance_approver_user_id');
+    }
+
+    /**
      * Get the assigned commission plan.
      */
     public function commissionPlan(): BelongsTo
@@ -137,6 +167,7 @@ class StaffProfile extends BaseModel
 
     /**
      * Get commission rules (deprecated - use commissionPlan instead).
+     *
      * @deprecated Use commissionPlan()->serviceRules() instead
      */
     public function commissionRules(): HasMany
@@ -280,9 +311,9 @@ class StaffProfile extends BaseModel
     /**
      * Calculate commission for an amount.
      *
-     * @param int $amountMinor Revenue amount in minor units
-     * @param string|null $serviceId Optional service ID for specific rules
-     * @param string|null $categoryId Optional category ID for fallback rules
+     * @param  int  $amountMinor  Revenue amount in minor units
+     * @param  string|null  $serviceId  Optional service ID for specific rules
+     * @param  string|null  $categoryId  Optional category ID for fallback rules
      * @return int Commission amount in minor units
      */
     public function calculateCommission(int $amountMinor, ?string $serviceId = null, ?string $categoryId = null): int
@@ -298,6 +329,7 @@ class StaffProfile extends BaseModel
 
     /**
      * Calculate commission using legacy per-staff settings.
+     *
      * @deprecated This method is for backward compatibility only.
      */
     protected function calculateLegacyCommission(int $amountMinor, ?string $serviceId = null): int
@@ -328,7 +360,7 @@ class StaffProfile extends BaseModel
                     ->where('tier_from_minor', '<=', $amountMinor)
                     ->where(function ($q) use ($amountMinor) {
                         $q->whereNull('tier_to_minor')
-                          ->orWhere('tier_to_minor', '>=', $amountMinor);
+                            ->orWhere('tier_to_minor', '>=', $amountMinor);
                     })
                     ->where('is_active', true)
                     ->first();
@@ -437,6 +469,7 @@ class StaffProfile extends BaseModel
     public function setAllowedCheckInMethods(?array $methods): self
     {
         $this->allowed_check_in_methods = $methods;
+
         return $this;
     }
 
@@ -446,6 +479,7 @@ class StaffProfile extends BaseModel
     public function setAllowedGeofenceLocations(?array $branchIds): self
     {
         $this->allowed_geofence_locations = $branchIds ? array_map('intval', $branchIds) : null;
+
         return $this;
     }
 }

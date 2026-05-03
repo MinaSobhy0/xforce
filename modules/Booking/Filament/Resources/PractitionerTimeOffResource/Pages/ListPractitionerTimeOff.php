@@ -2,12 +2,12 @@
 
 namespace Modules\Booking\Filament\Resources\PractitionerTimeOffResource\Pages;
 
-use Modules\Booking\Filament\Resources\PractitionerTimeOffResource;
-use Modules\Booking\Models\PractitionerTimeOff;
+use App\Filament\Resources\Pages\BaseListRecords;
 use Filament\Actions;
 use Filament\Resources\Components\Tab;
 use Illuminate\Database\Eloquent\Builder;
-use App\Filament\Resources\Pages\BaseListRecords;
+use Modules\Booking\Filament\Resources\PractitionerTimeOffResource;
+use Modules\Booking\Models\PractitionerTimeOff;
 
 class ListPractitionerTimeOff extends BaseListRecords
 {
@@ -24,14 +24,19 @@ class ListPractitionerTimeOff extends BaseListRecords
     public function getTabs(): array
     {
         $user = auth()->user();
-        $canViewAll = $user->can('practitioner_time_off.view') || $user->hasRole(['super-admin', 'admin', 'manager']);
+        $canViewAll = $user->can('practitioner_time_off.view') || $user->hasRole(['super-admin', 'super_admin', 'tenant-owner', 'tenant_owner', 'owner', 'admin', 'manager']);
+
+        // Resolve current user's staff profile id once for the "my time off" tab.
+        $myStaffProfileId = \Modules\Staff\Models\StaffProfile::query()
+            ->where('user_id', $user->id)
+            ->value('id');
 
         $tabs = [];
 
         // My Time Off - always visible
         $tabs['my_time_off'] = Tab::make(__('booking::time_off.tabs.my_time_off'))
-            ->modifyQueryUsing(fn (Builder $query) => $query->where('user_id', $user->id))
-            ->badge($this->getModel()::where('user_id', $user->id)->count())
+            ->modifyQueryUsing(fn (Builder $query) => $query->where('staff_profile_id', $myStaffProfileId))
+            ->badge($myStaffProfileId ? $this->getModel()::where('staff_profile_id', $myStaffProfileId)->count() : 0)
             ->icon('heroicon-o-user');
 
         // Pending Approval - for managers/approvers
@@ -65,7 +70,7 @@ class ListPractitionerTimeOff extends BaseListRecords
     public function getDefaultActiveTab(): string|int|null
     {
         $user = auth()->user();
-        $canViewAll = $user->can('practitioner_time_off.view') || $user->hasRole(['super-admin', 'admin', 'manager']);
+        $canViewAll = $user->can('practitioner_time_off.view') || $user->hasRole(['super-admin', 'super_admin', 'tenant-owner', 'tenant_owner', 'owner', 'admin', 'manager']);
 
         // For managers, default to pending; for regular users, default to my time off
         return $canViewAll ? 'pending' : 'my_time_off';

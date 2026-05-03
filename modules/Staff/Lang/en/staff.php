@@ -30,6 +30,8 @@ return [
         'commission_description' => 'Assign a commission plan to calculate commissions on service revenue. Commission plans are managed in Settings > Commission Plans.',
         'attendance_settings' => 'Attendance Settings',
         'attendance_settings_description' => 'Configure check-in methods and locations allowed for this staff member. Leave empty to allow all methods/locations.',
+        'approvers' => 'Approvers',
+        'approvers_description' => 'Who reviews and approves this employee\'s HR requests. Mirrors Odoo employee fields.',
         'settings' => 'Settings',
         'commission_details' => 'Commission Details',
         'amounts' => 'Amounts',
@@ -92,6 +94,12 @@ return [
         'allowed_check_in_methods_help' => 'Leave empty to allow all methods. If selected, only these methods will be available for this staff.',
         'allowed_geofence_locations' => 'Allowed Geofence Locations',
         'allowed_geofence_locations_help' => 'Leave empty to allow all locations. If selected, staff can only check in at these branches.',
+        'hr_responsible' => 'HR Responsible',
+        'hr_responsible_help' => 'The HR person handling this employee\'s records and personnel matters.',
+        'time_off_approver' => 'Time Off Approver',
+        'time_off_approver_help' => 'The user who reviews and approves time-off requests for this employee.',
+        'attendance_approver' => 'Attendance Approver',
+        'attendance_approver_help' => 'The user who reviews attendance, dispute requests, and approves overtime.',
     ],
 
     'commission_types' => [

@@ -39,9 +39,13 @@ class SalaryStructure extends BaseModel
 
     // Pay frequencies
     public const PAY_FREQUENCY_MONTHLY = 'monthly';
+
     public const PAY_FREQUENCY_BIWEEKLY = 'bi-weekly';
+
     public const PAY_FREQUENCY_WEEKLY = 'weekly';
+
     public const PAY_FREQUENCY_DAILY = 'daily';
+
     public const PAY_FREQUENCY_HOURLY = 'hourly';
 
     public const PAY_FREQUENCIES = [
@@ -240,5 +244,21 @@ class SalaryStructure extends BaseModel
         }
 
         return $new;
+    }
+
+    /**
+     * Default the NOT NULL columns that Odoo doesn't carry on hr.payroll.structure.
+     * Pay frequency lives on the contract in Odoo, not the structure, so we default
+     * to monthly/EGP and let admins edit afterwards.
+     */
+    public static function applyOdooImport(array $data, $mapping = null, ?array $odooData = null): array
+    {
+        $data['pay_frequency'] = $data['pay_frequency'] ?? 'monthly';
+        $data['currency'] = $data['currency'] ?? 'EGP';
+        if (empty($data['code'])) {
+            $data['code'] = 'STRUCT-'.($odooData['id'] ?? 'X');
+        }
+
+        return $data;
     }
 }

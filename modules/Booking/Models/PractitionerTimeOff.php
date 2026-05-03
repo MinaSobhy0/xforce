@@ -17,7 +17,7 @@ class PractitionerTimeOff extends BaseModel
 
     protected $fillable = [
         'tenant_id',
-        'user_id',
+        'staff_profile_id',
         'branch_id',
         'time_off_type_id',
         'type',
@@ -126,9 +126,9 @@ class PractitionerTimeOff extends BaseModel
         });
     }
 
-    public function practitioner(): BelongsTo
+    public function staffProfile(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(StaffProfile::class);
     }
 
     public function branch(): BelongsTo
@@ -216,13 +216,12 @@ class PractitionerTimeOff extends BaseModel
         ]);
 
         // Deduct from allocation if using typed time off
-        if ($result && $this->time_off_type_id) {
+        if ($result && $this->time_off_type_id && $this->staff_profile_id) {
             $deductAmount = $this->getDeductionAmount();
-            $staffProfileId = $this->resolveStaffProfileId();
 
-            if ($deductAmount > 0 && $staffProfileId) {
+            if ($deductAmount > 0) {
                 $allocation = TimeOffAllocation::getOrCreateForDate(
-                    $staffProfileId,
+                    $this->staff_profile_id,
                     $this->time_off_type_id,
                     $this->start_date
                 );
@@ -260,13 +259,12 @@ class PractitionerTimeOff extends BaseModel
         ]);
 
         // Return allocation if was approved and using typed time off
-        if ($result && $wasApproved && $this->time_off_type_id) {
+        if ($result && $wasApproved && $this->time_off_type_id && $this->staff_profile_id) {
             $returnAmount = $this->getDeductionAmount();
-            $staffProfileId = $this->resolveStaffProfileId();
 
-            if ($returnAmount > 0 && $staffProfileId) {
+            if ($returnAmount > 0) {
                 $allocation = TimeOffAllocation::getForDate(
-                    $staffProfileId,
+                    $this->staff_profile_id,
                     $this->time_off_type_id,
                     $this->start_date
                 );
@@ -305,9 +303,9 @@ class PractitionerTimeOff extends BaseModel
     }
 
     // Scopes
-    public function scopeForPractitioner($query, string $userId)
+    public function scopeForStaffProfile($query, int $staffProfileId)
     {
-        return $query->where('user_id', $userId);
+        return $query->where('staff_profile_id', $staffProfileId);
     }
 
     public function scopeForBranch($query, ?string $branchId)
@@ -412,18 +410,26 @@ class PractitionerTimeOff extends BaseModel
     }
 
     /**
-     * Resolve this request's owner to a staff_profile_id.
-     * Returns null if the user has no staff profile in the current tenant.
+     * Convert raw Odoo data into the local storage shape before persistence.
+     *
+     * Odoo's `hr.leave.date_from` / `date_to` are full datetimes (UTC, then timezone-converted
+     * by the field transformer to the app TZ). Locally we split them: the date portion goes
+     * into `start_date` / `end_date` (cast as date), and the time portion into
+     * `start_time` / `end_time`. Without this hook the time is silently truncated.
      */
-    public function resolveStaffProfileId(): ?int
+    public static function applyOdooImport(array $data, $mapping = null, ?array $odooData = null): array
     {
-        if (! $this->user_id) {
-            return null;
+        // Split datetime strings produced by transformImport into date + time pairs.
+        // The `is_full_day` flag is handled by the model's saving hook based on the type.
+        foreach ([['start_date', 'start_time'], ['end_date', 'end_time']] as [$dateKey, $timeKey]) {
+            if (! empty($data[$dateKey]) && is_string($data[$dateKey]) && str_contains($data[$dateKey], ' ')) {
+                [$d, $t] = explode(' ', $data[$dateKey], 2);
+                $data[$dateKey] = $d;
+                $data[$timeKey] = substr($t, 0, 5); // HH:MM
+            }
         }
 
-        return StaffProfile::query()
-            ->where('user_id', $this->user_id)
-            ->value('id');
+        return $data;
     }
 
     /**
