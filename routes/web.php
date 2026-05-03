@@ -4,9 +4,9 @@ use App\Http\Controllers\Auth\TwoFactorChallengeController;
 use App\Http\Controllers\BackupController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\TenantMediaController;
+use Illuminate\Support\Facades\Route;
 use Modules\Website\Http\Controllers\WebsiteController;
 use Modules\Website\Http\Middleware\WebsiteModuleMiddleware;
-use Illuminate\Support\Facades\Route;
 
 // Root route - checks if tenant has Website module enabled
 // If enabled: renders tenant's custom website
@@ -14,6 +14,10 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', [WebsiteController::class, 'home'])
     ->middleware(WebsiteModuleMiddleware::class)
     ->name('home');
+
+// Legal pages — public, no auth. Required URLs for App Store / Play Store submission.
+Route::view('/privacy', 'legal.privacy')->name('legal.privacy');
+Route::view('/terms', 'legal.terms')->name('legal.terms');
 
 // Define login route for auth middleware redirect
 Route::get('/login', function () {
@@ -55,6 +59,7 @@ Route::get('/website-assets/{path}', [TenantMediaController::class, 'showPublic'
 // Appointment action via signed URL (confirm, cancel, reschedule)
 Route::get('/appointment/{appointment}/{action}', function (\Illuminate\Http\Request $request, $appointment, $action) {
     $appointmentModel = \Modules\Booking\Models\Appointment::findOrFail($appointment);
+
     return app(\Modules\Booking\Http\Controllers\AppointmentActionController::class)->handle($request, $appointmentModel, $action);
 })->name('appointment.action');
 
@@ -64,12 +69,12 @@ Route::get('/app/join/{code}', function (string $code) {
         ->where('code', strtoupper($code))
         ->first();
 
-    if (!$appCode || !$appCode->isValid()) {
+    if (! $appCode || ! $appCode->isValid()) {
         abort(404, 'Invalid or expired code');
     }
 
     $tenant = $appCode->tenant;
-    if (!$tenant || !$tenant->isActive()) {
+    if (! $tenant || ! $tenant->isActive()) {
         abort(404, 'Clinic not found');
     }
 
@@ -83,7 +88,6 @@ Route::get('/app/join/{code}', function (string $code) {
         'deepLink' => $appCode->deep_link,
     ]);
 })->name('app.join');
-
 
 // Dummy route for patient portal email verification (we don't use it)
 Route::get('/portal/email-verification', function () {

@@ -39,8 +39,8 @@
                     </div>
                     <ul class="space-y-3 text-sm">
                         <li><a href="#contact" class="text-muted hover:text-white transition-colors">{{ __('landing.footer.links.contact') }}</a></li>
-                        <li><a href="#" class="text-muted hover:text-white transition-colors">{{ __('landing.footer.links.privacy') }}</a></li>
-                        <li><a href="#" class="text-muted hover:text-white transition-colors">{{ __('landing.footer.links.terms') }}</a></li>
+                        <li><a href="{{ route('legal.privacy') }}" class="text-muted hover:text-white transition-colors">{{ __('landing.footer.links.privacy') }}</a></li>
+                        <li><a href="{{ route('legal.terms') }}" class="text-muted hover:text-white transition-colors">{{ __('landing.footer.links.terms') }}</a></li>
                     </ul>
                 </div>
             </div>
