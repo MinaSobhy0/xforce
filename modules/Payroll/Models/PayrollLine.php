@@ -15,6 +15,7 @@ class PayrollLine extends BaseModel
         'tenant_id',
         'payroll_run_id',
         'staff_profile_id',
+        'status',
         'base_salary_minor',
         'allowances_minor',
         'commissions_minor',
@@ -50,6 +51,7 @@ class PayrollLine extends BaseModel
     ];
 
     protected $attributes = [
+        'status' => self::STATUS_DRAFT,
         'base_salary_minor' => 0,
         'allowances_minor' => 0,
         'commissions_minor' => 0,
@@ -58,6 +60,32 @@ class PayrollLine extends BaseModel
         'tax_minor' => 0,
         'social_insurance_minor' => 0,
         'net_salary_minor' => 0,
+    ];
+
+    public const STATUS_DRAFT = 'draft';
+
+    public const STATUS_PENDING = 'pending';
+
+    public const STATUS_APPROVED = 'approved';
+
+    public const STATUS_PAID = 'paid';
+
+    public const STATUS_CANCELLED = 'cancelled';
+
+    public const STATUSES = [
+        self::STATUS_DRAFT => 'Draft',
+        self::STATUS_PENDING => 'Pending',
+        self::STATUS_APPROVED => 'Approved',
+        self::STATUS_PAID => 'Paid',
+        self::STATUS_CANCELLED => 'Cancelled',
+    ];
+
+    public const STATUS_COLORS = [
+        self::STATUS_DRAFT => 'gray',
+        self::STATUS_PENDING => 'warning',
+        self::STATUS_APPROVED => 'info',
+        self::STATUS_PAID => 'success',
+        self::STATUS_CANCELLED => 'danger',
     ];
 
     /**
@@ -108,6 +136,19 @@ class PayrollLine extends BaseModel
         static::deleted(function (self $line) {
             $line->payrollRun?->recalculateTotals();
         });
+    }
+
+    /**
+     * Editable when in draft/pending. Once approved/paid the slip is locked,
+     * and a parent run that's been finalized also locks its slips.
+     */
+    public function isEditable(): bool
+    {
+        if (in_array($this->status, [self::STATUS_APPROVED, self::STATUS_PAID, self::STATUS_CANCELLED], true)) {
+            return false;
+        }
+
+        return $this->payrollRun?->isEditable() ?? true;
     }
 
     /**
@@ -327,38 +368,38 @@ class PayrollLine extends BaseModel
 
         // Fetch the slip's period + line IDs (not in default field mapping).
         $slipDetails = $client->read('hr.payslip', [(int) $odooData['id']], [
-            'date_from', 'date_to', 'state', 'number', 'line_ids',
+            'date_from', 'date_to', 'number', 'line_ids',
         ])[0] ?? null;
         if (! $slipDetails) {
             return $data;
         }
 
+        // Standalone slips (no period info) are allowed — leave payroll_run_id null.
         $dateFrom = $slipDetails['date_from'] ?? null;
-        if (! $dateFrom) {
-            return $data;
-        }
-        $period = \Carbon\Carbon::parse($dateFrom);
-        $year = (int) $period->year;
-        $month = (int) $period->month;
+        if ($dateFrom) {
+            $period = \Carbon\Carbon::parse($dateFrom);
+            $year = (int) $period->year;
+            $month = (int) $period->month;
 
-        // Parent PayrollRun — find by (tenant, year, month) or create one.
-        $tenantId = $data['tenant_id'] ?? $mapping->tenant_id ?? current_tenant_id();
-        $run = PayrollRun::query()
-            ->where('tenant_id', $tenantId)
-            ->where('period_year', $year)
-            ->where('period_month', $month)
-            ->first();
-        if (! $run) {
-            $run = PayrollRun::create([
-                'tenant_id' => $tenantId,
-                'period_year' => $year,
-                'period_month' => $month,
-                'status' => PayrollRun::STATUS_DRAFT,
-                'employee_count' => 0,
-                'notes' => 'Imported from Odoo',
-            ]);
+            // Parent PayrollRun — find by (tenant, year, month) or create one.
+            $tenantId = $data['tenant_id'] ?? $mapping->tenant_id ?? current_tenant_id();
+            $run = PayrollRun::query()
+                ->where('tenant_id', $tenantId)
+                ->where('period_year', $year)
+                ->where('period_month', $month)
+                ->first();
+            if (! $run) {
+                $run = PayrollRun::create([
+                    'tenant_id' => $tenantId,
+                    'period_year' => $year,
+                    'period_month' => $month,
+                    'status' => PayrollRun::STATUS_DRAFT,
+                    'employee_count' => 0,
+                    'notes' => 'Imported from Odoo',
+                ]);
+            }
+            $data['payroll_run_id'] = $run->id;
         }
-        $data['payroll_run_id'] = $run->id;
 
         // Pull the slip's line items + their salary rules + categories.
         $lineIds = array_values(array_filter((array) ($slipDetails['line_ids'] ?? [])));

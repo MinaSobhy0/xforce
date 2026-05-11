@@ -57,17 +57,27 @@ class PayslipResource extends Resource
             ->schema([
                 Forms\Components\Section::make(__('payroll::payroll.sections.employee'))
                     ->schema([
-                        Forms\Components\Placeholder::make('employee_name')
+                        Forms\Components\Select::make('staff_profile_id')
                             ->label(__('payroll::payroll.fields.employee'))
-                            ->content(fn (?PayrollLine $record) => $record?->staffProfile?->user?->name ?? '-'),
+                            ->relationship('staffProfile', 'id')
+                            ->getOptionLabelFromRecordUsing(fn ($record) => $record->user?->name ?? "#{$record->id}")
+                            ->searchable()
+                            ->preload()
+                            ->required(),
 
-                        Forms\Components\Placeholder::make('job_title')
-                            ->label(__('payroll::payroll.fields.job_title'))
-                            ->content(fn (?PayrollLine $record) => $record?->staffProfile?->job_title ?? '-'),
-
-                        Forms\Components\Placeholder::make('period')
+                        Forms\Components\Select::make('payroll_run_id')
                             ->label(__('payroll::payroll.fields.period'))
-                            ->content(fn (?PayrollLine $record) => $record?->payrollRun?->period_label ?? '-'),
+                            ->relationship('payrollRun', 'run_number')
+                            ->getOptionLabelFromRecordUsing(fn (PayrollRun $record) => $record->period_label.' ('.$record->run_number.')')
+                            ->searchable()
+                            ->preload()
+                            ->helperText(__('payroll::payroll.fields.payroll_run_optional')),
+
+                        Forms\Components\Select::make('status')
+                            ->label(__('payroll::payroll.fields.status'))
+                            ->options(PayrollLine::STATUSES)
+                            ->default(PayrollLine::STATUS_DRAFT)
+                            ->required(),
                     ])->columns(3),
 
                 Forms\Components\Section::make(__('payroll::payroll.sections.earnings'))
@@ -140,13 +150,14 @@ class PayslipResource extends Resource
                             ->label(__('payroll::payroll.fields.job_title')),
 
                         Infolists\Components\TextEntry::make('payrollRun.period_label')
-                            ->label(__('payroll::payroll.fields.period')),
+                            ->label(__('payroll::payroll.fields.period'))
+                            ->placeholder('-'),
 
-                        Infolists\Components\TextEntry::make('payrollRun.status')
+                        Infolists\Components\TextEntry::make('status')
                             ->label(__('payroll::payroll.fields.status'))
                             ->badge()
-                            ->formatStateUsing(fn ($state) => PayrollRun::STATUSES[$state] ?? $state)
-                            ->color(fn ($state) => PayrollRun::STATUS_COLORS[$state] ?? 'gray'),
+                            ->formatStateUsing(fn ($state) => PayrollLine::STATUSES[$state] ?? $state)
+                            ->color(fn ($state) => PayrollLine::STATUS_COLORS[$state] ?? 'gray'),
                     ])->columns(4),
 
                 // Salary Rules Breakdown - Earnings
@@ -283,11 +294,12 @@ class PayslipResource extends Resource
                     ->weight('bold')
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('payrollRun.status')
+                Tables\Columns\TextColumn::make('status')
                     ->label(__('payroll::payroll.fields.status'))
                     ->badge()
-                    ->formatStateUsing(fn ($state) => PayrollRun::STATUSES[$state] ?? $state)
-                    ->color(fn ($state) => PayrollRun::STATUS_COLORS[$state] ?? 'gray'),
+                    ->sortable()
+                    ->formatStateUsing(fn ($state) => PayrollLine::STATUSES[$state] ?? $state)
+                    ->color(fn ($state) => PayrollLine::STATUS_COLORS[$state] ?? 'gray'),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('payroll_run_id')
@@ -304,12 +316,7 @@ class PayslipResource extends Resource
 
                 Tables\Filters\SelectFilter::make('status')
                     ->label(__('payroll::payroll.fields.status'))
-                    ->options(PayrollRun::STATUSES)
-                    ->query(function ($query, array $data) {
-                        if ($data['value']) {
-                            $query->whereHas('payrollRun', fn ($q) => $q->where('status', $data['value']));
-                        }
-                    }),
+                    ->options(PayrollLine::STATUSES),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
@@ -322,7 +329,7 @@ class PayslipResource extends Resource
                     ->openUrlInNewTab(),
 
                 Tables\Actions\DeleteAction::make()
-                    ->visible(fn (PayrollLine $record) => $record->payrollRun?->isEditable() ?? false),
+                    ->visible(fn (PayrollLine $record) => $record->isEditable()),
             ])
             ->bulkActions([])
             ->defaultSort('created_at', 'desc');
@@ -337,7 +344,9 @@ class PayslipResource extends Resource
     {
         return [
             'index' => Pages\ListPayslips::route('/'),
+            'create' => Pages\CreatePayslip::route('/create'),
             'view' => Pages\ViewPayslip::route('/{record}'),
+            'edit' => Pages\EditPayslip::route('/{record}/edit'),
         ];
     }
 
@@ -348,16 +357,16 @@ class PayslipResource extends Resource
 
     public static function canCreate(): bool
     {
-        return false;
+        return true;
     }
 
     public static function canEdit($record): bool
     {
-        return false;
+        return $record->isEditable();
     }
 
     public static function canDelete($record): bool
     {
-        return $record->payrollRun?->isEditable() ?? false;
+        return $record->isEditable();
     }
 }

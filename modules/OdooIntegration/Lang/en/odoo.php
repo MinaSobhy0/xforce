@@ -146,6 +146,7 @@ return [
         'configure_fields' => 'Configure Fields',
         'auto_generate' => 'Auto-Generate',
         'add_field_mapping' => 'Add Field Mapping',
+        'push_to_odoo' => 'Push to Odoo',
     ],
 
     // Messages
@@ -163,6 +164,11 @@ return [
         'conflict_dismissed' => 'Conflict dismissed',
         'conflicts_dismissed' => 'Selected conflicts dismissed',
         'no_errors' => 'No errors recorded',
+        'push_unlinked_confirm' => 'Push :count record(s) without an odoo_id to Odoo? Each will be created on the Odoo side and linked back via odoo_id.',
+        'push_bulk_done' => 'Push to Odoo finished',
+        'push_bulk_body' => ':pushed pushed, :failed failed.',
+        'push_failed' => 'Push to Odoo failed',
+        'no_mapping' => 'No active mapping configured for export.',
     ],
 
     // Modals

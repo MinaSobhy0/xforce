@@ -5,7 +5,6 @@ namespace Modules\MobileApi\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Modules\Payroll\Models\PayrollLine;
-use Modules\Payroll\Models\PayrollRun;
 
 class PayrollController extends BaseApiController
 {
@@ -26,13 +25,13 @@ class PayrollController extends BaseApiController
             return $this->error('Payroll module not available', 503);
         }
 
-        // Get the current month's payslip
         $payslip = PayrollLine::with('payrollRun')
             ->where('staff_profile_id', $staffProfile->id)
             ->whereHas('payrollRun', function ($q) {
                 $q->where('period_year', now()->year)
                   ->where('period_month', now()->month);
             })
+            ->orderByDesc('created_at')
             ->first();
 
         if (!$payslip) {
@@ -63,11 +62,8 @@ class PayrollController extends BaseApiController
 
         $query = PayrollLine::with('payrollRun')
             ->where('staff_profile_id', $staffProfile->id)
-            ->whereHas('payrollRun', function ($q) {
-                $q->whereIn('status', [PayrollRun::STATUS_APPROVED, PayrollRun::STATUS_PAID]);
-            });
+            ->whereIn('status', [PayrollLine::STATUS_APPROVED, PayrollLine::STATUS_PAID]);
 
-        // Filter by year if provided
         if ($request->filled('year')) {
             $query->whereHas('payrollRun', function ($q) use ($request) {
                 $q->where('period_year', $request->year);
@@ -79,12 +75,12 @@ class PayrollController extends BaseApiController
 
         $formatted = collect($payslips->items())->map(fn($p) => [
             'id' => $p->id,
-            'period' => $p->payrollRun->period_label,
-            'period_year' => $p->payrollRun->period_year,
-            'period_month' => $p->payrollRun->period_month,
+            'period' => $p->payrollRun?->period_label,
+            'period_year' => $p->payrollRun?->period_year,
+            'period_month' => $p->payrollRun?->period_month,
             'net_salary' => $p->net_salary,
-            'status' => $p->payrollRun->status,
-            'status_label' => PayrollRun::STATUSES[$p->payrollRun->status] ?? $p->payrollRun->status,
+            'status' => $p->status,
+            'status_label' => PayrollLine::STATUSES[$p->status] ?? $p->status,
         ]);
 
         return response()->json([
@@ -156,10 +152,12 @@ class PayrollController extends BaseApiController
             ['id' => $id, 'staff' => $staffProfile->id]
         );
 
+        $filenamePeriod = $payslip->payrollRun?->period_label ?? "slip-{$payslip->id}";
+
         return $this->success([
             'download_url' => $downloadUrl,
-            'filename' => "payslip_{$payslip->payrollRun->period_label}.pdf",
-            'expires_in' => 900, // 15 minutes in seconds
+            'filename' => "payslip_{$filenamePeriod}.pdf",
+            'expires_in' => 900,
         ]);
     }
 
@@ -216,10 +214,8 @@ class PayrollController extends BaseApiController
 
         $payslips = PayrollLine::with('payrollRun')
             ->where('staff_profile_id', $staffProfile->id)
-            ->whereHas('payrollRun', function ($q) use ($year) {
-                $q->where('period_year', $year)
-                  ->whereIn('status', [PayrollRun::STATUS_APPROVED, PayrollRun::STATUS_PAID]);
-            })
+            ->whereIn('status', [PayrollLine::STATUS_APPROVED, PayrollLine::STATUS_PAID])
+            ->whereHas('payrollRun', fn ($q) => $q->where('period_year', $year))
             ->get();
 
         return $this->success([
@@ -243,13 +239,12 @@ class PayrollController extends BaseApiController
 
         $data = [
             'id' => $payslip->id,
-            'period' => $run->period_label,
-            'period_year' => $run->period_year,
-            'period_month' => $run->period_month,
-            'status' => $run->status,
-            'status_label' => PayrollRun::STATUSES[$run->status] ?? $run->status,
+            'period' => $run?->period_label,
+            'period_year' => $run?->period_year,
+            'period_month' => $run?->period_month,
+            'status' => $payslip->status,
+            'status_label' => PayrollLine::STATUSES[$payslip->status] ?? $payslip->status,
 
-            // Summary
             'gross_salary' => $payslip->gross_salary_minor / 100,
             'total_deductions' => $payslip->total_deductions_minor / 100,
             'net_salary' => $payslip->net_salary,

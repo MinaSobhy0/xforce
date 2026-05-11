@@ -22,7 +22,7 @@ class ViewPayslip extends BaseViewRecord
                 ->requiresConfirmation()
                 ->modalHeading(__('payroll::payroll.actions.recalculate'))
                 ->modalDescription(__('payroll::payroll.messages.recalculate_single_confirm'))
-                ->visible(fn () => $this->record->payrollRun?->isEditable() ?? false)
+                ->visible(fn () => $this->record->isEditable() && $this->record->payrollRun)
                 ->action(function () {
                     try {
                         $service = app(PayrollCalculationService::class);

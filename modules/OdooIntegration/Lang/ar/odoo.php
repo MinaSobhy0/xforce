@@ -125,6 +125,7 @@ return [
         'resolve' => 'حل',
         'manage_fields' => 'إدارة الحقول',
         'auto_generate' => 'إنشاء تلقائي',
+        'push_to_odoo' => 'إرسال إلى أودو',
     ],
 
     // Messages
@@ -136,6 +137,11 @@ return [
         'conflict_resolved' => 'تم حل التعارض بنجاح',
         'conflict_dismissed' => 'تم تجاهل التعارض',
         'conflicts_dismissed' => 'تم تجاهل التعارضات المحددة',
+        'push_unlinked_confirm' => 'هل تريد إرسال :count سجل بدون odoo_id إلى أودو؟ سيتم إنشاؤها وربطها تلقائيًا عبر odoo_id.',
+        'push_bulk_done' => 'انتهى الإرسال إلى أودو',
+        'push_bulk_body' => 'تم إرسال :pushed، فشل :failed.',
+        'push_failed' => 'فشل الإرسال إلى أودو',
+        'no_mapping' => 'لا يوجد تعيين نشط يسمح بالتصدير.',
     ],
 
     // Modals

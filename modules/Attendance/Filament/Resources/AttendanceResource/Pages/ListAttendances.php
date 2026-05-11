@@ -8,12 +8,15 @@ use Modules\Attendance\Filament\Resources\AttendanceResource;
 
 class ListAttendances extends BaseListRecords
 {
+    use \App\Filament\Traits\HasExtraHeaderActions;
+
     protected static string $resource = AttendanceResource::class;
 
     protected function getHeaderActions(): array
     {
         return [
             Actions\CreateAction::make(),
+            ...static::resolveExtraHeaderActions(),
             ...parent::getHeaderActions(),
         ];
     }

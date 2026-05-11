@@ -53,6 +53,7 @@ return [
     'fields' => [
         'run_number' => 'رقم الدورة',
         'period' => 'الفترة',
+        'payroll_run_optional' => 'اختياري. اتركه فارغًا لإنشاء كشف راتب مستقل.',
         'year' => 'السنة',
         'month' => 'الشهر',
         'status' => 'الحالة',

@@ -47,6 +47,36 @@ class OdooIntegrationServiceProvider extends ServiceProvider
         $this->registerViews();
         $this->loadMigrationsFrom(module_path($this->moduleName, 'Database/Migrations'));
         $this->registerSchedule();
+        $this->registerCrossModuleActions();
+    }
+
+    /**
+     * Register the "Push to Odoo" header action on host List pages.
+     *
+     * Each host List page opts in by using `App\Filament\Traits\HasExtraHeaderActions`
+     * and spreading `resolveExtraHeaderActions()` into its `getHeaderActions()`.
+     * The button sits next to the page's primary "Create" action and pushes every
+     * record without an odoo_id to Odoo. Adding a new resource is one entry below.
+     */
+    protected function registerCrossModuleActions(): void
+    {
+        $listPages = [
+            // [List page class, Eloquent model class]
+            [
+                \Modules\Attendance\Filament\Resources\AttendanceResource\Pages\ListAttendances::class,
+                \Modules\Attendance\Models\Attendance::class,
+            ],
+        ];
+
+        foreach ($listPages as [$pageClass, $modelClass]) {
+            if (! class_exists($pageClass) || ! method_exists($pageClass, 'registerHeaderAction')) {
+                continue;
+            }
+
+            $pageClass::registerHeaderAction(
+                fn () => \Modules\OdooIntegration\Filament\Actions\PushUnlinkedToOdooAction::make($modelClass),
+            );
+        }
     }
 
     protected function registerViews(): void

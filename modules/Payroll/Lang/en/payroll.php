@@ -53,6 +53,7 @@ return [
     'fields' => [
         'run_number' => 'Run Number',
         'period' => 'Period',
+        'payroll_run_optional' => 'Optional. Leave empty to create a standalone payslip.',
         'year' => 'Year',
         'month' => 'Month',
         'status' => 'Status',

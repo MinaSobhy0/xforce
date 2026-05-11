@@ -241,8 +241,17 @@ return [
         // columns plus rule_amounts_json. Payslip lines are NOT synced standalone.
         // =====================================================================
         'hr.payslip' => [
-            ['local_field' => 'odoo_id', 'odoo_field' => 'id', 'is_key_field' => true],
-            ['local_field' => 'staff_profile_id', 'odoo_field' => 'employee_id', 'transform_type' => 'relation', 'transform_config' => ['model' => 'Modules\\Staff\\Models\\StaffProfile']],
+            // odoo_id is the primary discriminator (line 46 of ImportService) — not a business key.
+            // Business key for LINK-on-collision is (staff_profile_id, payroll_run_id), which is
+            // also the local UNIQUE constraint. payroll_run_id is computed in
+            // PayrollLine::applyOdooImport() from the slip's date_from, so its mapping has no
+            // odoo_field — it exists purely so findByKeyFields includes it in the composite.
+            ['local_field' => 'odoo_id', 'odoo_field' => 'id'],
+            ['local_field' => 'staff_profile_id', 'odoo_field' => 'employee_id', 'is_key_field' => true, 'transform_type' => 'relation', 'transform_config' => ['model' => 'Modules\\Staff\\Models\\StaffProfile']],
+            ['local_field' => 'payroll_run_id', 'odoo_field' => '', 'is_key_field' => true],
+            // hr.payslip.state: draft → verify → done (validated/paid) → cancel.
+            // "verify" = waiting for HR approval; surfaced locally as "pending".
+            ['local_field' => 'status', 'odoo_field' => 'state', 'transform_type' => 'enum', 'transform_config' => ['mapping' => ['draft' => 'draft', 'verify' => 'pending', 'done' => 'approved', 'paid' => 'paid', 'cancel' => 'cancelled']]],
         ],
 
         // =====================================================================
