@@ -262,6 +262,36 @@ class OdooEntityMappingResource extends Resource
                             ->send();
                     }),
 
+                Tables\Actions\Action::make('manual_sync')
+                    ->label(__('odoo-integration::odoo.actions.manual_sync'))
+                    ->icon('heroicon-o-cog-6-tooth')
+                    ->color('warning')
+                    ->form([
+                        Forms\Components\Select::make('sync_type')
+                            ->label(__('odoo-integration::odoo.fields.sync_type'))
+                            ->options([
+                                'delta' => __('odoo-integration::odoo.actions.sync').' ('.__('odoo-integration::odoo.helpers.delta_sync').')',
+                                'full' => __('odoo-integration::odoo.actions.full_sync').' ('.__('odoo-integration::odoo.helpers.full_sync').')',
+                            ])
+                            ->default('delta')
+                            ->required(),
+                    ])
+                    ->modalHeading(__('odoo-integration::odoo.actions.manual_sync'))
+                    ->modalDescription(__('odoo-integration::odoo.messages.full_sync_warning'))
+                    ->action(function (OdooEntityMapping $record, array $data) {
+                        dispatch(new SyncEntityJob(
+                            entityMappingId: $record->id,
+                            syncType: $data['sync_type'] ?? 'delta',
+                            triggeredBy: auth()->id(),
+                        ));
+
+                        Notification::make()
+                            ->title(__('odoo-integration::odoo.messages.sync_queued'))
+                            ->body(__('odoo-integration::odoo.messages.sync_queued_body'))
+                            ->success()
+                            ->send();
+                    }),
+
                 Tables\Actions\ActionGroup::make([
                     Tables\Actions\ViewAction::make(),
                     Tables\Actions\EditAction::make(),
