@@ -66,6 +66,10 @@ class OdooIntegrationServiceProvider extends ServiceProvider
                 \Modules\Attendance\Filament\Resources\AttendanceResource\Pages\ListAttendances::class,
                 \Modules\Attendance\Models\Attendance::class,
             ],
+            [
+                \Modules\Staff\Filament\Resources\StaffProfileResource\Pages\ListStaffProfiles::class,
+                \Modules\Staff\Models\StaffProfile::class,
+            ],
         ];
 
         foreach ($listPages as [$pageClass, $modelClass]) {
