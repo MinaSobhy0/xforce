@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Log;
 use Modules\OdooIntegration\Models\OdooEntityMapping;
 use Modules\OdooIntegration\Exceptions\OdooSyncException;
 use Modules\OdooIntegration\Services\Api\OdooApiClientInterface;
+use Modules\OdooIntegration\Services\RealtimeSyncManager;
 use Modules\OdooIntegration\Services\Transform\FieldTransformer;
 
 class ImportService
@@ -83,37 +84,40 @@ class ImportService
         $modelClass = $mapping->local_model;
 
         return DB::transaction(function () use ($mapping, $modelClass, $odooId, $localData) {
-            // Check if record exists by key fields
-            $existingRecord = $this->findByKeyFields($mapping, $localData);
+            // Suppress realtime sync — these writes are Odoo → local, not user edits.
+            return RealtimeSyncManager::suppress(function () use ($mapping, $modelClass, $odooId, $localData) {
+                // Check if record exists by key fields
+                $existingRecord = $this->findByKeyFields($mapping, $localData);
 
-            if ($existingRecord) {
-                // Link existing record to Odoo
-                $existingRecord->update(array_merge($localData, [
+                if ($existingRecord) {
+                    // Link existing record to Odoo
+                    $existingRecord->update(array_merge($localData, [
+                        'odoo_id' => $odooId,
+                        'odoo_synced_at' => now(),
+                    ]));
+
+                    return [
+                        'action' => 'linked',
+                        'local_id' => $existingRecord->id,
+                        'odoo_id' => $odooId,
+                    ];
+                }
+
+                // Create new record
+                $localRecord = new $modelClass();
+                $localRecord->fill(array_merge($localData, [
+                    'tenant_id' => $mapping->tenant_id,
                     'odoo_id' => $odooId,
                     'odoo_synced_at' => now(),
                 ]));
+                $localRecord->save();
 
                 return [
-                    'action' => 'linked',
-                    'local_id' => $existingRecord->id,
+                    'action' => 'created',
+                    'local_id' => $localRecord->id,
                     'odoo_id' => $odooId,
                 ];
-            }
-
-            // Create new record
-            $localRecord = new $modelClass();
-            $localRecord->fill(array_merge($localData, [
-                'tenant_id' => $mapping->tenant_id,
-                'odoo_id' => $odooId,
-                'odoo_synced_at' => now(),
-            ]));
-            $localRecord->save();
-
-            return [
-                'action' => 'created',
-                'local_id' => $localRecord->id,
-                'odoo_id' => $odooId,
-            ];
+            });
         });
     }
 
@@ -125,9 +129,9 @@ class ImportService
         array $localData,
         int $odooId
     ): array {
-        $localRecord->update(array_merge($localData, [
+        RealtimeSyncManager::suppress(fn () => $localRecord->update(array_merge($localData, [
             'odoo_synced_at' => now(),
-        ]));
+        ])));
 
         return [
             'action' => 'updated',

@@ -48,6 +48,36 @@ class OdooIntegrationServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(module_path($this->moduleName, 'Database/Migrations'));
         $this->registerSchedule();
         $this->registerCrossModuleActions();
+        $this->registerRealtimeSyncListener();
+    }
+
+    /**
+     * Wire the "Real-time" sync_frequency option.
+     *
+     * Listens to eloquent.saved: * globally. For each saved model, asks
+     * RealtimeSyncManager whether an active realtime+export mapping exists
+     * for that class; if yes, dispatches RealtimeSyncJob to push the row.
+     * ImportService wraps its own writes in RealtimeSyncManager::suppress()
+     * to prevent feedback loops.
+     */
+    protected function registerRealtimeSyncListener(): void
+    {
+        \Illuminate\Support\Facades\Event::listen('eloquent.saved: *', function ($eventName, array $payload) {
+            $model = $payload[0] ?? null;
+            if (! $model instanceof \Illuminate\Database\Eloquent\Model) {
+                return;
+            }
+
+            $mapping = \Modules\OdooIntegration\Services\RealtimeSyncManager::shouldDispatchFor($model);
+            if (! $mapping) {
+                return;
+            }
+
+            \Modules\OdooIntegration\Jobs\RealtimeSyncJob::dispatch(
+                $mapping->id,
+                (int) $model->getKey(),
+            );
+        });
     }
 
     /**
