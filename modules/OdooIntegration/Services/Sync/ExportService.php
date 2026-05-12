@@ -52,6 +52,14 @@ class ExportService
         // Transform local data to Odoo format
         $odooData = $this->transformer->transformExport($mapping, $localRecord->toArray());
 
+        // Model-level post-transform hook (mirror of applyOdooImport on the
+        // import path). Lets a model inject Odoo-specific fields the local
+        // schema doesn't track — e.g. custom required fields added by an
+        // Odoo module — or post-process the payload before send.
+        if (method_exists($modelClass, 'applyOdooExport')) {
+            $odooData = $modelClass::applyOdooExport($odooData, $mapping, $localRecord);
+        }
+
         // Calculate checksum
         $localChecksum = $this->calculateChecksum($localRecord->toArray());
 
@@ -143,7 +151,19 @@ class ExportService
 
         // No conflict - update Odoo
         return DB::transaction(function () use ($mapping, $client, $syncRecord, $localRecord, $odooData, $localChecksum) {
-            $client->write($mapping->odoo_model, [$syncRecord->odoo_id], $odooData);
+            // Extract workflow actions emitted by applyOdooExport. State transitions
+            // on records like hr.leave can't be done via write() — they go through
+            // Odoo workflow methods (action_refuse, action_approve, action_validate).
+            $actions = $odooData['__odoo_actions'] ?? [];
+            unset($odooData['__odoo_actions']);
+
+            if (! empty($odooData)) {
+                $client->write($mapping->odoo_model, [$syncRecord->odoo_id], $odooData);
+            }
+
+            foreach ($actions as $method) {
+                $client->execute($mapping->odoo_model, $method, [[$syncRecord->odoo_id]]);
+            }
 
             // Read back for checksum
             $odooRecord = $client->read($mapping->odoo_model, [$syncRecord->odoo_id]);

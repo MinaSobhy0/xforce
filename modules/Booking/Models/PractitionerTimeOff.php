@@ -433,6 +433,52 @@ class PractitionerTimeOff extends BaseModel
     }
 
     /**
+     * Post-transform hook on export.
+     *
+     * Inject Odoo-specific fields not present in the local schema:
+     *   - replacement_emp: custom field added by some Odoo HR installs,
+     *     marked required on certain leave types. We send `false` (no
+     *     replacement) since the local model doesn't track this.
+     *   - state: Odoo's hr.leave workflow expects specific transitions.
+     *     On create, omit state and let Odoo default to 'confirm'/'draft'.
+     *     On update for an approved leave, we still send the enum-mapped
+     *     state and let Odoo accept or reject it.
+     */
+    public static function applyOdooExport(array $data, $mapping = null, $localRecord = null): array
+    {
+        // Some Odoo HR installs add a `replacement_emp` field (Many2one to hr.employee)
+        // and mark it required for certain leave types. The local schema has no
+        // "replacement employee" concept, so we default to self-replacement —
+        // satisfies the required-field check without picking an arbitrary person.
+        if (! empty($data['employee_id'])) {
+            $data['replacement_emp'] = (int) $data['employee_id'];
+        }
+
+        $isCreate = $localRecord && empty($localRecord->odoo_id);
+
+        // Odoo's hr.leave state transitions are gated by workflow methods —
+        // direct state writes are blocked once the record leaves draft.
+        // So we never send `state` and instead emit __odoo_actions, which
+        // ExportService translates into execute_kw calls after the write.
+        unset($data['state']);
+
+        if (! $isCreate) {
+            $status = $localRecord?->status;
+            $action = match ($status) {
+                self::STATUS_APPROVED => 'action_approve',
+                self::STATUS_REJECTED, self::STATUS_CANCELLED => 'action_refuse',
+                default => null,
+            };
+
+            if ($action) {
+                $data['__odoo_actions'] = [$action];
+            }
+        }
+
+        return $data;
+    }
+
+    /**
      * Calculate hours from time range.
      */
     public static function calculateHoursFromTimeRange(?string $startTime, ?string $endTime): float
