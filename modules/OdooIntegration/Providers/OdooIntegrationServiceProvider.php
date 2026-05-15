@@ -163,6 +163,33 @@ class OdooIntegrationServiceProvider extends ServiceProvider
                 ->daily()
                 ->at('02:00')
                 ->withoutOverlapping();
+
+            // Real-time mappings: XForce→Odoo is handled instantly by the
+            // eloquent.saved listener (RealtimeSyncManager + RealtimeSyncJob).
+            // There's no equivalent watcher on Odoo's side, so the import
+            // direction is swept every 5 minutes with a delta sync.
+            //
+            // Net effect for realtime+bidirectional: instant export, ~5-min
+            // poll for import. Export-only realtime mappings rely entirely on
+            // the listener and aren't touched here.
+            $schedule->call(function () {
+                $mappings = \Modules\OdooIntegration\Models\OdooEntityMapping::query()
+                    ->where('is_active', true)
+                    ->where('sync_frequency', \Modules\OdooIntegration\Enums\SyncFrequency::REALTIME->value)
+                    ->get()
+                    ->filter(fn ($m) => $m->sync_direction->allowsImport());
+
+                foreach ($mappings as $mapping) {
+                    \Modules\OdooIntegration\Jobs\SyncEntityJob::dispatch(
+                        entityMappingId: $mapping->id,
+                        syncType: 'delta',
+                        triggeredBy: null,
+                    );
+                }
+            })
+                ->name('odoo:realtime-import-poll')
+                ->everyFiveMinutes()
+                ->withoutOverlapping();
         });
     }
 
