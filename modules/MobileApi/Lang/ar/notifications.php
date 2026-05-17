@@ -38,6 +38,11 @@ return [
         'waived' => 'إعفاء',
     ],
 
+    'violation_pending' => [
+        'title' => 'مخالفة بانتظار المراجعة',
+        'body' => ':employee — :type بتاريخ :date بانتظار مراجعتك.',
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Time Off Notifications
@@ -50,6 +55,11 @@ return [
         'rejected_title' => 'تم رفض الإجازة',
         'rejected_body' => 'تم رفض طلب إجازتك. السبب: :reason',
         'no_reason' => 'لم يتم تقديم سبب',
+    ],
+
+    'time_off_requested' => [
+        'title' => 'طلب إجازة جديد',
+        'body' => 'قدّم :employee طلب إجازة من :start_date إلى :end_date — بانتظار مراجعتك.',
     ],
 
     /*

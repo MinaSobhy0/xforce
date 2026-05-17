@@ -401,6 +401,61 @@ class PushNotificationService
     }
 
     /**
+     * Notify the configured approver (or any override holder) that a new
+     * attendance violation is awaiting review.
+     */
+    public function sendAttendanceViolationPendingNotification(
+        User $approver,
+        Model $violation,
+        string $employeeName,
+        string $violationType,
+        string $violationDate
+    ): ?PushNotification {
+        return $this->sendToUser(
+            user: $approver,
+            type: PushNotification::TYPE_ATTENDANCE_VIOLATION_PENDING,
+            title: __('mobile_api::notifications.violation_pending.title'),
+            body: __('mobile_api::notifications.violation_pending.body', [
+                'employee' => $employeeName,
+                'type' => $violationType,
+                'date' => $violationDate,
+            ]),
+            data: [
+                'violation_id' => $violation->id,
+                'employee_id' => $violation->staff_profile_id ?? null,
+                'violation_type' => $violation->violation_type ?? null,
+            ],
+            reference: $violation
+        );
+    }
+
+    /**
+     * Notify the configured time-off approver (or any override holder) that a
+     * new leave request has been submitted and needs review.
+     */
+    public function sendTimeOffRequestedToApproverNotification(
+        User $approver,
+        Model $timeOffRequest,
+        string $employeeName
+    ): ?PushNotification {
+        return $this->sendToUser(
+            user: $approver,
+            type: PushNotification::TYPE_TIME_OFF_REQUESTED,
+            title: __('mobile_api::notifications.time_off_requested.title'),
+            body: __('mobile_api::notifications.time_off_requested.body', [
+                'employee' => $employeeName,
+                'start_date' => optional($timeOffRequest->start_date)->format('M d') ?? '-',
+                'end_date' => optional($timeOffRequest->end_date)->format('M d, Y') ?? '-',
+            ]),
+            data: [
+                'request_id' => $timeOffRequest->id,
+                'employee_id' => $timeOffRequest->staff_profile_id ?? null,
+            ],
+            reference: $timeOffRequest
+        );
+    }
+
+    /**
      * Send time-off status changed notification.
      */
     public function sendTimeOffStatusNotification(

@@ -52,12 +52,16 @@ class DeviceController extends BaseApiController
             }
         }
 
+        // The DB unique index is on `device_id` alone, not (user_id, device_id),
+        // so we must match-and-upsert on device_id and reassign user_id in the
+        // update set. Otherwise: device handoff (same emulator, different login,
+        // or app reinstall after FCM token rotation) → no match → INSERT →
+        // duplicate-key error. The mobile client also stops receiving pushes
+        // because the stored token never refreshes.
         $device = DeviceToken::updateOrCreate(
+            ['device_id' => $validated['device_id']],
             [
                 'user_id' => $userId,
-                'device_id' => $validated['device_id'],
-            ],
-            [
                 'fcm_token' => $validated['fcm_token'],
                 'platform' => $validated['platform'],
                 'app_version' => $validated['app_version'] ?? null,

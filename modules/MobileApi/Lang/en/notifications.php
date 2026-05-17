@@ -38,6 +38,11 @@ return [
         'waived' => 'waived',
     ],
 
+    'violation_pending' => [
+        'title' => 'Violation needs review',
+        'body' => ':employee — :type on :date is pending your review.',
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Time Off Notifications
@@ -50,6 +55,11 @@ return [
         'rejected_title' => 'Time Off Rejected',
         'rejected_body' => 'Your leave request has been rejected. Reason: :reason',
         'no_reason' => 'No reason provided',
+    ],
+
+    'time_off_requested' => [
+        'title' => 'New leave request',
+        'body' => ':employee requested time off from :start_date to :end_date — pending your review.',
     ],
 
     /*

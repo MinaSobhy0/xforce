@@ -103,8 +103,24 @@ class EditUser extends BaseEditRecord
             ->where('is_primary', true)
             ->value('branch_id');
 
-        // Get default role (first user role or default)
-        $defaultRoleId = $user->roles->first()?->id ?? Role::where('name', 'user')->first()?->id;
+        // Pick the role this branch assignment should use. Order:
+        //   1. The user's own role (re-queried — the relationship may have
+        //      been hydrated before Filament saved the roles pivot).
+        //   2. A role named "staff" or "user" (common low-privilege defaults).
+        //   3. The lowest-privilege existing role.
+        $defaultRoleId = $user->roles()->value('roles.id')
+            ?? Role::whereIn('name', ['staff', 'user'])->orderBy('id')->value('id')
+            ?? Role::query()->orderByDesc('level')->orderByDesc('id')->value('id');
+
+        if (! $defaultRoleId) {
+            \Filament\Notifications\Notification::make()
+                ->title(__('auth::auth.errors.no_role_for_branch_assignment') ?: 'No role available to assign with branch')
+                ->body('Assign a role to the user (or create one in Roles) before linking branches.')
+                ->danger()
+                ->send();
+
+            return;
+        }
 
         // Delete branch assignments that are no longer selected
         UserBranchRole::where('user_id', $user->id)
@@ -124,16 +140,20 @@ class EditUser extends BaseEditRecord
             $isPrimary = ($branchId === $existingPrimaryBranchId) ||
                          (!$existingPrimaryBranchId && empty($existingBranchIds) && $branchId === reset($branchIds));
 
-            UserBranchRole::create([
-                'tenant_id' => $user->tenant_id,
-                'user_id' => $user->id,
-                'branch_id' => $branchId,
-                'role_id' => $defaultRoleId,
-                'is_primary' => $isPrimary,
-                'is_active' => true,
-                'assigned_at' => now(),
-                'assigned_by' => auth()->id(),
-            ]);
+            // role_id / is_primary / is_active / assigned_at / assigned_by are
+            // $guarded on UserBranchRole — mass-assign via create() drops them.
+            // Assign directly: this admin path is the authorized surface those
+            // restrictions are meant to protect against, not us.
+            $assignment = new UserBranchRole();
+            $assignment->tenant_id = $user->tenant_id;
+            $assignment->user_id = $user->id;
+            $assignment->branch_id = $branchId;
+            $assignment->role_id = $defaultRoleId;
+            $assignment->is_primary = $isPrimary;
+            $assignment->is_active = true;
+            $assignment->assigned_at = now();
+            $assignment->assigned_by = auth()->id();
+            $assignment->save();
         }
 
         // Ensure at least one branch is primary if branches exist
