@@ -17,6 +17,17 @@ return [
         'server_error' => 'خطأ في الخادم',
     ],
 
+    'approvals' => [
+        'not_authorized' => 'ليست لديك صلاحية اتخاذ إجراء على هذا الطلب.',
+        'action_failed' => 'تعذّر إكمال الإجراء. حاول مرة أخرى.',
+        'time_off_not_pending' => 'طلب الإجازة لم يعد بانتظار المراجعة.',
+        'time_off_approved' => 'تمت الموافقة على طلب الإجازة.',
+        'time_off_rejected' => 'تم رفض طلب الإجازة.',
+        'violation_not_actionable' => 'مخالفة الحضور هذه ليست في حالة قابلة للإجراء.',
+        'violation_approved' => 'تمت الموافقة على مخالفة الحضور.',
+        'violation_waived' => 'تم الإعفاء من مخالفة الحضور.',
+    ],
+
     'auth' => [
         'login_success' => 'تم تسجيل الدخول بنجاح',
         'login_failed' => 'بيانات اعتماد غير صالحة',

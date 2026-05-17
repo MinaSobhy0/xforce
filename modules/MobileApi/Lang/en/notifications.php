@@ -120,8 +120,10 @@ return [
 
     'types' => [
         'attendance_violation' => 'Attendance Violations',
+        'attendance_violation_pending' => 'Attendance Violation Pending Review',
         'violation_status_changed' => 'Violation Status Changes',
         'check_in_reminder' => 'Check-In Reminders',
+        'time_off_requested' => 'Time Off Requests (for approvers)',
         'time_off_approved' => 'Time Off Approvals',
         'time_off_rejected' => 'Time Off Rejections',
         'appointment_assigned' => 'New Appointment Assigned',
@@ -140,8 +142,10 @@ return [
 
     'types_descriptions' => [
         'attendance_violation' => 'Notify staff when attendance violations are recorded',
+        'attendance_violation_pending' => 'Notify the configured attendance approver when a new violation needs review',
         'violation_status_changed' => 'Notify staff when violation status changes (approved/waived)',
         'check_in_reminder' => 'Remind staff to check in before their shift starts',
+        'time_off_requested' => 'Notify the configured time-off approver when a staff member files a new request',
         'time_off_approved' => 'Notify staff when their time-off request is approved',
         'time_off_rejected' => 'Notify staff when their time-off request is rejected',
         'appointment_assigned' => 'Notify practitioners when a new appointment is assigned to them',

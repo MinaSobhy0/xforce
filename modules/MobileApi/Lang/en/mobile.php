@@ -17,6 +17,17 @@ return [
         'server_error' => 'Server error',
     ],
 
+    'approvals' => [
+        'not_authorized' => 'You are not authorized to act on this request.',
+        'action_failed' => 'Unable to complete this action. Please try again.',
+        'time_off_not_pending' => 'This time-off request is no longer pending.',
+        'time_off_approved' => 'Time-off request approved.',
+        'time_off_rejected' => 'Time-off request rejected.',
+        'violation_not_actionable' => 'This attendance violation is not in an actionable state.',
+        'violation_approved' => 'Attendance violation approved.',
+        'violation_waived' => 'Attendance violation waived.',
+    ],
+
     'auth' => [
         'login_success' => 'Login successful',
         'login_failed' => 'Invalid credentials',

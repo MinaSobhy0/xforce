@@ -42,6 +42,8 @@ class PushNotification extends BaseModel
 
     public const TYPE_CHECK_IN_REMINDER = 'check_in_reminder';
 
+    public const TYPE_TIME_OFF_REQUESTED = 'time_off_requested';
+
     public const TYPE_TIME_OFF_APPROVED = 'time_off_approved';
 
     public const TYPE_TIME_OFF_REJECTED = 'time_off_rejected';
@@ -58,10 +60,14 @@ class PushNotification extends BaseModel
 
     public const TYPE_SCHEDULE_CHANGED = 'schedule_changed';
 
+    public const TYPE_ATTENDANCE_VIOLATION_PENDING = 'attendance_violation_pending';
+
     public const TYPES = [
         self::TYPE_ATTENDANCE_VIOLATION => 'Attendance Violation',
+        self::TYPE_ATTENDANCE_VIOLATION_PENDING => 'Attendance Violation Pending Review',
         self::TYPE_VIOLATION_STATUS_CHANGED => 'Violation Status Changed',
         self::TYPE_CHECK_IN_REMINDER => 'Check-In Reminder',
+        self::TYPE_TIME_OFF_REQUESTED => 'Time Off Requested',
         self::TYPE_TIME_OFF_APPROVED => 'Time Off Approved',
         self::TYPE_TIME_OFF_REJECTED => 'Time Off Rejected',
         self::TYPE_APPOINTMENT_ASSIGNED => 'Appointment Assigned',

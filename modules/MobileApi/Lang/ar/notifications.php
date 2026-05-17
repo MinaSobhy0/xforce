@@ -120,8 +120,10 @@ return [
 
     'types' => [
         'attendance_violation' => 'مخالفات الحضور',
+        'attendance_violation_pending' => 'مخالفة حضور بانتظار المراجعة',
         'violation_status_changed' => 'تغييرات حالة المخالفة',
         'check_in_reminder' => 'تذكيرات تسجيل الحضور',
+        'time_off_requested' => 'طلبات الإجازة (للمعتمدين)',
         'time_off_approved' => 'الموافقة على الإجازات',
         'time_off_rejected' => 'رفض الإجازات',
         'appointment_assigned' => 'موعد جديد مُعين',
@@ -140,8 +142,10 @@ return [
 
     'types_descriptions' => [
         'attendance_violation' => 'إعلام الموظفين عند تسجيل مخالفات الحضور',
+        'attendance_violation_pending' => 'إعلام معتمد الحضور المهيأ عند تسجيل مخالفة جديدة بانتظار المراجعة',
         'violation_status_changed' => 'إعلام الموظفين عند تغيير حالة المخالفة (موافق عليها/معفى منها)',
         'check_in_reminder' => 'تذكير الموظفين بتسجيل الحضور قبل بدء دوامهم',
+        'time_off_requested' => 'إعلام معتمد الإجازات المهيأ عند تقديم الموظف لطلب إجازة جديد',
         'time_off_approved' => 'إعلام الموظفين عند الموافقة على طلب إجازتهم',
         'time_off_rejected' => 'إعلام الموظفين عند رفض طلب إجازتهم',
         'appointment_assigned' => 'إعلام الأطباء عند تعيين موعد جديد لهم',

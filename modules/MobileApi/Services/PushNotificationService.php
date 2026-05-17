@@ -274,8 +274,10 @@ class PushNotificationService
     {
         return match ($type) {
             PushNotification::TYPE_ATTENDANCE_VIOLATION,
+            PushNotification::TYPE_ATTENDANCE_VIOLATION_PENDING,
             PushNotification::TYPE_VIOLATION_STATUS_CHANGED => 'OPEN_VIOLATIONS',
             PushNotification::TYPE_CHECK_IN_REMINDER => 'OPEN_ATTENDANCE',
+            PushNotification::TYPE_TIME_OFF_REQUESTED,
             PushNotification::TYPE_TIME_OFF_APPROVED,
             PushNotification::TYPE_TIME_OFF_REJECTED => 'OPEN_TIME_OFF',
             PushNotification::TYPE_APPOINTMENT_ASSIGNED,

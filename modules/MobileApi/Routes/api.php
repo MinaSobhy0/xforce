@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Modules\MobileApi\Http\Controllers\AccountController;
 use Modules\MobileApi\Http\Controllers\AppConfigController;
 use Modules\MobileApi\Http\Controllers\AppointmentsController;
+use Modules\MobileApi\Http\Controllers\ApprovalsController;
 use Modules\MobileApi\Http\Controllers\AttendanceController;
 use Modules\MobileApi\Http\Controllers\AuthController;
 use Modules\MobileApi\Http\Controllers\CalendarController;
@@ -129,6 +130,23 @@ Route::middleware([\Modules\MobileApi\Http\Middleware\ResolveTenantFromHeader::c
 
             Route::post('requests', [TimeOffController::class, 'store']);
             Route::post('requests/{id}/cancel', [TimeOffController::class, 'cancel']);
+        });
+
+        // Manager approvals — records routed to the authenticated user via
+        // staff_profiles.{time_off,attendance}_approver_user_id, plus an
+        // HR-wide override for *.approve_any holders. See ApprovalsController.
+        Route::prefix('approvals')->group(function () {
+            Route::get('counts', [ApprovalsController::class, 'counts']);
+
+            Route::get('time-off', [ApprovalsController::class, 'timeOffIndex']);
+            Route::get('time-off/{id}', [ApprovalsController::class, 'timeOffShow']);
+            Route::post('time-off/{id}/approve', [ApprovalsController::class, 'timeOffApprove']);
+            Route::post('time-off/{id}/reject',  [ApprovalsController::class, 'timeOffReject']);
+
+            Route::get('violations', [ApprovalsController::class, 'violationsIndex']);
+            Route::get('violations/{id}', [ApprovalsController::class, 'violationsShow']);
+            Route::post('violations/{id}/approve', [ApprovalsController::class, 'violationsApprove']);
+            Route::post('violations/{id}/waive',   [ApprovalsController::class, 'violationsWaive']);
         });
 
         // Payroll / Payslips
