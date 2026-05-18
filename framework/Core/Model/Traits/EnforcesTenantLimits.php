@@ -68,10 +68,7 @@ trait EnforcesTenantLimits
             return; // No tenant context
         }
 
-        $baseLimit = $tenant->{$limitField} ?? 0;
-        $extraField = $this->getTenantExtraField();
-        $extraLimit = $extraField ? ($tenant->{$extraField} ?? 0) : 0;
-        $maxAllowed = $baseLimit + $extraLimit;
+        $maxAllowed = $this->resolveEffectiveLimit($tenant, $limitField);
 
         // If limit is 0 or not set, allow unlimited
         if ($maxAllowed <= 0) {
@@ -91,14 +88,61 @@ trait EnforcesTenantLimits
                 'max' => $maxAllowed,
             ]);
 
-            throw new \RuntimeException(
-                __("Cannot create :resource. You have reached the maximum of :max allowed for your plan (currently: :current).", [
-                    'resource' => $resourceName,
-                    'max' => $maxAllowed,
-                    'current' => $currentCount,
-                ])
-            );
+            $message = __("Cannot create :resource. You have reached the maximum of :max allowed for your plan (currently: :current).", [
+                'resource' => $resourceName,
+                'max' => $maxAllowed,
+                'current' => $currentCount,
+            ]);
+
+            // Inside a Filament panel: show a danger toast and halt the
+            // action cleanly. Halt is the Filament idiom for "abort without
+            // a server error" — the form stays open, no 500 page renders.
+            // The hard cap is still enforced (no record created); only the
+            // UX changes from "500 error" to "polite toast".
+            //
+            // Outside Filament (CLI seeders, queue jobs, API requests, any
+            // programmatic path), keep the RuntimeException so existing
+            // callers can catch it the way they already do.
+            if ($this->isFilamentContext()) {
+                if (class_exists(\Filament\Notifications\Notification::class)) {
+                    \Filament\Notifications\Notification::make()
+                        ->title($message)
+                        ->body(__('Upgrade your plan or remove unused records to add more.'))
+                        ->danger()
+                        ->persistent()
+                        ->send();
+                }
+
+                if (class_exists(\Filament\Support\Exceptions\Halt::class)) {
+                    throw new \Filament\Support\Exceptions\Halt();
+                }
+            }
+
+            throw new \RuntimeException($message);
         }
+    }
+
+    /**
+     * Best-effort check for whether the current request is being handled
+     * by a Filament panel. We use this to decide between a friendly
+     * toast+Halt (panel) and a raw RuntimeException (CLI/API/jobs).
+     */
+    protected function isFilamentContext(): bool
+    {
+        if (app()->runningInConsole()) {
+            return false;
+        }
+
+        if (function_exists('filament')) {
+            try {
+                return filament()->getCurrentPanel() !== null;
+            } catch (\Throwable $e) {
+                // Filament not fully booted yet — treat as non-panel.
+                return false;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -111,6 +155,41 @@ trait EnforcesTenantLimits
         }
 
         return null;
+    }
+
+    /**
+     * Resolve the effective cap for this resource.
+     *
+     * Prefers the Tenant model's `getEffectiveLimit($resource)` method
+     * (which correctly returns `plan.max_users + tenant.extra_users` —
+     * the same number shown on the Usage dashboard). Falls back to the
+     * legacy `tenant.max_users + tenant.extra_users` shape only when
+     * the tenant object doesn't expose the helper, so older test
+     * doubles and fixtures keep working.
+     *
+     * This was the source of the "dashboard says 25, creation says 15"
+     * mismatch: the dashboard used the plan-aware getter, the trait
+     * read the raw column (which can be stale when the plan changes
+     * without a corresponding update on the tenant row).
+     */
+    protected function resolveEffectiveLimit(object $tenant, string $limitField): int
+    {
+        // Derive the resource key the Tenant model expects ('users',
+        // 'branches', ...) from the field name ('max_users' → 'users')
+        // or from the configured resource name on the model.
+        $resource = $this->tenantLimitResourceName
+            ?? str_replace('max_', '', $limitField);
+
+        if (method_exists($tenant, 'getEffectiveLimit')) {
+            return (int) ($tenant->getEffectiveLimit($resource) ?? 0);
+        }
+
+        // Legacy fallback — same shape as before.
+        $baseLimit = (int) ($tenant->{$limitField} ?? 0);
+        $extraField = $this->getTenantExtraField();
+        $extraLimit = $extraField ? (int) ($tenant->{$extraField} ?? 0) : 0;
+
+        return $baseLimit + $extraLimit;
     }
 
     /**
@@ -163,10 +242,7 @@ trait EnforcesTenantLimits
             return PHP_INT_MAX;
         }
 
-        $baseLimit = $tenant->{$limitField} ?? 0;
-        $extraField = $instance->getTenantExtraField();
-        $extraLimit = $extraField ? ($tenant->{$extraField} ?? 0) : 0;
-        $maxAllowed = $baseLimit + $extraLimit;
+        $maxAllowed = $instance->resolveEffectiveLimit($tenant, $limitField);
 
         if ($maxAllowed <= 0) {
             return PHP_INT_MAX;
