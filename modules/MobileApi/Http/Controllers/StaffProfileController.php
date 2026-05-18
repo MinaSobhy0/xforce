@@ -208,8 +208,11 @@ class StaffProfileController extends BaseApiController
             ]);
         }
 
-        // Get commission summary
-        $summary = $this->getCommissionSummary($staffProfile);
+        // Accept an optional `?month=YYYY-MM` (or separate `?month=&year=`)
+        // so the summary block can report for a specific period instead of
+        // always "this month". See parseMonthFilter().
+        [$month, $year] = $this->parseMonthFilter(request());
+        $summary = $this->getCommissionSummary($staffProfile, $month, $year);
 
         return $this->success([
             'has_plan' => true,
@@ -253,7 +256,16 @@ class StaffProfileController extends BaseApiController
             $query->where('status', $request->status);
         }
 
-        // Filter by date range
+        // Month + year filter — accepts either `?month=YYYY-MM` or
+        // separate `?month=05&year=2026`. Matches the same `created_at`
+        // column the summary uses so both views agree.
+        [$month, $year] = $this->parseMonthFilter($request);
+        if ($month !== null && $year !== null) {
+            $query->whereMonth('created_at', $month)
+                  ->whereYear('created_at', $year);
+        }
+
+        // Filter by date range (kept for backwards compatibility)
         if ($request->filled('from_date')) {
             $query->whereDate('created_at', '>=', $request->from_date);
         }
@@ -338,23 +350,42 @@ class StaffProfileController extends BaseApiController
     }
 
     /**
-     * Get commission summary.
+     * Get commission summary for a given month (defaults to the current
+     * month if `$month` and `$year` are not supplied).
+     *
+     * The `month_total` field replaces the old `this_month` field name —
+     * `this_month` is kept for backwards compatibility with mobile clients
+     * already shipped. They report the same value, which is the sum of
+     * non-cancelled commission rows whose `created_at` falls in the
+     * targeted month.
+     *
+     * `pending`, `approved`, `paid` are running totals across all time
+     * because they represent the **state** of the commission ledger, not
+     * a periodic figure.
      */
-    protected function getCommissionSummary($staffProfile): array
+    protected function getCommissionSummary($staffProfile, ?int $month = null, ?int $year = null): array
     {
         if (! class_exists(StaffCommissionRecord::class)) {
             return [
-                'this_month' => 0,
+                'period' => [
+                    'month' => $month ?? (int) now()->month,
+                    'year'  => $year ?? (int) now()->year,
+                ],
+                'month_total' => 0,
+                'this_month'  => 0,
                 'pending' => 0,
                 'approved' => 0,
                 'paid' => 0,
             ];
         }
 
-        // This month total (all statuses except cancelled)
-        $thisMonth = StaffCommissionRecord::where('staff_profile_id', $staffProfile->id)
-            ->whereMonth('created_at', now()->month)
-            ->whereYear('created_at', now()->year)
+        $month = $month ?? (int) now()->month;
+        $year  = $year  ?? (int) now()->year;
+
+        // Month total (all statuses except cancelled)
+        $monthTotal = StaffCommissionRecord::where('staff_profile_id', $staffProfile->id)
+            ->whereMonth('created_at', $month)
+            ->whereYear('created_at', $year)
             ->where('status', '!=', StaffCommissionRecord::STATUS_CANCELLED)
             ->sum('amount_minor') / 100;
 
@@ -374,10 +405,50 @@ class StaffProfileController extends BaseApiController
             ->sum('amount_minor') / 100;
 
         return [
-            'this_month' => round($thisMonth, 2),
-            'pending' => round($pending, 2),
+            'period' => [
+                'month' => $month,
+                'year'  => $year,
+            ],
+            'month_total' => round($monthTotal, 2),
+            'this_month'  => round($monthTotal, 2), // legacy alias
+            'pending'  => round($pending, 2),
             'approved' => round($approved, 2),
-            'paid' => round($paid, 2),
+            'paid'     => round($paid, 2),
         ];
+    }
+
+    /**
+     * Parse the mobile app's month filter out of the request. Accepts:
+     *
+     *   ?month=2026-05               (YYYY-MM)
+     *   ?month=5&year=2026           (1-12, four-digit year)
+     *   ?month=05&year=2026          (zero-padded month)
+     *
+     * Returns `[month, year]` as integers, or `[null, null]` if nothing
+     * usable was supplied.
+     */
+    protected function parseMonthFilter(Request $request): array
+    {
+        $rawMonth = $request->input('month');
+        $rawYear  = $request->input('year');
+
+        if ($rawMonth === null || $rawMonth === '') {
+            return [null, null];
+        }
+
+        // `YYYY-MM` shorthand.
+        if (is_string($rawMonth) && preg_match('/^(\d{4})-(\d{1,2})$/', $rawMonth, $m)) {
+            $year  = (int) $m[1];
+            $month = (int) $m[2];
+        } else {
+            $month = (int) $rawMonth;
+            $year  = $rawYear !== null && $rawYear !== '' ? (int) $rawYear : (int) now()->year;
+        }
+
+        if ($month < 1 || $month > 12 || $year < 2000 || $year > 2100) {
+            return [null, null];
+        }
+
+        return [$month, $year];
     }
 }

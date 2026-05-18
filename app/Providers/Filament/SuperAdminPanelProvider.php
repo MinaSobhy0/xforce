@@ -10,6 +10,7 @@ use Filament\Navigation\NavigationGroup;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\Support\Enums\MaxWidth;
 use Filament\Widgets;
 use Filament\SpatieLaravelTranslatablePlugin;
 use App\Models\PlatformSetting;
@@ -61,6 +62,10 @@ class SuperAdminPanelProvider extends PanelProvider
             // Sidebar settings - ensure visible on desktop
             ->sidebarCollapsibleOnDesktop(false)
             ->sidebarFullyCollapsibleOnDesktop(false)
+
+            // Match the other panels' wider canvas (~1536px instead of
+            // Filament's default ~1280px).
+            ->maxContentWidth(MaxWidth::ScreenTwoExtraLarge)
 
             // Navigation Groups - Simplified structure
             ->navigationGroups([

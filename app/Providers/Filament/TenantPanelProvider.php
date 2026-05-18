@@ -13,6 +13,7 @@ use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\SpatieLaravelTranslatablePlugin;
 use Filament\Support\Colors\Color;
+use Filament\Support\Enums\MaxWidth;
 use Filament\View\PanelsRenderHook;
 use Illuminate\Contracts\View\View;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -44,6 +45,12 @@ class TenantPanelProvider extends PanelProvider
             // Sidebar settings
             ->sidebarCollapsibleOnDesktop()
             ->sidebarFullyCollapsibleOnDesktop()
+
+            // Widen the main content area from Filament's default ~1280px
+            // to ~1536px so wide tables get more breathing room on
+            // 1920px+ displays without pushing forms into uncomfortable
+            // line lengths.
+            ->maxContentWidth(MaxWidth::ScreenTwoExtraLarge)
 
             // Navigation Groups for clinic operations
             ->navigationGroups([

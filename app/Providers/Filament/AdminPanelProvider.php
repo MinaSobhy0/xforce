@@ -10,6 +10,7 @@ use Filament\Navigation\NavigationGroup;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\Support\Enums\MaxWidth;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -49,6 +50,10 @@ class AdminPanelProvider extends PanelProvider
             // Sidebar settings
             ->sidebarCollapsibleOnDesktop(false)
             ->sidebarFullyCollapsibleOnDesktop(false)
+
+            // Match the tenant panel's wider canvas (~1536px instead of
+            // Filament's default ~1280px).
+            ->maxContentWidth(MaxWidth::ScreenTwoExtraLarge)
 
             // Navigation Groups for clinic owner portal
             ->navigationGroups([
