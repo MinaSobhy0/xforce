@@ -123,7 +123,7 @@ class IdentifyTenant
         if ($tenant->status === TenantStatus::SUSPENDED) {
             abort(response()->view('errors.tenant-suspended', [
                 'tenantName' => $tenant->name,
-                'contactEmail' => config('mail.from.address') ?: null,
+                'contactEmail' => 'support@xforcehr.com',
             ], 503));
         }
 

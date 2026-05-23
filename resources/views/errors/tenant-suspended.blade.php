@@ -127,7 +127,7 @@
         @endisset
 
         <div class="actions">
-            <a class="btn btn-secondary" href="/">{{ __('errors.tenant_suspended.home') }}</a>
+            <a class="btn btn-primary" href="/login">{{ __('errors.tenant_suspended.go_login') }}</a>
         </div>
     </div>
 </body>
