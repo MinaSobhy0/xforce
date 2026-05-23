@@ -19,5 +19,10 @@ return [
         'warning' => 'You have exceeded your user limit (:current/:limit). Please purchase additional users within :days days.',
         'expired' => 'Your grace period has expired! You have :current users but your limit is :limit. Please upgrade immediately.',
         'action' => 'Upgrade Now',
+
+        // Subscription banners (past_due / grace / expired)
+        'subscription_overdue' => 'Subscription payment overdue (:days_ago days). The account will be auto-suspended in :days_until_suspend day(s).',
+        'subscription_grace'   => 'Subscription is in grace period. Please renew before :date to keep service uninterrupted.',
+        'contact_support'      => 'Contact support',
     ],
 ];

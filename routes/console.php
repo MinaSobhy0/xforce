@@ -46,6 +46,13 @@ Schedule::command('assets:depreciate')
     ->withoutOverlapping()
     ->runInBackground();
 
+// Auto-suspend tenants whose subscription has been past the
+// `auto_suspend_after` threshold (Platform Settings → Trial, default 7).
+Schedule::command('tenants:auto-suspend')
+    ->dailyAt('03:30')
+    ->withoutOverlapping()
+    ->runInBackground();
+
 // Marketing Campaigns - Process scheduled campaigns every minute
 Schedule::command('campaigns:process-scheduled')
     ->everyMinute()

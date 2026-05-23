@@ -225,6 +225,72 @@ class TenantPanelProvider extends PanelProvider
                 fn (): View => view('knowledgebase::hooks.screen-guide')
             )
 
+            // Subscription banner (past_due / grace / expired) — shown on top
+            // of the user-limit one so a tenant who is both unpaid AND over-
+            // count sees both, with the more severe one (subscription) first.
+            ->renderHook(
+                PanelsRenderHook::BODY_START,
+                function (): string {
+                    $tenant = current_tenant();
+                    if (! $tenant) {
+                        return '';
+                    }
+
+                    // Resolve status via the same logic TenantSubscription uses.
+                    $subscription = $tenant->subscription ?? null;
+                    $expiresAt = $tenant->subscription_expires_at;
+                    $status = null; // 'past_due' | 'grace' | 'expired'
+                    $expiredDaysAgo = null;
+                    $graceEndsAt = null;
+
+                    if ($subscription && method_exists($subscription, 'isInGracePeriod') && $subscription->isInGracePeriod()) {
+                        $status = 'grace';
+                        $graceEndsAt = $subscription->grace_period_ends_at ?? null;
+                    } elseif ($subscription && method_exists($subscription, 'isExpired') && $subscription->isExpired()) {
+                        $status = 'expired';
+                        $expiredDaysAgo = $expiresAt ? (int) now()->diffInDays($expiresAt, false) * -1 : null;
+                    } elseif ($expiresAt && $expiresAt->isPast()) {
+                        // Legacy path — no subscription record but expiry is in the past.
+                        $status = 'past_due';
+                        $expiredDaysAgo = (int) now()->diffInDays($expiresAt, false) * -1;
+                    }
+
+                    if (! $status) {
+                        return '';
+                    }
+
+                    $autoSuspendAfter = (int) \App\Models\PlatformSetting::get('auto_suspend_after', 7);
+                    $daysUntilSuspend = max(0, $autoSuspendAfter - max(0, $expiredDaysAgo ?? 0));
+
+                    $bgColor = $status === 'grace' ? '#f59e0b' : '#dc2626';
+                    $message = match ($status) {
+                        'grace' => __('auth::limits.banner.subscription_grace', [
+                            'date' => optional($graceEndsAt)->format('M d, Y') ?? '-',
+                        ]),
+                        'expired', 'past_due' => __('auth::limits.banner.subscription_overdue', [
+                            'days_ago' => max(0, $expiredDaysAgo ?? 0),
+                            'days_until_suspend' => $daysUntilSuspend,
+                        ]),
+                    };
+                    $actionText = __('auth::limits.banner.contact_support');
+                    $actionUrl = 'mailto:support@xforcehr.com';
+
+                    return <<<HTML
+<div style="width: 100%; background-color: {$bgColor}; color: white; padding: 0.5rem 1rem; text-align: center; font-size: 0.875rem; font-weight: 500; z-index: 50;">
+    <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; flex-wrap: wrap;">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 1.25rem; height: 1.25rem;">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
+        </svg>
+        <span>{$message}</span>
+        <a href="{$actionUrl}" style="margin-left: 0.5rem; display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.25rem 0.75rem; background-color: rgba(255,255,255,0.2); border-radius: 0.375rem; color: white; font-size: 0.75rem; font-weight: 600; text-decoration: none;">
+            {$actionText}
+        </a>
+    </div>
+</div>
+HTML;
+                }
+            )
+
             // User limit warning banner
             ->renderHook(
                 PanelsRenderHook::BODY_START,
@@ -248,19 +314,26 @@ class TenantPanelProvider extends PanelProvider
                         return '';
                     }
 
-                    // Over limit - show banner
-                    $daysRemaining = 14;
-                    $isExpired = false;
-
-                    if ($tenant->users_overage_at) {
-                        $daysRemaining = $tenant->getUserOverageGraceDaysRemaining();
-                        $isExpired = $tenant->isUserOverageGraceExpired();
-                    } else {
-                        $tenant->update([
-                            'users_overage_at' => now(),
-                            'users_overage_notified' => false,
-                        ]);
+                    // Over limit - show banner.
+                    //
+                    // First observation: stamp users_overage_at so the
+                    // 14-day grace counter has a start date. The columns
+                    // users_overage_at / users_overage_notified are in
+                    // Tenant::$guarded (HIGH-impact billing fields), so
+                    // ->update([...]) is silently dropped — that's why
+                    // the counter was previously stuck at the default 14
+                    // and never decremented. Assign directly + save() to
+                    // bypass mass-assignment guard (this code path is the
+                    // trusted system-internal setter the guard is meant
+                    // to protect against, not us).
+                    if (! $tenant->users_overage_at) {
+                        $tenant->users_overage_at = now();
+                        $tenant->users_overage_notified = false;
+                        $tenant->save();
                     }
+
+                    $daysRemaining = $tenant->getUserOverageGraceDaysRemaining() ?? 14;
+                    $isExpired = $tenant->isUserOverageGraceExpired();
 
                     $bgColor = $isExpired ? '#dc2626' : '#f59e0b'; // red-600 or amber-500
                     $message = $isExpired

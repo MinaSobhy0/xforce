@@ -19,5 +19,10 @@ return [
         'warning' => 'لقد تجاوزت حد المستخدمين (:current/:limit). يرجى شراء مستخدمين إضافيين خلال :days يوم.',
         'expired' => 'انتهت فترة السماح! لديك :current مستخدم ولكن الحد الأقصى هو :limit. يرجى الترقية فوراً.',
         'action' => 'الترقية الآن',
+
+        // Subscription banners (past_due / grace / expired)
+        'subscription_overdue' => 'دفع الاشتراك متأخر (منذ :days_ago يوم). سيتم إيقاف الحساب تلقائيًا خلال :days_until_suspend يوم.',
+        'subscription_grace'   => 'الاشتراك في فترة سماح. يرجى التجديد قبل :date لتجنب انقطاع الخدمة.',
+        'contact_support'      => 'تواصل مع الدعم',
     ],
 ];
