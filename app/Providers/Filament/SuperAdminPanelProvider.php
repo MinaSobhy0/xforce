@@ -78,6 +78,9 @@ class SuperAdminPanelProvider extends PanelProvider
                 NavigationGroup::make('Support')
                     ->label(__('Support'))
                     ->icon('heroicon-o-lifebuoy'),
+                NavigationGroup::make('Platform')
+                    ->label(__('Platform'))
+                    ->icon('heroicon-o-squares-2x2'),
                 NavigationGroup::make('System')
                     ->label(__('System'))
                     ->icon('heroicon-o-cog-6-tooth'),

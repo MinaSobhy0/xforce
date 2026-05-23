@@ -673,26 +673,43 @@ class Tenant extends Model
 
     /**
      * Get the default mobile app configuration.
+     *
+     * Reads the brand/tab toggles from platform_settings (group=mobile_defaults)
+     * so the SuperAdmin can edit them via the "Mobile App Defaults" page
+     * without redeploys. Each setting falls back to a hardcoded constant
+     * when the platform admin hasn't set it.
      */
     public static function getDefaultMobileConfig(): array
     {
+        $pf = static function (string $key, $default) {
+            // PlatformSetting may be unreachable during package discovery or
+            // very early bootstrap — fall back silently.
+            try {
+                return \App\Models\PlatformSetting::get("mobile_defaults.{$key}", $default);
+            } catch (\Throwable) {
+                return $default;
+            }
+        };
+
+        $tabs = [
+            ['id' => 'dashboard',    'enabled' => (bool) $pf('tab_dashboard', true),    'sort' => 1],
+            ['id' => 'appointments', 'enabled' => (bool) $pf('tab_appointments', true), 'sort' => 2],
+            ['id' => 'attendance',   'enabled' => (bool) $pf('tab_attendance', true),   'sort' => 3],
+            ['id' => 'schedule',     'enabled' => (bool) $pf('tab_schedule', true),     'sort' => 4],
+            ['id' => 'more',         'enabled' => (bool) $pf('tab_more', true),         'sort' => 5],
+        ];
+
         return [
             'branding' => [
-                'app_name' => null, // Falls back to tenant name
-                'primary_color' => '#3B82F6',
-                'secondary_color' => '#1E40AF',
-                'accent_color' => '#F59E0B',
+                'app_name' => null, // Falls back to tenant name (or template applied at render time)
+                'primary_color' => $pf('primary_color', '#3B82F6'),
+                'secondary_color' => $pf('secondary_color', '#1E40AF'),
+                'accent_color' => $pf('accent_color', '#F59E0B'),
                 'logo_url' => null,
-                'dark_mode_enabled' => true,
+                'dark_mode_enabled' => (bool) $pf('dark_mode_enabled', true),
             ],
             'navigation' => [
-                'tabs' => [
-                    ['id' => 'dashboard', 'enabled' => true, 'sort' => 1],
-                    ['id' => 'appointments', 'enabled' => true, 'sort' => 2],
-                    ['id' => 'attendance', 'enabled' => true, 'sort' => 3],
-                    ['id' => 'schedule', 'enabled' => true, 'sort' => 4],
-                    ['id' => 'more', 'enabled' => true, 'sort' => 5],
-                ],
+                'tabs' => $tabs,
                 'more_menu' => [
                     ['id' => 'payslip', 'enabled' => true, 'sort' => 1],
                     ['id' => 'time_off', 'enabled' => true, 'sort' => 2],

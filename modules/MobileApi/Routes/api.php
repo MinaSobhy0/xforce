@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Modules\MobileApi\Http\Controllers\AccountController;
 use Modules\MobileApi\Http\Controllers\AppConfigController;
+use Modules\MobileApi\Http\Controllers\AppVersionController;
 use Modules\MobileApi\Http\Controllers\AppointmentsController;
 use Modules\MobileApi\Http\Controllers\ApprovalsController;
 use Modules\MobileApi\Http\Controllers\AttendanceController;
@@ -41,6 +42,13 @@ Route::prefix('tenant')->middleware('throttle:mobile-api-discovery')->group(func
     Route::post('validate', [TenantDiscoveryController::class, 'validateTenant']);
     Route::get('lookup', [TenantDiscoveryController::class, 'lookup']);
 });
+
+// App version check — public, no tenant context required. The splash screen
+// hits this BEFORE the user picks a clinic so the force-update screen can
+// render even on first launch. Driven by the platform-wide App Version
+// Policy page in the SuperAdmin panel.
+Route::get('app/version-check', [AppVersionController::class, 'check'])
+    ->middleware('throttle:mobile-api-discovery');
 
 // Tenant-specific routes (requires X-Tenant-Slug header)
 Route::middleware([\Modules\MobileApi\Http\Middleware\ResolveTenantFromHeader::class])->group(function () {
