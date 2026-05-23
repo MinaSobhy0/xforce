@@ -533,22 +533,42 @@ class ViewTenant extends BaseViewRecord
                             ->send();
                     }),
 
-                // Status Actions
+                // Status Actions.
+                //
+                // Note: Tenant marks `status` and `subscription_status` as
+                // $guarded (platform-admin only). Mass-assigning them via
+                // ->update([...]) is silently dropped at fill() time — which
+                // is why the buttons appeared to "do nothing". Use direct
+                // property assignment + save() instead; that's the trusted
+                // platform-admin path the guard list is designed to protect
+                // against, not us.
                 Actions\Action::make('suspend')
                     ->label('Suspend')
                     ->icon('heroicon-o-pause-circle')
                     ->color('danger')
                     ->requiresConfirmation()
-                    ->visible(fn() => in_array(
+                    ->modalHeading('Suspend Clinic')
+                    ->modalDescription(fn () => "Suspend {$this->record->name}? They will lose access immediately.")
+                    ->visible(fn () => in_array(
                         $this->record->subscription_status,
-                        ['active', 'past_due']
+                        ['active', 'past_due'],
+                        true,
                     ))
                     ->action(function (): void {
-                        $this->record->update([
-                            'subscription_status' => 'suspended',
-                            'status' => 'suspended',
-                        ]);
-                        Notification::make()->title('Clinic suspended')->danger()->send();
+                        $this->record->status = \Modules\Core\Models\TenantStatus::SUSPENDED;
+                        $this->record->subscription_status = 'suspended';
+                        $this->record->save();
+
+                        activity()
+                            ->performedOn($this->record)
+                            ->causedBy(auth()->user())
+                            ->withProperties(['reason' => 'Manual suspension via platform admin'])
+                            ->log('Tenant suspended');
+
+                        Notification::make()
+                            ->title("{$this->record->name} suspended")
+                            ->danger()
+                            ->send();
                     }),
 
                 Actions\Action::make('reactivate')
@@ -556,15 +576,21 @@ class ViewTenant extends BaseViewRecord
                     ->icon('heroicon-o-play-circle')
                     ->color('success')
                     ->requiresConfirmation()
-                    ->visible(fn() => $this->record->subscription_status === 'suspended')
+                    ->modalHeading('Reactivate Clinic')
+                    ->modalDescription(fn () => "Reactivate {$this->record->name} and restore their access?")
+                    ->visible(fn () => $this->record->subscription_status === 'suspended')
                     ->action(function (): void {
-                        $this->record->update([
-                            'subscription_status' => 'active',
-                            'status' => 'active',
-                        ]);
+                        $this->record->status = \Modules\Core\Models\TenantStatus::ACTIVE;
+                        $this->record->subscription_status = 'active';
+                        $this->record->save();
+
+                        activity()
+                            ->performedOn($this->record)
+                            ->causedBy(auth()->user())
+                            ->log('Tenant reactivated');
 
                         Notification::make()
-                            ->title('Clinic reactivated')
+                            ->title("{$this->record->name} reactivated")
                             ->success()
                             ->send();
                     }),

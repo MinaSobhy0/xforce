@@ -559,17 +559,26 @@ class TenantResource extends Resource
                                 ->required(),
                         ])
                         ->action(function (Tenant $record, array $data): void {
-                            $record->update([
-                                'subscription_status' => 'suspended',
-                                'status' => 'suspended',
-                            ]);
+                            // Tenant->status and ->subscription_status are
+                            // $guarded — mass-assignment via ->update([...])
+                            // is silently dropped. Assign directly then save.
+                            $record->status = \Modules\Core\Models\TenantStatus::SUSPENDED;
+                            $record->subscription_status = 'suspended';
+                            $record->save();
+
+                            activity()
+                                ->performedOn($record)
+                                ->causedBy(auth()->user())
+                                ->withProperties(['reason' => $data['reason'] ?? null])
+                                ->log('Tenant suspended');
+
                             Notification::make()
                                 ->title("{$record->name} suspended")
                                 ->danger()
                                 ->send();
                         })
                         ->visible(fn(Tenant $record) =>
-                            in_array($record->subscription_status, ['active', 'past_due'])
+                            in_array($record->subscription_status, ['active', 'past_due'], true)
                         ),
 
                     Tables\Actions\Action::make('reactivate')
@@ -578,10 +587,15 @@ class TenantResource extends Resource
                         ->color('success')
                         ->requiresConfirmation()
                         ->action(function (Tenant $record): void {
-                            $record->update([
-                                'subscription_status' => 'active',
-                                'status' => 'active',
-                            ]);
+                            $record->status = \Modules\Core\Models\TenantStatus::ACTIVE;
+                            $record->subscription_status = 'active';
+                            $record->save();
+
+                            activity()
+                                ->performedOn($record)
+                                ->causedBy(auth()->user())
+                                ->log('Tenant reactivated');
+
                             Notification::make()
                                 ->title("{$record->name} reactivated")
                                 ->success()

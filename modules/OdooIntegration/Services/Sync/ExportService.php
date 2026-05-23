@@ -49,6 +49,43 @@ class ExportService
             ->where('local_id', $localId)
             ->first();
 
+        // If the local row was imported from Odoo (model has odoo_id) but no
+        // OdooSyncRecord was ever created for it, backfill one on the fly so
+        // the export-side update path resolves to write() instead of falling
+        // through to create() and producing duplicates / "missing field"
+        // errors against records that already exist in Odoo.
+        //
+        // Also seed both checksums to the *current* values: an empty
+        // local_checksum vs the just-computed one would always look like
+        // "local changed" to hasConflict(), and with conflict_resolution=
+        // manual the export would silently file a conflict instead of
+        // pushing. By baselining to current state, this single export sees
+        // "no-conflict, just push" — Odoo gets write() + workflow actions
+        // (applyOdooExport may also queue an action_approve etc.).
+        if (! $syncRecord && ! empty($localRecord->odoo_id)) {
+            try {
+                $currentOdoo = $client->read($mapping->odoo_model, [(int) $localRecord->odoo_id]);
+                $odooChecksumNow = $this->calculateChecksum($currentOdoo[0] ?? []);
+            } catch (\Throwable) {
+                $odooChecksumNow = '';
+            }
+
+            $localChecksumNow = $this->calculateChecksum($localRecord->toArray());
+
+            $syncRecord = OdooSyncRecord::create([
+                'tenant_id' => $mapping->tenant_id,
+                'entity_mapping_id' => $mapping->id,
+                'local_model' => $mapping->local_model,
+                'local_id' => $localId,
+                'odoo_id' => (int) $localRecord->odoo_id,
+                'sync_status' => OdooSyncRecord::STATUS_SYNCED,
+                'last_sync_direction' => 'import',
+                'last_synced_at' => $localRecord->odoo_synced_at ?? now(),
+                'local_checksum' => $localChecksumNow,
+                'odoo_checksum' => $odooChecksumNow,
+            ]);
+        }
+
         // Transform local data to Odoo format
         $odooData = $this->transformer->transformExport($mapping, $localRecord->toArray());
 
@@ -162,7 +199,18 @@ class ExportService
             }
 
             foreach ($actions as $method) {
-                $client->execute($mapping->odoo_model, $method, [[$syncRecord->odoo_id]]);
+                try {
+                    $client->execute($mapping->odoo_model, $method, [[$syncRecord->odoo_id]]);
+                } catch (\Throwable $e) {
+                    // Many Odoo action_* methods return None and Odoo's own
+                    // RPC controller marshals the response with allow_none=
+                    // False, so a successful call comes back to us as a
+                    // marshal TypeError. The action itself has already run
+                    // server-side; treat this specific fault as success.
+                    if (! str_contains($e->getMessage(), 'cannot marshal None')) {
+                        throw $e;
+                    }
+                }
             }
 
             // Read back for checksum
@@ -184,9 +232,20 @@ class ExportService
 
     /**
      * Check if there's a conflict.
+     *
+     * A null/empty stored baseline (either side) means we never recorded a
+     * snapshot for that direction yet — common for backfilled sync records.
+     * Without a baseline we can't decide "changed since last sync", so we
+     * accept the push instead of refusing it as a "manual" conflict that
+     * never gets resolved.
      */
     protected function hasConflict(OdooSyncRecord $syncRecord, string $localChecksum, string $odooChecksum): bool
     {
+        // No baseline → can't detect conflict → not a conflict.
+        if (empty($syncRecord->local_checksum) || empty($syncRecord->odoo_checksum)) {
+            return false;
+        }
+
         // If checksums match stored values, no conflict
         if ($localChecksum === $syncRecord->local_checksum && $odooChecksum === $syncRecord->odoo_checksum) {
             return false;
@@ -240,7 +299,30 @@ class ExportService
         array $odooData
     ): array {
         return DB::transaction(function () use ($mapping, $client, $syncRecord, $localRecord, $odooData) {
-            $client->write($mapping->odoo_model, [$syncRecord->odoo_id], $odooData);
+            // Same payload handling as the no-conflict path: extract any
+            // workflow actions emitted by applyOdooExport (e.g. action_approve
+            // for hr.leave) and dispatch them after the write. Otherwise Odoo
+            // sees "__odoo_actions" as an unknown field and rejects the write.
+            $actions = $odooData['__odoo_actions'] ?? [];
+            unset($odooData['__odoo_actions']);
+
+            if (! empty($odooData)) {
+                $client->write($mapping->odoo_model, [$syncRecord->odoo_id], $odooData);
+            }
+
+            foreach ($actions as $method) {
+                try {
+                    $client->execute($mapping->odoo_model, $method, [[$syncRecord->odoo_id]]);
+                } catch (\Throwable $e) {
+                    // Same "cannot marshal None" workaround as the main path:
+                    // Odoo's action_* methods return None and Odoo's own RPC
+                    // controller fails to marshal that response, even though
+                    // the state transition has already applied server-side.
+                    if (! str_contains($e->getMessage(), 'cannot marshal None')) {
+                        throw $e;
+                    }
+                }
+            }
 
             $odooRecord = $client->read($mapping->odoo_model, [$syncRecord->odoo_id]);
             $odooChecksum = $this->calculateChecksum($odooRecord[0] ?? []);
