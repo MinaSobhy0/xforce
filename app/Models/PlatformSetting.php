@@ -111,6 +111,11 @@ class PlatformSetting extends Model
 
             \DB::statement("UPDATE platform_settings SET is_encrypted = {$encryptedValue} WHERE key = ?", [$key]);
             $setting->refresh();
+            // Invalidate the get() cache so the new value is visible on the
+            // very next read (otherwise it stays stale for up to an hour and
+            // the admin form appears not to have saved on reload).
+            \Illuminate\Support\Facades\Cache::forget('platform_settings');
+
             return $setting;
         }
 
@@ -124,6 +129,8 @@ class PlatformSetting extends Model
             $type === 'json' ? json_encode($value) : (string) $value,
             $type,
         ]);
+
+        \Illuminate\Support\Facades\Cache::forget('platform_settings');
 
         return self::where('key', $key)->first();
     }
