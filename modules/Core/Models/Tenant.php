@@ -591,6 +591,34 @@ class Tenant extends Model
     }
 
     /**
+     * Whether the mobile app is enabled for this tenant. Stored as a top-level
+     * flag inside mobile_config (default true if unset).
+     *
+     * This is independent of the tenant's overall status — a tenant that's
+     * fully active can still have their mobile app turned off by the platform
+     * admin (e.g. while debugging a buggy release or freezing access).
+     */
+    public function isMobileAppEnabled(): bool
+    {
+        $value = data_get($this->mobile_config, 'mobile_app_enabled');
+
+        return $value === null ? true : (bool) $value;
+    }
+
+    /**
+     * Turn the mobile app on/off for this tenant. Bypasses mass-assignment
+     * (mobile_config is a guarded billing-area field on some tenants;
+     * read-modify-write the JSON column directly).
+     */
+    public function setMobileAppEnabled(bool $enabled): void
+    {
+        $config = $this->mobile_config ?? [];
+        $config['mobile_app_enabled'] = $enabled;
+        $this->mobile_config = $config;
+        $this->save();
+    }
+
+    /**
      * Get the full mobile app configuration, merged with defaults.
      */
     public function getMobileAppConfig(): array

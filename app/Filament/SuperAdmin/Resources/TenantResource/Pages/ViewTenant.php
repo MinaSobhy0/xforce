@@ -594,6 +594,54 @@ class ViewTenant extends BaseViewRecord
                             ->success()
                             ->send();
                     }),
+
+                // Mobile-app-only suspension. Independent of overall tenant
+                // status — lets the platform admin freeze just the mobile app
+                // (e.g. while debugging a release) without locking the admin
+                // panel. The mobile API middleware checks this flag.
+                Actions\Action::make('suspendMobileApp')
+                    ->label('Suspend Mobile App')
+                    ->icon('heroicon-o-device-phone-mobile')
+                    ->color('warning')
+                    ->requiresConfirmation()
+                    ->modalHeading('Suspend Mobile App')
+                    ->modalDescription(fn () => "Stop the mobile app for {$this->record->name}? Staff will lose mobile access immediately. The admin panel is unaffected.")
+                    ->visible(fn () => $this->record->isMobileAppEnabled())
+                    ->action(function (): void {
+                        $this->record->setMobileAppEnabled(false);
+
+                        activity()
+                            ->performedOn($this->record)
+                            ->causedBy(auth()->user())
+                            ->log('Mobile app suspended');
+
+                        Notification::make()
+                            ->title("Mobile app suspended for {$this->record->name}")
+                            ->warning()
+                            ->send();
+                    }),
+
+                Actions\Action::make('activateMobileApp')
+                    ->label('Activate Mobile App')
+                    ->icon('heroicon-o-device-phone-mobile')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->modalHeading('Activate Mobile App')
+                    ->modalDescription(fn () => "Re-enable the mobile app for {$this->record->name}?")
+                    ->visible(fn () => ! $this->record->isMobileAppEnabled())
+                    ->action(function (): void {
+                        $this->record->setMobileAppEnabled(true);
+
+                        activity()
+                            ->performedOn($this->record)
+                            ->causedBy(auth()->user())
+                            ->log('Mobile app activated');
+
+                        Notification::make()
+                            ->title("Mobile app activated for {$this->record->name}")
+                            ->success()
+                            ->send();
+                    }),
             ])
                 ->label('More Actions')
                 ->icon('heroicon-o-ellipsis-vertical')

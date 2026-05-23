@@ -52,6 +52,7 @@ return [
         'code_usage_exceeded' => 'This code has reached its usage limit',
         'tenant_not_found' => 'Clinic not found',
         'tenant_inactive' => 'This clinic is currently inactive',
+        'mobile_app_suspended' => 'The mobile app is temporarily unavailable for this clinic. Please contact your administrator.',
         'resolved' => 'Clinic found',
         'validated' => 'Clinic validated',
     ],

@@ -42,6 +42,17 @@ class ResolveTenantFromHeader
             ], 403);
         }
 
+        // Mobile-app-specific kill switch. The tenant can be fully active
+        // but the platform admin can still freeze just the mobile surface
+        // (toggled from the SuperAdmin tenant view).
+        if (! $tenant->isMobileAppEnabled()) {
+            return response()->json([
+                'success' => false,
+                'message' => __('mobile_api::mobile.tenant.mobile_app_suspended'),
+                'error_code' => 'MOBILE_APP_SUSPENDED',
+            ], 403);
+        }
+
         // SECURITY: Validate schema name before using in SQL to prevent injection
         $schemaName = $tenant->database_name;
         if (!$this->validateSchemaName($schemaName)) {
