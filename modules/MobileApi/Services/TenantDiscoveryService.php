@@ -125,6 +125,15 @@ class TenantDiscoveryService
             'country' => $tenant->country,
             'currency' => $tenant->currency,
             'timezone' => $tenant->timezone,
+
+            // Status fields the mobile splash screen branches on before login.
+            // The same kill-switch is enforced by ResolveTenantFromHeader on
+            // every subsequent call (HTTP 403 + error_code: MOBILE_APP_SUSPENDED)
+            // — these surfaced flags just let the client render a tailored
+            // "service unavailable" screen instead of getting that error on
+            // the next request after the user enters their clinic code.
+            'is_active' => $tenant->isActive(),
+            'mobile_app_enabled' => $tenant->isMobileAppEnabled(),
         ];
     }
 
