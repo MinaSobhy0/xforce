@@ -111,13 +111,24 @@ class IdentifyTenant
         DB::purge('pgsql');
         DB::reconnect('pgsql');
 
-        // Find tenant by slug (subdomain)
-        $tenant = Tenant::where('slug', $subdomain)
-            ->where('status', TenantStatus::ACTIVE)
-            ->first();
+        // Find tenant by slug (subdomain) regardless of status. We disambiguate
+        // "tenant doesn't exist" (404) from "tenant exists but is suspended"
+        // (friendly 503 page) below — previously both paths returned 404.
+        $tenant = Tenant::where('slug', $subdomain)->first();
 
         if (!$tenant) {
             abort(404, "Clinic not found: {$subdomain}");
+        }
+
+        if ($tenant->status === TenantStatus::SUSPENDED) {
+            abort(response()->view('errors.tenant-suspended', [
+                'tenantName' => $tenant->name,
+                'contactEmail' => config('mail.from.address') ?: null,
+            ], 503));
+        }
+
+        if ($tenant->status !== TenantStatus::ACTIVE) {
+            abort(404, "Clinic not active: {$subdomain}");
         }
 
         // Check if tenant schema is provisioned
