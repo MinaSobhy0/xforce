@@ -47,6 +47,7 @@ class OwnerUser extends Model implements
         'first_name',
         'last_name',
         'email',
+        'username',
         'password',
     ];
 
@@ -67,11 +68,48 @@ class OwnerUser extends Model implements
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'settings' => 'array',
+        'preferences' => 'array',
     ];
 
     public function getFullNameAttribute(): string
     {
         return trim("{$this->first_name} {$this->last_name}");
+    }
+
+    /**
+     * Settings & preferences helpers — mirror Modules\Auth\Models\User so the
+     * shared Livewire components (ThemeSwitcher, etc.) work for owner users
+     * the same way they do for tenant-side users.
+     *
+     * settings / preferences are nullable JSON columns on public.users.
+     * They're not in $fillable / are not exposed to the form — these
+     * helpers do targeted JSON-pointer reads and writes on the existing row.
+     */
+    public function getSetting(string $key, $default = null)
+    {
+        return data_get($this->settings, $key, $default);
+    }
+
+    public function setSetting(string $key, $value): void
+    {
+        $settings = $this->settings ?? [];
+        data_set($settings, $key, $value);
+        $this->settings = $settings;
+        $this->save();
+    }
+
+    public function getPreference(string $key, $default = null)
+    {
+        return data_get($this->preferences, $key, $default);
+    }
+
+    public function setPreference(string $key, $value): void
+    {
+        $preferences = $this->preferences ?? [];
+        data_set($preferences, $key, $value);
+        $this->preferences = $preferences;
+        $this->save();
     }
 
     public function getNameAttribute(): string
