@@ -9,7 +9,7 @@ return [
     |
     | M-19: previously no config/cors.php existed, so Laravel's default allowed
     | every origin ('*'). Cross-origin browser access is now restricted to the
-    | x-linic.com domains (and any extra origins listed in CORS_ALLOWED_ORIGINS).
+    | platform domain (and any extra origins listed in CORS_ALLOWED_ORIGINS).
     | The mobile app uses native HTTP (not subject to CORS) and the web panels
     | are same-origin, so this does not affect legitimate clients. Credentials
     | stay disabled — the API uses bearer tokens, not cookies.
@@ -26,9 +26,13 @@ return [
         explode(',', (string) env('CORS_ALLOWED_ORIGINS', ''))
     ))),
 
-    // x-linic.com and any subdomain (https or http).
+    // The platform domain and any subdomain (https or http). Override the
+    // base domain with CORS_ALLOWED_DOMAIN if it ever differs from APP_URL.
     'allowed_origins_patterns' => [
-        '#^https?://([a-z0-9-]+\.)?x-linic\.com$#i',
+        '#^https?://([a-z0-9-]+\.)?'.preg_quote(
+            env('CORS_ALLOWED_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST) ?: 'localhost'),
+            '#'
+        ).'$#i',
     ],
 
     'allowed_headers' => ['*'],
