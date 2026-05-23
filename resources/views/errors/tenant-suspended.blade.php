@@ -127,7 +127,7 @@
         @endisset
 
         <div class="actions">
-            <a class="btn btn-primary" href="/login">{{ __('errors.tenant_suspended.go_login') }}</a>
+            <a class="btn btn-primary" href="{{ $platformAdminUrl ?? 'https://xforcehr.com/admin' }}">{{ __('errors.tenant_suspended.go_platform') }}</a>
         </div>
     </div>
 </body>

@@ -124,6 +124,7 @@ class IdentifyTenant
             abort(response()->view('errors.tenant-suspended', [
                 'tenantName' => $tenant->name,
                 'contactEmail' => 'support@xforcehr.com',
+                'platformAdminUrl' => 'https://xforcehr.com/admin',
             ], 503));
         }
 
