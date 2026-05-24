@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder
             ModuleSeeder::class,
             PlatformRoleSeeder::class,
             TenantRoleSeeder::class,
+            PlatformWhatsAppTemplateSeeder::class,
         ]);
     }
 }
