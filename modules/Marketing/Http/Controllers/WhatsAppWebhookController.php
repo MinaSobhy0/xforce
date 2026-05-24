@@ -23,21 +23,28 @@ class WhatsAppWebhookController extends Controller
     ) {}
 
     /**
-     * Verify webhook from Meta.
+     * Verify webhook from Meta. Meta sends this GET once when you save
+     * the webhook URL in the App Dashboard; we have to echo back
+     * hub_challenge if our verify token matches what they typed.
+     *
+     * Token source order: PlatformSetting (preferred — what SuperAdmin
+     * pastes alongside the other Meta creds) → env fallback.
      */
     public function verify(Request $request): mixed
     {
-        $verifyToken = config('marketing.whatsapp.webhook_verify_token');
+        $verifyToken = PlatformSetting::get('whatsapp_meta_webhook_verify_token', '')
+            ?: config('marketing.whatsapp.webhook_verify_token');
 
-        // SECURITY: Use constant-time comparison to prevent timing attacks
         if ($request->get('hub_mode') === 'subscribe' &&
-            hash_equals($verifyToken ?? '', $request->get('hub_verify_token') ?? '')) {
+            $verifyToken &&
+            hash_equals((string) $verifyToken, (string) $request->get('hub_verify_token', ''))) {
             return response($request->get('hub_challenge'));
         }
 
         Log::warning('WhatsApp webhook verification failed', [
             'ip' => $request->ip(),
-            'user_agent' => $request->userAgent(),
+            'token_configured' => filled($verifyToken),
+            'hub_mode' => $request->get('hub_mode'),
         ]);
 
         return response('Forbidden', 403);
