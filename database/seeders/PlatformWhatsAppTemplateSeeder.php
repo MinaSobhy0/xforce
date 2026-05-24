@@ -144,6 +144,28 @@ class PlatformWhatsAppTemplateSeeder extends Seeder
                 ],
                 'sort_order' => 6,
             ],
+
+            [
+                'code' => 'medical_profile_invite',
+                'category' => MessageTemplate::META_CATEGORY_UTILITY,
+                'name' => ['en' => 'Complete Medical Profile', 'ar' => 'إكمال الملف الطبي'],
+                'description' => ['en' => 'Asks a new patient to fill out their medical profile (allergies, medications, history) before their first visit. {{profile_url}} should be a deep link to the patient\'s profile form.'],
+                'body' => [
+                    'en' => "Hi {{patient_name}}, welcome to {{clinic_name}}! 👋\n\nPlease take 2 minutes to complete your medical profile so we can give you the best care:\n{{profile_url}}\n\nWe ask about allergies, medications, and any conditions we should know about before your visit.",
+                    'ar' => "مرحباً {{patient_name}}، أهلاً بك في {{clinic_name}}! 👋\n\nيرجى تخصيص دقيقتين لإكمال ملفك الطبي حتى نقدم لك أفضل رعاية:\n{{profile_url}}\n\nنسألك عن الحساسية والأدوية وأي حالات يجب أن نعرفها قبل زيارتك.",
+                ],
+                'footer' => ['en' => 'Your information is private and only seen by your care team.', 'ar' => 'معلوماتك خاصة ويراها فريق الرعاية فقط.'],
+                'buttons_json' => [
+                    ['label' => 'I\'ll do it now', 'action' => 'custom', 'custom_payload' => 'profile_intent_now'],
+                    ['label' => 'Remind me later', 'action' => 'custom', 'custom_payload' => 'profile_intent_later'],
+                ],
+                'variables_json' => [
+                    'patient_name' => 'Sara Ahmed',
+                    'clinic_name' => 'Cairo Beauty Clinic',
+                    'profile_url' => 'https://demo.xforcehr.com/patient/medical-profile?t=abc123',
+                ],
+                'sort_order' => 7,
+            ],
         ];
 
         foreach ($templates as $template) {
