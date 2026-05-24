@@ -4,6 +4,7 @@ namespace Modules\Marketing\Models;
 
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Modules\Patients\Models\Patient;
 use XLinic\Framework\Core\Model\BaseModel;
 
@@ -25,6 +26,8 @@ class WhatsAppConversation extends BaseModel
         'phone_number_id',
         'last_message_at',
         'last_inbound_at',
+        'last_message_preview',
+        'last_message_direction',
         'unread_count',
         'metadata',
     ];
@@ -39,11 +42,6 @@ class WhatsAppConversation extends BaseModel
     public function messages(): HasMany
     {
         return $this->hasMany(WhatsAppMessage::class, 'conversation_id')->orderBy('created_at');
-    }
-
-    public function latestMessage(): HasMany
-    {
-        return $this->hasMany(WhatsAppMessage::class, 'conversation_id')->latestOfMany();
     }
 
     public function patient(): BelongsTo

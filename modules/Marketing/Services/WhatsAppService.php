@@ -629,7 +629,20 @@ class WhatsAppService
                 'sent_at' => now(),
             ]);
 
-            $conversation->update(['last_message_at' => now()]);
+            $preview = $body ? mb_substr((string) $body, 0, 280) : match ($type) {
+                'template' => '[template] '.($payload['template']['name'] ?? ''),
+                'image' => '📷 Image',
+                'document' => '📄 Document',
+                'video' => '🎬 Video',
+                'audio' => '🎤 Audio',
+                default => ucfirst((string) $type),
+            };
+
+            $conversation->update([
+                'last_message_at' => now(),
+                'last_message_preview' => $preview,
+                'last_message_direction' => 'outbound',
+            ]);
         } catch (\Throwable $e) {
             Log::warning('whatsapp.outbound.mirror_failed', [
                 'wamid' => $wamid,

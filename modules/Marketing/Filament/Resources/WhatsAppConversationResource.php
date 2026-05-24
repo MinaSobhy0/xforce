@@ -77,10 +77,11 @@ class WhatsAppConversationResource extends Resource
                     ->description(fn (WhatsAppConversation $r) => $r->remote_display_name ? $r->remote_phone_e164 : null)
                     ->searchable(['remote_display_name', 'remote_phone_e164']),
 
-                Tables\Columns\TextColumn::make('latestMessage.body')
+                Tables\Columns\TextColumn::make('last_message_preview')
                     ->label(__('marketing::whatsapp.inbox.col_last_message'))
                     ->limit(60)
                     ->wrap()
+                    ->prefix(fn (WhatsAppConversation $r) => $r->last_message_direction === 'outbound' ? '↗ ' : '')
                     ->placeholder('—'),
 
                 Tables\Columns\IconColumn::make('within_window')

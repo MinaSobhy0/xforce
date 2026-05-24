@@ -109,6 +109,8 @@ class InboundMessageProcessor
         $conversation->update([
             'last_message_at' => $sentAt,
             'last_inbound_at' => $sentAt,
+            'last_message_preview' => $this->buildPreview($normalized),
+            'last_message_direction' => 'inbound',
             'unread_count' => $conversation->unread_count + 1,
             'remote_display_name' => $displayName ?: $conversation->remote_display_name,
         ]);
@@ -233,5 +235,23 @@ class InboundMessageProcessor
         }
 
         return $out;
+    }
+
+    protected function buildPreview(array $normalized): string
+    {
+        if (! empty($normalized['body'])) {
+            return mb_substr($normalized['body'], 0, 280);
+        }
+
+        return match ($normalized['type']) {
+            WhatsAppMessage::TYPE_IMAGE => '📷 Image',
+            WhatsAppMessage::TYPE_DOCUMENT => '📄 Document',
+            WhatsAppMessage::TYPE_VIDEO => '🎬 Video',
+            WhatsAppMessage::TYPE_AUDIO => '🎤 Audio',
+            WhatsAppMessage::TYPE_LOCATION => '📍 Location',
+            WhatsAppMessage::TYPE_REACTION => '👍 Reaction',
+            WhatsAppMessage::TYPE_BUTTON_REPLY => '↩︎ Button reply',
+            default => ucfirst((string) $normalized['type']),
+        };
     }
 }
