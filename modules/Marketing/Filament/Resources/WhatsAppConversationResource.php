@@ -51,9 +51,17 @@ class WhatsAppConversationResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        $unread = static::getModel()::sum('unread_count');
+        // Defensive: nav badge runs on EVERY admin page load. If the tenant's
+        // whatsapp_conversations table doesn't exist yet (mid-provisioning,
+        // partial migration drift, etc.), a thrown exception here would crash
+        // the entire admin panel for that tenant. Swallow and return null.
+        try {
+            $unread = static::getModel()::sum('unread_count');
 
-        return $unread > 0 ? (string) $unread : null;
+            return $unread > 0 ? (string) $unread : null;
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     public static function canCreate(): bool
