@@ -44,6 +44,11 @@ class IntegrationSettings extends Page implements HasForms
             'whatsapp_meta_access_token' => PlatformSetting::get('whatsapp_meta_access_token', ''),
             'whatsapp_meta_phone_number_id' => PlatformSetting::get('whatsapp_meta_phone_number_id', ''),
             'whatsapp_meta_business_id' => PlatformSetting::get('whatsapp_meta_business_id', ''),
+
+            // Meta Tech Provider (Embedded Signup) — XForce's own developer credentials.
+            'whatsapp_meta_app_id' => PlatformSetting::get('whatsapp_meta_app_id', ''),
+            'whatsapp_meta_app_secret' => PlatformSetting::get('whatsapp_meta_app_secret', ''),
+            'whatsapp_meta_signup_config_id' => PlatformSetting::get('whatsapp_meta_signup_config_id', ''),
         ];
 
         $this->smsData = [
@@ -138,23 +143,32 @@ class IntegrationSettings extends Page implements HasForms
                             ->helperText('Format: whatsapp:+1234567890'),
                     ]),
 
-                // Meta Configuration
-                Forms\Components\Fieldset::make('Meta (Official API) Configuration')
+                // Meta — Tech Provider (Embedded Signup) flow. These are
+                // XForce's own developer-portal values; tenants then connect
+                // their own WhatsApp Business numbers via the Embedded Signup
+                // popup inside the Admin panel. No raw per-platform access
+                // token is needed here anymore (each tenant brings their own
+                // via the popup). Legacy whatsapp_meta_access_token /
+                // whatsapp_meta_phone_number_id / whatsapp_meta_business_id
+                // rows in platform_settings keep working as a silent fallback
+                // for installs that had them set before this refactor — they
+                // just aren't editable from the form anymore.
+                Forms\Components\Fieldset::make('Meta WhatsApp Business — Tech Provider')
                     ->visible(fn(Forms\Get $get) => $get('whatsapp_enabled') && $get('whatsapp_provider') === 'meta')
                     ->schema([
-                        Forms\Components\TextInput::make('whatsapp_meta_access_token')
-                            ->label('Access Token')
+                        Forms\Components\TextInput::make('whatsapp_meta_app_id')
+                            ->label('Meta App ID')
+                            ->helperText("XForce's Meta App ID from developers.facebook.com. Public — used in the tenant's signup popup."),
+
+                        Forms\Components\TextInput::make('whatsapp_meta_app_secret')
+                            ->label('Meta App Secret')
                             ->password()
                             ->revealable()
-                            ->helperText('Your Meta WhatsApp Business API Access Token'),
+                            ->helperText('App Secret from the same Meta App. Used server-side to exchange the signup code for a permanent token. Never sent to the browser.'),
 
-                        Forms\Components\TextInput::make('whatsapp_meta_phone_number_id')
-                            ->label('Phone Number ID')
-                            ->helperText('Your WhatsApp Business Phone Number ID'),
-
-                        Forms\Components\TextInput::make('whatsapp_meta_business_id')
-                            ->label('Business Account ID')
-                            ->helperText('Your Meta Business Account ID'),
+                        Forms\Components\TextInput::make('whatsapp_meta_signup_config_id')
+                            ->label('Embedded Signup Config ID')
+                            ->helperText('Generated when Embedded Signup is configured in the Meta App → WhatsApp product.'),
                     ]),
             ])
             ->statePath('whatsappData');

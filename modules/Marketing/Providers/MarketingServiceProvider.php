@@ -3,6 +3,7 @@
 namespace Modules\Marketing\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Modules\Marketing\Services\WhatsAppCredentialsResolver;
 use Modules\Marketing\Services\WhatsAppService;
 use Modules\Marketing\Services\SmsService;
 use Modules\Marketing\Services\EmailService;
@@ -43,8 +44,10 @@ class MarketingServiceProvider extends ServiceProvider
         $this->app->register(EventServiceProvider::class);
 
         // Register services as singletons
+        $this->app->singleton(WhatsAppCredentialsResolver::class);
+
         $this->app->singleton(WhatsAppService::class, function ($app) {
-            return new WhatsAppService();
+            return new WhatsAppService($app->make(WhatsAppCredentialsResolver::class));
         });
 
         $this->app->singleton(SmsService::class, function ($app) {

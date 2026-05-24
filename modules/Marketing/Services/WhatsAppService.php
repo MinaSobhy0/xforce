@@ -5,190 +5,90 @@ namespace Modules\Marketing\Services;
 use App\Models\PlatformSetting;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Modules\Core\Models\Tenant;
 use Modules\Marketing\Models\NotificationLog;
 
+/**
+ * Sends WhatsApp messages on behalf of a tenant.
+ *
+ * Credential resolution lives in WhatsAppCredentialsResolver:
+ *   1. Tenant's own Meta WABA (per-tenant Embedded Signup), or
+ *   2. Platform-global Meta config (fallback for un-onboarded tenants).
+ *
+ * Platform-global Twilio WhatsApp is still supported as a final fallback
+ * when neither Meta path is configured — preserves today's behavior for
+ * deployments that picked Twilio as their WhatsApp provider before this
+ * refactor.
+ *
+ * No instance state for credentials: every public send method resolves
+ * per-call from current_tenant(), so a single long-lived service can
+ * serve many tenants in the same process (cron, queue worker, etc.).
+ */
 class WhatsAppService
 {
-    protected string $apiVersion;
-    protected ?string $phoneNumber;
-    protected ?string $accessToken;
-    protected ?string $accountSid;
-    protected ?string $provider;
-    protected bool $enabled;
-
-    public function __construct()
-    {
-        $this->loadSettings();
-    }
+    public function __construct(
+        protected WhatsAppCredentialsResolver $resolver,
+    ) {}
 
     /**
-     * Load settings from PlatformSetting (SuperAdmin configuration).
+     * Whether WhatsApp can send for the given tenant (or the platform
+     * fallback when null). The kill-switch `whatsapp_enabled` platform
+     * flag still gates everything globally.
      */
-    protected function loadSettings(): void
+    public function isEnabledFor(?Tenant $tenant = null): bool
     {
-        $this->enabled = (bool) PlatformSetting::get('whatsapp_enabled', false);
-        $this->provider = PlatformSetting::get('whatsapp_provider', 'meta');
-        $this->apiVersion = config('marketing.whatsapp.api_version', 'v18.0');
+        if (! (bool) PlatformSetting::get('whatsapp_enabled', false)) {
+            return false;
+        }
 
-        // For Meta (Official WhatsApp Business API)
-        if ($this->provider === 'meta') {
-            $this->phoneNumber = PlatformSetting::get('whatsapp_meta_phone_number_id', '');
-            $this->accessToken = PlatformSetting::get('whatsapp_meta_access_token', '');
-            $this->accountSid = PlatformSetting::get('whatsapp_meta_business_id', '');
-        }
-        // For Twilio
-        elseif ($this->provider === 'twilio') {
-            $this->phoneNumber = PlatformSetting::get('whatsapp_twilio_from_number', '');
-            $this->accountSid = PlatformSetting::get('whatsapp_twilio_account_sid', '');
-            $this->accessToken = PlatformSetting::get('whatsapp_twilio_auth_token', '');
-        }
-        // Fallback to env config if not set in platform settings
-        else {
-            $this->phoneNumber = config('marketing.whatsapp.phone_number_id');
-            $this->accessToken = config('marketing.whatsapp.access_token');
-            $this->accountSid = null;
-        }
+        return $this->resolver->resolveFor($tenant ?? current_tenant()) !== null
+            || $this->hasPlatformTwilio();
     }
 
     /**
-     * Check if WhatsApp is enabled and configured.
+     * Back-compat alias — callers still typing the old name keep working.
      */
     public function isEnabled(): bool
     {
-        if (!$this->enabled || !$this->phoneNumber || !$this->accessToken) {
-            return false;
-        }
-
-        // Twilio also requires account SID
-        if ($this->provider === 'twilio' && !$this->accountSid) {
-            return false;
-        }
-
-        return true;
+        return $this->isEnabledFor(null);
     }
 
-    /**
-     * Get the current provider.
-     */
     public function getProvider(): string
     {
-        return $this->provider ?? 'meta';
+        $meta = $this->resolver->resolveFor(current_tenant());
+        if ($meta) {
+            return 'meta';
+        }
+
+        return PlatformSetting::get('whatsapp_provider', 'meta');
     }
 
     /**
-     * Send a text message.
+     * Send a text message. Routes through Meta (tenant or platform) when
+     * Meta creds resolve, else platform Twilio if configured, else error.
      */
     public function sendTextMessage(string $to, string $message): array
     {
-        if (!$this->isEnabled()) {
-            return [
-                'success' => false,
-                'error' => 'WhatsApp is not configured',
-            ];
+        if (! (bool) PlatformSetting::get('whatsapp_enabled', false)) {
+            return ['success' => false, 'error' => 'WhatsApp is not configured'];
         }
 
-        // Route to appropriate provider
-        if ($this->provider === 'twilio') {
-            return $this->sendViaTwilio($to, $message);
+        $meta = $this->resolver->resolveFor(current_tenant());
+        if ($meta) {
+            return $this->sendViaMeta($meta, $to, $message);
         }
 
-        return $this->sendViaMeta($to, $message);
-    }
-
-    /**
-     * Send message via Twilio WhatsApp API.
-     */
-    protected function sendViaTwilio(string $to, string $message): array
-    {
-        try {
-            $formattedTo = $this->formatPhoneNumber($to);
-            $formattedFrom = $this->formatPhoneNumber($this->phoneNumber);
-
-            $response = Http::withBasicAuth($this->accountSid, $this->accessToken)
-                ->asForm()
-                ->post("https://api.twilio.com/2010-04-01/Accounts/{$this->accountSid}/Messages.json", [
-                    'From' => "whatsapp:{$formattedFrom}",
-                    'To' => "whatsapp:{$formattedTo}",
-                    'Body' => $message,
-                ]);
-
-            if ($response->successful()) {
-                $data = $response->json();
-                return [
-                    'success' => true,
-                    'message_id' => $data['sid'] ?? null,
-                    'response' => $data,
-                ];
-            }
-
-            $error = $response->json();
-            return [
-                'success' => false,
-                'error' => $error['message'] ?? 'Unknown error',
-                'response' => $error,
-            ];
-        } catch (\Exception $e) {
-            Log::error('Twilio WhatsApp send failed', [
-                'to' => $to,
-                'error' => $e->getMessage(),
-            ]);
-
-            return [
-                'success' => false,
-                'error' => $e->getMessage(),
-            ];
+        if ($this->hasPlatformTwilio()) {
+            return $this->sendViaPlatformTwilio($to, $message);
         }
-    }
 
-    /**
-     * Send message via Meta WhatsApp Business API.
-     */
-    protected function sendViaMeta(string $to, string $message): array
-    {
-        try {
-            $response = Http::withToken($this->accessToken)
-                ->post($this->getMetaApiUrl('/messages'), [
-                    'messaging_product' => 'whatsapp',
-                    'recipient_type' => 'individual',
-                    'to' => $this->formatPhoneNumber($to),
-                    'type' => 'text',
-                    'text' => [
-                        'preview_url' => false,
-                        'body' => $message,
-                    ],
-                ]);
-
-            if ($response->successful()) {
-                $data = $response->json();
-                return [
-                    'success' => true,
-                    'message_id' => $data['messages'][0]['id'] ?? null,
-                    'response' => $data,
-                ];
-            }
-
-            return [
-                'success' => false,
-                'error' => $response->json('error.message', 'Unknown error'),
-                'response' => $response->json(),
-            ];
-        } catch (\Exception $e) {
-            Log::error('WhatsApp send failed', [
-                'to' => $to,
-                'error' => $e->getMessage(),
-            ]);
-
-            return [
-                'success' => false,
-                'error' => $e->getMessage(),
-            ];
-        }
+        return ['success' => false, 'error' => 'WhatsApp is not configured'];
     }
 
     /**
      * Send a template message (required for business-initiated conversations).
-     * Note: Twilio uses Content Templates which work differently.
-     * For Twilio, we fall back to regular text message with the rendered content.
+     * Twilio path: degrades to text using the body component (Twilio Content
+     * templates require pre-registration which we don't track here).
      */
     public function sendTemplateMessage(
         string $to,
@@ -196,29 +96,29 @@ class WhatsAppService
         string $languageCode = 'en',
         array $components = []
     ): array {
-        if (!$this->isEnabled()) {
-            return [
-                'success' => false,
-                'error' => 'WhatsApp is not configured',
-            ];
+        if (! (bool) PlatformSetting::get('whatsapp_enabled', false)) {
+            return ['success' => false, 'error' => 'WhatsApp is not configured'];
         }
 
-        // For Twilio, templates are handled via Content API or we send as text
-        // Since our templates are stored in the database with content, we'll use text
-        if ($this->provider === 'twilio') {
-            // Extract body text from components if available
-            $bodyText = $templateName; // Fallback to template name
+        $meta = $this->resolver->resolveFor(current_tenant());
+
+        if (! $meta) {
+            if (! $this->hasPlatformTwilio()) {
+                return ['success' => false, 'error' => 'WhatsApp is not configured'];
+            }
+
+            $bodyText = $templateName;
             foreach ($components as $component) {
-                if (($component['type'] ?? '') === 'body' && !empty($component['parameters'])) {
-                    $texts = array_map(fn($p) => $p['text'] ?? '', $component['parameters']);
+                if (($component['type'] ?? '') === 'body' && ! empty($component['parameters'])) {
+                    $texts = array_map(fn ($p) => $p['text'] ?? '', $component['parameters']);
                     $bodyText = implode(' ', array_filter($texts));
                     break;
                 }
             }
-            return $this->sendViaTwilio($to, $bodyText);
+
+            return $this->sendViaPlatformTwilio($to, $bodyText);
         }
 
-        // Meta API
         try {
             $payload = [
                 'messaging_product' => 'whatsapp',
@@ -227,33 +127,19 @@ class WhatsAppService
                 'type' => 'template',
                 'template' => [
                     'name' => $templateName,
-                    'language' => [
-                        'code' => $languageCode,
-                    ],
+                    'language' => ['code' => $languageCode],
                 ],
             ];
 
-            if (!empty($components)) {
+            if (! empty($components)) {
                 $payload['template']['components'] = $components;
             }
 
-            $response = Http::withToken($this->accessToken)
-                ->post($this->getMetaApiUrl('/messages'), $payload);
-
-            if ($response->successful()) {
-                $data = $response->json();
-                return [
-                    'success' => true,
-                    'message_id' => $data['messages'][0]['id'] ?? null,
-                    'response' => $data,
-                ];
-            }
-
-            return [
-                'success' => false,
-                'error' => $response->json('error.message', 'Unknown error'),
-                'response' => $response->json(),
-            ];
+            return $this->postToMeta($meta, $payload, [
+                'context' => 'template',
+                'template' => $templateName,
+                'to' => $to,
+            ]);
         } catch (\Exception $e) {
             Log::error('WhatsApp template send failed', [
                 'to' => $to,
@@ -261,10 +147,7 @@ class WhatsAppService
                 'error' => $e->getMessage(),
             ]);
 
-            return [
-                'success' => false,
-                'error' => $e->getMessage(),
-            ];
+            return ['success' => false, 'error' => $e->getMessage()];
         }
     }
 
@@ -288,62 +171,42 @@ class WhatsAppService
     }
 
     /**
-     * Send an interactive message with buttons.
-     * Note: Twilio doesn't support interactive messages the same way.
-     * For Twilio, we send as plain text.
+     * Send an interactive message with buttons (Meta only — Twilio falls back to text).
      */
     public function sendInteractiveMessage(string $to, array $interactive): array
     {
-        if (!$this->isEnabled()) {
-            return [
-                'success' => false,
-                'error' => 'WhatsApp is not configured',
-            ];
+        if (! (bool) PlatformSetting::get('whatsapp_enabled', false)) {
+            return ['success' => false, 'error' => 'WhatsApp is not configured'];
         }
 
-        // For Twilio, extract body text and send as regular message
-        if ($this->provider === 'twilio') {
-            $bodyText = $interactive['body']['text'] ?? '';
-            return $this->sendViaTwilio($to, $bodyText);
+        $meta = $this->resolver->resolveFor(current_tenant());
+
+        if (! $meta) {
+            if (! $this->hasPlatformTwilio()) {
+                return ['success' => false, 'error' => 'WhatsApp is not configured'];
+            }
+
+            return $this->sendViaPlatformTwilio($to, $interactive['body']['text'] ?? '');
         }
 
-        // Meta API
         try {
-            $payload = [
+            return $this->postToMeta($meta, [
                 'messaging_product' => 'whatsapp',
                 'recipient_type' => 'individual',
                 'to' => $this->formatPhoneNumber($to),
                 'type' => 'interactive',
                 'interactive' => $interactive,
-            ];
-
-            $response = Http::withToken($this->accessToken)
-                ->post($this->getMetaApiUrl('/messages'), $payload);
-
-            if ($response->successful()) {
-                $data = $response->json();
-                return [
-                    'success' => true,
-                    'message_id' => $data['messages'][0]['id'] ?? null,
-                    'response' => $data,
-                ];
-            }
-
-            return [
-                'success' => false,
-                'error' => $response->json('error.message', 'Unknown error'),
-                'response' => $response->json(),
-            ];
+            ], [
+                'context' => 'interactive',
+                'to' => $to,
+            ]);
         } catch (\Exception $e) {
             Log::error('WhatsApp interactive message send failed', [
                 'to' => $to,
                 'error' => $e->getMessage(),
             ]);
 
-            return [
-                'success' => false,
-                'error' => $e->getMessage(),
-            ];
+            return ['success' => false, 'error' => $e->getMessage()];
         }
     }
 
@@ -356,25 +219,27 @@ class WhatsAppService
         array $variables,
         ?string $locale = null
     ): array {
-        if (!$template->hasButtons()) {
-            // Fall back to text message if no buttons
+        if (! $template->hasButtons()) {
             $rendered = $template->render($variables, $locale);
+
             return $this->sendTextMessage($to, $rendered['content']);
         }
 
-        // For Twilio, append action links to the message
-        if ($this->provider === 'twilio') {
+        $meta = $this->resolver->resolveFor(current_tenant());
+        if (! $meta) {
             $rendered = $template->render($variables, $locale);
             $messageWithLinks = $this->appendButtonLinks($rendered['content'], $template, $variables, $locale);
-            return $this->sendViaTwilio($to, $messageWithLinks);
+
+            return $this->sendTextMessage($to, $messageWithLinks);
         }
 
         $interactive = $template->buildInteractivePayload($variables, $locale);
+
         return $this->sendInteractiveMessage($to, $interactive);
     }
 
     /**
-     * Append button action links to message text (for Twilio).
+     * Append button action links to message text (for Twilio fallback).
      */
     protected function appendButtonLinks(
         string $content,
@@ -388,26 +253,22 @@ class WhatsAppService
         }
 
         $appointmentId = $variables['appointment_id'] ?? null;
-        if (!$appointmentId) {
+        if (! $appointmentId) {
             return $content;
         }
 
         $links = [];
-        $locale = $locale ?? app()->getLocale();
-
         foreach ($buttons as $button) {
             $action = $button['action'] ?? '';
             $label = $button['label'] ?? '';
-
-            // Generate signed URL for the action
             $url = $this->generateActionUrl($action, $appointmentId);
             if ($url) {
                 $links[] = "🔗 {$label}: {$url}";
             }
         }
 
-        if (!empty($links)) {
-            $content .= "\n\n" . implode("\n", $links);
+        if (! empty($links)) {
+            $content .= "\n\n".implode("\n", $links);
         }
 
         return $content;
@@ -419,11 +280,10 @@ class WhatsAppService
     protected function generateActionUrl(string $action, string $appointmentId): ?string
     {
         $validActions = ['confirm_appointment', 'reschedule_appointment', 'cancel_appointment'];
-        if (!in_array($action, $validActions)) {
+        if (! in_array($action, $validActions)) {
             return null;
         }
 
-        // Map action to route action name
         $routeAction = match ($action) {
             'confirm_appointment' => 'confirm',
             'reschedule_appointment' => 'reschedule',
@@ -431,33 +291,27 @@ class WhatsAppService
             default => null,
         };
 
-        if (!$routeAction) {
+        if (! $routeAction) {
             return null;
         }
 
-        // Get tenant_id from appointment
         $appointment = \Modules\Booking\Models\Appointment::find($appointmentId);
         $tenantId = $appointment?->tenant_id;
 
-        // SECURITY: Generate signed URL that expires in 2 hours (not days)
-        // Appointment actions shouldn't need more than a few hours validity
-        // Longer expiry increases risk if URL is leaked or forwarded
         $baseUrl = request()->getSchemeAndHttpHost();
         $signedUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
             'appointment.action',
             now()->addHours(2),
             ['appointment' => $appointmentId, 'action' => $routeAction]
         );
-        // Replace the APP_URL domain with the current tenant domain
         $signedUrl = preg_replace('/^https?:\/\/[^\/]+/', $baseUrl, $signedUrl);
 
-        // Create short link (also expires in 2 hours / ~0.08 days)
         $shortLink = \Modules\Marketing\Models\ShortLink::createFor(
             $signedUrl,
             $tenantId,
             $routeAction,
             (int) $appointmentId,
-            1  // 1 day is minimum, but the signed URL inside will expire in 2 hours
+            1
         );
 
         return $shortLink->short_url;
@@ -469,28 +323,22 @@ class WhatsAppService
     public function parseButtonCallback(array $payload): ?array
     {
         $messages = $payload['entry'][0]['changes'][0]['value']['messages'] ?? [];
-
         if (empty($messages)) {
             return null;
         }
 
         $message = $messages[0];
-
-        // Check if this is an interactive reply (button click)
         if (($message['type'] ?? '') !== 'interactive') {
             return null;
         }
 
         $interactive = $message['interactive'] ?? [];
-
         if (($interactive['type'] ?? '') !== 'button_reply') {
             return null;
         }
 
         $buttonReply = $interactive['button_reply'] ?? [];
         $buttonId = $buttonReply['id'] ?? '';
-
-        // Parse the button ID to get action and reference
         $parsed = \Modules\Marketing\Models\MessageTemplate::parseButtonCallback($buttonId);
 
         return [
@@ -511,7 +359,6 @@ class WhatsAppService
     public function parseWebhookStatus(array $payload): ?array
     {
         $statuses = $payload['entry'][0]['changes'][0]['value']['statuses'] ?? [];
-
         if (empty($statuses)) {
             return null;
         }
@@ -520,7 +367,7 @@ class WhatsAppService
 
         return [
             'message_id' => $status['id'] ?? null,
-            'status' => $status['status'] ?? null, // sent, delivered, read, failed
+            'status' => $status['status'] ?? null,
             'timestamp' => $status['timestamp'] ?? null,
             'recipient' => $status['recipient_id'] ?? null,
             'error' => $status['errors'][0]['message'] ?? null,
@@ -528,32 +375,176 @@ class WhatsAppService
     }
 
     /**
-     * Format phone number for WhatsApp API.
-     * Expects phone in international format like +201234567890
+     * Send a Meta-formatted payload using the resolved credentials.
+     */
+    protected function postToMeta(array $creds, array $payload, array $logContext = []): array
+    {
+        $response = Http::withToken($creds['access_token'])
+            ->post($this->metaUrl($creds, '/messages'), $payload);
+
+        if ($response->successful()) {
+            $data = $response->json();
+
+            return [
+                'success' => true,
+                'message_id' => $data['messages'][0]['id'] ?? null,
+                'response' => $data,
+            ];
+        }
+
+        $error = $response->json();
+        $errorCode = $error['error']['code'] ?? null;
+        $errorMessage = $error['error']['message'] ?? 'Unknown error';
+
+        // Meta error 190 = access token revoked/expired. Mark the tenant's
+        // connection so the UI prompts a reconnect on next page load.
+        if ($errorCode === 190 && ($creds['source'] ?? null) === 'tenant') {
+            $this->markTokenInvalid(current_tenant(), $errorMessage);
+        }
+
+        Log::warning('whatsapp.meta_send_failed', array_merge($logContext, [
+            'source' => $creds['source'] ?? null,
+            'error_code' => $errorCode,
+            'error' => $errorMessage,
+        ]));
+
+        return [
+            'success' => false,
+            'error' => $errorMessage,
+            'error_code' => $errorCode,
+            'response' => $error,
+        ];
+    }
+
+    /**
+     * Mark the tenant's Meta connection as needing reconnect — the next
+     * resolveFor() will return null and fall back to platform creds.
+     */
+    protected function markTokenInvalid(?Tenant $tenant, string $reason): void
+    {
+        if (! $tenant) {
+            return;
+        }
+
+        $meta = $tenant->getSetting('messaging.whatsapp.meta', []) ?: [];
+        $meta['status'] = 'disconnected';
+        $meta['last_error'] = "Token rejected by Meta: {$reason}";
+        $tenant->setSetting('messaging.whatsapp.meta', $meta);
+
+        $this->resolver->flush($tenant);
+    }
+
+    /**
+     * Send via the platform-global Twilio WhatsApp number (legacy fallback).
+     */
+    protected function sendViaPlatformTwilio(string $to, string $message): array
+    {
+        $accountSid = (string) PlatformSetting::get('whatsapp_twilio_account_sid', '');
+        $authToken = (string) PlatformSetting::get('whatsapp_twilio_auth_token', '');
+        $fromNumber = (string) PlatformSetting::get('whatsapp_twilio_from_number', '');
+
+        try {
+            $formattedTo = $this->formatPhoneNumber($to);
+            $formattedFrom = $this->formatPhoneNumber($fromNumber);
+
+            $response = Http::withBasicAuth($accountSid, $authToken)
+                ->asForm()
+                ->post("https://api.twilio.com/2010-04-01/Accounts/{$accountSid}/Messages.json", [
+                    'From' => "whatsapp:{$formattedFrom}",
+                    'To' => "whatsapp:{$formattedTo}",
+                    'Body' => $message,
+                ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+
+                return [
+                    'success' => true,
+                    'message_id' => $data['sid'] ?? null,
+                    'response' => $data,
+                ];
+            }
+
+            $error = $response->json();
+
+            return [
+                'success' => false,
+                'error' => $error['message'] ?? 'Unknown error',
+                'response' => $error,
+            ];
+        } catch (\Exception $e) {
+            Log::error('Twilio WhatsApp send failed', [
+                'to' => $to,
+                'error' => $e->getMessage(),
+            ]);
+
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Meta-only convenience for callers that don't need template/interactive.
+     * Kept protected — public surface is sendTextMessage() which fronts both
+     * Meta and platform Twilio routing.
+     */
+    protected function sendViaMeta(array $creds, string $to, string $message): array
+    {
+        try {
+            return $this->postToMeta($creds, [
+                'messaging_product' => 'whatsapp',
+                'recipient_type' => 'individual',
+                'to' => $this->formatPhoneNumber($to),
+                'type' => 'text',
+                'text' => [
+                    'preview_url' => false,
+                    'body' => $message,
+                ],
+            ], ['context' => 'text', 'to' => $to]);
+        } catch (\Exception $e) {
+            Log::error('WhatsApp send failed', [
+                'to' => $to,
+                'error' => $e->getMessage(),
+            ]);
+
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    protected function hasPlatformTwilio(): bool
+    {
+        return PlatformSetting::get('whatsapp_provider', 'meta') === 'twilio'
+            && (string) PlatformSetting::get('whatsapp_twilio_account_sid', '') !== ''
+            && (string) PlatformSetting::get('whatsapp_twilio_auth_token', '') !== ''
+            && (string) PlatformSetting::get('whatsapp_twilio_from_number', '') !== '';
+    }
+
+    /**
+     * Format phone number for WhatsApp API. Expects international format
+     * like +201234567890; tolerates local Egyptian numbers starting with 0.
      */
     protected function formatPhoneNumber(string $phone): string
     {
-        // Remove any non-numeric characters except +
         $phone = preg_replace('/[^0-9+]/', '', $phone);
 
-        // If starts with +, remove it (APIs expect just numbers)
         if (str_starts_with($phone, '+')) {
             $phone = substr($phone, 1);
         }
 
-        // If starts with 0, assume Egyptian number and add country code
         if (str_starts_with($phone, '0')) {
-            $phone = '20' . substr($phone, 1);
+            $phone = '20'.substr($phone, 1);
         }
 
-        return '+' . $phone;
+        return '+'.$phone;
     }
 
     /**
-     * Get Meta Graph API URL.
+     * Build a Meta Graph API URL for the resolved phone_number_id.
      */
-    protected function getMetaApiUrl(string $endpoint = ''): string
+    protected function metaUrl(array $creds, string $endpoint = ''): string
     {
-        return "https://graph.facebook.com/{$this->apiVersion}/{$this->phoneNumber}{$endpoint}";
+        $version = $creds['api_version'] ?? 'v18.0';
+        $phoneId = $creds['phone_number_id'];
+
+        return "https://graph.facebook.com/{$version}/{$phoneId}{$endpoint}";
     }
 }
