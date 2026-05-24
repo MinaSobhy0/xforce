@@ -109,6 +109,10 @@ return [
         'reply_placeholder' => 'Type your message…',
         'choose_template' => 'Template',
         'window_expired_help' => 'You are outside the 24-hour reply window. Pick an approved template to send.',
+        'attach_media' => 'Attach',
+        'choose_file' => 'File',
+        'attach_help' => 'Image (JPEG/PNG/WebP), document (PDF), video (MP4) or audio. Max 25 MB.',
+        'caption_optional' => 'Caption (optional)',
 
         'no_messages' => 'No messages in this conversation yet.',
         'media_pending' => 'Media downloading…',

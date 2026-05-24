@@ -62,6 +62,50 @@ class ViewWhatsAppConversation extends ViewRecord
                     $this->surfaceSendResult($result);
                 }),
 
+            Action::make('attach_media')
+                ->label(__('marketing::whatsapp.inbox.attach_media'))
+                ->icon('heroicon-o-paper-clip')
+                ->color('gray')
+                ->visible(fn () => $r->isWithinServiceWindow())
+                ->modalHeading(__('marketing::whatsapp.inbox.attach_media'))
+                ->form([
+                    Forms\Components\FileUpload::make('file')
+                        ->label(__('marketing::whatsapp.inbox.choose_file'))
+                        ->required()
+                        ->disk('tenant')
+                        ->directory('whatsapp/outbound')
+                        ->acceptedFileTypes([
+                            'image/jpeg', 'image/png', 'image/webp',
+                            'application/pdf',
+                            'video/mp4',
+                            'audio/mpeg', 'audio/aac', 'audio/ogg', 'audio/mp4', 'audio/amr',
+                        ])
+                        ->maxSize(25 * 1024) // Meta cap: 25MB
+                        ->helperText(__('marketing::whatsapp.inbox.attach_help')),
+                    Forms\Components\Textarea::make('caption')
+                        ->label(__('marketing::whatsapp.inbox.caption_optional'))
+                        ->rows(2)
+                        ->maxLength(1024),
+                ])
+                ->action(function (array $data) use ($r): void {
+                    $relativePath = $data['file'];
+                    $absolutePath = \Illuminate\Support\Facades\Storage::disk('tenant')->path($relativePath);
+                    $mime = mime_content_type($absolutePath) ?: 'application/octet-stream';
+
+                    $svc = app(WhatsAppService::class);
+                    $caption = $data['caption'] ?: null;
+                    $filename = basename($relativePath);
+
+                    $result = match (true) {
+                        str_starts_with($mime, 'image/') => $svc->sendImage($r->remote_phone_e164, $absolutePath, $caption),
+                        str_starts_with($mime, 'video/') => $svc->sendVideo($r->remote_phone_e164, $absolutePath, $caption),
+                        str_starts_with($mime, 'audio/') => $svc->sendAudio($r->remote_phone_e164, $absolutePath),
+                        default => $svc->sendDocument($r->remote_phone_e164, $absolutePath, $filename, $caption),
+                    };
+
+                    $this->surfaceSendResult($result);
+                }),
+
             Action::make('reply_template')
                 ->label(__('marketing::whatsapp.inbox.reply_template'))
                 ->icon('heroicon-o-document-text')

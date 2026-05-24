@@ -228,6 +228,130 @@ class WhatsAppService
     }
 
     /**
+     * Send an image. $source = http(s) URL → uses Meta `link` mode (Meta
+     * fetches the URL itself, must be publicly reachable). Local path →
+     * uploads to Meta first (sha256-cached), then sends with media id.
+     *
+     * Defaults to upload mode to keep tenant storage private and to work
+     * in dev/air-gapped where public URLs aren't reachable.
+     */
+    public function sendImage(string $to, string $source, ?string $caption = null): array
+    {
+        return $this->sendMedia($to, 'image', $source, ['caption' => $caption]);
+    }
+
+    public function sendDocument(string $to, string $source, ?string $filename = null, ?string $caption = null): array
+    {
+        return $this->sendMedia($to, 'document', $source, [
+            'filename' => $filename,
+            'caption' => $caption,
+        ]);
+    }
+
+    public function sendVideo(string $to, string $source, ?string $caption = null): array
+    {
+        return $this->sendMedia($to, 'video', $source, ['caption' => $caption]);
+    }
+
+    public function sendAudio(string $to, string $source): array
+    {
+        return $this->sendMedia($to, 'audio', $source, []);
+    }
+
+    /**
+     * Shared media-send pipeline. Builds the Meta payload around an
+     * uploaded media_id or a public link, then funnels through postToMeta
+     * so the outbound mirror + token-revoked auto-disconnect both apply.
+     */
+    protected function sendMedia(string $to, string $type, string $source, array $extras = []): array
+    {
+        if (! (bool) PlatformSetting::get('whatsapp_enabled', false)) {
+            return ['success' => false, 'error' => 'WhatsApp is not configured'];
+        }
+
+        $creds = $this->resolver->resolveFor(current_tenant());
+        if (! $creds) {
+            return ['success' => false, 'error' => 'No WhatsApp credentials for this tenant'];
+        }
+
+        $mediaBlock = $this->buildMediaBlock($type, $source, $extras);
+        if (isset($mediaBlock['_error'])) {
+            return ['success' => false, 'error' => $mediaBlock['_error']];
+        }
+
+        $payload = [
+            'messaging_product' => 'whatsapp',
+            'recipient_type' => 'individual',
+            'to' => $this->formatPhoneNumber($to),
+            'type' => $type,
+            $type => $mediaBlock,
+        ];
+
+        return $this->postToMeta($creds, $payload, [
+            'context' => 'media',
+            'media_type' => $type,
+            'to' => $to,
+        ]);
+    }
+
+    /**
+     * Returns an array Meta accepts under image/document/video/audio keys.
+     * Either {link: "https://..."} or {id: "<uploaded media_id>"} plus
+     * optional caption/filename.
+     *
+     * @return array{link?:string,id?:string,caption?:string,filename?:string,_error?:string}
+     */
+    protected function buildMediaBlock(string $type, string $source, array $extras): array
+    {
+        $block = [];
+
+        if (filled($extras['caption'] ?? null) && in_array($type, ['image', 'document', 'video'], true)) {
+            $block['caption'] = mb_substr((string) $extras['caption'], 0, 1024);
+        }
+
+        // Public URL → use Meta's link mode (no upload).
+        if (str_starts_with($source, 'http://') || str_starts_with($source, 'https://')) {
+            $block['link'] = $source;
+            if ($type === 'document') {
+                $block['filename'] = $extras['filename'] ?? basename(parse_url($source, PHP_URL_PATH) ?? 'file');
+            }
+
+            return $block;
+        }
+
+        // Local path → upload + cache, send with media id.
+        if (! is_file($source)) {
+            return ['_error' => "Media source not found: {$source}"];
+        }
+
+        try {
+            $mime = mime_content_type($source) ?: $this->defaultMimeForType($type);
+            $mediaId = app(\Modules\Marketing\Services\Meta\MediaUploader::class)
+                ->uploadFromPath($source, $mime);
+
+            $block['id'] = $mediaId;
+            if ($type === 'document') {
+                $block['filename'] = $extras['filename'] ?? basename($source);
+            }
+
+            return $block;
+        } catch (\Throwable $e) {
+            return ['_error' => $e->getMessage()];
+        }
+    }
+
+    protected function defaultMimeForType(string $type): string
+    {
+        return match ($type) {
+            'image' => 'image/jpeg',
+            'document' => 'application/pdf',
+            'video' => 'video/mp4',
+            'audio' => 'audio/mpeg',
+            default => 'application/octet-stream',
+        };
+    }
+
+    /**
      * Send a message using a template with buttons (interactive message).
      */
     public function sendMessageWithButtons(

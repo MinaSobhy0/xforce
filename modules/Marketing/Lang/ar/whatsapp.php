@@ -109,6 +109,10 @@ return [
         'reply_placeholder' => 'اكتب رسالتك…',
         'choose_template' => 'القالب',
         'window_expired_help' => 'أنت خارج نافذة الرد البالغة 24 ساعة. اختر قالبًا معتمدًا للإرسال.',
+        'attach_media' => 'إرفاق',
+        'choose_file' => 'الملف',
+        'attach_help' => 'صورة (JPEG/PNG/WebP) أو مستند (PDF) أو فيديو (MP4) أو صوت. الحد الأقصى 25 ميجابايت.',
+        'caption_optional' => 'تعليق (اختياري)',
 
         'no_messages' => 'لا توجد رسائل في هذه المحادثة بعد.',
         'media_pending' => 'جاري تنزيل الوسائط…',
