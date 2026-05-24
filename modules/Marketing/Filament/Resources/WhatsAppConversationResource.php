@@ -30,6 +30,10 @@ class WhatsAppConversationResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'remote_display_name';
 
+    // Override Filament's auto-slug ('whats-app-conversations') with a
+    // human-readable URL.
+    protected static ?string $slug = 'whatsapp-conversations';
+
     public static function getNavigationLabel(): string
     {
         return __('marketing::whatsapp.inbox.nav_label');

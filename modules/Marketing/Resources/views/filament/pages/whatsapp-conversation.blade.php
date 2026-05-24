@@ -1,9 +1,11 @@
 @php
     /** @var \Modules\Marketing\Models\WhatsAppConversation $record */
-    $record = $this->record;
-    $messages = $record->messages()->orderBy('created_at')->limit(500)->get();
+    // Filament's ViewRecord exposes $record as a public property; the blade
+    // can read it directly. Guard for standalone-render tests.
+    $record = $record ?? (isset($this) ? $this->record : null);
+    $messages = $record ? $record->messages()->orderBy('created_at')->limit(500)->get() : collect();
     $isRtl = app()->getLocale() === 'ar';
-    $withinWindow = $record->isWithinServiceWindow();
+    $withinWindow = $record?->isWithinServiceWindow() ?? false;
 @endphp
 
 <x-filament-panels::page>
