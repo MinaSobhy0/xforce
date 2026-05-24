@@ -1079,6 +1079,19 @@ class Tenant extends Model
         $this->settings = $settings;
     }
 
+    /**
+     * Find the tenant connected to a given Meta WhatsApp Business Account ID.
+     * Used by the webhook middleware to route Meta-delivered payloads to the
+     * right schema. Tenants without a connected WABA return null.
+     *
+     * Hits the partial expression index created by
+     * 2026_05_24_000001_add_waba_index_to_tenants.
+     */
+    public static function findByWabaId(string $wabaId): ?self
+    {
+        return static::where('settings->messaging->whatsapp->meta->waba_id', $wabaId)->first();
+    }
+
     public function getUsagePercentage(string $metric): float
     {
         if (! $this->usage) {

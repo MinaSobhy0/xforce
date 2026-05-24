@@ -2,17 +2,17 @@
 
 namespace Modules\Marketing\Http\Controllers;
 
-use Illuminate\Http\Request;
+use App\Models\PlatformSetting;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Config;
-use Modules\Marketing\Services\WhatsAppService;
-use Modules\Marketing\Models\NotificationLog;
-use Modules\Marketing\Models\MessageTemplate;
 use Modules\Booking\Models\Appointment;
-use Modules\Core\Models\Tenant;
+use Modules\Marketing\Models\MessageTemplate;
+use Modules\Marketing\Models\NotificationLog;
+use Modules\Marketing\Services\WhatsAppService;
 
 class WhatsAppWebhookController extends Controller
 {
@@ -86,23 +86,41 @@ class WhatsAppWebhookController extends Controller
     {
         $signature = $request->header('X-Hub-Signature-256');
 
-        if (!$signature) {
+        if (! $signature) {
             return false;
         }
 
-        $appSecret = config('marketing.whatsapp.app_secret');
+        $appSecret = $this->resolveAppSecret();
 
-        if (!$appSecret) {
-            // If app secret is not configured, log and reject
+        if (! $appSecret) {
             Log::error('WhatsApp app secret not configured - cannot verify webhook signatures');
+
             return false;
         }
 
         $payload = $request->getContent();
         $expectedSignature = 'sha256=' . hash_hmac('sha256', $payload, $appSecret);
 
-        // Use constant-time comparison to prevent timing attacks
         return hash_equals($expectedSignature, $signature);
+    }
+
+    /**
+     * Pull the Meta App Secret from PlatformSetting (where SuperAdmin saves it,
+     * Crypt-encrypted). Falls back to the legacy env-config path so older
+     * deployments that hadn't migrated their secret yet don't suddenly 401.
+     */
+    protected function resolveAppSecret(): ?string
+    {
+        $stored = PlatformSetting::get('whatsapp_meta_app_secret', '');
+        if ($stored) {
+            try {
+                return Crypt::decryptString($stored);
+            } catch (DecryptException) {
+                return $stored; // tolerate plaintext rows
+            }
+        }
+
+        return config('marketing.whatsapp.app_secret');
     }
 
     /**
@@ -203,66 +221,28 @@ class WhatsAppWebhookController extends Controller
     }
 
     /**
-     * Find appointment with proper tenant context.
-     * SECURITY: Never query appointments globally - always with tenant scoping.
+     * Find an appointment for an incoming button callback.
      *
-     * The appointment ID should be in format: {tenant_id}:{appointment_id}
-     * to ensure we can properly scope the query.
+     * Tenant context is already current when this runs — the
+     * ResolveTenantFromWabaWebhook middleware switched the schema based on
+     * the WABA id in entry[0].id before the controller fired. The reference
+     * id is just the appointment id; legacy "{tenant_id}:{appointment_id}"
+     * payloads still in flight from before Phase A are tolerated by
+     * stripping the prefix.
      */
     protected function findAppointmentWithTenant(string $referenceId): ?Appointment
     {
-        // Parse the reference ID - expected format: {tenant_id}:{appointment_id}
-        // This ensures webhook callbacks include tenant context
-        if (str_contains($referenceId, ':')) {
-            [$tenantId, $appointmentId] = explode(':', $referenceId, 2);
-        } else {
-            // Legacy format - try to find via notification log which has tenant context
-            $notificationLog = NotificationLog::where('reference_id', $referenceId)
-                ->orWhere('reference_id', 'appointment:' . $referenceId)
-                ->first();
+        $appointmentId = str_contains($referenceId, ':')
+            ? (explode(':', $referenceId, 2)[1] ?? $referenceId)
+            : $referenceId;
 
-            if (!$notificationLog || !$notificationLog->tenant_id) {
-                Log::warning('Cannot determine tenant for appointment callback', [
-                    'reference_id' => $referenceId,
-                ]);
-                return null;
-            }
-
-            $tenantId = $notificationLog->tenant_id;
-            $appointmentId = $referenceId;
-        }
-
-        // Validate appointment ID is numeric to prevent injection
-        if (!is_numeric($appointmentId)) {
+        if (! is_numeric($appointmentId)) {
             Log::warning('Invalid appointment ID format', ['appointment_id' => $appointmentId]);
+
             return null;
         }
 
-        // Find the tenant
-        $tenant = Tenant::find($tenantId);
-        if (!$tenant || !$tenant->database_name) {
-            Log::warning('Tenant not found for appointment callback', ['tenant_id' => $tenantId]);
-            return null;
-        }
-
-        // Switch to tenant schema
-        $this->switchToTenantSchema($tenant);
-
-        // Now find the appointment within the tenant's schema
         return Appointment::find($appointmentId);
-    }
-
-    /**
-     * Switch to tenant's database schema.
-     */
-    protected function switchToTenantSchema(Tenant $tenant): void
-    {
-        $schemaName = $tenant->database_name;
-
-        Config::set('database.connections.pgsql.search_path', $schemaName);
-        DB::purge('pgsql');
-        DB::reconnect('pgsql');
-        DB::statement("SET search_path TO \"{$schemaName}\"");
     }
 
     /**
