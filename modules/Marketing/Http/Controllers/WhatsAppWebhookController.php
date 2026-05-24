@@ -96,6 +96,18 @@ class WhatsAppWebhookController extends Controller
             ]);
         }
 
+        // Real-time template approval/rejection updates from Meta. Phase A
+        // middleware already switched us to the right tenant schema via
+        // the WABA id in entry[0].id, so MessageTemplate queries land in
+        // the correct place.
+        try {
+            $this->handleTemplateStatusUpdates($payload);
+        } catch (\Throwable $e) {
+            Log::error('whatsapp.webhook.template_status_failed', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+
         return response()->json(['status' => 'ok']);
     }
 
@@ -142,6 +154,76 @@ class WhatsAppWebhookController extends Controller
         }
 
         return config('marketing.whatsapp.app_secret');
+    }
+
+    /**
+     * Walk Meta's webhook entries for `message_template_status_update`
+     * changes and flip the matching local MessageTemplate row.
+     *
+     * Meta payload shape (per their docs):
+     *   entry[*].changes[*] = {
+     *     value: {
+     *       event: 'APPROVED' | 'REJECTED' | ...,
+     *       message_template_id: '...',
+     *       message_template_name: '...',
+     *       message_template_language: 'en_US',
+     *       reason: '...'  (only when REJECTED)
+     *     },
+     *     field: 'message_template_status_update'
+     *   }
+     */
+    protected function handleTemplateStatusUpdates(array $payload): void
+    {
+        foreach ($payload['entry'] ?? [] as $entry) {
+            foreach ($entry['changes'] ?? [] as $change) {
+                if (($change['field'] ?? '') !== 'message_template_status_update') {
+                    continue;
+                }
+
+                $value = $change['value'] ?? [];
+                $metaId = (string) ($value['message_template_id'] ?? '');
+                $name = (string) ($value['message_template_name'] ?? '');
+                $event = strtoupper((string) ($value['event'] ?? ''));
+                $reason = isset($value['reason'])
+                    ? $this->sanitizeExternalInput((string) $value['reason'])
+                    : null;
+
+                if (! $event) {
+                    continue;
+                }
+
+                $query = MessageTemplate::query();
+                if ($metaId !== '') {
+                    $query->where('meta_template_id', $metaId);
+                } elseif ($name !== '') {
+                    $query->where('whatsapp_template_name', $name);
+                } else {
+                    continue;
+                }
+
+                $template = $query->first();
+                if (! $template) {
+                    Log::info('whatsapp.template_status.no_local_row', [
+                        'meta_template_id' => $metaId ?: null,
+                        'name' => $name ?: null,
+                        'event' => $event,
+                    ]);
+
+                    continue;
+                }
+
+                $template->forceFill([
+                    'meta_template_status' => $event,
+                    'meta_last_error' => $event === MessageTemplate::META_STATUS_REJECTED ? $reason : null,
+                    'meta_synced_at' => now(),
+                ])->save();
+
+                Log::info('whatsapp.template_status.updated', [
+                    'template_id' => $template->id,
+                    'event' => $event,
+                ]);
+            }
+        }
     }
 
     /**

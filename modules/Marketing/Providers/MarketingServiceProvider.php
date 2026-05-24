@@ -13,6 +13,7 @@ use Modules\Marketing\Services\CampaignService;
 use Modules\Marketing\Console\ProcessAppointmentRemindersCommand;
 use Modules\Marketing\Console\ProcessScheduledCampaignsCommand;
 use Modules\Marketing\Console\RefreshWhatsAppTokenCommand;
+use Modules\Marketing\Console\SyncWhatsAppTemplatesCommand;
 
 class MarketingServiceProvider extends ServiceProvider
 {
@@ -36,6 +37,7 @@ class MarketingServiceProvider extends ServiceProvider
                 ProcessScheduledCampaignsCommand::class,
                 ProcessAppointmentRemindersCommand::class,
                 RefreshWhatsAppTokenCommand::class,
+                SyncWhatsAppTemplatesCommand::class,
             ]);
         }
     }

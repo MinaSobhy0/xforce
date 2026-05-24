@@ -64,3 +64,11 @@ Schedule::command('automation:process-reminders')
     ->everyMinute()
     ->withoutOverlapping()
     ->runInBackground();
+
+// Pull Meta WhatsApp template approval state for every connected tenant
+// daily. Real-time status flips also arrive via the message_template_status_update
+// webhook handler — this is the safety-net for missed deliveries.
+Schedule::command('whatsapp:sync-templates')
+    ->dailyAt('04:00')
+    ->withoutOverlapping()
+    ->runInBackground();

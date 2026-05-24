@@ -254,6 +254,19 @@ class MessageTemplateResource extends Resource
                     ->label(__('marketing::marketing.fields.is_active'))
                     ->boolean(),
 
+                Tables\Columns\TextColumn::make('meta_template_status')
+                    ->label(__('marketing::whatsapp.template.col_meta_status'))
+                    ->badge()
+                    ->color(fn (?string $state) => match ($state) {
+                        MessageTemplate::META_STATUS_APPROVED => 'success',
+                        MessageTemplate::META_STATUS_PENDING => 'warning',
+                        MessageTemplate::META_STATUS_REJECTED => 'danger',
+                        MessageTemplate::META_STATUS_PAUSED, MessageTemplate::META_STATUS_DISABLED => 'gray',
+                        default => 'gray',
+                    })
+                    ->placeholder(__('marketing::whatsapp.template.not_submitted'))
+                    ->tooltip(fn (MessageTemplate $r) => $r->meta_last_error ?: null),
+
                 Tables\Columns\TextColumn::make('updated_at')
                     ->label(__('marketing::marketing.fields.updated_at'))
                     ->dateTime()
@@ -269,6 +282,16 @@ class MessageTemplateResource extends Resource
                     ->label(__('marketing::marketing.fields.type'))
                     ->options(MessageTemplate::types()),
 
+                Tables\Filters\SelectFilter::make('meta_template_status')
+                    ->label(__('marketing::whatsapp.template.col_meta_status'))
+                    ->options([
+                        MessageTemplate::META_STATUS_PENDING => 'Pending',
+                        MessageTemplate::META_STATUS_APPROVED => 'Approved',
+                        MessageTemplate::META_STATUS_REJECTED => 'Rejected',
+                        MessageTemplate::META_STATUS_PAUSED => 'Paused',
+                        MessageTemplate::META_STATUS_DISABLED => 'Disabled',
+                    ]),
+
                 Tables\Filters\TernaryFilter::make('is_active')
                     ->label(__('marketing::marketing.fields.is_active')),
             ])
@@ -281,7 +304,48 @@ class MessageTemplateResource extends Resource
                         $new = $record->replicate();
                         $new->code = $record->code . '_copy';
                         $new->is_system = false;
+                        $new->meta_template_id = null;
+                        $new->meta_template_status = null;
+                        $new->meta_last_error = null;
                         $new->save();
+                    }),
+
+                Tables\Actions\Action::make('submit_to_meta')
+                    ->label(__('marketing::whatsapp.template.action_submit'))
+                    ->icon('heroicon-o-cloud-arrow-up')
+                    ->color('primary')
+                    ->visible(fn (MessageTemplate $r) => $r->channel === MessageTemplate::CHANNEL_WHATSAPP
+                        && filled($r->whatsapp_template_name)
+                        && in_array($r->meta_template_status, [null, MessageTemplate::META_STATUS_REJECTED], true))
+                    ->requiresConfirmation()
+                    ->modalDescription(__('marketing::whatsapp.template.submit_modal_desc'))
+                    ->action(function (MessageTemplate $record) {
+                        $tenant = current_tenant();
+                        if (! $tenant) {
+                            \Filament\Notifications\Notification::make()
+                                ->title(__('marketing::whatsapp.notify.no_tenant'))
+                                ->danger()->send();
+                            return;
+                        }
+                        \Modules\Marketing\Jobs\SubmitTemplateToMetaJob::dispatch($tenant->id, $record->id);
+                        \Filament\Notifications\Notification::make()
+                            ->title(__('marketing::whatsapp.template.submit_queued'))
+                            ->success()->send();
+                    }),
+
+                Tables\Actions\Action::make('resync_from_meta')
+                    ->label(__('marketing::whatsapp.template.action_resync'))
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('gray')
+                    ->visible(fn (MessageTemplate $r) => $r->channel === MessageTemplate::CHANNEL_WHATSAPP
+                        && filled($r->meta_template_id))
+                    ->action(function (MessageTemplate $record) {
+                        $tenant = current_tenant();
+                        if (! $tenant) return;
+                        app(\Modules\Marketing\Services\Meta\TemplateSyncService::class)->pullAll($tenant);
+                        \Filament\Notifications\Notification::make()
+                            ->title(__('marketing::whatsapp.template.resync_done'))
+                            ->success()->send();
                     }),
             ])
             ->bulkActions([

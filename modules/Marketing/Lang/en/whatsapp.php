@@ -58,6 +58,16 @@ return [
         'no_tenant' => 'No tenant context — please re-open this page from inside a clinic admin panel.',
     ],
 
+    'template' => [
+        'col_meta_status' => 'Meta status',
+        'not_submitted' => 'Not submitted',
+        'action_submit' => 'Submit to Meta',
+        'action_resync' => 'Re-sync from Meta',
+        'submit_modal_desc' => 'Sends this template to Meta for approval. Meta typically reviews within 1–24 hours. The status badge updates automatically once Meta responds.',
+        'submit_queued' => 'Submission queued — Meta will respond within minutes to a few hours.',
+        'resync_done' => 'Synced from Meta.',
+    ],
+
     'inbox' => [
         'nav_label' => 'WhatsApp Inbox',
         'model_label' => 'Conversation',

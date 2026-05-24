@@ -100,6 +100,23 @@ class WhatsAppService
             return ['success' => false, 'error' => 'WhatsApp is not configured'];
         }
 
+        // If we have the local MessageTemplate row AND it's been submitted to
+        // Meta but isn't APPROVED, short-circuit with a friendly error rather
+        // than burning a Meta API call that'll fail with 132012/132001.
+        // Rows with NULL meta_template_status are tolerated (template was
+        // created in Meta first, locally never tracked — still try to send).
+        $local = \Modules\Marketing\Models\MessageTemplate::query()
+            ->where('whatsapp_template_name', $templateName)
+            ->whereNotNull('meta_template_status')
+            ->first();
+        if ($local && $local->meta_template_status !== \Modules\Marketing\Models\MessageTemplate::META_STATUS_APPROVED) {
+            return [
+                'success' => false,
+                'error' => "Template '{$templateName}' is {$local->meta_template_status} at Meta — wait for approval or re-submit.",
+                'meta_template_status' => $local->meta_template_status,
+            ];
+        }
+
         $meta = $this->resolver->resolveFor(current_tenant());
 
         if (! $meta) {

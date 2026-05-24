@@ -44,6 +44,18 @@ class MessageTemplate extends BaseModel
     public const HEADER_IMAGE = 'image';
     public const HEADER_DOCUMENT = 'document';
 
+    // Meta template approval status
+    public const META_STATUS_PENDING = 'PENDING';
+    public const META_STATUS_APPROVED = 'APPROVED';
+    public const META_STATUS_REJECTED = 'REJECTED';
+    public const META_STATUS_PAUSED = 'PAUSED';
+    public const META_STATUS_DISABLED = 'DISABLED';
+
+    // Meta template categories
+    public const META_CATEGORY_MARKETING = 'MARKETING';
+    public const META_CATEGORY_UTILITY = 'UTILITY';
+    public const META_CATEGORY_AUTHENTICATION = 'AUTHENTICATION';
+
     public array $translatable = ['name', 'subject', 'content'];
 
     protected $fillable = [
@@ -64,6 +76,13 @@ class MessageTemplate extends BaseModel
         'is_system',
         'is_active',
         'sort_order',
+        'meta_template_id',
+        'meta_template_status',
+        'meta_template_category',
+        'meta_template_language',
+        'meta_synced_at',
+        'meta_last_error',
+        'platform_template_id',
     ];
 
     protected $casts = [
@@ -76,6 +95,7 @@ class MessageTemplate extends BaseModel
         'is_system' => 'boolean',
         'is_active' => 'boolean',
         'sort_order' => 'integer',
+        'meta_synced_at' => 'datetime',
     ];
 
     protected $attributes = [
@@ -405,5 +425,135 @@ class MessageTemplate extends BaseModel
             'reference_id' => $parts[1] ?? null,
             'template_code' => $parts[2] ?? null,
         ];
+    }
+
+    /**
+     * Render this template into Meta's message-templates API shape.
+     *
+     * Meta expects components: HEADER (optional), BODY (required),
+     * FOOTER (optional), BUTTONS (optional). Our `{{patient_name}}`-style
+     * named placeholders are translated to Meta's positional `{{1}}`,
+     * `{{2}}` in stable order. The positional mapping is returned so the
+     * caller can persist it (and `render()` keeps using named vars at
+     * send time without divergence).
+     *
+     * Returns the full payload ready to POST to /{waba_id}/message_templates.
+     *
+     * @return array{name:string,language:string,category:string,components:array}
+     */
+    public function toMetaPayload(?string $locale = null): array
+    {
+        $locale = $locale ?: ($this->meta_template_language
+            ? substr($this->meta_template_language, 0, 2)
+            : app()->getLocale());
+
+        $bodyText = $this->getTranslation('content', $locale);
+        [$positionalBody, $orderedVars] = $this->convertToPositional((string) $bodyText);
+
+        $components = [];
+
+        // HEADER (optional)
+        if ($this->header_type && $this->header_type !== self::HEADER_NONE) {
+            $components[] = $this->headerComponentForMeta($locale);
+        }
+
+        // BODY (required)
+        $bodyComponent = [
+            'type' => 'BODY',
+            'text' => $positionalBody,
+        ];
+        if ($orderedVars !== []) {
+            // Meta needs an example for each variable so it can preview the
+            // template during review. Pull from variables_json hints when
+            // available, else use the placeholder name itself.
+            $hints = is_array($this->variables_json) ? $this->variables_json : [];
+            $bodyComponent['example'] = [
+                'body_text' => [
+                    array_map(fn ($name) => (string) ($hints[$name] ?? $name), $orderedVars),
+                ],
+            ];
+        }
+        $components[] = $bodyComponent;
+
+        // FOOTER (optional)
+        if (filled($this->footer)) {
+            $components[] = [
+                'type' => 'FOOTER',
+                'text' => (string) $this->footer,
+            ];
+        }
+
+        // BUTTONS (optional, max 3 quick-reply for now)
+        if (! empty($this->buttons_json)) {
+            $components[] = [
+                'type' => 'BUTTONS',
+                'buttons' => array_slice(array_map(function ($btn) {
+                    return [
+                        'type' => 'QUICK_REPLY',
+                        'text' => mb_substr((string) ($btn['label'] ?? 'Button'), 0, 25),
+                    ];
+                }, $this->buttons_json ?? []), 0, 3),
+            ];
+        }
+
+        return [
+            'name' => (string) $this->whatsapp_template_name,
+            'language' => $this->meta_template_language ?: 'en_US',
+            'category' => $this->meta_template_category ?: self::META_CATEGORY_UTILITY,
+            'components' => $components,
+        ];
+    }
+
+    /**
+     * Walk the body text and replace `{{patient_name}}` with `{{1}}` etc.
+     * Returns the rewritten text and the ordered list of original variable
+     * names (so the caller can build Meta's "example" array in matching order).
+     *
+     * @return array{0:string,1:array<int,string>}
+     */
+    protected function convertToPositional(string $text): array
+    {
+        $names = [];
+
+        $rewritten = preg_replace_callback('/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/', function ($m) use (&$names) {
+            $name = $m[1];
+            $existingIdx = array_search($name, $names, true);
+            if ($existingIdx === false) {
+                $names[] = $name;
+                $existingIdx = count($names) - 1;
+            }
+
+            return '{{'.($existingIdx + 1).'}}';
+        }, $text);
+
+        return [(string) $rewritten, $names];
+    }
+
+    protected function headerComponentForMeta(string $locale): array
+    {
+        $headerContent = $this->header_content ?? [];
+
+        return match ($this->header_type) {
+            self::HEADER_TEXT => [
+                'type' => 'HEADER',
+                'format' => 'TEXT',
+                'text' => $headerContent[$locale] ?? $headerContent['en'] ?? '',
+            ],
+            self::HEADER_IMAGE => [
+                'type' => 'HEADER',
+                'format' => 'IMAGE',
+                'example' => [
+                    'header_handle' => [$headerContent['url'] ?? ''],
+                ],
+            ],
+            self::HEADER_DOCUMENT => [
+                'type' => 'HEADER',
+                'format' => 'DOCUMENT',
+                'example' => [
+                    'header_handle' => [$headerContent['url'] ?? ''],
+                ],
+            ],
+            default => [],
+        };
     }
 }
