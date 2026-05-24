@@ -10,8 +10,9 @@ use Modules\Marketing\Services\EmailService;
 use Modules\Marketing\Services\MessageQuotaService;
 use Modules\Marketing\Services\NotificationService;
 use Modules\Marketing\Services\CampaignService;
-use Modules\Marketing\Console\ProcessScheduledCampaignsCommand;
 use Modules\Marketing\Console\ProcessAppointmentRemindersCommand;
+use Modules\Marketing\Console\ProcessScheduledCampaignsCommand;
+use Modules\Marketing\Console\RefreshWhatsAppTokenCommand;
 
 class MarketingServiceProvider extends ServiceProvider
 {
@@ -34,6 +35,7 @@ class MarketingServiceProvider extends ServiceProvider
             $this->commands([
                 ProcessScheduledCampaignsCommand::class,
                 ProcessAppointmentRemindersCommand::class,
+                RefreshWhatsAppTokenCommand::class,
             ]);
         }
     }
