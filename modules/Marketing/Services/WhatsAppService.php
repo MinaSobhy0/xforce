@@ -546,6 +546,17 @@ class WhatsAppService
     }
 
     /**
+     * Meta enforces a 24-hour customer-service window: free-form text
+     * replies are only accepted within 24 hours of the recipient's last
+     * inbound message. Outside that window, only approved templates work.
+     */
+    public function canSendFreeForm(\Modules\Marketing\Models\WhatsAppConversation $conversation): bool
+    {
+        return $conversation->last_inbound_at !== null
+            && $conversation->last_inbound_at->gt(now()->subHours(24));
+    }
+
+    /**
      * Build a Meta Graph API URL for the resolved phone_number_id.
      */
     protected function metaUrl(array $creds, string $endpoint = ''): string
