@@ -384,10 +384,18 @@ class WhatsAppService
 
         if ($response->successful()) {
             $data = $response->json();
+            $messageId = $data['messages'][0]['id'] ?? null;
+
+            $this->mirrorOutboundToInbox(
+                creds: $creds,
+                payload: $payload,
+                wamid: $messageId,
+                logContext: $logContext,
+            );
 
             return [
                 'success' => true,
-                'message_id' => $data['messages'][0]['id'] ?? null,
+                'message_id' => $messageId,
                 'response' => $data,
             ];
         }
@@ -546,5 +554,77 @@ class WhatsAppService
         $phoneId = $creds['phone_number_id'];
 
         return "https://graph.facebook.com/{$version}/{$phoneId}{$endpoint}";
+    }
+
+    /**
+     * After a successful Meta send, write a WhatsAppMessage row so the
+     * inbox thread shows both sides of the conversation. Find-or-create
+     * the conversation by (remote phone, our phone_number_id).
+     *
+     * Best-effort — if the inbox write fails the send already succeeded,
+     * we just log and move on. Don't propagate the exception.
+     */
+    protected function mirrorOutboundToInbox(array $creds, array $payload, ?string $wamid, array $logContext): void
+    {
+        $tenant = current_tenant();
+        if (! $tenant) {
+            return; // platform-level send, no per-tenant inbox
+        }
+
+        $remotePhone = $payload['to'] ?? ($logContext['to'] ?? null);
+        if (! $remotePhone) {
+            return;
+        }
+        $remotePhone = $this->formatPhoneNumber((string) $remotePhone);
+
+        $phoneNumberId = (string) ($creds['phone_number_id'] ?? '');
+        if ($phoneNumberId === '') {
+            return;
+        }
+
+        try {
+            $conversation = \Modules\Marketing\Models\WhatsAppConversation::firstOrCreate(
+                [
+                    'remote_phone_e164' => $remotePhone,
+                    'phone_number_id' => $phoneNumberId,
+                ],
+                [
+                    'tenant_id' => $tenant->id,
+                ]
+            );
+
+            $type = $payload['type'] ?? 'text';
+            $body = match ($type) {
+                'text' => $payload['text']['body'] ?? null,
+                'template' => '[template] '.($payload['template']['name'] ?? ''),
+                'image', 'document', 'video', 'audio' => $payload[$type]['caption'] ?? null,
+                'interactive' => $payload['interactive']['body']['text'] ?? null,
+                default => null,
+            };
+
+            $mediaId = isset($payload[$type]['id']) ? (string) $payload[$type]['id'] : null;
+            $mediaFilename = $payload[$type]['filename'] ?? null;
+
+            \Modules\Marketing\Models\WhatsAppMessage::create([
+                'tenant_id' => $tenant->id,
+                'conversation_id' => $conversation->id,
+                'wamid' => $wamid,
+                'direction' => \Modules\Marketing\Models\WhatsAppMessage::DIRECTION_OUTBOUND,
+                'type' => $type,
+                'body' => $body,
+                'media_id' => $mediaId,
+                'media_filename' => $mediaFilename,
+                'status' => 'sent',
+                'sent_at' => now(),
+            ]);
+
+            $conversation->update(['last_message_at' => now()]);
+        } catch (\Throwable $e) {
+            Log::warning('whatsapp.outbound.mirror_failed', [
+                'wamid' => $wamid,
+                'to' => $remotePhone,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 }

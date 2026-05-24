@@ -12,12 +12,14 @@ use Illuminate\Support\Facades\Log;
 use Modules\Booking\Models\Appointment;
 use Modules\Marketing\Models\MessageTemplate;
 use Modules\Marketing\Models\NotificationLog;
+use Modules\Marketing\Services\InboundMessageProcessor;
 use Modules\Marketing\Services\WhatsAppService;
 
 class WhatsAppWebhookController extends Controller
 {
     public function __construct(
-        protected WhatsAppService $whatsAppService
+        protected WhatsAppService $whatsAppService,
+        protected InboundMessageProcessor $inboundProcessor,
     ) {}
 
     /**
@@ -69,10 +71,22 @@ class WhatsAppWebhookController extends Controller
             $this->handleStatusUpdate($status);
         }
 
-        // Handle button callbacks
+        // Handle button callbacks (appointment confirm/reschedule/cancel)
         $buttonCallback = $this->whatsAppService->parseButtonCallback($payload);
         if ($buttonCallback) {
             $this->handleButtonCallback($buttonCallback);
+        }
+
+        // Capture inbound messages into the per-tenant inbox tables.
+        // Wrapped — inbox persistence failing must never 500 the webhook
+        // because Meta retries aggressively on non-2xx and we'd loop the
+        // same bad payload until our log fills up.
+        try {
+            $this->inboundProcessor->handle($payload);
+        } catch (\Throwable $e) {
+            Log::error('whatsapp.webhook.inbound_processor_failed', [
+                'error' => $e->getMessage(),
+            ]);
         }
 
         return response()->json(['status' => 'ok']);

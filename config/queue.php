@@ -40,6 +40,20 @@ return [
             'after_commit' => false,
         ],
 
+        // Pinned to the 'central' DB connection so jobs land in public.jobs
+        // regardless of which tenant schema is active when they're dispatched.
+        // Use this for any job that must be schedulable across tenants
+        // (whatsapp media downloads, template syncs, etc.). Workers run as:
+        //   php artisan queue:work central
+        'central' => [
+            'driver' => 'database',
+            'connection' => 'central',
+            'table' => 'jobs',
+            'queue' => 'default',
+            'retry_after' => 90,
+            'after_commit' => false,
+        ],
+
         'beanstalkd' => [
             'driver' => 'beanstalkd',
             'host' => env('BEANSTALKD_HOST', 'localhost'),
