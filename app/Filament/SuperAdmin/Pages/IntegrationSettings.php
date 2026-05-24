@@ -46,8 +46,12 @@ class IntegrationSettings extends Page implements HasForms
             'whatsapp_meta_business_id' => PlatformSetting::get('whatsapp_meta_business_id', ''),
 
             // Meta Tech Provider (Embedded Signup) — XForce's own developer credentials.
+            // App ID and Config ID are public (rendered into the tenant's browser
+            // by the signup JS). App Secret is the only true secret — we never
+            // pre-fill it; admin leaves the field blank to keep the existing
+            // encrypted value or types a new one to rotate.
             'whatsapp_meta_app_id' => PlatformSetting::get('whatsapp_meta_app_id', ''),
-            'whatsapp_meta_app_secret' => PlatformSetting::get('whatsapp_meta_app_secret', ''),
+            'whatsapp_meta_app_secret' => null,
             'whatsapp_meta_signup_config_id' => PlatformSetting::get('whatsapp_meta_signup_config_id', ''),
         ];
 
@@ -153,21 +157,35 @@ class IntegrationSettings extends Page implements HasForms
                 // rows in platform_settings keep working as a silent fallback
                 // for installs that had them set before this refactor — they
                 // just aren't editable from the form anymore.
+                //
+                // Security: app_secret is the only true secret — encrypted at
+                // rest via Crypt::encryptString and never pre-filled on edit
+                // (leave blank to keep the current value). app_id and config_id
+                // are emitted into the tenant's browser by the Embedded Signup
+                // JS so they're public by design; password() masks them in the
+                // admin form for visual reassurance only.
                 Forms\Components\Fieldset::make('Meta WhatsApp Business — Tech Provider')
                     ->visible(fn(Forms\Get $get) => $get('whatsapp_enabled') && $get('whatsapp_provider') === 'meta')
                     ->schema([
                         Forms\Components\TextInput::make('whatsapp_meta_app_id')
                             ->label('Meta App ID')
-                            ->helperText("XForce's Meta App ID from developers.facebook.com. Public — used in the tenant's signup popup."),
+                            ->password()
+                            ->revealable()
+                            ->helperText("XForce's Meta App ID from developers.facebook.com. Sent to the tenant's browser by the signup popup."),
 
                         Forms\Components\TextInput::make('whatsapp_meta_app_secret')
                             ->label('Meta App Secret')
                             ->password()
-                            ->revealable()
-                            ->helperText('App Secret from the same Meta App. Used server-side to exchange the signup code for a permanent token. Never sent to the browser.'),
+                            ->revealable(false)
+                            ->placeholder(filled(PlatformSetting::get('whatsapp_meta_app_secret', '')) ? '••••••••••••' : null)
+                            ->dehydrateStateUsing(fn ($state) => filled($state) ? \Illuminate\Support\Facades\Crypt::encryptString($state) : null)
+                            ->dehydrated(fn ($state) => filled($state))
+                            ->helperText('Encrypted at rest. Leave blank to keep the current value. Never sent to the browser.'),
 
                         Forms\Components\TextInput::make('whatsapp_meta_signup_config_id')
                             ->label('Embedded Signup Config ID')
+                            ->password()
+                            ->revealable()
                             ->helperText('Generated when Embedded Signup is configured in the Meta App → WhatsApp product.'),
                     ]),
             ])

@@ -39,6 +39,12 @@ return [
 
     'test' => [
         'to' => 'Send to (international format)',
+        'to_help' => 'E.164 format, e.g. +201281717343. For sandbox/test numbers, the recipient must be in your Meta App Dashboard allow list.',
+        'mode' => 'Send as',
+        'mode_template' => 'Approved template (works any time)',
+        'mode_freeform' => 'Freeform text (only within a 24-hour customer-service window)',
+        'template_name' => 'Template name',
+        'template_language' => 'Template language',
         'message' => 'Message',
         'default_body' => 'This is a test message from your XForce WhatsApp integration.',
     ],

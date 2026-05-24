@@ -126,15 +126,44 @@ class WhatsAppIntegrationSettings extends Page implements HasForms
                     Forms\Components\TextInput::make('to')
                         ->label(__('marketing::whatsapp.test.to'))
                         ->placeholder('+201234567890')
+                        ->helperText(__('marketing::whatsapp.test.to_help'))
                         ->required(),
+                    Forms\Components\Select::make('mode')
+                        ->label(__('marketing::whatsapp.test.mode'))
+                        ->options([
+                            'template' => __('marketing::whatsapp.test.mode_template'),
+                            'freeform' => __('marketing::whatsapp.test.mode_freeform'),
+                        ])
+                        ->default('template')
+                        ->live()
+                        ->required(),
+                    Forms\Components\TextInput::make('template_name')
+                        ->label(__('marketing::whatsapp.test.template_name'))
+                        ->default('hello_world')
+                        ->visible(fn (Forms\Get $get) => $get('mode') === 'template')
+                        ->required(fn (Forms\Get $get) => $get('mode') === 'template'),
+                    Forms\Components\TextInput::make('template_language')
+                        ->label(__('marketing::whatsapp.test.template_language'))
+                        ->default('en_US')
+                        ->visible(fn (Forms\Get $get) => $get('mode') === 'template')
+                        ->required(fn (Forms\Get $get) => $get('mode') === 'template'),
                     Forms\Components\Textarea::make('message')
                         ->label(__('marketing::whatsapp.test.message'))
                         ->default(__('marketing::whatsapp.test.default_body'))
-                        ->required()
+                        ->visible(fn (Forms\Get $get) => $get('mode') === 'freeform')
+                        ->required(fn (Forms\Get $get) => $get('mode') === 'freeform')
                         ->rows(3),
                 ])
                 ->action(function (array $data): void {
-                    $result = app(WhatsAppService::class)->sendTextMessage($data['to'], $data['message']);
+                    $svc = app(WhatsAppService::class);
+
+                    $result = ($data['mode'] ?? 'template') === 'template'
+                        ? $svc->sendTemplateMessage(
+                            $data['to'],
+                            $data['template_name'] ?: 'hello_world',
+                            $data['template_language'] ?: 'en_US'
+                        )
+                        : $svc->sendTextMessage($data['to'], $data['message']);
 
                     if ($result['success'] ?? false) {
                         Notification::make()
@@ -143,10 +172,15 @@ class WhatsAppIntegrationSettings extends Page implements HasForms
                             ->success()
                             ->send();
                     } else {
+                        $body = $result['error'] ?? 'Unknown error';
+                        if (! empty($result['error_code'])) {
+                            $body = "[code {$result['error_code']}] {$body}";
+                        }
                         Notification::make()
                             ->title(__('marketing::whatsapp.notify.test_failed'))
-                            ->body($result['error'] ?? 'Unknown error')
+                            ->body($body)
                             ->danger()
+                            ->persistent()
                             ->send();
                     }
                 }),
