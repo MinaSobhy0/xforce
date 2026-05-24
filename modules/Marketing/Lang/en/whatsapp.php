@@ -68,6 +68,20 @@ return [
         'resync_done' => 'Synced from Meta.',
     ],
 
+    'catalog' => [
+        'title' => 'WhatsApp Template Catalog',
+        'nav_label' => 'Template Catalog',
+        'adopt' => 'Adopt',
+        'adopt_modal_desc' => 'Adds this template to your clinic\'s templates and submits it to Meta for approval on your WhatsApp Business Account. Meta typically reviews within 1–24 hours.',
+        'adopted' => 'Template adopted',
+        'adopted_body' => 'Submitted to Meta for approval — check the Message Templates page for status updates.',
+        'already_adopted' => 'Already adopted',
+        'not_found' => 'Template no longer available',
+        'status_adopted' => 'Adopted',
+        'empty_heading' => 'Catalog coming soon',
+        'empty_description' => 'The platform team hasn\'t published any ready-made templates yet. You can still author your own in Message Templates.',
+    ],
+
     'inbox' => [
         'nav_label' => 'WhatsApp Inbox',
         'model_label' => 'Conversation',
