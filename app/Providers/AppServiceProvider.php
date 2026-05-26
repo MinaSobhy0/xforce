@@ -20,6 +20,7 @@ use Illuminate\Support\ServiceProvider;
 use Modules\Auth\Listeners\AuthEventSubscriber;
 use Laravel\Sanctum\Sanctum;
 use Livewire\Livewire;
+use Spatie\Translatable\Facades\Translatable;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -65,6 +66,15 @@ class AppServiceProvider extends ServiceProvider
 
         // Configure delete actions to handle FK violations gracefully
         $this->configureDeleteActions();
+
+        // Bidirectional translation fallback: if the requested locale's value
+        // is empty, fall back to English; if English is also empty, fall back
+        // to whatever non-empty locale exists. Applies to every HasTranslations
+        // model across the project.
+        Translatable::fallback(
+            fallbackLocale: 'en',
+            fallbackAny: true,
+        );
     }
 
     /**
