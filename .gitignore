@@ -64,3 +64,23 @@ yarn-error.log
 phpstan.neon
 phpunit.xml
 auth.json
+
+# Local scratch — binary assets and one-off scripts that pile up at the
+# project root or under tests/ but aren't part of the codebase. Real tests
+# (Pest.php, TestCase.php, Feature/*, Unit/*) stay tracked because gitignore
+# only affects untracked files.
+/anatomy_model/
+/public/test_2d_canvas.html
+/32.png
+/tests/*.pdf
+/tests/*.xlsx
+/tests/*.csv
+/tests/*.png
+/tests/*.jpg
+/tests/*.jpeg
+/tests/*.gif
+/tests/analyze_*.php
+/tests/import_*.php
+# image.png is tracked — leave it alone for the gitignore;
+# the developer manages it manually if it gets edited.
+!/tests/image.png
