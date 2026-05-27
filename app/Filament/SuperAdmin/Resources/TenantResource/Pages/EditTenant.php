@@ -41,6 +41,7 @@ class EditTenant extends BaseEditRecord
                 ->label('Login to Admin Panel')
                 ->icon('heroicon-o-arrow-right-on-rectangle')
                 ->color('info')
+                ->button()
                 ->visible(fn () => $this->schemaExists())
                 ->form([
                     Forms\Components\Select::make('user_id')
