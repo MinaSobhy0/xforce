@@ -2,16 +2,15 @@
 
 namespace Modules\Core\Services;
 
-use Modules\Core\Models\Tenant;
-use Modules\Core\Models\TenantStatus;
-use Modules\Core\Models\TenantUsage;
-use XLinic\Framework\Core\Tenancy\TenantManager;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Modules\Core\Models\Tenant;
+use Modules\Core\Models\TenantStatus;
+use Modules\Core\Models\TenantUsage;
+use XLinic\Framework\Core\Tenancy\TenantManager;
 
 class TenantService
 {
@@ -47,14 +46,14 @@ class TenantService
 
         if (strlen($identifier) > self::MAX_IDENTIFIER_LENGTH) {
             throw new \InvalidArgumentException(
-                "{$type} name exceeds maximum length of " . self::MAX_IDENTIFIER_LENGTH . " characters"
+                "{$type} name exceeds maximum length of ".self::MAX_IDENTIFIER_LENGTH.' characters'
             );
         }
 
         // Validate format: must start with letter, contain only lowercase alphanumeric and underscores
-        if (!preg_match(self::SCHEMA_NAME_PATTERN, $identifier)) {
+        if (! preg_match(self::SCHEMA_NAME_PATTERN, $identifier)) {
             throw new \InvalidArgumentException(
-                "Invalid {$type} name format. Must start with a letter and contain only " .
+                "Invalid {$type} name format. Must start with a letter and contain only ".
                 "lowercase letters, numbers, and underscores. Got: {$identifier}"
             );
         }
@@ -84,7 +83,7 @@ class TenantService
         // Escape any double quotes by doubling them (PostgreSQL standard)
         $escaped = str_replace('"', '""', $identifier);
 
-        return '"' . $escaped . '"';
+        return '"'.$escaped.'"';
     }
 
     public function create(array $data): Tenant
@@ -253,13 +252,13 @@ class TenantService
         $pgsqlConn->statement("GRANT ALL ON SCHEMA {$quotedSchema} TO {$quotedUser}");
 
         // Verify schema was created
-        $schemaExists = $pgsqlConn->selectOne("
+        $schemaExists = $pgsqlConn->selectOne('
             SELECT EXISTS (
                 SELECT 1 FROM information_schema.schemata WHERE schema_name = ?
             ) as exists
-        ", [$schemaName])->exists;
+        ', [$schemaName])->exists;
 
-        if (!$schemaExists) {
+        if (! $schemaExists) {
             throw new \RuntimeException("Failed to create schema: {$schemaName}");
         }
 
@@ -289,7 +288,7 @@ class TenantService
         // Some migrations use protected $connection = 'tenant' which would override --database
         config([
             "database.connections.{$connectionName}" => $tenantConnectionConfig,
-            "database.connections.tenant" => $tenantConnectionConfig,
+            'database.connections.tenant' => $tenantConnectionConfig,
         ]);
 
         // Purge both connections to force Laravel to use new config
@@ -424,7 +423,7 @@ class TenantService
             foreach ($seeders as $seederClass) {
                 if (class_exists($seederClass)) {
                     try {
-                        $seeder = new $seederClass();
+                        $seeder = new $seederClass;
                         $seeder->run();
                         Log::info('Seeder completed', ['seeder' => class_basename($seederClass)]);
                     } catch (\Exception $e) {
@@ -440,10 +439,10 @@ class TenantService
             Log::info('All tenant seeders completed', ['tenant_id' => $tenant->id]);
 
             // Reset search_path to public
-            DB::statement("SET search_path TO public");
+            DB::statement('SET search_path TO public');
 
         } catch (\Exception $e) {
-            DB::statement("SET search_path TO public");
+            DB::statement('SET search_path TO public');
             Log::error('Failed to run tenant seeders', [
                 'tenant_id' => $tenant->id,
                 'error' => $e->getMessage(),
@@ -474,7 +473,7 @@ class TenantService
         // Create permissions
         foreach ($permissionNames as $permName) {
             $existing = DB::table('permissions')->where('name', $permName)->where('guard_name', 'web')->first();
-            if (!$existing) {
+            if (! $existing) {
                 DB::table('permissions')->insert([
                     'name' => $permName,
                     'guard_name' => 'web',
@@ -489,7 +488,7 @@ class TenantService
 
         // Create super_admin role if not exists
         $existing = DB::table('roles')->where('name', 'super_admin')->where('guard_name', 'web')->first();
-        if (!$existing) {
+        if (! $existing) {
             $roleId = DB::table('roles')->insertGetId([
                 'name' => 'super_admin',
                 'guard_name' => 'web',
@@ -537,7 +536,7 @@ class TenantService
 
             foreach ($permissionNames as $permName) {
                 $existing = DB::table('permissions')->where('name', $permName)->where('guard_name', 'web')->first();
-                if (!$existing) {
+                if (! $existing) {
                     DB::table('permissions')->insert([
                         'name' => $permName,
                         'guard_name' => 'web',
@@ -555,7 +554,7 @@ class TenantService
 
             foreach ($roles as $roleName) {
                 $existing = DB::table('roles')->where('name', $roleName)->where('guard_name', 'web')->first();
-                if (!$existing) {
+                if (! $existing) {
                     $roleId = DB::table('roles')->insertGetId([
                         'name' => $roleName,
                         'guard_name' => 'web',
@@ -579,10 +578,10 @@ class TenantService
             }
 
             Log::info('Default roles and permissions seeded', ['tenant_id' => $tenant->id]);
-            DB::statement("SET search_path TO public");
+            DB::statement('SET search_path TO public');
 
         } catch (\Exception $e) {
-            DB::statement("SET search_path TO public");
+            DB::statement('SET search_path TO public');
             Log::error('Failed to seed roles and permissions', [
                 'tenant_id' => $tenant->id,
                 'error' => $e->getMessage(),
@@ -605,14 +604,15 @@ class TenantService
             $existingBranch = DB::table('branches')->first();
             if ($existingBranch) {
                 Log::info('Default branch already exists', ['tenant_id' => $tenant->id, 'branch_id' => $existingBranch->id]);
-                DB::statement("SET search_path TO public");
+                DB::statement('SET search_path TO public');
+
                 return $existingBranch->id;
             }
 
             // Create the default main branch
             $branchId = DB::table('branches')->insertGetId([
                 'tenant_id' => $tenant->id,
-                'name' => $tenant->name . ' - Main Branch',
+                'name' => $tenant->name.' - Main Branch',
                 'code' => 'MAIN',
                 'address' => $tenant->settings['address'] ?? null,
                 'city' => $tenant->settings['city'] ?? null,
@@ -632,15 +632,17 @@ class TenantService
                 'branch_id' => $branchId,
             ]);
 
-            DB::statement("SET search_path TO public");
+            DB::statement('SET search_path TO public');
+
             return $branchId;
 
         } catch (\Exception $e) {
-            DB::statement("SET search_path TO public");
+            DB::statement('SET search_path TO public');
             Log::error('Failed to create default branch', [
                 'tenant_id' => $tenant->id,
                 'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
@@ -652,8 +654,9 @@ class TenantService
      */
     public function createOwnerUser(Tenant $tenant, ?string $password = null): ?array
     {
-        if (!$tenant->contact_email) {
+        if (! $tenant->contact_email) {
             Log::warning('Cannot create owner user: no contact_email set', ['tenant_id' => $tenant->id]);
+
             return null;
         }
 
@@ -677,7 +680,7 @@ class TenantService
                 $this->ensureUserAssignedToMainBranch($tenant, $existing->id);
 
                 Log::info('Owner user password reset', ['tenant_id' => $tenant->id, 'email' => $tenant->contact_email]);
-                DB::statement("SET search_path TO public");
+                DB::statement('SET search_path TO public');
 
                 // Also update password in public schema for owner portal
                 $this->updateOwnerUserPasswordInPublicSchema($tenant->contact_email, $password);
@@ -687,7 +690,7 @@ class TenantService
                 $settings['initial_owner_password'] = $password;
                 $settings['initial_owner_created_at'] = now()->toISOString();
                 $updateData = ['settings' => $settings];
-                if (!$tenant->owner_user_id) {
+                if (! $tenant->owner_user_id) {
                     $updateData['owner_user_id'] = $existing->id;
                 }
                 $tenant->update($updateData);
@@ -759,16 +762,20 @@ class TenantService
             }
 
             // Update tenant with owner_user_id and store initial password
-            DB::statement("SET search_path TO public");
+            DB::statement('SET search_path TO public');
 
-            // Also create owner user in public schema for owner portal access
-            $this->createOwnerUserInPublicSchema($tenant, $userId, $password, $firstName, $lastName, $nameParts[0]);
+            // Also create owner user in public schema for owner portal access.
+            // The returned id is the public.users.id (independent of the
+            // tenant-schema user id) — that's what tenant.owner_user_id must
+            // reference because the owner portal uses the 'owner' auth guard
+            // backed by public.users via the OwnerUser model.
+            $publicUserId = $this->createOwnerUserInPublicSchema($tenant, $userId, $password, $firstName, $lastName, $nameParts[0]);
 
             $settings = $tenant->settings ?? [];
             $settings['initial_owner_password'] = $password;
             $settings['initial_owner_created_at'] = now()->toISOString();
             $tenant->update([
-                'owner_user_id' => $userId,
+                'owner_user_id' => $publicUserId ?: $userId,
                 'settings' => $settings,
             ]);
 
@@ -781,11 +788,12 @@ class TenantService
             return ['user_id' => $userId, 'password' => $password];
 
         } catch (\Exception $e) {
-            DB::statement("SET search_path TO public");
+            DB::statement('SET search_path TO public');
             Log::error('Failed to create owner user', [
                 'tenant_id' => $tenant->id,
                 'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
@@ -796,7 +804,7 @@ class TenantService
     protected function updateOwnerUserPasswordInPublicSchema(string $email, string $password): void
     {
         try {
-            DB::statement("SET search_path TO public");
+            DB::statement('SET search_path TO public');
             $existing = DB::table('users')->where('email', $email)->first();
             if ($existing) {
                 DB::table('users')->where('id', $existing->id)->update([
@@ -813,74 +821,90 @@ class TenantService
     /**
      * Create or update owner user in public schema for owner portal access.
      */
+    /**
+     * Mirror the tenant-schema owner into public.users so the owner portal
+     * at x-linic.com/admin can authenticate. Returns the public.users.id
+     * (which is independent of the tenant-schema user id — public.users is
+     * shared across all tenants and auto-increments, while each tenant's
+     * users table starts from 1).
+     */
     protected function createOwnerUserInPublicSchema(
         Tenant $tenant,
-        string $userId,
+        string $tenantUserId,
         string $password,
         string $firstName,
         string $lastName,
         string $username
-    ): void {
+    ): ?string {
         try {
             // Ensure we're in public schema
-            DB::statement("SET search_path TO public");
+            DB::statement('SET search_path TO public');
 
-            // Check if user already exists in public schema
+            // Check if user already exists in public schema (by email, since
+            // public.users.id is its own sequence and won't match the
+            // tenant-schema id).
             $existing = DB::table('users')->where('email', $tenant->contact_email)->first();
 
             if ($existing) {
-                // Update existing user's password
                 DB::table('users')->where('id', $existing->id)->update([
                     'password' => Hash::make($password),
                     'updated_at' => now(),
                 ]);
                 Log::info('Owner user updated in public schema', [
                     'tenant_id' => $tenant->id,
-                    'user_id' => $existing->id,
-                ]);
-            } else {
-                // Create new user in public schema
-                DB::table('users')->insert([
-                    'id' => $userId,
-                    'tenant_id' => $tenant->id,
-                    'first_name' => $firstName,
-                    'last_name' => $lastName,
-                    'email' => $tenant->contact_email,
-                    'username' => $username,
-                    'phone' => $tenant->contact_phone,
-                    'password' => Hash::make($password),
-                    'status' => 'active',
-                    'language' => $tenant->locale ?? 'ar',
-                    'timezone' => $tenant->timezone ?? 'Africa/Cairo',
-                    'email_verified_at' => now(),
-                    'created_at' => now(),
-                    'updated_at' => now(),
+                    'public_user_id' => $existing->id,
                 ]);
 
-                // Assign clinic_owner role if it exists
-                try {
-                    $ownerRole = DB::table('roles')->where('name', 'clinic_owner')->first();
-                    if ($ownerRole) {
-                        DB::table('model_has_roles')->insert([
-                            'role_id' => $ownerRole->id,
-                            'model_type' => 'Modules\\Auth\\Models\\User',
-                            'model_id' => $userId,
-                        ]);
-                    }
-                } catch (\Exception $e) {
-                    Log::warning('Could not assign clinic_owner role in public schema', ['error' => $e->getMessage()]);
-                }
-
-                Log::info('Owner user created in public schema', [
-                    'tenant_id' => $tenant->id,
-                    'user_id' => $userId,
-                ]);
+                return (string) $existing->id;
             }
+
+            // Let public.users.id auto-increment — do NOT reuse the
+            // tenant-schema id (it collides with the platform admin row
+            // which is always id=1 in public.users).
+            $publicUserId = DB::table('users')->insertGetId([
+                'tenant_id' => $tenant->id,
+                'first_name' => $firstName,
+                'last_name' => $lastName,
+                'email' => $tenant->contact_email,
+                'username' => $username,
+                'phone' => $tenant->contact_phone,
+                'password' => Hash::make($password),
+                'status' => 'active',
+                'language' => $tenant->locale ?? 'ar',
+                'timezone' => $tenant->timezone ?? 'Africa/Cairo',
+                'email_verified_at' => now(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            // Assign clinic_owner role if it exists in the public schema.
+            try {
+                $ownerRole = DB::table('roles')->where('name', 'clinic_owner')->first();
+                if ($ownerRole) {
+                    DB::table('model_has_roles')->insert([
+                        'role_id' => $ownerRole->id,
+                        'model_type' => 'Modules\\Auth\\Models\\User',
+                        'model_id' => $publicUserId,
+                    ]);
+                }
+            } catch (\Exception $e) {
+                Log::warning('Could not assign clinic_owner role in public schema', ['error' => $e->getMessage()]);
+            }
+
+            Log::info('Owner user created in public schema', [
+                'tenant_id' => $tenant->id,
+                'public_user_id' => $publicUserId,
+                'tenant_user_id' => $tenantUserId,
+            ]);
+
+            return (string) $publicUserId;
         } catch (\Exception $e) {
             Log::error('Failed to create owner user in public schema', [
                 'tenant_id' => $tenant->id,
                 'error' => $e->getMessage(),
             ]);
+
+            return null;
         }
     }
 
@@ -891,7 +915,7 @@ class TenantService
     {
         try {
             $mainBranch = DB::table('branches')->where('is_main', true)->first();
-            if (!$mainBranch) {
+            if (! $mainBranch) {
                 return;
             }
 
@@ -906,7 +930,7 @@ class TenantService
             }
 
             $superAdminRole = DB::table('roles')->where('name', 'super_admin')->first();
-            if (!$superAdminRole) {
+            if (! $superAdminRole) {
                 return;
             }
 
@@ -956,7 +980,7 @@ class TenantService
             ) as exists
         ", [$schemaName])->exists;
 
-        if (!$migrationsTableExists) {
+        if (! $migrationsTableExists) {
             $connection->statement("
                 CREATE TABLE \"{$schemaName}\".migrations (
                     id SERIAL PRIMARY KEY,
@@ -969,7 +993,7 @@ class TenantService
 
         // Get already run migrations (use fully qualified table name)
         $ranMigrations = $connection->select("SELECT migration FROM \"{$schemaName}\".migrations");
-        $ranMigrations = array_map(fn($r) => $r->migration, $ranMigrations);
+        $ranMigrations = array_map(fn ($r) => $r->migration, $ranMigrations);
 
         // Get all migration files
         $migrationFiles = $this->getTenantMigrationFiles();
@@ -1058,11 +1082,11 @@ class TenantService
                 }
 
                 $migrationsDir = base_path("modules/{$module}/Database/Migrations");
-                if (!is_dir($migrationsDir)) {
+                if (! is_dir($migrationsDir)) {
                     continue;
                 }
 
-                $migrationFiles = glob($migrationsDir . '/*.php');
+                $migrationFiles = glob($migrationsDir.'/*.php');
                 foreach ($migrationFiles as $file) {
                     $filename = basename($file);
 
@@ -1076,7 +1100,7 @@ class TenantService
                         }
                     }
 
-                    if (!$skip) {
+                    if (! $skip) {
                         $files[] = $file;
                     }
                 }
@@ -1142,7 +1166,7 @@ class TenantService
                 if ($module === '.' || $module === '..') {
                     continue;
                 }
-                if (!in_array($module, $moduleOrder)) {
+                if (! in_array($module, $moduleOrder)) {
                     $path = "modules/{$module}/Database/Migrations";
                     if (is_dir(base_path($path))) {
                         $paths[] = $path;
@@ -1194,7 +1218,7 @@ class TenantService
     {
         $user = $user ?? auth()->user();
 
-        if (!$user) {
+        if (! $user) {
             return false;
         }
 
@@ -1211,7 +1235,7 @@ class TenantService
     {
         $usage = $tenant->usage;
 
-        if (!$usage) {
+        if (! $usage) {
             return [];
         }
 
@@ -1258,7 +1282,7 @@ class TenantService
 
     public function importTenantData(Tenant $tenant, array $data): void
     {
-        $this->tenantManager->runForTenant($tenant, function () use ($data) {
+        $this->tenantManager->runForTenant($tenant, function () {
             // Import data into tenant context
             // Implementation would depend on specific requirements
         });
