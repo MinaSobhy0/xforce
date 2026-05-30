@@ -1077,6 +1077,12 @@ class Tenant extends Model
         $settings = $this->settings ?? [];
         data_set($settings, $key, $value);
         $this->settings = $settings;
+        // Persist immediately — callers (Embedded Signup, Messenger Signup,
+        // post-signup webhook subscription, etc.) assumed this method was a
+        // setter that committed, but it previously only mutated in memory,
+        // dropping the change at request end. RefreshWhatsAppTokenCommand
+        // was the only site that worked around this with an explicit save().
+        $this->save();
     }
 
     /**
