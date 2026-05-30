@@ -89,10 +89,20 @@ trait ChecksResourcePermissions
             return true;
         }
 
-        // Only platform super-admin bypasses module checks (not tenant admins)
+        // Only PLATFORM super-admin bypasses module checks. Tenant owners
+        // also carry a 'super_admin' role inside their tenant schema (set
+        // by TenantService::createOwnerUser) but that role exists in the
+        // tenant.roles table, not public.roles — name collision is real.
+        // Resolve by checking which Filament panel we're inside: only the
+        // 'super-admin' panel skips the features gate. On tenant / owner /
+        // portal panels the features list is enforced even for super_admin
+        // role holders, which is the entire point of plan-based access.
         $user = auth()->user();
         if ($user && $user->hasRole(['super-admin', 'super_admin'])) {
-            return true;
+            $panel = \Filament\Facades\Filament::getCurrentPanel();
+            if ($panel && $panel->getId() === 'super-admin') {
+                return true;
+            }
         }
 
         // Get current tenant
