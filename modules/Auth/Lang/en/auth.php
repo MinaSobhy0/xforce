@@ -209,6 +209,11 @@ return [
         'import' => 'Import',
     ],
 
+    // Custom action-level abilities (per-resource, beyond CRUD)
+    'abilities' => [
+        'view_own' => 'View own only',
+    ],
+
     // Permission groups
     'permission_groups' => [
         'patients_booking' => 'Patients & Booking',

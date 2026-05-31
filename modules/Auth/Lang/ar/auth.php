@@ -43,6 +43,10 @@ return [
         'import' => 'استيراد',
     ],
 
+    'abilities' => [
+        'view_own' => 'عرض سجلاته فقط',
+    ],
+
     // Permission groups
     'permission_groups' => [
         'patients_booking' => 'المرضى والحجوزات',

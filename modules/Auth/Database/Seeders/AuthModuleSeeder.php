@@ -3,10 +3,10 @@
 namespace Modules\Auth\Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Modules\Auth\Models\User;
-use Modules\Auth\Models\Role;
-use Modules\Auth\Models\Permission;
 use Illuminate\Support\Facades\Hash;
+use Modules\Auth\Models\Permission;
+use Modules\Auth\Models\Role;
+use Modules\Auth\Models\User;
 
 class AuthModuleSeeder extends Seeder
 {
@@ -101,7 +101,26 @@ class AuthModuleSeeder extends Seeder
             );
         }
 
-        $this->command->info('✓ Permissions created: ' . count($permissions));
+        // Custom (action-level) abilities declared by resources — e.g.
+        // payslips.view_own. Derived from the single source of truth so new
+        // abilities are seeded automatically.
+        $customCount = 0;
+        foreach (\Modules\Auth\Filament\Resources\RoleResource::getCustomAbilitiesMap() as $resource => $abilities) {
+            foreach ($abilities as $ability) {
+                Permission::firstOrCreate(
+                    ['name' => "{$resource}.{$ability}", 'guard_name' => 'web'],
+                    [
+                        'name' => "{$resource}.{$ability}",
+                        'display_name' => \Illuminate\Support\Str::headline($resource).' — '.\Illuminate\Support\Str::headline($ability),
+                        'module' => $resource,
+                        'guard_name' => 'web',
+                    ]
+                );
+                $customCount++;
+            }
+        }
+
+        $this->command->info('✓ Permissions created: '.(count($permissions) + $customCount));
     }
 
     private function seedRoles(): void
@@ -221,7 +240,7 @@ class AuthModuleSeeder extends Seeder
             $permissionIds = Permission::whereIn('name', $permissions)->pluck('id');
             $role->permissions()->sync($permissionIds);
 
-            $this->command->info("✓ Role created: {$role->display_name} with " . count($permissions) . " permissions");
+            $this->command->info("✓ Role created: {$role->display_name} with ".count($permissions).' permissions');
         }
     }
 
@@ -229,8 +248,9 @@ class AuthModuleSeeder extends Seeder
     {
         // Get or create the system tenant
         $tenant = \Modules\Core\Models\Tenant::where('slug', 'system')->first();
-        if (!$tenant) {
+        if (! $tenant) {
             $this->command->warn('System tenant not found. Run CoreModuleSeeder first.');
+
             return;
         }
 
@@ -312,7 +332,7 @@ class AuthModuleSeeder extends Seeder
             // Assign roles using Spatie
             $user->syncRoles($roles);
 
-            $this->command->info("✓ User created: {$user->first_name} {$user->last_name} ({$user->email}) with roles: " . implode(', ', $roles));
+            $this->command->info("✓ User created: {$user->first_name} {$user->last_name} ({$user->email}) with roles: ".implode(', ', $roles));
         }
     }
 }

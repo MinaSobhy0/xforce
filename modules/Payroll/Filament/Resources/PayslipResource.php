@@ -5,16 +5,15 @@ namespace Modules\Payroll\Filament\Resources;
 use App\Traits\ChecksResourcePermissions;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
+use Filament\Resources\Resource;
 use Filament\Support\Enums\FontWeight;
-use Illuminate\Support\HtmlString;
+use Filament\Tables;
+use Filament\Tables\Table;
+use Modules\Payroll\Filament\Resources\PayslipResource\Pages;
 use Modules\Payroll\Models\PayrollLine;
 use Modules\Payroll\Models\PayrollRun;
-use Modules\Payroll\Filament\Resources\PayslipResource\Pages;
 
 class PayslipResource extends Resource
 {
@@ -25,6 +24,15 @@ class PayslipResource extends Resource
     protected static ?string $moduleCode = 'payroll';
 
     protected static ?string $permissionKey = 'payslips';
+
+    /**
+     * "view_own" lets a staff member see only their own payslips (scoped in
+     * getEloquentQuery), without granting the full payslips list.
+     */
+    public static function customAbilities(): array
+    {
+        return ['view_own'];
+    }
 
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
 
@@ -170,7 +178,7 @@ class PayslipResource extends Resource
                             ])
                             ->columnSpanFull(),
                     ])
-                    ->visible(fn (?PayrollLine $record) => !empty($record?->rule_amounts_json))
+                    ->visible(fn (?PayrollLine $record) => ! empty($record?->rule_amounts_json))
                     ->collapsible(),
 
                 // Salary Rules Breakdown - Deductions
@@ -183,7 +191,7 @@ class PayslipResource extends Resource
                             ])
                             ->columnSpanFull(),
                     ])
-                    ->visible(fn (?PayrollLine $record) => !empty($record?->rule_amounts_json))
+                    ->visible(fn (?PayrollLine $record) => ! empty($record?->rule_amounts_json))
                     ->collapsible(),
 
                 Infolists\Components\Section::make(__('payroll::payroll.sections.summary'))
@@ -251,7 +259,7 @@ class PayslipResource extends Resource
                     ->searchable(query: function ($query, string $search) {
                         return $query->whereHas('staffProfile.user', function ($q) use ($search) {
                             $q->where('first_name', 'ilike', "%{$search}%")
-                              ->orWhere('last_name', 'ilike', "%{$search}%");
+                                ->orWhere('last_name', 'ilike', "%{$search}%");
                         });
                     })
                     ->sortable(query: function ($query, string $direction) {
@@ -305,7 +313,7 @@ class PayslipResource extends Resource
                 Tables\Filters\SelectFilter::make('payroll_run_id')
                     ->label(__('payroll::payroll.fields.period'))
                     ->relationship('payrollRun', 'run_number')
-                    ->getOptionLabelFromRecordUsing(fn (PayrollRun $record) => $record->period_label . ' (' . $record->run_number . ')'),
+                    ->getOptionLabelFromRecordUsing(fn (PayrollRun $record) => $record->period_label.' ('.$record->run_number.')'),
 
                 Tables\Filters\SelectFilter::make('staff_profile_id')
                     ->label(__('payroll::payroll.fields.employee'))
@@ -352,7 +360,57 @@ class PayslipResource extends Resource
 
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
-        return parent::getEloquentQuery()->with(['payrollRun', 'staffProfile.user']);
+        $query = parent::getEloquentQuery()->with(['payrollRun', 'staffProfile.user']);
+
+        // Full viewers (and owners/super-admins, via userCan's bypass) see all.
+        if (static::userCan('view_any') || static::userCan('view')) {
+            return $query;
+        }
+
+        // "view own" users are scoped to their own payslip lines.
+        if (static::userCan('view_own')) {
+            return $query->whereHas('staffProfile', fn ($q) => $q->where('user_id', auth()->id()));
+        }
+
+        // No payslip view permission — return nothing as a safety net.
+        return $query->whereRaw('1 = 0');
+    }
+
+    /**
+     * Grant resource/navigation access to "view own" holders too (the standard
+     * checkViewAccess only looks at view_any / view).
+     */
+    public static function canAccess(): bool
+    {
+        return static::canViewAny();
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return static::canViewAny();
+    }
+
+    public static function canViewAny(): bool
+    {
+        if (! static::checkModuleAccess()) {
+            return false;
+        }
+
+        return static::userCan('view_any') || static::userCan('view') || static::userCan('view_own');
+    }
+
+    public static function canView($record): bool
+    {
+        if (! static::checkModuleAccess()) {
+            return false;
+        }
+
+        if (static::userCan('view_any') || static::userCan('view')) {
+            return true;
+        }
+
+        // Own record only.
+        return static::userCan('view_own') && $record->staffProfile?->user_id === auth()->id();
     }
 
     public static function canCreate(): bool

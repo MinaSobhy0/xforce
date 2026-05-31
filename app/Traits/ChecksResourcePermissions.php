@@ -31,12 +31,12 @@ trait ChecksResourcePermissions
     public static function canAccess(): bool
     {
         // Check parent canAccess if exists
-        if (method_exists(parent::class, 'canAccess') && !parent::canAccess()) {
+        if (method_exists(parent::class, 'canAccess') && ! parent::canAccess()) {
             return false;
         }
 
         // First check module access
-        if (!static::checkModuleAccess()) {
+        if (! static::checkModuleAccess()) {
             return false;
         }
 
@@ -52,13 +52,13 @@ trait ChecksResourcePermissions
         $permissionKey = static::$permissionKey ?? static::$moduleCode ?? null;
 
         // If no permission key defined, allow access
-        if (!$permissionKey) {
+        if (! $permissionKey) {
             return true;
         }
 
         $user = auth()->user();
 
-        if (!$user) {
+        if (! $user) {
             return false;
         }
 
@@ -80,7 +80,7 @@ trait ChecksResourcePermissions
         $moduleCode = static::$moduleCode ?? null;
 
         // If no module code defined, allow access (core resources)
-        if (!$moduleCode) {
+        if (! $moduleCode) {
             return true;
         }
 
@@ -98,7 +98,7 @@ trait ChecksResourcePermissions
         // Get current tenant
         $tenant = static::getCurrentTenant();
 
-        if (!$tenant) {
+        if (! $tenant) {
             return false;
         }
 
@@ -123,13 +123,13 @@ trait ChecksResourcePermissions
         $permissionKey = static::$permissionKey ?? static::$moduleCode ?? null;
 
         // If no permission key defined, allow access
-        if (!$permissionKey) {
+        if (! $permissionKey) {
             return true;
         }
 
         $user = auth()->user();
 
-        if (!$user) {
+        if (! $user) {
             return false;
         }
 
@@ -149,7 +149,7 @@ trait ChecksResourcePermissions
      */
     protected static function isSuperUser($user): bool
     {
-        if (!$user || !method_exists($user, 'hasRole')) {
+        if (! $user || ! method_exists($user, 'hasRole')) {
             return false;
         }
 
@@ -195,7 +195,7 @@ trait ChecksResourcePermissions
      */
     public static function canViewAny(): bool
     {
-        if (!static::checkModuleAccess()) {
+        if (! static::checkModuleAccess()) {
             return false;
         }
 
@@ -224,7 +224,7 @@ trait ChecksResourcePermissions
      */
     public static function canEdit($record): bool
     {
-        if (!static::checkModuleAccess()) {
+        if (! static::checkModuleAccess()) {
             return false;
         }
 
@@ -251,5 +251,26 @@ trait ChecksResourcePermissions
     public static function canDeleteAny(): bool
     {
         return static::checkModuleAccess() && static::checkUserPermission('delete');
+    }
+
+    /**
+     * Custom, action-level abilities this resource exposes beyond the standard
+     * view/create/update/delete/export/import — e.g. ['confirm', 'view_own'].
+     * Surfaced in the Role editor and checked via userCan(). Override per resource.
+     *
+     * @return array<int, string>
+     */
+    public static function customAbilities(): array
+    {
+        return [];
+    }
+
+    /**
+     * Check whether the current user holds a given ability on this resource
+     * ({permissionKey}.{ability}). Honours the super-admin / owner bypass.
+     */
+    public static function userCan(string $ability): bool
+    {
+        return static::checkUserPermission($ability);
     }
 }

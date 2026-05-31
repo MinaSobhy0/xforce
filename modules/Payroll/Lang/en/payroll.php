@@ -181,6 +181,7 @@ return [
     ],
 
     'messages' => [
+        'payslip_no_access' => 'You do not have access to that payslip.',
         'approved' => 'Payroll approved successfully',
         'paid' => 'Payroll marked as paid',
         'cancelled' => 'Payroll cancelled',

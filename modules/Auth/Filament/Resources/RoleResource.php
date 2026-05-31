@@ -8,10 +8,9 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Modules\Auth\Models\Role;
 use Modules\Auth\Filament\Resources\RoleResource\Pages;
 use Modules\Auth\Models\Permission;
-use Illuminate\Support\Str;
+use Modules\Auth\Models\Role;
 
 class RoleResource extends Resource
 {
@@ -88,8 +87,10 @@ class RoleResource extends Resource
                                 ->icon('heroicon-o-check-circle')
                                 ->color('success')
                                 ->action(function (Forms\Set $set) {
+                                    $customAbilities = static::getCustomAbilitiesMap();
                                     foreach (static::getResourcePermissions() as $resource => $label) {
-                                        foreach (['view', 'create', 'update', 'delete', 'export', 'import'] as $action) {
+                                        $actions = array_merge(['view', 'create', 'update', 'delete', 'export', 'import'], $customAbilities[$resource] ?? []);
+                                        foreach ($actions as $action) {
                                             $set("permissions.{$resource}.{$action}", true);
                                         }
                                     }
@@ -99,8 +100,10 @@ class RoleResource extends Resource
                                 ->icon('heroicon-o-x-circle')
                                 ->color('danger')
                                 ->action(function (Forms\Set $set) {
+                                    $customAbilities = static::getCustomAbilitiesMap();
                                     foreach (static::getResourcePermissions() as $resource => $label) {
-                                        foreach (['view', 'create', 'update', 'delete', 'export', 'import'] as $action) {
+                                        $actions = array_merge(['view', 'create', 'update', 'delete', 'export', 'import'], $customAbilities[$resource] ?? []);
+                                        foreach ($actions as $action) {
                                             $set("permissions.{$resource}.{$action}", false);
                                         }
                                     }
@@ -113,9 +116,43 @@ class RoleResource extends Resource
             ]);
     }
 
+    /**
+     * Resources that expose custom (action-level) abilities beyond CRUD.
+     * Add a resource here and declare its customAbilities() to make those
+     * abilities grantable in this role editor.
+     *
+     * @return array<int, class-string>
+     */
+    protected static function resourcesWithCustomAbilities(): array
+    {
+        return [
+            \Modules\Payroll\Filament\Resources\PayslipResource::class,
+        ];
+    }
+
+    /**
+     * Map of permission key => custom abilities, e.g. ['payslips' => ['view_own']].
+     *
+     * @return array<string, array<int, string>>
+     */
+    public static function getCustomAbilitiesMap(): array
+    {
+        $map = [];
+        foreach (static::resourcesWithCustomAbilities() as $resourceClass) {
+            $key = $resourceClass::getPermissionKey();
+            $abilities = $resourceClass::customAbilities();
+            if ($key && $abilities) {
+                $map[$key] = $abilities;
+            }
+        }
+
+        return $map;
+    }
+
     protected static function getPermissionSchema(): array
     {
         $groups = static::getGroupedResourcePermissions();
+        $customAbilities = static::getCustomAbilitiesMap();
         $schema = [];
 
         foreach ($groups as $groupKey => $group) {
@@ -128,9 +165,10 @@ class RoleResource extends Resource
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     ->size('xs')
-                    ->action(function (Forms\Set $set) use ($groupResources) {
+                    ->action(function (Forms\Set $set) use ($groupResources, $customAbilities) {
                         foreach ($groupResources as $resource) {
-                            foreach (['view', 'create', 'update', 'delete', 'export', 'import'] as $action) {
+                            $actions = array_merge(['view', 'create', 'update', 'delete', 'export', 'import'], $customAbilities[$resource] ?? []);
+                            foreach ($actions as $action) {
                                 $set("permissions.{$resource}.{$action}", true);
                             }
                         }
@@ -140,9 +178,10 @@ class RoleResource extends Resource
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
                     ->size('xs')
-                    ->action(function (Forms\Set $set) use ($groupResources) {
+                    ->action(function (Forms\Set $set) use ($groupResources, $customAbilities) {
                         foreach ($groupResources as $resource) {
-                            foreach (['view', 'create', 'update', 'delete', 'export', 'import'] as $action) {
+                            $actions = array_merge(['view', 'create', 'update', 'delete', 'export', 'import'], $customAbilities[$resource] ?? []);
+                            foreach ($actions as $action) {
                                 $set("permissions.{$resource}.{$action}", false);
                             }
                         }
@@ -152,32 +191,41 @@ class RoleResource extends Resource
             $fieldsets = [$groupActions];
 
             foreach ($group['resources'] as $resource => $label) {
+                $checkboxes = [
+                    Forms\Components\Checkbox::make("permissions.{$resource}.view")
+                        ->label(__('auth::auth.permissions.view'))
+                        ->inline(),
+
+                    Forms\Components\Checkbox::make("permissions.{$resource}.create")
+                        ->label(__('auth::auth.permissions.create'))
+                        ->inline(),
+
+                    Forms\Components\Checkbox::make("permissions.{$resource}.update")
+                        ->label(__('auth::auth.permissions.update'))
+                        ->inline(),
+
+                    Forms\Components\Checkbox::make("permissions.{$resource}.delete")
+                        ->label(__('auth::auth.permissions.delete'))
+                        ->inline(),
+
+                    Forms\Components\Checkbox::make("permissions.{$resource}.export")
+                        ->label(__('auth::auth.permissions.export'))
+                        ->inline(),
+
+                    Forms\Components\Checkbox::make("permissions.{$resource}.import")
+                        ->label(__('auth::auth.permissions.import'))
+                        ->inline(),
+                ];
+
+                // Custom (action-level) abilities declared by the resource.
+                foreach ($customAbilities[$resource] ?? [] as $ability) {
+                    $checkboxes[] = Forms\Components\Checkbox::make("permissions.{$resource}.{$ability}")
+                        ->label(__("auth::auth.abilities.{$ability}"))
+                        ->inline();
+                }
+
                 $fieldsets[] = Forms\Components\Fieldset::make($label)
-                    ->schema([
-                        Forms\Components\Checkbox::make("permissions.{$resource}.view")
-                            ->label(__('auth::auth.permissions.view'))
-                            ->inline(),
-
-                        Forms\Components\Checkbox::make("permissions.{$resource}.create")
-                            ->label(__('auth::auth.permissions.create'))
-                            ->inline(),
-
-                        Forms\Components\Checkbox::make("permissions.{$resource}.update")
-                            ->label(__('auth::auth.permissions.update'))
-                            ->inline(),
-
-                        Forms\Components\Checkbox::make("permissions.{$resource}.delete")
-                            ->label(__('auth::auth.permissions.delete'))
-                            ->inline(),
-
-                        Forms\Components\Checkbox::make("permissions.{$resource}.export")
-                            ->label(__('auth::auth.permissions.export'))
-                            ->inline(),
-
-                        Forms\Components\Checkbox::make("permissions.{$resource}.import")
-                            ->label(__('auth::auth.permissions.import'))
-                            ->inline(),
-                    ])
+                    ->schema($checkboxes)
                     ->columns(6);
             }
 
@@ -377,6 +425,7 @@ class RoleResource extends Resource
         foreach (static::getGroupedResourcePermissions() as $group) {
             $resources = array_merge($resources, $group['resources']);
         }
+
         return $resources;
     }
 
@@ -459,9 +508,11 @@ class RoleResource extends Resource
 
         if ($role) {
             $permissions = $role->permissions->pluck('name')->toArray();
+            $customAbilities = static::getCustomAbilitiesMap();
 
             foreach (static::getResourcePermissions() as $resource => $label) {
-                foreach (['view', 'create', 'update', 'delete', 'export', 'import'] as $action) {
+                $actions = array_merge(['view', 'create', 'update', 'delete', 'export', 'import'], $customAbilities[$resource] ?? []);
+                foreach ($actions as $action) {
                     $permName = "{$resource}.{$action}";
                     $data['permissions'][$resource][$action] = in_array($permName, $permissions);
                 }
@@ -475,12 +526,14 @@ class RoleResource extends Resource
     {
         unset($data['permissions']);
         $data['guard_name'] = 'web';
+
         return $data;
     }
 
     public static function mutateFormDataBeforeSave(array $data): array
     {
         unset($data['permissions']);
+
         return $data;
     }
 }
