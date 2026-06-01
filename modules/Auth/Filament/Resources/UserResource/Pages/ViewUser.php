@@ -100,13 +100,19 @@ class ViewUser extends BaseViewRecord
                     ? __('This will deactivate the user account and prevent login.')
                     : __('This will activate the user account and allow login.'))
                 ->action(function () {
-                    $newStatus = $this->getRecord()->status === UserStatus::ACTIVE ? UserStatus::INACTIVE : UserStatus::ACTIVE;
+                    $user = $this->getRecord();
+                    $newStatus = $user->status === UserStatus::ACTIVE ? UserStatus::INACTIVE : UserStatus::ACTIVE;
 
-                    $this->getRecord()->update(['status' => $newStatus]);
+                    // `status` lives in User::$guarded as a HIGH-impact field,
+                    // so ->update(['status' => $newStatus]) is silently dropped
+                    // by mass-assignment protection. Direct property assignment
+                    // + save() bypasses the guard for this trusted admin action.
+                    $user->status = $newStatus;
+                    $user->save();
 
                     activity()
                         ->causedBy(auth()->user())
-                        ->performedOn($this->getRecord())
+                        ->performedOn($user)
                         ->log($newStatus === UserStatus::ACTIVE ? 'User account activated' : 'User account deactivated');
 
                     Notification::make()

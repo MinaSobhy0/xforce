@@ -443,21 +443,39 @@ class UserResource extends Resource
                         ->label(__('auth::auth.user_resource.activate'))
                         ->icon('heroicon-o-check')
                         ->color('success')
-                        ->action(fn ($records) => $records->each->update(['status' => 'active'])),
+                        ->action(function ($records) {
+                            // status is in User::$guarded → ->update() is silently
+                            // dropped by mass-assignment protection. Assign + save.
+                            $records->each(function ($u) {
+                                $u->status = \Modules\Auth\Models\UserStatus::ACTIVE;
+                                $u->save();
+                            });
+                        }),
 
                     Tables\Actions\BulkAction::make('deactivate')
                         ->label(__('auth::auth.user_resource.deactivate'))
                         ->icon('heroicon-o-x-mark')
                         ->color('danger')
                         ->requiresConfirmation()
-                        ->action(fn ($records) => $records->each->update(['status' => 'inactive'])),
+                        ->action(function ($records) {
+                            $records->each(function ($u) {
+                                $u->status = \Modules\Auth\Models\UserStatus::INACTIVE;
+                                $u->save();
+                            });
+                        }),
 
                     Tables\Actions\BulkAction::make('forcePasswordChange')
                         ->label(__('auth::auth.user_resource.force_password_change'))
                         ->icon('heroicon-o-key')
                         ->color('warning')
                         ->requiresConfirmation()
-                        ->action(fn ($records) => $records->each->update(['must_change_password' => true])),
+                        ->action(function ($records) {
+                            // must_change_password is also guarded.
+                            $records->each(function ($u) {
+                                $u->must_change_password = true;
+                                $u->save();
+                            });
+                        }),
 
                     Tables\Actions\BulkAction::make('createStaffProfiles')
                         ->label(__('auth::auth.user_resource.create_staff_profiles'))
