@@ -60,8 +60,10 @@ class SecurityHeaders
             // Default to self
             "default-src 'self'",
 
-            // Scripts - allow self, inline (for Alpine.js/Livewire), and specific CDNs
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com",
+            // Scripts - allow self, inline (for Alpine.js/Livewire), specific CDNs.
+            // www.google.com + www.gstatic.com are required for Google reCAPTCHA v3
+            // (used by the public contact forms).
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com https://www.google.com https://www.gstatic.com",
 
             // Styles - allow self, inline (for Tailwind), and Google Fonts
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
@@ -77,6 +79,9 @@ class SecurityHeaders
 
             // Forms can only submit to self
             "form-action 'self'",
+
+            // reCAPTCHA challenge iframes
+            "frame-src 'self' https://www.google.com",
 
             // SECURITY: Disallow framing entirely (matches X-Frame-Options: DENY)
             "frame-ancestors 'none'",
