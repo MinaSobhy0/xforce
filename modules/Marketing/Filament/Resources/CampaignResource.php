@@ -254,8 +254,8 @@ class CampaignResource extends Resource
                     ->action(function (Campaign $record) {
                         $campaignService = app(CampaignService::class);
                         if ($campaignService->startCampaign($record)) {
-                            // Dispatch job to process recipients
-                            ProcessCampaignRecipientsJob::dispatch($record);
+                            // Dispatch job to process recipients (tenant-aware: pass scalar IDs)
+                            ProcessCampaignRecipientsJob::dispatch((int) current_tenant_id(), $record->id);
                             Notification::make()
                                 ->title(__('marketing::marketing.messages.campaign_started'))
                                 ->success()
@@ -281,8 +281,8 @@ class CampaignResource extends Resource
                     ->color('success')
                     ->action(function (Campaign $record) {
                         $record->resume();
-                        // Dispatch job to continue processing
-                        ProcessCampaignRecipientsJob::dispatch($record);
+                        // Dispatch job to continue processing (tenant-aware: pass scalar IDs)
+                        ProcessCampaignRecipientsJob::dispatch((int) current_tenant_id(), $record->id);
                         Notification::make()
                             ->title(__('marketing::marketing.messages.campaign_resumed'))
                             ->success()

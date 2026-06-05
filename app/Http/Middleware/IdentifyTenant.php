@@ -441,4 +441,22 @@ class IdentifyTenant
             }
         });
     }
+
+    /**
+     * SECURITY: Reset the search_path back to public after the response is sent.
+     *
+     * Under PgBouncer session pooling the SET search_path persists on the
+     * backend connection until it is leased to the next client. Without this
+     * reset, a subsequent request/job that queries the default connection
+     * before re-identifying a tenant would inherit this request's tenant
+     * schema — a cross-tenant leak. Mirrors ResolveTenantFromHeader::terminate().
+     */
+    public function terminate(Request $request, Response $response): void
+    {
+        try {
+            DB::statement('SET search_path TO public');
+        } catch (\Throwable $e) {
+            // Ignore errors on terminate — the next IdentifyTenant run re-sets the path.
+        }
+    }
 }
