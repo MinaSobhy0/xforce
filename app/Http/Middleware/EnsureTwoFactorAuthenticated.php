@@ -17,8 +17,9 @@ class EnsureTwoFactorAuthenticated
             return $next($request);
         }
 
-        // Check if 2FA is enabled for this user
-        if ($user->hasEnabledTwoFactorAuthentication()) {
+        // Check if 2FA is enabled for this user. Some auth models (e.g. OwnerUser)
+        // don't implement 2FA — skip the challenge for them instead of erroring.
+        if (method_exists($user, 'hasEnabledTwoFactorAuthentication') && $user->hasEnabledTwoFactorAuthentication()) {
             // Check if 2FA has been verified for this session
             if (!$request->session()->get('two_factor_verified')) {
                 // Store the intended URL
