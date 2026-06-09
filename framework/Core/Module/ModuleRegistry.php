@@ -3,7 +3,7 @@
 namespace XLinic\Framework\Core\Module;
 
 use Illuminate\Support\Facades\Cache;
-use Modules\Core\Models\TenantModule;
+use Modules\Core\Models\Tenant;
 use XLinic\Framework\Core\Tenancy\TenantManager;
 
 class ModuleRegistry
@@ -143,23 +143,24 @@ class ModuleRegistry
 
         return Cache::tags(['tenant:' . $tenantId, 'modules'])
             ->remember("active_modules:{$tenantId}", 3600, function () use ($tenantId, $coreModules) {
-                // Query tenant_modules table for explicitly activated modules
-                $activeModules = TenantModule::withoutGlobalScopes()
-                    ->where('tenant_id', $tenantId)
-                    ->where('is_active', true)
-                    ->valid() // Not expired
-                    ->pluck('module_code')
-                    ->map(fn($code) => strtolower($code))
+                // Source of truth: tenants.features JSONB. That's the
+                // column the SuperAdmin "Manage Modules" UI writes to,
+                // and every other module gate — Tenant::hasFeature(),
+                // ChecksResourcePermissions, ChecksPageModuleAccess,
+                // ChecksTenantModuleAccess — already reads from it.
+                // The legacy tenant_modules table was the original
+                // design but nothing populates it anymore, so reading
+                // it here caused every isActive(...) check in this
+                // registry to silently return false even for modules
+                // the tenant clearly had enabled in the UI.
+                $tenant = $this->tenantManager->current()
+                    ?? Tenant::find($tenantId);
+
+                $features = collect($tenant?->features ?? [])
+                    ->map(fn ($code) => strtolower((string) $code))
                     ->all();
 
-                // If no modules are explicitly activated, return all modules
-                // This is for backward compatibility during migration
-                if (empty($activeModules) && empty($coreModules)) {
-                    return array_keys($this->modules);
-                }
-
-                // Merge core modules with activated modules
-                return array_unique(array_merge($coreModules, $activeModules));
+                return array_values(array_unique(array_merge($coreModules, $features)));
             });
     }
 }
