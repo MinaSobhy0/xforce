@@ -192,7 +192,12 @@ return [
         'package_subscriptions' => 'اشتراكات الباقات',
     ],
 
-    // Fields
+    // Fields — merged with the branch-role keys that used to sit
+    // in a second `fields` array further down the file. PHP only
+    // keeps the last definition of a top-level key, so the second
+    // array was silently overwriting this one and the role-page
+    // labels (display_name, level, users_count, permissions_count,
+    // system) fell back to English.
     'fields' => [
         'name' => 'الاسم',
         'display_name' => 'اسم العرض',
@@ -219,19 +224,35 @@ return [
         'create' => 'إنشاء',
         'update' => 'تعديل',
         'delete' => 'حذف',
+        // Branch-role specific
+        'branch' => 'الفرع',
+        'is_primary' => 'رئيسي',
+        'expires_at' => 'تنتهي في',
+        'assigned_at' => 'تم التعيين في',
     ],
 
-    // Helpers
+    // Helpers — merged with the branch-role helpers from the duplicate
+    // array below for the same reason as `fields` above.
     'helpers' => [
         'apply_to_all_roles' => 'عند التفعيل، تُطبق هذه السياسة على جميع الأدوار بغض النظر عن اختيار الدور',
         'priority' => 'رقم أقل = أولوية أعلى. يتم تقييم السياسات حسب الأولوية.',
         'placeholders' => 'استخدم {user.id}, {user.branch_id}, {user.tenant_id}, {today}, {now}',
         'role_level' => 'مستوى أعلى = صلاحيات أكثر. يُستخدم لوراثة الصلاحيات.',
+        // Branch-role specific
+        'primary_branch' => 'الفرع الرئيسي هو الفرع الافتراضي لهذا المستخدم',
+        'expires_at' => 'اتركه فارغاً للوصول الدائم',
     ],
 
-    // Actions
+    // Actions — merged with the branch-role actions from the
+    // duplicate array below.
     'actions' => [
         'add_condition' => 'إضافة شرط',
+        'assign_branch' => 'تعيين فرع',
+        'make_primary' => 'جعله رئيسي',
+        'activate' => 'تفعيل',
+        'deactivate' => 'إلغاء التفعيل',
+        'grant_all' => 'منح جميع الصلاحيات',
+        'revoke_all' => 'إلغاء جميع الصلاحيات',
     ],
 
     // Other
@@ -267,8 +288,14 @@ return [
     'system_role' => 'دور النظام',
 
     // Permissions
+    // NOTE: the loose `'permissions' => 'الصلاحيات'` that used to
+    // sit here was a duplicate of the top-level `'permissions' =>
+    // [view, create, …]` array above. PHP silently kept the later
+    // string and dropped the array, so __('auth::auth.permissions
+    // .view') couldn't traverse and every permission action label
+    // fell back to English on the role-edit page. `role_permissions`
+    // above already provides the same singular label.
     'permission' => 'صلاحية',
-    'permissions' => 'الصلاحيات',
     'permission_name' => 'اسم الصلاحية',
     'permission_module' => 'الوحدة',
     'grant_permission' => 'منح الصلاحية',
@@ -364,53 +391,11 @@ return [
     'primary_branch' => 'الفرع الرئيسي',
     'branch_access' => 'صلاحيات الفروع',
 
-    // Branch Role Fields
-    'fields' => [
-        'name' => 'الاسم',
-        'model_type' => 'نوع النموذج',
-        'role' => 'الدور',
-        'apply_to_all_roles' => 'تطبيق على جميع الأدوار',
-        'priority' => 'الأولوية',
-        'description' => 'الوصف',
-        'is_active' => 'نشط',
-        'perm_read' => 'قراءة',
-        'perm_create' => 'إنشاء',
-        'perm_update' => 'تحديث',
-        'perm_delete' => 'حذف',
-        'conditions' => 'الشروط',
-        'field' => 'الحقل',
-        'operator' => 'المشغل',
-        'value' => 'القيمة',
-        'read' => 'قراءة',
-        'create' => 'إنشاء',
-        'update' => 'تحديث',
-        'delete' => 'حذف',
-        'active' => 'نشط',
-        'branch' => 'الفرع',
-        'is_primary' => 'رئيسي',
-        'expires_at' => 'تنتهي في',
-        'assigned_at' => 'تم التعيين في',
-    ],
-
-    // Branch Role Helpers
-    'helpers' => [
-        'apply_to_all_roles' => 'عند التفعيل، تُطبق هذه السياسة على جميع الأدوار',
-        'priority' => 'رقم أقل = أولوية أعلى',
-        'placeholders' => 'استخدم {user.id}, {user.branch_id}, {user.tenant_id}, {today}, {now}',
-        'primary_branch' => 'الفرع الرئيسي هو الفرع الافتراضي لهذا المستخدم',
-        'expires_at' => 'اتركه فارغاً للوصول الدائم',
-    ],
-
-    // Branch Role Actions
-    'actions' => [
-        'add_condition' => 'إضافة شرط',
-        'assign_branch' => 'تعيين فرع',
-        'make_primary' => 'جعله رئيسي',
-        'activate' => 'تفعيل',
-        'deactivate' => 'إلغاء التفعيل',
-        'grant_all' => 'منح جميع الصلاحيات',
-        'revoke_all' => 'إلغاء جميع الصلاحيات',
-    ],
+    // (Branch-role `fields` / `helpers` / `actions` arrays were
+    // merged into the top-level definitions earlier in this file.
+    // Defining them again here would silently overwrite the merged
+    // versions because PHP keeps only the last definition of a
+    // top-level array key.)
 
     // Branch Role Messages
     'messages' => [
