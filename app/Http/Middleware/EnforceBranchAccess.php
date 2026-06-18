@@ -41,8 +41,23 @@ class EnforceBranchAccess
         // Get user's assigned branches
         $assignedBranchIds = $this->getUserAssignedBranchIds($user);
 
+        // SECURITY (H-10): enforce=false is a log-only rollout phase — we record
+        // exactly what we WOULD restrict/block but make no change, so missing
+        // UserBranchRole assignments can be found and backfilled before enforcing.
+        $enforce = (bool) config('security.branch.enforce', false);
+
         // If user has no branch assignments, deny access
         if (empty($assignedBranchIds)) {
+            \Log::warning('branch.access.no_assignment', [
+                'user_id' => $user->id,
+                'enforced' => $enforce,
+                'path' => $request->path(),
+            ]);
+
+            if (! $enforce) {
+                return $next($request); // log-only: do not block
+            }
+
             if ($request->expectsJson()) {
                 return response()->json([
                     'error' => 'no_branch_access',
@@ -58,21 +73,36 @@ class EnforceBranchAccess
 
         // If no branches selected (all branches mode), restrict to assigned branches
         if (empty($currentBranchIds)) {
-            BranchContext::set($assignedBranchIds);
+            if ($enforce) {
+                BranchContext::set($assignedBranchIds);
+            } else {
+                \Log::info('branch.access.would_restrict_all', [
+                    'user_id' => $user->id,
+                    'assigned' => $assignedBranchIds,
+                ]);
+            }
         } else {
             // Validate that selected branches are within assigned branches
             $unauthorizedBranches = array_diff($currentBranchIds, $assignedBranchIds);
 
             if (!empty($unauthorizedBranches)) {
-                // Remove unauthorized branches from context
-                $validBranches = array_intersect($currentBranchIds, $assignedBranchIds);
+                \Log::warning('branch.access.unauthorized_selection', [
+                    'user_id' => $user->id,
+                    'unauthorized' => array_values($unauthorizedBranches),
+                    'enforced' => $enforce,
+                ]);
 
-                if (empty($validBranches)) {
-                    // Fall back to primary branch or first assigned branch
-                    $primaryBranchId = $this->getUserPrimaryBranchId($user, $assignedBranchIds);
-                    BranchContext::set([$primaryBranchId]);
-                } else {
-                    BranchContext::set($validBranches);
+                if ($enforce) {
+                    // Remove unauthorized branches from context
+                    $validBranches = array_intersect($currentBranchIds, $assignedBranchIds);
+
+                    if (empty($validBranches)) {
+                        // Fall back to primary branch or first assigned branch
+                        $primaryBranchId = $this->getUserPrimaryBranchId($user, $assignedBranchIds);
+                        BranchContext::set([$primaryBranchId]);
+                    } else {
+                        BranchContext::set($validBranches);
+                    }
                 }
             }
         }

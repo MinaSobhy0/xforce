@@ -257,4 +257,25 @@ return [
         'block_malicious_ips' => true,
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Branch Access Control
+    |--------------------------------------------------------------------------
+    |
+    | Intra-tenant branch isolation. When 'enforce' is true, EnforceBranchAccess
+    | restricts every non-privileged user's branch context to the branches they
+    | are assigned to (UserBranchRole) and 403s users with no assignment.
+    |
+    | Roll out in two phases: keep enforce=false first (log-only — the middleware
+    | records what it WOULD restrict/block without affecting users) so missing
+    | UserBranchRole assignments can be found and backfilled; only then set
+    | enforce=true. Enforcing before assignments are populated locks staff out.
+    |
+    */
+
+    'branch' => [
+        // Master switch: false = log-only (no user impact), true = enforce.
+        'enforce' => env('BRANCH_ACCESS_ENFORCE', false),
+    ],
+
 ];

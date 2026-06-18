@@ -386,6 +386,9 @@ HTML;
             ->authMiddleware([
                 Authenticate::class,
                 \App\Http\Middleware\TwoFactorEnforce::class,
+                // H-10: intra-tenant branch isolation (log-only until
+                // config('security.branch.enforce') is enabled).
+                \App\Http\Middleware\EnforceBranchAccess::class,
             ]);
     }
 

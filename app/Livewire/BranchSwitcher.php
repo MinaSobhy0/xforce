@@ -109,8 +109,10 @@ class BranchSwitcher extends Component
      */
     public function toggleBranch(string $branchId): void
     {
-        // Ensure branch is allowed
-        if (!in_array($branchId, $this->allowedBranchIds)) {
+        // SECURITY: recompute allowed branches server-side — $allowedBranchIds is
+        // a public Livewire property and therefore client-modifiable; never trust
+        // it for the authorization check.
+        if (!in_array($branchId, $this->getUserAllowedBranchIds())) {
             return;
         }
 
@@ -139,8 +141,8 @@ class BranchSwitcher extends Component
      */
     public function selectBranch(string $branchId): void
     {
-        // Ensure branch is allowed
-        if (!in_array($branchId, $this->allowedBranchIds)) {
+        // SECURITY: recompute allowed branches server-side (see toggleBranch).
+        if (!in_array($branchId, $this->getUserAllowedBranchIds())) {
             return;
         }
 
@@ -156,12 +158,15 @@ class BranchSwitcher extends Component
      */
     public function selectAll(): void
     {
+        // SECURITY: recompute allowed branches server-side (see toggleBranch).
+        $allowed = $this->getUserAllowedBranchIds();
+
         // Only allow "All Branches" if user has more than one branch
-        if (count($this->allowedBranchIds) <= 1) {
+        if (count($allowed) <= 1) {
             return;
         }
 
-        $this->selectedBranchIds = $this->allowedBranchIds;
+        $this->selectedBranchIds = $allowed;
         BranchContext::set($this->selectedBranchIds);
 
         $this->dispatch('branch-switched', branchIds: $this->selectedBranchIds);
