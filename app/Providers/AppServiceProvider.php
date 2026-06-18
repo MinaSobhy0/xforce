@@ -15,7 +15,9 @@ use Filament\Tables\Actions\ForceDeleteBulkAction;
 use Illuminate\Database\Connection;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
+use Modules\Auth\Listeners\AuthEventSubscriber;
 use Laravel\Sanctum\Sanctum;
 use Livewire\Livewire;
 
@@ -50,6 +52,13 @@ class AppServiceProvider extends ServiceProvider
         Livewire::addPersistentMiddleware([
             IdentifyTenant::class,
         ]);
+
+        // Wire authentication events into account lockout (H-9) and audit
+        // logging (H-8). Failed -> increment lockout counter + audit;
+        // Login -> reset counter + audit; Logout -> audit. Registered here
+        // (rather than in a single Filament panel) so it covers every guard
+        // and panel uniformly.
+        Event::subscribe(AuthEventSubscriber::class);
 
         // Register Livewire components from modules
         $this->registerModuleLivewireComponents();

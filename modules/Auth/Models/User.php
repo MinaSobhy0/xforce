@@ -522,7 +522,7 @@ class User extends BaseModel implements
     public function lockAccount(int $minutes = null): void
     {
         $this->update([
-            'locked_until' => now()->addMinutes($minutes ?? config('auth.lockout_minutes', 30)),
+            'locked_until' => now()->addMinutes($minutes ?? config('security.login.lockout_minutes', 15)),
         ]);
     }
 
@@ -537,7 +537,7 @@ class User extends BaseModel implements
     public function incrementFailedLoginAttempts(): void
     {
         $attempts = $this->failed_login_attempts + 1;
-        $maxAttempts = config('auth.max_login_attempts', 5);
+        $maxAttempts = config('security.login.max_attempts', 5);
 
         $this->update(['failed_login_attempts' => $attempts]);
 

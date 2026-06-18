@@ -141,16 +141,29 @@ return [
             'pulse/*',
         ],
 
-        // Sensitive fields to mask in logs
+        // Sensitive fields to mask / never write to logs.
+        //
+        // This is the single source of truth for both the HTTP AuditLogger
+        // middleware (substring masking of request input) and the model
+        // activity-log trait (HasActivity, exact-column exclusion). It must
+        // therefore list the real database column names for PHI/PII and
+        // secrets so they are never written to the activity log in plaintext.
         'sensitive_fields' => [
+            // Auth / credential fields
             'password',
             'password_confirmation',
             'current_password',
             'new_password',
+            'remember_token',
+            'two_factor_secret',
+            'two_factor_recovery_codes',
+            // Payment-card data
             'credit_card',
             'card_number',
             'cvv',
+            // Identifiers / secrets
             'ssn',
+            'national_id',
             'secret',
             'token',
             'api_key',

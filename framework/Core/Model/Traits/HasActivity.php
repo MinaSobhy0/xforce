@@ -17,6 +17,14 @@ trait HasActivity
     {
         return LogOptions::defaults()
             ->logAll()
+            // SECURITY: never write PHI/PII or secrets (national_id, phone,
+            // two_factor_secret, password, etc.) to the activity log in
+            // plaintext. The exclusion list is single-sourced from
+            // config/security.php so the model trait and the HTTP AuditLogger
+            // middleware stay in sync. logExcept() is applied by spatie via
+            // array_diff AFTER logAll() expands '*', so named columns are
+            // reliably stripped.
+            ->logExcept((array) config('security.audit.sensitive_fields', []))
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs()
             ->setDescriptionForEvent(fn(string $eventName) => $this->getActivityDescription($eventName))
