@@ -154,6 +154,15 @@ return [
             'secret',
             'token',
             'api_key',
+            // Contact PHI/PII (exact column names — HasActivity excludes by
+            // exact match, so list every PHI column, not just a stem)
+            'phone',
+            'mobile',
+            'phone_country_code',
+            'secondary_phone',
+            'emergency_contact_phone',
+            'date_of_birth',
+            'address',
         ],
 
         // Maximum days to retain audit logs (0 = forever)
