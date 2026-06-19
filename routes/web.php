@@ -25,7 +25,8 @@ Route::post('/csp-report', function (Request $request) {
     try {
         $payload = $request->json()->all();
         $report = $payload['csp-report'] ?? $payload;
-        Log::info('csp.report', [
+        // warning level so it isn't filtered out by LOG_LEVEL=warning in prod.
+        Log::warning('csp.report', [
             'directive' => $report['violated-directive'] ?? $report['effective-directive'] ?? null,
             'blocked' => $report['blocked-uri'] ?? null,
             'document' => $report['document-uri'] ?? null,
