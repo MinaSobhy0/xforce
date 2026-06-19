@@ -27,6 +27,14 @@ class EnforceBranchAccess
             return $next($request);
         }
 
+        // Branch access applies only to tenant staff users (Spatie-role models
+        // with branch assignments). Other guards — e.g. the owner portal's
+        // OwnerUser — have neither roles nor branches; skip before calling
+        // hasRole() so we don't fatal on a model without that trait.
+        if (! method_exists($user, 'hasRole')) {
+            return $next($request);
+        }
+
         // Skip for super admins (tenant owners)
         if ($this->isSuperAdmin($user)) {
             \Log::debug('EnforceBranchAccess: User is super admin, skipping', ['user_id' => $user->id]);
