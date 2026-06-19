@@ -44,8 +44,20 @@ class SecurityHeaders
         // Content Security Policy - restrictive by default
         // This helps prevent XSS attacks by controlling resource loading
         if (!$this->isApiRequest($request) && !$this->isLivewireRequest($request)) {
-            $csp = $this->buildContentSecurityPolicy();
-            $response->headers->set('Content-Security-Policy', $csp);
+            // Enforced policy — unchanged (keeps the unsafe-inline/unsafe-eval
+            // that Livewire/Alpine currently need). This is what actually runs.
+            $response->headers->set('Content-Security-Policy', $this->buildContentSecurityPolicy($request));
+
+            // M-20 canary: a STRICT policy in Report-Only mode. The browser
+            // reports what WOULD be blocked but blocks nothing — zero user impact
+            // — so we can see exactly what must change before enforcing. Gated by
+            // config('security.csp.report_only') so it can be switched off.
+            if (config('security.csp.report_only')) {
+                $response->headers->set(
+                    'Content-Security-Policy-Report-Only',
+                    $this->buildContentSecurityPolicy($request, reportOnly: true)
+                );
+            }
         }
 
         return $response;
@@ -54,8 +66,15 @@ class SecurityHeaders
     /**
      * Build Content Security Policy header value.
      */
-    protected function buildContentSecurityPolicy(): string
+    protected function buildContentSecurityPolicy(Request $request, bool $reportOnly = false): string
     {
+        // M-20: the strict (Report-Only) variant drops the unsafe-* allowances so
+        // we can observe what would break before enforcing. The enforced policy
+        // keeps them ($reportOnly = false).
+        $scriptUnsafe = $reportOnly ? '' : " 'unsafe-inline' 'unsafe-eval'";
+        $styleUnsafe = $reportOnly ? '' : " 'unsafe-inline'";
+
+
         $policies = [
             // Default to self
             "default-src 'self'",
@@ -63,10 +82,10 @@ class SecurityHeaders
             // Scripts - allow self, inline (for Alpine.js/Livewire), specific CDNs.
             // www.google.com + www.gstatic.com are required for Google reCAPTCHA v3
             // (used by the public contact forms).
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com https://www.google.com https://www.gstatic.com",
+            "script-src 'self'".$scriptUnsafe." https://cdn.jsdelivr.net https://unpkg.com https://www.google.com https://www.gstatic.com",
 
             // Styles - allow self, inline (for Tailwind), and Google Fonts
-            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+            "style-src 'self'".$styleUnsafe." https://fonts.googleapis.com",
 
             // Fonts
             "font-src 'self' https://fonts.gstatic.com data:",
@@ -92,6 +111,12 @@ class SecurityHeaders
             // Object sources (plugins) disabled
             "object-src 'none'",
         ];
+
+        // M-20: collect violations from the strict policy so we can see what
+        // would break across real users before enforcing.
+        if ($reportOnly) {
+            $policies[] = 'report-uri /csp-report';
+        }
 
         return implode('; ', $policies);
     }

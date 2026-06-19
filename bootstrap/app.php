@@ -47,6 +47,11 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\IdentifyTenant::class,
             \App\Http\Middleware\SetLocale::class,
         ]);
+
+        // M-20: browsers POST CSP violation reports without a CSRF token.
+        $middleware->validateCsrfTokens(except: [
+            'csp-report',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         // Handle PostgreSQL foreign key violations with user-friendly messages

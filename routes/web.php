@@ -4,6 +4,8 @@ use App\Http\Controllers\Auth\TwoFactorChallengeController;
 use App\Http\Controllers\BackupController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\TenantMediaController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Modules\Website\Http\Controllers\WebsiteController;
 use Modules\Website\Http\Middleware\WebsiteModuleMiddleware;
@@ -14,6 +16,26 @@ use Modules\Website\Http\Middleware\WebsiteModuleMiddleware;
 Route::get('/', [WebsiteController::class, 'home'])
     ->middleware(WebsiteModuleMiddleware::class)
     ->name('home');
+
+// M-20: CSP Report-Only violation collector. The browser POSTs a JSON report
+// when the strict policy WOULD have blocked something (it doesn't block — Report-
+// Only). Logged compactly + throttled so we can see what to fix before enforcing.
+// CSRF-exempt (see bootstrap/app.php validateCsrfTokens except).
+Route::post('/csp-report', function (Request $request) {
+    try {
+        $payload = $request->json()->all();
+        $report = $payload['csp-report'] ?? $payload;
+        Log::info('csp.report', [
+            'directive' => $report['violated-directive'] ?? $report['effective-directive'] ?? null,
+            'blocked' => $report['blocked-uri'] ?? null,
+            'document' => $report['document-uri'] ?? null,
+        ]);
+    } catch (\Throwable $e) {
+        // Never let a malformed report error the endpoint.
+    }
+
+    return response()->noContent();
+})->middleware('throttle:120,1');
 
 // Legal pages — public, no auth. Required URLs for App Store / Play Store submission.
 Route::view('/privacy', 'legal.privacy')->name('legal.privacy');

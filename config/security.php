@@ -278,4 +278,21 @@ return [
         'enforce' => env('BRANCH_ACCESS_ENFORCE', false),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Content Security Policy
+    |--------------------------------------------------------------------------
+    |
+    | M-20: when 'report_only' is true, SecurityHeaders also sends a STRICT CSP
+    | (no unsafe-inline/unsafe-eval) as Content-Security-Policy-Report-Only.
+    | The browser reports violations to /csp-report but blocks nothing — a
+    | zero-impact way to discover what must change before enforcing. Turn off
+    | once the violations have been collected/analyzed.
+    |
+    */
+
+    'csp' => [
+        'report_only' => env('CSP_REPORT_ONLY', false),
+    ],
+
 ];
