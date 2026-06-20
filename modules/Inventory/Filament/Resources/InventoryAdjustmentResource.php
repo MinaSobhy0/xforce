@@ -33,7 +33,7 @@ class InventoryAdjustmentResource extends Resource
 
     protected static ?int $navigationSort = 40;
 
-    protected static ?string $recordTitleAttribute = 'name';
+    protected static ?string $recordTitleAttribute = 'reference';
 
     public static function getNavigationLabel(): string
     {

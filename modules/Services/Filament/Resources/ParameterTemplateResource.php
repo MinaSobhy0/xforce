@@ -27,7 +27,7 @@ class ParameterTemplateResource extends Resource
 
     protected static ?int $navigationSort = 5;
 
-    protected static ?string $recordTitleAttribute = 'name';
+    protected static ?string $recordTitleAttribute = 'template_name';
 
     public static function getNavigationLabel(): string
     {

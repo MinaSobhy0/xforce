@@ -28,7 +28,7 @@ class AttendanceViolationResource extends Resource
 
     protected static ?int $navigationSort = 23;
 
-    protected static ?string $recordTitleAttribute = 'name';
+    protected static ?string $recordTitleAttribute = 'violation_type';
 
     public static function getNavigationLabel(): string
     {

@@ -32,7 +32,7 @@ class PractitionerTimeOffResource extends Resource
 
     protected static ?int $navigationSort = 3;
 
-    protected static ?string $recordTitleAttribute = 'name';
+    protected static ?string $recordTitleAttribute = 'reason';
 
     public static function getNavigationLabel(): string
     {

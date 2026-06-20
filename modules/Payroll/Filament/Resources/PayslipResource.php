@@ -40,7 +40,15 @@ class PayslipResource extends Resource
 
     protected static ?int $navigationSort = 11;
 
-    protected static ?string $recordTitleAttribute = 'name';
+    // payroll_lines has no `name` column; a payslip's identity is the staff
+    // member. Resolve the title via the relationship so global search / titles
+    // don't query a non-existent column.
+    protected static ?string $recordTitleAttribute = null;
+
+    public static function getRecordTitle(?\Illuminate\Database\Eloquent\Model $record): \Illuminate\Contracts\Support\Htmlable|string|null
+    {
+        return $record?->staffProfile?->user?->full_name ?? ($record ? 'Payslip #'.$record->getKey() : null);
+    }
 
     protected static ?string $slug = 'payslips';
 

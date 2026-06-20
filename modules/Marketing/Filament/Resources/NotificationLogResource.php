@@ -27,7 +27,7 @@ class NotificationLogResource extends Resource
 
     protected static ?int $navigationSort = 4;
 
-    protected static ?string $recordTitleAttribute = 'name';
+    protected static ?string $recordTitleAttribute = 'subject';
 
     public static function getNavigationLabel(): string
     {
