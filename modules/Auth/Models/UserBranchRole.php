@@ -47,6 +47,24 @@ class UserBranchRole extends BaseModel
     ];
 
     /**
+     * This table DEFINES a user's branch access — it must not itself be filtered
+     * by the active branch context (that's circular and would, e.g., make the
+     * User edit form and BranchContext::userAllowedIds() see only the active
+     * branch). branch_id is part of the record, never a scope. Opt out of auto
+     * branch assignment and no-op the inherited 'branch' global scope.
+     */
+    protected bool $autoSetBranchId = false;
+
+    protected static function booted(): void
+    {
+        parent::booted();
+
+        static::addGlobalScope('branch', function (): void {
+            // intentionally no filtering — access-control mapping, not branch data
+        });
+    }
+
+    /**
      * Get the user this assignment belongs to.
      */
     public function user(): BelongsTo
