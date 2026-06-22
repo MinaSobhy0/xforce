@@ -3,6 +3,7 @@
 namespace Modules\Auth\Observers;
 
 use Modules\Auth\Models\User;
+use Modules\Auth\Models\UserStatus;
 use Modules\Auth\Notifications\UserLimitExceededNotification;
 use Modules\Auth\Notifications\UserLimitExceededAdminNotification;
 use Modules\Core\Models\Tenant;
@@ -28,6 +29,89 @@ class UserLimitObserver
     }
 
     /**
+     * Handle the User "updating" event — block reactivation that
+     * would exceed the seat cap. Counts of "billable seats" filter
+     * to status=active (see User::countExistingRecords). If we
+     * didn't gate this, a tenant at cap could deactivate one user,
+     * create another, then reactivate the original — back-door
+     * around the limit.
+     */
+    public function updating(User $user): void
+    {
+        if (! $user->isDirty('status')) {
+            return;
+        }
+
+        $newStatus = $user->status;
+        $oldStatus = $user->getOriginal('status');
+
+        // Cast enum vs string defensively — getOriginal returns the
+        // raw column value, the dirty attribute might be the enum
+        // instance depending on where the change came from.
+        $newValue = $newStatus instanceof UserStatus ? $newStatus->value : $newStatus;
+        $oldValue = $oldStatus instanceof UserStatus ? $oldStatus->value : $oldStatus;
+
+        if ($newValue !== UserStatus::ACTIVE->value || $oldValue === UserStatus::ACTIVE->value) {
+            return;
+        }
+
+        $tenant = current_tenant();
+
+        if (! $tenant) {
+            return;
+        }
+
+        $effectiveLimit = $tenant->getEffectiveLimit('users');
+
+        if ($effectiveLimit === null || $effectiveLimit <= 0) {
+            return;
+        }
+
+        // Active count excludes the user being reactivated (its
+        // current status is still the OLD value at this point in the
+        // event). Adding +1 simulates the post-save state.
+        $activeAfter = User::query()->where('status', UserStatus::ACTIVE)->count() + 1;
+
+        if ($activeAfter <= $effectiveLimit) {
+            return;
+        }
+
+        $message = __("Cannot reactivate user. You have reached the maximum of :max active users allowed for your plan (currently: :current).", [
+            'max' => $effectiveLimit,
+            'current' => $activeAfter - 1,
+        ]);
+
+        // Same UX shape as EnforcesTenantLimits — Filament toast +
+        // Halt inside a panel, plain exception elsewhere — so
+        // reactivation-over-cap fails the same way creation-over-cap
+        // fails.
+        if (! app()->runningInConsole() && function_exists('filament')) {
+            try {
+                if (filament()->getCurrentPanel() !== null) {
+                    if (class_exists(\Filament\Notifications\Notification::class)) {
+                        \Filament\Notifications\Notification::make()
+                            ->title($message)
+                            ->body(__('Upgrade your plan or deactivate another user to free a seat.'))
+                            ->danger()
+                            ->persistent()
+                            ->send();
+                    }
+
+                    if (class_exists(\Filament\Support\Exceptions\Halt::class)) {
+                        throw new \Filament\Support\Exceptions\Halt();
+                    }
+                }
+            } catch (\Filament\Support\Exceptions\Halt $e) {
+                throw $e;
+            } catch (\Throwable $e) {
+                // Filament not booted — fall through to RuntimeException.
+            }
+        }
+
+        throw new \RuntimeException($message);
+    }
+
+    /**
      * Check if tenant has exceeded user limit and handle accordingly.
      */
     protected function checkUserLimit(): void
@@ -44,7 +128,10 @@ class UserLimitObserver
             return;
         }
 
-        $currentUserCount = User::count();
+        // Match the gate: count active users only. Inactive /
+        // suspended / pending users don't consume a seat, so they
+        // shouldn't trigger overage notifications either.
+        $currentUserCount = User::query()->where('status', UserStatus::ACTIVE)->count();
 
         // If not over limit, clear any overage tracking
         if ($currentUserCount <= $effectiveLimit) {

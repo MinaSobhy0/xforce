@@ -16,7 +16,12 @@ class TenantUsageWidget extends BaseWidget
             return [];
         }
 
-        $userCount = $this->record->users()->count();
+        // Count active users only to match the seat-cap gate in
+        // EnforcesTenantLimits + UserLimitObserver. Inactive,
+        // suspended, and pending users don't consume a seat, so
+        // showing them here would create a "dashboard says X,
+        // creation gate says Y" mismatch.
+        $userCount = $this->record->users()->where('status', 'active')->count();
         $userPercentage = $this->record->max_users > 0
             ? round(($userCount / $this->record->max_users) * 100, 1)
             : 0;

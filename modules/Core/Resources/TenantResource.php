@@ -401,7 +401,11 @@ class TenantResource extends BaseResource
                             ->schema([
                                 Infolists\Components\TextEntry::make('users_count')
                                     ->label(__('Users'))
-                                    ->state(fn ($record) => $record->users()->count() . ' / ' . $record->max_users)
+                                    // Active-only count so this matches the
+                                    // seat-cap gate. See User::countExistingRecords
+                                    // and UserLimitObserver — inactive /
+                                    // suspended / pending users don't burn a seat.
+                                    ->state(fn ($record) => $record->users()->where('status', 'active')->count() . ' / ' . $record->max_users)
                                     ->badge()
                                     ->color('info'),
                                 Infolists\Components\TextEntry::make('max_patients')

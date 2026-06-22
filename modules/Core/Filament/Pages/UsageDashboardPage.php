@@ -6,7 +6,15 @@ use Filament\Pages\Page;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\DB;
+use Modules\Auth\Models\User;
+use Modules\Auth\Models\UserStatus;
+use Modules\Booking\Models\Appointment;
+use Modules\Core\Models\Branch;
 use Modules\Core\Models\TenantUsage;
+use Modules\Equipment\Models\Equipment;
+use Modules\Inventory\Models\Product;
+use Modules\Patients\Models\Patient;
+use Modules\Services\Models\Service;
 use XLinic\Framework\Core\Tenancy\TenantManager;
 
 class UsageDashboardPage extends Page
@@ -88,9 +96,15 @@ class UsageDashboardPage extends Page
         ];
 
         if ($tenantUsage) {
+            // Gated resources (users, branches) compute LIVE on
+            // every mount so the dashboard never disagrees with the
+            // creation gate even if the cached tenant_usages row is
+            // stale. Cheap — both are single COUNT queries. Other
+            // resources stay cached because they're not limit-gated
+            // and refreshing them every page-load is wasteful.
             $this->usage = [
-                'users' => $tenantUsage->users ?? 0,
-                'branches' => $tenantUsage->branches ?? 0,
+                'users' => User::query()->where('status', UserStatus::ACTIVE)->count(),
+                'branches' => Branch::query()->count(),
                 'storage_gb' => round(($tenantUsage->storage_mb ?? 0) / 1024, 2),
                 // Unlimited resources (for stats display only)
                 'patients' => $tenantUsage->patients ?? 0,
@@ -256,22 +270,32 @@ class UsageDashboardPage extends Page
             return;
         }
 
-        // Calculate real counts from database
-        $usersCount = DB::table('users')->where('status', 'active')->count();
-        $branchesCount = DB::table('branches')->count();
-        $patientsCount = DB::table('patients')->count();
-        $servicesCount = DB::table('services')->count();
-        $productsCount = DB::table('products')->count();
-        $equipmentCount = DB::table('equipment')->count();
-        $appointmentsCount = DB::table('appointments')->count();
+        // Use Eloquent models — they carry HasTenancy + the
+        // `tenant` connection so the count hits the right schema.
+        // The previous DB::table('users')->… ran against the default
+        // pgsql connection, which is the central `public.users`
+        // (platform admins), not the per-tenant `tenant_xxx.users`
+        // table where staff actually live. Patients, branches,
+        // services, products, equipment, and appointments were all
+        // hitting the wrong table for the same reason.
+        //
+        // Users count is also filtered to status=active so this
+        // value matches the seat-cap gate in EnforcesTenantLimits.
+        $usersCount = User::query()->where('status', UserStatus::ACTIVE)->count();
+        $branchesCount = Branch::query()->count();
+        $patientsCount = Patient::query()->count();
+        $servicesCount = Service::query()->count();
+        $productsCount = Product::query()->count();
+        $equipmentCount = Equipment::query()->count();
+        $appointmentsCount = Appointment::query()->count();
 
         // Calculate this month's stats
         $startOfMonth = now()->startOfMonth();
-        $appointmentsThisMonth = DB::table('appointments')
+        $appointmentsThisMonth = Appointment::query()
             ->where('date', '>=', $startOfMonth)
             ->count();
 
-        $newPatientsThisMonth = DB::table('patients')
+        $newPatientsThisMonth = Patient::query()
             ->where('created_at', '>=', $startOfMonth)
             ->count();
 

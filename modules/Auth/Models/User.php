@@ -53,6 +53,28 @@ class User extends BaseModel implements
     protected string $tenantLimitResourceName = 'users';
 
     /**
+     * Override the default `static::count()` used by EnforcesTenantLimits
+     * so the seat cap is consumed by *active* users only. Inactive,
+     * suspended, and pending users free up a seat the moment their
+     * status changes — matches industry-standard SaaS seat billing
+     * and the user-visible promise of `max_users`.
+     *
+     * Without this override the cap counted every non-soft-deleted row
+     * regardless of status, so a single deactivated user blocked
+     * creation at 24+1=25 even though only 24 seats were in use.
+     *
+     * Reactivation from a non-active status back to active is gated
+     * separately by UserLimitObserver::updating() so the policy
+     * stays symmetric (you can't reactivate yourself over cap).
+     */
+    protected function countExistingRecords(): int
+    {
+        return static::query()
+            ->where('status', UserStatus::ACTIVE)
+            ->count();
+    }
+
+    /**
      * The database connection for the model.
      * Must match Role and Permission models for Spatie permissions to work correctly.
      */
