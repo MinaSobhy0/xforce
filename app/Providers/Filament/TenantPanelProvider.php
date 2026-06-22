@@ -305,12 +305,33 @@ HTML;
                         return '';
                     }
 
+                    // Count active users only — must match the seat
+                    // cap gate in EnforcesTenantLimits. Inactive /
+                    // suspended / pending users don't burn a seat, so
+                    // counting them here was the "26/25" mismatch the
+                    // tenant saw: 25 active + 1 inactive ≠ overage.
                     $currentUsers = \Illuminate\Support\Facades\DB::connection('tenant')
                         ->table('users')
                         ->whereNull('deleted_at')
+                        ->where('status', 'active')
                         ->count();
 
                     if ($currentUsers <= $limit) {
+                        // Lazily reconcile users_overage_at — the
+                        // observer only clears this on User
+                        // created/restored, so if the tenant drops
+                        // below limit by deactivation or soft-delete
+                        // the column would stay stamped forever and
+                        // the banner could stick the next time
+                        // they're at-but-not-over limit. Clearing it
+                        // here keeps the column honest without
+                        // needing a separate scheduled job.
+                        if ($tenant->users_overage_at) {
+                            $tenant->users_overage_at = null;
+                            $tenant->users_overage_notified = false;
+                            $tenant->save();
+                        }
+
                         return '';
                     }
 
