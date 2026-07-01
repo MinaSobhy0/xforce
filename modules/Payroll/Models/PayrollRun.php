@@ -4,6 +4,7 @@ namespace Modules\Payroll\Models;
 
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Modules\Payroll\Events\PayrollPaid;
+use Modules\Payroll\Models\PayrollLine;
 use XLinic\Framework\Core\Model\BaseModel;
 use XLinic\Framework\Core\Model\Traits\HasSequence;
 
@@ -155,8 +156,17 @@ class PayrollRun extends BaseModel
         $this->status = self::STATUS_APPROVED;
         $this->approved_by = $userId ?? auth()->id();
         $this->approved_at = now();
+        $ok = $this->save();
 
-        return $this->save();
+        // Cascade to child payslip lines so the Payslips list doesn't sit at
+        // "draft" while the parent run is already approved. Only lift lines
+        // that are still in the pre-approved states — cancelled/paid rows
+        // (manual per-employee overrides) stay put.
+        $this->lines()
+            ->whereIn('status', [PayrollLine::STATUS_DRAFT, PayrollLine::STATUS_PENDING])
+            ->update(['status' => PayrollLine::STATUS_APPROVED]);
+
+        return $ok;
     }
 
     /**
@@ -173,6 +183,17 @@ class PayrollRun extends BaseModel
         $this->paid_by = $userId ?? auth()->id();
         $this->paid_at = now();
         $this->save();
+
+        // Cascade to child payslip lines — any not-yet-final state becomes
+        // paid. Already-cancelled lines are preserved (e.g. an employee left
+        // mid-cycle and their slip was explicitly cancelled by HR).
+        $this->lines()
+            ->whereIn('status', [
+                PayrollLine::STATUS_DRAFT,
+                PayrollLine::STATUS_PENDING,
+                PayrollLine::STATUS_APPROVED,
+            ])
+            ->update(['status' => PayrollLine::STATUS_PAID]);
 
         // Mark all commission records as paid
         foreach ($this->lines as $line) {
@@ -195,7 +216,19 @@ class PayrollRun extends BaseModel
         }
 
         $this->status = self::STATUS_CANCELLED;
-        return $this->save();
+        $ok = $this->save();
+
+        // Cascade to child payslip lines. Paid lines stay paid (money already
+        // moved — cancelling the run doesn't reverse the disbursement).
+        $this->lines()
+            ->whereIn('status', [
+                PayrollLine::STATUS_DRAFT,
+                PayrollLine::STATUS_PENDING,
+                PayrollLine::STATUS_APPROVED,
+            ])
+            ->update(['status' => PayrollLine::STATUS_CANCELLED]);
+
+        return $ok;
     }
 
     /**
@@ -247,7 +280,15 @@ class PayrollRun extends BaseModel
         }
 
         $this->status = self::STATUS_DRAFT;
-        return $this->save();
+        $ok = $this->save();
+
+        // Cascade back to draft for lines that were only tentatively promoted.
+        // Paid/cancelled lines are final and never regress.
+        $this->lines()
+            ->whereIn('status', [PayrollLine::STATUS_PENDING, PayrollLine::STATUS_APPROVED])
+            ->update(['status' => PayrollLine::STATUS_DRAFT]);
+
+        return $ok;
     }
 
     /**
