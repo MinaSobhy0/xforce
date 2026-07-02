@@ -21,23 +21,32 @@ class ViewUser extends BaseViewRecord
             Actions\EditAction::make(),
 
             Actions\Action::make('impersonate')
-                ->label(__('Login as User'))
+                ->label(__('auth::auth.user_resource.login_as_user'))
                 ->icon('heroicon-o-user')
                 ->color('warning')
                 ->requiresConfirmation()
-                ->modalDescription(__('You will be logged in as this user. You can return to your account anytime.'))
+                ->modalDescription(__('auth::auth.user_resource.impersonate_confirmation'))
                 ->action(function () {
-                    // Impersonation logic would go here
-                    // session(['impersonator_id' => auth()->id()]);
-                    // auth()->login($this->getRecord());
+                    $record = $this->getRecord();
 
-                    Notification::make()
-                        ->title(__('Now impersonating user'))
-                        ->body(__('You are now logged in as :name', ['name' => $this->getRecord()->name]))
-                        ->success()
-                        ->send();
+                    // See table-action impersonate — same nesting guard.
+                    session([
+                        'impersonator_id' => session('impersonator_id') ?? auth()->id(),
+                        'impersonator_started_at' => session('impersonator_started_at') ?? now()->toIso8601String(),
+                    ]);
+
+                    \Illuminate\Support\Facades\Auth::login($record);
+
+                    activity()
+                        ->causedBy(\Modules\Auth\Models\User::find(session('impersonator_id')))
+                        ->performedOn($record)
+                        ->log('Started impersonating user');
+
+                    return redirect('/admin');
                 })
-                ->visible(fn () => $this->getRecord()->status === UserStatus::ACTIVE && !$this->getRecord()->hasRole('super_admin')),
+                ->visible(fn () => $this->getRecord()->status === UserStatus::ACTIVE
+                    && ! $this->getRecord()->hasRole('super_admin')
+                    && $this->getRecord()->id !== auth()->id()),
 
             Actions\Action::make('resetPassword')
                 ->label(__('Reset Password'))

@@ -497,6 +497,9 @@ return [
         'role' => 'Role',
         // Actions
         'login_as_user' => 'Login as User',
+        'impersonate_confirmation' => 'You will be logged in as this user and can return to your account anytime.',
+        'impersonating_banner' => 'You are logged in as :name. All actions are attributed to that account.',
+        'stop_impersonating' => 'Return to your account',
         'reset_password' => 'Reset Password',
         'new_password' => 'New Password',
         'activate' => 'Activate',

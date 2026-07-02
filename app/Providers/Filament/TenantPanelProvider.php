@@ -382,6 +382,40 @@ HTML;
                 }
             )
 
+            // Impersonation banner — shown at the very top of the body when
+            // the current session was opened via a "Login as user" action.
+            // The Stop button posts to /admin/impersonate/stop and restores
+            // the original login.
+            ->renderHook(
+                PanelsRenderHook::BODY_START,
+                function (): string {
+                    if (! session()->has('impersonator_id')) {
+                        return '';
+                    }
+                    $name = e(auth()->user()?->name ?? '');
+                    $label = e(__('auth::auth.user_resource.impersonating_banner', ['name' => $name]));
+                    $stopLabel = e(__('auth::auth.user_resource.stop_impersonating'));
+                    $csrf = csrf_token();
+
+                    return <<<HTML
+<div style="width: 100%; background-color: #b45309; color: white; padding: 0.5rem 1rem; text-align: center; font-size: 0.875rem; font-weight: 500; z-index: 50;">
+    <div style="display: flex; align-items: center; justify-content: center; gap: 0.75rem; flex-wrap: wrap;">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 1.25rem; height: 1.25rem;">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+        </svg>
+        <span>{$label}</span>
+        <form method="POST" action="/admin/impersonate/stop" style="margin: 0;">
+            <input type="hidden" name="_token" value="{$csrf}">
+            <button type="submit" style="display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.25rem 0.75rem; background-color: rgba(255,255,255,0.2); border: none; border-radius: 0.375rem; color: white; font-size: 0.75rem; font-weight: 600; cursor: pointer;">
+                {$stopLabel}
+            </button>
+        </form>
+    </div>
+</div>
+HTML;
+                }
+            )
+
             // Custom sidebar theme styles
             ->renderHook(
                 PanelsRenderHook::STYLES_AFTER,

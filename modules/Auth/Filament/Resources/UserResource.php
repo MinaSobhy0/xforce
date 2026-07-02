@@ -388,11 +388,30 @@ class UserResource extends Resource
                     ->label(__('auth::auth.user_resource.login_as_user'))
                     ->icon('heroicon-o-user')
                     ->color('warning')
+                    ->requiresConfirmation()
+                    ->modalDescription(__('auth::auth.user_resource.impersonate_confirmation'))
                     ->action(function (User $record) {
-                        // Impersonation logic would go here
-                        // This is a placeholder for the functionality
+                        // Remember who we were so the Stop button can restore.
+                        // Guard against re-nesting: if already impersonating,
+                        // keep the original impersonator_id so a chain of
+                        // "login as" still returns to the real admin.
+                        session([
+                            'impersonator_id' => session('impersonator_id') ?? auth()->id(),
+                            'impersonator_started_at' => session('impersonator_started_at') ?? now()->toIso8601String(),
+                        ]);
+
+                        \Illuminate\Support\Facades\Auth::login($record);
+
+                        activity()
+                            ->causedBy(\Modules\Auth\Models\User::find(session('impersonator_id')))
+                            ->performedOn($record)
+                            ->log('Started impersonating user');
+
+                        return redirect('/admin');
                     })
-                    ->visible(fn (User $record) => $record->status === 'active' && !$record->hasRole('super_admin')),
+                    ->visible(fn (User $record) => $record->status === 'active'
+                        && ! $record->hasRole('super_admin')
+                        && $record->id !== auth()->id()),
 
                 Tables\Actions\Action::make('resetPassword')
                     ->label(__('auth::auth.user_resource.reset_password'))
