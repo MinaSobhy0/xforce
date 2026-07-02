@@ -15,6 +15,16 @@ class StaffServiceProvider extends ServiceProvider
         $this->registerConfig();
         $this->registerTranslations();
         $this->loadMigrationsFrom(module_path($this->moduleName, 'Database/Migrations'));
+        $this->registerCommands();
+    }
+
+    protected function registerCommands(): void
+    {
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                \Modules\Staff\Console\BackfillBranchAssignmentsCommand::class,
+            ]);
+        }
     }
 
     public function register(): void
