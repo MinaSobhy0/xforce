@@ -122,10 +122,22 @@ class BranchRolesRelationManager extends RelationManager
             ->headerActions([
                 Tables\Actions\CreateAction::make()
                     ->label(__('auth::auth.actions.assign_branch'))
-                    ->mutateFormDataUsing(function (array $data): array {
-                        $data['assigned_at'] = now();
-                        $data['assigned_by'] = auth()->id();
-                        return $data;
+                    ->using(function (array $data): UserBranchRole {
+                        // role_id / is_primary / is_active are guarded against mass
+                        // assignment; set them explicitly via the authorized helper.
+                        $owner = $this->getOwnerRecord();
+
+                        return UserBranchRole::assign([
+                            'tenant_id' => $owner->tenant_id,
+                            'user_id' => $owner->getKey(),
+                            'branch_id' => $data['branch_id'],
+                            'role_id' => $data['role_id'],
+                            'is_primary' => (bool) ($data['is_primary'] ?? false),
+                            'is_active' => (bool) ($data['is_active'] ?? true),
+                            'expires_at' => $data['expires_at'] ?? null,
+                            'assigned_at' => now(),
+                            'assigned_by' => auth()->id(),
+                        ]);
                     })
                     ->after(function (UserBranchRole $record) {
                         // If this is set as primary, remove primary from others
@@ -138,6 +150,17 @@ class BranchRolesRelationManager extends RelationManager
             ])
             ->actions([
                 Tables\Actions\EditAction::make()
+                    ->using(function (UserBranchRole $record, array $data): UserBranchRole {
+                        // Guarded fields must be force-filled, not mass-assigned.
+                        $record->forceFill([
+                            'role_id' => $data['role_id'] ?? $record->role_id,
+                            'is_primary' => (bool) ($data['is_primary'] ?? false),
+                            'is_active' => (bool) ($data['is_active'] ?? false),
+                            'expires_at' => $data['expires_at'] ?? null,
+                        ])->save();
+
+                        return $record;
+                    })
                     ->after(function (UserBranchRole $record) {
                         // If this is set as primary, remove primary from others
                         if ($record->is_primary) {
@@ -171,7 +194,8 @@ class BranchRolesRelationManager extends RelationManager
                     ->color(fn (UserBranchRole $record) => $record->is_active ? 'danger' : 'success')
                     ->requiresConfirmation()
                     ->action(function (UserBranchRole $record) {
-                        $record->update(['is_active' => !$record->is_active]);
+                        // is_active is guarded — force-fill it.
+                        $record->forceFill(['is_active' => !$record->is_active])->save();
                         Notification::make()
                             ->title($record->is_active
                                 ? __('auth::auth.messages.branch_access_activated')

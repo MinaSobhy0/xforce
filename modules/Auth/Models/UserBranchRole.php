@@ -169,8 +169,26 @@ class UserBranchRole extends BaseModel
             ->where('id', '!=', $this->id)
             ->update(['is_primary' => false]);
 
-        $this->update(['is_primary' => true]);
+        // is_primary is guarded against mass assignment — set it explicitly.
+        $this->forceFill(['is_primary' => true])->save();
 
         return $this;
+    }
+
+    /**
+     * Authorized assignment helper.
+     *
+     * role_id / is_primary / is_active / assigned_* are guarded against mass
+     * assignment to prevent privilege escalation from untrusted input. Trusted,
+     * permission-gated admin code creates assignments through this method, which
+     * force-fills the attributes after the caller has authorized them.
+     */
+    public static function assign(array $attributes): self
+    {
+        $role = new static();
+        $role->forceFill($attributes);
+        $role->save();
+
+        return $role;
     }
 }
