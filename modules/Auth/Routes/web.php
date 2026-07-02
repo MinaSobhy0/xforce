@@ -16,8 +16,13 @@ Route::middleware(['web'])->group(function () {
 // restores that user's login. Kept off ImpersonateController because that
 // controller handles the token-based cross-panel flow; the same-panel
 // enter/exit is intentionally session-only (no DB token to burn).
+// Accepts BOTH GET and POST: the panel's ->spa() mode (Livewire's
+// wire:navigate) intercepts inline form submits, so the banner uses a
+// native window.location.href navigation. There's no real CSRF risk on
+// "stop being someone else and go back to yourself" for an
+// already-authenticated admin, so allowing GET is deliberate.
 Route::middleware(['web', 'auth'])->group(function () {
-    Route::post('/admin/impersonate/stop', function () {
+    Route::match(['GET', 'POST'], '/admin/impersonate/stop', function () {
         $impersonatorId = session('impersonator_id');
         if (! $impersonatorId) {
             return redirect('/admin');
@@ -35,6 +40,12 @@ Route::middleware(['web', 'auth'])->group(function () {
         $impersonatedId = auth()->id();
         session()->forget(['impersonator_id', 'impersonator_started_at']);
         \Illuminate\Support\Facades\Auth::login($impersonator);
+
+        // Refresh the AuthenticateSession password-hash sentinel so the
+        // next request doesn't see a mismatch and force logout.
+        $hash = $impersonator->getAuthPassword();
+        session()->put('password_hash_web', $hash);
+        session()->put('password_hash', $hash);
 
         activity()
             ->causedBy($impersonator)

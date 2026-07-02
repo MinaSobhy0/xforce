@@ -37,6 +37,14 @@ class ViewUser extends BaseViewRecord
 
                     \Illuminate\Support\Facades\Auth::login($record);
 
+                    // AuthenticateSession middleware compares the stored
+                    // password_hash to the current user's on every request
+                    // and forces logout on mismatch — refresh it now so the
+                    // switch survives.
+                    $hash = $record->getAuthPassword();
+                    session()->put('password_hash_web', $hash);
+                    session()->put('password_hash', $hash);
+
                     activity()
                         ->causedBy(\Modules\Auth\Models\User::find(session('impersonator_id')))
                         ->performedOn($record)

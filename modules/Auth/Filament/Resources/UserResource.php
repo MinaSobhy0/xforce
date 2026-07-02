@@ -402,6 +402,15 @@ class UserResource extends Resource
 
                         \Illuminate\Support\Facades\Auth::login($record);
 
+                        // AuthenticateSession middleware stores the original
+                        // user's password hash and compares it to the current
+                        // user on every request — a mismatch forces logout.
+                        // Refresh both the guard-scoped key and the legacy key
+                        // so the switch survives the next request.
+                        $hash = $record->getAuthPassword();
+                        session()->put('password_hash_web', $hash);
+                        session()->put('password_hash', $hash);
+
                         activity()
                             ->causedBy(\Modules\Auth\Models\User::find(session('impersonator_id')))
                             ->performedOn($record)

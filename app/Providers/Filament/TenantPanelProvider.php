@@ -384,8 +384,13 @@ HTML;
 
             // Impersonation banner — shown at the very top of the body when
             // the current session was opened via a "Login as user" action.
-            // The Stop button posts to /admin/impersonate/stop and restores
-            // the original login.
+            // The Stop button JS-creates and submits a form to
+            // /admin/impersonate/stop rather than declaring a <form> in
+            // the markup: Filament runs the panel in ->spa() mode and
+            // Livewire's wire:navigate intercepts inline form submits,
+            // preventing the browser from doing a real POST. Building the
+            // form at click-time (outside Alpine / Livewire's reactive
+            // tree) sidesteps that and does a native navigation.
             ->renderHook(
                 PanelsRenderHook::BODY_START,
                 function (): string {
@@ -395,7 +400,11 @@ HTML;
                     $name = e(auth()->user()?->name ?? '');
                     $label = e(__('auth::auth.user_resource.impersonating_banner', ['name' => $name]));
                     $stopLabel = e(__('auth::auth.user_resource.stop_impersonating'));
-                    $csrf = csrf_token();
+                    $stopUrl = url('/admin/impersonate/stop');
+                    // window.location.href is a native browser API that
+                    // Livewire's wire:navigate cannot intercept, unlike
+                    // form submits which the SPA layer catches.
+                    $onclick = "window.location.href='{$stopUrl}';";
 
                     return <<<HTML
 <div style="width: 100%; background-color: #b45309; color: white; padding: 0.5rem 1rem; text-align: center; font-size: 0.875rem; font-weight: 500; z-index: 50;">
@@ -404,12 +413,9 @@ HTML;
             <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
         </svg>
         <span>{$label}</span>
-        <form method="POST" action="/admin/impersonate/stop" style="margin: 0;">
-            <input type="hidden" name="_token" value="{$csrf}">
-            <button type="submit" style="display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.25rem 0.75rem; background-color: rgba(255,255,255,0.2); border: none; border-radius: 0.375rem; color: white; font-size: 0.75rem; font-weight: 600; cursor: pointer;">
-                {$stopLabel}
-            </button>
-        </form>
+        <button type="button" onclick="{$onclick}" style="display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.25rem 0.75rem; background-color: rgba(255,255,255,0.2); border: none; border-radius: 0.375rem; color: white; font-size: 0.75rem; font-weight: 600; cursor: pointer;">
+            {$stopLabel}
+        </button>
     </div>
 </div>
 HTML;
