@@ -309,6 +309,17 @@ class User extends BaseModel implements
     }
 
     /**
+     * Alias for allowedBranches() — mobile clients (and any future caller)
+     * that expect the shorter `branches()` name resolve to the same
+     * active + not-expired scope. Adding the alias here avoids hunting
+     * every caller that assumed this method existed.
+     */
+    public function branches(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->allowedBranches();
+    }
+
+    /**
      * Get the user's primary branch.
      */
     public function getPrimaryBranchAttribute(): ?\Modules\Core\Models\Branch
