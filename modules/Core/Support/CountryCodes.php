@@ -119,6 +119,32 @@ class CountryCodes
     }
 
     /**
+     * Get the default dial code for the current clinic, derived from the
+     * tenant's country. The tenants table stores the ISO code (`'EG'`,
+     * `'KW'`, …), so try getByIsoCode() first; fall back to getByName()
+     * for legacy rows that still hold the full country name (`'Egypt'`).
+     * Falls through to the global default when nothing matches.
+     */
+    public static function defaultForTenant(): string
+    {
+        // XLinic uses schema-based tenancy — filament()->getTenant() (which
+        // is Filament's built-in multi-tenancy) always returns null here.
+        // The real current tenant is resolved by IdentifyTenant middleware
+        // and exposed via the current_tenant() helper.
+        $tenant = function_exists('current_tenant') ? current_tenant() : null;
+
+        if ($tenant && ! empty($tenant->country)) {
+            $code = self::getByIsoCode($tenant->country)
+                ?? self::getByName($tenant->country);
+            if ($code !== null) {
+                return $code;
+            }
+        }
+
+        return self::default();
+    }
+
+    /**
      * Validate a country code.
      */
     public static function isValid(string $code): bool
