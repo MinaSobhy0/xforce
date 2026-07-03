@@ -21,7 +21,10 @@ Route::middleware(['web'])->group(function () {
 // native window.location.href navigation. There's no real CSRF risk on
 // "stop being someone else and go back to yourself" for an
 // already-authenticated admin, so allowing GET is deliberate.
-Route::middleware(['web', 'auth'])->group(function () {
+// IdentifyTenant must run BEFORE `auth`: User is on the tenant
+// connection, and without the tenant middleware `Auth::user()` returns
+// null, so `auth` redirects to /login and our stop code never fires.
+Route::middleware(['web', \App\Http\Middleware\IdentifyTenant::class, \App\Http\Middleware\RequireTenant::class, 'auth'])->group(function () {
     Route::match(['GET', 'POST'], '/admin/impersonate/stop', function () {
         $impersonatorId = session('impersonator_id');
         if (! $impersonatorId) {
