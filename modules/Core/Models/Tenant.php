@@ -335,7 +335,10 @@ class Tenant extends Model
             \DB::statement("SET search_path TO \"{$this->database_name}\"");
 
             $counts = [
-                'users' => $this->countTable('users'),
+                // Seat usage counts ACTIVE, non-deleted users only — matching the
+                // seat cap (User::countExistingRecords) and the user-visible
+                // max_users promise. Inactive/suspended/pending users free a seat.
+                'users' => $this->countActiveUsers(),
                 'branches' => $this->countTable('branches'),
                 'patients' => $this->countTable('patients'),
                 'appointments' => $this->countTable('appointments'),
@@ -488,6 +491,24 @@ class Tenant extends Model
             $result = \DB::select("SELECT COUNT(*) as count FROM \"{$table}\"");
 
             return $result[0]->count ?? 0;
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
+
+    /**
+     * Count seat-consuming users: status = active and not soft-deleted. Mirrors
+     * User::countExistingRecords() so the portal's usage matches the seat cap.
+     */
+    protected function countActiveUsers(): int
+    {
+        try {
+            $result = \DB::select(
+                'SELECT COUNT(*) as count FROM "users" WHERE status = ? AND deleted_at IS NULL',
+                [\Modules\Auth\Models\UserStatus::ACTIVE->value]
+            );
+
+            return (int) ($result[0]->count ?? 0);
         } catch (\Exception $e) {
             return 0;
         }
