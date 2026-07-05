@@ -98,6 +98,31 @@ if (!function_exists('current_currency')) {
     }
 }
 
+if (!function_exists('currency_minor_divisor')) {
+    /**
+     * How many minor units make one major unit for the given currency.
+     * Most currencies are 2-decimal (100 cents per dollar), Gulf
+     * currencies are 3-decimal (1000 fils per dinar), JPY-like are 0.
+     *
+     * Use this everywhere a `_minor` integer is converted to/from the
+     * displayed major value (form field state, accessor conversions,
+     * report aggregations) so the same column works correctly across
+     * tenants with different currencies.
+     */
+    function currency_minor_divisor(?string $currency = null): int
+    {
+        $currency = strtoupper($currency ?? current_currency());
+
+        return match ($currency) {
+            // Gulf / Middle East 3-decimal currencies
+            'KWD', 'BHD', 'OMR', 'JOD', 'LYD', 'TND', 'IQD' => 1000,
+            // No-decimal currencies
+            'JPY', 'KRW', 'VND', 'CLP', 'ISK' => 1,
+            default => 100,
+        };
+    }
+}
+
 if (!function_exists('format_money')) {
     /**
      * Format an amount as money using the current branch currency.

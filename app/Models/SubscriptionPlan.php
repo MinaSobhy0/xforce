@@ -193,26 +193,46 @@ class SubscriptionPlan extends Model
     {
         $countryCode = strtoupper($countryCode);
         $prices = $this->prices ?? [];
+        $baseCurrency = $this->currency ?? 'EGP';
+        $baseAmount = (int) ($interval === 'yearly' ? $this->price_yearly_minor : $this->price_monthly_minor);
 
-        if (isset($prices[$countryCode])) {
+        // A per-country override only counts when its cell for this interval is
+        // actually filled in. The prices JSON keeps every country key present
+        // with null values, so isset() alone is not enough — a blank cell must
+        // fall through to the plan's base price instead of showing 0.
+        //
+        // NOTE: per-country prices are entered in WHOLE currency units in the
+        // admin form (e.g. "40000" = 40,000 EGP), whereas the base columns are
+        // stored in minor units. This method returns minor units everywhere, so
+        // per-country values are scaled up by the currency divisor.
+        $filled = fn ($v) => $v !== null && $v !== '';
+        $toMinor = fn ($major, $currency) => (int) round(((float) $major) * currency_minor_divisor($currency));
+
+        // 1. The tenant's own country, when priced.
+        if ($filled($prices[$countryCode][$interval] ?? null)) {
+            $currency = ($prices[$countryCode]['currency'] ?? null)
+                ?: (self::COUNTRIES[$countryCode]['currency'] ?? $baseCurrency);
+
             return [
-                'amount_minor' => $prices[$countryCode][$interval] ?? $prices[$countryCode]['monthly'] ?? 0,
-                'currency' => $prices[$countryCode]['currency'] ?? self::COUNTRIES[$countryCode]['currency'] ?? 'USD',
+                'amount_minor' => $toMinor($prices[$countryCode][$interval], $currency),
+                'currency' => $currency,
             ];
         }
 
-        // Fallback to default prices (EG)
-        if (isset($prices['EG'])) {
+        // 2. Egypt as the default region, when priced.
+        if ($filled($prices['EG'][$interval] ?? null)) {
+            $currency = ($prices['EG']['currency'] ?? null) ?: 'EGP';
+
             return [
-                'amount_minor' => $prices['EG'][$interval] ?? $prices['EG']['monthly'] ?? 0,
-                'currency' => 'EGP',
+                'amount_minor' => $toMinor($prices['EG'][$interval], $currency),
+                'currency' => $currency,
             ];
         }
 
-        // Fallback to legacy columns
+        // 3. The plan's base columns (kept in the plan's own currency).
         return [
-            'amount_minor' => $interval === 'yearly' ? $this->price_yearly_minor : $this->price_monthly_minor,
-            'currency' => $this->currency ?? 'EGP',
+            'amount_minor' => $baseAmount,
+            'currency' => $baseCurrency,
         ];
     }
 
@@ -222,7 +242,12 @@ class SubscriptionPlan extends Model
     public function getFormattedPriceForCountry(string $countryCode, string $interval = 'monthly'): string
     {
         $price = $this->getPriceForCountry($countryCode, $interval);
-        return $price['currency'] . ' ' . number_format($price['amount_minor'] / 100, 2);
+        // This price has its OWN currency (per-country pricing), not the
+        // current tenant's, so pass it explicitly to get the right precision.
+        $divisor = currency_minor_divisor($price['currency']);
+        $decimals = $divisor > 1 ? (int) log10($divisor) : 0;
+
+        return $price['currency'].' '.number_format($price['amount_minor'] / $divisor, $decimals);
     }
 
     /**
