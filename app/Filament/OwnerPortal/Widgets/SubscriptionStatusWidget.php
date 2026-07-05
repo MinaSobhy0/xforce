@@ -44,7 +44,9 @@ class SubscriptionStatusWidget extends Widget
         return [
             'plan_name' => $plan?->name ?? 'Free',
             'status' => $tenant->subscription_status ?? 'active',
-            'billing_cycle' => $tenant->billing_cycle ?? 'monthly',
+            // Default billing cycle is annual (yearly) for all clients; a real
+            // TenantSubscription cycle overrides it when one exists.
+            'billing_cycle' => $tenant->subscription?->billing_cycle?->value ?? 'yearly',
             'next_invoice' => $subscriptionExpiresAt?->format('M d, Y') ?? '-',
             'days_remaining' => max(0, $daysRemaining),
             'is_trial' => $isTrial,
