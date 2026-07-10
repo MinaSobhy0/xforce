@@ -43,14 +43,57 @@ trait HasCampaignActions
                 ->label('Send now')
                 ->icon('heroicon-o-megaphone')
                 ->color('success')
-                ->requiresConfirmation()
-                ->modalHeading('Send this campaign now?')
-                ->modalDescription(fn () => 'The list will be materialized and jobs dispatched. Sends throttled at '.config('platform_email.throttle_per_minute').'/min. This action cannot be undone once queued.')
-                ->visible(fn (PlatformEmailCampaign $record) => $record->isSendable() && config('platform_email.enabled'))
-                ->action(function (): void {
+                ->modalHeading('Send this campaign')
+                ->modalDescription(fn () => 'The list will be materialized and jobs dispatched at '.config('platform_email.throttle_per_minute').'/min. You can stop mid-batch via Cancel campaign, but individual sends already delivered can\'t be recalled.')
+                ->form(function () {
+                    $list = $this->record->list;
+                    $listSize = $list ? $list->activeMembers()->count() : 0;
+                    $alreadyMaterialized = $this->record->recipients()->count();
+                    $remaining = max(0, $listSize - $alreadyMaterialized);
+
+                    return [
+                        Forms\Components\Placeholder::make('summary')
+                            ->label('')
+                            ->content("List has {$listSize} subscribed members. Already materialized on this campaign: {$alreadyMaterialized}. Remaining to send: {$remaining}."),
+
+                        Forms\Components\TextInput::make('limit')
+                            ->label('Send to how many recipients this batch?')
+                            ->numeric()
+                            ->minValue(1)
+                            ->maxValue($remaining > 0 ? $remaining : 1)
+                            ->default($remaining)
+                            ->required()
+                            ->helperText('Set a smaller number for a canary batch (e.g. 5 first to verify quality), then re-run Send Now for the rest. Members are picked in list order.'),
+                    ];
+                })
+                // Allow re-invoking Send Now after a partial (canary) batch
+                // so the user can send another batch to remaining members.
+                // materialize() only creates rows for members not already on
+                // this campaign, so re-invoking is idempotent-safe.
+                ->visible(function (PlatformEmailCampaign $record): bool {
+                    if (! config('platform_email.enabled')) {
+                        return false;
+                    }
+                    if (in_array($record->status, [
+                        PlatformEmailCampaign::STATUS_CANCELLED,
+                        PlatformEmailCampaign::STATUS_SENDING,
+                    ], true)) {
+                        return false;
+                    }
+                    // Draft / Scheduled / Sent all allowed — check whether
+                    // any list members haven't been targeted yet.
+                    $listSize = $record->list?->activeMembers()->count() ?? 0;
+                    $already = $record->recipients()->count();
+                    return $listSize > $already;
+                })
+                ->action(function (array $data): void {
+                    $limit = (int) ($data['limit'] ?? 0) ?: null;
                     $this->record->forceFill(['status' => PlatformEmailCampaign::STATUS_SENDING])->save();
-                    ProcessPlatformCampaignJob::dispatch($this->record->id);
-                    Notification::make()->title('Campaign queued')->success()->send();
+                    ProcessPlatformCampaignJob::dispatch($this->record->id, $limit);
+                    Notification::make()
+                        ->title('Campaign queued for '.($limit ?? 'all').' recipients')
+                        ->body('You can watch the counter row on the View page as sends drain.')
+                        ->success()->send();
                     $this->redirect(static::getResource()::getUrl('view', ['record' => $this->record]));
                 }),
 

@@ -117,8 +117,15 @@ class PlatformEmailCampaign extends Model
      *
      * Skips addresses on the global suppression list at snapshot time
      * so we don't even materialize rows we'll immediately reject.
+     *
+     * @param ?int $limit  Cap the number of NEW recipient rows created
+     *                     during this call. NULL = no cap (freeze the
+     *                     whole list). Used for canary / staged sends
+     *                     where you want to email 5 first, review, then
+     *                     re-run to email the remainder. Members are
+     *                     picked in list-order (by member id ASC).
      */
-    public function materialize(): int
+    public function materialize(?int $limit = null): int
     {
         $listMembers = $this->list()
             ->first()
@@ -139,10 +146,18 @@ class PlatformEmailCampaign extends Model
             ->all();
         $suppressedSet = array_flip($suppressed);
 
+        // Addresses already materialized on this campaign (from a prior
+        // canary run). Excluded so a partial-send only creates NEW rows.
+        $already = $this->recipients()->pluck('email')->map(fn ($e) => mb_strtolower($e))->all();
+        $alreadySet = array_flip($already);
+
         $inserted = 0;
         foreach ($listMembers as $member) {
+            if ($limit !== null && $inserted >= $limit) {
+                break;
+            }
             $email = mb_strtolower($member->email);
-            if (isset($suppressedSet[$email])) {
+            if (isset($suppressedSet[$email]) || isset($alreadySet[$email])) {
                 continue;
             }
             $created = PlatformEmailCampaignRecipient::firstOrCreate(

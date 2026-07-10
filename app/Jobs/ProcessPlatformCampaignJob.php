@@ -22,7 +22,13 @@ class ProcessPlatformCampaignJob implements ShouldQueue
 
     public $timeout = 300;
 
-    public function __construct(public int $campaignId)
+    /**
+     * @param  ?int  $limit  Max new recipients to materialize this run.
+     *                       NULL = whole list. Used for canary batches:
+     *                       send 5 first, review results, then re-run
+     *                       Send Now to email the remaining members.
+     */
+    public function __construct(public int $campaignId, public ?int $limit = null)
     {
         // Central queue — job row lives in public.jobs, not tenant_x.jobs.
         $this->onConnection('central');
@@ -45,7 +51,7 @@ class ProcessPlatformCampaignJob implements ShouldQueue
             'started_at' => $campaign->started_at ?? now(),
         ])->save();
 
-        $campaign->materialize();
+        $campaign->materialize($this->limit);
 
         $campaign->recipients()
             ->where('status', PlatformEmailCampaignRecipient::STATUS_PENDING)
