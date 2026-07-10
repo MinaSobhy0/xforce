@@ -49,6 +49,24 @@ class PlatformEmailCampaign extends Model
         'created_by_user_id',
     ];
 
+    // In-memory defaults so freshly-created models act consistent with
+    // the DB defaults defined in the migration. Prevents "$camp->status
+    // is empty" until the record is re-fetched.
+    protected $attributes = [
+        'status' => self::STATUS_DRAFT,
+        'sent_count' => 0,
+        'delivered_count' => 0,
+        'opened_count' => 0,
+        'clicked_count' => 0,
+        'bounced_count' => 0,
+        'unsubscribed_count' => 0,
+        'complained_count' => 0,
+        'failed_count' => 0,
+        'ai_personalize' => false,
+        'ai_use_batch_api' => false,
+        'ai_total_cost_usd_cents' => 0,
+    ];
+
     protected $casts = [
         'scheduled_at' => 'datetime',
         'started_at' => 'datetime',

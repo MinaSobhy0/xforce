@@ -36,6 +36,11 @@ class PlatformEmailList extends Model
         'is_active' => 'boolean',
     ];
 
+    protected $attributes = [
+        'kind' => self::KIND_MANUAL,
+        'is_active' => true,
+    ];
+
     public function members(): HasMany
     {
         return $this->hasMany(PlatformEmailListMember::class, 'list_id');
