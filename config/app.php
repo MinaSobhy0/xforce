@@ -26,6 +26,7 @@ return [
     'providers' => ServiceProvider::defaultProviders()->merge([
         App\Providers\AppServiceProvider::class,
         App\Providers\FrameworkServiceProvider::class,
+        App\Providers\LlmServiceProvider::class,
         App\Providers\Filament\AdminPanelProvider::class,
         App\Providers\Filament\TenantPanelProvider::class,
         App\Providers\Filament\SuperAdminPanelProvider::class,
