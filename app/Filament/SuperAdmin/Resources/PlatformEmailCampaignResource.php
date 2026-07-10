@@ -42,13 +42,21 @@ class PlatformEmailCampaignResource extends Resource
                 Forms\Components\TextInput::make('preheader')
                     ->helperText('Preview snippet shown in the inbox after the subject.')
                     ->maxLength(255),
-                Forms\Components\Grid::make(2)->schema([
+                Forms\Components\Grid::make(3)->schema([
+                    Forms\Components\TextInput::make('from_address')
+                        ->label('From email')
+                        ->email()
+                        ->helperText('Leave blank to use the platform default.')
+                        ->placeholder(fn () => \App\Models\PlatformSetting::get('platform_email.marketing_from_address') ?: config('mail.from.address'))
+                        ->maxLength(255),
                     Forms\Components\TextInput::make('from_name')
-                        ->placeholder(fn () => config('mail.from.name'))
+                        ->label('From name')
+                        ->placeholder(fn () => \App\Models\PlatformSetting::get('platform_email.marketing_from_name') ?: config('mail.from.name'))
                         ->maxLength(255),
                     Forms\Components\TextInput::make('reply_to')
+                        ->label('Reply-to')
                         ->email()
-                        ->placeholder(fn () => config('mail.reply_to.address'))
+                        ->placeholder(fn () => \App\Models\PlatformSetting::get('platform_email.marketing_reply_to') ?: config('mail.reply_to.address'))
                         ->maxLength(255),
                 ]),
             ])->columns(1),

@@ -36,16 +36,31 @@ class PlatformCampaignMail extends Mailable
 
     public function envelope(): Envelope
     {
+        // From address priority for MARKETING campaigns:
+        //   1. Campaign's own from_address (per-campaign override)
+        //   2. platform_email.marketing_from_address setting
+        //      (platform-wide default; kept separate from
+        //       config('mail.from.address') which is noreply@ for
+        //       transactional mail)
+        //   3. config('mail.from.address') — last resort
+        $fromAddress = $this->campaign->from_address
+            ?: \App\Models\PlatformSetting::get('platform_email.marketing_from_address')
+            ?: config('mail.from.address');
+
+        $fromName = $this->campaign->from_name
+            ?: \App\Models\PlatformSetting::get('platform_email.marketing_from_name')
+            ?: config('mail.from.name');
+
+        // Same layered resolution for Reply-To.
+        $replyToAddress = $this->campaign->reply_to
+            ?: \App\Models\PlatformSetting::get('platform_email.marketing_reply_to')
+            ?: config('mail.reply_to.address');
+
         return new Envelope(
-            from: new Address(
-                config('mail.from.address'),
-                $this->campaign->from_name ?: config('mail.from.name'),
-            ),
-            replyTo: filled($this->campaign->reply_to)
-                ? [new Address($this->campaign->reply_to)]
-                : (filled(config('mail.reply_to.address'))
-                    ? [new Address(config('mail.reply_to.address'), config('mail.reply_to.name'))]
-                    : []),
+            from: new Address($fromAddress, $fromName),
+            replyTo: filled($replyToAddress)
+                ? [new Address($replyToAddress)]
+                : [],
             subject: $this->campaign->subject,
         );
     }

@@ -34,6 +34,7 @@ class PlatformEmailCampaign extends Model
         'subject',
         'preheader',
         'from_name',
+        'from_address',
         'reply_to',
         'body_html',
         'body_text',
