@@ -2,6 +2,7 @@
 
 namespace App\Filament\SuperAdmin\Resources\PlatformEmailCampaignResource\Pages;
 
+use App\Filament\Resources\Pages\BaseEditRecord;
 use App\Filament\SuperAdmin\Resources\PlatformEmailCampaignResource;
 use App\Jobs\ProcessPlatformCampaignJob;
 use App\Mail\PlatformCampaignMail;
@@ -12,15 +13,14 @@ use App\Services\Ai\LlmProviderRegistry;
 use Filament\Actions;
 use Filament\Forms;
 use Filament\Notifications\Notification;
-use Filament\Resources\Pages\EditRecord;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
 
-class EditPlatformEmailCampaign extends EditRecord
+class EditPlatformEmailCampaign extends BaseEditRecord
 {
     protected static string $resource = PlatformEmailCampaignResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getEditHeaderActions(): array
     {
         return [
             Actions\Action::make('send_test')

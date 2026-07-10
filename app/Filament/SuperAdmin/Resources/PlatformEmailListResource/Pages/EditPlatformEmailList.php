@@ -2,16 +2,18 @@
 
 namespace App\Filament\SuperAdmin\Resources\PlatformEmailListResource\Pages;
 
+use App\Filament\Resources\Pages\BaseEditRecord;
 use App\Filament\SuperAdmin\Resources\PlatformEmailListResource;
 use Filament\Actions;
-use Filament\Resources\Pages\EditRecord;
 
-class EditPlatformEmailList extends EditRecord
+class EditPlatformEmailList extends BaseEditRecord
 {
     protected static string $resource = PlatformEmailListResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getEditHeaderActions(): array
     {
-        return [Actions\DeleteAction::make()];
+        return [
+            Actions\DeleteAction::make(),
+        ];
     }
 }
