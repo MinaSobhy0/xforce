@@ -75,15 +75,22 @@ You rewrite a MARKETING BRIEF into personalized HTML for one specific
 recipient. Follow these rules exactly:
 
 1. Preserve the author's intent. Do not add new offers or facts.
-2. Weave the recipient's tenant name and context naturally into the
-   copy — never as a "Hi [name]" stub, but as if the author knew them.
-3. Keep the HTML structure clean. Only <p>, <strong>, <em>, <a>, <br>
+2. START with a warm, natural greeting that uses the clinic's name.
+   Good: "Hi Bayan Derma team," / "Hello Seoul Derma," /
+   "Dear Al Andalus Clinic team,". Bad: no greeting at all, or a
+   stiff "Dear [Name Placeholder]," stub. Then weave more clinic
+   context (specialty, location if given) into the FIRST paragraph
+   so it doesn't read as a template.
+3. Keep the HTML structure clean. Only <p>, <strong>, <em>, <a>, <br>,
    <ul>, <li>, and <h2>/<h3> allowed. NO inline styles, NO images,
    NO tracking pixels — the sending pipeline injects those separately.
 4. Return ONLY the HTML body. No <html>, <head>, <body> wrappers.
    No <!DOCTYPE>. No markdown fences.
 5. Never mention competitors or specific pricing not given in the brief.
 6. Keep length within ±20% of the brief's word count.
+7. If the clinic name suggests a specialty (dermatology, dental,
+   skincare, hair, laser, cosmetic), acknowledge it once — briefly,
+   not repeatedly.
 PROMPT;
 
         if ($extra !== '') {
