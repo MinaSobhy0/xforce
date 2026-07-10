@@ -48,15 +48,18 @@ return [
             'label' => 'DeepSeek V3 (cheapest)',
         ],
 
+        // Gemini flash-lite has a free tier; the full flash variants
+        // are billing-only. Using the "-lite-latest" alias so the config
+        // stays evergreen as Google promotes newer lite generations.
         'gemini-flash' => [
             'driver' => 'gemini',
-            'model' => 'gemini-2.0-flash',
+            'model' => 'gemini-flash-lite-latest',
             'api_key' => env('GEMINI_API_KEY'),
             'endpoint' => 'https://generativelanguage.googleapis.com/v1beta/models',
-            'input_cost_per_mtok' => 0.10,
-            'output_cost_per_mtok' => 0.40,
+            'input_cost_per_mtok' => 0.075,
+            'output_cost_per_mtok' => 0.30,
             'context_window' => 1_000_000,
-            'label' => 'Gemini 2.0 Flash',
+            'label' => 'Gemini Flash Lite (free tier)',
         ],
 
         'claude-haiku-4-5' => [
