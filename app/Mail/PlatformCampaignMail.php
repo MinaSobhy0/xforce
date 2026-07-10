@@ -73,6 +73,8 @@ class PlatformCampaignMail extends Mailable
                 'bodyHtml' => $this->renderedBody,
                 'preheader' => $this->campaign->preheader ?? '',
                 'unsubscribeUrl' => $this->unsubscribeUrl,
+                'language' => $this->campaign->language ?: 'en',
+                'isRtl' => $this->campaign->isRtl(),
             ],
         );
     }

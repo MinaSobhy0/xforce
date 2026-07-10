@@ -38,6 +38,12 @@ class PlatformEmailCampaignResource extends Resource
                 Forms\Components\TextInput::make('name')
                     ->helperText('Internal name (recipients never see this).')
                     ->required()->maxLength(255),
+                Forms\Components\Select::make('language')
+                    ->label('Language')
+                    ->options(PlatformEmailCampaign::LANGUAGES)
+                    ->default(PlatformEmailCampaign::LANG_EN)
+                    ->required()
+                    ->helperText('Drives the AI writing language and RTL layout. For a bilingual outreach, create one campaign per language or use the "Duplicate for other language" action.'),
                 Forms\Components\TextInput::make('subject')->required()->maxLength(255),
                 Forms\Components\TextInput::make('preheader')
                     ->helperText('Preview snippet shown in the inbox after the subject.')
@@ -156,6 +162,52 @@ class PlatformEmailCampaignResource extends Resource
                     ->beforeReplicaSaved(function (PlatformEmailCampaign $replica): void {
                         $replica->name = $replica->name.' (copy)';
                         $replica->status = PlatformEmailCampaign::STATUS_DRAFT;
+                    }),
+
+                Tables\Actions\Action::make('duplicate_for_other_language')
+                    ->label(fn (PlatformEmailCampaign $record) => 'Duplicate as '.($record->language === PlatformEmailCampaign::LANG_EN ? 'Arabic' : 'English'))
+                    ->icon('heroicon-o-language')
+                    ->color('info')
+                    ->requiresConfirmation()
+                    ->modalDescription(fn (PlatformEmailCampaign $record) => 'A new draft in '.($record->language === PlatformEmailCampaign::LANG_EN ? 'Arabic' : 'English').' will be created. The AI translates the subject and body brief. You review the draft before sending — nothing dispatches automatically.')
+                    ->action(function (PlatformEmailCampaign $record): void {
+                        $target = $record->language === PlatformEmailCampaign::LANG_EN
+                            ? PlatformEmailCampaign::LANG_AR
+                            : PlatformEmailCampaign::LANG_EN;
+
+                        try {
+                            $translator = app(\App\Services\Ai\AiTranslator::class);
+                            $translatedSubject = $translator->translate((string) $record->subject, $target, model: $record->ai_model);
+                            $translatedBody = $translator->translate((string) $record->body_html, $target, model: $record->ai_model);
+                            $translatedPreheader = filled($record->preheader)
+                                ? $translator->translate((string) $record->preheader, $target, model: $record->ai_model)
+                                : null;
+                        } catch (\Throwable $e) {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Could not translate — draft was NOT created.')
+                                ->body($e->getMessage())
+                                ->danger()->send();
+                            return;
+                        }
+
+                        $twin = $record->replicate([
+                            'status', 'started_at', 'finished_at', 'scheduled_at',
+                            'sent_count', 'delivered_count', 'opened_count', 'clicked_count',
+                            'bounced_count', 'unsubscribed_count', 'complained_count', 'failed_count',
+                            'ai_total_cost_usd_cents',
+                        ]);
+                        $twin->name = $record->name.' — '.PlatformEmailCampaign::LANGUAGES[$target];
+                        $twin->language = $target;
+                        $twin->subject = $translatedSubject;
+                        $twin->preheader = $translatedPreheader;
+                        $twin->body_html = $translatedBody;
+                        $twin->status = PlatformEmailCampaign::STATUS_DRAFT;
+                        $twin->save();
+
+                        \Filament\Notifications\Notification::make()
+                            ->title('Translated draft created')
+                            ->body('Review the translated copy before sending.')
+                            ->success()->send();
                     }),
             ])
             ->defaultSort('created_at', 'desc');

@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ $language ?? 'en' }}" dir="{{ ($isRtl ?? false) ? 'rtl' : 'ltr' }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width">
     <title>{{ $bodyHtml ? '' : 'XLinic' }}</title>
 </head>
-<body style="margin:0; padding:0; background:#f6f7f9;">
+<body style="margin:0; padding:0; background:#f6f7f9; @if(($isRtl ?? false)) text-align:right; @endif">
 {{-- Preheader (inbox preview text) --}}
 @if($preheader)
 <div style="display:none; font-size:1px; color:#f6f7f9; line-height:1px; max-height:0; max-width:0; opacity:0; overflow:hidden;">

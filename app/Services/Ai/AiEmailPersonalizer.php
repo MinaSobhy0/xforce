@@ -34,8 +34,9 @@ class AiEmailPersonalizer
         array $recipient,
         array $context,
         ?string $modelKey = null,
+        string $language = 'en',
     ): LlmResponse {
-        $system = $this->buildSystemPrompt($promptExtra);
+        $system = $this->buildSystemPrompt($promptExtra, $language);
         $user = $this->buildUserPrompt($brief, $recipient, $context);
 
         $request = LlmRequest::make($system, $user, [
@@ -67,12 +68,29 @@ class AiEmailPersonalizer
         return strtr($brief, $replacements);
     }
 
-    protected function buildSystemPrompt(string $extra): string
+    protected function buildSystemPrompt(string $extra, string $language = 'en'): string
     {
+        $languageRule = $language === 'ar'
+            ? "You WRITE THE ENTIRE EMAIL IN ARABIC (Modern Standard Arabic
+   with Gulf-friendly phrasing). Keep proper names, brand names,
+   and URLs in their original Latin script (e.g. XLinic stays
+   XLinic; do not transliterate). Greeting example: مرحبًا فريق
+   [clinic name],. Sign-off example: مع أطيب التحيات، / إبرام /
+   XLinic. Numbers: use Arabic-Indic (٠١٢٣) or Latin (0123) — pick
+   ONE and stay consistent."
+            : "You write the entire email in English. Keep the tone warm
+   and professional. Egyptian-Arabic-friendly phrasing is fine
+   (recipient may respond in either language).";
+
         $base = <<<PROMPT
 You are an email copywriter for XLinic, a SaaS platform for clinics.
 You rewrite a MARKETING BRIEF into personalized HTML for one specific
-recipient. Follow these rules exactly:
+recipient.
+
+LANGUAGE:
+{$languageRule}
+
+STRUCTURAL RULES (apply regardless of language):
 
 1. Preserve the author's intent. Do not add new offers or facts.
 2. START with a warm, natural greeting that uses the clinic's name.

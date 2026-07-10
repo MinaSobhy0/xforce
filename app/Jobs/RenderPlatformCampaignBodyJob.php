@@ -57,6 +57,7 @@ class RenderPlatformCampaignBodyJob implements ShouldQueue
                 recipient: ['email' => $recipient->email, 'name_hint' => $recipient->name_hint],
                 context: (array) $recipient->context,
                 modelKey: $campaign->ai_model,
+                language: (string) ($campaign->language ?: 'en'),
             );
 
             $recipient->forceFill([

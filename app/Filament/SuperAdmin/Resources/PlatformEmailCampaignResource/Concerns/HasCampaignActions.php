@@ -148,6 +148,7 @@ trait HasCampaignActions
                         recipient: ['email' => $email, 'name_hint' => 'Test recipient'],
                         context: ['list_name' => 'test-send', 'source_type' => 'test'],
                         modelKey: $campaign->ai_model,
+                        language: (string) ($campaign->language ?: 'en'),
                     );
                     $body = $r->text;
                 } catch (\Throwable $e) {

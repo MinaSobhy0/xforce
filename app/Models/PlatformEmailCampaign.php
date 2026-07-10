@@ -29,10 +29,24 @@ class PlatformEmailCampaign extends Model
         self::STATUS_CANCELLED => 'Cancelled',
     ];
 
+    public const LANG_EN = 'en';
+    public const LANG_AR = 'ar';
+
+    public const LANGUAGES = [
+        self::LANG_EN => 'English',
+        self::LANG_AR => 'العربية',
+    ];
+
+    public function isRtl(): bool
+    {
+        return $this->language === self::LANG_AR;
+    }
+
     protected $fillable = [
         'name',
         'subject',
         'preheader',
+        'language',
         'from_name',
         'from_address',
         'reply_to',
@@ -55,6 +69,7 @@ class PlatformEmailCampaign extends Model
     // is empty" until the record is re-fetched.
     protected $attributes = [
         'status' => self::STATUS_DRAFT,
+        'language' => self::LANG_EN,
         'sent_count' => 0,
         'delivered_count' => 0,
         'opened_count' => 0,
