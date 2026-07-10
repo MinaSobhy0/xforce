@@ -2,6 +2,7 @@
 
 namespace App\Filament\SuperAdmin\Resources\PlatformEmailListResource\RelationManagers;
 
+use App\Jobs\ScrapeEmailFromWebsiteJob;
 use App\Models\PlatformAiImportSession;
 use App\Models\PlatformEmailListMember;
 use App\Services\Ai\AiImportOrganizer;
@@ -89,6 +90,25 @@ class MembersRelationManager extends RelationManager
                         Notification::make()
                             ->title("Added {$added} new addresses")
                             ->success()->send();
+                    }),
+
+                Tables\Actions\Action::make('scrape_websites')
+                    ->label('Scrape emails from websites (CSV)')
+                    ->icon('heroicon-o-globe-alt')
+                    ->color('warning')
+                    ->form([
+                        Forms\Components\FileUpload::make('file')
+                            ->label('CSV or XLSX with a website / URL column')
+                            ->acceptedFileTypes(['text/csv', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'])
+                            ->maxSize(10240)
+                            ->disk('local')
+                            ->directory('platform-email/website-scrape')
+                            ->required(),
+                    ])
+                    ->modalHeading('Enrich list by scraping clinic websites')
+                    ->modalDescription("Fetches each row's website + common contact pages, extracts published email addresses, and adds them to this list. Runs asynchronously — check back in a minute. Expected match rate: 20-40% (most small businesses don't publish emails).")
+                    ->action(function (array $data): void {
+                        $this->handleWebsiteScrape($data);
                     }),
 
                 Tables\Actions\Action::make('ai_import')
@@ -306,6 +326,141 @@ class MembersRelationManager extends RelationManager
             $out[] = "{$h}→{$target}";
         }
         return implode(', ', array_slice($out, 0, 15)).(count($headers) > 15 ? ', …' : '');
+    }
+
+    /**
+     * Website-scrape import: read the CSV, auto-detect which column
+     * holds business websites and which holds business names, then
+     * dispatch one ScrapeEmailFromWebsiteJob per row.
+     *
+     * Column detection is heuristic (no AI needed): the "website"
+     * column is the column with the most rows that parse as URLs
+     * pointing at NON-Google, NON-image-CDN domains. The "name"
+     * column is the first column with mostly short (2-100 char)
+     * non-numeric strings.
+     */
+    protected function handleWebsiteScrape(array $data): void
+    {
+        $path = $data['file'];
+        $disk = \Illuminate\Support\Facades\Storage::disk('local');
+        if (! $disk->exists($path)) {
+            $disk = \Illuminate\Support\Facades\Storage::disk('public');
+            if (! $disk->exists($path)) {
+                Notification::make()->title('Uploaded file not found')->danger()->send();
+                return;
+            }
+        }
+        $absolute = $disk->path($path);
+
+        try {
+            [$headers, $rows] = $this->readSpreadsheet($absolute);
+        } catch (\Throwable $e) {
+            Notification::make()->title('Could not read file')->body($e->getMessage())->danger()->send();
+            return;
+        }
+
+        [$urlColumn, $nameColumn] = $this->detectUrlAndNameColumns($headers, $rows);
+
+        if ($urlColumn === null) {
+            Notification::make()
+                ->title('No website column detected')
+                ->body('None of the columns had enough URL-shaped values (excluding Google Maps and image CDNs). Verify the file has a "website" column.')
+                ->danger()->persistent()->send();
+            return;
+        }
+
+        $listId = $this->ownerRecord->id;
+        $sourceRef = 'website_scrape_'.Str::random(8);
+        $dispatched = 0;
+        $noUrl = 0;
+
+        foreach ($rows as $row) {
+            $website = trim((string) ($row[$urlColumn] ?? ''));
+            $name = $nameColumn ? trim((string) ($row[$nameColumn] ?? '')) : null;
+
+            if (! preg_match('#^https?://#i', $website) && $website !== '') {
+                $website = 'https://'.$website;
+            }
+            if ($website === '' || ! filter_var($website, FILTER_VALIDATE_URL)) {
+                $noUrl++;
+                continue;
+            }
+
+            ScrapeEmailFromWebsiteJob::dispatch(
+                listId: $listId,
+                websiteUrl: $website,
+                nameHint: $name ?: null,
+                sourceRef: $sourceRef,
+            );
+            $dispatched++;
+        }
+
+        Notification::make()
+            ->title("Queued {$dispatched} scrapes")
+            ->body(
+                "Detected URL column: '{$urlColumn}'".($nameColumn ? ", name column: '{$nameColumn}'" : '').". "
+                ."{$noUrl} rows skipped (no valid URL). "
+                ."Members will trickle in over the next ~".max(1, (int) ceil($dispatched / 5))." seconds. "
+                ."Refresh the list in a minute to see results (expect 20-40% match rate — many sites don't publish emails)."
+            )
+            ->success()->persistent()->send();
+    }
+
+    /**
+     * @return array{0: ?string, 1: ?string} [urlColumn, nameColumn]
+     */
+    protected function detectUrlAndNameColumns(array $headers, array $rows): array
+    {
+        $sample = array_slice($rows, 0, 30);
+        if (empty($sample)) {
+            return [null, null];
+        }
+
+        // Score each column: how many sample rows contain a "clinic
+        // website"-shaped URL (i.e. NOT google.com, NOT gstatic.com,
+        // NOT ssl.gstatic).
+        $urlScores = [];
+        foreach ($headers as $h) {
+            $good = 0;
+            foreach ($sample as $row) {
+                $v = trim((string) ($row[$h] ?? ''));
+                if (preg_match('#^https?://#i', $v) && ! preg_match('#^https?://(www\.)?(google\.com|gstatic\.com|googleusercontent\.com)#i', $v)) {
+                    $good++;
+                }
+            }
+            $urlScores[$h] = $good;
+        }
+        arsort($urlScores);
+        $urlColumn = null;
+        foreach ($urlScores as $h => $n) {
+            if ($n >= max(3, count($sample) * 0.2)) {
+                $urlColumn = $h;
+                break;
+            }
+        }
+
+        // Name column: highest-scoring column of short human-readable strings
+        // that isn't the URL column and doesn't look purely numeric / URLish.
+        $nameScores = [];
+        foreach ($headers as $h) {
+            if ($h === $urlColumn) continue;
+            $good = 0;
+            foreach ($sample as $row) {
+                $v = trim((string) ($row[$h] ?? ''));
+                if ($v === '') continue;
+                $len = mb_strlen($v);
+                if ($len < 2 || $len > 120) continue;
+                if (preg_match('#^https?://#i', $v)) continue;
+                if (preg_match('/^[\d.\-,\s\(\)]+$/', $v)) continue; // pure numeric / rating / phone
+                if (mb_strtolower($v) === '·') continue;
+                $good++;
+            }
+            $nameScores[$h] = $good;
+        }
+        arsort($nameScores);
+        $nameColumn = array_key_first($nameScores) ?: null;
+
+        return [$urlColumn, $nameColumn];
     }
 
     /**
