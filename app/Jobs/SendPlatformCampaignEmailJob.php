@@ -161,6 +161,8 @@ class SendPlatformCampaignEmailJob implements ShouldQueue
                 'subject' => $campaign->subject,
                 'status' => PlatformEmailSend::STATUS_SENT,
             ]);
+
+            $this->maybeMarkCampaignSent($campaign);
         } catch (\Throwable $e) {
             Log::warning('Platform campaign send failed', [
                 'campaign_id' => $campaign->id,
@@ -173,6 +175,7 @@ class SendPlatformCampaignEmailJob implements ShouldQueue
                 'error_message' => mb_substr($e->getMessage(), 0, 500),
             ])->save();
             $campaign->increment('failed_count');
+            $this->maybeMarkCampaignSent($campaign);
 
             PlatformEmailSend::create([
                 'campaign_id' => $campaign->id,
@@ -185,5 +188,31 @@ class SendPlatformCampaignEmailJob implements ShouldQueue
 
             throw $e;
         }
+    }
+
+    /**
+     * When the last in-flight recipient of a batch reaches a terminal
+     * state, flip the campaign status back to SENT so the composer's
+     * Send Now button re-appears for a second batch.
+     */
+    protected function maybeMarkCampaignSent(PlatformEmailCampaign $campaign): void
+    {
+        if ($campaign->status !== PlatformEmailCampaign::STATUS_SENDING) {
+            return;
+        }
+        $stillInFlight = $campaign->recipients()
+            ->whereIn('status', [
+                PlatformEmailCampaignRecipient::STATUS_PENDING,
+                PlatformEmailCampaignRecipient::STATUS_RENDERING,
+                PlatformEmailCampaignRecipient::STATUS_SENDING,
+            ])
+            ->exists();
+        if ($stillInFlight) {
+            return;
+        }
+        $campaign->forceFill([
+            'status' => PlatformEmailCampaign::STATUS_SENT,
+            'finished_at' => $campaign->finished_at ?? now(),
+        ])->save();
     }
 }

@@ -74,13 +74,26 @@ trait HasCampaignActions
                     if (! config('platform_email.enabled')) {
                         return false;
                     }
-                    if (in_array($record->status, [
-                        PlatformEmailCampaign::STATUS_CANCELLED,
-                        PlatformEmailCampaign::STATUS_SENDING,
-                    ], true)) {
+                    if ($record->status === PlatformEmailCampaign::STATUS_CANCELLED) {
                         return false;
                     }
-                    // Draft / Scheduled / Sent all allowed — check whether
+                    // SENDING is allowed only if the current batch drained —
+                    // no recipients still pending/rendering/sending. Prevents
+                    // re-clicking Send Now mid-batch which would race the
+                    // still-in-flight jobs.
+                    if ($record->status === PlatformEmailCampaign::STATUS_SENDING) {
+                        $inFlight = $record->recipients()
+                            ->whereIn('status', [
+                                \App\Models\PlatformEmailCampaignRecipient::STATUS_PENDING,
+                                \App\Models\PlatformEmailCampaignRecipient::STATUS_RENDERING,
+                                \App\Models\PlatformEmailCampaignRecipient::STATUS_SENDING,
+                            ])
+                            ->exists();
+                        if ($inFlight) {
+                            return false;
+                        }
+                    }
+                    // Any status except in-flight-sending — check whether
                     // any list members haven't been targeted yet.
                     $listSize = $record->list?->activeMembers()->count() ?? 0;
                     $already = $record->recipients()->count();
