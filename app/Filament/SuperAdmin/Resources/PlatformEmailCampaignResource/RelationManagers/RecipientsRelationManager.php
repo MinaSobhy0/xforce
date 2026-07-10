@@ -47,7 +47,19 @@ class RecipientsRelationManager extends RelationManager
                     ->boolean()
                     ->trueIcon('heroicon-o-document-text')
                     ->falseIcon('heroicon-o-minus')
-                    ->tooltip(fn ($record) => $record->rendered_body_html ? 'Personalized copy ready — click Edit to review' : 'Not yet rendered — click Render preview'),
+                    ->tooltip(fn ($record) => $record->rendered_body_html ? 'Click to preview the personalized copy' : 'Not yet rendered — use the Render preview action')
+                    ->action(
+                        Tables\Actions\Action::make('previewBody')
+                            ->modalHeading(fn (PlatformEmailCampaignRecipient $record) => 'Preview: '.$record->email)
+                            ->modalContent(fn (PlatformEmailCampaignRecipient $record) => view(
+                                'filament.recipients.body-preview',
+                                ['bodyHtml' => (string) $record->rendered_body_html, 'isRtl' => ($record->campaign->language ?? 'en') === 'ar'],
+                            ))
+                            ->modalWidth('4xl')
+                            ->modalSubmitAction(false)
+                            ->modalCancelActionLabel('Close')
+                            ->visible(fn (PlatformEmailCampaignRecipient $record) => (bool) $record->rendered_body_html),
+                    ),
                 Tables\Columns\TextColumn::make('sent_at')->dateTime()->toggleable(),
                 Tables\Columns\TextColumn::make('opened_at')->dateTime()->toggleable(),
                 Tables\Columns\TextColumn::make('first_clicked_at')->label('Clicked at')->dateTime()->toggleable(),
