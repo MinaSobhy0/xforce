@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Pages;
 
 use App\Filament\Actions\ExportTableAction;
+use App\Filament\Resources\Pages\Concerns\HasRefreshAction;
 use App\Filament\Traits\HasImportAction;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Tables\Table;
@@ -10,6 +11,7 @@ use Filament\Tables\Table;
 class BaseListRecords extends ListRecords
 {
     use HasImportAction;
+    use HasRefreshAction;
 
     /**
      * Configure the table with persistent filters, sorting, and search.
@@ -29,6 +31,9 @@ class BaseListRecords extends ListRecords
     protected function getHeaderActions(): array
     {
         $actions = [];
+
+        // Small icon-only reload — first so it sits at the far left.
+        $actions[] = $this->getRefreshHeaderAction();
 
         // Add import action if available
         $importAction = $this->getImportHeaderAction();

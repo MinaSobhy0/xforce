@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Pages;
 
+use App\Filament\Resources\Pages\Concerns\HasRefreshAction;
 use App\Filament\Traits\HasRecordNavigation;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
@@ -9,6 +10,7 @@ use Filament\Resources\Pages\EditRecord;
 class BaseEditRecord extends EditRecord
 {
     use HasRecordNavigation;
+    use HasRefreshAction;
 
     /**
      * Whether to show record navigation buttons.
@@ -38,6 +40,9 @@ class BaseEditRecord extends EditRecord
     protected function getHeaderActions(): array
     {
         $actions = [];
+
+        // Small icon-only reload sits alongside Save/Discard.
+        $actions[] = $this->getRefreshHeaderAction();
 
         // Add Save and Discard buttons first
         if ($this->hasHeaderSaveActions) {
