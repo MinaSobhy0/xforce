@@ -417,23 +417,46 @@ class MembersRelationManager extends RelationManager
         }
 
         // Score each column: how many sample rows contain a "clinic
-        // website"-shaped URL (i.e. NOT google.com, NOT gstatic.com,
-        // NOT ssl.gstatic).
+        // website"-shaped URL. Rejects:
+        //   - Google Maps place URLs (google.com/maps/…)
+        //   - Any Google-owned CDN (any subdomain of google.com,
+        //     gstatic.com, googleusercontent.com, ggpht.com, etc.) —
+        //     ssl.gstatic.com was slipping through the earlier
+        //     (www\.)?-only pattern and taking the win because it appears
+        //     as the default-photo image on every Google Maps row.
+        //   - URLs pointing at image files (.png / .jpg / .svg / .gif /
+        //     .webp / .avif) — these are photo/logo URLs, not websites.
         $urlScores = [];
         foreach ($headers as $h) {
             $good = 0;
             foreach ($sample as $row) {
                 $v = trim((string) ($row[$h] ?? ''));
-                if (preg_match('#^https?://#i', $v) && ! preg_match('#^https?://(www\.)?(google\.com|gstatic\.com|googleusercontent\.com)#i', $v)) {
-                    $good++;
+                if (! preg_match('#^https?://#i', $v)) continue;
+
+                // Junk host? Match against any subdomain of the
+                // known-google-CDN roots.
+                $host = strtolower((string) parse_url($v, PHP_URL_HOST));
+                $junkRoots = ['google.com', 'gstatic.com', 'googleusercontent.com', 'ggpht.com', 'googleapis.com'];
+                $isJunk = false;
+                foreach ($junkRoots as $root) {
+                    if ($host === $root || str_ends_with($host, '.'.$root)) {
+                        $isJunk = true;
+                        break;
+                    }
                 }
+                if ($isJunk) continue;
+
+                // Image URL? Skip.
+                if (preg_match('/\.(?:png|jpe?g|gif|svg|webp|avif|bmp|ico)(?:$|\?)/i', $v)) continue;
+
+                $good++;
             }
             $urlScores[$h] = $good;
         }
         arsort($urlScores);
         $urlColumn = null;
         foreach ($urlScores as $h => $n) {
-            if ($n >= max(3, count($sample) * 0.2)) {
+            if ($n >= max(3, count($sample) * 0.15)) {
                 $urlColumn = $h;
                 break;
             }

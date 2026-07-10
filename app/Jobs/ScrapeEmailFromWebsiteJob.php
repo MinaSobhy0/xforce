@@ -224,6 +224,21 @@ class ScrapeEmailFromWebsiteJob implements ShouldQueue
         if (! preg_match('#^https?://#i', $url)) {
             $url = 'https://'.$url;
         }
-        return filter_var($url, FILTER_VALIDATE_URL) ? $url : null;
+        if (! filter_var($url, FILTER_VALIDATE_URL)) {
+            return null;
+        }
+
+        // Defensive: even if column detection slipped and sent us at an
+        // image or Google CDN, don't waste a fetch on it.
+        if (preg_match('/\.(?:png|jpe?g|gif|svg|webp|avif|bmp|ico)(?:$|\?)/i', $url)) {
+            return null;
+        }
+        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+        foreach (['google.com', 'gstatic.com', 'googleusercontent.com', 'ggpht.com', 'googleapis.com'] as $root) {
+            if ($host === $root || str_ends_with($host, '.'.$root)) {
+                return null;
+            }
+        }
+        return $url;
     }
 }
