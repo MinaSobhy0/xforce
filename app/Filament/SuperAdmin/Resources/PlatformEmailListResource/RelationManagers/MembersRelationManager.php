@@ -100,6 +100,13 @@ class MembersRelationManager extends RelationManager
                             ->label('CSV or XLSX file')
                             ->acceptedFileTypes(['text/csv', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'])
                             ->maxSize(5120)
+                            // Pin to the private 'local' disk in a scoped
+                            // directory — Filament defaults to the 'public'
+                            // disk otherwise, which both leaks the uploaded
+                            // list to the world AND made my server-side
+                            // resolver look in the wrong place.
+                            ->disk('local')
+                            ->directory('platform-email/ai-imports')
                             ->required(),
                         Forms\Components\Select::make('model')
                             ->label('AI model')
@@ -133,7 +140,24 @@ class MembersRelationManager extends RelationManager
     {
         $path = $data['file'];
         $modelKey = $data['model'];
-        $absolute = storage_path('app/'.$path);
+
+        // Resolve via the exact disk the FileUpload wrote to. The default
+        // FileUpload disk is 'public' unless overridden — my code above
+        // pins it to 'local' but keeping this defensive so a future disk
+        // change (or a wizard step from a different resource) still works.
+        $disk = \Illuminate\Support\Facades\Storage::disk('local');
+        if (! $disk->exists($path)) {
+            // Fall back to 'public' for legacy uploads.
+            $disk = \Illuminate\Support\Facades\Storage::disk('public');
+            if (! $disk->exists($path)) {
+                Notification::make()
+                    ->title('Could not read file')
+                    ->body("Uploaded file '{$path}' not found on local or public disk. Try uploading again.")
+                    ->danger()->send();
+                return;
+            }
+        }
+        $absolute = $disk->path($path);
 
         try {
             [$headers, $rows] = $this->readSpreadsheet($absolute);
@@ -198,6 +222,14 @@ class MembersRelationManager extends RelationManager
                 ."AI cost: {$costCents}¢ via {$plan['model_id']}."
             )
             ->success()->send();
+
+        // Delete the uploaded file — we're done with it and don't want
+        // list data sitting on disk after the import.
+        try {
+            $disk->delete($path);
+        } catch (\Throwable $e) {
+            // Best-effort cleanup; nothing to escalate.
+        }
     }
 
     /**
