@@ -20,6 +20,11 @@ class PlatformEmailSuppressionResource extends Resource
 
     protected static ?int $navigationSort = 30;
 
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.platform_email');
+    }
+
     protected static ?string $modelLabel = 'Suppression';
 
     protected static ?string $pluralModelLabel = 'Email Suppressions';

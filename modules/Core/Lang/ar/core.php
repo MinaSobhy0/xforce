@@ -46,6 +46,13 @@ return [
     'cancel' => 'إلغاء',
     'discard' => 'تجاهل',
     'confirm' => 'تأكيد',
+    'practitioner_stock_locations' => 'مخازن الأطباء',
+    'practitioner_stock_locations_hint' => 'السماح لكل طبيب بصرف المخزون من موقعه المخصص (لكل فرع). عند الإيقاف تستخدم الجلسات والمبيعات موقع العلاج الافتراضي للفرع.',
+    'practitioner_consumption_location_enabled' => 'صرف مخزون العلاج من موقع الطبيب',
+    'practitioner_consumption_location_help' => 'تخصم الجلسة المكتملة المستهلكات من موقع الاستهلاك المخصص للطبيب في ذلك الفرع.',
+    'practitioner_sales_location_enabled' => 'البيع من موقع الطبيب',
+    'practitioner_sales_location_help' => 'تخصم مبيعات المنتجات من موقع البيع المخصص للطبيب في ذلك الفرع.',
+    'total' => 'الإجمالي',
     'search' => 'بحث',
     'filter' => 'تصفية',
     'export' => 'تصدير',
@@ -77,6 +84,28 @@ return [
     'minutes' => 'دقائق',
     'hours' => 'ساعات',
     'days' => 'أيام',
+
+    // Patient Portal Login Settings
+    'patient_portal_settings' => 'تسجيل دخول بوابة المرضى',
+    'patient_portal_methods_section' => 'طرق تسجيل الدخول',
+    'patient_portal_methods_help' => 'اختر طرق تسجيل الدخول التي يمكن لمرضاك استخدامها على البوابة. يجب تفعيل طريقة واحدة على الأقل.',
+    'patient_portal_method_password' => 'اسم المستخدم وكلمة المرور',
+    'patient_portal_method_password_help' => 'يسجل المريض الدخول برقم الهاتف (أو البريد الإلكتروني) وكلمة مرور للبوابة يحددها فريقك.',
+    'patient_portal_method_otp_whatsapp' => 'رمز عبر واتساب',
+    'patient_portal_method_otp_whatsapp_help' => 'يدخل المريض رقم هاتفه ويستلم رمزًا من 6 أرقام عبر واتساب ويدخله لتسجيل الدخول.',
+    'patient_portal_method_otp_email' => 'رمز عبر البريد الإلكتروني',
+    'patient_portal_method_otp_email_help' => 'يدخل المريض بريده الإلكتروني ويستلم رمزًا من 6 أرقام عبر البريد ويدخله لتسجيل الدخول.',
+    'patient_portal_method_token' => 'رابط دخول لمرة واحدة',
+    'patient_portal_method_token_help' => 'يرسل فريقك رابطًا فريدًا للمريض يضغط عليه للدخول إلى البوابة. ينتهي صلاحية الرابط بعد المدة المحددة أدناه.',
+    'patient_portal_validity_section' => 'صلاحية الرموز والروابط',
+    'patient_portal_validity_help' => 'مدة بقاء الرموز وروابط تسجيل الدخول صالحة قبل أن يضطر المريض لطلب رمز جديد.',
+    'patient_portal_otp_validity_minutes' => 'صلاحية الرمز',
+    'patient_portal_otp_validity_minutes_help' => 'عدد الدقائق التي يظل خلالها الرمز المكون من 6 أرقام صالحًا بعد إرساله (من 1 إلى 60).',
+    'patient_portal_token_validity_minutes' => 'صلاحية رابط الدخول',
+    'patient_portal_token_validity_minutes_help' => 'عدد الدقائق التي يظل خلالها رابط الدخول لمرة واحدة صالحًا (من 5 دقائق حتى 30 يومًا).',
+    'patient_portal_token_validity' => 'صلاحية رابط الدخول',
+    'patient_portal_token_validity_help' => 'مدة بقاء رابط الدخول لمرة واحدة صالحًا بعد إرساله من الفريق. النطاق من 5 دقائق إلى 30 يومًا. استخدم محدد الوحدة بجانب الرقم لاختيار دقائق / ساعات / أيام.',
+    'unit' => 'الوحدة',
 
     // Branches
     'branch' => 'فرع',
@@ -110,6 +139,116 @@ return [
     'branches_used' => ':current من :max فرع مستخدم',
     'upgrade_to_add_branches' => 'تواصل مع الدعم أو قم بترقية خطتك لإضافة المزيد من الفروع.',
 
+    'quick_access' => [
+        'heading' => 'وصول سريع',
+        'today' => 'اليوم',
+        'book' => 'حجز',
+        'patients' => 'المرضى',
+        'calendar' => 'التقويم',
+        'collapse' => 'طي',
+    ],
+
+    // Dashboard widgets
+    'dashboard' => [
+        'revenue_trend' => 'اتجاه الإيرادات (آخر ١٢ شهرًا)',
+        'collected' => 'المُحصّل',
+        'appointment_trend' => 'المواعيد (آخر ٣٠ يومًا)',
+        'booked' => 'محجوزة',
+        'completed' => 'مكتملة',
+        'appointment_status' => 'حالة المواعيد (هذا الشهر)',
+        'scheduled' => 'مجدولة',
+        'confirmed' => 'مؤكدة',
+        'in_progress' => 'قيد التنفيذ',
+        'no_show' => 'لم يحضر',
+        'cancelled' => 'ملغاة',
+        'no_data' => 'لا توجد بيانات بعد',
+        'todays_schedule' => 'جدول اليوم',
+        'time' => 'الوقت',
+        'patient' => 'المريض',
+        'service' => 'الخدمة',
+        'doctor' => 'الطبيب',
+        'status' => 'الحالة',
+        'no_appointments_today' => 'لا توجد مواعيد مجدولة لهذا اليوم',
+        'top_services' => 'أعلى الخدمات (هذا الشهر)',
+        'sold' => 'مُباعة',
+        'top_doctors' => 'أفضل الأطباء (هذا الشهر)',
+        'done' => 'منجزة',
+    ],
+
+    // Sidebar navigation groups — kept single-word in Arabic so the
+    // sidebar headings stay compact next to their icons.
+    'nav_groups' => [
+        'operations' => 'العمليات',
+        'hr' => 'الموظفون',
+        'inventory' => 'المخزون',
+        'finance' => 'المالية',
+        'marketing' => 'التسويق',
+        'reports' => 'التقارير',
+        'settings' => 'الإعدادات',
+        'support' => 'الدعم',
+        'mobile_app' => 'التطبيق',
+        'crm' => 'العملاء',
+        'financials' => 'الماليات',
+        'platform' => 'المنصة',
+        'system' => 'النظام',
+        'subscription' => 'الاشتراك',
+        'account' => 'الحساب',
+        'clients' => 'العملاء',
+        'billing' => 'الفوترة',
+        'apps_modules' => 'التطبيقات والوحدات',
+        'engagement' => 'التفاعل',
+    ],
+
+    // Sidebar sub-folders (nested inside nav groups)
+    'nav_folders' => [
+        // Platform panel
+        'agreements' => 'الاتفاقيات',
+        'analytics' => 'التحليلات',
+        'mobile_app' => 'تطبيق الجوال',
+        'security_audit' => 'الأمان والتدقيق',
+        'operations' => 'العمليات',
+        'health' => 'حالة النظام',
+        'platform_email' => 'التسويق بالبريد',
+        'platform_integrations' => 'التكاملات',
+        // Tenant / Finance
+        'accounting' => 'المحاسبة',
+        'financial_reports' => 'التقارير المالية',
+        'assets' => 'الأصول',
+        // Tenant / Operations
+        'appointments' => 'المواعيد',
+        'clinical' => 'المرضى والرعاية',
+        // Tenant / HR
+        'attendance' => 'الحضور والانصراف',
+        'time_off' => 'الإجازات',
+        'payroll' => 'الرواتب',
+        'commissions' => 'العمولات',
+        // Tenant / Inventory
+        'catalog' => 'الكتالوج',
+        'stock' => 'حركة المخزون',
+        'purchasing' => 'المشتريات',
+        'units' => 'الوحدات',
+        // Tenant / Marketing
+        'campaigns' => 'الحملات',
+        'loyalty_gifts' => 'الولاء والهدايا',
+        'channels' => 'القنوات',
+        'website' => 'الموقع الإلكتروني',
+        // Tenant / Settings
+        'booking' => 'الحجز',
+        'access' => 'الصلاحيات',
+        'clinic_setup' => 'إعداد العيادة',
+        'templates' => 'القوالب',
+        'integrations' => 'التكاملات',
+        // Tenant / Mobile App
+        'app_settings' => 'إعدادات التطبيق',
+        // Tenant / Reports
+        'rpt_finance' => 'المبيعات والمالية',
+        'rpt_appointments' => 'المواعيد والزيارات',
+        'rpt_clinical' => 'التقارير السريرية',
+        'rpt_staff' => 'الموظفون',
+        'rpt_marketing' => 'التسويق',
+        'rpt_inventory' => 'المخزون',
+    ],
+
     // Days of week
     'days_of_week' => [
         'sunday' => 'الأحد',
@@ -120,20 +259,6 @@ return [
         'friday' => 'الجمعة',
         'saturday' => 'السبت',
     ],
-
-    // Departments
-    'department' => 'قسم',
-    'departments' => 'الأقسام',
-    'department_details' => 'تفاصيل القسم',
-    'parent_department' => 'القسم الرئيسي',
-    'no_parent' => 'لا يوجد قسم أعلى (قسم جذري)',
-    'manager' => 'المدير',
-    'staff_count' => 'عدد الموظفين',
-    'cannot_delete_department_with_children' => 'لا يمكن حذف قسم له أقسام فرعية',
-    'cannot_delete_department_with_staff' => 'لا يمكن حذف قسم به موظفين',
-    'organization' => 'التنظيم',
-    'integration' => 'التكامل',
-    'odoo_id' => 'معرف أودو',
 
     // Rooms
     'room' => 'غرفة',

@@ -22,6 +22,11 @@ class PlatformEmailCampaignResource extends Resource
 
     protected static ?int $navigationSort = 20;
 
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.platform_email');
+    }
+
     protected static ?string $modelLabel = 'Email Campaign';
 
     protected static ?string $pluralModelLabel = 'Email Campaigns';

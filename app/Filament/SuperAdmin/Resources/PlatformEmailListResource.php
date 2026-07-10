@@ -22,6 +22,11 @@ class PlatformEmailListResource extends Resource
 
     protected static ?int $navigationSort = 10;
 
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.platform_email');
+    }
+
     protected static ?string $modelLabel = 'Email List';
 
     protected static ?string $pluralModelLabel = 'Email Lists';

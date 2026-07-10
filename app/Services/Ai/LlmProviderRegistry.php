@@ -23,7 +23,7 @@ class LlmProviderRegistry
      */
     public function for(?string $modelKey = null): LlmProvider
     {
-        $key = $modelKey ?: (string) config('llm.default');
+        $key = $modelKey ?: static::defaultModelKey();
 
         if (isset($this->instances[$key])) {
             return $this->instances[$key];
@@ -34,6 +34,11 @@ class LlmProviderRegistry
             throw new LlmException("Unknown LLM model key: {$key}");
         }
 
+        // API key resolution order: PlatformSetting (UI-managed) →
+        // config value (env-driven). PlatformSetting wins so admins
+        // can rotate keys from the SuperAdmin panel without editing .env.
+        $config['api_key'] = static::resolveApiKey($key, $config['api_key'] ?? null);
+
         $driverName = $config['driver'] ?? null;
         $driverClass = config("llm.drivers.{$driverName}");
         if (! $driverClass || ! class_exists($driverClass)) {
@@ -43,6 +48,40 @@ class LlmProviderRegistry
         /** @var LlmProvider $provider */
         $provider = new $driverClass($key, $config);
         return $this->instances[$key] = $provider;
+    }
+
+    /**
+     * Resolve the API key for a model — PlatformSetting first, then
+     * the config value (which normally comes from an env var).
+     */
+    public static function resolveApiKey(string $modelKey, ?string $configValue): ?string
+    {
+        $settingKey = 'llm.api_key.'.$modelKey;
+        try {
+            $fromSetting = \App\Models\PlatformSetting::get($settingKey);
+            if (filled($fromSetting)) {
+                return (string) $fromSetting;
+            }
+        } catch (\Throwable $e) {
+            // Settings table might not exist during migrations — fall through.
+        }
+        return $configValue !== null && $configValue !== '' ? $configValue : null;
+    }
+
+    /**
+     * Default model key — PlatformSetting first, then config default.
+     */
+    public static function defaultModelKey(): string
+    {
+        try {
+            $fromSetting = \App\Models\PlatformSetting::get('llm.default');
+            if (filled($fromSetting) && array_key_exists($fromSetting, (array) config('llm.providers', []))) {
+                return (string) $fromSetting;
+            }
+        } catch (\Throwable $e) {
+            // fall through
+        }
+        return (string) config('llm.default');
     }
 
     /**
@@ -85,7 +124,7 @@ class LlmProviderRegistry
     {
         $providers = (array) config('llm.providers', []);
         return collect($providers)
-            ->filter(fn (array $cfg) => filled($cfg['api_key'] ?? null))
+            ->filter(fn (array $cfg, string $key) => filled(static::resolveApiKey($key, $cfg['api_key'] ?? null)))
             ->mapWithKeys(fn (array $cfg, string $key) => [$key => $cfg['label'] ?? $key])
             ->all();
     }
