@@ -2,24 +2,30 @@
 
 namespace App\Filament\SuperAdmin\Resources\PlatformEmailCampaignResource\Pages;
 
+use App\Filament\Resources\Pages\BaseViewRecord;
 use App\Filament\SuperAdmin\Resources\PlatformEmailCampaignResource;
+use App\Filament\SuperAdmin\Resources\PlatformEmailCampaignResource\Concerns\HasCampaignActions;
 use App\Models\PlatformEmailCampaign;
 use Filament\Actions;
 use Filament\Infolists\Components\Section;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Infolist;
-use Filament\Resources\Pages\ViewRecord;
 
-class ViewPlatformEmailCampaign extends ViewRecord
+class ViewPlatformEmailCampaign extends BaseViewRecord
 {
+    use HasCampaignActions;
+
     protected static string $resource = PlatformEmailCampaignResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getViewHeaderActions(): array
     {
-        return [
-            Actions\EditAction::make()
-                ->visible(fn (PlatformEmailCampaign $record) => $record->isEditable()),
-        ];
+        return array_merge(
+            $this->campaignActions(),
+            [
+                Actions\EditAction::make()
+                    ->visible(fn (PlatformEmailCampaign $record) => $record->isEditable()),
+            ],
+        );
     }
 
     public function infolist(Infolist $infolist): Infolist
