@@ -38,6 +38,23 @@
                                     ->implode("\n");
                             }
 
+                            // Step 1b — Arabic (or any RTL) body: wrap runs of
+                            // Latin text (brand names, URLs, English words) in
+                            // <bdi> so the Unicode Bidi algorithm doesn't
+                            // scramble "XLinic" or "ibram@x-linic.com" to a
+                            // weird position within the Arabic sentence.
+                            // Skips text inside <a href="..."> attributes and
+                            // existing <bdi>/<span dir="ltr"> tags.
+                            if (($isRtl ?? false)) {
+                                $normalized = preg_replace_callback(
+                                    // Match runs of >=2 Latin chars (with .-_@:/ allowed inside)
+                                    // that are NOT inside an HTML tag.
+                                    '/(?<![>\w])([A-Za-z][A-Za-z0-9._\-@:\/]*[A-Za-z0-9])(?![^<]*>)/u',
+                                    fn ($m) => '<bdi dir="ltr">'.$m[1].'</bdi>',
+                                    $normalized,
+                                );
+                            }
+
                             // Step 2 — inject inline spacing on every block
                             // element (mail clients reset default margins to 0).
                             $spaced = preg_replace(

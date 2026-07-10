@@ -26,6 +26,16 @@ class AiTranslator
             ? 'Modern Standard Arabic (Gulf-friendly phrasing)'
             : 'English (warm, professional)';
 
+        $bidiRule = $targetLanguage === 'ar'
+            ? "7. Every Latin-script word or URL (XLinic, ibram@x-linic.com,
+   Kuwait, https://x-linic.com, brand names, product names) MUST
+   be wrapped in a <bdi dir=\"ltr\">…</bdi> element so it displays
+   correctly inside the Arabic sentence. Example:
+   'شكراً لك من فريق <bdi dir=\"ltr\">XLinic</bdi>' — NOT
+   'شكراً لك من فريق XLinic' (which would render in the wrong position).
+   Always wrap even simple brand mentions."
+            : '';
+
         $system = <<<PROMPT
 You translate marketing/business emails to {$languageLabel}.
 
@@ -43,6 +53,7 @@ Rules:
    natural. Retain a personal, non-corporate tone.
 6. Numbers can stay as Latin (0-9) — do NOT convert to Arabic-Indic
    unless the source already uses them.
+{$bidiRule}
 PROMPT;
 
         $request = LlmRequest::make(

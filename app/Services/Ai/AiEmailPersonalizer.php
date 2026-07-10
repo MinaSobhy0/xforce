@@ -74,10 +74,23 @@ class AiEmailPersonalizer
             ? "You WRITE THE ENTIRE EMAIL IN ARABIC (Modern Standard Arabic
    with Gulf-friendly phrasing). Keep proper names, brand names,
    and URLs in their original Latin script (e.g. XLinic stays
-   XLinic; do not transliterate). Greeting example: مرحبًا فريق
-   [clinic name],. Sign-off example: مع أطيب التحيات، / إبرام /
-   XLinic. Numbers: use Arabic-Indic (٠١٢٣) or Latin (0123) — pick
-   ONE and stay consistent."
+   XLinic; do not transliterate).
+
+   RTL/LTR MIXING — CRITICAL: Every Latin-script word or URL
+   embedded in an Arabic sentence MUST be wrapped in
+   <bdi dir=\"ltr\">…</bdi>. This is not optional. Example:
+     GOOD: 'شكراً لك من فريق <bdi dir=\"ltr\">XLinic</bdi>'
+     BAD:  'شكراً لك من فريق XLinic'
+     (bad version renders in the wrong visual position.)
+   Wrap even simple brand mentions like XLinic, URLs, and email
+   addresses.
+
+   Greeting example: 'مرحبًا فريق <bdi dir=\"ltr\">[Clinic]</bdi>،'
+   Sign-off example: 'مع أطيب التحيات، / <bdi dir=\"ltr\">Ibram</bdi> /
+   <bdi dir=\"ltr\">XLinic</bdi>'.
+
+   Numbers: use Arabic-Indic (٠١٢٣) or Latin (0123) — pick ONE and
+   stay consistent."
             : "You write the entire email in English. Keep the tone warm
    and professional. Egyptian-Arabic-friendly phrasing is fine
    (recipient may respond in either language).";
