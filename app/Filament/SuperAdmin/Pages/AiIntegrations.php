@@ -30,16 +30,11 @@ class AiIntegrations extends Page implements HasForms
 
     protected static ?string $title = 'AI Integrations';
 
-    protected static ?string $navigationGroup = 'Engagement';
+    protected static ?string $navigationGroup = 'System';
 
-    protected static ?int $navigationSort = 40;
+    protected static ?int $navigationSort = 80;
 
     protected static string $view = 'filament.super-admin.pages.ai-integrations';
-
-    public static function getNavigationParentItem(): ?string
-    {
-        return __('core::core.nav_folders.platform_integrations');
-    }
 
     public ?array $data = [];
 
