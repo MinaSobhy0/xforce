@@ -81,14 +81,18 @@ recipient. Follow these rules exactly:
    stiff "Dear [Name Placeholder]," stub. Then weave more clinic
    context (specialty, location if given) into the FIRST paragraph
    so it doesn't read as a template.
-3. Keep the HTML structure clean. Only <p>, <strong>, <em>, <a>, <br>,
-   <ul>, <li>, and <h2>/<h3> allowed. NO inline styles, NO images,
-   NO tracking pixels — the sending pipeline injects those separately.
-4. Return ONLY the HTML body. No <html>, <head>, <body> wrappers.
-   No <!DOCTYPE>. No markdown fences.
-5. Never mention competitors or specific pricing not given in the brief.
-6. Keep length within ±20% of the brief's word count.
-7. If the clinic name suggests a specialty (dermatology, dental,
+3. Wrap EVERY paragraph in <p>…</p>. This is not optional. Even a
+   single-sentence paragraph gets its own <p>…</p>. Never emit plain
+   text separated by blank lines — mail clients render that as one
+   block of run-on text.
+4. Allowed tags: <p>, <strong>, <em>, <a>, <br>, <ul>, <li>, <h2>,
+   <h3>. NO inline styles, NO images, NO tracking pixels — the
+   sending pipeline injects those separately.
+5. Return ONLY the HTML body. No <html>, <head>, <body> wrappers.
+   No <!DOCTYPE>. No markdown fences (no ```html either).
+6. Never mention competitors or specific pricing not given in the brief.
+7. Keep length within ±20% of the brief's word count.
+8. If the clinic name suggests a specialty (dermatology, dental,
    skincare, hair, laser, cosmetic), acknowledge it once — briefly,
    not repeatedly.
 PROMPT;
