@@ -158,6 +158,13 @@ class PlatformEmailCampaignResource extends Resource
         ];
     }
 
+    public static function getRelations(): array
+    {
+        return [
+            \App\Filament\SuperAdmin\Resources\PlatformEmailCampaignResource\RelationManagers\RecipientsRelationManager::class,
+        ];
+    }
+
     protected static function listSizeHint(): string
     {
         $total = PlatformEmailList::query()->where('is_active', true)->count();

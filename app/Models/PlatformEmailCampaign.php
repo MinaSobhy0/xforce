@@ -108,4 +108,69 @@ class PlatformEmailCampaign extends Model
     {
         return in_array($this->status, [self::STATUS_DRAFT, self::STATUS_SCHEDULED], true);
     }
+
+    /**
+     * Freeze the current list membership into per-recipient rows. Called
+     * by ProcessPlatformCampaignJob at Send Now / scheduler fire time.
+     * Idempotent — repeat calls only insert missing rows.
+     *
+     * Skips addresses on the global suppression list at snapshot time
+     * so we don't even materialize rows we'll immediately reject.
+     */
+    public function materialize(): int
+    {
+        $listMembers = $this->list()
+            ->first()
+            ?->activeMembers()
+            ->orderBy('id')
+            ->get();
+
+        if (! $listMembers || $listMembers->isEmpty()) {
+            return 0;
+        }
+
+        $emails = $listMembers->pluck('email')->map(fn ($e) => mb_strtolower($e))->all();
+
+        // Global suppression check — remove suppressed addresses in bulk.
+        $suppressed = PlatformEmailSuppression::query()
+            ->whereIn('email', $emails)
+            ->pluck('email')
+            ->all();
+        $suppressedSet = array_flip($suppressed);
+
+        $inserted = 0;
+        foreach ($listMembers as $member) {
+            $email = mb_strtolower($member->email);
+            if (isset($suppressedSet[$email])) {
+                continue;
+            }
+            $created = PlatformEmailCampaignRecipient::firstOrCreate(
+                ['campaign_id' => $this->id, 'email' => $email],
+                [
+                    'name_hint' => $member->name_hint,
+                    'status' => PlatformEmailCampaignRecipient::STATUS_PENDING,
+                    'context' => $this->contextFor($member),
+                ],
+            );
+            if ($created->wasRecentlyCreated) {
+                $inserted++;
+            }
+        }
+
+        return $inserted;
+    }
+
+    /**
+     * Build the frozen tenant/plan snapshot used by the AI personalizer.
+     * Extended per-source in the future — for now we surface the fields
+     * we know exist across all list types.
+     */
+    protected function contextFor(PlatformEmailListMember $member): array
+    {
+        return [
+            'source_type' => $member->source_type,
+            'name_hint' => $member->name_hint,
+            'list_name' => $this->list->name ?? null,
+        ];
+    }
 }

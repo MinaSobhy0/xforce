@@ -116,3 +116,19 @@ Route::get('/app/join/{code}', function (string $code) {
 Route::get('/portal/email-verification', function () {
     return redirect('/portal/portal-dashboard');
 })->name('filament.portal.auth.email-verification.prompt');
+
+// ─── Platform email marketing (public routes) ───────────────────────
+// Unsubscribe + open/click tracking. All signed via URL::signedRoute()
+// so no auth is required to click but the recipient can't spoof
+// another address. See app/Jobs/SendPlatformCampaignEmailJob and
+// resources/views/mail/platform-campaign.blade.php.
+Route::middleware(['signed'])->group(function () {
+    Route::get('/platform/unsubscribe', [\App\Http\Controllers\Platform\UnsubscribeController::class, 'show'])
+        ->name('platform.unsubscribe');
+    Route::post('/platform/unsubscribe', [\App\Http\Controllers\Platform\UnsubscribeController::class, 'unsubscribe'])
+        ->name('platform.unsubscribe.post');
+    Route::get('/platform/track/open', [\App\Http\Controllers\Platform\MailTrackingController::class, 'open'])
+        ->name('platform.track.open');
+    Route::get('/platform/track/click', [\App\Http\Controllers\Platform\MailTrackingController::class, 'click'])
+        ->name('platform.track.click');
+});
