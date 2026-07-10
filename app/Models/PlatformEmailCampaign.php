@@ -117,7 +117,21 @@ class PlatformEmailCampaign extends Model
 
     public function isEditable(): bool
     {
-        return in_array($this->status, [self::STATUS_DRAFT, self::STATUS_SCHEDULED, self::STATUS_CANCELLED], true);
+        if (in_array($this->status, [self::STATUS_DRAFT, self::STATUS_SCHEDULED, self::STATUS_CANCELLED], true)) {
+            return true;
+        }
+
+        // SENT campaigns with untargeted list members are still editable —
+        // you might have run a canary batch of 10 and want to tweak the
+        // subject / body / AI prompt before dispatching the remaining 8.
+        // SENDING is deliberately excluded to avoid racing in-flight jobs.
+        if ($this->status === self::STATUS_SENT) {
+            $listSize = $this->list?->activeMembers()->count() ?? 0;
+            $already = $this->recipients()->count();
+            return $listSize > $already;
+        }
+
+        return false;
     }
 
     public function isSendable(): bool
