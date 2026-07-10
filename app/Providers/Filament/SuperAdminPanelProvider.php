@@ -88,10 +88,14 @@ class SuperAdminPanelProvider extends PanelProvider
                 NavigationGroup::make('Platform')
                     ->label(__('Platform'))
                     ->icon('heroicon-o-squares-2x2'),
+                NavigationGroup::make('Engagement')
+                    ->label(__('Engagement'))
+                    ->icon('heroicon-o-envelope'),
                 NavigationGroup::make('System')
                     ->label(__('System'))
                     ->icon('heroicon-o-cog-6-tooth'),
             ])
+
 
             // Resource Discovery
             ->discoverResources(
