@@ -48,7 +48,14 @@ class AiIntegrations extends Page implements HasForms
         $providers = (array) config('llm.providers', []);
         $current = [];
         foreach (array_keys($providers) as $key) {
-            $current['api_key_'.$key] = PlatformSetting::get('llm.api_key.'.$key);
+            // Wrapped in try/catch so a corrupted/undecryptable row from a
+            // prior buggy save doesn't take out the whole page. The user
+            // just re-enters the key and Save cleans it up.
+            try {
+                $current['api_key_'.$key] = PlatformSetting::get('llm.api_key.'.$key);
+            } catch (\Throwable $e) {
+                $current['api_key_'.$key] = null;
+            }
         }
         $current['default'] = LlmProviderRegistry::defaultModelKey();
 
@@ -104,13 +111,24 @@ class AiIntegrations extends Page implements HasForms
         $data = $this->form->getState();
 
         foreach ((array) config('llm.providers', []) as $key => $_cfg) {
-            $formKey = 'api_key_'.$key;
-            $value = $data[$formKey] ?? null;
+            $settingKey = 'llm.api_key.'.$key;
+            $value = $data['api_key_'.$key] ?? null;
+
             if (filled($value)) {
-                PlatformSetting::set('llm.api_key.'.$key, $value, 'llm', 'string', true);
+                // Persist via the model directly (instead of the static
+                // ::set() helper) so setIsEncryptedAttribute() runs BEFORE
+                // setValueAttribute() and the value actually lands
+                // encrypted. The static helper writes the raw plaintext
+                // and marks is_encrypted=true, which then explodes on read.
+                $s = PlatformSetting::firstOrNew(['key' => $settingKey]);
+                $s->group = 'llm';
+                $s->type = 'string';
+                $s->is_encrypted = true;
+                $s->value = $value; // setValueAttribute encrypts because is_encrypted is true
+                $s->save();
             } else {
                 // Empty submission clears the DB value (falls back to .env).
-                PlatformSetting::where('key', 'llm.api_key.'.$key)->delete();
+                PlatformSetting::where('key', $settingKey)->delete();
             }
         }
 
