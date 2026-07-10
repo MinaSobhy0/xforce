@@ -2,6 +2,7 @@
 
 namespace App\Filament\SuperAdmin\Resources\PlatformEmailListResource\RelationManagers;
 
+use App\Models\PlatformAiImportSession;
 use App\Models\PlatformEmailListMember;
 use App\Services\Ai\AiImportOrganizer;
 use App\Services\Ai\LlmProviderRegistry;
@@ -187,13 +188,54 @@ class MembersRelationManager extends RelationManager
             return;
         }
 
-        // Materialize the CONFIRMED rows using the AI plan.
-        // (Simple auto-confirm for now — a review wizard step lands
-        //  in a follow-up when we split confirm from materialize.)
-        $added = 0;
-        $skipped = 0;
+        // Persist the plan so we can inspect it later even if the
+        // import zero-produced and got manually re-run.
         $listId = $this->ownerRecord->id;
         $sessionRef = 'ai_import_'.Str::random(8);
+        $session = PlatformAiImportSession::create([
+            'list_id' => $listId,
+            'uploaded_by_user_id' => auth()->id(),
+            'source_filename' => pathinfo($path, PATHINFO_BASENAME),
+            'source_row_count' => count($rows),
+            'sample_rows' => $sample,
+            'ai_mapping' => $plan['mapping'] ?? [],
+            'ai_normalizations' => $plan['normalizations'] ?? [],
+            'ai_flagged_rows' => $plan['flagged_rows'] ?? [],
+            'ai_model' => $plan['model_id'] ?? $modelKey,
+            'ai_tokens_input' => $plan['tokens_input'] ?? null,
+            'ai_tokens_output' => $plan['tokens_output'] ?? null,
+            'ai_cost_usd_cents' => (int) ($plan['cost_usd_cents'] ?? 0),
+            'status' => PlatformAiImportSession::STATUS_PREVIEW,
+        ]);
+
+        // Sanity-check the AI's mapping BEFORE trying to project rows.
+        // If nothing is mapped to 'email', 100% of rows will be skipped
+        // — surface that as the diagnostic instead of a mysterious
+        // "Imported 0 members".
+        $mappedToEmail = collect($plan['mapping'] ?? [])
+            ->filter(fn ($target) => $target === 'email')
+            ->keys()
+            ->all();
+
+        if (empty($mappedToEmail)) {
+            $mappingSummary = $this->formatMapping($plan['mapping'] ?? [], $headers);
+            Notification::make()
+                ->title('AI could not identify an email column')
+                ->body(
+                    "Model: {$plan['model_id']}. Mapping decided by AI: {$mappingSummary}. ".
+                    'Rename your email column to "email" or try a different model, then re-import. ' .
+                    'File kept at '.$path.'.'
+                )
+                ->danger()
+                ->persistent()
+                ->send();
+            $session->update(['status' => PlatformAiImportSession::STATUS_CANCELLED]);
+            return; // NOTE: file intentionally NOT deleted so the user can retry.
+        }
+
+        // Materialize the CONFIRMED rows using the AI plan.
+        $added = 0;
+        $skipped = 0;
 
         foreach ($rows as $row) {
             $projected = $organizer->projectRow($row, $plan['mapping'], $plan['normalizations']);
@@ -214,7 +256,33 @@ class MembersRelationManager extends RelationManager
             }
         }
 
+        $session->update([
+            'status' => $added > 0 ? PlatformAiImportSession::STATUS_MATERIALIZED : PlatformAiImportSession::STATUS_CANCELLED,
+            'materialized_count' => $added,
+        ]);
+
         $costCents = (int) ($plan['cost_usd_cents'] ?? 0);
+
+        if ($added === 0) {
+            // Zero-produced import. Keep the file, surface the mapping so
+            // the user can see whether the AI hallucinated. Common causes:
+            //   - mapping is right but every row's email field is empty
+            //   - mapping targets a name column instead of email
+            //   - values are quoted / have leading whitespace we couldn't clean
+            $mappingSummary = $this->formatMapping($plan['mapping'] ?? [], $headers);
+            $sampleFirst = ! empty($sample[0]) ? json_encode($sample[0], JSON_UNESCAPED_UNICODE) : '(empty)';
+            Notification::make()
+                ->title('Imported 0 new members from '.count($rows).' rows')
+                ->body(
+                    "AI mapping: {$mappingSummary}. First row: {$sampleFirst}. ".
+                    "File kept at {$path} — retry with a different model or fix the headers."
+                )
+                ->warning()
+                ->persistent()
+                ->send();
+            return;
+        }
+
         Notification::make()
             ->title("Imported {$added} new members")
             ->body(
@@ -223,13 +291,21 @@ class MembersRelationManager extends RelationManager
             )
             ->success()->send();
 
-        // Delete the uploaded file — we're done with it and don't want
-        // list data sitting on disk after the import.
         try {
             $disk->delete($path);
         } catch (\Throwable $e) {
             // Best-effort cleanup; nothing to escalate.
         }
+    }
+
+    protected function formatMapping(array $mapping, array $headers): string
+    {
+        $out = [];
+        foreach ($headers as $h) {
+            $target = $mapping[$h] ?? 'drop';
+            $out[] = "{$h}→{$target}";
+        }
+        return implode(', ', array_slice($out, 0, 15)).(count($headers) > 15 ? ', …' : '');
     }
 
     /**
