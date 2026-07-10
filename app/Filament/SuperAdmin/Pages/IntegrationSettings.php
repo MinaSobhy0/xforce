@@ -15,15 +15,20 @@ class IntegrationSettings extends Page implements HasForms
 {
     use InteractsWithForms;
 
-    protected static ?string $navigationIcon = 'heroicon-o-puzzle-piece';
+    protected static ?string $navigationIcon = 'heroicon-o-credit-card';
 
-    protected static ?string $navigationLabel = 'Integrations';
+    protected static ?string $navigationLabel = 'Payment, SMS & WhatsApp';
 
     protected static ?string $navigationGroup = 'System';
 
-    protected static ?int $navigationSort = 6;
+    protected static ?int $navigationSort = 10;
 
     protected static string $view = 'filament.super-admin.pages.integration-settings';
+
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.platform_integrations');
+    }
 
     public ?array $whatsappData = [];
     public ?array $smsData = [];
