@@ -64,6 +64,12 @@ trait HasCampaignActions
                             ->default($remaining)
                             ->required()
                             ->helperText('Set a smaller number for a canary batch (e.g. 5 first to verify quality), then re-run Send Now for the rest. Members are picked in list order.'),
+
+                        Forms\Components\Toggle::make('render_only')
+                            ->label('Render previews only — don\'t send yet')
+                            ->default(false)
+                            ->helperText('When ON: recipients are materialized and (for AI campaigns) their personalized copy is rendered, but no emails go out. Review each row on the Recipients tab, click the Body icon to preview, use Edit body to tweak, then use Send this one (or Send Now again without this toggle) to actually dispatch. Human-in-the-loop control.')
+                            ->visible(fn () => $this->record->ai_personalize),
                     ];
                 })
                 // Allow re-invoking Send Now after a partial (canary) batch
@@ -101,11 +107,16 @@ trait HasCampaignActions
                 })
                 ->action(function (array $data): void {
                     $limit = (int) ($data['limit'] ?? 0) ?: null;
+                    $renderOnly = (bool) ($data['render_only'] ?? false);
                     $this->record->forceFill(['status' => PlatformEmailCampaign::STATUS_SENDING])->save();
-                    ProcessPlatformCampaignJob::dispatch($this->record->id, $limit);
+                    ProcessPlatformCampaignJob::dispatch($this->record->id, $limit, $renderOnly);
                     Notification::make()
-                        ->title('Campaign queued for '.($limit ?? 'all').' recipients')
-                        ->body('You can watch the counter row on the View page as sends drain.')
+                        ->title($renderOnly
+                            ? 'Preview render queued for '.($limit ?? 'all').' recipients'
+                            : 'Campaign queued for '.($limit ?? 'all').' recipients')
+                        ->body($renderOnly
+                            ? 'Once rendered, review each row on the Recipients tab. Nothing has been emailed yet.'
+                            : 'You can watch the counter row on the View page as sends drain.')
                         ->success()->send();
                     $this->redirect(static::getResource()::getUrl('view', ['record' => $this->record]));
                 }),
