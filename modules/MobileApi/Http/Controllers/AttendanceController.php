@@ -223,7 +223,24 @@ class AttendanceController extends BaseApiController
             }
             $validation = $this->validateGeofenceLocation($request->latitude, $request->longitude, $staffProfile);
             if (!$validation['valid']) {
-                return $this->error(__('mobile_api::mobile.attendance.invalid_location'), 400);
+                return $this->businessRuleError(
+                    __('mobile_api::mobile.attendance.invalid_location'),
+                    'OUT_OF_GEOFENCE'
+                );
+            }
+        }
+
+        // TC-8/9: SECURITY — if coordinates were provided (offline-synced
+        // check-in, QR scan that also captured location, etc.), validate
+        // them against the geofence even when method != geofence. The
+        // client can't be trusted to have run its own check.
+        if ($request->method !== 'geofence' && $request->filled('latitude') && $request->filled('longitude')) {
+            $validation = $this->validateGeofenceLocation($request->latitude, $request->longitude, $staffProfile);
+            if (! $validation['valid']) {
+                return $this->businessRuleError(
+                    __('mobile_api::mobile.attendance.invalid_location'),
+                    'OUT_OF_GEOFENCE'
+                );
             }
         }
 

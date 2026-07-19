@@ -236,6 +236,7 @@ class PayrollController extends BaseApiController
     protected function formatPayslip(PayrollLine $payslip, bool $detailed = false): array
     {
         $run = $payslip->payrollRun;
+        $display = static::payslipDisplayConfig();
 
         $data = [
             'id' => $payslip->id,
@@ -245,27 +246,38 @@ class PayrollController extends BaseApiController
             'status' => $payslip->status,
             'status_label' => PayrollLine::STATUSES[$payslip->status] ?? $payslip->status,
 
-            'gross_salary' => $payslip->gross_salary_minor / 100,
             'total_deductions' => $payslip->total_deductions_minor / 100,
             'net_salary' => $payslip->net_salary,
         ];
 
-        if ($detailed) {
-            $data['earnings'] = [
-                'base_salary' => $payslip->base_salary,
-                'allowances' => $payslip->allowances,
-                'commissions' => $payslip->commissions,
-                'bonuses' => $payslip->bonuses,
-            ];
+        // TC-20: gross_salary is now tenant-configurable. Default policy is
+        // "hidden from employees" — clinic HR can flip it on if their local
+        // labour rules require it. Mirrors the show_gross_salary flag that
+        // /api/v2/config also emits so the client and server agree.
+        if ($display['show_gross_salary']) {
+            $data['gross_salary'] = $payslip->gross_salary_minor / 100;
+        }
 
-            $data['deductions'] = [
-                'tax' => $payslip->tax,
-                'social_insurance' => $payslip->social_insurance,
-                'other' => $payslip->deductions,
-            ];
+        if ($detailed) {
+            if ($display['show_allowances_breakdown']) {
+                $data['earnings'] = [
+                    'base_salary' => $payslip->base_salary,
+                    'allowances' => $payslip->allowances,
+                    'commissions' => $payslip->commissions,
+                    'bonuses' => $payslip->bonuses,
+                ];
+            }
+
+            if ($display['show_deductions_breakdown']) {
+                $data['deductions'] = [
+                    'tax' => $payslip->tax,
+                    'social_insurance' => $payslip->social_insurance,
+                    'other' => $payslip->deductions,
+                ];
+            }
 
             // Include rule breakdown if available
-            if (!empty($payslip->rule_amounts_json)) {
+            if (! empty($payslip->rule_amounts_json)) {
                 $data['rule_breakdown'] = $payslip->rule_amounts_json;
             }
 
@@ -274,5 +286,28 @@ class PayrollController extends BaseApiController
         }
 
         return $data;
+    }
+
+    /**
+     * Tenant-configurable payslip display flags. Read from
+     * tenants.settings.payslip_display via Tenant::getSetting(), with
+     * defaults that hide gross salary (business policy default) while
+     * keeping the earnings/deductions breakdowns on.
+     *
+     * Public + static so /api/v2/config can emit the same block without
+     * duplicating the defaults.
+     *
+     * @return array{show_gross_salary:bool,show_allowances_breakdown:bool,show_deductions_breakdown:bool}
+     */
+    public static function payslipDisplayConfig(): array
+    {
+        $tenant = app()->bound('currentTenant') ? app('currentTenant') : null;
+        $stored = $tenant ? ($tenant->getSetting('payslip_display', []) ?: []) : [];
+
+        return [
+            'show_gross_salary' => (bool) ($stored['show_gross_salary'] ?? false),
+            'show_allowances_breakdown' => (bool) ($stored['show_allowances_breakdown'] ?? true),
+            'show_deductions_breakdown' => (bool) ($stored['show_deductions_breakdown'] ?? true),
+        ];
     }
 }

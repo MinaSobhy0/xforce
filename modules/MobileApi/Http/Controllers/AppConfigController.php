@@ -57,6 +57,12 @@ class AppConfigController extends BaseApiController
                 'break_tracking' => $mobileConfig['features']['break_tracking'] ?? true,
                 'photo_check_in' => $mobileConfig['features']['attendance_photo_required'] ?? false,
             ],
+            // TC-20: tenant-configurable payslip visibility. Mobile app hides
+            // rows the tenant has flipped off. Default hides gross_salary
+            // (business policy in most tenants) while keeping the earnings /
+            // deductions breakdowns on. Server + client stay in sync via
+            // PayrollController::payslipDisplayConfig().
+            'payslip_display' => \Modules\MobileApi\Http\Controllers\PayrollController::payslipDisplayConfig(),
             'quick_actions' => $this->sduiService->getQuickActions(),
             'sdui' => [
                 'version' => config('mobile_api.sdui.version', '1.0.0'),

@@ -245,6 +245,18 @@ class TimeOffType extends BaseModel
     }
 
     /**
+     * Check if this type is a past-tense absence justification ("excuse")
+     * rather than a future-planned leave. Excuses have their own set of
+     * validation rules (start_date must be ≤ today, time window must fall
+     * inside working hours) — surfacing via a helper keeps the string
+     * comparison out of the mobile controller.
+     */
+    public function isExcuse(): bool
+    {
+        return strtoupper((string) $this->code) === 'EXCUSE';
+    }
+
+    /**
      * Check if this type uses half days as the request unit.
      */
     public function isHalfDayBased(): bool

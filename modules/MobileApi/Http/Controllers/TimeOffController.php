@@ -4,6 +4,7 @@ namespace Modules\MobileApi\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Modules\Attendance\Services\AttendanceService;
 use Modules\Booking\Models\PractitionerTimeOff;
 use Modules\Booking\Models\TimeOffAllocation;
 use Modules\Booking\Models\TimeOffType;
@@ -171,6 +172,40 @@ class TimeOffController extends BaseApiController
             return $this->error(__('mobile_api::mobile.time_off.invalid_type'), 400);
         }
 
+        $startDate = \Carbon\Carbon::parse($validated['start_date']);
+        $endDate = \Carbon\Carbon::parse($validated['end_date']);
+        $isFullDay = $validated['is_full_day'] ?? true;
+
+        // TC-18: Excuses are past-tense justifications — reject if the
+        // requested date is in the future. Uses the tenant timezone so a
+        // late-evening submit doesn't accidentally count as "tomorrow".
+        if ($type->isExcuse() && $startDate->isAfter(now()->startOfDay())) {
+            return $this->businessRuleError(
+                'Excuses cannot be submitted for future dates.',
+                'FUTURE_EXCUSE_NOT_ALLOWED'
+            );
+        }
+
+        // TC-19: An excuse's [start_time, end_time] must overlap the
+        // employee's working schedule on that date — the whole point of an
+        // excuse is justifying absence during work hours.
+        if ($type->isExcuse()
+            && ! empty($validated['start_time'])
+            && ! empty($validated['end_time'])
+        ) {
+            if (! $this->overlapsWorkingHours(
+                $staffProfile,
+                $startDate,
+                $validated['start_time'],
+                $validated['end_time']
+            )) {
+                return $this->businessRuleError(
+                    'Excuses must fall within your working hours.',
+                    'OUTSIDE_WORKING_HOURS'
+                );
+            }
+        }
+
         // Check for overlapping requests
         $overlapping = PractitionerTimeOff::forStaffProfile($staffProfile->id)
             ->whereIn('status', [PractitionerTimeOff::STATUS_PENDING, PractitionerTimeOff::STATUS_APPROVED])
@@ -178,14 +213,13 @@ class TimeOffController extends BaseApiController
             ->exists();
 
         if ($overlapping) {
-            return $this->error(__('mobile_api::mobile.time_off.dates_overlap'), 400);
+            return $this->businessRuleError(
+                __('mobile_api::mobile.time_off.dates_overlap'),
+                'DATES_OVERLAP'
+            );
         }
 
         // Calculate days/hours requested
-        $startDate = \Carbon\Carbon::parse($validated['start_date']);
-        $endDate = \Carbon\Carbon::parse($validated['end_date']);
-        $isFullDay = $validated['is_full_day'] ?? true;
-
         $daysRequested = 0;
         $hoursRequested = null;
 
@@ -204,20 +238,32 @@ class TimeOffController extends BaseApiController
             }
         }
 
-        // Check balance (allocation is keyed by staff_profile_id).
+        // TC-17: Balance validation — reject when requested exceeds remaining.
+        // Message and error_code must be machine-parsable by the mobile app.
         $allocation = TimeOffAllocation::getOrCreateForDate($staffProfile->id, $type->id, $startDate);
         $amountToCheck = $type->isHourBased() ? $hoursRequested : $daysRequested;
 
         if (! $allocation->hasAvailable($amountToCheck)) {
-            return $this->error(__('mobile_api::mobile.time_off.insufficient_balance'), 400);
+            $remaining = (float) ($allocation->remaining ?? 0);
+            $unit = $type->isHourBased() ? 'hours' : 'days';
+            $formattedRequested = $type->formatValue($amountToCheck);
+            $formattedRemaining = $type->formatValue($remaining);
+
+            return $this->businessRuleError(
+                "Requested {$unit} ({$formattedRequested}) exceed your remaining balance ({$formattedRemaining}).",
+                'INSUFFICIENT_BALANCE'
+            );
         }
 
         // Check max per request
         $maxPerRequest = $type->getEffectiveMaxPerRequest();
         if ($maxPerRequest !== null && $amountToCheck > $maxPerRequest) {
-            return $this->error(__('mobile_api::mobile.time_off.exceeds_max_per_request', [
-                'max' => $type->formatValue($maxPerRequest),
-            ]), 400);
+            return $this->businessRuleError(
+                __('mobile_api::mobile.time_off.exceeds_max_per_request', [
+                    'max' => $type->formatValue($maxPerRequest),
+                ]),
+                'EXCEEDS_MAX_PER_REQUEST'
+            );
         }
 
         // Create request
@@ -346,5 +392,34 @@ class TimeOffController extends BaseApiController
         }
 
         return $data;
+    }
+
+    /**
+     * Check whether the requested [start_time, end_time] window on the given
+     * date overlaps at least one working slot on the employee's schedule.
+     *
+     * If the employee has no schedule at all we accept — the tenant simply
+     * hasn't configured working hours yet and we don't want to block excuse
+     * submission on missing setup.
+     */
+    protected function overlapsWorkingHours(
+        $staffProfile,
+        \Carbon\Carbon $date,
+        string $startTime,
+        string $endTime
+    ): bool {
+        $schedule = app(AttendanceService::class)->getStaffSchedule($staffProfile);
+        if (! $schedule) {
+            return true;
+        }
+
+        $dayOfWeek = (int) $date->dayOfWeek;
+
+        // Sample the start and end minute; if either is inside a working
+        // slot (and outside a break window), the excuse overlaps working
+        // hours. WorkSchedule::isAvailableAt() handles both fixed and
+        // break-window logic internally.
+        return $schedule->isAvailableAt($dayOfWeek, $startTime)
+            || $schedule->isAvailableAt($dayOfWeek, $endTime);
     }
 }

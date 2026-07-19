@@ -28,19 +28,37 @@ class BaseApiController extends Controller
 
     /**
      * Return an error response.
+     *
+     * $errorCode is a machine-readable slug the mobile client can key on
+     * to make decisions without parsing the human message
+     * (e.g. INSUFFICIENT_BALANCE, OUT_OF_GEOFENCE). Prefer 422 for
+     * business-rule rejections and pass an errorCode.
      */
-    protected function error(string $message, int $code = 400, $errors = null): JsonResponse
+    protected function error(string $message, int $code = 400, $errors = null, ?string $errorCode = null): JsonResponse
     {
         $response = [
             'success' => false,
             'message' => $message,
         ];
 
+        if ($errorCode !== null) {
+            $response['error_code'] = $errorCode;
+        }
+
         if ($errors) {
             $response['errors'] = $errors;
         }
 
         return response()->json($response, $code);
+    }
+
+    /**
+     * Convenience for the {success:false, message, error_code} envelope at
+     * HTTP 422 the mobile app uses for business-rule rejections.
+     */
+    protected function businessRuleError(string $message, string $errorCode): JsonResponse
+    {
+        return $this->error($message, 422, null, $errorCode);
     }
 
     /**
