@@ -246,6 +246,9 @@ class PayrollController extends BaseApiController
             'status' => $payslip->status,
             'status_label' => PayrollLine::STATUSES[$payslip->status] ?? $payslip->status,
 
+            // Top-level totals employees care about. Detailed earnings /
+            // deductions breakdowns stay behind the tenant flags below.
+            'allowances' => (float) $payslip->allowances,
             'total_deductions' => $payslip->total_deductions_minor / 100,
             'net_salary' => $payslip->net_salary,
         ];
