@@ -46,9 +46,19 @@ class OdooIntegrationServiceProvider extends ServiceProvider
         $this->registerConfig();
         $this->registerViews();
         $this->loadMigrationsFrom(module_path($this->moduleName, 'Database/Migrations'));
+        $this->registerCommands();
         $this->registerSchedule();
         $this->registerCrossModuleActions();
         $this->registerRealtimeSyncListener();
+    }
+
+    protected function registerCommands(): void
+    {
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                \Modules\OdooIntegration\Console\RunScheduledSyncsCommand::class,
+            ]);
+        }
     }
 
     /**
@@ -190,6 +200,23 @@ class OdooIntegrationServiceProvider extends ServiceProvider
                 ->name('odoo:realtime-import-poll')
                 ->everyFiveMinutes()
                 ->withoutOverlapping();
+
+            // HOURLY / DAILY mappings — the enum has been exposing these
+            // as options for a while but nothing ran them, so any mapping
+            // set to hourly/daily was effectively "manual". Sweep them
+            // via the tenant-aware command so ops can flip mappings to
+            // hourly and actually see fresh data.
+            $schedule->command('odoo:run-scheduled-syncs --frequency=hourly')
+                ->name('odoo:hourly-mappings')
+                ->hourly()
+                ->withoutOverlapping()
+                ->runInBackground();
+
+            $schedule->command('odoo:run-scheduled-syncs --frequency=daily')
+                ->name('odoo:daily-mappings')
+                ->dailyAt('03:15')
+                ->withoutOverlapping()
+                ->runInBackground();
         });
     }
 
