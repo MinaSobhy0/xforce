@@ -107,7 +107,16 @@ class LinesRelationManager extends RelationManager
             ->columns([
                 Tables\Columns\TextColumn::make('staffProfile.user.name')
                     ->label(__('payroll::payroll.fields.employee'))
-                    ->searchable()
+                    // `users.name` is an accessor, not a column — Filament's
+                    // default searchable() would emit WHERE users.name ILIKE
+                    // and crash. Search the real columns instead.
+                    ->searchable(query: function ($query, string $search) {
+                        return $query->whereHas('staffProfile.user', function ($q) use ($search) {
+                            $q->where('first_name', 'ilike', "%{$search}%")
+                                ->orWhere('last_name', 'ilike', "%{$search}%")
+                                ->orWhere('email', 'ilike', "%{$search}%");
+                        });
+                    })
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('staffProfile.job_title')
