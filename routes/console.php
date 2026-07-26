@@ -40,6 +40,15 @@ Schedule::command('tenants:backup')
     ->withoutOverlapping()
     ->runInBackground();
 
+// Platform/system backup — one consistent pg_dump of the entire database
+// (public schema + every tenant schema), daily after the per-tenant dumps.
+// Use `system:backup --type=full` for a files archive as well.
+Schedule::command('system:backup')
+    ->dailyAt('02:30')
+    ->when(fn () => (bool) PlatformSetting::get('auto_backup', true))
+    ->withoutOverlapping()
+    ->runInBackground();
+
 // Asset Depreciation - Run on the first day of each month
 Schedule::command('assets:depreciate')
     ->monthlyOn(1, '03:00')
