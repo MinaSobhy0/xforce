@@ -3,7 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Backup;
-use App\Services\OneDriveService;
+use App\Services\BackblazeService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -12,11 +12,12 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Mirrors a completed backup to OneDrive. Tenant backups are a single file;
- * system backups are a directory (dump + manifest) mirrored file-by-file.
- * Runs as its own queued job so a OneDrive outage never fails the backup.
+ * Mirrors a completed backup to Backblaze B2. Tenant backups are a single
+ * file; system backups are a directory (dump + manifest) mirrored
+ * file-by-file. Runs as its own queued job so a Backblaze outage never
+ * fails the backup.
  */
-class UploadBackupToOneDrive implements ShouldQueue
+class UploadBackupToBackblaze implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -28,9 +29,9 @@ class UploadBackupToOneDrive implements ShouldQueue
 
     public function __construct(protected Backup $backup) {}
 
-    public function handle(OneDriveService $oneDrive): void
+    public function handle(BackblazeService $backblaze): void
     {
-        if (!OneDriveService::isEnabled()) {
+        if (!BackblazeService::isEnabled()) {
             return;
         }
 
@@ -39,7 +40,7 @@ class UploadBackupToOneDrive implements ShouldQueue
         }
 
         $localBase = storage_path('app/' . $this->backup->path);
-        $remoteBase = OneDriveService::remotePathFor($this->backup->path);
+        $remoteBase = BackblazeService::remotePathFor($this->backup->path);
         $uploaded = 0;
 
         if (is_dir($localBase)) {
@@ -48,15 +49,15 @@ class UploadBackupToOneDrive implements ShouldQueue
                 if ($entry === '.' || $entry === '..' || !is_file($file)) {
                     continue;
                 }
-                $oneDrive->upload($file, $remoteBase . '/' . $entry);
+                $backblaze->upload($file, $remoteBase . '/' . $entry);
                 $uploaded++;
             }
         } else {
-            $oneDrive->upload($localBase, $remoteBase);
+            $backblaze->upload($localBase, $remoteBase);
             $uploaded++;
         }
 
-        Log::info('Backup mirrored to OneDrive', [
+        Log::info('Backup mirrored to Backblaze', [
             'backup_id' => $this->backup->id,
             'remote_path' => $remoteBase,
             'files' => $uploaded,
@@ -65,7 +66,7 @@ class UploadBackupToOneDrive implements ShouldQueue
 
     public function failed(\Throwable $exception): void
     {
-        Log::error('OneDrive backup upload failed permanently', [
+        Log::error('Backblaze backup upload failed permanently', [
             'backup_id' => $this->backup->id,
             'error' => $exception->getMessage(),
         ]);

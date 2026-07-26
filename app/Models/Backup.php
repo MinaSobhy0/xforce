@@ -146,11 +146,11 @@ class Backup extends Model
                 $disk->delete($this->path);
             }
 
-            // Retention applies off-site too: drop the OneDrive mirror of
+            // Retention applies off-site too: drop the Backblaze mirror of
             // this backup (best-effort, queued — the record is gone next).
-            if (\App\Services\OneDriveService::isConnected()) {
-                \App\Jobs\DeleteBackupFromOneDrive::dispatch(
-                    \App\Services\OneDriveService::remotePathFor($this->path)
+            if (\App\Services\BackblazeService::isConfigured()) {
+                \App\Jobs\DeleteBackupFromBackblaze::dispatch(
+                    \App\Services\BackblazeService::remotePathFor($this->path)
                 );
             }
         }

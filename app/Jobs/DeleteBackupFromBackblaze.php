@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Services\OneDriveService;
+use App\Services\BackblazeService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -11,12 +11,12 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Removes a backup's OneDrive copy when the local one is deleted, so the
+ * Removes a backup's Backblaze copy when the local one is deleted, so the
  * retention window (backup_retention days) applies off-site exactly as it
  * does locally. Takes the remote path (not the Backup model) because the
  * record is already gone by the time this runs.
  */
-class DeleteBackupFromOneDrive implements ShouldQueue
+class DeleteBackupFromBackblaze implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -27,20 +27,20 @@ class DeleteBackupFromOneDrive implements ShouldQueue
 
     public function __construct(protected string $remotePath) {}
 
-    public function handle(OneDriveService $oneDrive): void
+    public function handle(BackblazeService $backblaze): void
     {
-        if (!OneDriveService::isConnected()) {
+        if (!BackblazeService::isConfigured()) {
             return;
         }
 
-        $oneDrive->delete($this->remotePath);
+        $backblaze->delete($this->remotePath);
 
-        Log::info('OneDrive backup copy deleted', ['remote_path' => $this->remotePath]);
+        Log::info('Backblaze backup copy deleted', ['remote_path' => $this->remotePath]);
     }
 
     public function failed(\Throwable $exception): void
     {
-        Log::error('OneDrive backup deletion failed permanently', [
+        Log::error('Backblaze backup deletion failed permanently', [
             'remote_path' => $this->remotePath,
             'error' => $exception->getMessage(),
         ]);

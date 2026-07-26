@@ -159,8 +159,8 @@ class TenantBackupJob implements ShouldQueue
             // Mark backup as completed
             $this->backup->markCompleted($fileSize, $storagePath);
 
-            if (\App\Services\OneDriveService::isEnabled()) {
-                UploadBackupToOneDrive::dispatch($this->backup);
+            if (\App\Services\BackblazeService::isEnabled()) {
+                UploadBackupToBackblaze::dispatch($this->backup);
             }
 
             Log::info('Tenant backup completed', [

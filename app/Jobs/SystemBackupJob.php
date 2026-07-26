@@ -59,8 +59,8 @@ class SystemBackupJob implements ShouldQueue
 
             $this->backup->markCompleted($totalSize, 'backups/system/' . $this->backup->id);
 
-            if (\App\Services\OneDriveService::isEnabled()) {
-                UploadBackupToOneDrive::dispatch($this->backup);
+            if (\App\Services\BackblazeService::isEnabled()) {
+                UploadBackupToBackblaze::dispatch($this->backup);
             }
 
             Log::info('System backup completed', [

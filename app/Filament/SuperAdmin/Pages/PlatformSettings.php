@@ -78,11 +78,12 @@ class PlatformSettings extends Page implements HasForms
             'maintenance_mode' => PlatformSetting::get('maintenance_mode', false),
             'maintenance_message' => PlatformSetting::get('maintenance_message', "We'll be back shortly..."),
 
-            // OneDrive off-site backups
-            'onedrive_enabled' => PlatformSetting::get('onedrive_enabled', false),
-            'onedrive_client_id' => PlatformSetting::get('onedrive_client_id'),
-            'onedrive_client_secret' => PlatformSetting::getEncrypted('onedrive_client_secret'),
-            'onedrive_folder' => PlatformSetting::get('onedrive_folder', 'XLinic-Backups'),
+            // Backblaze B2 off-site backups
+            'backblaze_enabled' => PlatformSetting::get('backblaze_enabled', false),
+            'backblaze_key_id' => PlatformSetting::get('backblaze_key_id'),
+            'backblaze_app_key' => PlatformSetting::getEncrypted('backblaze_app_key'),
+            'backblaze_bucket' => PlatformSetting::get('backblaze_bucket'),
+            'backblaze_folder' => PlatformSetting::get('backblaze_folder', 'XLinic-Backups'),
         ]);
     }
 
@@ -397,96 +398,76 @@ class PlatformSettings extends Page implements HasForms
                                         ->openUrlInNewTab(false),
                                 ]),
 
-                                Forms\Components\Section::make('OneDrive Off-site Backups')
-                                    ->description('Mirror every completed backup to Microsoft OneDrive. Copies follow the same retention window above — when a backup is deleted locally, its OneDrive copy is deleted too.')
+                                Forms\Components\Section::make('Backblaze B2 Off-site Backups')
+                                    ->description('Mirror every completed backup to a Backblaze B2 bucket. Copies follow the same retention window above — when a backup is deleted locally, its Backblaze copy is deleted too.')
                                     ->columnSpanFull()
                                     ->schema([
-                                        Forms\Components\Toggle::make('onedrive_enabled')
-                                            ->label('Upload backups to OneDrive')
-                                            ->helperText('Takes effect once an account is connected below.'),
+                                        Forms\Components\Toggle::make('backblaze_enabled')
+                                            ->label('Upload backups to Backblaze')
+                                            ->helperText('Takes effect once the credentials below are saved.'),
 
-                                        Forms\Components\Placeholder::make('onedrive_status')
-                                            ->label('Connection Status')
+                                        Forms\Components\Placeholder::make('backblaze_status')
+                                            ->label('Status')
                                             ->content(function () {
-                                                if (\App\Services\OneDriveService::isConnected()) {
-                                                    $account = PlatformSetting::get('onedrive_account') ?: 'Microsoft account';
-
-                                                    return "✅ Connected as {$account}";
+                                                if (!\App\Services\BackblazeService::isConfigured()) {
+                                                    return '❌ Not configured — fill in the key ID, application key and bucket, then save.';
                                                 }
 
-                                                return '❌ Not connected — save the credentials below, then click "Connect OneDrive".';
+                                                return \App\Services\BackblazeService::isEnabled()
+                                                    ? '✅ Configured and enabled — use "Test Upload" to verify.'
+                                                    : '⚠️ Configured but the upload toggle is off.';
                                             }),
 
-                                        Forms\Components\TextInput::make('onedrive_client_id')
-                                            ->label('Azure App Client ID')
-                                            ->helperText('From portal.azure.com → App registrations. Register redirect URI: ' . url('/platform/onedrive/callback')),
+                                        Forms\Components\TextInput::make('backblaze_key_id')
+                                            ->label('Application Key ID (keyID)')
+                                            ->helperText('From backblaze.com → App Keys. A key restricted to the backup bucket is recommended.'),
 
-                                        Forms\Components\TextInput::make('onedrive_client_secret')
-                                            ->label('Azure App Client Secret')
+                                        Forms\Components\TextInput::make('backblaze_app_key')
+                                            ->label('Application Key')
                                             ->password()
                                             ->revealable()
-                                            ->helperText('The client secret VALUE (not its ID). Stored encrypted.'),
+                                            ->helperText('Shown only once when the key is created. Stored encrypted.'),
 
-                                        Forms\Components\TextInput::make('onedrive_folder')
-                                            ->label('OneDrive Folder')
-                                            ->helperText('Backups are stored under this folder in the connected OneDrive.'),
+                                        Forms\Components\TextInput::make('backblaze_bucket')
+                                            ->label('Bucket Name')
+                                            ->helperText('The B2 bucket that will hold the backups (make it private).'),
+
+                                        Forms\Components\TextInput::make('backblaze_folder')
+                                            ->label('Folder (prefix)')
+                                            ->helperText('Backups are stored under this folder inside the bucket.'),
 
                                         Forms\Components\Actions::make([
-                                            Forms\Components\Actions\Action::make('connect_onedrive')
-                                                ->label('Connect OneDrive')
-                                                ->icon('heroicon-o-cloud')
-                                                ->color('primary')
-                                                ->url(route('platform.onedrive.connect'))
-                                                ->visible(fn () => PlatformSetting::get('onedrive_client_id')
-                                                    && PlatformSetting::getEncrypted('onedrive_client_secret')
-                                                    && !\App\Services\OneDriveService::isConnected()),
-
-                                            Forms\Components\Actions\Action::make('test_onedrive')
+                                            Forms\Components\Actions\Action::make('test_backblaze')
                                                 ->label('Test Upload')
                                                 ->icon('heroicon-o-cloud-arrow-up')
-                                                ->color('gray')
-                                                ->visible(fn () => \App\Services\OneDriveService::isConnected())
+                                                ->color('primary')
+                                                ->visible(fn () => \App\Services\BackblazeService::isConfigured())
                                                 ->action(function () {
                                                     try {
                                                         $tmpDir = storage_path('app/tmp');
                                                         if (!is_dir($tmpDir)) {
                                                             mkdir($tmpDir, 0700, true);
                                                         }
-                                                        $testFile = $tmpDir . '/onedrive-connection-test.txt';
-                                                        file_put_contents($testFile, 'XLinic OneDrive connection test at ' . now()->toDateTimeString());
+                                                        $testFile = $tmpDir . '/backblaze-connection-test.txt';
+                                                        file_put_contents($testFile, 'XLinic Backblaze connection test at ' . now()->toDateTimeString());
 
-                                                        $folder = trim((string) PlatformSetting::get('onedrive_folder', 'XLinic-Backups'), '/');
-                                                        app(\App\Services\OneDriveService::class)->upload($testFile, $folder . '/connection-test.txt');
+                                                        $folder = trim((string) PlatformSetting::get('backblaze_folder', 'XLinic-Backups'), '/');
+                                                        $remote = ($folder !== '' ? $folder . '/' : '') . 'connection-test.txt';
+                                                        app(\App\Services\BackblazeService::class)->upload($testFile, $remote);
                                                         unlink($testFile);
 
                                                         Notification::make()
-                                                            ->title('OneDrive test succeeded')
-                                                            ->body("Uploaded connection-test.txt to \"{$folder}\" in the connected OneDrive.")
+                                                            ->title('Backblaze test succeeded')
+                                                            ->body("Uploaded {$remote} to the configured bucket.")
                                                             ->success()
                                                             ->send();
                                                     } catch (\Throwable $e) {
                                                         Notification::make()
-                                                            ->title('OneDrive test failed')
+                                                            ->title('Backblaze test failed')
                                                             ->body($e->getMessage())
                                                             ->danger()
                                                             ->send();
                                                     }
-                                                }),
-
-                                            Forms\Components\Actions\Action::make('disconnect_onedrive')
-                                                ->label('Disconnect')
-                                                ->icon('heroicon-o-x-circle')
-                                                ->color('danger')
-                                                ->requiresConfirmation()
-                                                ->modalDescription('Backups will stop being mirrored to OneDrive. Existing copies stay in OneDrive.')
-                                                ->visible(fn () => \App\Services\OneDriveService::isConnected())
-                                                ->action(function () {
-                                                    app(\App\Services\OneDriveService::class)->disconnect();
-
-                                                    Notification::make()
-                                                        ->title('OneDrive disconnected')
-                                                        ->success()
-                                                        ->send();
                                                 }),
                                         ]),
                                     ])
@@ -622,17 +603,24 @@ class PlatformSettings extends Page implements HasForms
         PlatformSetting::set('maintenance_mode', $data['maintenance_mode'], 'backup', 'boolean');
         PlatformSetting::set('maintenance_message', $data['maintenance_message'], 'backup');
 
-        // OneDrive off-site backups
-        PlatformSetting::set('onedrive_enabled', $data['onedrive_enabled'] ?? false, 'backup', 'boolean');
-        PlatformSetting::set('onedrive_folder', trim($data['onedrive_folder'] ?? '') ?: 'XLinic-Backups', 'backup');
+        // Backblaze B2 off-site backups
+        PlatformSetting::set('backblaze_enabled', $data['backblaze_enabled'] ?? false, 'backup', 'boolean');
+        PlatformSetting::set('backblaze_folder', trim($data['backblaze_folder'] ?? '') ?: 'XLinic-Backups', 'backup');
 
-        if (! empty($data['onedrive_client_id'])) {
-            PlatformSetting::set('onedrive_client_id', trim($data['onedrive_client_id']), 'backup');
+        if (! empty($data['backblaze_key_id'])) {
+            PlatformSetting::set('backblaze_key_id', trim($data['backblaze_key_id']), 'backup');
         }
 
-        if (! empty($data['onedrive_client_secret'])) {
-            PlatformSetting::setEncrypted('onedrive_client_secret', $data['onedrive_client_secret'], 'backup');
+        if (! empty($data['backblaze_app_key'])) {
+            PlatformSetting::setEncrypted('backblaze_app_key', trim($data['backblaze_app_key']), 'backup');
         }
+
+        if (! empty($data['backblaze_bucket'])) {
+            PlatformSetting::set('backblaze_bucket', trim($data['backblaze_bucket']), 'backup');
+        }
+
+        // Credentials changed → drop the cached B2 authorization token.
+        app(\App\Services\BackblazeService::class)->forgetAuth();
 
         Notification::make()
             ->title('Settings saved')
