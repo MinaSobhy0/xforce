@@ -134,9 +134,17 @@ class Backup extends Model
 
     public function delete(): bool
     {
-        // Delete the file first
-        if ($this->path && Storage::disk($this->disk)->exists($this->path)) {
-            Storage::disk($this->disk)->delete($this->path);
+        // Delete the file first. System backups point at a directory
+        // (backups/system/{id} with dump + manifest) — Storage::delete()
+        // fails silently on those, so they need deleteDirectory().
+        if ($this->path) {
+            $disk = Storage::disk($this->disk);
+
+            if ($disk->directoryExists($this->path)) {
+                $disk->deleteDirectory($this->path);
+            } elseif ($disk->exists($this->path)) {
+                $disk->delete($this->path);
+            }
         }
 
         return parent::delete();
