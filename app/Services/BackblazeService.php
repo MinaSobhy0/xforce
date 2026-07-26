@@ -33,16 +33,24 @@ class BackblazeService
     }
 
     /**
-     * Remote object name for a backup's local path, e.g.
-     * "XLinic-Backups/tenants/34/tenant_democlinic_....sql.gz".
-     * Derived (not stored) so deletion works after the local record is gone.
+     * Remote object name for a backup. Tenant backups get a folder named by
+     * the tenant's slug ("XLinic-Backups/cure/tenant_cure_....sql.gz");
+     * system backups keep their local layout ("XLinic-Backups/system/17").
+     * Derived (not stored) so deletion works after the local record is gone
+     * — compute it BEFORE deleting the record.
      */
-    public static function remotePathFor(string $localPath): string
+    public static function remotePathFor(\App\Models\Backup $backup): string
     {
         $folder = trim((string) PlatformSetting::get('backblaze_folder', 'XLinic-Backups'), '/');
-        $relative = preg_replace('#^backups/#', '', trim($localPath, '/'));
+        $prefix = $folder !== '' ? $folder . '/' : '';
+        $localPath = trim((string) $backup->path, '/');
 
-        return ($folder !== '' ? $folder . '/' : '') . $relative;
+        $slug = $backup->tenant_id ? $backup->tenant?->slug : null;
+        if ($slug) {
+            return $prefix . $slug . '/' . basename($localPath);
+        }
+
+        return $prefix . preg_replace('#^backups/#', '', $localPath);
     }
 
     /**

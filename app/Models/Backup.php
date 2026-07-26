@@ -150,7 +150,7 @@ class Backup extends Model
             // this backup (best-effort, queued — the record is gone next).
             if (\App\Services\BackblazeService::isConfigured()) {
                 \App\Jobs\DeleteBackupFromBackblaze::dispatch(
-                    \App\Services\BackblazeService::remotePathFor($this->path)
+                    \App\Services\BackblazeService::remotePathFor($this)
                 );
             }
         }

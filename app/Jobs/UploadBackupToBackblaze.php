@@ -40,7 +40,7 @@ class UploadBackupToBackblaze implements ShouldQueue
         }
 
         $localBase = storage_path('app/' . $this->backup->path);
-        $remoteBase = BackblazeService::remotePathFor($this->backup->path);
+        $remoteBase = BackblazeService::remotePathFor($this->backup);
         $uploaded = 0;
 
         if (is_dir($localBase)) {
