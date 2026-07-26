@@ -77,6 +77,12 @@ class PlatformSettings extends Page implements HasForms
             'backup_retention' => PlatformSetting::get('backup_retention', 30),
             'maintenance_mode' => PlatformSetting::get('maintenance_mode', false),
             'maintenance_message' => PlatformSetting::get('maintenance_message', "We'll be back shortly..."),
+
+            // OneDrive off-site backups
+            'onedrive_enabled' => PlatformSetting::get('onedrive_enabled', false),
+            'onedrive_client_id' => PlatformSetting::get('onedrive_client_id'),
+            'onedrive_client_secret' => PlatformSetting::getEncrypted('onedrive_client_secret'),
+            'onedrive_folder' => PlatformSetting::get('onedrive_folder', 'XLinic-Backups'),
         ]);
     }
 
@@ -390,6 +396,101 @@ class PlatformSettings extends Page implements HasForms
                                         ->url(route('filament.super-admin.resources.backups.index'))
                                         ->openUrlInNewTab(false),
                                 ]),
+
+                                Forms\Components\Section::make('OneDrive Off-site Backups')
+                                    ->description('Mirror every completed backup to Microsoft OneDrive. Copies follow the same retention window above — when a backup is deleted locally, its OneDrive copy is deleted too.')
+                                    ->columnSpanFull()
+                                    ->schema([
+                                        Forms\Components\Toggle::make('onedrive_enabled')
+                                            ->label('Upload backups to OneDrive')
+                                            ->helperText('Takes effect once an account is connected below.'),
+
+                                        Forms\Components\Placeholder::make('onedrive_status')
+                                            ->label('Connection Status')
+                                            ->content(function () {
+                                                if (\App\Services\OneDriveService::isConnected()) {
+                                                    $account = PlatformSetting::get('onedrive_account') ?: 'Microsoft account';
+
+                                                    return "✅ Connected as {$account}";
+                                                }
+
+                                                return '❌ Not connected — save the credentials below, then click "Connect OneDrive".';
+                                            }),
+
+                                        Forms\Components\TextInput::make('onedrive_client_id')
+                                            ->label('Azure App Client ID')
+                                            ->helperText('From portal.azure.com → App registrations. Register redirect URI: ' . url('/platform/onedrive/callback')),
+
+                                        Forms\Components\TextInput::make('onedrive_client_secret')
+                                            ->label('Azure App Client Secret')
+                                            ->password()
+                                            ->revealable()
+                                            ->helperText('The client secret VALUE (not its ID). Stored encrypted.'),
+
+                                        Forms\Components\TextInput::make('onedrive_folder')
+                                            ->label('OneDrive Folder')
+                                            ->helperText('Backups are stored under this folder in the connected OneDrive.'),
+
+                                        Forms\Components\Actions::make([
+                                            Forms\Components\Actions\Action::make('connect_onedrive')
+                                                ->label('Connect OneDrive')
+                                                ->icon('heroicon-o-cloud')
+                                                ->color('primary')
+                                                ->url(route('platform.onedrive.connect'))
+                                                ->visible(fn () => PlatformSetting::get('onedrive_client_id')
+                                                    && PlatformSetting::getEncrypted('onedrive_client_secret')
+                                                    && !\App\Services\OneDriveService::isConnected()),
+
+                                            Forms\Components\Actions\Action::make('test_onedrive')
+                                                ->label('Test Upload')
+                                                ->icon('heroicon-o-cloud-arrow-up')
+                                                ->color('gray')
+                                                ->visible(fn () => \App\Services\OneDriveService::isConnected())
+                                                ->action(function () {
+                                                    try {
+                                                        $tmpDir = storage_path('app/tmp');
+                                                        if (!is_dir($tmpDir)) {
+                                                            mkdir($tmpDir, 0700, true);
+                                                        }
+                                                        $testFile = $tmpDir . '/onedrive-connection-test.txt';
+                                                        file_put_contents($testFile, 'XLinic OneDrive connection test at ' . now()->toDateTimeString());
+
+                                                        $folder = trim((string) PlatformSetting::get('onedrive_folder', 'XLinic-Backups'), '/');
+                                                        app(\App\Services\OneDriveService::class)->upload($testFile, $folder . '/connection-test.txt');
+                                                        unlink($testFile);
+
+                                                        Notification::make()
+                                                            ->title('OneDrive test succeeded')
+                                                            ->body("Uploaded connection-test.txt to \"{$folder}\" in the connected OneDrive.")
+                                                            ->success()
+                                                            ->send();
+                                                    } catch (\Throwable $e) {
+                                                        Notification::make()
+                                                            ->title('OneDrive test failed')
+                                                            ->body($e->getMessage())
+                                                            ->danger()
+                                                            ->send();
+                                                    }
+                                                }),
+
+                                            Forms\Components\Actions\Action::make('disconnect_onedrive')
+                                                ->label('Disconnect')
+                                                ->icon('heroicon-o-x-circle')
+                                                ->color('danger')
+                                                ->requiresConfirmation()
+                                                ->modalDescription('Backups will stop being mirrored to OneDrive. Existing copies stay in OneDrive.')
+                                                ->visible(fn () => \App\Services\OneDriveService::isConnected())
+                                                ->action(function () {
+                                                    app(\App\Services\OneDriveService::class)->disconnect();
+
+                                                    Notification::make()
+                                                        ->title('OneDrive disconnected')
+                                                        ->success()
+                                                        ->send();
+                                                }),
+                                        ]),
+                                    ])
+                                    ->columns(2),
                             ])
                             ->columns(2),
                     ])
@@ -520,6 +621,18 @@ class PlatformSettings extends Page implements HasForms
         PlatformSetting::set('backup_retention', $data['backup_retention'], 'backup', 'integer');
         PlatformSetting::set('maintenance_mode', $data['maintenance_mode'], 'backup', 'boolean');
         PlatformSetting::set('maintenance_message', $data['maintenance_message'], 'backup');
+
+        // OneDrive off-site backups
+        PlatformSetting::set('onedrive_enabled', $data['onedrive_enabled'] ?? false, 'backup', 'boolean');
+        PlatformSetting::set('onedrive_folder', trim($data['onedrive_folder'] ?? '') ?: 'XLinic-Backups', 'backup');
+
+        if (! empty($data['onedrive_client_id'])) {
+            PlatformSetting::set('onedrive_client_id', trim($data['onedrive_client_id']), 'backup');
+        }
+
+        if (! empty($data['onedrive_client_secret'])) {
+            PlatformSetting::setEncrypted('onedrive_client_secret', $data['onedrive_client_secret'], 'backup');
+        }
 
         Notification::make()
             ->title('Settings saved')

@@ -66,6 +66,14 @@ Route::get('/admin/backups/{backup}/download', [BackupController::class, 'downlo
     ->middleware(['auth'])
     ->name('admin.backups.download');
 
+// OneDrive backup integration OAuth flow (platform admins only — enforced in controller)
+Route::get('/platform/onedrive/connect', [\App\Http\Controllers\OneDriveController::class, 'connect'])
+    ->middleware(['auth'])
+    ->name('platform.onedrive.connect');
+Route::get('/platform/onedrive/callback', [\App\Http\Controllers\OneDriveController::class, 'callback'])
+    ->middleware(['auth'])
+    ->name('platform.onedrive.callback');
+
 // Tenant Storage Route - serves files from tenant-specific storage
 // Tenant is identified via subdomain, requires authentication
 Route::get('/tenant-storage/{path}', [TenantMediaController::class, 'show'])

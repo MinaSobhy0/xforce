@@ -145,6 +145,14 @@ class Backup extends Model
             } elseif ($disk->exists($this->path)) {
                 $disk->delete($this->path);
             }
+
+            // Retention applies off-site too: drop the OneDrive mirror of
+            // this backup (best-effort, queued — the record is gone next).
+            if (\App\Services\OneDriveService::isConnected()) {
+                \App\Jobs\DeleteBackupFromOneDrive::dispatch(
+                    \App\Services\OneDriveService::remotePathFor($this->path)
+                );
+            }
         }
 
         return parent::delete();
