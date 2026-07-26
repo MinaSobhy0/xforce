@@ -54,7 +54,15 @@ class PlatformSetting extends Model
     public function getValueAttribute($value)
     {
         if ($this->is_encrypted && $value) {
-            return decrypt($value);
+            // A row that fails to decrypt must not 500 every screen that
+            // reads settings — treat it as unset so it can be re-entered.
+            try {
+                return decrypt($value);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning("Platform setting '{$this->key}' could not be decrypted; treating as unset.");
+
+                return null;
+            }
         }
 
         return match ($this->type) {
@@ -100,39 +108,24 @@ class PlatformSetting extends Model
 
     public static function set(string $key, $value, string $group = 'general', string $type = 'string', bool $encrypted = false): self
     {
-        $setting = self::where('key', $key)->first();
-        $encryptedValue = $encrypted ? 'true' : 'false';
+        $setting = self::firstOrNew(['key' => $key]);
+        $setting->group = $group;
+        $setting->type = $type;
+        // is_encrypted MUST be assigned before value: the value mutator
+        // decides whether to encrypt based on it. The old implementation
+        // flipped the flag after saving, so the first save of an encrypted
+        // setting stored plaintext flagged as encrypted — which then blew
+        // up decrypt() on every subsequent read.
+        $setting->is_encrypted = $encrypted;
+        $setting->value = $value;
+        $setting->save();
 
-        if ($setting) {
-            $setting->group = $group;
-            $setting->type = $type;
-            $setting->value = $value;
-            $setting->save();
-
-            \DB::statement("UPDATE platform_settings SET is_encrypted = {$encryptedValue} WHERE key = ?", [$key]);
-            $setting->refresh();
-            // Invalidate the get() cache so the new value is visible on the
-            // very next read (otherwise it stays stale for up to an hour and
-            // the admin form appears not to have saved on reload).
-            \Illuminate\Support\Facades\Cache::forget('platform_settings');
-
-            return $setting;
-        }
-
-        // Insert without is_encrypted, then update it (let PostgreSQL handle auto-increment ID)
-        \DB::statement("
-            INSERT INTO platform_settings (key, \"group\", value, type, is_encrypted, created_at, updated_at)
-            VALUES (?, ?, ?, ?, {$encryptedValue}, NOW(), NOW())
-        ", [
-            $key,
-            $group,
-            $type === 'json' ? json_encode($value) : (string) $value,
-            $type,
-        ]);
-
+        // Invalidate the get() cache so the new value is visible on the
+        // very next read (otherwise it stays stale for up to an hour and
+        // the admin form appears not to have saved on reload).
         \Illuminate\Support\Facades\Cache::forget('platform_settings');
 
-        return self::where('key', $key)->first();
+        return $setting;
     }
 
     public static function getGroup(string $group): array
