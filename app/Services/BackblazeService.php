@@ -89,6 +89,19 @@ class BackblazeService
             $this->assertSuccessful($buckets, 'bucket lookup');
 
             $bucketId = $buckets->json('buckets.0.bucketId');
+
+            // Be forgiving: the admin may have pasted the bucket ID instead
+            // of the bucket name — accept either.
+            if (!$bucketId) {
+                $byId = Http::withHeaders(['Authorization' => $token])
+                    ->timeout(60)
+                    ->post($apiUrl . '/b2api/v2/b2_list_buckets', [
+                        'accountId' => $accountId,
+                        'bucketId' => $bucketName,
+                    ]);
+                $bucketId = $byId->successful() ? $byId->json('buckets.0.bucketId') : null;
+            }
+
             if (!$bucketId) {
                 throw new \RuntimeException("Bucket \"{$bucketName}\" was not found in this Backblaze account.");
             }
@@ -127,25 +140,11 @@ class BackblazeService
             ]);
         $this->assertSuccessful($target, 'get upload URL');
 
-        $headers = [
+        $response = Http::withHeaders([
             'Authorization' => $target->json('authorizationToken'),
             'X-Bz-File-Name' => $this->encodeName($remotePath),
             'X-Bz-Content-Sha1' => sha1_file($localAbsolutePath),
-        ];
-
-        // Per-file Object Lock, stamped at upload time. The B2 web UI can
-        // only toggle Object Lock on a bucket — a default retention policy
-        // is API-only — so the lock is applied here instead. Must stay
-        // shorter than backup_retention or the 30-day cleanup can't delete
-        // the remote copies.
-        $lockDays = (int) PlatformSetting::get('backblaze_lock_days', 0);
-        if ($lockDays > 0) {
-            $headers['X-Bz-File-Retention-Mode'] = 'compliance';
-            $headers['X-Bz-File-Retention-Retain-Until-Timestamp'] =
-                (string) now()->addDays($lockDays)->getTimestampMs();
-        }
-
-        $response = Http::withHeaders($headers)
+        ])
             ->timeout(1800)
             ->withBody(file_get_contents($localAbsolutePath), 'b2/x-auto')
             ->post($target->json('uploadUrl'));

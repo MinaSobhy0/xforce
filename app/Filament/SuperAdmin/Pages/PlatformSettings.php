@@ -84,7 +84,6 @@ class PlatformSettings extends Page implements HasForms
             'backblaze_app_key' => PlatformSetting::getEncrypted('backblaze_app_key'),
             'backblaze_bucket' => PlatformSetting::get('backblaze_bucket'),
             'backblaze_folder' => PlatformSetting::get('backblaze_folder', 'XLinic-Backups'),
-            'backblaze_lock_days' => PlatformSetting::get('backblaze_lock_days', 0),
         ]);
     }
 
@@ -435,14 +434,7 @@ class PlatformSettings extends Page implements HasForms
 
                                         Forms\Components\TextInput::make('backblaze_folder')
                                             ->label('Folder (prefix)')
-                                            ->helperText('Backups are stored under this folder inside the bucket.'),
-
-                                        Forms\Components\TextInput::make('backblaze_lock_days')
-                                            ->label('Object Lock Retention (days)')
-                                            ->numeric()
-                                            ->minValue(0)
-                                            ->maxValue(fn (Forms\Get $get) => max(0, (int) $get('backup_retention') - 2))
-                                            ->helperText('0 = off. Requires Object Lock enabled on the bucket. Each uploaded backup gets a compliance lock for this many days — nobody (including a stolen key) can delete it before then. MUST be less than "Backup Retention" above, or the automatic cleanup cannot delete the Backblaze copies. Recommended: 21.'),
+                                            ->helperText('Backups are stored under this folder inside the bucket. Copies are kept for "Backup Retention (days)" above, same as local backups.'),
 
                                         Forms\Components\Actions::make([
                                             Forms\Components\Actions\Action::make('test_backblaze')
@@ -626,8 +618,6 @@ class PlatformSettings extends Page implements HasForms
         if (! empty($data['backblaze_bucket'])) {
             PlatformSetting::set('backblaze_bucket', trim($data['backblaze_bucket']), 'backup');
         }
-
-        PlatformSetting::set('backblaze_lock_days', (int) ($data['backblaze_lock_days'] ?? 0), 'backup', 'integer');
 
         // Credentials changed → drop the cached B2 authorization token.
         app(\App\Services\BackblazeService::class)->forgetAuth();
