@@ -70,7 +70,9 @@ class RestApiClient implements OdooApiClientInterface
                     'params' => [
                         'db' => $this->connection->database_name,
                         'login' => $this->connection->username,
-                        'password' => $this->connection->password,
+                        // Uses api_key when set, else password. Required for Odoo
+                        // users with 2FA (their password auth is disabled).
+                        'password' => $this->connection->getAuthSecret(),
                     ],
                     'id' => uniqid(),
                 ]);

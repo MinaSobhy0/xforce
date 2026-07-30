@@ -48,7 +48,9 @@ class XmlRpcClient implements OdooApiClientInterface
             $uid = $this->xmlRpcCall($this->commonUrl, 'authenticate', [
                 $this->connection->database_name,
                 $this->connection->username,
-                $this->connection->password,
+                // Uses api_key when set, else password. Required for Odoo
+                // users with 2FA (their password auth is disabled).
+                $this->connection->getAuthSecret(),
                 [],
             ]);
 
@@ -282,7 +284,11 @@ class XmlRpcClient implements OdooApiClientInterface
         return $this->xmlRpcCall($this->objectUrl, 'execute_kw', [
             $this->connection->database_name,
             $this->uid,
-            $this->connection->password,
+            // Every execute_kw call also has to carry the credential —
+            // pick the same source as authenticate() so a connection
+            // authenticated with an API key doesn't silently downgrade
+            // to password on the very next query.
+            $this->connection->getAuthSecret(),
             $model,
             $method,
             $args,

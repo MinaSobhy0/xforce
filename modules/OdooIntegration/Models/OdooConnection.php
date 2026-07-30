@@ -110,6 +110,18 @@ class OdooConnection extends BaseModel
         return $this->hasMany(OdooSyncLog::class, 'connection_id');
     }
 
+    /**
+     * Secret to pass to Odoo's authenticate() call. API keys and passwords
+     * are interchangeable at the protocol layer — Odoo checks both — but
+     * an Odoo user with 2FA enabled has password auth disabled and *must*
+     * authenticate with an API key. Prefer the api_key when present so
+     * 2FA users don't hit "Invalid credentials".
+     */
+    public function getAuthSecret(): ?string
+    {
+        return filled($this->api_key) ? $this->api_key : $this->password;
+    }
+
     // Computed attributes
     public function getBaseUrlAttribute(): string
     {
