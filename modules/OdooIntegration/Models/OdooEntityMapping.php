@@ -148,7 +148,73 @@ class OdooEntityMapping extends BaseModel
 
     public function getOdooDomain(): array
     {
-        return $this->filter_conditions ?? [];
+        $raw = $this->filter_conditions ?? [];
+
+        return array_values(array_filter(array_map(
+            fn ($leaf) => $this->normalizeDomainLeaf($leaf),
+            $raw
+        )));
+    }
+
+    /**
+     * Odoo's XML-RPC search_read expects each domain leaf as a 3-element
+     * positional array [field, operator, value]. The Filament repeater
+     * submits named keys {field, operator, value}, and legacy rows had
+     * both merged into one array — which XML-RPC then encodes as a
+     * struct, causing Odoo to reject the domain and misread it as
+     * "Invalid field '0'". Emit clean positional tuples regardless.
+     */
+    protected function normalizeDomainLeaf(mixed $leaf): ?array
+    {
+        if (!is_array($leaf)) {
+            return null;
+        }
+
+        if (isset($leaf['field']) && isset($leaf['operator'])) {
+            $field = $leaf['field'];
+            $operator = $leaf['operator'];
+            $value = $leaf['value'] ?? null;
+        } else {
+            $field = $leaf[0] ?? null;
+            $operator = $leaf[1] ?? null;
+            $value = $leaf[2] ?? null;
+        }
+
+        if (!is_string($field) || $field === '' || !is_string($operator) || $operator === '') {
+            return null;
+        }
+
+        return [$field, $operator, $this->coerceDomainValue($value, $operator)];
+    }
+
+    protected function coerceDomainValue(mixed $value, string $operator): mixed
+    {
+        if (in_array($operator, ['in', 'not in'], true) && is_string($value)) {
+            $parts = array_map('trim', explode(',', $value));
+            return array_values(array_filter(array_map(
+                fn ($v) => $this->coerceScalar($v),
+                $parts
+            ), fn ($v) => $v !== null && $v !== ''));
+        }
+
+        return $this->coerceScalar($value);
+    }
+
+    protected function coerceScalar(mixed $value): mixed
+    {
+        if (!is_string($value)) {
+            return $value;
+        }
+
+        $lower = strtolower(trim($value));
+        return match (true) {
+            $lower === 'true' => true,
+            $lower === 'false' => false,
+            $lower === 'null' => null,
+            is_numeric($value) && !str_contains($value, '.') => (int) $value,
+            is_numeric($value) => (float) $value,
+            default => $value,
+        };
     }
 
     /**
