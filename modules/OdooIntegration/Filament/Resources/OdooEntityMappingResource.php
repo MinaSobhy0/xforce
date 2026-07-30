@@ -414,6 +414,12 @@ class OdooEntityMappingResource extends Resource
      */
     public static function runSyncNow(OdooEntityMapping $record, string $syncType = 'delta'): void
     {
+        // Large syncs (thousands of payslips) blow past PHP's default
+        // 30s cap. Nothing about a Filament action needs that cap;
+        // keep processing until the request-level timeout upstream fires.
+        @set_time_limit(0);
+        @ignore_user_abort(true);
+
         try {
             $log = app(SyncEngine::class)->syncEntity($record, $syncType, auth()->id());
         } catch (\Throwable $e) {

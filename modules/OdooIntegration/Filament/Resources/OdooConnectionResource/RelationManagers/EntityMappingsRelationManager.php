@@ -379,6 +379,9 @@ class EntityMappingsRelationManager extends RelationManager
                                 ->success()
                                 ->send();
                         } else {
+                            @set_time_limit(0);
+                            @ignore_user_abort(true);
+
                             try {
                                 $syncEngine = app(\Modules\OdooIntegration\Services\Sync\SyncEngine::class);
                                 $syncLog = $syncEngine->syncEntity(
