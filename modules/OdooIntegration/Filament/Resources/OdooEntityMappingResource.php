@@ -11,6 +11,7 @@ use Modules\OdooIntegration\Enums\SyncDirection;
 use Modules\OdooIntegration\Enums\SyncFrequency;
 use Modules\OdooIntegration\Enums\ConflictResolution;
 use Modules\OdooIntegration\Jobs\SyncEntityJob;
+use Modules\OdooIntegration\Services\Sync\SyncEngine;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -249,18 +250,7 @@ class OdooEntityMappingResource extends Resource
                     ->label(__('odoo-integration::odoo.actions.sync'))
                     ->icon('heroicon-o-arrow-path')
                     ->color('success')
-                    ->action(function (OdooEntityMapping $record) {
-                        dispatch(new SyncEntityJob(
-                            entityMappingId: $record->id,
-                            syncType: 'delta',
-                            triggeredBy: auth()->id(),
-                        ));
-
-                        Notification::make()
-                            ->title(__('odoo-integration::odoo.messages.sync_queued'))
-                            ->success()
-                            ->send();
-                    }),
+                    ->action(fn (OdooEntityMapping $record) => static::runSyncNow($record, 'delta')),
 
                 Tables\Actions\Action::make('manual_sync')
                     ->label(__('odoo-integration::odoo.actions.manual_sync'))
@@ -278,19 +268,7 @@ class OdooEntityMappingResource extends Resource
                     ])
                     ->modalHeading(__('odoo-integration::odoo.actions.manual_sync'))
                     ->modalDescription(__('odoo-integration::odoo.messages.full_sync_warning'))
-                    ->action(function (OdooEntityMapping $record, array $data) {
-                        dispatch(new SyncEntityJob(
-                            entityMappingId: $record->id,
-                            syncType: $data['sync_type'] ?? 'delta',
-                            triggeredBy: auth()->id(),
-                        ));
-
-                        Notification::make()
-                            ->title(__('odoo-integration::odoo.messages.sync_queued'))
-                            ->body(__('odoo-integration::odoo.messages.sync_queued_body'))
-                            ->success()
-                            ->send();
-                    }),
+                    ->action(fn (OdooEntityMapping $record, array $data) => static::runSyncNow($record, $data['sync_type'] ?? 'delta')),
 
                 Tables\Actions\ActionGroup::make([
                     Tables\Actions\ViewAction::make(),
@@ -425,5 +403,35 @@ class OdooEntityMappingResource extends Resource
             'project.task' => 'project.task (Tasks)',
             'account.analytic.line' => 'account.analytic.line (Timesheets)',
         ];
+    }
+
+    /**
+     * Run a sync synchronously and surface the result in a notification.
+     * Filament "Sync Now" was dispatching to the odoo-sync queue on the
+     * tenant connection, but no worker consumes that queue in production
+     * — jobs piled up and users saw no result. Running inline lets the
+     * button be self-serve until proper queue workers exist.
+     */
+    public static function runSyncNow(OdooEntityMapping $record, string $syncType = 'delta'): void
+    {
+        try {
+            $log = app(SyncEngine::class)->syncEntity($record, $syncType, auth()->id());
+        } catch (\Throwable $e) {
+            Notification::make()
+                ->title(__('odoo-integration::odoo.messages.sync_failed'))
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        $body = "processed: {$log->records_processed} · created: {$log->records_created} · updated: {$log->records_updated} · skipped: {$log->records_skipped} · failed: {$log->records_failed}";
+
+        Notification::make()
+            ->title($log->status === 'completed' ? __('odoo-integration::odoo.messages.sync_completed') : __('odoo-integration::odoo.messages.sync_failed'))
+            ->body($body)
+            ->{$log->status === 'completed' ? 'success' : 'danger'}()
+            ->send();
     }
 }

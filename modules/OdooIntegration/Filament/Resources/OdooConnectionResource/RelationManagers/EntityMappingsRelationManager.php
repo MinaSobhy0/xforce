@@ -361,7 +361,7 @@ class EntityMappingsRelationManager extends RelationManager
                         Forms\Components\Toggle::make('run_in_background')
                             ->label(__('odoo-integration::odoo.fields.run_in_background'))
                             ->helperText(__('odoo-integration::odoo.helpers.run_in_background'))
-                            ->default(true),
+                            ->default(false),
                     ])
                     ->action(function (OdooEntityMapping $record, array $data): void {
                         $syncType = ($data['full_sync'] ?? false) ? 'full' : 'delta';
