@@ -222,31 +222,7 @@ class OdooConnectionResource extends Resource
                     ->label(__('odoo-integration::odoo.actions.test_connection'))
                     ->icon('heroicon-o-signal')
                     ->color('info')
-                    ->action(function (OdooConnection $record) {
-                        $factory = app(OdooApiFactory::class);
-                        $client = $factory->make($record);
-
-                        try {
-                            if ($client->testConnection()) {
-                                $client->authenticate();
-                                Notification::make()
-                                    ->title(__('odoo-integration::odoo.messages.connection_success'))
-                                    ->success()
-                                    ->send();
-                            } else {
-                                Notification::make()
-                                    ->title(__('odoo-integration::odoo.messages.connection_failed'))
-                                    ->danger()
-                                    ->send();
-                            }
-                        } catch (\Exception $e) {
-                            Notification::make()
-                                ->title(__('odoo-integration::odoo.messages.connection_failed'))
-                                ->body($e->getMessage())
-                                ->danger()
-                                ->send();
-                        }
-                    }),
+                    ->action(fn (OdooConnection $record) => static::runTestConnection($record)),
 
                 Tables\Actions\Action::make('sync_all')
                     ->label(__('odoo-integration::odoo.actions.sync_all'))
@@ -377,5 +353,41 @@ class OdooConnectionResource extends Resource
     {
         return parent::getEloquentQuery()
             ->withCount('entityMappings');
+    }
+
+    /**
+     * Try to reach the Odoo server + authenticate, then surface the result
+     * as a Filament notification. Callable from anywhere (table row action,
+     * Edit page footer, Create page footer) — passing a transient
+     * OdooConnection also works, since the API client only reads the
+     * connection's URL/db/username/password.
+     */
+    public static function runTestConnection(OdooConnection $record): void
+    {
+        try {
+            $client = app(OdooApiFactory::class)->make($record);
+
+            if ($client->testConnection()) {
+                $client->authenticate();
+
+                Notification::make()
+                    ->title(__('odoo-integration::odoo.messages.connection_success'))
+                    ->success()
+                    ->send();
+
+                return;
+            }
+
+            Notification::make()
+                ->title(__('odoo-integration::odoo.messages.connection_failed'))
+                ->danger()
+                ->send();
+        } catch (\Throwable $e) {
+            Notification::make()
+                ->title(__('odoo-integration::odoo.messages.connection_failed'))
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
+        }
     }
 }
