@@ -172,7 +172,7 @@ class QuotaMiddleware
     /**
      * Add quota headers to response
      */
-    protected function addQuotaHeaders(Response $response, string $quotaType, ?int $tenantId): Response
+    protected function addQuotaHeaders(SymfonyResponse $response, string $quotaType, ?int $tenantId): SymfonyResponse
     {
         $usage = $this->quotaService->getUsage($quotaType, $tenantId);
 

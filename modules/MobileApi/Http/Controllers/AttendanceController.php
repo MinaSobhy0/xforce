@@ -149,9 +149,21 @@ class AttendanceController extends BaseApiController
         return $this->success([
             'check_in_methods' => $this->getEnabledCheckInMethods(),
             'geofence_enabled' => $features['geofence_check_in'] ?? true,
+            'location_required' => $this->geofenceEnforced(),
             'qr_enabled' => $features['qr_check_in'] ?? true,
             'break_tracking' => $features['break_tracking'] ?? true,
             'photo_required' => $features['attendance_photo_required'] ?? false,
+            // Offline punch queue: the app may record punches (with location)
+            // while offline, must show `offline_message` to the user, and
+            // syncs them via POST /attendance/sync once back online. The
+            // backend re-validates every punch's location and refuses
+            // out-of-geofence ones; the app must surface each result.
+            'offline_sync' => [
+                'enabled' => true,
+                'max_age_days' => 7,
+                'max_batch_size' => 50,
+                'offline_message' => __('mobile_api::mobile.attendance.offline_queued'),
+            ],
         ]);
     }
 
@@ -184,6 +196,21 @@ class AttendanceController extends BaseApiController
             return $this->error(__('mobile_api::mobile.attendance.method_not_allowed'), 403);
         }
 
+        // Location/method validation runs BEFORE any record is touched —
+        // including the soft-deleted-restore path below.
+        $result = $this->validatePunchLocation($request, $staffProfile);
+        if ($result instanceof JsonResponse) {
+            return $result;
+        }
+        $locationVerified = $result;
+
+        if (in_array($request->method, ['qr_static', 'qr_dynamic'])) {
+            $validation = $this->validateQrCode($request->qr_code, $request->method);
+            if (!$validation['valid']) {
+                return $this->error(__('mobile_api::mobile.attendance.invalid_qr'), 400);
+            }
+        }
+
         // Check if already has attendance record today (including soft-deleted)
         $existing = Attendance::withTrashed()
             ->where('staff_profile_id', $staffProfile->id)
@@ -200,6 +227,9 @@ class AttendanceController extends BaseApiController
                     'attendance_type' => $request->method,
                     'status' => Attendance::STATUS_PRESENT,
                     'working_hours' => 0,
+                    'check_in_latitude' => $request->latitude,
+                    'check_in_longitude' => $request->longitude,
+                    'location_verified' => $locationVerified,
                 ]);
                 return $this->success([
                     'id' => $existing->id,
@@ -216,24 +246,6 @@ class AttendanceController extends BaseApiController
             return $this->error(__('mobile_api::mobile.attendance.already_checked_in'), 400);
         }
 
-        // Validate check-in method
-        if ($request->method === 'geofence') {
-            if (!$request->latitude || !$request->longitude) {
-                return $this->error(__('mobile_api::mobile.attendance.location_required'), 400);
-            }
-            $validation = $this->validateGeofenceLocation($request->latitude, $request->longitude, $staffProfile);
-            if (!$validation['valid']) {
-                return $this->error(__('mobile_api::mobile.attendance.invalid_location'), 400);
-            }
-        }
-
-        if (in_array($request->method, ['qr_static', 'qr_dynamic'])) {
-            $validation = $this->validateQrCode($request->qr_code, $request->method);
-            if (!$validation['valid']) {
-                return $this->error(__('mobile_api::mobile.attendance.invalid_qr'), 400);
-            }
-        }
-
         // Create attendance record with try-catch for race conditions
         try {
             $attendance = Attendance::create([
@@ -244,6 +256,9 @@ class AttendanceController extends BaseApiController
                 'check_in_time' => now(),
                 'attendance_type' => $request->method,
                 'status' => Attendance::STATUS_PRESENT,
+                'check_in_latitude' => $request->latitude,
+                'check_in_longitude' => $request->longitude,
+                'location_verified' => $locationVerified,
             ]);
         } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
             return $this->error(__('mobile_api::mobile.attendance.already_checked_in'), 400);
@@ -253,6 +268,76 @@ class AttendanceController extends BaseApiController
             'id' => $attendance->id,
             'check_in_time' => $attendance->check_in_time->format('H:i'),
         ], __('mobile_api::mobile.attendance.checked_in'));
+    }
+
+    /**
+     * Backend location verdict for a live check-in punch.
+     *
+     * - geofence method: coordinates required and must be inside the fence.
+     * - any other method WITH coordinates: must be inside (the client is
+     *   never trusted to have run its own check).
+     * - manual method WITHOUT coordinates while the tenant enforces
+     *   geofencing: refused — omitting the location is not a bypass.
+     *
+     * Returns a JsonResponse on rejection; otherwise true when the location
+     * was verified, or null when no location check applied.
+     */
+    protected function validatePunchLocation(Request $request, $staffProfile): JsonResponse|bool|null
+    {
+        $hasCoords = $request->filled('latitude') && $request->filled('longitude');
+
+        if (!$hasCoords) {
+            if ($request->input('method') === 'geofence') {
+                return $this->error(__('mobile_api::mobile.attendance.location_required'), 400);
+            }
+
+            if ($this->geofenceEnforced() && $request->input('method') === 'manual') {
+                return $this->error(__('mobile_api::mobile.attendance.location_required'), 400);
+            }
+
+            return null;
+        }
+
+        $validation = $this->validateGeofenceLocation((float) $request->latitude, (float) $request->longitude, $staffProfile);
+        if (!$validation['valid']) {
+            return $this->error(__('mobile_api::mobile.attendance.invalid_location'), 400);
+        }
+
+        return true;
+    }
+
+    /**
+     * Whether the tenant enforces location-verified punches: the geofence
+     * feature is on AND a fence is actually configured (custom locations or
+     * branch coordinates). Without a configured fence there is nothing to
+     * verify against, so coordinates are not demanded.
+     */
+    protected function geofenceEnforced(): bool
+    {
+        $features = $this->tenant()->getMobileAppConfig()['features'] ?? [];
+        if (!($features['geofence_check_in'] ?? true)) {
+            return false;
+        }
+
+        if (class_exists(AttendanceTypeSetting::class)) {
+            $setting = AttendanceTypeSetting::getForType(Attendance::TYPE_GEOFENCE, $this->branch()?->id);
+            if ($setting && !empty($setting->getSetting('locations', []))) {
+                return true;
+            }
+        }
+
+        if (class_exists(\Modules\Core\Models\Branch::class)) {
+            try {
+                return \Modules\Core\Models\Branch::active()
+                    ->whereNotNull('latitude')
+                    ->whereNotNull('longitude')
+                    ->exists();
+            } catch (\Throwable) {
+                return false;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -267,8 +352,24 @@ class AttendanceController extends BaseApiController
             return $this->forbidden(__('mobile_api::mobile.auth.not_staff'));
         }
 
+        $request->validate([
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
+        ]);
+
         if (!class_exists(Attendance::class)) {
             return $this->error('Attendance module not available', 503);
+        }
+
+        // Same location rules as check-in: provided coordinates must pass the
+        // geofence, and when the tenant enforces geofencing they are required.
+        if ($request->filled('latitude') && $request->filled('longitude')) {
+            $validation = $this->validateGeofenceLocation((float) $request->latitude, (float) $request->longitude, $staffProfile);
+            if (!$validation['valid']) {
+                return $this->error(__('mobile_api::mobile.attendance.invalid_location'), 400);
+            }
+        } elseif ($this->geofenceEnforced()) {
+            return $this->error(__('mobile_api::mobile.attendance.location_required'), 400);
         }
 
         $attendance = Attendance::where('staff_profile_id', $staffProfile->id)
@@ -296,12 +397,186 @@ class AttendanceController extends BaseApiController
         $attendance->update([
             'check_out_time' => now(),
             'working_hours' => $workedHours,
+            'check_out_latitude' => $request->latitude,
+            'check_out_longitude' => $request->longitude,
         ]);
 
         return $this->success([
             'check_out_time' => $attendance->check_out_time->format('H:i'),
             'worked_hours' => $workedHours,
         ], __('mobile_api::mobile.attendance.checked_out'));
+    }
+
+    /**
+     * Sync offline-recorded punches.
+     * POST /api/v2/attendance/sync
+     *
+     * The app queues check-in/out punches taken while offline (each with the
+     * coordinates and timestamp captured at punch time) and submits them here
+     * once connectivity returns. The backend is the authority: every punch is
+     * re-validated against the geofence — a punch outside it is REFUSED, one
+     * inside is accepted with its original timestamp. Per-punch results let
+     * the app tell the user exactly which punches were rejected and why.
+     */
+    public function syncOffline(Request $request): JsonResponse
+    {
+        $staffProfile = $this->staffProfile();
+
+        if (!$staffProfile) {
+            return $this->forbidden(__('mobile_api::mobile.auth.not_staff'));
+        }
+
+        if (!class_exists(Attendance::class)) {
+            return $this->error('Attendance module not available', 503);
+        }
+
+        $validated = $request->validate([
+            'punches' => 'required|array|min:1|max:50',
+            'punches.*.client_id' => 'required|string|max:64',
+            'punches.*.type' => 'required|in:check_in,check_out',
+            'punches.*.recorded_at' => 'required|date',
+            'punches.*.latitude' => 'required|numeric',
+            'punches.*.longitude' => 'required|numeric',
+            'punches.*.method' => 'sometimes|in:manual,geofence,qr_static,qr_dynamic,biometric',
+        ]);
+
+        // Chronological order so a check_in/check_out pair in one batch
+        // resolves correctly regardless of submission order.
+        $punches = collect($validated['punches'])
+            ->sortBy(fn($p) => \Carbon\Carbon::parse($p['recorded_at'])->timestamp)
+            ->values();
+
+        $results = [];
+
+        foreach ($punches as $punch) {
+            $results[] = $this->processOfflinePunch($punch, $staffProfile);
+        }
+
+        $accepted = collect($results)->where('accepted', true)->count();
+
+        return $this->success([
+            'results' => $results,
+            'accepted' => $accepted,
+            'rejected' => count($results) - $accepted,
+        ], __('mobile_api::mobile.attendance.offline_synced', [
+            'accepted' => $accepted,
+            'total' => count($results),
+        ]));
+    }
+
+    /**
+     * Validate and apply a single offline punch. Returns a result row for
+     * the sync response; never throws for business rejections.
+     */
+    protected function processOfflinePunch(array $punch, $staffProfile): array
+    {
+        $reject = fn(string $code, string $message) => [
+            'client_id' => $punch['client_id'],
+            'accepted' => false,
+            'error_code' => $code,
+            'message' => $message,
+        ];
+
+        $recordedAt = \Carbon\Carbon::parse($punch['recorded_at']);
+
+        // Timestamp sanity: small forward skew allowed, and punches older
+        // than 7 days are refused — the queue should not resurrect history.
+        if ($recordedAt->isAfter(now()->addMinutes(5))) {
+            return $reject('FUTURE_PUNCH', __('mobile_api::mobile.attendance.punch_in_future'));
+        }
+        if ($recordedAt->isBefore(now()->subDays(7))) {
+            return $reject('PUNCH_TOO_OLD', __('mobile_api::mobile.attendance.punch_too_old'));
+        }
+
+        // Backend geofence verdict — the whole point of the offline flow:
+        // "we'll check your location is correct". Outside → refused.
+        $validation = $this->validateGeofenceLocation(
+            (float) $punch['latitude'],
+            (float) $punch['longitude'],
+            $staffProfile
+        );
+        if (!$validation['valid']) {
+            return $reject('OUT_OF_GEOFENCE', __('mobile_api::mobile.attendance.invalid_location'));
+        }
+
+        $method = $punch['method'] ?? Attendance::TYPE_MANUAL;
+        $punchDate = $recordedAt->toDateString();
+
+        $existing = Attendance::where('staff_profile_id', $staffProfile->id)
+            ->whereDate('attendance_date', $punchDate)
+            ->first();
+
+        if ($punch['type'] === 'check_in') {
+            if (!$staffProfile->isCheckInMethodAllowed($method)) {
+                return $reject('METHOD_NOT_ALLOWED', __('mobile_api::mobile.attendance.method_not_allowed'));
+            }
+            if ($existing && $existing->check_out_time) {
+                return $reject('ALREADY_COMPLETED', __('mobile_api::mobile.attendance.already_completed_today'));
+            }
+            if ($existing) {
+                return $reject('ALREADY_CHECKED_IN', __('mobile_api::mobile.attendance.already_checked_in'));
+            }
+
+            try {
+                $attendance = Attendance::create([
+                    'tenant_id' => current_tenant_id(),
+                    'staff_profile_id' => $staffProfile->id,
+                    'branch_id' => $this->branch()?->id,
+                    'attendance_date' => $punchDate,
+                    'check_in_time' => $recordedAt,
+                    'attendance_type' => $method,
+                    'status' => Attendance::STATUS_PRESENT,
+                    'check_in_latitude' => $punch['latitude'],
+                    'check_in_longitude' => $punch['longitude'],
+                    'is_offline_entry' => true,
+                    'location_verified' => true,
+                ]);
+            } catch (\Illuminate\Database\UniqueConstraintViolationException) {
+                return $reject('ALREADY_CHECKED_IN', __('mobile_api::mobile.attendance.already_checked_in'));
+            }
+
+            return [
+                'client_id' => $punch['client_id'],
+                'accepted' => true,
+                'attendance_id' => $attendance->id,
+            ];
+        }
+
+        // check_out
+        if (!$existing || !$existing->check_in_time) {
+            return $reject('NO_CHECK_IN', __('mobile_api::mobile.attendance.not_checked_in'));
+        }
+        if ($existing->check_out_time) {
+            return $reject('ALREADY_COMPLETED', __('mobile_api::mobile.attendance.already_completed_today'));
+        }
+
+        // check_in_time is a TIME column — anchor it to the attendance date
+        // before comparing against the punch's full timestamp.
+        $checkInAt = $existing->attendance_date->copy()
+            ->setTimeFromTimeString($existing->check_in_time->format('H:i:s'));
+
+        if ($recordedAt->lessThanOrEqualTo($checkInAt)) {
+            return $reject('INVALID_SEQUENCE', __('mobile_api::mobile.attendance.punch_before_check_in'));
+        }
+
+        $totalMinutes = $checkInAt->diffInMinutes($recordedAt);
+        $breakMinutes = $existing->breaks()->sum('duration_minutes');
+        $workedHours = round(max(0, $totalMinutes - $breakMinutes) / 60, 2);
+
+        $existing->update([
+            'check_out_time' => $recordedAt,
+            'working_hours' => $workedHours,
+            'check_out_latitude' => $punch['latitude'],
+            'check_out_longitude' => $punch['longitude'],
+            'is_offline_entry' => true,
+        ]);
+
+        return [
+            'client_id' => $punch['client_id'],
+            'accepted' => true,
+            'attendance_id' => $existing->id,
+            'worked_hours' => $workedHours,
+        ];
     }
 
     /**

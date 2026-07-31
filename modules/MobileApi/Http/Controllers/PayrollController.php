@@ -241,6 +241,8 @@ class PayrollController extends BaseApiController
     {
         $run = $payslip->payrollRun;
 
+        $display = static::payslipDisplayConfig();
+
         $data = [
             'id' => $payslip->id,
             'period' => $run->period_label,
@@ -249,29 +251,41 @@ class PayrollController extends BaseApiController
             'status' => $run->status,
             'status_label' => PayrollRun::STATUSES[$run->status] ?? $run->status,
 
-            // Summary
-            'gross_salary' => $payslip->gross_salary_minor / 100,
+            // Summary — detailed breakdowns stay behind the tenant flags.
             'total_deductions' => $payslip->total_deductions_minor / 100,
             'net_salary' => $payslip->net_salary,
         ];
 
+        // Tenant-configurable: default policy hides gross from employees.
+        if ($display['show_gross_salary']) {
+            $data['gross_salary'] = $payslip->gross_salary_minor / 100;
+        }
+
         if ($detailed) {
-            $data['earnings'] = [
-                'base_salary' => $payslip->base_salary,
-                'allowances' => $payslip->allowances,
-                'commissions' => $payslip->commissions,
-                'bonuses' => $payslip->bonuses,
-            ];
+            if ($display['show_allowances_breakdown']) {
+                $data['earnings'] = [
+                    'base_salary' => $payslip->base_salary,
+                    'allowances' => $payslip->allowances,
+                    'commissions' => $payslip->commissions,
+                    'bonuses' => $payslip->bonuses,
+                ];
+            }
 
-            $data['deductions'] = [
-                'tax' => $payslip->tax,
-                'social_insurance' => $payslip->social_insurance,
-                'other' => $payslip->deductions,
-            ];
+            if ($display['show_deductions_breakdown']) {
+                $data['deductions'] = [
+                    'tax' => $payslip->tax,
+                    'social_insurance' => $payslip->social_insurance,
+                    'other' => $payslip->deductions,
+                ];
+            }
 
-            // Include rule breakdown if available
-            if (!empty($payslip->rule_amounts_json)) {
-                $data['rule_breakdown'] = $payslip->rule_amounts_json;
+            // Rule breakdown: only rules the employee is meant to see
+            // (SalaryRule.appears_on_payslip), behind its own tenant flag.
+            if ($display['show_rule_breakdown'] && !empty($payslip->rule_amounts_json)) {
+                $breakdown = $this->visibleRuleBreakdown($payslip->rule_amounts_json);
+                if (!empty($breakdown)) {
+                    $data['rule_breakdown'] = $breakdown;
+                }
             }
 
             $data['notes'] = $payslip->notes;
@@ -279,5 +293,68 @@ class PayrollController extends BaseApiController
         }
 
         return $data;
+    }
+
+    /**
+     * Tenant-configurable payslip display flags, read from
+     * tenants.settings.payslip_display. Defaults hide gross salary while
+     * keeping the breakdowns on.
+     *
+     * @return array{show_gross_salary:bool,show_allowances_breakdown:bool,show_deductions_breakdown:bool,show_rule_breakdown:bool}
+     */
+    public static function payslipDisplayConfig(): array
+    {
+        $tenant = app()->bound('currentTenant') ? app('currentTenant') : null;
+        $stored = $tenant ? ($tenant->getSetting('payslip_display', []) ?: []) : [];
+
+        return [
+            'show_gross_salary' => (bool) ($stored['show_gross_salary'] ?? false),
+            'show_allowances_breakdown' => (bool) ($stored['show_allowances_breakdown'] ?? true),
+            'show_deductions_breakdown' => (bool) ($stored['show_deductions_breakdown'] ?? true),
+            'show_rule_breakdown' => (bool) ($stored['show_rule_breakdown'] ?? true),
+        ];
+    }
+
+    /**
+     * Filter a rule_amounts_json breakdown down to employee-visible entries.
+     *
+     * Entries may carry a 'visible' flag; entries without it fall back to
+     * the local SalaryRule.appears_on_payslip column, defaulting to visible
+     * when the rule can't be resolved. The internal flag is stripped from
+     * the response.
+     */
+    protected function visibleRuleBreakdown(array $breakdown): array
+    {
+        $unresolvedIds = collect($breakdown)
+            ->filter(fn($e) => !array_key_exists('visible', $e) && !empty($e['rule_id']))
+            ->pluck('rule_id')
+            ->unique()
+            ->values();
+
+        $localVisibility = [];
+        if ($unresolvedIds->isNotEmpty() && class_exists(\Modules\Payroll\Models\SalaryRule::class)) {
+            $localVisibility = \Modules\Payroll\Models\SalaryRule::whereIn('id', $unresolvedIds)
+                ->pluck('appears_on_payslip', 'id')
+                ->map(fn($v) => (bool) $v)
+                ->all();
+        }
+
+        return collect($breakdown)
+            ->filter(function ($entry) use ($localVisibility) {
+                if (array_key_exists('visible', $entry)) {
+                    return (bool) $entry['visible'];
+                }
+
+                $ruleId = $entry['rule_id'] ?? null;
+
+                return $ruleId === null || ($localVisibility[$ruleId] ?? true);
+            })
+            ->map(function ($entry) {
+                unset($entry['visible']);
+
+                return $entry;
+            })
+            ->values()
+            ->all();
     }
 }

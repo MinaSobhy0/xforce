@@ -102,6 +102,7 @@ Route::middleware([\Modules\MobileApi\Http\Middleware\ResolveTenantFromHeader::c
 
             Route::post('check-in', [AttendanceController::class, 'checkIn']);
             Route::post('check-out', [AttendanceController::class, 'checkOut']);
+            Route::post('sync', [AttendanceController::class, 'syncOffline']);
             Route::post('break/start', [AttendanceController::class, 'startBreak']);
             Route::post('break/end', [AttendanceController::class, 'endBreak']);
 

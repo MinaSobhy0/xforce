@@ -38,6 +38,12 @@ class Attendance extends BaseModel
         'approved_at',
         'created_by',
         'updated_by',
+        'check_in_latitude',
+        'check_in_longitude',
+        'check_out_latitude',
+        'check_out_longitude',
+        'is_offline_entry',
+        'location_verified',
     ];
 
     protected $casts = [
@@ -52,6 +58,12 @@ class Attendance extends BaseModel
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
+        'check_in_latitude' => 'decimal:7',
+        'check_in_longitude' => 'decimal:7',
+        'check_out_latitude' => 'decimal:7',
+        'check_out_longitude' => 'decimal:7',
+        'is_offline_entry' => 'boolean',
+        'location_verified' => 'boolean',
     ];
 
     protected $attributes = [

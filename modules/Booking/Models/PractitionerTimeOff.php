@@ -207,13 +207,16 @@ class PractitionerTimeOff extends BaseModel
                     $deductAmount = $this->getDeductionAmount();
 
                     if ($deductAmount > 0) {
-                        $allocation = TimeOffAllocation::getOrCreateForDate(
+                        // Allocations are the source of truth: approving must
+                        // never mint a default allocation — no covering
+                        // allocation means the request cannot be approved.
+                        $allocation = TimeOffAllocation::getForDate(
                             $this->user_id,
                             $this->time_off_type_id,
                             $this->start_date
                         );
 
-                        if (!$allocation->useDays($deductAmount)) {
+                        if (!$allocation || !$allocation->useDays($deductAmount)) {
                             return false;
                         }
                     }

@@ -31,6 +31,7 @@ class SalaryRule extends BaseModel
         'field_mapping',
         'sequence',
         'is_active',
+        'appears_on_payslip',
         // Journal entry accounts
         'debit_account_id',
         'credit_account_id',
@@ -45,6 +46,7 @@ class SalaryRule extends BaseModel
         'sequence' => 'integer',
         'is_active' => 'boolean',
         'creates_journal_entry' => 'boolean',
+        'appears_on_payslip' => 'boolean',
     ];
 
     protected $attributes = [
