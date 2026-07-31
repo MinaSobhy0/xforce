@@ -5,6 +5,7 @@ namespace Modules\Booking\Filament\Resources;
 use App\Traits\ChecksResourcePermissions;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -430,7 +431,19 @@ class PractitionerTimeOffResource extends Resource
                     ->color('success')
                     ->requiresConfirmation()
                     ->visible(fn (PractitionerTimeOff $record): bool => $record->isPending())
-                    ->action(fn (PractitionerTimeOff $record) => $record->approve(auth()->id())),
+                    ->action(function (PractitionerTimeOff $record) {
+                        if ($record->approve(auth()->id())) {
+                            Notification::make()
+                                ->title(__('booking::time_off.messages.approved'))
+                                ->success()
+                                ->send();
+                        } else {
+                            Notification::make()
+                                ->title(__('booking::time_off.messages.approve_failed_balance'))
+                                ->danger()
+                                ->send();
+                        }
+                    }),
 
                 Tables\Actions\Action::make('reject')
                     ->label(__('booking::time_off.actions.reject'))

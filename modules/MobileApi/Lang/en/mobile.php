@@ -20,6 +20,7 @@ return [
     'approvals' => [
         'not_authorized' => 'You are not authorized to act on this request.',
         'action_failed' => 'Unable to complete this action. Please try again.',
+        'approve_failed_balance' => 'Cannot approve: the request exceeds the remaining time-off balance.',
         'time_off_not_pending' => 'This time-off request is no longer pending.',
         'time_off_approved' => 'Time-off request approved.',
         'time_off_rejected' => 'Time-off request rejected.',
@@ -84,6 +85,8 @@ return [
         'dates_overlap' => 'These dates overlap with an existing request',
         'exceeds_max_per_request' => 'Request exceeds the maximum allowed (:max)',
         'no_staff_profile' => 'No staff profile linked to this account',
+        'times_required' => 'Start and end times are required for this leave type',
+        'invalid_duration' => 'The requested duration is invalid',
     ],
 
     'payroll' => [

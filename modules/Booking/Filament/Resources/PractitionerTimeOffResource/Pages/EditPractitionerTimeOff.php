@@ -2,11 +2,11 @@
 
 namespace Modules\Booking\Filament\Resources\PractitionerTimeOffResource\Pages;
 
-use Modules\Booking\Filament\Resources\PractitionerTimeOffResource;
+use App\Filament\Resources\Pages\BaseEditRecord;
 use Filament\Actions;
 use Filament\Forms;
 use Filament\Notifications\Notification;
-use App\Filament\Resources\Pages\BaseEditRecord;
+use Modules\Booking\Filament\Resources\PractitionerTimeOffResource;
 
 class EditPractitionerTimeOff extends BaseEditRecord
 {
@@ -17,7 +17,7 @@ class EditPractitionerTimeOff extends BaseEditRecord
         parent::mount($record);
 
         // Redirect to view page if the record is not pending (cannot edit approved/rejected/cancelled)
-        if (!$this->record->isPending()) {
+        if (! $this->record->isPending()) {
             Notification::make()
                 ->title(__('booking::time_off.messages.cannot_edit_non_pending'))
                 ->warning()
@@ -37,7 +37,14 @@ class EditPractitionerTimeOff extends BaseEditRecord
                 ->requiresConfirmation()
                 ->visible(fn () => $this->record->isPending())
                 ->action(function () {
-                    $this->record->approve(auth()->id());
+                    if (! $this->record->approve(auth()->id())) {
+                        Notification::make()
+                            ->title(__('booking::time_off.messages.approve_failed_balance'))
+                            ->danger()
+                            ->send();
+
+                        return;
+                    }
                     Notification::make()
                         ->title(__('booking::time_off.messages.approved'))
                         ->success()

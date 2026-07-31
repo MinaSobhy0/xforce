@@ -87,6 +87,7 @@ return [
         'rejected' => 'Time off request rejected',
         'cancelled' => 'Time off request cancelled',
         'cannot_edit_non_pending' => 'Only pending time off requests can be edited',
+        'approve_failed_balance' => 'Cannot approve: the request exceeds the remaining time off balance',
     ],
 
     'all_branches' => 'All Branches',

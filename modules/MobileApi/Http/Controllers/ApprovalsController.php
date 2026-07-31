@@ -39,7 +39,7 @@ class ApprovalsController extends BaseApiController
         $this->ensureStaff();
 
         return $this->success([
-            'time_off'   => $this->scopeTimeOff(PractitionerTimeOff::query())
+            'time_off' => $this->scopeTimeOff(PractitionerTimeOff::query())
                 ->where('status', PractitionerTimeOff::STATUS_PENDING)
                 ->count(),
             'violations' => $this->scopeViolations(AttendanceViolation::query())
@@ -82,9 +82,9 @@ class ApprovalsController extends BaseApiController
                 ->all(),
             'meta' => [
                 'current_page' => $paginator->currentPage(),
-                'last_page'    => $paginator->lastPage(),
-                'per_page'     => $paginator->perPage(),
-                'total'        => $paginator->total(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
             ],
         ]);
     }
@@ -129,7 +129,9 @@ class ApprovalsController extends BaseApiController
         }
 
         if (! $timeOff->approve((string) $this->user()->id)) {
-            return $this->error(__('mobile_api::mobile.approvals.action_failed'), 422);
+            // Pending-state was checked above, so the realistic failure here
+            // is the allocation refusing the deduction (insufficient balance).
+            return $this->error(__('mobile_api::mobile.approvals.approve_failed_balance'), 422);
         }
 
         return $this->success(
@@ -202,9 +204,9 @@ class ApprovalsController extends BaseApiController
                 ->all(),
             'meta' => [
                 'current_page' => $paginator->currentPage(),
-                'last_page'    => $paginator->lastPage(),
-                'per_page'     => $paginator->perPage(),
-                'total'        => $paginator->total(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
             ],
         ]);
     }
@@ -403,38 +405,38 @@ class ApprovalsController extends BaseApiController
     protected function formatTimeOff(PractitionerTimeOff $timeOff, bool $detailed = false): array
     {
         $staff = $timeOff->staffProfile;
-        $user  = $staff?->user;
+        $user = $staff?->user;
 
         $data = [
             'id' => $timeOff->id,
             'requester' => [
                 'staff_profile_id' => $staff?->id,
-                'user_id'          => $user?->id,
-                'name'             => $user?->full_name,
-                'avatar'           => $user?->avatar_url,
-                'job_title'        => $staff?->job_title,
+                'user_id' => $user?->id,
+                'name' => $user?->full_name,
+                'avatar' => $user?->avatar_url,
+                'job_title' => $staff?->job_title,
             ],
-            'type'         => $timeOff->timeOffType?->translated_name ?? $timeOff->type_label,
-            'color'        => $timeOff->timeOffType?->color ?? 'gray',
-            'start_date'   => optional($timeOff->start_date)->toDateString(),
-            'end_date'     => optional($timeOff->end_date)->toDateString(),
-            'is_full_day'  => $timeOff->is_full_day,
-            'duration'     => $timeOff->display_duration,
-            'status'       => $timeOff->status,
+            'type' => $timeOff->timeOffType?->translated_name ?? $timeOff->type_label,
+            'color' => $timeOff->timeOffType?->color ?? 'gray',
+            'start_date' => optional($timeOff->start_date)->toDateString(),
+            'end_date' => optional($timeOff->end_date)->toDateString(),
+            'is_full_day' => $timeOff->is_full_day,
+            'duration' => $timeOff->display_duration,
+            'status' => $timeOff->status,
             'status_label' => $timeOff->status_label,
             'status_color' => $timeOff->status_color,
-            'created_at'   => $timeOff->created_at?->toDateTimeString(),
+            'created_at' => $timeOff->created_at?->toDateTimeString(),
         ];
 
         if ($detailed) {
-            $data['start_time']       = $timeOff->start_time;
-            $data['end_time']         = $timeOff->end_time;
-            $data['reason']           = $timeOff->reason;
-            $data['days_requested']   = $timeOff->days_requested ?? null;
-            $data['hours_requested']  = $timeOff->hours_requested ?? null;
-            $data['approved_by']      = $timeOff->approvedBy?->full_name;
-            $data['approved_at']      = optional($timeOff->approved_at)->toDateTimeString();
-            $data['notes']            = $timeOff->notes;
+            $data['start_time'] = $timeOff->start_time;
+            $data['end_time'] = $timeOff->end_time;
+            $data['reason'] = $timeOff->reason;
+            $data['days_requested'] = $timeOff->days_requested ?? null;
+            $data['hours_requested'] = $timeOff->hours_requested ?? null;
+            $data['approved_by'] = $timeOff->approvedBy?->full_name;
+            $data['approved_at'] = optional($timeOff->approved_at)->toDateTimeString();
+            $data['notes'] = $timeOff->notes;
         }
 
         return $data;
@@ -443,37 +445,37 @@ class ApprovalsController extends BaseApiController
     protected function formatViolation(AttendanceViolation $v, bool $detailed = false): array
     {
         $staff = $v->staffProfile;
-        $user  = $staff?->user;
+        $user = $staff?->user;
 
         $data = [
-            'id'           => $v->id,
+            'id' => $v->id,
             'staff' => [
-                'id'        => $staff?->id,
-                'user_id'   => $user?->id,
-                'name'      => $user?->full_name,
-                'avatar'    => $user?->avatar_url,
+                'id' => $staff?->id,
+                'user_id' => $user?->id,
+                'name' => $user?->full_name,
+                'avatar' => $user?->avatar_url,
                 'job_title' => $staff?->job_title,
             ],
-            'date'         => optional($v->violation_date)->toDateString(),
-            'type'         => $v->violation_type,
-            'type_label'   => AttendanceViolation::TYPES[$v->violation_type] ?? $v->violation_type,
-            'duration'     => $v->formatted_violation_duration,
-            'penalty'      => $v->formatted_penalty,
-            'status'       => $v->status,
+            'date' => optional($v->violation_date)->toDateString(),
+            'type' => $v->violation_type,
+            'type_label' => AttendanceViolation::TYPES[$v->violation_type] ?? $v->violation_type,
+            'duration' => $v->formatted_violation_duration,
+            'penalty' => $v->formatted_penalty,
+            'status' => $v->status,
             'status_label' => AttendanceViolation::STATUSES[$v->status] ?? $v->status,
-            'can_approve'  => $v->canBeApproved(),
-            'can_waive'    => $v->canBeWaived(),
-            'created_at'   => $v->created_at?->toDateTimeString(),
+            'can_approve' => $v->canBeApproved(),
+            'can_waive' => $v->canBeWaived(),
+            'created_at' => $v->created_at?->toDateTimeString(),
         ];
 
         if ($detailed) {
-            $data['rule_name']       = $v->rule?->name;
-            $data['manager_notes']   = $v->manager_notes;
-            $data['waived_reason']   = $v->waived_reason;
-            $data['dispute_reason']  = $v->dispute_reason;
-            $data['approved_by']     = $v->approvedBy?->full_name;
-            $data['approved_at']     = optional($v->approved_at)->toDateTimeString();
-            $data['waived_by']       = $v->waivedBy?->full_name;
+            $data['rule_name'] = $v->rule?->name;
+            $data['manager_notes'] = $v->manager_notes;
+            $data['waived_reason'] = $v->waived_reason;
+            $data['dispute_reason'] = $v->dispute_reason;
+            $data['approved_by'] = $v->approvedBy?->full_name;
+            $data['approved_at'] = optional($v->approved_at)->toDateTimeString();
+            $data['waived_by'] = $v->waivedBy?->full_name;
         }
 
         return $data;

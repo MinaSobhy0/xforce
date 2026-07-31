@@ -224,10 +224,18 @@ class TimeOffController extends BaseApiController
         $hoursRequested = null;
 
         if ($type->isHourBased()) {
-            // For hours-based, calculate from time range
+            // Without both times the requested amount would compute to 0 and
+            // slip past the balance check below.
+            if (empty($validated['start_time']) || empty($validated['end_time'])) {
+                return $this->businessRuleError(
+                    __('mobile_api::mobile.time_off.times_required'),
+                    'TIMES_REQUIRED'
+                );
+            }
+
             $hoursRequested = PractitionerTimeOff::calculateHoursFromTimeRange(
-                $validated['start_time'] ?? null,
-                $validated['end_time'] ?? null
+                $validated['start_time'],
+                $validated['end_time']
             );
             $daysRequested = $type->convertToDays($hoursRequested);
         } else {
@@ -238,16 +246,29 @@ class TimeOffController extends BaseApiController
             }
         }
 
-        // TC-17: Balance validation — reject when requested exceeds remaining.
-        // Message and error_code must be machine-parsable by the mobile app.
-        $allocation = TimeOffAllocation::getOrCreateForDate($staffProfile->id, $type->id, $startDate);
         $amountToCheck = $type->isHourBased() ? $hoursRequested : $daysRequested;
 
-        if (! $allocation->hasAvailable($amountToCheck)) {
-            $remaining = (float) ($allocation->remaining ?? 0);
+        // Zero or negative amounts (e.g. end_time before start_time) must not
+        // reach the balance check — they'd trivially pass it.
+        if ($amountToCheck <= 0) {
+            return $this->businessRuleError(
+                __('mobile_api::mobile.time_off.invalid_duration'),
+                'INVALID_DURATION'
+            );
+        }
+
+        // TC-17: Balance validation — reject when requested exceeds remaining.
+        // Pending requests are counted too: `used_days` only moves on
+        // approval, so without this several pending requests could
+        // collectively exceed the allocation.
+        // Message and error_code must be machine-parsable by the mobile app.
+        $allocation = TimeOffAllocation::getOrCreateForDate($staffProfile->id, $type->id, $startDate);
+
+        if (! $allocation->hasAvailableForRequest($amountToCheck)) {
+            $available = max(0.0, $allocation->available_for_request);
             $unit = $type->isHourBased() ? 'hours' : 'days';
             $formattedRequested = $type->formatValue($amountToCheck);
-            $formattedRemaining = $type->formatValue($remaining);
+            $formattedRemaining = $type->formatValue($available);
 
             return $this->businessRuleError(
                 "Requested {$unit} ({$formattedRequested}) exceed your remaining balance ({$formattedRemaining}).",
