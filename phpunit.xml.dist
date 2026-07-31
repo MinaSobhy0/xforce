@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="tests/bootstrap.php"
+         colors="true"
+         processIsolation="false"
+         stopOnFailure="false">
+    <testsuites>
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Feature">
+            <directory>tests/Feature</directory>
+        </testsuite>
+        <testsuite name="Odoo">
+            <directory>tests/Odoo</directory>
+        </testsuite>
+    </testsuites>
+    <php>
+        <env name="APP_ENV" value="testing"/>
+        <env name="APP_DEBUG" value="(true)"/>
+        <!--
+            Tests run against a dedicated database on the direct PostgreSQL port
+            (bypassing PgBouncer). OdooSyncTestCase refuses to run if the resolved
+            database is not xforce_testing, so a cached production config can
+            never be hit by accident.
+        -->
+        <env name="DB_PORT" value="5432"/>
+        <env name="DB_DATABASE" value="xforce_testing"/>
+        <env name="DB_PGBOUNCER" value="(false)"/>
+        <env name="DB_PERSISTENT" value="(false)"/>
+        <env name="CACHE_DRIVER" value="array"/>
+        <env name="CACHE_STORE" value="array"/>
+        <env name="SESSION_DRIVER" value="array"/>
+        <env name="QUEUE_CONNECTION" value="sync"/>
+        <env name="MAIL_MAILER" value="array"/>
+        <env name="BROADCAST_DRIVER" value="log"/>
+        <env name="TELESCOPE_ENABLED" value="(false)"/>
+        <!-- Never read a production config/route cache while testing -->
+        <env name="APP_CONFIG_CACHE" value="bootstrap/cache/config.testing.php"/>
+        <env name="APP_ROUTES_CACHE" value="bootstrap/cache/routes.testing.php"/>
+        <env name="APP_EVENTS_CACHE" value="bootstrap/cache/events.testing.php"/>
+    </php>
+</phpunit>
