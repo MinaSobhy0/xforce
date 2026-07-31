@@ -92,6 +92,37 @@ test('a check-in method the staff member is not allowed to use is refused', func
     $this->api('POST', 'attendance/check-in', ['method' => 'manual'], $user)->assertStatus(403);
 });
 
+test('manual check-in without coordinates is refused when a geofence is configured', function () {
+    [$user, $staff] = $this->createStaffUser();
+    $this->enableGeofence();
+
+    // Omitting the location must not bypass the fence.
+    $this->api('POST', 'attendance/check-in', ['method' => 'manual'], $user)
+        ->assertStatus(422)
+        ->assertJsonPath('error_code', 'LOCATION_REQUIRED');
+});
+
+test('manual check-in without coordinates stays allowed when no geofence is configured', function () {
+    [$user, $staff] = $this->createStaffUser();
+
+    $this->api('POST', 'attendance/check-in', ['method' => 'manual'], $user)->assertOk();
+});
+
+test('check-out without coordinates is refused when a geofence is configured', function () {
+    [$user, $staff] = $this->createStaffUser();
+    $this->enableGeofence();
+
+    $this->api('POST', 'attendance/check-in', [
+        'method' => 'geofence',
+        'latitude' => self::GEO_LAT,
+        'longitude' => self::GEO_LNG,
+    ], $user)->assertOk();
+
+    $this->api('POST', 'attendance/check-out', [], $user)
+        ->assertStatus(422)
+        ->assertJsonPath('error_code', 'LOCATION_REQUIRED');
+});
+
 // ---------------------------------------------------------------------------
 // Offline sync — backend verifies every queued punch
 // ---------------------------------------------------------------------------
@@ -188,8 +219,10 @@ test('an offline check-in for a day that already has attendance is refused', fun
         'longitude' => self::GEO_LNG,
     ], $user)->assertOk();
 
+    // Start-of-today keeps the punch on the same calendar day as the live
+    // check-in above regardless of what time the suite runs.
     $response = $this->api('POST', 'attendance/sync', [
-        'punches' => [offlinePunch('check_in', now()->subHours(2), self::GEO_LAT, self::GEO_LNG)],
+        'punches' => [offlinePunch('check_in', now()->startOfDay()->addSecond(), self::GEO_LAT, self::GEO_LNG)],
     ], $user)->assertOk();
 
     expect($response->json('data.results.0.error_code'))->toBe('ALREADY_CHECKED_IN');
@@ -231,5 +264,6 @@ test('attendance settings advertise the offline sync contract', function () {
 
     expect($data['offline_sync']['enabled'])->toBeTrue()
         ->and($data['offline_sync']['max_age_days'])->toBe(7)
-        ->and($data['offline_sync']['offline_message'])->not->toBeEmpty();
+        ->and($data['offline_sync']['offline_message'])->not->toBeEmpty()
+        ->and($data)->toHaveKey('location_required');
 });

@@ -149,6 +149,7 @@ class AttendanceController extends BaseApiController
         return $this->success([
             'check_in_methods' => $this->getEnabledCheckInMethods(),
             'geofence_enabled' => $features['geofence_check_in'] ?? true,
+            'location_required' => $this->geofenceEnforced(),
             'qr_enabled' => $features['qr_check_in'] ?? true,
             'break_tracking' => $features['break_tracking'] ?? true,
             'photo_required' => $features['attendance_photo_required'] ?? false,
@@ -227,6 +228,17 @@ class AttendanceController extends BaseApiController
                 );
             }
             $locationVerified = true;
+        }
+
+        // A manual punch without coordinates is refused when the tenant has
+        // a configured geofence — omitting the location is not a bypass.
+        if ($request->method === 'manual'
+            && (! $request->filled('latitude') || ! $request->filled('longitude'))
+            && $this->geofenceEnforced()) {
+            return $this->businessRuleError(
+                __('mobile_api::mobile.attendance.location_required'),
+                'LOCATION_REQUIRED'
+            );
         }
 
         if (in_array($request->method, ['qr_static', 'qr_dynamic'])) {
@@ -318,8 +330,9 @@ class AttendanceController extends BaseApiController
             return $this->error('Attendance module not available', 503);
         }
 
-        // Same rule as check-in (TC-8/9): coordinates, when provided, must
-        // pass the backend geofence check — the client is not trusted.
+        // Same rules as check-in (TC-8/9): coordinates, when provided, must
+        // pass the backend geofence check — the client is not trusted — and
+        // when the tenant has a configured geofence they are required.
         if ($request->filled('latitude') && $request->filled('longitude')) {
             $validation = $this->validateGeofenceLocation($request->latitude, $request->longitude, $staffProfile);
             if (! $validation['valid']) {
@@ -328,6 +341,11 @@ class AttendanceController extends BaseApiController
                     'OUT_OF_GEOFENCE'
                 );
             }
+        } elseif ($this->geofenceEnforced()) {
+            return $this->businessRuleError(
+                __('mobile_api::mobile.attendance.location_required'),
+                'LOCATION_REQUIRED'
+            );
         }
 
         $attendance = Attendance::where('staff_profile_id', $staffProfile->id)
@@ -363,6 +381,40 @@ class AttendanceController extends BaseApiController
             'check_out_time' => $attendance->check_out_time->format('H:i'),
             'worked_hours' => $workedHours,
         ], __('mobile_api::mobile.attendance.checked_out'));
+    }
+
+    /**
+     * Whether the tenant enforces location-verified punches: the geofence
+     * feature is on AND a fence is actually configured (custom locations or
+     * branch coordinates). Without a configured fence there is nothing to
+     * verify against, so coordinates are not demanded.
+     */
+    protected function geofenceEnforced(): bool
+    {
+        $features = $this->tenant()->getMobileAppConfig()['features'] ?? [];
+        if (! ($features['geofence_check_in'] ?? true)) {
+            return false;
+        }
+
+        if (class_exists(AttendanceTypeSetting::class)) {
+            $setting = AttendanceTypeSetting::getForType(Attendance::TYPE_GEOFENCE, $this->branch()?->id);
+            if ($setting && ! empty($setting->getSetting('locations', []))) {
+                return true;
+            }
+        }
+
+        if (class_exists(\Modules\Core\Models\Branch::class)) {
+            try {
+                return \Modules\Core\Models\Branch::active()
+                    ->whereNotNull('latitude')
+                    ->whereNotNull('longitude')
+                    ->exists();
+            } catch (\Throwable) {
+                return false;
+            }
+        }
+
+        return false;
     }
 
     /**
