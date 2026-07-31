@@ -235,12 +235,12 @@ class PractitionerTimeOff extends BaseModel
                     'approved_by_user_id' => $approvedByUserId,
                     'approved_at' => now(),
                 ])) {
-                    throw new \RuntimeException('Time off approval failed to persist.');
+                    throw new \Modules\Booking\Exceptions\TimeOffApprovalException('Time off approval failed to persist.');
                 }
 
                 return true;
             });
-        } catch (\RuntimeException) {
+        } catch (\Modules\Booking\Exceptions\TimeOffApprovalException) {
             return false;
         }
     }
