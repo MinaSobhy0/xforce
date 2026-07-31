@@ -2,29 +2,42 @@
 
 namespace Modules\OdooIntegration\Providers;
 
-use Illuminate\Support\ServiceProvider;
 use Illuminate\Console\Scheduling\Schedule;
-use Modules\OdooIntegration\Services\Api\OdooApiClientInterface;
+use Illuminate\Support\ServiceProvider;
+use Modules\OdooIntegration\Jobs\CleanupSyncLogsJob;
 use Modules\OdooIntegration\Services\Api\OdooApiFactory;
-use Modules\OdooIntegration\Services\Sync\SyncEngine;
-use Modules\OdooIntegration\Services\Sync\ImportService;
-use Modules\OdooIntegration\Services\Sync\ExportService;
 use Modules\OdooIntegration\Services\Sync\ConflictResolver;
+use Modules\OdooIntegration\Services\Sync\ExportService;
+use Modules\OdooIntegration\Services\Sync\ImportService;
+use Modules\OdooIntegration\Services\Sync\SyncEngine;
 use Modules\OdooIntegration\Services\Sync\WatermarkService;
 use Modules\OdooIntegration\Services\Transform\FieldTransformer;
 use Modules\OdooIntegration\Services\Transform\RelationResolver;
 use Modules\OdooIntegration\Services\Transform\TimezoneConverter;
-use Modules\OdooIntegration\Jobs\BatchSyncJob;
-use Modules\OdooIntegration\Jobs\CleanupSyncLogsJob;
 
 class OdooIntegrationServiceProvider extends ServiceProvider
 {
     protected string $moduleName = 'OdooIntegration';
+
     protected string $moduleNameLower = 'odoo-integration';
 
     public function register(): void
     {
         $this->app->register(EventServiceProvider::class);
+
+        // LogSyncActivity writes to the 'odoo' channel; without this the
+        // LogManager silently degrades to the emergency logger on every
+        // sync event (and can hard-fail when that logger can't be built).
+        if (! config()->has('logging.channels.odoo')) {
+            config([
+                'logging.channels.odoo' => [
+                    'driver' => 'daily',
+                    'path' => storage_path('logs/odoo.log'),
+                    'level' => env('ODOO_LOG_LEVEL', 'info'),
+                    'days' => 14,
+                ],
+            ]);
+        }
 
         // Register API factory
         $this->app->singleton(OdooApiFactory::class);
@@ -125,12 +138,12 @@ class OdooIntegrationServiceProvider extends ServiceProvider
 
     protected function registerViews(): void
     {
-        $viewPath = resource_path('views/modules/' . $this->moduleNameLower);
+        $viewPath = resource_path('views/modules/'.$this->moduleNameLower);
         $sourcePath = module_path($this->moduleName, 'resources/views');
 
         $this->publishes([
             $sourcePath => $viewPath,
-        ], ['views', $this->moduleNameLower . '-module-views']);
+        ], ['views', $this->moduleNameLower.'-module-views']);
 
         $this->loadViewsFrom(array_merge($this->getPublishableViewPaths(), [$sourcePath]), $this->moduleNameLower);
     }
@@ -139,17 +152,18 @@ class OdooIntegrationServiceProvider extends ServiceProvider
     {
         $paths = [];
         foreach (config('view.paths') as $path) {
-            if (is_dir($path . '/modules/' . $this->moduleNameLower)) {
-                $paths[] = $path . '/modules/' . $this->moduleNameLower;
+            if (is_dir($path.'/modules/'.$this->moduleNameLower)) {
+                $paths[] = $path.'/modules/'.$this->moduleNameLower;
             }
         }
+
         return $paths;
     }
 
     protected function registerConfig(): void
     {
         $this->publishes([
-            module_path($this->moduleName, 'Config/config.php') => config_path($this->moduleNameLower . '.php'),
+            module_path($this->moduleName, 'Config/config.php') => config_path($this->moduleNameLower.'.php'),
         ], 'config');
 
         $this->mergeConfigFrom(
@@ -169,7 +183,7 @@ class OdooIntegrationServiceProvider extends ServiceProvider
             $schedule = $this->app->make(Schedule::class);
 
             // Daily cleanup of old sync logs
-            $schedule->job(new CleanupSyncLogsJob())
+            $schedule->job(new CleanupSyncLogsJob)
                 ->daily()
                 ->at('02:00')
                 ->withoutOverlapping();

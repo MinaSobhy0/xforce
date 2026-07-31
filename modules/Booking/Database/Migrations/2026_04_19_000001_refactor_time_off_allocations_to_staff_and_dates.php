@@ -180,7 +180,21 @@ return new class extends Migration
             'SELECT 1 AS ok FROM pg_indexes WHERE indexname = ? AND tablename = ?',
             [$index, $table]
         );
-        if ($exists) {
+        if (! $exists) {
+            return;
+        }
+
+        // On fresh tenant schemas the unique was created as a table CONSTRAINT
+        // (backed by this index), which PostgreSQL refuses to DROP INDEX.
+        $constraint = DB::selectOne(
+            'SELECT 1 AS ok FROM information_schema.table_constraints
+             WHERE constraint_name = ? AND table_name = ?',
+            [$index, $table]
+        );
+
+        if ($constraint) {
+            DB::statement("ALTER TABLE \"{$table}\" DROP CONSTRAINT \"{$index}\"");
+        } else {
             DB::statement("DROP INDEX IF EXISTS \"{$index}\"");
         }
     }

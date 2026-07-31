@@ -412,6 +412,25 @@ class PayrollLine extends BaseModel
 
         if (! empty($lineIds)) {
             $lines = $client->read('hr.payslip.line', $lineIds, ['code', 'name', 'category_id', 'salary_rule_id', 'total']);
+
+            // Odoo's appears_on_payslip flag decides which rules the employee
+            // may see. One batched read; older Odoo versions without the
+            // field (or a failed read) default every rule to visible.
+            $visibleByRuleOdooId = [];
+            $ruleOdooIds = array_values(array_unique(array_filter(array_map(
+                fn ($line) => is_array($line['salary_rule_id'] ?? null) ? (int) $line['salary_rule_id'][0] : null,
+                $lines
+            ))));
+            if (! empty($ruleOdooIds)) {
+                try {
+                    foreach ($client->read('hr.salary.rule', $ruleOdooIds, ['appears_on_payslip']) as $rule) {
+                        $visibleByRuleOdooId[(int) $rule['id']] = (bool) ($rule['appears_on_payslip'] ?? true);
+                    }
+                } catch (\Throwable) {
+                    $visibleByRuleOdooId = [];
+                }
+            }
+
             foreach ($lines as $line) {
                 $catOdooId = is_array($line['category_id'] ?? null) ? $line['category_id'][0] : null;
                 $cat = self::resolveCategory($catOdooId);
@@ -426,6 +445,7 @@ class PayrollLine extends BaseModel
                     'rule_name' => $line['name'] ?? null,
                     'category_type' => $cat['type'] ?? null,
                     'amount_minor' => $totalMinor,
+                    'visible' => $ruleOdooId === null || ($visibleByRuleOdooId[(int) $ruleOdooId] ?? true),
                 ];
 
                 $bucket = self::categoryToBucket($cat['code'] ?? null);
@@ -441,6 +461,23 @@ class PayrollLine extends BaseModel
         return $data;
     }
 
+    /** @var array<int, array{code?: string, type?: string}> */
+    protected static array $categoryCache = [];
+
+    /** @var array<int, int|null> */
+    protected static array $ruleIdCache = [];
+
+    /**
+     * Drop the per-request Odoo id caches. Long-lived processes (queue
+     * workers switching tenants, test suites truncating tables) must call
+     * this whenever the underlying rows may have changed identity.
+     */
+    public static function flushOdooImportCaches(): void
+    {
+        static::$categoryCache = [];
+        static::$ruleIdCache = [];
+    }
+
     /**
      * Resolve an Odoo category id to local {code, type} (cached per request).
      */
@@ -449,15 +486,14 @@ class PayrollLine extends BaseModel
         if (! $odooCategoryId) {
             return [];
         }
-        static $cache = [];
-        if (array_key_exists($odooCategoryId, $cache)) {
-            return $cache[$odooCategoryId];
+        if (array_key_exists($odooCategoryId, static::$categoryCache)) {
+            return static::$categoryCache[$odooCategoryId];
         }
         $row = SalaryRuleCategory::query()
             ->where('odoo_id', $odooCategoryId)
             ->first(['code', 'type']);
 
-        return $cache[$odooCategoryId] = $row
+        return static::$categoryCache[$odooCategoryId] = $row
             ? ['code' => $row->code, 'type' => $row->type]
             : [];
     }
@@ -470,12 +506,11 @@ class PayrollLine extends BaseModel
         if (! $odooRuleId) {
             return null;
         }
-        static $cache = [];
-        if (array_key_exists($odooRuleId, $cache)) {
-            return $cache[$odooRuleId];
+        if (array_key_exists($odooRuleId, static::$ruleIdCache)) {
+            return static::$ruleIdCache[$odooRuleId];
         }
 
-        return $cache[$odooRuleId] = SalaryRule::query()
+        return static::$ruleIdCache[$odooRuleId] = SalaryRule::query()
             ->where('odoo_id', $odooRuleId)
             ->value('id');
     }

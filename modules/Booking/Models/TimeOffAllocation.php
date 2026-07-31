@@ -273,6 +273,14 @@ class TimeOffAllocation extends BaseModel
      */
     public static function applyOdooImport(array $data, $mapping = null, ?array $odooData = null): array
     {
+        // Odoo serializes empty/missing numeric fields as `false` — normalize
+        // to 0 before any arithmetic or persistence.
+        foreach (['allocated_days', 'used_days', 'carried_over_days'] as $field) {
+            if (array_key_exists($field, $data) && ($data[$field] === false || $data[$field] === null)) {
+                $data[$field] = 0;
+            }
+        }
+
         $typeId = $data['time_off_type_id'] ?? null;
         if (! $typeId) {
             return $data;

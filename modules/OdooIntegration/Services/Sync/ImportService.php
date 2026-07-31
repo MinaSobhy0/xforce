@@ -3,9 +3,8 @@
 namespace Modules\OdooIntegration\Services\Sync;
 
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
-use Modules\OdooIntegration\Models\OdooEntityMapping;
 use Modules\OdooIntegration\Exceptions\OdooSyncException;
+use Modules\OdooIntegration\Models\OdooEntityMapping;
 use Modules\OdooIntegration\Services\Api\OdooApiClientInterface;
 use Modules\OdooIntegration\Services\RealtimeSyncManager;
 use Modules\OdooIntegration\Services\Transform\FieldTransformer;
@@ -19,7 +18,7 @@ class ImportService
     /**
      * Import a single record from Odoo.
      *
-     * @param string $syncType 'full' = override existing, 'delta' = new records only
+     * @param  string  $syncType  'full' = override existing, 'delta' = new records only
      */
     public function importRecord(
         OdooEntityMapping $mapping,
@@ -30,7 +29,7 @@ class ImportService
     ): array {
         $modelClass = $mapping->local_model;
 
-        if (!class_exists($modelClass)) {
+        if (! class_exists($modelClass)) {
             throw OdooSyncException::mappingNotFound($modelClass);
         }
 
@@ -104,7 +103,7 @@ class ImportService
                 }
 
                 // Create new record
-                $localRecord = new $modelClass();
+                $localRecord = new $modelClass;
                 $localRecord->fill(array_merge($localData, [
                     'tenant_id' => $mapping->tenant_id,
                     'odoo_id' => $odooId,
@@ -153,12 +152,28 @@ class ImportService
 
         $modelClass = $mapping->local_model;
         $query = $modelClass::query();
+        $constrained = false;
 
         foreach ($keyFields as $field) {
             $localField = $field->local_field;
+
+            // odoo_id was already matched upstream (importRecord's lookup).
+            // Records reaching this point have no local row with this odoo_id,
+            // so AND-ing it here would make every business key (e.g. email)
+            // unmatchable and produce duplicates / unique violations instead
+            // of linking the existing local record.
+            if ($localField === 'odoo_id') {
+                continue;
+            }
+
             if (isset($data[$localField])) {
                 $query->where($localField, $data[$localField]);
+                $constrained = true;
             }
+        }
+
+        if (! $constrained) {
+            return null;
         }
 
         return $query->first();

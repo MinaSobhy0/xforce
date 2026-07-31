@@ -3,9 +3,9 @@
 use Illuminate\Support\Facades\Route;
 use Modules\MobileApi\Http\Controllers\AccountController;
 use Modules\MobileApi\Http\Controllers\AppConfigController;
-use Modules\MobileApi\Http\Controllers\AppVersionController;
 use Modules\MobileApi\Http\Controllers\AppointmentsController;
 use Modules\MobileApi\Http\Controllers\ApprovalsController;
+use Modules\MobileApi\Http\Controllers\AppVersionController;
 use Modules\MobileApi\Http\Controllers\AttendanceController;
 use Modules\MobileApi\Http\Controllers\AuthController;
 use Modules\MobileApi\Http\Controllers\CalendarController;
@@ -117,6 +117,7 @@ Route::middleware([\Modules\MobileApi\Http\Middleware\ResolveTenantFromHeader::c
 
             Route::post('check-in', [AttendanceController::class, 'checkIn']);
             Route::post('check-out', [AttendanceController::class, 'checkOut']);
+            Route::post('sync', [AttendanceController::class, 'syncOffline']);
             Route::post('break/start', [AttendanceController::class, 'startBreak']);
             Route::post('break/end', [AttendanceController::class, 'endBreak']);
 
@@ -149,12 +150,12 @@ Route::middleware([\Modules\MobileApi\Http\Middleware\ResolveTenantFromHeader::c
             Route::get('time-off', [ApprovalsController::class, 'timeOffIndex']);
             Route::get('time-off/{id}', [ApprovalsController::class, 'timeOffShow']);
             Route::post('time-off/{id}/approve', [ApprovalsController::class, 'timeOffApprove']);
-            Route::post('time-off/{id}/reject',  [ApprovalsController::class, 'timeOffReject']);
+            Route::post('time-off/{id}/reject', [ApprovalsController::class, 'timeOffReject']);
 
             Route::get('violations', [ApprovalsController::class, 'violationsIndex']);
             Route::get('violations/{id}', [ApprovalsController::class, 'violationsShow']);
             Route::post('violations/{id}/approve', [ApprovalsController::class, 'violationsApprove']);
-            Route::post('violations/{id}/waive',   [ApprovalsController::class, 'violationsWaive']);
+            Route::post('violations/{id}/waive', [ApprovalsController::class, 'violationsWaive']);
         });
 
         // Payroll / Payslips

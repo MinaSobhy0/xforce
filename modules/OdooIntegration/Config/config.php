@@ -230,6 +230,7 @@ return [
             ['local_field' => 'sequence', 'odoo_field' => 'sequence'],
             ['local_field' => 'amount_type', 'odoo_field' => 'amount_select'],
             ['local_field' => 'is_active', 'odoo_field' => 'active', 'transform_type' => 'boolean'],
+            ['local_field' => 'appears_on_payslip', 'odoo_field' => 'appears_on_payslip', 'transform_type' => 'boolean'],
         ],
 
         // =====================================================================

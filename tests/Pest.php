@@ -18,6 +18,10 @@ uses(
 
 uses(Tests\TestCase::class)->in('Unit');
 
+uses(Tests\Odoo\OdooSyncTestCase::class)->in('Odoo');
+
+uses(Tests\Mobile\MobileApiTestCase::class)->in('Mobile');
+
 /*
 |--------------------------------------------------------------------------
 | Expectations
@@ -65,7 +69,7 @@ function createUser(array $attributes = []): \Modules\Auth\Models\User
     return \Modules\Auth\Models\User::factory()->create($attributes);
 }
 
-function actingAsTenantUser(\Modules\Core\Models\Tenant $tenant = null, \Modules\Auth\Models\User $user = null)
+function actingAsTenantUser(?\Modules\Core\Models\Tenant $tenant = null, ?\Modules\Auth\Models\User $user = null)
 {
     $tenant = $tenant ?? createTenant();
     $user = $user ?? createUser(['tenant_id' => $tenant->id]);
@@ -76,9 +80,24 @@ function actingAsTenantUser(\Modules\Core\Models\Tenant $tenant = null, \Modules
     return test()->actingAs($user);
 }
 
-function withTenant(\Modules\Core\Models\Tenant $tenant = null)
+function withTenant(?\Modules\Core\Models\Tenant $tenant = null)
 {
     $tenant = $tenant ?? createTenant();
     tenancy()->initialize($tenant);
+
     return $tenant;
+}
+
+/*
+|--------------------------------------------------------------------------
+| Odoo Sync Test Helpers
+|--------------------------------------------------------------------------
+*/
+
+function runOdooSync(
+    \Modules\OdooIntegration\Models\OdooEntityMapping $mapping,
+    string $type = 'full'
+): \Modules\OdooIntegration\Models\OdooSyncLog {
+    return app(\Modules\OdooIntegration\Services\Sync\SyncEngine::class)
+        ->syncEntity($mapping->fresh(), $type);
 }

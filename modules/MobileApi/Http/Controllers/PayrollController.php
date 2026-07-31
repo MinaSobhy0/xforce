@@ -17,11 +17,11 @@ class PayrollController extends BaseApiController
         $user = $this->user();
         $staffProfile = $this->staffProfile();
 
-        if (!$staffProfile) {
+        if (! $staffProfile) {
             return $this->forbidden(__('mobile_api::mobile.auth.not_staff'));
         }
 
-        if (!class_exists(PayrollLine::class)) {
+        if (! class_exists(PayrollLine::class)) {
             return $this->error('Payroll module not available', 503);
         }
 
@@ -29,12 +29,12 @@ class PayrollController extends BaseApiController
             ->where('staff_profile_id', $staffProfile->id)
             ->whereHas('payrollRun', function ($q) {
                 $q->where('period_year', now()->year)
-                  ->where('period_month', now()->month);
+                    ->where('period_month', now()->month);
             })
             ->orderByDesc('created_at')
             ->first();
 
-        if (!$payslip) {
+        if (! $payslip) {
             return $this->success([
                 'status' => 'not_processed',
                 'message' => __('mobile_api::mobile.payroll.no_payslip'),
@@ -52,11 +52,11 @@ class PayrollController extends BaseApiController
     {
         $staffProfile = $this->staffProfile();
 
-        if (!$staffProfile) {
+        if (! $staffProfile) {
             return $this->forbidden(__('mobile_api::mobile.auth.not_staff'));
         }
 
-        if (!class_exists(PayrollLine::class)) {
+        if (! class_exists(PayrollLine::class)) {
             return $this->success([]);
         }
 
@@ -73,7 +73,7 @@ class PayrollController extends BaseApiController
         $payslips = $query->orderByDesc('created_at')
             ->paginate($this->getPerPage());
 
-        $formatted = collect($payslips->items())->map(fn($p) => [
+        $formatted = collect($payslips->items())->map(fn ($p) => [
             'id' => $p->id,
             'period' => $p->payrollRun?->period_label,
             'period_year' => $p->payrollRun?->period_year,
@@ -103,11 +103,11 @@ class PayrollController extends BaseApiController
     {
         $staffProfile = $this->staffProfile();
 
-        if (!$staffProfile) {
+        if (! $staffProfile) {
             return $this->forbidden(__('mobile_api::mobile.auth.not_staff'));
         }
 
-        if (!class_exists(PayrollLine::class)) {
+        if (! class_exists(PayrollLine::class)) {
             return $this->notFound();
         }
 
@@ -115,7 +115,7 @@ class PayrollController extends BaseApiController
             ->where('staff_profile_id', $staffProfile->id)
             ->find($id);
 
-        if (!$payslip) {
+        if (! $payslip) {
             return $this->notFound();
         }
 
@@ -131,17 +131,17 @@ class PayrollController extends BaseApiController
     {
         $staffProfile = $this->staffProfile();
 
-        if (!$staffProfile) {
+        if (! $staffProfile) {
             return $this->forbidden(__('mobile_api::mobile.auth.not_staff'));
         }
 
-        if (!class_exists(PayrollLine::class)) {
+        if (! class_exists(PayrollLine::class)) {
             return $this->notFound();
         }
 
         $payslip = PayrollLine::where('staff_profile_id', $staffProfile->id)->find($id);
 
-        if (!$payslip) {
+        if (! $payslip) {
             return $this->notFound();
         }
 
@@ -169,7 +169,7 @@ class PayrollController extends BaseApiController
     {
         $staffProfile = $this->staffProfile();
 
-        if (!$staffProfile) {
+        if (! $staffProfile) {
             return $this->forbidden(__('mobile_api::mobile.auth.not_staff'));
         }
 
@@ -202,11 +202,11 @@ class PayrollController extends BaseApiController
     {
         $staffProfile = $this->staffProfile();
 
-        if (!$staffProfile) {
+        if (! $staffProfile) {
             return $this->forbidden(__('mobile_api::mobile.auth.not_staff'));
         }
 
-        if (!class_exists(PayrollLine::class)) {
+        if (! class_exists(PayrollLine::class)) {
             return $this->success([]);
         }
 
@@ -279,9 +279,16 @@ class PayrollController extends BaseApiController
                 ];
             }
 
-            // Include rule breakdown if available
-            if (! empty($payslip->rule_amounts_json)) {
-                $data['rule_breakdown'] = $payslip->rule_amounts_json;
+            // Rule breakdown: only rules the employee is meant to see.
+            // Visibility comes from the per-entry 'visible' flag written at
+            // Odoo import (appears_on_payslip); entries predating that flag
+            // fall back to the local SalaryRule.appears_on_payslip column.
+            // The whole section sits behind the show_rule_breakdown tenant flag.
+            if ($display['show_rule_breakdown'] && ! empty($payslip->rule_amounts_json)) {
+                $breakdown = $this->visibleRuleBreakdown($payslip->rule_amounts_json);
+                if (! empty($breakdown)) {
+                    $data['rule_breakdown'] = $breakdown;
+                }
             }
 
             $data['notes'] = $payslip->notes;
@@ -311,6 +318,52 @@ class PayrollController extends BaseApiController
             'show_gross_salary' => (bool) ($stored['show_gross_salary'] ?? false),
             'show_allowances_breakdown' => (bool) ($stored['show_allowances_breakdown'] ?? true),
             'show_deductions_breakdown' => (bool) ($stored['show_deductions_breakdown'] ?? true),
+            'show_rule_breakdown' => (bool) ($stored['show_rule_breakdown'] ?? true),
         ];
+    }
+
+    /**
+     * Filter a rule_amounts_json breakdown down to employee-visible entries.
+     *
+     * Entries carry a 'visible' flag written at Odoo import time
+     * (appears_on_payslip). Entries without the flag (calculated locally or
+     * imported before the flag existed) fall back to the local
+     * SalaryRule.appears_on_payslip column, defaulting to visible when the
+     * rule can't be resolved. The internal 'visible' key is stripped from
+     * the response.
+     */
+    protected function visibleRuleBreakdown(array $breakdown): array
+    {
+        $unresolvedIds = collect($breakdown)
+            ->filter(fn ($e) => ! array_key_exists('visible', $e) && ! empty($e['rule_id']))
+            ->pluck('rule_id')
+            ->unique()
+            ->values();
+
+        $localVisibility = [];
+        if ($unresolvedIds->isNotEmpty() && class_exists(\Modules\Payroll\Models\SalaryRule::class)) {
+            $localVisibility = \Modules\Payroll\Models\SalaryRule::whereIn('id', $unresolvedIds)
+                ->pluck('appears_on_payslip', 'id')
+                ->map(fn ($v) => (bool) $v)
+                ->all();
+        }
+
+        return collect($breakdown)
+            ->filter(function ($entry) use ($localVisibility) {
+                if (array_key_exists('visible', $entry)) {
+                    return (bool) $entry['visible'];
+                }
+
+                $ruleId = $entry['rule_id'] ?? null;
+
+                return $ruleId === null || ($localVisibility[$ruleId] ?? true);
+            })
+            ->map(function ($entry) {
+                unset($entry['visible']);
+
+                return $entry;
+            })
+            ->values()
+            ->all();
     }
 }

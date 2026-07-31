@@ -40,6 +40,12 @@ class Attendance extends BaseModel
         'updated_by',
         'odoo_id',
         'odoo_synced_at',
+        'check_in_latitude',
+        'check_in_longitude',
+        'check_out_latitude',
+        'check_out_longitude',
+        'is_offline_entry',
+        'location_verified',
     ];
 
     protected $casts = [
@@ -54,6 +60,12 @@ class Attendance extends BaseModel
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
+        'check_in_latitude' => 'decimal:7',
+        'check_in_longitude' => 'decimal:7',
+        'check_out_latitude' => 'decimal:7',
+        'check_out_longitude' => 'decimal:7',
+        'is_offline_entry' => 'boolean',
+        'location_verified' => 'boolean',
     ];
 
     protected $attributes = [
@@ -67,9 +79,13 @@ class Attendance extends BaseModel
 
     // Attendance Types (check-in methods)
     public const TYPE_MANUAL = 'manual';
+
     public const TYPE_GEOFENCE = 'geofence';
+
     public const TYPE_QR_STATIC = 'qr_static';
+
     public const TYPE_QR_DYNAMIC = 'qr_dynamic';
+
     public const TYPE_BIOMETRIC = 'biometric';
 
     public const TYPES = [
@@ -98,8 +114,11 @@ class Attendance extends BaseModel
 
     // Attendance Status
     public const STATUS_PRESENT = 'present';
+
     public const STATUS_ABSENT = 'absent';
+
     public const STATUS_HALF_DAY = 'half_day';
+
     public const STATUS_LEAVE = 'leave';
 
     public const STATUSES = [
@@ -292,7 +311,7 @@ class Attendance extends BaseModel
      */
     public function calculateWorkingHours(): float
     {
-        if (!$this->check_in_time || !$this->check_out_time) {
+        if (! $this->check_in_time || ! $this->check_out_time) {
             return 0;
         }
 

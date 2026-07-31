@@ -13,8 +13,6 @@ use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
  * HTTP middleware for enforcing resource quotas on requests.
  * Provides rate limiting, usage tracking, and automatic
  * quota enforcement with configurable actions and responses.
- *
- * @package XLinic\Framework\Core\Quota
  */
 class QuotaMiddleware
 {
@@ -22,6 +20,7 @@ class QuotaMiddleware
      * Response formats
      */
     public const FORMAT_JSON = 'json';
+
     public const FORMAT_HTML = 'html';
 
     /**
@@ -56,7 +55,7 @@ class QuotaMiddleware
         $tenantId = $this->getTenantId($request, $options);
 
         // Check quota before processing request
-        if (!$this->quotaService->allows($quotaType, $amount, $tenantId)) {
+        if (! $this->quotaService->allows($quotaType, $amount, $tenantId)) {
             return $this->handleQuotaExceeded($request, $quotaType, $tenantId, $options);
         }
 
@@ -87,7 +86,8 @@ class QuotaMiddleware
     public static function rateLimit(string $quotaType = QuotaService::TYPE_API_CALLS, int $amount = 1, array $options = []): string
     {
         $optionsString = http_build_query($options);
-        return static::class . ":{$quotaType},{$amount},{$optionsString}";
+
+        return static::class.":{$quotaType},{$amount},{$optionsString}";
     }
 
     /**
@@ -109,6 +109,7 @@ class QuotaMiddleware
             case QuotaService::ACTION_ALLOW:
                 // Force consume and allow request
                 $this->quotaService->forceConsume($quotaType, $options['amount'] ?? 1, $tenantId);
+
                 return response()->json([
                     'message' => 'Request allowed despite quota exceeded',
                     'quota' => $usage,
@@ -172,7 +173,7 @@ class QuotaMiddleware
     /**
      * Add quota headers to response
      */
-    protected function addQuotaHeaders(Response $response, string $quotaType, ?int $tenantId): Response
+    protected function addQuotaHeaders(SymfonyResponse $response, string $quotaType, ?int $tenantId): SymfonyResponse
     {
         $usage = $this->quotaService->getUsage($quotaType, $tenantId);
 
@@ -220,7 +221,7 @@ class QuotaMiddleware
     {
         // Skip for certain routes
         $skipRoutes = $options['skip_routes'] ?? [];
-        if (!empty($skipRoutes)) {
+        if (! empty($skipRoutes)) {
             $currentRoute = $request->route()?->getName();
             if (in_array($currentRoute, $skipRoutes)) {
                 return true;
@@ -229,7 +230,7 @@ class QuotaMiddleware
 
         // Skip for certain IPs
         $skipIps = $options['skip_ips'] ?? [];
-        if (!empty($skipIps) && in_array($request->ip(), $skipIps)) {
+        if (! empty($skipIps) && in_array($request->ip(), $skipIps)) {
             return true;
         }
 
@@ -237,9 +238,9 @@ class QuotaMiddleware
         $user = $request->user();
         if ($user) {
             $skipRoles = $options['skip_roles'] ?? [];
-            if (!empty($skipRoles)) {
+            if (! empty($skipRoles)) {
                 $userRoles = $this->getUserRoles($user);
-                if (!empty(array_intersect($userRoles, $skipRoles))) {
+                if (! empty(array_intersect($userRoles, $skipRoles))) {
                     return true;
                 }
             }
@@ -261,18 +262,20 @@ class QuotaMiddleware
     {
         // Only consume quota for successful responses
         $consumeOnSuccess = $options['consume_on_success'] ?? true;
-        if (!$consumeOnSuccess) {
+        if (! $consumeOnSuccess) {
             return true; // Always consume if not checking success
         }
 
         // Check response status
         if ($response instanceof Response) {
             $statusCode = $response->getStatusCode();
+
             return $statusCode >= 200 && $statusCode < 400;
         }
 
         if ($response instanceof SymfonyResponse) {
             $statusCode = $response->getStatusCode();
+
             return $statusCode >= 200 && $statusCode < 400;
         }
 
@@ -346,9 +349,9 @@ class QuotaMiddleware
 
         return match ($quotaType) {
             QuotaService::TYPE_API_CALLS => "API rate limit exceeded. Try again {$timeRemaining}.",
-            QuotaService::TYPE_STORAGE => "Storage quota exceeded. Please upgrade your plan or free up space.",
-            QuotaService::TYPE_USERS => "User limit exceeded. Please upgrade your plan to add more users.",
-            QuotaService::TYPE_RECORDS => "Record limit exceeded. Please upgrade your plan or archive old records.",
+            QuotaService::TYPE_STORAGE => 'Storage quota exceeded. Please upgrade your plan or free up space.',
+            QuotaService::TYPE_USERS => 'User limit exceeded. Please upgrade your plan to add more users.',
+            QuotaService::TYPE_RECORDS => 'Record limit exceeded. Please upgrade your plan or archive old records.',
             QuotaService::TYPE_REPORTS => "Report generation limit exceeded. Try again {$timeRemaining}.",
             QuotaService::TYPE_EMAILS => "Email sending limit exceeded. Try again {$timeRemaining}.",
             QuotaService::TYPE_FILE_UPLOADS => "File upload limit exceeded. Try again {$timeRemaining}.",

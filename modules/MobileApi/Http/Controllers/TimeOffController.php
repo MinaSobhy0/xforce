@@ -17,24 +17,38 @@ class TimeOffController extends BaseApiController
      */
     public function types(): JsonResponse
     {
-        if (! class_exists(TimeOffType::class)) {
+        $staffProfile = $this->staffProfile();
+
+        if (! class_exists(TimeOffType::class) || ! $staffProfile) {
             return $this->success([]);
         }
 
-        $types = TimeOffType::active()
-            ->ordered()
+        // Only types the employee holds a currently-valid allocation for,
+        // with balance still available to request (pending requests count
+        // against it). The app must never offer a type the backend would
+        // reject — this mirrors both balance() and the store() validation.
+        $allocations = TimeOffAllocation::with('timeOffType')
+            ->forStaffProfile($staffProfile->id)
+            ->coveringDate(now())
+            ->whereHas('timeOffType', fn ($q) => $q->where('is_active', true))
             ->get()
-            ->map(fn ($t) => [
-                'id' => $t->id,
-                'name' => $t->translated_name,
-                'code' => $t->code,
-                'color' => $t->color,
-                'is_paid' => $t->is_paid,
-                'requires_approval' => $t->requires_approval,
-                'request_unit' => $t->request_unit,
-                'allow_half_day' => $t->allow_half_day,
-                'hours_per_day' => $t->hours_per_day,
-            ]);
+            ->filter(fn ($a) => $a->timeOffType && $a->available_for_request > 0)
+            ->sortBy(fn ($a) => $a->timeOffType->sort_order ?? 0)
+            ->values();
+
+        $types = $allocations->map(fn ($a) => [
+            'id' => $a->timeOffType->id,
+            'name' => $a->timeOffType->translated_name,
+            'code' => $a->timeOffType->code,
+            'color' => $a->timeOffType->color,
+            'is_paid' => $a->timeOffType->is_paid,
+            'requires_approval' => $a->timeOffType->requires_approval,
+            'request_unit' => $a->timeOffType->request_unit,
+            'allow_half_day' => $a->timeOffType->allow_half_day,
+            'hours_per_day' => $a->timeOffType->hours_per_day,
+            'remaining' => (float) $a->available_for_request,
+            'unit_label' => $a->timeOffType->getUnitLabel(),
+        ]);
 
         return $this->success($types);
     }
@@ -261,8 +275,20 @@ class TimeOffController extends BaseApiController
         // Pending requests are counted too: `used_days` only moves on
         // approval, so without this several pending requests could
         // collectively exceed the allocation.
+        //
+        // Allocations are the source of truth (synced from Odoo when the
+        // integration is on): a request whose start date isn't covered by an
+        // existing allocation is rejected outright — the backend never mints
+        // a default-allocation row on behalf of a request.
         // Message and error_code must be machine-parsable by the mobile app.
-        $allocation = TimeOffAllocation::getOrCreateForDate($staffProfile->id, $type->id, $startDate);
+        $allocation = TimeOffAllocation::getForDate($staffProfile->id, $type->id, $startDate);
+
+        if (! $allocation) {
+            return $this->businessRuleError(
+                __('mobile_api::mobile.time_off.no_allocation'),
+                'NO_ALLOCATION'
+            );
+        }
 
         if (! $allocation->hasAvailableForRequest($amountToCheck)) {
             $available = max(0.0, $allocation->available_for_request);
