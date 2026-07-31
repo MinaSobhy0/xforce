@@ -118,7 +118,14 @@ class ViewPractitionerTimeOff extends ViewRecord
                 ->requiresConfirmation()
                 ->visible(fn () => $this->record->isPending())
                 ->action(function () {
-                    $this->record->approve(auth()->id());
+                    if (!$this->record->approve(auth()->id())) {
+                        Notification::make()
+                            ->title(__('booking::time_off.messages.approve_failed_balance'))
+                            ->danger()
+                            ->send();
+
+                        return;
+                    }
                     Notification::make()
                         ->title(__('booking::time_off.messages.approved'))
                         ->success()

@@ -65,6 +65,8 @@ return [
         'cannot_cancel' => 'لا يمكن إلغاء هذا الطلب',
         'insufficient_balance' => 'رصيد الإجازة غير كافي',
         'dates_overlap' => 'هذه التواريخ تتداخل مع طلب موجود',
+        'times_required' => 'وقت البداية والنهاية مطلوبان لهذا النوع من الإجازة',
+        'invalid_duration' => 'المدة المطلوبة غير صالحة',
     ],
 
     'payroll' => [

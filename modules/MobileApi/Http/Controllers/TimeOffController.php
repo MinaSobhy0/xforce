@@ -186,10 +186,15 @@ class TimeOffController extends BaseApiController
         $hoursRequested = null;
 
         if ($type->isHourBased()) {
-            // For hours-based, calculate from time range
+            // Without both times the requested amount would compute to 0 and
+            // slip past the balance check below.
+            if (empty($validated['start_time']) || empty($validated['end_time'])) {
+                return $this->error(__('mobile_api::mobile.time_off.times_required'), 400);
+            }
+
             $hoursRequested = PractitionerTimeOff::calculateHoursFromTimeRange(
-                $validated['start_time'] ?? null,
-                $validated['end_time'] ?? null
+                $validated['start_time'],
+                $validated['end_time']
             );
             $daysRequested = $type->convertToDays($hoursRequested);
         } else {
@@ -200,11 +205,20 @@ class TimeOffController extends BaseApiController
             }
         }
 
-        // Check balance
-        $allocation = TimeOffAllocation::getOrCreateForDate($user->id, $type->id, $startDate);
         $amountToCheck = $type->isHourBased() ? $hoursRequested : $daysRequested;
 
-        if (!$allocation->hasAvailable($amountToCheck)) {
+        // Zero or negative amounts (e.g. end_time before start_time) must not
+        // reach the balance check — they'd trivially pass it.
+        if ($amountToCheck <= 0) {
+            return $this->error(__('mobile_api::mobile.time_off.invalid_duration'), 400);
+        }
+
+        // Check balance. Pending requests are counted too: `used_days` only
+        // moves on approval, so without this several pending requests could
+        // collectively exceed the allocation.
+        $allocation = TimeOffAllocation::getOrCreateForDate($user->id, $type->id, $startDate);
+
+        if (!$allocation->hasAvailableForRequest($amountToCheck)) {
             return $this->error(__('mobile_api::mobile.time_off.insufficient_balance'), 400);
         }
 

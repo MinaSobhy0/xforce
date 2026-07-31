@@ -65,6 +65,8 @@ return [
         'cannot_cancel' => 'This request cannot be cancelled',
         'insufficient_balance' => 'Insufficient leave balance',
         'dates_overlap' => 'These dates overlap with an existing request',
+        'times_required' => 'Start and end times are required for this leave type',
+        'invalid_duration' => 'The requested duration is invalid',
     ],
 
     'payroll' => [

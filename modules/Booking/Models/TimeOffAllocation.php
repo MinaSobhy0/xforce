@@ -140,6 +140,45 @@ class TimeOffAllocation extends BaseModel
     }
 
     /**
+     * Amount (hours for hour-based types, days otherwise) tied up in PENDING
+     * requests attributed to this allocation's period. `used_days` only moves
+     * on approval, so pending requests must be counted separately when
+     * validating new requests — otherwise several pending requests can
+     * collectively exceed the balance.
+     */
+    public function pendingAmount(): float
+    {
+        $column = $this->timeOffType?->isHourBased() ? 'hours_requested' : 'days_requested';
+
+        $query = PractitionerTimeOff::where('user_id', $this->user_id)
+            ->where('time_off_type_id', $this->time_off_type_id)
+            ->where('status', PractitionerTimeOff::STATUS_PENDING)
+            ->whereYear('start_date', $this->year);
+
+        if ($this->month) {
+            $query->whereMonth('start_date', $this->month);
+        }
+
+        return (float) $query->sum($column);
+    }
+
+    /**
+     * Remaining balance once pending requests are accounted for.
+     */
+    public function getAvailableForRequestAttribute(): float
+    {
+        return $this->remaining - $this->pendingAmount();
+    }
+
+    /**
+     * Check availability for a NEW request (counts pending requests too).
+     */
+    public function hasAvailableForRequest(float $amount): bool
+    {
+        return $this->available_for_request >= $amount;
+    }
+
+    /**
      * Use days/hours from allocation.
      */
     public function useDays(float $days): bool

@@ -198,27 +198,40 @@ class PractitionerTimeOff extends BaseModel
             return false;
         }
 
-        $result = $this->update([
-            'status' => self::STATUS_APPROVED,
-            'approved_by_user_id' => $approvedByUserId,
-            'approved_at' => now(),
-        ]);
+        try {
+            return $this->getConnection()->transaction(function () use ($approvedByUserId) {
+                // Deduct first: useDays() refuses (without writing) when the
+                // remaining balance can't cover the request, and approval must
+                // fail in that case rather than silently over-approving.
+                if ($this->time_off_type_id) {
+                    $deductAmount = $this->getDeductionAmount();
 
-        // Deduct from allocation if using typed time off
-        if ($result && $this->time_off_type_id) {
-            $deductAmount = $this->getDeductionAmount();
+                    if ($deductAmount > 0) {
+                        $allocation = TimeOffAllocation::getOrCreateForDate(
+                            $this->user_id,
+                            $this->time_off_type_id,
+                            $this->start_date
+                        );
 
-            if ($deductAmount > 0) {
-                $allocation = TimeOffAllocation::getOrCreateForDate(
-                    $this->user_id,
-                    $this->time_off_type_id,
-                    $this->start_date
-                );
-                $allocation->useDays($deductAmount);
-            }
+                        if (!$allocation->useDays($deductAmount)) {
+                            return false;
+                        }
+                    }
+                }
+
+                if (!$this->update([
+                    'status' => self::STATUS_APPROVED,
+                    'approved_by_user_id' => $approvedByUserId,
+                    'approved_at' => now(),
+                ])) {
+                    throw new \Modules\Booking\Exceptions\TimeOffApprovalException('Time off approval failed to persist.');
+                }
+
+                return true;
+            });
+        } catch (\Modules\Booking\Exceptions\TimeOffApprovalException) {
+            return false;
         }
-
-        return $result;
     }
 
     public function reject(string $approvedByUserId, ?string $notes = null): bool
