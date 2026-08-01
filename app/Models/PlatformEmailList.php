@@ -14,6 +14,7 @@ class PlatformEmailList extends Model
     use HasFactory;
 
     public const KIND_MANUAL = 'manual';
+
     public const KIND_DYNAMIC = 'dynamic';
 
     public const KINDS = [

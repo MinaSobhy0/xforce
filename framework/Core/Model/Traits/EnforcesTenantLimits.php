@@ -40,7 +40,7 @@ trait EnforcesTenantLimits
     protected function getTenantExtraField(): ?string
     {
         $limitField = $this->getTenantLimitField();
-        if (!$limitField) {
+        if (! $limitField) {
             return null;
         }
 
@@ -58,13 +58,13 @@ trait EnforcesTenantLimits
     {
         $limitField = $this->getTenantLimitField();
 
-        if (!$limitField) {
+        if (! $limitField) {
             return; // No limit defined for this model
         }
 
         $tenant = $this->getTenantForLimitCheck();
 
-        if (!$tenant) {
+        if (! $tenant) {
             return; // No tenant context
         }
 
@@ -88,7 +88,7 @@ trait EnforcesTenantLimits
                 'max' => $maxAllowed,
             ]);
 
-            $message = __("Cannot create :resource. You have reached the maximum of :max allowed for your plan (currently: :current).", [
+            $message = __('Cannot create :resource. You have reached the maximum of :max allowed for your plan (currently: :current).', [
                 'resource' => $resourceName,
                 'max' => $maxAllowed,
                 'current' => $currentCount,
@@ -114,7 +114,7 @@ trait EnforcesTenantLimits
                 }
 
                 if (class_exists(\Filament\Support\Exceptions\Halt::class)) {
-                    throw new \Filament\Support\Exceptions\Halt();
+                    throw new \Filament\Support\Exceptions\Halt;
                 }
             }
 
@@ -214,10 +214,11 @@ trait EnforcesTenantLimits
      */
     public static function wouldExceedLimit(): bool
     {
-        $instance = new static();
+        $instance = new static;
 
         try {
             $instance->enforceLimit();
+
             return false;
         } catch (\RuntimeException $e) {
             return true;
@@ -229,16 +230,16 @@ trait EnforcesTenantLimits
      */
     public static function getRemainingCapacity(): int
     {
-        $instance = new static();
+        $instance = new static;
         $limitField = $instance->getTenantLimitField();
 
-        if (!$limitField) {
+        if (! $limitField) {
             return PHP_INT_MAX;
         }
 
         $tenant = $instance->getTenantForLimitCheck();
 
-        if (!$tenant) {
+        if (! $tenant) {
             return PHP_INT_MAX;
         }
 

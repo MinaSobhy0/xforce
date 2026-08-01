@@ -13,7 +13,7 @@ class EnsureTwoFactorAuthenticated
     {
         $user = Auth::user();
 
-        if (!$user) {
+        if (! $user) {
             return $next($request);
         }
 
@@ -21,7 +21,7 @@ class EnsureTwoFactorAuthenticated
         // don't implement 2FA — skip the challenge for them instead of erroring.
         if (method_exists($user, 'hasEnabledTwoFactorAuthentication') && $user->hasEnabledTwoFactorAuthentication()) {
             // Check if 2FA has been verified for this session
-            if (!$request->session()->get('two_factor_verified')) {
+            if (! $request->session()->get('two_factor_verified')) {
                 // Store the intended URL
                 $request->session()->put('url.intended', $request->url());
 

@@ -5,7 +5,6 @@ namespace App\Filament\SuperAdmin\Resources;
 use App\Filament\SuperAdmin\Resources\PlatformEmailListResource\Pages;
 use App\Filament\SuperAdmin\Resources\PlatformEmailListResource\RelationManagers;
 use App\Models\PlatformEmailList;
-use App\Models\PlatformEmailListMember;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;

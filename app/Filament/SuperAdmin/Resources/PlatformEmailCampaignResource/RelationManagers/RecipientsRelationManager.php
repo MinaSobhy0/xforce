@@ -94,8 +94,7 @@ class RecipientsRelationManager extends RelationManager
                     ->label('Render preview')
                     ->icon('heroicon-o-sparkles')
                     ->color('info')
-                    ->visible(fn (PlatformEmailCampaignRecipient $record) =>
-                        $this->ownerRecord->ai_personalize
+                    ->visible(fn (PlatformEmailCampaignRecipient $record) => $this->ownerRecord->ai_personalize
                         && ! $record->rendered_body_html
                         && ! in_array($record->status, [
                             PlatformEmailCampaignRecipient::STATUS_SENT,
@@ -115,8 +114,7 @@ class RecipientsRelationManager extends RelationManager
                     ->label('Edit body')
                     ->icon('heroicon-o-pencil-square')
                     ->color('gray')
-                    ->visible(fn (PlatformEmailCampaignRecipient $record) =>
-                        (bool) $record->rendered_body_html
+                    ->visible(fn (PlatformEmailCampaignRecipient $record) => (bool) $record->rendered_body_html
                         && ! in_array($record->status, [
                             PlatformEmailCampaignRecipient::STATUS_SENT,
                             PlatformEmailCampaignRecipient::STATUS_DELIVERED,
@@ -260,6 +258,7 @@ class RecipientsRelationManager extends RelationManager
 
         if ($pending->isEmpty()) {
             Notification::make()->title('Nothing to render — every recipient already has a preview')->send();
+
             return;
         }
 

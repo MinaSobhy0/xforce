@@ -55,6 +55,7 @@ class CountryCodes
         foreach (self::CODES as $code => $data) {
             $options[$code] = "{$data['flag']} {$code} ({$data['name']})";
         }
+
         return $options;
     }
 
@@ -67,6 +68,7 @@ class CountryCodes
         foreach (self::CODES as $code => $data) {
             $options[$code] = "{$data['flag']} {$code}";
         }
+
         return $options;
     }
 
@@ -79,6 +81,7 @@ class CountryCodes
         foreach (self::CODES as $code => $data) {
             $options[$code] = "{$code} ({$data['name']})";
         }
+
         return $options;
     }
 
@@ -93,6 +96,7 @@ class CountryCodes
                 return $code;
             }
         }
+
         return null;
     }
 
@@ -107,6 +111,7 @@ class CountryCodes
                 return $code;
             }
         }
+
         return null;
     }
 
@@ -149,9 +154,10 @@ class CountryCodes
      */
     public static function isValid(string $code): bool
     {
-        if (!str_starts_with($code, '+')) {
-            $code = '+' . $code;
+        if (! str_starts_with($code, '+')) {
+            $code = '+'.$code;
         }
+
         return isset(self::CODES[$code]);
     }
 
@@ -167,10 +173,10 @@ class CountryCodes
         $phone = ltrim($phone, '0');
 
         // Ensure country code starts with +
-        if (!str_starts_with($countryCode, '+')) {
-            $countryCode = '+' . $countryCode;
+        if (! str_starts_with($countryCode, '+')) {
+            $countryCode = '+'.$countryCode;
         }
 
-        return $countryCode . $phone;
+        return $countryCode.$phone;
     }
 }

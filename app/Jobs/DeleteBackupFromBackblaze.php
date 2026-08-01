@@ -29,7 +29,7 @@ class DeleteBackupFromBackblaze implements ShouldQueue
 
     public function handle(BackblazeService $backblaze): void
     {
-        if (!BackblazeService::isConfigured()) {
+        if (! BackblazeService::isConfigured()) {
             return;
         }
 

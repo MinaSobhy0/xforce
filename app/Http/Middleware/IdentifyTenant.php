@@ -4,8 +4,8 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Modules\Core\Models\Tenant;
 use Modules\Core\Models\TenantStatus;
@@ -36,7 +36,7 @@ class IdentifyTenant
         $subdomain = $this->extractSubdomain($request);
 
         // If no subdomain (e.g., IP access), try to get tenant from session
-        if (!$subdomain || in_array($subdomain, $this->excludedSubdomains)) {
+        if (! $subdomain || in_array($subdomain, $this->excludedSubdomains)) {
             // SECURITY: Query parameter tenant override is only allowed in local environment
             // and only for authenticated platform admins
             if (app()->environment('local') && $tenantSlug = $request->query('_tenant')) {
@@ -55,8 +55,9 @@ class IdentifyTenant
 
             if ($sessionTenantSlug) {
                 // Validate session tenant slug format
-                if (!preg_match('/^[a-z0-9\-]+$/', $sessionTenantSlug)) {
+                if (! preg_match('/^[a-z0-9\-]+$/', $sessionTenantSlug)) {
                     session()->forget('_tenant_slug');
+
                     return $next($request);
                 }
 
@@ -77,7 +78,7 @@ class IdentifyTenant
                         $isPlatformAdmin = method_exists($user, 'hasRole') &&
                             $user->hasRole(['super_admin', 'platform_admin']);
 
-                        if (!$isPlatformAdmin) {
+                        if (! $isPlatformAdmin) {
                             // Regular users must belong to this tenant
                             // Check if user's tenant_id matches or user has explicit tenant access
                             $userTenantId = $user->tenant_id ?? null;
@@ -116,7 +117,7 @@ class IdentifyTenant
         // (friendly 503 page) below — previously both paths returned 404.
         $tenant = Tenant::where('slug', $subdomain)->first();
 
-        if (!$tenant) {
+        if (! $tenant) {
             abort(404, "Clinic not found: {$subdomain}");
         }
 
@@ -133,8 +134,8 @@ class IdentifyTenant
         }
 
         // Check if tenant schema is provisioned
-        if (!$tenant->database_name || !$this->schemaExists($tenant->database_name)) {
-            abort(503, "Clinic database not provisioned. Please contact support.");
+        if (! $tenant->database_name || ! $this->schemaExists($tenant->database_name)) {
+            abort(503, 'Clinic database not provisioned. Please contact support.');
         }
 
         // Switch to tenant's PostgreSQL schema
@@ -172,7 +173,7 @@ class IdentifyTenant
         $subdomain = $parts[0];
 
         // Validate subdomain format
-        if (!preg_match('/^[a-z0-9\-]+$/', $subdomain)) {
+        if (! preg_match('/^[a-z0-9\-]+$/', $subdomain)) {
             return null;
         }
 
@@ -186,9 +187,10 @@ class IdentifyTenant
     {
         try {
             $result = DB::select(
-                "SELECT schema_name FROM information_schema.schemata WHERE schema_name = ?",
+                'SELECT schema_name FROM information_schema.schemata WHERE schema_name = ?',
                 [$schemaName]
             );
+
             return count($result) > 0;
         } catch (\Exception $e) {
             return false;
@@ -202,7 +204,7 @@ class IdentifyTenant
     protected function validateSchemaName(string $schemaName): bool
     {
         // Must start with letter, contain only lowercase alphanumeric and underscores
-        if (!preg_match('/^[a-z][a-z0-9_]*$/', $schemaName)) {
+        if (! preg_match('/^[a-z][a-z0-9_]*$/', $schemaName)) {
             return false;
         }
 
@@ -227,7 +229,8 @@ class IdentifyTenant
     {
         // Escape double quotes by doubling them
         $escaped = str_replace('"', '""', $identifier);
-        return '"' . $escaped . '"';
+
+        return '"'.$escaped.'"';
     }
 
     /**
@@ -239,7 +242,7 @@ class IdentifyTenant
         $schemaName = $tenant->database_name;
 
         // SECURITY: Validate schema name before using in SQL
-        if (!$this->validateSchemaName($schemaName)) {
+        if (! $this->validateSchemaName($schemaName)) {
             throw new \RuntimeException("Invalid schema name: {$schemaName}");
         }
 
@@ -305,10 +308,10 @@ class IdentifyTenant
      */
     protected function configureTenantStorage(string $tenantSlug): void
     {
-        $tenantPath = storage_path('app/tenants/' . $tenantSlug);
+        $tenantPath = storage_path('app/tenants/'.$tenantSlug);
 
         // Ensure the tenant directory exists
-        if (!is_dir($tenantPath)) {
+        if (! is_dir($tenantPath)) {
             mkdir($tenantPath, 0755, true);
         }
 
@@ -337,7 +340,7 @@ class IdentifyTenant
     {
         // SECURITY: Set tenant-specific cache key for Spatie permissions using ID (not slug)
         // Using ID prevents cache collisions between tenants with similar slugs
-        Config::set('permission.cache.key', 'spatie.permission.cache.tenant_' . $tenant->id);
+        Config::set('permission.cache.key', 'spatie.permission.cache.tenant_'.$tenant->id);
 
         // Reset the PermissionRegistrar to pick up the new cache key
         app(PermissionRegistrar::class)->initializeCache();
@@ -357,14 +360,14 @@ class IdentifyTenant
         $basePrefix = config('cache.prefix', 'xlinic_cache_');
 
         // Create tenant-specific prefix
-        $tenantPrefix = $basePrefix . 'tenant_' . $tenant->id . '_';
+        $tenantPrefix = $basePrefix.'tenant_'.$tenant->id.'_';
 
         // Update cache prefix in config
         Config::set('cache.prefix', $tenantPrefix);
 
         // Also update Redis prefix if using Redis
         $currentRedisPrefix = config('database.redis.options.prefix', 'xlinic_');
-        Config::set('database.redis.options.prefix', $currentRedisPrefix . 'tenant_' . $tenant->id . '_');
+        Config::set('database.redis.options.prefix', $currentRedisPrefix.'tenant_'.$tenant->id.'_');
 
         // Purge cache store to pick up new prefix
         // Note: We don't call Cache::forgetDriver() as it would clear all cache
@@ -388,8 +391,8 @@ class IdentifyTenant
 
             if ($firstSchema !== $expectedSchema) {
                 throw new \RuntimeException(
-                    "SECURITY: search_path mismatch - expected '{$expectedSchema}', got '{$firstSchema}'. " .
-                    "This may indicate PgBouncer is not in session mode or a connection race occurred."
+                    "SECURITY: search_path mismatch - expected '{$expectedSchema}', got '{$firstSchema}'. ".
+                    'This may indicate PgBouncer is not in session mode or a connection race occurred.'
                 );
             }
         } catch (\Exception $e) {
@@ -425,7 +428,7 @@ class IdentifyTenant
             // This is a fallback mechanism - the primary SET should already work
             static $searchPathSet = false;
 
-            if (!$searchPathSet && str_contains($query->sql ?? '', 'relation') && str_contains($query->sql ?? '', 'does not exist')) {
+            if (! $searchPathSet && str_contains($query->sql ?? '', 'relation') && str_contains($query->sql ?? '', 'does not exist')) {
                 // This suggests we might have a search_path issue
                 \Log::warning('Possible search_path issue detected, attempting to reset', [
                     'expected_schema' => $schemaName,

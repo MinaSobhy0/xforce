@@ -3,8 +3,8 @@
 namespace XLinic\Framework\Core\Model\Traits;
 
 use Illuminate\Database\Eloquent\Relations\MorphMany;
-use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 trait HasActivity
 {
@@ -27,7 +27,7 @@ trait HasActivity
             ->logExcept((array) config('security.audit.sensitive_fields', []))
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs()
-            ->setDescriptionForEvent(fn(string $eventName) => $this->getActivityDescription($eventName))
+            ->setDescriptionForEvent(fn (string $eventName) => $this->getActivityDescription($eventName))
             ->useLogName($this->getTable());
     }
 
@@ -39,7 +39,7 @@ trait HasActivity
         $modelName = class_basename($this);
         $displayName = $this->getDisplayName();
 
-        return match($eventName) {
+        return match ($eventName) {
             'created' => "{$modelName} '{$displayName}' was created",
             'updated' => "{$modelName} '{$displayName}' was updated",
             'deleted' => "{$modelName} '{$displayName}' was deleted",
@@ -74,7 +74,7 @@ trait HasActivity
     {
         $latestActivity = $this->latestActivity();
 
-        if (!$latestActivity) {
+        if (! $latestActivity) {
             return false;
         }
 

@@ -11,7 +11,7 @@ use Spatie\Translatable\HasTranslations;
 
 class SubscriptionPlan extends Model
 {
-    use SoftDeletes, HasTranslations, HasPostgresBoolean;
+    use HasPostgresBoolean, HasTranslations, SoftDeletes;
 
     /**
      * The database connection that should be used by the model.
@@ -164,20 +164,21 @@ class SubscriptionPlan extends Model
 
     public function getFormattedMonthlyPriceAttribute(): string
     {
-        return number_format($this->price_monthly_minor / 100, 0) . ' ' . ($this->currency ?? 'EGP');
+        return number_format($this->price_monthly_minor / 100, 0).' '.($this->currency ?? 'EGP');
     }
 
     public function getFormattedYearlyPriceAttribute(): string
     {
-        return number_format($this->price_yearly_minor / 100, 0) . ' ' . ($this->currency ?? 'EGP');
+        return number_format($this->price_yearly_minor / 100, 0).' '.($this->currency ?? 'EGP');
     }
 
     public function getYearlySavingsPercentAttribute(): int
     {
-        if (!$this->price_monthly_minor || !$this->price_yearly_minor) {
+        if (! $this->price_monthly_minor || ! $this->price_yearly_minor) {
             return 0;
         }
         $monthlyTotal = $this->price_monthly_minor * 12;
+
         return (int) round((1 - ($this->price_yearly_minor / $monthlyTotal)) * 100);
     }
 
@@ -256,6 +257,7 @@ class SubscriptionPlan extends Model
     public function hasPriceForCountry(string $countryCode): bool
     {
         $countryCode = strtoupper($countryCode);
+
         return isset($this->prices[$countryCode]);
     }
 

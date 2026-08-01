@@ -2,9 +2,9 @@
 
 namespace Modules\Auth\Models;
 
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use XLinic\Framework\Core\Model\BaseModel;
 use XLinic\Framework\Core\Model\Traits\HasTenancy;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * UserBranchRole - Branch-scoped role assignments
@@ -127,7 +127,7 @@ class UserBranchRole extends BaseModel
     {
         return $query->where(function ($q) {
             $q->whereNull('expires_at')
-              ->orWhere('expires_at', '>', now());
+                ->orWhere('expires_at', '>', now());
         });
     }
 
@@ -147,6 +147,7 @@ class UserBranchRole extends BaseModel
         if ($branchId === null) {
             return $query;
         }
+
         return $query->where('branch_id', $branchId);
     }
 
@@ -163,7 +164,7 @@ class UserBranchRole extends BaseModel
      */
     public function isValid(): bool
     {
-        return $this->is_active && !$this->isExpired();
+        return $this->is_active && ! $this->isExpired();
     }
 
     /**
@@ -173,6 +174,7 @@ class UserBranchRole extends BaseModel
     {
         $roleName = $this->role?->name ?? 'Unknown Role';
         $branchName = $this->branch?->name ?? 'Unknown Branch';
+
         return "{$roleName} @ {$branchName}";
     }
 
@@ -203,7 +205,7 @@ class UserBranchRole extends BaseModel
      */
     public static function assign(array $attributes): self
     {
-        $role = new static();
+        $role = new static;
         $role->forceFill($attributes);
         $role->save();
 

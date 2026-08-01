@@ -21,6 +21,7 @@ class BodyRewriter
     {
         $body = $this->rewriteLinks($bodyHtml, $recipient);
         $body .= $this->openPixel($recipient);
+
         return $body;
     }
 
@@ -40,6 +41,7 @@ class BodyRewriter
                     'r' => $recipient->id,
                     'u' => $target,
                 ]);
+
                 return 'href="'.$tracked.'"';
             },
             $body,
@@ -49,6 +51,7 @@ class BodyRewriter
     protected function openPixel(PlatformEmailCampaignRecipient $recipient): string
     {
         $url = URL::signedRoute('platform.track.open', ['r' => $recipient->id]);
+
         return "\n".'<img src="'.e($url).'" alt="" width="1" height="1" style="display:block;width:1px;height:1px;border:0;">'."\n";
     }
 }

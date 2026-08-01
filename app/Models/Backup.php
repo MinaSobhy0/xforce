@@ -8,7 +8,6 @@ use Illuminate\Support\Facades\Storage;
 
 class Backup extends Model
 {
-
     protected $connection = 'central';
 
     protected $table = 'public.backups';
@@ -79,19 +78,19 @@ class Backup extends Model
         $bytes = $this->size;
 
         if ($bytes >= 1073741824) {
-            return number_format($bytes / 1073741824, 2) . ' GB';
+            return number_format($bytes / 1073741824, 2).' GB';
         } elseif ($bytes >= 1048576) {
-            return number_format($bytes / 1048576, 2) . ' MB';
+            return number_format($bytes / 1048576, 2).' MB';
         } elseif ($bytes >= 1024) {
-            return number_format($bytes / 1024, 2) . ' KB';
+            return number_format($bytes / 1024, 2).' KB';
         }
 
-        return $bytes . ' bytes';
+        return $bytes.' bytes';
     }
 
     public function getDurationAttribute(): ?string
     {
-        if (!$this->started_at || !$this->completed_at) {
+        if (! $this->started_at || ! $this->completed_at) {
             return null;
         }
 
@@ -103,12 +102,12 @@ class Backup extends Model
             return gmdate('i:s', $seconds);
         }
 
-        return $seconds . 's';
+        return $seconds.'s';
     }
 
     public function getDownloadUrlAttribute(): ?string
     {
-        if ($this->status !== 'completed' || !$this->path) {
+        if ($this->status !== 'completed' || ! $this->path) {
             return null;
         }
 
@@ -125,7 +124,7 @@ class Backup extends Model
 
     public function exists(): bool
     {
-        if (!$this->path) {
+        if (! $this->path) {
             return false;
         }
 

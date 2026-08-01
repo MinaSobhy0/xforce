@@ -12,6 +12,7 @@ class CreatePlatformEmailSuppression extends CreateRecord
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $data['added_by_user_id'] = auth()->id();
+
         return $data;
     }
 }

@@ -7,7 +7,6 @@ use Illuminate\Support\Facades\Cache;
 
 class PlatformSetting extends Model
 {
-
     protected $connection = 'central';
 
     protected $table = 'public.platform_settings';
@@ -77,6 +76,7 @@ class PlatformSetting extends Model
     {
         if ($this->is_encrypted) {
             $this->attributes['value'] = encrypt($value);
+
             return;
         }
 
@@ -142,7 +142,7 @@ class PlatformSetting extends Model
     {
         $setting = self::where('key', $key)->whereRaw('is_encrypted = true')->first();
 
-        if (!$setting) {
+        if (! $setting) {
             return $default;
         }
 

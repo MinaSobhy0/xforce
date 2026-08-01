@@ -2,28 +2,31 @@
 
 namespace Modules\Core\Resources;
 
-use XLinic\Framework\Core\Filament\BaseResource;
-use Modules\Core\Models\Tenant;
-use Modules\Core\Models\TenantStatus;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
+use Filament\Support\Enums\FontWeight;
+use Filament\Tables;
+use Filament\Tables\Enums\FiltersLayout;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Modules\Core\Models\Tenant;
+use Modules\Core\Models\TenantStatus;
 use Modules\Core\Resources\TenantResource\Pages;
 use Modules\Core\Resources\TenantResource\RelationManagers;
-use Filament\Support\Enums\FontWeight;
-use Filament\Tables\Enums\FiltersLayout;
-use Illuminate\Database\Eloquent\Builder;
+use XLinic\Framework\Core\Filament\BaseResource;
 
 class TenantResource extends BaseResource
 {
     protected static ?string $model = Tenant::class;
+
     protected static ?string $navigationIcon = 'heroicon-o-building-office-2';
+
     protected static ?string $navigationGroup = 'System Management';
+
     protected static ?int $navigationSort = 10;
+
     protected static ?string $moduleCode = 'core';
 
     public static function getNavigationLabel(): string
@@ -315,7 +318,7 @@ class TenantResource extends BaseResource
                     ->dateTime()
                     ->sortable()
                     ->toggleable()
-                    ->color(fn($record) => $record?->subscription_expires_at?->isPast() ? 'danger' : 'success'),
+                    ->color(fn ($record) => $record?->subscription_expires_at?->isPast() ? 'danger' : 'success'),
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->label(__('Created'))
@@ -405,7 +408,7 @@ class TenantResource extends BaseResource
                                     // seat-cap gate. See User::countExistingRecords
                                     // and UserLimitObserver — inactive /
                                     // suspended / pending users don't burn a seat.
-                                    ->state(fn ($record) => $record->users()->where('status', 'active')->count() . ' / ' . $record->max_users)
+                                    ->state(fn ($record) => $record->users()->where('status', 'active')->count().' / '.$record->max_users)
                                     ->badge()
                                     ->color('info'),
                                 Infolists\Components\TextEntry::make('max_patients')
@@ -413,7 +416,7 @@ class TenantResource extends BaseResource
                                     ->numeric(),
                                 Infolists\Components\TextEntry::make('max_storage_mb')
                                     ->label(__('Storage Limit'))
-                                    ->state(fn ($record) => number_format($record->max_storage_mb) . ' MB'),
+                                    ->state(fn ($record) => number_format($record->max_storage_mb).' MB'),
                             ]),
                     ]),
 

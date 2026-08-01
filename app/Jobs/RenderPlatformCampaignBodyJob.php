@@ -41,6 +41,7 @@ class RenderPlatformCampaignBodyJob implements ShouldQueue
         }
         if ($recipient->rendered_body_html) {
             SendPlatformCampaignEmailJob::dispatch($recipient->id)->onConnection('central');
+
             return;
         }
         $campaign = $recipient->campaign;

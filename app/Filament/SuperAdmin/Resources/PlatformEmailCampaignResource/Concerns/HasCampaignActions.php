@@ -103,6 +103,7 @@ trait HasCampaignActions
                     // any list members haven't been targeted yet.
                     $listSize = $record->list?->activeMembers()->count() ?? 0;
                     $already = $record->recipients()->count();
+
                     return $listSize > $already;
                 })
                 ->action(function (array $data): void {
@@ -147,6 +148,7 @@ trait HasCampaignActions
 
         if ($emails->isEmpty()) {
             Notification::make()->title('No valid addresses supplied')->danger()->send();
+
             return;
         }
 

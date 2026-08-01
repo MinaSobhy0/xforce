@@ -6,12 +6,11 @@ use App\Filament\SuperAdmin\Resources\BackupResource\Pages;
 use App\Models\Backup;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
+use Filament\Support\Enums\FontWeight;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Filament\Notifications\Notification;
-use Filament\Support\Enums\FontWeight;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Storage;
 
 class BackupResource extends Resource
@@ -35,7 +34,7 @@ class BackupResource extends Resource
                     Forms\Components\TextInput::make('name')
                         ->required()
                         ->maxLength(255)
-                        ->default(fn() => 'Backup ' . now()->format('Y-m-d H:i')),
+                        ->default(fn () => 'Backup '.now()->format('Y-m-d H:i')),
 
                     Forms\Components\Select::make('type')
                         ->options(Backup::TYPES)
@@ -56,7 +55,7 @@ class BackupResource extends Resource
                         ->searchable()
                         ->preload()
                         ->placeholder('All tenants (full backup)')
-                        ->visible(fn(Forms\Get $get) => $get('type') === 'tenant'),
+                        ->visible(fn (Forms\Get $get) => $get('type') === 'tenant'),
 
                     Forms\Components\Textarea::make('notes')
                         ->maxLength(500)
@@ -71,13 +70,13 @@ class BackupResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
-                    ->color(fn(string $state): string => match ($state) {
+                    ->color(fn (string $state): string => match ($state) {
                         'completed' => 'success',
                         'running' => 'warning',
                         'failed' => 'danger',
                         default => 'gray',
                     })
-                    ->icon(fn(string $state): string => match ($state) {
+                    ->icon(fn (string $state): string => match ($state) {
                         'completed' => 'heroicon-o-check-circle',
                         'running' => 'heroicon-o-arrow-path',
                         'failed' => 'heroicon-o-x-circle',
@@ -91,7 +90,7 @@ class BackupResource extends Resource
                 Tables\Columns\TextColumn::make('type')
                     ->badge()
                     ->color('info')
-                    ->formatStateUsing(fn($state) => Backup::TYPES[$state] ?? $state),
+                    ->formatStateUsing(fn ($state) => Backup::TYPES[$state] ?? $state),
 
                 Tables\Columns\TextColumn::make('tenant.name')
                     ->label('Tenant')
@@ -105,7 +104,7 @@ class BackupResource extends Resource
 
                 Tables\Columns\TextColumn::make('disk')
                     ->badge()
-                    ->color(fn($state) => $state === 's3' ? 'success' : 'gray'),
+                    ->color(fn ($state) => $state === 's3' ? 'success' : 'gray'),
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Created')
@@ -131,9 +130,9 @@ class BackupResource extends Resource
                     ->label('Download')
                     ->icon('heroicon-o-arrow-down-tray')
                     ->color('success')
-                    ->url(fn(Backup $record) => $record->download_url)
+                    ->url(fn (Backup $record) => $record->download_url)
                     ->openUrlInNewTab()
-                    ->visible(fn(Backup $record) => $record->status === 'completed' && $record->exists()),
+                    ->visible(fn (Backup $record) => $record->status === 'completed' && $record->exists()),
 
                 Tables\Actions\Action::make('restore')
                     ->label('Restore')
@@ -151,13 +150,13 @@ class BackupResource extends Resource
                             ->info()
                             ->send();
                     })
-                    ->visible(fn(Backup $record) => $record->status === 'completed'),
+                    ->visible(fn (Backup $record) => $record->status === 'completed'),
 
                 Tables\Actions\Action::make('retry')
                     ->label('Retry')
                     ->icon('heroicon-o-arrow-path')
                     ->color('warning')
-                    ->visible(fn(Backup $record) => $record->status === 'failed')
+                    ->visible(fn (Backup $record) => $record->status === 'failed')
                     ->action(function (Backup $record): void {
                         $record->update(['status' => 'pending']);
                         Notification::make()
@@ -201,7 +200,7 @@ class BackupResource extends Resource
                     ->form([
                         Forms\Components\TextInput::make('name')
                             ->required()
-                            ->default(fn() => 'Backup ' . now()->format('Y-m-d H:i')),
+                            ->default(fn () => 'Backup '.now()->format('Y-m-d H:i')),
 
                         Forms\Components\Select::make('type')
                             ->options(Backup::TYPES)
@@ -231,7 +230,7 @@ class BackupResource extends Resource
                             'name' => $data['name'],
                             'type' => $data['type'],
                             'disk' => $data['disk'],
-                            'filename' => 'backup-' . now()->format('Y-m-d-His') . '.sql.gz',
+                            'filename' => 'backup-'.now()->format('Y-m-d-His').'.sql.gz',
                             'status' => 'pending',
                             'notes' => $data['notes'] ?? null,
                             'created_by' => auth()->id(),

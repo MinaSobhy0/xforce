@@ -15,13 +15,21 @@ class PlatformEmailCampaignRecipient extends Model
     use HasFactory;
 
     public const STATUS_PENDING = 'pending';
+
     public const STATUS_RENDERING = 'rendering';
+
     public const STATUS_SENDING = 'sending';
+
     public const STATUS_SENT = 'sent';
+
     public const STATUS_DELIVERED = 'delivered';
+
     public const STATUS_FAILED = 'failed';
+
     public const STATUS_BOUNCED = 'bounced';
+
     public const STATUS_UNSUBSCRIBED = 'unsubscribed';
+
     public const STATUS_SUPPRESSED = 'suppressed';
 
     public const STATUSES = [

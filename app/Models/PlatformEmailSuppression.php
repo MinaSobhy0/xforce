@@ -15,8 +15,11 @@ class PlatformEmailSuppression extends Model
     public const UPDATED_AT = null; // append-only
 
     public const REASON_UNSUBSCRIBED = 'unsubscribed';
+
     public const REASON_BOUNCED = 'bounced';
+
     public const REASON_COMPLAINED = 'complained';
+
     public const REASON_MANUAL = 'manual';
 
     public const REASONS = [

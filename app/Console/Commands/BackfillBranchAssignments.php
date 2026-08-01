@@ -44,6 +44,7 @@ class BackfillBranchAssignments extends Command
         foreach ($tenants as $t) {
             if (! preg_match('/^[a-z][a-z0-9_]*$/', (string) $t->database_name)) {
                 $this->warn("skip invalid schema: {$t->database_name}");
+
                 continue;
             }
             if ($only !== null && $t->slug !== $only) {
@@ -51,13 +52,14 @@ class BackfillBranchAssignments extends Command
             }
 
             try {
-                DB::statement('SET search_path TO "' . $t->database_name . '"');
+                DB::statement('SET search_path TO "'.$t->database_name.'"');
 
                 $branches = DB::table('branches')->where('is_active', true)
                     ->orderBy('is_main', 'desc')->orderBy('id')->pluck('id')->all();
 
                 if (empty($branches)) {
-                    $this->line(str_pad($t->slug, 12) . ' (no active branches — skipped)');
+                    $this->line(str_pad($t->slug, 12).' (no active branches — skipped)');
+
                     continue;
                 }
 
@@ -79,6 +81,7 @@ class BackfillBranchAssignments extends Command
 
                     if ($roleId === null) {
                         $this->warn("  user {$uid}: no role available — skipped");
+
                         continue;
                     }
 
@@ -102,17 +105,17 @@ class BackfillBranchAssignments extends Command
                     }
                 }
 
-                $this->line(str_pad($t->slug, 12) . " branches=" . count($branches)
-                    . " users_assigned={$usersDone} rows_created={$created}");
+                $this->line(str_pad($t->slug, 12).' branches='.count($branches)
+                    ." users_assigned={$usersDone} rows_created={$created}");
                 $grand += $created;
             } catch (\Throwable $e) {
-                $this->error("{$t->slug}: " . $e->getMessage());
+                $this->error("{$t->slug}: ".$e->getMessage());
             } finally {
                 DB::statement('SET search_path TO public');
             }
         }
 
-        $this->info(($dry ? 'Would create' : 'Created') . " {$grand} assignment row(s).");
+        $this->info(($dry ? 'Would create' : 'Created')." {$grand} assignment row(s).");
 
         return self::SUCCESS;
     }

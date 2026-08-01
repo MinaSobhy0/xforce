@@ -28,9 +28,9 @@ class ProcessPlatformCampaignJob implements ShouldQueue
      *                       send 5 first, review results, then re-run
      *                       Send Now to email the remaining members.
      * @param  bool  $renderOnly  When true, materialize + AI-render each
-     *                       recipient's body, then stop. No SendJobs
-     *                       dispatched. Non-AI campaigns ignore this
-     *                       flag (nothing to render, materialize alone).
+     *                            recipient's body, then stop. No SendJobs
+     *                            dispatched. Non-AI campaigns ignore this
+     *                            flag (nothing to render, materialize alone).
      */
     public function __construct(public int $campaignId, public ?int $limit = null, public bool $renderOnly = false)
     {
@@ -69,6 +69,7 @@ class ProcessPlatformCampaignJob implements ShouldQueue
                         if ($campaign->ai_personalize) {
                             RenderOnlyPlatformCampaignBodyJob::dispatch($recipient->id)->onConnection('central');
                         }
+
                         continue;
                     }
                     if ($campaign->ai_personalize) {

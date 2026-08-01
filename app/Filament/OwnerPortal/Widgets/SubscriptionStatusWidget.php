@@ -18,7 +18,7 @@ class SubscriptionStatusWidget extends Widget
         $user = Auth::user();
         $tenant = $user?->tenant;
 
-        if (!$tenant) {
+        if (! $tenant) {
             return [
                 'plan_name' => 'No Plan',
                 'status' => 'inactive',

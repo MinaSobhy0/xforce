@@ -16,9 +16,13 @@ class PlatformEmailCampaign extends Model
     use HasFactory;
 
     public const STATUS_DRAFT = 'draft';
+
     public const STATUS_SCHEDULED = 'scheduled';
+
     public const STATUS_SENDING = 'sending';
+
     public const STATUS_SENT = 'sent';
+
     public const STATUS_CANCELLED = 'cancelled';
 
     public const STATUSES = [
@@ -30,6 +34,7 @@ class PlatformEmailCampaign extends Model
     ];
 
     public const LANG_EN = 'en';
+
     public const LANG_AR = 'ar';
 
     public const LANGUAGES = [
@@ -128,6 +133,7 @@ class PlatformEmailCampaign extends Model
         if ($this->status === self::STATUS_SENT) {
             $listSize = $this->list?->activeMembers()->count() ?? 0;
             $already = $this->recipients()->count();
+
             return $listSize > $already;
         }
 
@@ -147,12 +153,12 @@ class PlatformEmailCampaign extends Model
      * Skips addresses on the global suppression list at snapshot time
      * so we don't even materialize rows we'll immediately reject.
      *
-     * @param ?int $limit  Cap the number of NEW recipient rows created
-     *                     during this call. NULL = no cap (freeze the
-     *                     whole list). Used for canary / staged sends
-     *                     where you want to email 5 first, review, then
-     *                     re-run to email the remainder. Members are
-     *                     picked in list-order (by member id ASC).
+     * @param  ?int  $limit  Cap the number of NEW recipient rows created
+     *                       during this call. NULL = no cap (freeze the
+     *                       whole list). Used for canary / staged sends
+     *                       where you want to email 5 first, review, then
+     *                       re-run to email the remainder. Members are
+     *                       picked in list-order (by member id ASC).
      */
     public function materialize(?int $limit = null): int
     {

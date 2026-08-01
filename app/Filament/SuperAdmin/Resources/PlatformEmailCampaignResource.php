@@ -105,7 +105,7 @@ class PlatformEmailCampaignResource extends Resource
                     Forms\Components\Textarea::make('ai_prompt_template')
                         ->label('Author constraints (optional)')
                         ->rows(3)
-                        ->placeholder("Keep the tone warm and Egyptian-Arabic-friendly. Never mention competitors. Keep under 200 words.")
+                        ->placeholder('Keep the tone warm and Egyptian-Arabic-friendly. Never mention competitors. Keep under 200 words.')
                         ->visible(fn (Forms\Get $get) => (bool) $get('ai_personalize')),
 
                     Forms\Components\Toggle::make('ai_use_batch_api')
@@ -187,6 +187,7 @@ class PlatformEmailCampaignResource extends Resource
                                 ->title('Could not translate — draft was NOT created.')
                                 ->body($e->getMessage())
                                 ->danger()->send();
+
                             return;
                         }
 
@@ -233,6 +234,7 @@ class PlatformEmailCampaignResource extends Resource
     protected static function listSizeHint(): string
     {
         $total = PlatformEmailList::query()->where('is_active', true)->count();
+
         return "Choose from {$total} active list(s). New members added after Send Now do NOT retroactively get this campaign.";
     }
 }

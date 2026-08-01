@@ -43,7 +43,7 @@ class SecurityHeaders
 
         // Content Security Policy - restrictive by default
         // This helps prevent XSS attacks by controlling resource loading
-        if (!$this->isApiRequest($request) && !$this->isLivewireRequest($request)) {
+        if (! $this->isApiRequest($request) && ! $this->isLivewireRequest($request)) {
             // Enforced policy — unchanged (keeps the unsafe-inline/unsafe-eval
             // that Livewire/Alpine currently need). This is what actually runs.
             $response->headers->set('Content-Security-Policy', $this->buildContentSecurityPolicy($request));
@@ -74,7 +74,6 @@ class SecurityHeaders
         $scriptUnsafe = $reportOnly ? '' : " 'unsafe-inline' 'unsafe-eval'";
         $styleUnsafe = $reportOnly ? '' : " 'unsafe-inline'";
 
-
         $policies = [
             // Default to self
             "default-src 'self'",
@@ -82,10 +81,10 @@ class SecurityHeaders
             // Scripts - allow self, inline (for Alpine.js/Livewire), specific CDNs.
             // www.google.com + www.gstatic.com are required for Google reCAPTCHA v3
             // (used by the public contact forms).
-            "script-src 'self'".$scriptUnsafe." https://cdn.jsdelivr.net https://unpkg.com https://www.google.com https://www.gstatic.com",
+            "script-src 'self'".$scriptUnsafe.' https://cdn.jsdelivr.net https://unpkg.com https://www.google.com https://www.gstatic.com',
 
             // Styles - allow self, inline (for Tailwind), and Google Fonts
-            "style-src 'self'".$styleUnsafe." https://fonts.googleapis.com",
+            "style-src 'self'".$styleUnsafe.' https://fonts.googleapis.com',
 
             // Fonts
             "font-src 'self' https://fonts.gstatic.com data:",

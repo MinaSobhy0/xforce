@@ -3,13 +3,13 @@
 namespace App\Filament\SuperAdmin\Pages;
 
 use App\Models\PlatformSetting;
+use Filament\Actions\Action;
 use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Pages\Page;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
-use Filament\Actions\Action;
+use Filament\Forms\Form;
 use Filament\Notifications\Notification;
+use Filament\Pages\Page;
 
 class PlatformSettings extends Page implements HasForms
 {
@@ -383,10 +383,11 @@ class PlatformSettings extends Page implements HasForms
                                     ->label('Last Backup')
                                     ->content(function () {
                                         $lastBackup = \App\Models\Backup::latest()->first();
-                                        if (!$lastBackup) {
+                                        if (! $lastBackup) {
                                             return 'No backups yet';
                                         }
                                         $status = $lastBackup->status === 'completed' ? '✅' : ($lastBackup->status === 'failed' ? '❌' : '⏳');
+
                                         return "{$status} {$lastBackup->created_at->diffForHumans()} - {$lastBackup->filename}";
                                     }),
 
@@ -409,7 +410,7 @@ class PlatformSettings extends Page implements HasForms
                                         Forms\Components\Placeholder::make('backblaze_status')
                                             ->label('Status')
                                             ->content(function () {
-                                                if (!\App\Services\BackblazeService::isConfigured()) {
+                                                if (! \App\Services\BackblazeService::isConfigured()) {
                                                     return '❌ Not configured — fill in the key ID, application key and bucket, then save.';
                                                 }
 
@@ -445,14 +446,14 @@ class PlatformSettings extends Page implements HasForms
                                                 ->action(function () {
                                                     try {
                                                         $tmpDir = storage_path('app/tmp');
-                                                        if (!is_dir($tmpDir)) {
+                                                        if (! is_dir($tmpDir)) {
                                                             mkdir($tmpDir, 0700, true);
                                                         }
-                                                        $testFile = $tmpDir . '/backblaze-connection-test.txt';
-                                                        file_put_contents($testFile, 'XLinic Backblaze connection test at ' . now()->toDateTimeString());
+                                                        $testFile = $tmpDir.'/backblaze-connection-test.txt';
+                                                        file_put_contents($testFile, 'XLinic Backblaze connection test at '.now()->toDateTimeString());
 
                                                         $folder = trim((string) PlatformSetting::get('backblaze_folder', 'XLinic-Backups'), '/');
-                                                        $remote = ($folder !== '' ? $folder . '/' : '') . 'connection-test.txt';
+                                                        $remote = ($folder !== '' ? $folder.'/' : '').'connection-test.txt';
                                                         app(\App\Services\BackblazeService::class)->upload($testFile, $remote);
                                                         unlink($testFile);
 
@@ -544,19 +545,19 @@ class PlatformSettings extends Page implements HasForms
         PlatformSetting::set('payment_gateway', $data['payment_gateway'], 'payment');
 
         // Save API key encrypted (only if a new value is provided)
-        if (!empty($data['payment_api_key'])) {
+        if (! empty($data['payment_api_key'])) {
             PlatformSetting::setEncrypted('payment_api_key', $data['payment_api_key'], 'payment');
         }
 
-        if (!empty($data['payment_merchant_id'])) {
+        if (! empty($data['payment_merchant_id'])) {
             PlatformSetting::set('payment_merchant_id', $data['payment_merchant_id'], 'payment');
         }
 
-        if (!empty($data['payment_integration_id'])) {
+        if (! empty($data['payment_integration_id'])) {
             PlatformSetting::set('payment_integration_id', $data['payment_integration_id'], 'payment');
         }
 
-        if (!empty($data['payment_iframe_id'])) {
+        if (! empty($data['payment_iframe_id'])) {
             PlatformSetting::set('payment_iframe_id', $data['payment_iframe_id'], 'payment');
         }
 
@@ -570,27 +571,27 @@ class PlatformSettings extends Page implements HasForms
         PlatformSetting::set('footer_text', $data['footer_text'], 'branding');
 
         // Handle file uploads
-        if (!empty($data['platform_logo'])) {
+        if (! empty($data['platform_logo'])) {
             $logo = is_array($data['platform_logo']) ? reset($data['platform_logo']) : $data['platform_logo'];
             PlatformSetting::set('platform_logo', $logo, 'branding');
         }
 
-        if (!empty($data['platform_logo_dark'])) {
+        if (! empty($data['platform_logo_dark'])) {
             $logoDark = is_array($data['platform_logo_dark']) ? reset($data['platform_logo_dark']) : $data['platform_logo_dark'];
             PlatformSetting::set('platform_logo_dark', $logoDark, 'branding');
         }
 
-        if (!empty($data['website_logo'])) {
+        if (! empty($data['website_logo'])) {
             $websiteLogo = is_array($data['website_logo']) ? reset($data['website_logo']) : $data['website_logo'];
             PlatformSetting::set('website_logo', $websiteLogo, 'branding');
         }
 
-        if (!empty($data['favicon'])) {
+        if (! empty($data['favicon'])) {
             $favicon = is_array($data['favicon']) ? reset($data['favicon']) : $data['favicon'];
             PlatformSetting::set('favicon', $favicon, 'branding');
         }
 
-        if (!empty($data['login_page_image'])) {
+        if (! empty($data['login_page_image'])) {
             $loginImage = is_array($data['login_page_image']) ? reset($data['login_page_image']) : $data['login_page_image'];
             PlatformSetting::set('login_page_image', $loginImage, 'branding');
         }

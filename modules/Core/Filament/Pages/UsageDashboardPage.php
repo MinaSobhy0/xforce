@@ -2,9 +2,9 @@
 
 namespace Modules\Core\Filament\Pages;
 
-use Filament\Pages\Page;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
+use Filament\Pages\Page;
 use Illuminate\Support\Facades\DB;
 use Modules\Auth\Models\User;
 use Modules\Auth\Models\UserStatus;
@@ -31,7 +31,7 @@ class UsageDashboardPage extends Page
     {
         $user = auth()->user();
 
-        if (!$user) {
+        if (! $user) {
             return false;
         }
 
@@ -50,11 +50,13 @@ class UsageDashboardPage extends Page
             ->where('guard_name', 'web')
             ->exists();
 
-        return !$permissionExists;
+        return ! $permissionExists;
     }
 
     public ?array $usage = [];
+
     public ?array $limits = [];
+
     public ?array $monthlyStats = [];
 
     public static function getNavigationLabel(): string
@@ -72,10 +74,11 @@ class UsageDashboardPage extends Page
         $tenantManager = app(TenantManager::class);
         $tenant = $tenantManager->current();
 
-        if (!$tenant) {
+        if (! $tenant) {
             $this->usage = [];
             $this->limits = [];
             $this->monthlyStats = [];
+
             return;
         }
 
@@ -210,7 +213,7 @@ class UsageDashboardPage extends Page
             ],
             [
                 'label' => __('core::core.revenue_this_month'),
-                'value' => number_format(($this->monthlyStats['revenue_this_month'] ?? 0) / 100, 2) . ' EGP',
+                'value' => number_format(($this->monthlyStats['revenue_this_month'] ?? 0) / 100, 2).' EGP',
                 'icon' => 'heroicon-o-banknotes',
                 'color' => 'success',
             ],
@@ -266,7 +269,7 @@ class UsageDashboardPage extends Page
         $tenantManager = app(TenantManager::class);
         $tenant = $tenantManager->current();
 
-        if (!$tenant) {
+        if (! $tenant) {
             return;
         }
 

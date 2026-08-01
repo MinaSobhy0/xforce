@@ -3,33 +3,37 @@
 namespace Modules\Auth\Filament\Resources;
 
 use App\Traits\ChecksResourcePermissions;
-use Filament\Resources\Resource;
-use Modules\Auth\Models\User;
-use Modules\Auth\Models\Role;
-use Modules\Auth\Models\UserStatus;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Tables;
-use Filament\Tables\Table;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
-use Modules\Auth\Filament\Resources\UserResource\Pages;
-use Modules\Auth\Filament\Resources\UserResource\RelationManagers;
+use Filament\Resources\Resource;
 use Filament\Support\Enums\FontWeight;
+use Filament\Tables;
+use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Hash;
+use Modules\Auth\Filament\Resources\UserResource\Pages;
+use Modules\Auth\Filament\Resources\UserResource\RelationManagers;
+use Modules\Auth\Models\User;
+use Modules\Auth\Models\UserStatus;
 
 class UserResource extends Resource
 {
     use ChecksResourcePermissions;
 
     protected static ?string $model = User::class;
+
     protected static ?string $navigationIcon = 'heroicon-o-users';
+
     protected static ?string $navigationGroup = 'Settings';
+
     protected static ?int $navigationSort = 1;
 
     protected static ?string $recordTitleAttribute = 'name';
+
     protected static ?string $moduleCode = 'auth';
+
     protected static ?string $permissionKey = 'users';
 
     public static function getNavigationLabel(): string
@@ -175,7 +179,7 @@ class UserResource extends Resource
                                             ->orderBy('name');
 
                                         // If user has restricted branches, only show those
-                                        if (!empty($allowedBranchIds)) {
+                                        if (! empty($allowedBranchIds)) {
                                             $query->whereIn('id', $allowedBranchIds);
                                         }
 
@@ -531,6 +535,7 @@ class UserResource extends Resource
                                 // Skip if user already has a staff profile
                                 if (\Modules\Staff\Models\StaffProfile::where('user_id', $user->id)->exists()) {
                                     $skipped++;
+
                                     continue;
                                 }
 
@@ -666,7 +671,6 @@ class UserResource extends Resource
             'edit' => Pages\EditUser::route('/{record}/edit'),
         ];
     }
-
 
     protected static ?string $slug = 'users';
 }

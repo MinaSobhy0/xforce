@@ -16,7 +16,7 @@ Schedule::command('tenants:backup')
         $frequency = PlatformSetting::get('backup_frequency', 'daily');
         $autoBackup = PlatformSetting::get('auto_backup', true);
 
-        if (!$autoBackup) {
+        if (! $autoBackup) {
             return false;
         }
 

@@ -2,11 +2,8 @@
 
 namespace Modules\Auth\Models;
 
-use XLinic\Framework\Core\Model\BaseModel;
-use XLinic\Framework\Core\Model\Traits\HasTenancy;
-use XLinic\Framework\Core\Model\Traits\HasPortalAccess;
-use XLinic\Framework\Core\Model\Traits\HasActivity;
-use XLinic\Framework\Core\Model\Traits\EnforcesTenantLimits;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 use Illuminate\Auth\Authenticatable;
 use Illuminate\Auth\MustVerifyEmail;
 use Illuminate\Auth\Passwords\CanResetPassword;
@@ -22,34 +19,33 @@ use Illuminate\Foundation\Auth\Access\Authorizable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
-use Filament\Models\Contracts\FilamentUser;
-use Filament\Panel;
+use XLinic\Framework\Core\Model\BaseModel;
+use XLinic\Framework\Core\Model\Traits\EnforcesTenantLimits;
+use XLinic\Framework\Core\Model\Traits\HasActivity;
+use XLinic\Framework\Core\Model\Traits\HasPortalAccess;
+use XLinic\Framework\Core\Model\Traits\HasTenancy;
 
-class User extends BaseModel implements
-    AuthenticatableContract,
-    AuthorizableContract,
-    CanResetPasswordContract,
-    MustVerifyEmailContract,
-    FilamentUser
+class User extends BaseModel implements AuthenticatableContract, AuthorizableContract, CanResetPasswordContract, FilamentUser, MustVerifyEmailContract
 {
-    use Authenticatable,
+    use \App\Traits\TwoFactorAuthenticatable,
+        Authenticatable,
         Authorizable,
         CanResetPassword,
-        MustVerifyEmail,
+        EnforcesTenantLimits,
+        HasActivity,
         HasApiTokens,
+        HasPortalAccess,
         HasRoles,
         HasTenancy,
-        HasPortalAccess,
-        HasActivity,
+        MustVerifyEmail,
         Notifiable,
-        SoftDeletes,
-        EnforcesTenantLimits,
-        \App\Traits\TwoFactorAuthenticatable;
+        SoftDeletes;
 
     /**
      * SECURITY: Tenant limit enforcement configuration.
      */
     protected string $tenantLimitField = 'max_users';
+
     protected string $tenantLimitResourceName = 'users';
 
     /**
@@ -307,7 +303,7 @@ class User extends BaseModel implements
             ->where('is_active', true)
             ->where(function ($q) {
                 $q->whereNull('expires_at')
-                  ->orWhere('expires_at', '>', now());
+                    ->orWhere('expires_at', '>', now());
             });
     }
 
@@ -322,12 +318,12 @@ class User extends BaseModel implements
             'user_id',
             'branch_id'
         )
-        ->wherePivot('is_active', true)
-        ->where(function ($q) {
-            $q->whereNull('user_branch_roles.expires_at')
-              ->orWhere('user_branch_roles.expires_at', '>', now());
-        })
-        ->distinct();
+            ->wherePivot('is_active', true)
+            ->where(function ($q) {
+                $q->whereNull('user_branch_roles.expires_at')
+                    ->orWhere('user_branch_roles.expires_at', '>', now());
+            })
+            ->distinct();
     }
 
     /**
@@ -351,7 +347,7 @@ class User extends BaseModel implements
             ->where('is_primary', true)
             ->where(function ($q) {
                 $q->whereNull('expires_at')
-                  ->orWhere('expires_at', '>', now());
+                    ->orWhere('expires_at', '>', now());
             })
             ->first();
 
@@ -462,7 +458,8 @@ class User extends BaseModel implements
     {
         $firstInitial = $this->first_name ? substr($this->first_name, 0, 1) : '';
         $lastInitial = $this->last_name ? substr($this->last_name, 0, 1) : '';
-        return strtoupper($firstInitial . $lastInitial);
+
+        return strtoupper($firstInitial.$lastInitial);
     }
 
     public function getDisplayNameAttribute(): string
@@ -482,6 +479,7 @@ class User extends BaseModel implements
 
         // Generate Gravatar URL
         $hash = md5(strtolower(trim($this->email)));
+
         return "https://www.gravatar.com/avatar/{$hash}?d=mp&s=200";
     }
 
@@ -514,11 +512,11 @@ class User extends BaseModel implements
     public function canAccessPanel(Panel $panel): bool
     {
         // Skip checks if user not fully loaded
-        if (!$this->id) {
+        if (! $this->id) {
             return false;
         }
 
-        if (!$this->isActive()) {
+        if (! $this->isActive()) {
             return false;
         }
 
@@ -541,7 +539,7 @@ class User extends BaseModel implements
     }
 
     // Account management methods
-    public function lockAccount(int $minutes = null): void
+    public function lockAccount(?int $minutes = null): void
     {
         $this->update([
             'locked_until' => now()->addMinutes($minutes ?? config('security.login.lockout_minutes', 15)),
@@ -618,14 +616,14 @@ class User extends BaseModel implements
     // Username generation
     protected function generateUsername(): string
     {
-        $base = strtolower($this->first_name . $this->last_name);
+        $base = strtolower($this->first_name.$this->last_name);
         $base = preg_replace('/[^a-z0-9]/', '', $base);
 
         $username = $base;
         $counter = 1;
 
         while (static::where('username', $username)->exists()) {
-            $username = $base . $counter;
+            $username = $base.$counter;
             $counter++;
         }
 
@@ -641,7 +639,7 @@ class User extends BaseModel implements
     public function addPermissionOverride(string $permission): void
     {
         $overrides = $this->permissions_override ?? [];
-        if (!in_array($permission, $overrides)) {
+        if (! in_array($permission, $overrides)) {
             $overrides[] = $permission;
             $this->update(['permissions_override' => $overrides]);
         }
@@ -651,7 +649,7 @@ class User extends BaseModel implements
     {
         $overrides = array_filter(
             $this->permissions_override ?? [],
-            fn($p) => $p !== $permission
+            fn ($p) => $p !== $permission
         );
         $this->update(['permissions_override' => array_values($overrides)]);
     }

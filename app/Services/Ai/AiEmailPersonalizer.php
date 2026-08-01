@@ -18,15 +18,14 @@ class AiEmailPersonalizer
 {
     public function __construct(
         protected LlmProviderRegistry $registry,
-    ) {
-    }
+    ) {}
 
     /**
-     * @param  string  $brief         The campaign's raw body_html.
-     * @param  string  $promptExtra   Author's tone / style constraints.
-     * @param  array   $recipient     ['name_hint' => ?string, 'email' => string]
-     * @param  array   $context       Frozen tenant/plan snapshot ('tenant_name', 'plan_code', 'branch_count', ...).
-     * @param  ?string $modelKey      Override the campaign default; null = campaign default.
+     * @param  string  $brief  The campaign's raw body_html.
+     * @param  string  $promptExtra  Author's tone / style constraints.
+     * @param  array  $recipient  ['name_hint' => ?string, 'email' => string]
+     * @param  array  $context  Frozen tenant/plan snapshot ('tenant_name', 'plan_code', 'branch_count', ...).
+     * @param  ?string  $modelKey  Override the campaign default; null = campaign default.
      */
     public function personalize(
         string $brief,
@@ -65,6 +64,7 @@ class AiEmailPersonalizer
                 $replacements['{{'.$key.'}}'] = e((string) $value);
             }
         }
+
         return strtr($brief, $replacements);
     }
 
@@ -91,9 +91,9 @@ class AiEmailPersonalizer
 
    Numbers: use Arabic-Indic (٠١٢٣) or Latin (0123) — pick ONE and
    stay consistent."
-            : "You write the entire email in English. Keep the tone warm
+            : 'You write the entire email in English. Keep the tone warm
    and professional. Egyptian-Arabic-friendly phrasing is fine
-   (recipient may respond in either language).";
+   (recipient may respond in either language).';
 
         $base = <<<PROMPT
 You are an email copywriter for XLinic, a SaaS platform for clinics.

@@ -12,7 +12,7 @@ class TenantUsageWidget extends BaseWidget
 
     protected function getStats(): array
     {
-        if (!$this->record) {
+        if (! $this->record) {
             return [];
         }
 
@@ -39,18 +39,18 @@ class TenantUsageWidget extends BaseWidget
             : 0;
 
         return [
-            Stat::make(__('Users'), $userCount . ' / ' . $this->record->max_users)
-                ->description($userPercentage . '% ' . __('of limit'))
+            Stat::make(__('Users'), $userCount.' / '.$this->record->max_users)
+                ->description($userPercentage.'% '.__('of limit'))
                 ->descriptionIcon('heroicon-m-users')
                 ->color($userPercentage > 90 ? 'danger' : ($userPercentage > 75 ? 'warning' : 'success')),
 
-            Stat::make(__('Patients'), number_format($patientCount) . ' / ' . number_format($this->record->max_patients))
-                ->description($patientPercentage . '% ' . __('of limit'))
+            Stat::make(__('Patients'), number_format($patientCount).' / '.number_format($this->record->max_patients))
+                ->description($patientPercentage.'% '.__('of limit'))
                 ->descriptionIcon('heroicon-m-user-group')
                 ->color($patientPercentage > 90 ? 'danger' : ($patientPercentage > 75 ? 'warning' : 'success')),
 
-            Stat::make(__('Storage'), number_format($storageUsed) . ' MB / ' . number_format($this->record->max_storage_mb) . ' MB')
-                ->description($storagePercentage . '% ' . __('of limit'))
+            Stat::make(__('Storage'), number_format($storageUsed).' MB / '.number_format($this->record->max_storage_mb).' MB')
+                ->description($storagePercentage.'% '.__('of limit'))
                 ->descriptionIcon('heroicon-m-server-stack')
                 ->color($storagePercentage > 90 ? 'danger' : ($storagePercentage > 75 ? 'warning' : 'success')),
 

@@ -60,7 +60,8 @@ class AdminPanelProvider extends PanelProvider
             ->darkMode()
             ->favicon(function () {
                 $favicon = \App\Models\PlatformSetting::get('favicon');
-                return $favicon ? asset('storage/' . $favicon) : null;
+
+                return $favicon ? asset('storage/'.$favicon) : null;
             })
 
             // Sidebar settings

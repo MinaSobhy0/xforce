@@ -66,6 +66,7 @@ class SendPlatformCampaignEmailJob implements ShouldQueue
                 'error_message' => 'Suppressed at send time',
             ]);
             $campaign->increment('failed_count');
+
             return;
         }
 
@@ -85,6 +86,7 @@ class SendPlatformCampaignEmailJob implements ShouldQueue
                     'error_message' => "Weekly limit reached ({$recentSendCount}/{$weeklyLimit})",
                 ]);
                 $campaign->increment('failed_count');
+
                 return;
             }
         }
@@ -102,6 +104,7 @@ class SendPlatformCampaignEmailJob implements ShouldQueue
                 'status' => PlatformEmailCampaignRecipient::STATUS_SENT,
                 'sent_at' => $recipient->sent_at ?? now(),
             ]);
+
             return;
         }
 

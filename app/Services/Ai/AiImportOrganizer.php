@@ -27,22 +27,21 @@ class AiImportOrganizer
 
     public function __construct(
         protected LlmProviderRegistry $registry,
-    ) {
-    }
+    ) {}
 
     /**
-     * @param  array   $headers      Column headers from the source file.
-     * @param  array   $sampleRows   First N rows (recommend ≤ 50). Each row = [col => value].
-     * @param  ?string $modelKey     Override the default model.
+     * @param  array  $headers  Column headers from the source file.
+     * @param  array  $sampleRows  First N rows (recommend ≤ 50). Each row = [col => value].
+     * @param  ?string  $modelKey  Override the default model.
      * @return array {
-     *     mapping: array<string, string>,       // header → target field
-     *     normalizations: array<string, list<string>>, // per-column rules like 'trim', 'lowercase'
-     *     flagged_rows: list<array{row_index:int, reason:string}>,
-     *     tokens_input: ?int,
-     *     tokens_output: ?int,
-     *     cost_usd_cents: int,
-     *     model_id: string,
-     * }
+     *               mapping: array<string, string>,       // header → target field
+     *               normalizations: array<string, list<string>>, // per-column rules like 'trim', 'lowercase'
+     *               flagged_rows: list<array{row_index:int, reason:string}>,
+     *               tokens_input: ?int,
+     *               tokens_output: ?int,
+     *               cost_usd_cents: int,
+     *               model_id: string,
+     *               }
      */
     public function organize(array $headers, array $sampleRows, ?string $modelKey = null): array
     {
@@ -121,6 +120,7 @@ class AiImportOrganizer
                 default => $value,
             };
         }
+
         return $value;
     }
 
@@ -146,6 +146,7 @@ class AiImportOrganizer
         foreach ($headers as $h) {
             $out[$h] = $out[$h] ?? 'drop';
         }
+
         return $out;
     }
 
@@ -160,6 +161,7 @@ class AiImportOrganizer
             $reason = mb_substr(trim((string) ($r['reason'] ?? 'unspecified')), 0, 200);
             $out[] = ['row_index' => $idx, 'reason' => $reason];
         }
+
         return $out;
     }
 
@@ -199,6 +201,7 @@ PROMPT;
             'headers' => $headers,
             'sample_rows' => $sampleRows,
         ];
+
         return json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 }

@@ -13,8 +13,7 @@ class AiTranslator
 {
     public function __construct(
         protected LlmProviderRegistry $registry,
-    ) {
-    }
+    ) {}
 
     public function translate(string $text, string $targetLanguage, ?string $model = null): string
     {
@@ -67,6 +66,7 @@ PROMPT;
         );
 
         $response = $this->registry->completeWithFallback($model, $request);
+
         return trim($response->text);
     }
 }

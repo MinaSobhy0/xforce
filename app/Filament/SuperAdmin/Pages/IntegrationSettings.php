@@ -31,9 +31,13 @@ class IntegrationSettings extends Page implements HasForms
     }
 
     public ?array $whatsappData = [];
+
     public ?array $smsData = [];
+
     public ?array $emailData = [];
+
     public ?array $storageData = [];
+
     public ?array $paymentData = [];
 
     public function mount(): void
@@ -128,11 +132,11 @@ class IntegrationSettings extends Page implements HasForms
                         'meta' => 'Meta (Official API)',
                     ])
                     ->live()
-                    ->visible(fn(Forms\Get $get) => $get('whatsapp_enabled')),
+                    ->visible(fn (Forms\Get $get) => $get('whatsapp_enabled')),
 
                 // Twilio Configuration
                 Forms\Components\Fieldset::make('Twilio Configuration')
-                    ->visible(fn(Forms\Get $get) => $get('whatsapp_enabled') && $get('whatsapp_provider') === 'twilio')
+                    ->visible(fn (Forms\Get $get) => $get('whatsapp_enabled') && $get('whatsapp_provider') === 'twilio')
                     ->schema([
                         Forms\Components\TextInput::make('whatsapp_twilio_account_sid')
                             ->label('Account SID')
@@ -170,7 +174,7 @@ class IntegrationSettings extends Page implements HasForms
                 // JS so they're public by design; password() masks them in the
                 // admin form for visual reassurance only.
                 Forms\Components\Fieldset::make('Meta WhatsApp Business — Tech Provider')
-                    ->visible(fn(Forms\Get $get) => $get('whatsapp_enabled') && $get('whatsapp_provider') === 'meta')
+                    ->visible(fn (Forms\Get $get) => $get('whatsapp_enabled') && $get('whatsapp_provider') === 'meta')
                     ->schema([
                         Forms\Components\TextInput::make('whatsapp_meta_app_id')
                             ->label('Meta App ID')
@@ -214,25 +218,25 @@ class IntegrationSettings extends Page implements HasForms
                         'victorylink' => 'VictoryLink (Egypt)',
                         'cequens' => 'Cequens (MENA)',
                     ])
-                    ->visible(fn(Forms\Get $get) => $get('sms_enabled')),
+                    ->visible(fn (Forms\Get $get) => $get('sms_enabled')),
 
                 Forms\Components\TextInput::make('sms_api_key')
                     ->label('API Key / Account SID')
                     ->password()
                     ->revealable()
-                    ->visible(fn(Forms\Get $get) => $get('sms_enabled')),
+                    ->visible(fn (Forms\Get $get) => $get('sms_enabled')),
 
                 Forms\Components\TextInput::make('sms_api_secret')
                     ->label('API Secret / Auth Token')
                     ->password()
                     ->revealable()
-                    ->visible(fn(Forms\Get $get) => $get('sms_enabled')),
+                    ->visible(fn (Forms\Get $get) => $get('sms_enabled')),
 
                 Forms\Components\TextInput::make('sms_sender_id')
                     ->label('Sender ID')
                     ->maxLength(11)
                     ->helperText('Max 11 characters, alphanumeric')
-                    ->visible(fn(Forms\Get $get) => $get('sms_enabled')),
+                    ->visible(fn (Forms\Get $get) => $get('sms_enabled')),
             ])
             ->statePath('smsData');
     }
@@ -266,7 +270,7 @@ class IntegrationSettings extends Page implements HasForms
 
                 // SMTP Settings
                 Forms\Components\Fieldset::make('SMTP Configuration')
-                    ->visible(fn(Forms\Get $get) => $get('email_provider') === 'smtp')
+                    ->visible(fn (Forms\Get $get) => $get('email_provider') === 'smtp')
                     ->schema([
                         Forms\Components\Grid::make(2)
                             ->schema([
@@ -303,7 +307,7 @@ class IntegrationSettings extends Page implements HasForms
 
                 // Mailgun Settings
                 Forms\Components\Fieldset::make('Mailgun Configuration')
-                    ->visible(fn(Forms\Get $get) => $get('email_provider') === 'mailgun')
+                    ->visible(fn (Forms\Get $get) => $get('email_provider') === 'mailgun')
                     ->schema([
                         Forms\Components\TextInput::make('mailgun_domain')
                             ->label('Domain')
@@ -317,7 +321,7 @@ class IntegrationSettings extends Page implements HasForms
 
                 // Amazon SES Settings
                 Forms\Components\Fieldset::make('Amazon SES Configuration')
-                    ->visible(fn(Forms\Get $get) => $get('email_provider') === 'ses')
+                    ->visible(fn (Forms\Get $get) => $get('email_provider') === 'ses')
                     ->schema([
                         Forms\Components\TextInput::make('ses_key')
                             ->label('Access Key ID')
@@ -364,34 +368,34 @@ class IntegrationSettings extends Page implements HasForms
                     ->label('Access Key ID')
                     ->password()
                     ->revealable()
-                    ->visible(fn(Forms\Get $get) => in_array($get('storage_driver'), ['s3', 'spaces', 'wasabi', 'minio'])),
+                    ->visible(fn (Forms\Get $get) => in_array($get('storage_driver'), ['s3', 'spaces', 'wasabi', 'minio'])),
 
                 Forms\Components\TextInput::make('s3_secret')
                     ->label('Secret Access Key')
                     ->password()
                     ->revealable()
-                    ->visible(fn(Forms\Get $get) => in_array($get('storage_driver'), ['s3', 'spaces', 'wasabi', 'minio'])),
+                    ->visible(fn (Forms\Get $get) => in_array($get('storage_driver'), ['s3', 'spaces', 'wasabi', 'minio'])),
 
                 Forms\Components\TextInput::make('s3_region')
                     ->label('Region')
                     ->placeholder('us-east-1')
-                    ->visible(fn(Forms\Get $get) => in_array($get('storage_driver'), ['s3', 'spaces', 'wasabi'])),
+                    ->visible(fn (Forms\Get $get) => in_array($get('storage_driver'), ['s3', 'spaces', 'wasabi'])),
 
                 Forms\Components\TextInput::make('s3_bucket')
                     ->label('Bucket Name')
-                    ->visible(fn(Forms\Get $get) => in_array($get('storage_driver'), ['s3', 'spaces', 'wasabi', 'minio'])),
+                    ->visible(fn (Forms\Get $get) => in_array($get('storage_driver'), ['s3', 'spaces', 'wasabi', 'minio'])),
 
                 Forms\Components\TextInput::make('s3_url')
                     ->label('CDN/Public URL')
                     ->placeholder('https://cdn.example.com')
                     ->helperText('Optional: CloudFront or CDN URL for public assets')
-                    ->visible(fn(Forms\Get $get) => in_array($get('storage_driver'), ['s3', 'spaces', 'wasabi', 'minio'])),
+                    ->visible(fn (Forms\Get $get) => in_array($get('storage_driver'), ['s3', 'spaces', 'wasabi', 'minio'])),
 
                 Forms\Components\TextInput::make('s3_endpoint')
                     ->label('Custom Endpoint')
                     ->placeholder('https://nyc3.digitaloceanspaces.com')
                     ->helperText('Required for non-AWS S3-compatible storage')
-                    ->visible(fn(Forms\Get $get) => in_array($get('storage_driver'), ['spaces', 'wasabi', 'minio'])),
+                    ->visible(fn (Forms\Get $get) => in_array($get('storage_driver'), ['spaces', 'wasabi', 'minio'])),
             ])
             ->statePath('storageData');
     }
@@ -412,7 +416,7 @@ class IntegrationSettings extends Page implements HasForms
 
                 // PayMob Settings
                 Forms\Components\Fieldset::make('PayMob Configuration')
-                    ->visible(fn(Forms\Get $get) => $get('payment_gateway') === 'paymob')
+                    ->visible(fn (Forms\Get $get) => $get('payment_gateway') === 'paymob')
                     ->schema([
                         Forms\Components\TextInput::make('paymob_api_key')
                             ->label('API Key')
@@ -433,7 +437,7 @@ class IntegrationSettings extends Page implements HasForms
 
                 // Stripe Settings
                 Forms\Components\Fieldset::make('Stripe Configuration')
-                    ->visible(fn(Forms\Get $get) => $get('payment_gateway') === 'stripe')
+                    ->visible(fn (Forms\Get $get) => $get('payment_gateway') === 'stripe')
                     ->schema([
                         Forms\Components\TextInput::make('stripe_key')
                             ->label('Publishable Key')

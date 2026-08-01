@@ -12,6 +12,7 @@ class CreatePlatformEmailCampaign extends CreateRecord
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $data['created_by_user_id'] = auth()->id();
+
         return $data;
     }
 }

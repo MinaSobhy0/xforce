@@ -18,8 +18,7 @@ abstract class AbstractLlmProvider implements LlmProvider
     public function __construct(
         protected string $modelKey,
         protected array $config,
-    ) {
-    }
+    ) {}
 
     public function id(): string
     {
@@ -78,6 +77,7 @@ abstract class AbstractLlmProvider implements LlmProvider
         if (empty($key)) {
             throw new LlmException("No API key configured for {$this->modelKey}");
         }
+
         return $key;
     }
 

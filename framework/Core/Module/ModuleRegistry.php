@@ -24,8 +24,7 @@ class ModuleRegistry
 
     public function __construct(
         protected TenantManager $tenantManager
-    ) {
-    }
+    ) {}
 
     /**
      * Register a module.
@@ -43,7 +42,7 @@ class ModuleRegistry
         $code = strtolower($code);
 
         // Module must be registered
-        if (!isset($this->modules[$code])) {
+        if (! isset($this->modules[$code])) {
             return false;
         }
 
@@ -66,7 +65,7 @@ class ModuleRegistry
     {
         $tenant = $this->tenantManager->current();
 
-        if (!$tenant) {
+        if (! $tenant) {
             return true; // System context allows all modules
         }
 
@@ -76,7 +75,7 @@ class ModuleRegistry
         }
 
         // Check subscription plan allows this module
-        return Cache::tags(['tenant:' . $tenant->id, 'modules'])
+        return Cache::tags(['tenant:'.$tenant->id, 'modules'])
             ->remember("module_allowed:{$tenant->id}:{$code}", 3600, function () use ($tenant, $code) {
                 return $tenant->subscriptionPlan?->modules()->where('code', $code)->exists() ?? false;
             });
@@ -90,7 +89,7 @@ class ModuleRegistry
         $tenant = $this->tenantManager->current();
         $tenantId = $tenant?->id ?? 'system';
 
-        if (!isset($this->activeModulesCache[$tenantId])) {
+        if (! isset($this->activeModulesCache[$tenantId])) {
             $this->activeModulesCache[$tenantId] = $this->loadActiveModules($tenantId);
         }
 
@@ -121,7 +120,7 @@ class ModuleRegistry
         $tenantId = $tenantId ?? ($this->tenantManager->current()?->id ?? 'system');
         unset($this->activeModulesCache[$tenantId]);
 
-        Cache::tags(['tenant:' . $tenantId, 'modules'])->flush();
+        Cache::tags(['tenant:'.$tenantId, 'modules'])->flush();
     }
 
     /**
@@ -136,12 +135,12 @@ class ModuleRegistry
 
         // Get core modules (always active)
         $coreModules = collect($this->modules)
-            ->filter(fn(ModuleManifest $m) => $m->isCore())
+            ->filter(fn (ModuleManifest $m) => $m->isCore())
             ->keys()
-            ->map(fn($code) => strtolower($code))
+            ->map(fn ($code) => strtolower($code))
             ->all();
 
-        return Cache::tags(['tenant:' . $tenantId, 'modules'])
+        return Cache::tags(['tenant:'.$tenantId, 'modules'])
             ->remember("active_modules:{$tenantId}", 3600, function () use ($tenantId, $coreModules) {
                 // Source of truth: tenants.features JSONB. That's the
                 // column the SuperAdmin "Manage Modules" UI writes to,

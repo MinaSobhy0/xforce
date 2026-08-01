@@ -17,8 +17,11 @@ class PlatformAiImportSession extends Model
     use HasFactory;
 
     public const STATUS_PREVIEW = 'preview';
+
     public const STATUS_CONFIRMED = 'confirmed';
+
     public const STATUS_MATERIALIZED = 'materialized';
+
     public const STATUS_CANCELLED = 'cancelled';
 
     protected $table = 'platform_ai_import_sessions';

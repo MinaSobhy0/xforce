@@ -15,7 +15,6 @@ use Filament\SpatieLaravelTranslatablePlugin;
 use Filament\Support\Colors\Color;
 use Filament\Support\Enums\MaxWidth;
 use Filament\View\PanelsRenderHook;
-use Illuminate\Support\Facades\Blade;
 use Illuminate\Contracts\View\View;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -40,7 +39,8 @@ class TenantPanelProvider extends PanelProvider
             ->spa()
             ->favicon(function () {
                 $favicon = \App\Models\PlatformSetting::get('favicon');
-                return $favicon ? asset('storage/' . $favicon) : null;
+
+                return $favicon ? asset('storage/'.$favicon) : null;
             })
 
             // Sidebar settings
@@ -304,7 +304,7 @@ HTML;
                 PanelsRenderHook::BODY_START,
                 function (): string {
                     $tenant = current_tenant();
-                    if (!$tenant) {
+                    if (! $tenant) {
                         return '';
                     }
 
@@ -433,9 +433,8 @@ HTML;
             // Custom sidebar theme styles
             ->renderHook(
                 PanelsRenderHook::STYLES_AFTER,
-                fn (): string => '<link rel="stylesheet" href="' . asset('css/filament/admin/theme.css') . '">'
+                fn (): string => '<link rel="stylesheet" href="'.asset('css/filament/admin/theme.css').'">'
             )
-
 
             // Middleware - Session must start before tenant identification for CSRF
             ->middleware([
@@ -467,6 +466,7 @@ HTML;
     protected function getTenantBrandName(): string
     {
         $tenant = app('currentTenant') ?? null;
+
         return $tenant?->name ?? 'XLinic Clinic';
     }
 }

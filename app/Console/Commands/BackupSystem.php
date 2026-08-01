@@ -17,23 +17,25 @@ class BackupSystem extends Command
 
     public function handle(): int
     {
-        if (!$this->option('force') && !PlatformSetting::get('auto_backup', true)) {
+        if (! $this->option('force') && ! PlatformSetting::get('auto_backup', true)) {
             $this->info('Auto backup is disabled. Use --force to run anyway.');
+
             return 0;
         }
 
         $type = $this->option('type');
 
-        if (!in_array($type, ['database', 'files', 'full'], true)) {
+        if (! in_array($type, ['database', 'files', 'full'], true)) {
             $this->error("Invalid type: {$type}. Use database, files, or full.");
+
             return 1;
         }
 
         $backup = Backup::create([
-            'name' => 'Auto System Backup - ' . now()->format('Y-m-d H:i'),
+            'name' => 'Auto System Backup - '.now()->format('Y-m-d H:i'),
             'type' => $type,
             'disk' => 'local',
-            'filename' => 'backup-' . now()->format('Y-m-d-His') . '.sql.gz',
+            'filename' => 'backup-'.now()->format('Y-m-d-His').'.sql.gz',
             'status' => 'pending',
             'notes' => 'Automated scheduled system backup',
         ]);

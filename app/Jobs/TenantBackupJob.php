@@ -3,25 +3,27 @@
 namespace App\Jobs;
 
 use App\Models\Backup;
-use Modules\Core\Models\Tenant;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Process;
+use Illuminate\Support\Facades\Storage;
+use Modules\Core\Models\Tenant;
 
 class TenantBackupJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 3;
+
     public int $timeout = 600; // 10 minutes
 
     protected Backup $backup;
+
     protected Tenant $tenant;
 
     /**
@@ -42,7 +44,7 @@ class TenantBackupJob implements ShouldQueue
     {
         return preg_match(self::SCHEMA_NAME_PATTERN, $schema) === 1
             && strlen($schema) <= 63
-            && !in_array($schema, ['public', 'pg_catalog', 'information_schema']);
+            && ! in_array($schema, ['public', 'pg_catalog', 'information_schema']);
     }
 
     public function handle(): void
@@ -60,28 +62,30 @@ class TenantBackupJob implements ShouldQueue
             $schema = $this->tenant->database_name; // Tenant schema name
 
             // SECURITY: Validate schema name to prevent command injection
-            if (!$this->validateSchemaName($schema)) {
+            if (! $this->validateSchemaName($schema)) {
                 Log::error('Invalid schema name - potential security issue', [
                     'tenant_id' => $this->tenant->id,
                     'schema' => $schema,
                 ]);
                 $this->backup->markFailed('Invalid schema name');
+
                 return;
             }
 
             // Check if tenant schema exists before attempting backup using safe PDO query
-            if (!$this->schemaExistsSafe($schema)) {
+            if (! $this->schemaExistsSafe($schema)) {
                 Log::warning('Skipping backup - tenant schema not provisioned', [
                     'tenant_id' => $this->tenant->id,
                     'schema' => $schema,
                 ]);
                 $this->backup->markFailed('Schema not provisioned');
+
                 return;
             }
 
             // Create backup directory if it doesn't exist
-            $backupDir = storage_path('app/backups/tenants/' . $this->tenant->id);
-            if (!is_dir($backupDir)) {
+            $backupDir = storage_path('app/backups/tenants/'.$this->tenant->id);
+            if (! is_dir($backupDir)) {
                 mkdir($backupDir, 0755, true);
             }
 
@@ -92,7 +96,7 @@ class TenantBackupJob implements ShouldQueue
                 $safeSlug,
                 now()->format('Y-m-d_His')
             );
-            $backupPath = $backupDir . '/' . $filename;
+            $backupPath = $backupDir.'/'.$filename;
 
             // SECURITY: Create temporary .pgpass file instead of using PGPASSWORD env var
             // This prevents password from being visible in process listings
@@ -117,8 +121,8 @@ class TenantBackupJob implements ShouldQueue
                         '--no-acl',
                     ]);
 
-                if (!$result->successful()) {
-                    throw new \Exception('pg_dump failed: ' . $result->errorOutput());
+                if (! $result->successful()) {
+                    throw new \Exception('pg_dump failed: '.$result->errorOutput());
                 }
 
                 // Compress and save output
@@ -133,7 +137,7 @@ class TenantBackupJob implements ShouldQueue
             }
 
             // Verify backup file exists and has content
-            if (!file_exists($backupPath) || filesize($backupPath) < 100) {
+            if (! file_exists($backupPath) || filesize($backupPath) < 100) {
                 throw new \Exception('Backup file is empty or not created');
             }
 
@@ -141,7 +145,7 @@ class TenantBackupJob implements ShouldQueue
             $fileSize = filesize($backupPath);
 
             // Move to storage disk
-            $storagePath = 'backups/tenants/' . $this->tenant->id . '/' . $filename;
+            $storagePath = 'backups/tenants/'.$this->tenant->id.'/'.$filename;
 
             // If using local disk, the file is already in the right place
             // For S3 or other disks, we'd need to upload
@@ -153,7 +157,7 @@ class TenantBackupJob implements ShouldQueue
                 // Remove local file after upload
                 unlink($backupPath);
             } else {
-                $storagePath = 'backups/tenants/' . $this->tenant->id . '/' . $filename;
+                $storagePath = 'backups/tenants/'.$this->tenant->id.'/'.$filename;
             }
 
             // Mark backup as completed
@@ -202,11 +206,11 @@ class TenantBackupJob implements ShouldQueue
     protected function createSecurePgpassFile(string $host, int $port, string $database, string $user, string $password): string
     {
         $tmpDir = storage_path('app/tmp');
-        if (!is_dir($tmpDir)) {
+        if (! is_dir($tmpDir)) {
             mkdir($tmpDir, 0700, true);
         }
 
-        $pgpassFile = $tmpDir . '/.pgpass_' . uniqid('backup_', true);
+        $pgpassFile = $tmpDir.'/.pgpass_'.uniqid('backup_', true);
 
         // Format: hostname:port:database:username:password
         // Escape colons and backslashes in password
@@ -228,15 +232,17 @@ class TenantBackupJob implements ShouldQueue
     {
         try {
             $result = DB::select(
-                "SELECT 1 FROM information_schema.schemata WHERE schema_name = ?",
+                'SELECT 1 FROM information_schema.schemata WHERE schema_name = ?',
                 [$schema]
             );
+
             return count($result) > 0;
         } catch (\Exception $e) {
             Log::warning('Failed to check schema existence', [
                 'schema' => $schema,
                 'error' => $e->getMessage(),
             ]);
+
             return false;
         }
     }

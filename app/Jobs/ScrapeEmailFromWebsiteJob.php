@@ -122,6 +122,7 @@ class ScrapeEmailFromWebsiteJob implements ShouldQueue
             return $this->extractEmails($body);
         } catch (\Throwable $e) {
             Log::debug('Email scrape fetch failed', ['url' => $url, 'error' => $e->getMessage()]);
+
             return [];
         }
     }
@@ -171,10 +172,18 @@ class ScrapeEmailFromWebsiteJob implements ShouldQueue
         }
 
         // Sentry / integrations markers frequently appear
-        if (str_contains($email, 'sentry')) return true;
-        if (str_contains($email, 'noreply')) return true; // don't email a noreply@
-        if (str_contains($email, 'no-reply')) return true;
-        if (str_contains($email, 'do-not-reply')) return true;
+        if (str_contains($email, 'sentry')) {
+            return true;
+        }
+        if (str_contains($email, 'noreply')) {
+            return true;
+        } // don't email a noreply@
+        if (str_contains($email, 'no-reply')) {
+            return true;
+        }
+        if (str_contains($email, 'do-not-reply')) {
+            return true;
+        }
 
         return false;
     }
@@ -198,16 +207,23 @@ class ScrapeEmailFromWebsiteJob implements ShouldQueue
         foreach ([true, false] as $requireSameDomain) {
             foreach ($preferredPrefixes as $prefix) {
                 foreach ($emails as $e) {
-                    if (! str_starts_with($e, $prefix)) continue;
+                    if (! str_starts_with($e, $prefix)) {
+                        continue;
+                    }
                     $emailDomain = strtolower((string) substr(strrchr($e, '@'), 1));
-                    if ($requireSameDomain && ! str_ends_with($emailDomain, $host)) continue;
+                    if ($requireSameDomain && ! str_ends_with($emailDomain, $host)) {
+                        continue;
+                    }
+
                     return $e;
                 }
             }
             if ($requireSameDomain) {
                 foreach ($emails as $e) {
                     $emailDomain = strtolower((string) substr(strrchr($e, '@'), 1));
-                    if (str_ends_with($emailDomain, $host)) return $e;
+                    if (str_ends_with($emailDomain, $host)) {
+                        return $e;
+                    }
                 }
             }
         }
@@ -239,6 +255,7 @@ class ScrapeEmailFromWebsiteJob implements ShouldQueue
                 return null;
             }
         }
+
         return $url;
     }
 }

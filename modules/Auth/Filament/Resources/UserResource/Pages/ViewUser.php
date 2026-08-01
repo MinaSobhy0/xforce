@@ -2,14 +2,14 @@
 
 namespace Modules\Auth\Filament\Resources\UserResource\Pages;
 
+use App\Filament\Resources\Pages\BaseViewRecord;
+use Filament\Actions;
+use Filament\Forms;
+use Filament\Notifications\Notification;
+use Illuminate\Support\Facades\Hash;
 use Modules\Auth\Filament\Resources\UserResource;
 use Modules\Auth\Models\UserStatus;
 use Modules\Staff\Models\StaffProfile;
-use Filament\Actions;
-use Filament\Forms;
-use App\Filament\Resources\Pages\BaseViewRecord;
-use Filament\Notifications\Notification;
-use Illuminate\Support\Facades\Hash;
 
 class ViewUser extends BaseViewRecord
 {
@@ -161,7 +161,7 @@ class ViewUser extends BaseViewRecord
 
                     $this->refreshFormData(['email_verified_at']);
                 })
-                ->visible(fn () => !$this->getRecord()->email_verified_at),
+                ->visible(fn () => ! $this->getRecord()->email_verified_at),
 
             Actions\Action::make('disable2FA')
                 ->label(__('Disable 2FA'))
@@ -204,7 +204,7 @@ class ViewUser extends BaseViewRecord
 
                     Forms\Components\TextInput::make('employee_number')
                         ->label(__('staff::staff.fields.employee_number'))
-                        ->default(fn () => 'EMP-' . str_pad(StaffProfile::count() + 1, 4, '0', STR_PAD_LEFT)),
+                        ->default(fn () => 'EMP-'.str_pad(StaffProfile::count() + 1, 4, '0', STR_PAD_LEFT)),
 
                     Forms\Components\TextInput::make('job_title')
                         ->label(__('staff::staff.fields.job_title'))
@@ -249,7 +249,7 @@ class ViewUser extends BaseViewRecord
                         \Modules\Staff\Filament\Resources\StaffProfileResource::getUrl('view', ['record' => $staffProfile])
                     );
                 })
-                ->visible(fn () => !StaffProfile::where('user_id', $this->getRecord()->id)->exists()),
+                ->visible(fn () => ! StaffProfile::where('user_id', $this->getRecord()->id)->exists()),
 
             Actions\Action::make('viewStaffProfile')
                 ->label(__('auth::auth.user_resource.view_staff_profile'))

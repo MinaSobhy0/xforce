@@ -25,8 +25,7 @@ class LlmRequest
         public ?int $maxTokens = null,
         public ?array $jsonSchema = null,
         public array $metadata = [],
-    ) {
-    }
+    ) {}
 
     /**
      * Convenience factory for the common single-user-message pattern.

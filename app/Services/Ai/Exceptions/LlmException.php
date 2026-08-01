@@ -6,7 +6,7 @@ class LlmException extends \RuntimeException
 {
     /**
      * @return bool true when this failure should trigger a fallback
-     *   provider attempt (transient — rate-limit, 5xx, timeout).
+     *              provider attempt (transient — rate-limit, 5xx, timeout).
      */
     public function isRetryable(): bool
     {

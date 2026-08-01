@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Models\PlatformSetting;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -9,11 +10,10 @@ use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Navigation\NavigationGroup;
 use Filament\Panel;
 use Filament\PanelProvider;
+use Filament\SpatieLaravelTranslatablePlugin;
 use Filament\Support\Colors\Color;
 use Filament\Support\Enums\MaxWidth;
 use Filament\Widgets;
-use Filament\SpatieLaravelTranslatablePlugin;
-use App\Models\PlatformSetting;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -33,12 +33,14 @@ class SuperAdminPanelProvider extends PanelProvider
             ->brandName(PlatformSetting::get('platform_name', 'XForce Platform'))
             ->brandLogo(function () {
                 $logo = PlatformSetting::get('platform_logo');
-                return $logo ? asset('storage/' . $logo) : null;
+
+                return $logo ? asset('storage/'.$logo) : null;
             })
             ->brandLogoHeight('5rem')
             ->favicon(function () {
                 $favicon = PlatformSetting::get('favicon');
-                return $favicon ? asset('storage/' . $favicon) : null;
+
+                return $favicon ? asset('storage/'.$favicon) : null;
             })
 
             // Icon-only Reload button next to the global search — soft
@@ -51,12 +53,13 @@ class SuperAdminPanelProvider extends PanelProvider
             // Colors (dynamic from platform settings)
             ->colors(function () {
                 $primaryColor = PlatformSetting::get('primary_color', '#6366f1'); // Default indigo
+
                 return [
                     'primary' => Color::hex($primaryColor),
-                    'danger'  => Color::Rose,
+                    'danger' => Color::Rose,
                     'success' => Color::Emerald,
                     'warning' => Color::Amber,
-                    'info'    => Color::Sky,
+                    'info' => Color::Sky,
                 ];
             })
 
@@ -95,7 +98,6 @@ class SuperAdminPanelProvider extends PanelProvider
                     ->label(__('System'))
                     ->icon('heroicon-o-cog-6-tooth'),
             ])
-
 
             // Resource Discovery
             ->discoverResources(

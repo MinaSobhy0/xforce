@@ -21,6 +21,7 @@ class SystemBackupJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 1;
+
     public int $timeout = 3600;
 
     public function __construct(protected Backup $backup) {}
@@ -31,8 +32,8 @@ class SystemBackupJob implements ShouldQueue
 
         try {
             $type = $this->backup->type;
-            $dir = storage_path('app/backups/system/' . $this->backup->id);
-            if (!is_dir($dir)) {
+            $dir = storage_path('app/backups/system/'.$this->backup->id);
+            if (! is_dir($dir)) {
                 mkdir($dir, 0755, true);
             }
 
@@ -40,7 +41,7 @@ class SystemBackupJob implements ShouldQueue
             $totalSize = 0;
 
             if (in_array($type, ['full', 'database'], true)) {
-                $sqlPath = $dir . '/database.sql.gz';
+                $sqlPath = $dir.'/database.sql.gz';
                 $this->dumpDatabase($sqlPath);
                 $size = filesize($sqlPath);
                 $components['database'] = ['file' => 'database.sql.gz', 'size' => $size];
@@ -48,7 +49,7 @@ class SystemBackupJob implements ShouldQueue
             }
 
             if (in_array($type, ['full', 'files'], true)) {
-                $tarPath = $dir . '/files.tar.gz';
+                $tarPath = $dir.'/files.tar.gz';
                 $this->dumpFiles($tarPath);
                 $size = filesize($tarPath);
                 $components['files'] = ['file' => 'files.tar.gz', 'size' => $size];
@@ -57,7 +58,7 @@ class SystemBackupJob implements ShouldQueue
 
             $this->writeManifest($dir, $components, $totalSize);
 
-            $this->backup->markCompleted($totalSize, 'backups/system/' . $this->backup->id);
+            $this->backup->markCompleted($totalSize, 'backups/system/'.$this->backup->id);
 
             if (\App\Services\BackblazeService::isEnabled()) {
                 UploadBackupToBackblaze::dispatch($this->backup);
@@ -112,13 +113,13 @@ class SystemBackupJob implements ShouldQueue
                     'PGPASSFILE' => $pgpassFile,
                     'HOME' => storage_path('app/tmp'),
                 ])
-                ->run(['bash', '-c', $cmd . '; exit ${PIPESTATUS[0]}']);
+                ->run(['bash', '-c', $cmd.'; exit ${PIPESTATUS[0]}']);
 
-            if (!$result->successful()) {
-                throw new \RuntimeException('pg_dump failed: ' . $result->errorOutput());
+            if (! $result->successful()) {
+                throw new \RuntimeException('pg_dump failed: '.$result->errorOutput());
             }
 
-            if (!file_exists($outputPath) || filesize($outputPath) < 100) {
+            if (! file_exists($outputPath) || filesize($outputPath) < 100) {
                 throw new \RuntimeException('Database dump is empty or missing');
             }
         } finally {
@@ -144,11 +145,11 @@ class SystemBackupJob implements ShouldQueue
 
         $result = Process::timeout($this->timeout)->run(['bash', '-c', $cmd]);
 
-        if (!$result->successful()) {
-            throw new \RuntimeException('tar failed: ' . $result->errorOutput());
+        if (! $result->successful()) {
+            throw new \RuntimeException('tar failed: '.$result->errorOutput());
         }
 
-        if (!file_exists($outputPath) || filesize($outputPath) < 100) {
+        if (! file_exists($outputPath) || filesize($outputPath) < 100) {
             throw new \RuntimeException('Files archive is empty or missing');
         }
     }
@@ -166,13 +167,14 @@ class SystemBackupJob implements ShouldQueue
             'total_size' => $totalSize,
         ];
 
-        file_put_contents($dir . '/manifest.json', json_encode($manifest, JSON_PRETTY_PRINT));
+        file_put_contents($dir.'/manifest.json', json_encode($manifest, JSON_PRETTY_PRINT));
     }
 
     protected function detectPgVersion(): ?string
     {
         try {
             $row = \DB::selectOne('SHOW server_version');
+
             return $row?->server_version;
         } catch (\Throwable $e) {
             return null;
@@ -182,11 +184,11 @@ class SystemBackupJob implements ShouldQueue
     protected function createSecurePgpassFile(string $host, int|string $port, string $database, string $user, string $password): string
     {
         $tmpDir = storage_path('app/tmp');
-        if (!is_dir($tmpDir)) {
+        if (! is_dir($tmpDir)) {
             mkdir($tmpDir, 0700, true);
         }
 
-        $pgpassFile = $tmpDir . '/.pgpass_' . uniqid('sysbk_', true);
+        $pgpassFile = $tmpDir.'/.pgpass_'.uniqid('sysbk_', true);
         $escapedPassword = str_replace(['\\', ':'], ['\\\\', '\\:'], $password);
         $pgpassContent = "{$host}:{$port}:{$database}:{$user}:{$escapedPassword}\n";
 

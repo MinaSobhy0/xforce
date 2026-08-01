@@ -31,8 +31,7 @@ class PlatformCampaignMail extends Mailable
         public PlatformEmailCampaignRecipient $recipient,
         public string $renderedBody,
         public string $unsubscribeUrl,
-    ) {
-    }
+    ) {}
 
     public function envelope(): Envelope
     {

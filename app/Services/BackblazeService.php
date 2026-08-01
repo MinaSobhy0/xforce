@@ -42,15 +42,15 @@ class BackblazeService
     public static function remotePathFor(\App\Models\Backup $backup): string
     {
         $folder = trim((string) PlatformSetting::get('backblaze_folder', 'XLinic-Backups'), '/');
-        $prefix = $folder !== '' ? $folder . '/' : '';
+        $prefix = $folder !== '' ? $folder.'/' : '';
         $localPath = trim((string) $backup->path, '/');
 
         $slug = $backup->tenant_id ? $backup->tenant?->slug : null;
         if ($slug) {
-            return $prefix . $slug . '/' . basename($localPath);
+            return $prefix.$slug.'/'.basename($localPath);
         }
 
-        return $prefix . preg_replace('#^backups/#', '', $localPath);
+        return $prefix.preg_replace('#^backups/#', '', $localPath);
     }
 
     /**
@@ -68,7 +68,7 @@ class BackblazeService
         $appKey = PlatformSetting::getEncrypted('backblaze_app_key');
         $bucketName = PlatformSetting::get('backblaze_bucket');
 
-        if (!$keyId || !$appKey || !$bucketName) {
+        if (! $keyId || ! $appKey || ! $bucketName) {
             throw new \RuntimeException('Backblaze is not configured (key ID, application key and bucket are required).');
         }
 
@@ -90,7 +90,7 @@ class BackblazeService
         } else {
             $buckets = Http::withHeaders(['Authorization' => $token])
                 ->timeout(60)
-                ->post($apiUrl . '/b2api/v2/b2_list_buckets', [
+                ->post($apiUrl.'/b2api/v2/b2_list_buckets', [
                     'accountId' => $accountId,
                     'bucketName' => $bucketName,
                 ]);
@@ -100,17 +100,17 @@ class BackblazeService
 
             // Be forgiving: the admin may have pasted the bucket ID instead
             // of the bucket name — accept either.
-            if (!$bucketId) {
+            if (! $bucketId) {
                 $byId = Http::withHeaders(['Authorization' => $token])
                     ->timeout(60)
-                    ->post($apiUrl . '/b2api/v2/b2_list_buckets', [
+                    ->post($apiUrl.'/b2api/v2/b2_list_buckets', [
                         'accountId' => $accountId,
                         'bucketId' => $bucketName,
                     ]);
                 $bucketId = $byId->successful() ? $byId->json('buckets.0.bucketId') : null;
             }
 
-            if (!$bucketId) {
+            if (! $bucketId) {
                 throw new \RuntimeException("Bucket \"{$bucketName}\" was not found in this Backblaze account.");
             }
         }
@@ -135,7 +135,7 @@ class BackblazeService
 
     public function upload(string $localAbsolutePath, string $remotePath): void
     {
-        if (!is_file($localAbsolutePath)) {
+        if (! is_file($localAbsolutePath)) {
             throw new \RuntimeException("Local file not found: {$localAbsolutePath}");
         }
 
@@ -143,7 +143,7 @@ class BackblazeService
 
         $target = Http::withHeaders(['Authorization' => $auth['token']])
             ->timeout(60)
-            ->post($auth['apiUrl'] . '/b2api/v2/b2_get_upload_url', [
+            ->post($auth['apiUrl'].'/b2api/v2/b2_get_upload_url', [
                 'bucketId' => $auth['bucketId'],
             ]);
         $this->assertSuccessful($target, 'get upload URL');
@@ -185,18 +185,18 @@ class BackblazeService
 
             $list = Http::withHeaders(['Authorization' => $auth['token']])
                 ->timeout(120)
-                ->post($auth['apiUrl'] . '/b2api/v2/b2_list_file_versions', $payload);
+                ->post($auth['apiUrl'].'/b2api/v2/b2_list_file_versions', $payload);
             $this->assertSuccessful($list, "list versions of {$remotePath}");
 
             foreach ($list->json('files', []) as $file) {
                 $name = $file['fileName'];
-                if ($name !== $remotePath && !str_starts_with($name, $remotePath . '/')) {
+                if ($name !== $remotePath && ! str_starts_with($name, $remotePath.'/')) {
                     continue;
                 }
 
                 $deleted = Http::withHeaders(['Authorization' => $auth['token']])
                     ->timeout(60)
-                    ->post($auth['apiUrl'] . '/b2api/v2/b2_delete_file_version', [
+                    ->post($auth['apiUrl'].'/b2api/v2/b2_delete_file_version', [
                         'fileName' => $name,
                         'fileId' => $file['fileId'],
                     ]);
@@ -210,7 +210,7 @@ class BackblazeService
 
     protected function assertSuccessful(Response $response, string $action): void
     {
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             // An expired/invalid cached token should not poison future runs.
             if ($response->status() === 401) {
                 $this->forgetAuth();

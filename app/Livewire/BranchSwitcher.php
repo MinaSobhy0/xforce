@@ -3,15 +3,16 @@
 namespace App\Livewire;
 
 use App\Services\BranchContext;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Modules\Auth\Models\UserBranchRole;
 use Modules\Core\Models\Branch;
-use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Auth;
 
 class BranchSwitcher extends Component
 {
     public array $selectedBranchIds = [];
+
     public array $allowedBranchIds = [];
 
     public function mount(): void
@@ -20,7 +21,7 @@ class BranchSwitcher extends Component
         $this->selectedBranchIds = BranchContext::currentIds();
 
         // If no branch selected yet and user has allowed branches, select the primary/first one
-        if (empty($this->selectedBranchIds) && !empty($this->allowedBranchIds)) {
+        if (empty($this->selectedBranchIds) && ! empty($this->allowedBranchIds)) {
             $primaryBranchId = $this->getUserPrimaryBranchId();
             $this->selectedBranchIds = [$primaryBranchId];
             BranchContext::set($this->selectedBranchIds);
@@ -34,7 +35,7 @@ class BranchSwitcher extends Component
     {
         $user = Auth::user();
 
-        if (!$user) {
+        if (! $user) {
             return [];
         }
 
@@ -60,13 +61,14 @@ class BranchSwitcher extends Component
     {
         $user = Auth::user();
 
-        if (!$user) {
+        if (! $user) {
             return $this->allowedBranchIds[0] ?? null;
         }
 
         // For super admins, return the main branch
         if ($this->isSuperAdmin($user)) {
             $mainBranch = Branch::where('is_main', true)->first();
+
             return $mainBranch?->id ?? ($this->allowedBranchIds[0] ?? null);
         }
 
@@ -112,17 +114,17 @@ class BranchSwitcher extends Component
         // SECURITY: recompute allowed branches server-side — $allowedBranchIds is
         // a public Livewire property and therefore client-modifiable; never trust
         // it for the authorization check.
-        if (!in_array($branchId, $this->getUserAllowedBranchIds())) {
+        if (! in_array($branchId, $this->getUserAllowedBranchIds())) {
             return;
         }
 
         if (in_array($branchId, $this->selectedBranchIds)) {
             // Remove from selection (but keep at least one selected)
             $newSelection = array_values(
-                array_filter($this->selectedBranchIds, fn($id) => $id !== $branchId)
+                array_filter($this->selectedBranchIds, fn ($id) => $id !== $branchId)
             );
             // Don't allow empty selection - keep at least one branch
-            if (!empty($newSelection)) {
+            if (! empty($newSelection)) {
                 $this->selectedBranchIds = $newSelection;
             }
         } else {
@@ -142,7 +144,7 @@ class BranchSwitcher extends Component
     public function selectBranch(string $branchId): void
     {
         // SECURITY: recompute allowed branches server-side (see toggleBranch).
-        if (!in_array($branchId, $this->getUserAllowedBranchIds())) {
+        if (! in_array($branchId, $this->getUserAllowedBranchIds())) {
             return;
         }
 
@@ -247,6 +249,7 @@ class BranchSwitcher extends Component
 
         if ($selectedCount === 1) {
             $branch = Branch::find($this->selectedBranchIds[0]);
+
             return $branch?->name ?? __('Select Branch');
         }
 

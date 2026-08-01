@@ -65,6 +65,7 @@ class MailTrackingController extends Controller
     protected function recipient(Request $request): ?PlatformEmailCampaignRecipient
     {
         $id = (int) $request->query('r', 0);
+
         return $id ? PlatformEmailCampaignRecipient::find($id) : null;
     }
 

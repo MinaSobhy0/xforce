@@ -17,9 +17,9 @@ use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
-use Modules\Auth\Listeners\AuthEventSubscriber;
 use Laravel\Sanctum\Sanctum;
 use Livewire\Livewire;
+use Modules\Auth\Listeners\AuthEventSubscriber;
 use Spatie\Translatable\Facades\Translatable;
 
 class AppServiceProvider extends ServiceProvider
@@ -98,7 +98,7 @@ class AppServiceProvider extends ServiceProvider
                     ->send();
 
                 // Throw Halt to stop the action without showing success notification
-                throw new Halt();
+                throw new Halt;
             }
 
             // Re-throw non-FK exceptions
@@ -107,7 +107,7 @@ class AppServiceProvider extends ServiceProvider
 
         // Configure page/form delete actions
         DeleteAction::configureUsing(function (DeleteAction $action) use ($handleFkViolation): void {
-            $action->using(function ($record) use ($handleFkViolation, $action) {
+            $action->using(function ($record) use ($handleFkViolation) {
                 try {
                     $record->delete();
                 } catch (QueryException $e) {
@@ -180,12 +180,12 @@ class AppServiceProvider extends ServiceProvider
     {
         $modulesPath = base_path('modules');
 
-        if (!is_dir($modulesPath)) {
+        if (! is_dir($modulesPath)) {
             return;
         }
 
         // Register widgets
-        foreach (glob($modulesPath . '/*/Filament/Widgets/*.php') as $file) {
+        foreach (glob($modulesPath.'/*/Filament/Widgets/*.php') as $file) {
             $className = $this->getClassFromFile($file);
             if ($className && class_exists($className)) {
                 $alias = $this->getComponentAlias($className);
@@ -194,7 +194,7 @@ class AppServiceProvider extends ServiceProvider
         }
 
         // Register pages
-        foreach (glob($modulesPath . '/*/Filament/Pages/*.php') as $file) {
+        foreach (glob($modulesPath.'/*/Filament/Pages/*.php') as $file) {
             $className = $this->getClassFromFile($file);
             if ($className && class_exists($className)) {
                 $alias = $this->getComponentAlias($className);
@@ -203,7 +203,7 @@ class AppServiceProvider extends ServiceProvider
         }
 
         // Register resource pages
-        foreach (glob($modulesPath . '/*/Filament/Resources/*/Pages/*.php') as $file) {
+        foreach (glob($modulesPath.'/*/Filament/Resources/*/Pages/*.php') as $file) {
             $className = $this->getClassFromFile($file);
             if ($className && class_exists($className)) {
                 $alias = $this->getComponentAlias($className);
@@ -212,7 +212,7 @@ class AppServiceProvider extends ServiceProvider
         }
 
         // Register relation managers
-        foreach (glob($modulesPath . '/*/Filament/Resources/*/RelationManagers/*.php') as $file) {
+        foreach (glob($modulesPath.'/*/Filament/Resources/*/RelationManagers/*.php') as $file) {
             $className = $this->getClassFromFile($file);
             if ($className && class_exists($className)) {
                 $alias = $this->getComponentAlias($className);
@@ -231,9 +231,11 @@ class AppServiceProvider extends ServiceProvider
         if (preg_match('#modules/([^/]+)/(.+)\.php$#', $file, $matches)) {
             $module = $matches[1];
             $relativePath = $matches[2];
-            $namespace = 'Modules\\' . $module . '\\' . str_replace('/', '\\', $relativePath);
+            $namespace = 'Modules\\'.$module.'\\'.str_replace('/', '\\', $relativePath);
+
             return $namespace;
         }
+
         return null;
     }
 
@@ -249,6 +251,7 @@ class AppServiceProvider extends ServiceProvider
         $alias = preg_replace('/([a-z])([A-Z])/', '$1-$2', $alias);
         // Now lowercase everything
         $alias = strtolower($alias);
+
         return $alias;
     }
 

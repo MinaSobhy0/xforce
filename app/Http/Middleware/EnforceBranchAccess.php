@@ -23,7 +23,7 @@ class EnforceBranchAccess
         $user = Auth::user();
 
         // Skip for unauthenticated requests (handled elsewhere)
-        if (!$user) {
+        if (! $user) {
             return $next($request);
         }
 
@@ -38,6 +38,7 @@ class EnforceBranchAccess
         // Skip for super admins (tenant owners)
         if ($this->isSuperAdmin($user)) {
             \Log::debug('EnforceBranchAccess: User is super admin, skipping', ['user_id' => $user->id]);
+
             return $next($request);
         }
 
@@ -93,7 +94,7 @@ class EnforceBranchAccess
             // Validate that selected branches are within assigned branches
             $unauthorizedBranches = array_diff($currentBranchIds, $assignedBranchIds);
 
-            if (!empty($unauthorizedBranches)) {
+            if (! empty($unauthorizedBranches)) {
                 $this->logOnce('warning', 'branch.access.unauthorized_selection', [
                     'user_id' => $user->id,
                     'unauthorized' => array_values($unauthorizedBranches),
@@ -128,7 +129,7 @@ class EnforceBranchAccess
      */
     protected function logOnce(string $level, string $event, array $context): void
     {
-        $key = 'branch_access_logged.' . $event . '.' . ($context['user_id'] ?? 'na');
+        $key = 'branch_access_logged.'.$event.'.'.($context['user_id'] ?? 'na');
 
         if (session()->has($key)) {
             return;

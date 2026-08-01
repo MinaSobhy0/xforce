@@ -21,8 +21,7 @@ class LlmResponse
         public ?int $tokensOutput = null,
         public int $costUsdCents = 0,
         public array $raw = [],
-    ) {
-    }
+    ) {}
 
     /**
      * Attempt to parse $text as JSON. Returns null on parse failure
@@ -38,6 +37,7 @@ class LlmResponse
         }
 
         $decoded = json_decode($trimmed, true);
+
         return is_array($decoded) ? $decoded : null;
     }
 }

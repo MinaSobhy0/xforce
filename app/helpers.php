@@ -4,7 +4,7 @@ use App\Services\BranchContext;
 use Illuminate\Support\Collection;
 use Modules\Core\Models\Branch;
 
-if (!function_exists('current_tenant_id')) {
+if (! function_exists('current_tenant_id')) {
     /**
      * Get the current tenant ID.
      */
@@ -13,11 +13,12 @@ if (!function_exists('current_tenant_id')) {
         if (app()->has('currentTenant')) {
             return app('currentTenant')?->id;
         }
+
         return null;
     }
 }
 
-if (!function_exists('current_tenant')) {
+if (! function_exists('current_tenant')) {
     /**
      * Get the current tenant.
      */
@@ -26,11 +27,12 @@ if (!function_exists('current_tenant')) {
         if (app()->has('currentTenant')) {
             return app('currentTenant');
         }
+
         return null;
     }
 }
 
-if (!function_exists('current_branches')) {
+if (! function_exists('current_branches')) {
     /**
      * Get the current selected branches.
      */
@@ -40,7 +42,7 @@ if (!function_exists('current_branches')) {
     }
 }
 
-if (!function_exists('current_branch')) {
+if (! function_exists('current_branch')) {
     /**
      * Get the first/primary current branch.
      */
@@ -50,7 +52,7 @@ if (!function_exists('current_branch')) {
     }
 }
 
-if (!function_exists('current_branch_ids')) {
+if (! function_exists('current_branch_ids')) {
     /**
      * Get the current branch IDs as array.
      */
@@ -60,7 +62,7 @@ if (!function_exists('current_branch_ids')) {
     }
 }
 
-if (!function_exists('current_branch_id')) {
+if (! function_exists('current_branch_id')) {
     /**
      * Get the first current branch ID.
      */
@@ -70,7 +72,7 @@ if (!function_exists('current_branch_id')) {
     }
 }
 
-if (!function_exists('is_all_branches')) {
+if (! function_exists('is_all_branches')) {
     /**
      * Check if viewing all branches.
      */
@@ -80,7 +82,7 @@ if (!function_exists('is_all_branches')) {
     }
 }
 
-if (!function_exists('current_currency')) {
+if (! function_exists('current_currency')) {
     /**
      * Get the current branch's currency code.
      * Falls back to app default currency if no branch selected.
@@ -98,7 +100,7 @@ if (!function_exists('current_currency')) {
     }
 }
 
-if (!function_exists('currency_minor_divisor')) {
+if (! function_exists('currency_minor_divisor')) {
     /**
      * How many minor units make one major unit for the given currency.
      * Most currencies are 2-decimal (100 cents per dollar), Gulf
@@ -123,17 +125,17 @@ if (!function_exists('currency_minor_divisor')) {
     }
 }
 
-if (!function_exists('format_money')) {
+if (! function_exists('format_money')) {
     /**
      * Format an amount as money using the current branch currency.
      *
-     * @param int $amountMinor Amount in minor units (cents/piasters)
-     * @param string|null $currency Override currency code
-     * @return string
+     * @param  int  $amountMinor  Amount in minor units (cents/piasters)
+     * @param  string|null  $currency  Override currency code
      */
     function format_money(int $amountMinor, ?string $currency = null): string
     {
         $currency = $currency ?? current_currency();
+
         return \Illuminate\Support\Str::money($amountMinor, $currency);
     }
 }

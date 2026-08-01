@@ -2,13 +2,12 @@
 
 namespace Modules\Auth\Observers;
 
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Modules\Auth\Models\User;
 use Modules\Auth\Models\UserStatus;
 use Modules\Auth\Notifications\UserLimitExceededNotification;
-use Modules\Auth\Notifications\UserLimitExceededAdminNotification;
 use Modules\Core\Models\Tenant;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Log;
 
 class UserLimitObserver
 {
@@ -76,7 +75,7 @@ class UserLimitObserver
             return;
         }
 
-        $message = __("Cannot reactivate user. You have reached the maximum of :max active users allowed for your plan (currently: :current).", [
+        $message = __('Cannot reactivate user. You have reached the maximum of :max active users allowed for your plan (currently: :current).', [
             'max' => $effectiveLimit,
             'current' => $activeAfter - 1,
         ]);
@@ -98,7 +97,7 @@ class UserLimitObserver
                     }
 
                     if (class_exists(\Filament\Support\Exceptions\Halt::class)) {
-                        throw new \Filament\Support\Exceptions\Halt();
+                        throw new \Filament\Support\Exceptions\Halt;
                     }
                 }
             } catch (\Filament\Support\Exceptions\Halt $e) {
@@ -117,7 +116,7 @@ class UserLimitObserver
     protected function checkUserLimit(): void
     {
         $tenant = current_tenant();
-        if (!$tenant) {
+        if (! $tenant) {
             return;
         }
 
@@ -141,11 +140,12 @@ class UserLimitObserver
                     'users_overage_notified' => false,
                 ]);
             }
+
             return;
         }
 
         // Over limit - check if this is first time
-        if (!$tenant->users_overage_at) {
+        if (! $tenant->users_overage_at) {
             $tenant->update([
                 'users_overage_at' => now(),
                 'users_overage_notified' => false,
@@ -196,8 +196,9 @@ class UserLimitObserver
         try {
             $platformAdminEmail = config('xlinic.platform_admin_email', config('mail.from.address'));
 
-            if (!$platformAdminEmail) {
+            if (! $platformAdminEmail) {
                 Log::warning('No platform admin email configured for user limit notifications');
+
                 return;
             }
 

@@ -4,7 +4,6 @@ namespace App\Services\Ai;
 
 use App\Services\Ai\Contracts\LlmProvider;
 use App\Services\Ai\Exceptions\LlmException;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -47,6 +46,7 @@ class LlmProviderRegistry
 
         /** @var LlmProvider $provider */
         $provider = new $driverClass($key, $config);
+
         return $this->instances[$key] = $provider;
     }
 
@@ -65,6 +65,7 @@ class LlmProviderRegistry
         } catch (\Throwable $e) {
             // Settings table might not exist during migrations — fall through.
         }
+
         return $configValue !== null && $configValue !== '' ? $configValue : null;
     }
 
@@ -81,6 +82,7 @@ class LlmProviderRegistry
         } catch (\Throwable $e) {
             // fall through
         }
+
         return (string) config('llm.default');
     }
 
@@ -123,6 +125,7 @@ class LlmProviderRegistry
     public static function available(): array
     {
         $providers = (array) config('llm.providers', []);
+
         return collect($providers)
             ->filter(fn (array $cfg, string $key) => filled(static::resolveApiKey($key, $cfg['api_key'] ?? null)))
             ->mapWithKeys(fn (array $cfg, string $key) => [$key => $cfg['label'] ?? $key])

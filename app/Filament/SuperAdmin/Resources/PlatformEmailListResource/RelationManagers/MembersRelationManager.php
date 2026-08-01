@@ -175,6 +175,7 @@ class MembersRelationManager extends RelationManager
                     ->title('Could not read file')
                     ->body("Uploaded file '{$path}' not found on local or public disk. Try uploading again.")
                     ->danger()->send();
+
                 return;
             }
         }
@@ -187,11 +188,13 @@ class MembersRelationManager extends RelationManager
                 ->title('Could not read file')
                 ->body($e->getMessage())
                 ->danger()->send();
+
             return;
         }
 
         if (empty($headers)) {
             Notification::make()->title('Empty file — no header row detected')->danger()->send();
+
             return;
         }
 
@@ -205,6 +208,7 @@ class MembersRelationManager extends RelationManager
                 ->title('AI organizer failed')
                 ->body($e->getMessage())
                 ->danger()->send();
+
             return;
         }
 
@@ -243,13 +247,14 @@ class MembersRelationManager extends RelationManager
                 ->title('AI could not identify an email column')
                 ->body(
                     "Model: {$plan['model_id']}. Mapping decided by AI: {$mappingSummary}. ".
-                    'Rename your email column to "email" or try a different model, then re-import. ' .
+                    'Rename your email column to "email" or try a different model, then re-import. '.
                     'File kept at '.$path.'.'
                 )
                 ->danger()
                 ->persistent()
                 ->send();
             $session->update(['status' => PlatformAiImportSession::STATUS_CANCELLED]);
+
             return; // NOTE: file intentionally NOT deleted so the user can retry.
         }
 
@@ -261,6 +266,7 @@ class MembersRelationManager extends RelationManager
             $projected = $organizer->projectRow($row, $plan['mapping'], $plan['normalizations']);
             if ($projected === null) {
                 $skipped++;
+
                 continue;
             }
             $created = PlatformEmailListMember::firstOrCreate(
@@ -300,6 +306,7 @@ class MembersRelationManager extends RelationManager
                 ->warning()
                 ->persistent()
                 ->send();
+
             return;
         }
 
@@ -325,6 +332,7 @@ class MembersRelationManager extends RelationManager
             $target = $mapping[$h] ?? 'drop';
             $out[] = "{$h}→{$target}";
         }
+
         return implode(', ', array_slice($out, 0, 15)).(count($headers) > 15 ? ', …' : '');
     }
 
@@ -347,6 +355,7 @@ class MembersRelationManager extends RelationManager
             $disk = \Illuminate\Support\Facades\Storage::disk('public');
             if (! $disk->exists($path)) {
                 Notification::make()->title('Uploaded file not found')->danger()->send();
+
                 return;
             }
         }
@@ -356,6 +365,7 @@ class MembersRelationManager extends RelationManager
             [$headers, $rows] = $this->readSpreadsheet($absolute);
         } catch (\Throwable $e) {
             Notification::make()->title('Could not read file')->body($e->getMessage())->danger()->send();
+
             return;
         }
 
@@ -366,6 +376,7 @@ class MembersRelationManager extends RelationManager
                 ->title('No website column detected')
                 ->body('None of the columns had enough URL-shaped values (excluding Google Maps and image CDNs). Verify the file has a "website" column.')
                 ->danger()->persistent()->send();
+
             return;
         }
 
@@ -383,6 +394,7 @@ class MembersRelationManager extends RelationManager
             }
             if ($website === '' || ! filter_var($website, FILTER_VALIDATE_URL)) {
                 $noUrl++;
+
                 continue;
             }
 
@@ -398,9 +410,9 @@ class MembersRelationManager extends RelationManager
         Notification::make()
             ->title("Queued {$dispatched} scrapes")
             ->body(
-                "Detected URL column: '{$urlColumn}'".($nameColumn ? ", name column: '{$nameColumn}'" : '').". "
+                "Detected URL column: '{$urlColumn}'".($nameColumn ? ", name column: '{$nameColumn}'" : '').'. '
                 ."{$noUrl} rows skipped (no valid URL). "
-                ."Members will trickle in over the next ~".max(1, (int) ceil($dispatched / 5))." seconds. "
+                .'Members will trickle in over the next ~'.max(1, (int) ceil($dispatched / 5)).' seconds. '
                 ."Refresh the list in a minute to see results (expect 20-40% match rate — many sites don't publish emails)."
             )
             ->success()->persistent()->send();
@@ -431,7 +443,9 @@ class MembersRelationManager extends RelationManager
             $good = 0;
             foreach ($sample as $row) {
                 $v = trim((string) ($row[$h] ?? ''));
-                if (! preg_match('#^https?://#i', $v)) continue;
+                if (! preg_match('#^https?://#i', $v)) {
+                    continue;
+                }
 
                 // Junk host? Match against any subdomain of the
                 // known-google-CDN roots.
@@ -444,10 +458,14 @@ class MembersRelationManager extends RelationManager
                         break;
                     }
                 }
-                if ($isJunk) continue;
+                if ($isJunk) {
+                    continue;
+                }
 
                 // Image URL? Skip.
-                if (preg_match('/\.(?:png|jpe?g|gif|svg|webp|avif|bmp|ico)(?:$|\?)/i', $v)) continue;
+                if (preg_match('/\.(?:png|jpe?g|gif|svg|webp|avif|bmp|ico)(?:$|\?)/i', $v)) {
+                    continue;
+                }
 
                 $good++;
             }
@@ -466,16 +484,28 @@ class MembersRelationManager extends RelationManager
         // that isn't the URL column and doesn't look purely numeric / URLish.
         $nameScores = [];
         foreach ($headers as $h) {
-            if ($h === $urlColumn) continue;
+            if ($h === $urlColumn) {
+                continue;
+            }
             $good = 0;
             foreach ($sample as $row) {
                 $v = trim((string) ($row[$h] ?? ''));
-                if ($v === '') continue;
+                if ($v === '') {
+                    continue;
+                }
                 $len = mb_strlen($v);
-                if ($len < 2 || $len > 120) continue;
-                if (preg_match('#^https?://#i', $v)) continue;
-                if (preg_match('/^[\d.\-,\s\(\)]+$/', $v)) continue; // pure numeric / rating / phone
-                if (mb_strtolower($v) === '·') continue;
+                if ($len < 2 || $len > 120) {
+                    continue;
+                }
+                if (preg_match('#^https?://#i', $v)) {
+                    continue;
+                }
+                if (preg_match('/^[\d.\-,\s\(\)]+$/', $v)) {
+                    continue;
+                } // pure numeric / rating / phone
+                if (mb_strtolower($v) === '·') {
+                    continue;
+                }
                 $good++;
             }
             $nameScores[$h] = $good;
@@ -516,6 +546,7 @@ class MembersRelationManager extends RelationManager
                 $out[] = $row;
             }
         }
+
         return [array_values(array_filter($headers, fn ($h) => $h !== '')), $out];
     }
 
@@ -544,6 +575,7 @@ class MembersRelationManager extends RelationManager
                     $rows[] = $row;
                 }
             }
+
             return [array_values(array_filter($headers, fn ($h) => $h !== '')), $rows];
         } finally {
             fclose($fp);

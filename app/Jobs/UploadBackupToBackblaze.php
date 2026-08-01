@@ -22,6 +22,7 @@ class UploadBackupToBackblaze implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 3;
+
     public int $timeout = 3600;
 
     /** @var array<int> Seconds between retries. */
@@ -31,25 +32,25 @@ class UploadBackupToBackblaze implements ShouldQueue
 
     public function handle(BackblazeService $backblaze): void
     {
-        if (!BackblazeService::isEnabled()) {
+        if (! BackblazeService::isEnabled()) {
             return;
         }
 
-        if ($this->backup->status !== 'completed' || !$this->backup->path) {
+        if ($this->backup->status !== 'completed' || ! $this->backup->path) {
             return;
         }
 
-        $localBase = storage_path('app/' . $this->backup->path);
+        $localBase = storage_path('app/'.$this->backup->path);
         $remoteBase = BackblazeService::remotePathFor($this->backup);
         $uploaded = 0;
 
         if (is_dir($localBase)) {
             foreach (scandir($localBase) as $entry) {
-                $file = $localBase . '/' . $entry;
-                if ($entry === '.' || $entry === '..' || !is_file($file)) {
+                $file = $localBase.'/'.$entry;
+                if ($entry === '.' || $entry === '..' || ! is_file($file)) {
                     continue;
                 }
-                $backblaze->upload($file, $remoteBase . '/' . $entry);
+                $backblaze->upload($file, $remoteBase.'/'.$entry);
                 $uploaded++;
             }
         } else {

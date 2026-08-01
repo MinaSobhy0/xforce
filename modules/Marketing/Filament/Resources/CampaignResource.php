@@ -5,17 +5,17 @@ namespace Modules\Marketing\Filament\Resources;
 use App\Traits\ChecksResourcePermissions;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Filament\Notifications\Notification;
 use Modules\Marketing\Filament\Resources\CampaignResource\Pages;
 use Modules\Marketing\Filament\Resources\CampaignResource\RelationManagers;
 use Modules\Marketing\Jobs\ProcessCampaignRecipientsJob;
 use Modules\Marketing\Models\Campaign;
+use Modules\Marketing\Models\MessageTemplate;
 use Modules\Marketing\Services\CampaignService;
 use XLinic\Framework\Core\Filament\RelationManagers\ActivityLogRelationManager;
-use Modules\Marketing\Models\MessageTemplate;
 
 class CampaignResource extends Resource
 {
@@ -91,9 +91,10 @@ class CampaignResource extends Resource
                             ->label(__('marketing::marketing.fields.template'))
                             ->options(function (Forms\Get $get) {
                                 $channel = $get('channel');
-                                if (!$channel) {
+                                if (! $channel) {
                                     return [];
                                 }
+
                                 return MessageTemplate::where('channel', $channel)
                                     ->where('is_active', true)
                                     ->pluck('name', 'id')
