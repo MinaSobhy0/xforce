@@ -106,7 +106,7 @@ class TenantResource extends Resource
 
                             \DB::statement('SET search_path TO public');
 
-                            $url = "https://{$record->slug}.x-linic.com/admin/impersonate?token={$token}&user={$data['user_id']}";
+                            $url = "https://{$record->slug}.xforcehr.com/admin/impersonate?token={$token}&user={$data['user_id']}";
 
                             return redirect()->away($url);
                         } catch (\Exception $e) {

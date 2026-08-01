@@ -11,7 +11,7 @@
             @endif
             <div>
                 <h2 class="text-lg font-semibold text-gray-900 dark:text-white">{{ $tenant->name }}</h2>
-                <p class="text-sm text-gray-500 dark:text-gray-400">{{ $tenant->slug }}.x-linic.com</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">{{ $tenant->slug }}.xforcehr.com</p>
             </div>
             <div class="ml-auto">
                 <x-filament::badge

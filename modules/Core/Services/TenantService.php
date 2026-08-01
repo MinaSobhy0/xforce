@@ -823,7 +823,7 @@ class TenantService
      */
     /**
      * Mirror the tenant-schema owner into public.users so the owner portal
-     * at x-linic.com/admin can authenticate. Returns the public.users.id
+     * at xforcehr.com/admin can authenticate. Returns the public.users.id
      * (which is independent of the tenant-schema user id — public.users is
      * shared across all tenants and auto-increments, while each tenant's
      * users table starts from 1).

@@ -28,7 +28,7 @@
                         <h3 class="text-base font-semibold text-gray-900 group-hover:text-indigo-600 truncate">
                             {{ $tenant->name }}
                         </h3>
-                        <p class="text-sm text-gray-500 truncate">{{ $tenant->slug }}.x-linic.com</p>
+                        <p class="text-sm text-gray-500 truncate">{{ $tenant->slug }}.xforcehr.com</p>
                     </div>
                     <svg class="w-5 h-5 text-gray-400 group-hover:text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
@@ -40,7 +40,7 @@
         <div class="mt-8 pt-6 border-t border-gray-200">
             <p class="text-xs text-gray-500 text-center">
                 For production use, access clinics via their subdomain:
-                <code class="bg-gray-100 px-1 rounded">clinic.x-linic.com/admin</code>
+                <code class="bg-gray-100 px-1 rounded">clinic.xforcehr.com/admin</code>
             </p>
         </div>
     </div>

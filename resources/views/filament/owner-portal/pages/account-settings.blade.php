@@ -50,7 +50,7 @@
 
                     <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
                         <dt class="text-sm text-gray-500 dark:text-gray-400">Subdomain</dt>
-                        <dd class="mt-1 font-medium text-gray-900 dark:text-white">{{ $tenant->slug }}.x-linic.com</dd>
+                        <dd class="mt-1 font-medium text-gray-900 dark:text-white">{{ $tenant->slug }}.xforcehr.com</dd>
                     </div>
 
                     <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">

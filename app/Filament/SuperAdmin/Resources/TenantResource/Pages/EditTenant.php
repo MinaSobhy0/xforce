@@ -90,7 +90,7 @@ class EditTenant extends BaseEditRecord
 
                         DB::statement('SET search_path TO public');
 
-                        $url = "https://{$this->record->slug}.x-linic.com/admin/impersonate?token={$token}&user={$data['user_id']}";
+                        $url = "https://{$this->record->slug}.xforcehr.com/admin/impersonate?token={$token}&user={$data['user_id']}";
 
                         $this->js("window.open('{$url}', '_blank')");
                     } catch (\Exception $e) {
