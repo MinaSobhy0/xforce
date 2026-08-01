@@ -28,7 +28,12 @@ class ReferralProgramResource extends Resource
 
     protected static ?string $navigationGroup = 'Marketing';
 
-    protected static ?int $navigationSort = 22;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.loyalty_gifts');
+    }
+
+    protected static ?int $navigationSort = 40;
 
     protected static ?string $recordTitleAttribute = 'name';
 

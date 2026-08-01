@@ -22,7 +22,7 @@ class OnboardingRequestResource extends Resource
 
     protected static ?string $navigationLabel = 'Onboarding Requests';
 
-    protected static ?string $navigationGroup = 'CRM';
+    protected static ?string $navigationGroup = 'Clients';
 
     protected static ?int $navigationSort = 2;
 

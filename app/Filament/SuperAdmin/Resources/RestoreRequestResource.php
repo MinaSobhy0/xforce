@@ -22,6 +22,11 @@ class RestoreRequestResource extends Resource
 
     protected static ?string $navigationGroup = 'System';
 
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.operations');
+    }
+
     protected static ?int $navigationSort = 8;
 
     public static function form(Form $form): Form

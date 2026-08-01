@@ -28,7 +28,12 @@ class StockTransferResource extends Resource
 
     protected static ?string $navigationGroup = 'Inventory';
 
-    protected static ?int $navigationSort = 60;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.stock');
+    }
+
+    protected static ?int $navigationSort = 30;
 
     protected static ?string $moduleCode = 'inventory';
 

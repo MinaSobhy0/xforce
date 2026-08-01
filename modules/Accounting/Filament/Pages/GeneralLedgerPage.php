@@ -25,7 +25,12 @@ class GeneralLedgerPage extends Page implements HasForms
 
     protected static ?string $navigationGroup = 'Finance';
 
-    protected static ?int $navigationSort = 13;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.financial_reports');
+    }
+
+    protected static ?int $navigationSort = 50;
 
     public static function canAccess(): bool
     {

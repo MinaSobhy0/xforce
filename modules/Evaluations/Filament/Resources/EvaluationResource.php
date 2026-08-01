@@ -18,7 +18,12 @@ class EvaluationResource extends Resource
 
     protected static ?string $navigationGroup = 'Operations';
 
-    protected static ?int $navigationSort = 20;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.clinical');
+    }
+
+    protected static ?int $navigationSort = 50;
 
     protected static ?string $recordTitleAttribute = 'id';
 

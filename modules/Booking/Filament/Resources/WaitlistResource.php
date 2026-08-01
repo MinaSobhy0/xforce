@@ -30,7 +30,12 @@ class WaitlistResource extends Resource
 
     protected static ?string $navigationGroup = 'Operations';
 
-    protected static ?int $navigationSort = 20;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.appointments');
+    }
+
+    protected static ?int $navigationSort = 50;
 
     protected static ?string $recordTitleAttribute = 'name';
 

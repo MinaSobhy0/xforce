@@ -27,7 +27,12 @@ class MobileAppDefaultsSettings extends Page implements HasForms
 
     protected static ?string $navigationIcon = 'heroicon-o-device-phone-mobile';
 
-    protected static ?string $navigationGroup = 'Platform';
+    protected static ?string $navigationGroup = 'Apps & Modules';
+
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.mobile_app');
+    }
 
     protected static ?string $navigationLabel = 'Mobile App Defaults';
 

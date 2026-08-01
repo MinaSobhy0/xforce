@@ -13,6 +13,11 @@ class PatientReportPage extends BaseReportPage
 
     protected static ?int $navigationSort = 2;
 
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.rpt_clinical');
+    }
+
     public static function getNavigationLabel(): string
     {
         return __('reporting::reporting.patient_report');

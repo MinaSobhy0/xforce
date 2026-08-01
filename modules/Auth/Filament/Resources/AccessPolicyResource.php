@@ -26,7 +26,12 @@ class AccessPolicyResource extends Resource
 
     protected static ?string $navigationGroup = 'Settings';
 
-    protected static ?int $navigationSort = 50;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.access');
+    }
+
+    protected static ?int $navigationSort = 30;
 
     protected static ?string $recordTitleAttribute = 'name';
 

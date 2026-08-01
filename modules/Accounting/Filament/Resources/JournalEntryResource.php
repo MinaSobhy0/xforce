@@ -32,7 +32,12 @@ class JournalEntryResource extends Resource
 
     protected static ?string $navigationGroup = 'Finance';
 
-    protected static ?int $navigationSort = 4;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.accounting');
+    }
+
+    protected static ?int $navigationSort = 10;
 
     protected static ?string $recordTitleAttribute = 'code';
 

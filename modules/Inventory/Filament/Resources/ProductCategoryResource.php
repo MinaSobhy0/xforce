@@ -27,7 +27,12 @@ class ProductCategoryResource extends Resource
 
     protected static ?string $navigationGroup = 'Inventory';
 
-    protected static ?int $navigationSort = 31;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.catalog');
+    }
+
+    protected static ?int $navigationSort = 11;
 
     protected static ?string $recordTitleAttribute = 'name';
 

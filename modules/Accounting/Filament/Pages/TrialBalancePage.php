@@ -25,6 +25,11 @@ class TrialBalancePage extends Page implements HasForms
 
     protected static ?string $navigationGroup = 'Finance';
 
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.financial_reports');
+    }
+
     protected static ?int $navigationSort = 10;
 
     public static function canAccess(): bool

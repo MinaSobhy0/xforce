@@ -22,6 +22,11 @@ class TwoFactorSettings extends Page implements HasForms
 
     protected static ?string $navigationGroup = 'System';
 
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.security_audit');
+    }
+
     protected static ?int $navigationSort = 2;
 
     protected static string $view = 'filament.super-admin.pages.two-factor-settings';

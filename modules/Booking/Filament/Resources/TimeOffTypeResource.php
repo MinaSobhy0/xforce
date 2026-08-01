@@ -27,7 +27,12 @@ class TimeOffTypeResource extends Resource
 
     protected static ?string $navigationGroup = 'HR';
 
-    protected static ?int $navigationSort = 13;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.time_off');
+    }
+
+    protected static ?int $navigationSort = 20;
 
     public static function getNavigationLabel(): string
     {

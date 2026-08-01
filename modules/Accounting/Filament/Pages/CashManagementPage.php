@@ -32,7 +32,12 @@ class CashManagementPage extends Page implements HasForms
 
     protected static ?string $navigationGroup = 'Finance';
 
-    protected static ?int $navigationSort = 10;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.accounting');
+    }
+
+    protected static ?int $navigationSort = 70;
 
     public static function canAccess(): bool
     {

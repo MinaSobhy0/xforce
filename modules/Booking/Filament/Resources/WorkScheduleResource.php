@@ -28,7 +28,12 @@ class WorkScheduleResource extends Resource
 
     protected static ?string $navigationGroup = 'HR';
 
-    protected static ?int $navigationSort = 2;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.attendance');
+    }
+
+    protected static ?int $navigationSort = 40;
 
     protected static ?string $recordTitleAttribute = 'name';
 

@@ -12,6 +12,11 @@ class GiftCardReportPage extends BaseReportPage
 
     protected static ?int $navigationSort = 7;
 
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.rpt_marketing');
+    }
+
     public static function getNavigationLabel(): string
     {
         return __('reporting::reporting.gift_card_report');

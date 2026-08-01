@@ -14,6 +14,11 @@ class InventoryReportPage extends BaseReportPage
 
     protected static ?int $navigationSort = 6;
 
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.rpt_inventory');
+    }
+
     public static function getNavigationLabel(): string
     {
         return __('reporting::reporting.inventory_report');

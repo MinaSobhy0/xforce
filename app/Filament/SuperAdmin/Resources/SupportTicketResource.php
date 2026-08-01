@@ -20,7 +20,7 @@ class SupportTicketResource extends Resource
 
     protected static ?string $navigationLabel = 'Support Tickets';
 
-    protected static ?string $navigationGroup = 'Support';
+    protected static ?string $navigationGroup = 'Engagement';
 
     protected static ?int $navigationSort = 1;
 

@@ -26,7 +26,12 @@ class AttendanceViolationResource extends Resource
 
     protected static ?string $navigationGroup = 'HR';
 
-    protected static ?int $navigationSort = 23;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.attendance');
+    }
+
+    protected static ?int $navigationSort = 30;
 
     protected static ?string $recordTitleAttribute = 'violation_type';
 

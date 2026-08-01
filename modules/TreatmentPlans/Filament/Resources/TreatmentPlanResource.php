@@ -35,7 +35,12 @@ class TreatmentPlanResource extends Resource
 
     protected static ?string $navigationGroup = 'Operations';
 
-    protected static ?int $navigationSort = 20;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.clinical');
+    }
+
+    protected static ?int $navigationSort = 30;
 
     protected static ?string $recordTitleAttribute = 'code';
 

@@ -23,6 +23,11 @@ class SystemAlertResource extends Resource
 
     protected static ?string $navigationGroup = 'System';
 
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.health');
+    }
+
     protected static ?int $navigationSort = 3;
 
     public static function getNavigationBadge(): ?string

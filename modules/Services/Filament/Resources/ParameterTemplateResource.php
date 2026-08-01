@@ -25,7 +25,12 @@ class ParameterTemplateResource extends Resource
 
     protected static ?string $navigationGroup = 'Settings';
 
-    protected static ?int $navigationSort = 5;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.templates');
+    }
+
+    protected static ?int $navigationSort = 20;
 
     protected static ?string $recordTitleAttribute = 'template_name';
 

@@ -20,7 +20,12 @@ class DefaultAccountsPage extends Page implements Forms\Contracts\HasForms
 
     protected static ?string $navigationGroup = 'Finance';
 
-    protected static ?int $navigationSort = 90;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.accounting');
+    }
+
+    protected static ?int $navigationSort = 50;
 
     public static function canAccess(): bool
     {

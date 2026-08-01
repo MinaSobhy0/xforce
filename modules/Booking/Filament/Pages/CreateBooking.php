@@ -44,7 +44,12 @@ class CreateBooking extends Page implements HasForms
 
     protected static ?string $navigationGroup = 'Operations';
 
-    protected static ?int $navigationSort = 2;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.appointments');
+    }
+
+    protected static ?int $navigationSort = 20;
 
     protected static string $view = 'booking::filament.pages.create-booking';
 

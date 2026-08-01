@@ -32,7 +32,12 @@ class WhatsAppIntegrationSettings extends Page implements HasForms
 
     protected static ?string $navigationGroup = 'Settings';
 
-    protected static ?int $navigationSort = 70;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.integrations');
+    }
+
+    protected static ?int $navigationSort = 10;
 
     protected static ?string $slug = 'whatsapp-integration';
 

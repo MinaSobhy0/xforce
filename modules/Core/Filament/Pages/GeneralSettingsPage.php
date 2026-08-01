@@ -19,7 +19,12 @@ class GeneralSettingsPage extends Page implements Forms\Contracts\HasForms
 
     protected static ?string $navigationGroup = 'Settings';
 
-    protected static ?int $navigationSort = 60;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.clinic_setup');
+    }
+
+    protected static ?int $navigationSort = 10;
 
     public static function canAccess(): bool
     {

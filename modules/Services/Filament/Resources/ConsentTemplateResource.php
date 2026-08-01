@@ -25,7 +25,12 @@ class ConsentTemplateResource extends Resource
 
     protected static ?string $navigationGroup = 'Settings';
 
-    protected static ?int $navigationSort = 4;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.templates');
+    }
+
+    protected static ?int $navigationSort = 10;
 
     protected static ?string $recordTitleAttribute = 'name';
 

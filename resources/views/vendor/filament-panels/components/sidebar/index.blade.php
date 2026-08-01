@@ -10,6 +10,22 @@
     // Create a unique storage key prefix for this user + panel to prevent navigation state bleeding
     $storageKeyPrefix = "sidebar_{$panelId}_{$userId}_";
 
+    // Detect which group contains the currently-active item so the
+    // rail button can paint as active and the submenu panel opens
+    // on first load — without this the sidebar only knows what the
+    // user last clicked, so visiting the dashboard directly leaves
+    // every rail button "cold" and the right-hand panel collapsed.
+    $currentGroupLabel = null;
+    foreach ($navigation as $group) {
+        foreach ($group->getItems() as $item) {
+            if ($item->isActive()
+                || collect($item->getChildItems())->contains(fn ($child) => $child->isActive())) {
+                $currentGroupLabel = $group->getLabel();
+                break 2;
+            }
+        }
+    }
+
     // Quick Access items configuration - only for tenant panel
     $quickAccessItems = [];
     if ($panelId === 'tenant') {
@@ -22,10 +38,16 @@
         // Simple permission check using Spatie's cached permissions (no DB queries)
         $canAccess = fn(string $permission) => $isSuperUser || ($user && $user->can($permission));
 
+        // Quick Access labels go through `core::core.quick_access.*`.
+        // Passing plain English strings to __() the way these used to
+        // wouldn't resolve in Arabic — there's no source registered
+        // for the literal English keys, so the translator falls back
+        // to the key string and the labels stay in English.
+
         // Today (Reception)
         if ($canAccess('visits.view')) {
             $quickAccessItems[] = [
-                'label' => __('Today'),
+                'label' => __('core::core.quick_access.today'),
                 'icon' => 'heroicon-o-calendar',
                 'url' => route('filament.tenant.pages.reception'),
             ];
@@ -34,7 +56,7 @@
         // Book
         if ($canAccess('appointments.create')) {
             $quickAccessItems[] = [
-                'label' => __('Book'),
+                'label' => __('core::core.quick_access.book'),
                 'icon' => 'heroicon-o-plus-circle',
                 'url' => route('filament.tenant.pages.create-booking'),
             ];
@@ -43,7 +65,7 @@
         // Patients
         if ($canAccess('patients.view')) {
             $quickAccessItems[] = [
-                'label' => __('Patients'),
+                'label' => __('core::core.quick_access.patients'),
                 'icon' => 'heroicon-o-users',
                 'url' => route('filament.tenant.resources.patients.index'),
             ];
@@ -52,7 +74,7 @@
         // Calendar
         if ($canAccess('appointments.view')) {
             $quickAccessItems[] = [
-                'label' => __('Calendar'),
+                'label' => __('core::core.quick_access.calendar'),
                 'icon' => 'heroicon-o-calendar-days',
                 'url' => route('filament.tenant.pages.calendar'),
             ];
@@ -360,6 +382,20 @@
         color: #64748b;
     }
 
+    /* Expand/collapse chevron on folder parent items — sizing via class (not
+       inline) so an x-bind:style with an empty value can't wipe it. */
+    .fi-menu-chevron {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+        color: #94a3b8;
+        transition: transform 0.2s ease;
+    }
+
+    .fi-menu-chevron-open {
+        transform: rotate(180deg);
+    }
+
     .fi-menu-item.active .fi-menu-badge {
         background: #e0e7ff;
         color: #4f46e5;
@@ -414,6 +450,20 @@
         border-left-color: #4b5563;
     }
 
+    /* RTL desktop override: stock Filament's class binding pairs
+       `-translate-x-full rtl:translate-x-full lg:translate-x-0` for the
+       closed state, but in the compiled CSS the `rtl:` variant is emitted
+       after the `lg:` variant. Same specificity → source-order wins → in
+       Arabic on desktop the sidebar resolves to translateX(100%) and
+       slides off-screen (since the aside is `start-0`, i.e. right-anchored
+       in RTL). Force it back to 0 on lg+ in RTL so it stays put. The
+       `!important` is needed to beat Tailwind's own utility specificity. */
+    @media (min-width: 1024px) {
+        [dir="rtl"] .fi-sidebar {
+            transform: translateX(0) !important;
+        }
+    }
+
     /* Scrollbar styling */
     .fi-sidebar-panel-nav {
         scrollbar-width: thin;
@@ -442,10 +492,25 @@
 <aside
     x-data="{
         storagePrefix: @js($storageKeyPrefix),
+        currentGroupLabel: @js($currentGroupLabel),
         activeGroup: null,
         isPanelCollapsed: false,
         init() {
-            this.activeGroup = localStorage.getItem(this.storagePrefix + 'active_group') || null;
+            // Prefer the group the server says contains the current
+            // page — that's the right default. localStorage is only
+            // honoured if it matches this same group (sticky panel
+            // state for repeat visits). Otherwise it's stale (e.g.
+            // user clicked into Inventory, then navigated to the
+            // dashboard) and would mis-paint the active state.
+            const stored = localStorage.getItem(this.storagePrefix + 'active_group');
+            if (this.currentGroupLabel && stored === this.currentGroupLabel) {
+                this.activeGroup = stored;
+            } else if (this.currentGroupLabel) {
+                this.activeGroup = this.currentGroupLabel;
+                localStorage.setItem(this.storagePrefix + 'active_group', this.currentGroupLabel);
+            } else {
+                this.activeGroup = stored || null;
+            }
             this.isPanelCollapsed = localStorage.getItem(this.storagePrefix + 'panel_collapsed') === 'true';
         },
         setActiveGroup(group) {
@@ -562,7 +627,7 @@
                     @csrf
                     <button type="submit" class="fi-rail-btn" style="width: 100%;">
                         <x-filament::icon icon="heroicon-o-arrow-left-on-rectangle" class="fi-rail-btn-icon" />
-                        <span class="fi-rail-btn-label">Logout</span>
+                        <span class="fi-rail-btn-label">{{ __('filament-panels::layout.actions.logout.label') }}</span>
                     </button>
                 </form>
             </div>
@@ -587,7 +652,7 @@
                     type="button"
                     x-on:click="togglePanel()"
                     class="fi-panel-close-btn"
-                    title="Collapse"
+                    title="{{ __('core::core.quick_access.collapse') }}"
                 >
                     <x-filament::icon icon="heroicon-o-chevron-left" style="width: 18px; height: 18px;" />
                 </button>
@@ -598,7 +663,7 @@
                 <div class="fi-quick-access-section" style="padding: 10px 12px;">
                     <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
                         <x-filament::icon icon="heroicon-o-bolt" style="width: 12px; height: 12px; color: #94a3b8;" />
-                        <span style="font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Quick Access</span>
+                        <span style="font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">{{ __('core::core.quick_access.heading') }}</span>
                     </div>
                     <div class="fi-quick-access-grid">
                         @foreach($quickAccessItems as $item)
@@ -641,8 +706,8 @@
                                         <span style="flex: 1;">{{ $item->getLabel() }}</span>
                                         <x-filament::icon
                                             icon="heroicon-o-chevron-down"
-                                            style="width: 16px; height: 16px; color: #94a3b8; transition: transform 0.2s ease;"
-                                            x-bind:style="expanded ? 'transform: rotate(180deg);' : ''"
+                                            class="fi-menu-chevron"
+                                            x-bind:class="expanded ? 'fi-menu-chevron-open' : ''"
                                         />
                                     </button>
 

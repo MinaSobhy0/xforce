@@ -27,6 +27,11 @@ class StockReportPage extends Page implements HasTable, HasForms
 
     protected static ?string $navigationGroup = 'Inventory';
 
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.stock');
+    }
+
     protected static ?int $navigationSort = 50;
 
     protected static string $view = 'inventory::filament.pages.stock-report';

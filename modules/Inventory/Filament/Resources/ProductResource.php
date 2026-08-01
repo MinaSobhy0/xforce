@@ -35,6 +35,11 @@ class ProductResource extends Resource
 
     protected static ?string $navigationGroup = 'Inventory';
 
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.catalog');
+    }
+
     protected static ?int $navigationSort = 10;
 
     protected static ?string $recordTitleAttribute = 'sku';

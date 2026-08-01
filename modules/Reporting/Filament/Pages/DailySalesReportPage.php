@@ -25,7 +25,12 @@ class DailySalesReportPage extends Page implements HasForms
 
     protected static ?string $navigationGroup = 'Reports';
 
-    protected static ?int $navigationSort = 2;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.rpt_finance');
+    }
+
+    protected static ?int $navigationSort = 10;
 
     protected ?string $maxContentWidth = 'full';
 

@@ -37,7 +37,12 @@ class ServiceResource extends Resource
 
     protected static ?string $navigationGroup = 'Inventory';
 
-    protected static ?int $navigationSort = 1;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.catalog');
+    }
+
+    protected static ?int $navigationSort = 20;
 
     protected static ?string $recordTitleAttribute = 'code';
 

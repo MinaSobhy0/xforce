@@ -26,7 +26,12 @@ class WebsitePageResource extends Resource
 
     protected static ?string $navigationGroup = 'Marketing';
 
-    protected static ?int $navigationSort = 60;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.website');
+    }
+
+    protected static ?int $navigationSort = 10;
 
     protected static ?string $recordTitleAttribute = 'slug';
 

@@ -9,6 +9,7 @@ use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Navigation\NavigationGroup;
+use Filament\Navigation\NavigationItem;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\SpatieLaravelTranslatablePlugin;
@@ -83,6 +84,48 @@ class TenantPanelProvider extends PanelProvider
                     ->label(__('Mobile App'))
                     ->icon('heroicon-o-device-phone-mobile')
                     ->collapsed(),
+            ])
+
+            // Sub-folder parent items (lazy labels to avoid translator-cache
+            // poisoning). Children attach via getNavigationParentItem().
+            ->navigationItems([
+                // Finance
+                NavigationItem::make('accounting')->label(fn () => __('core::core.nav_folders.accounting'))->group('Finance')->icon('heroicon-o-book-open')->sort(50),
+                NavigationItem::make('financial_reports')->label(fn () => __('core::core.nav_folders.financial_reports'))->group('Finance')->icon('heroicon-o-chart-bar')->sort(60),
+                NavigationItem::make('assets')->label(fn () => __('core::core.nav_folders.assets'))->group('Finance')->icon('heroicon-o-computer-desktop')->sort(70),
+                // Operations
+                NavigationItem::make('appointments')->label(fn () => __('core::core.nav_folders.appointments'))->group('Operations')->icon('heroicon-o-calendar-days')->sort(50),
+                NavigationItem::make('clinical')->label(fn () => __('core::core.nav_folders.clinical'))->group('Operations')->icon('heroicon-o-heart')->sort(60),
+                // HR
+                NavigationItem::make('attendance')->label(fn () => __('core::core.nav_folders.attendance'))->group('HR')->icon('heroicon-o-finger-print')->sort(50),
+                NavigationItem::make('time_off')->label(fn () => __('core::core.nav_folders.time_off'))->group('HR')->icon('heroicon-o-sun')->sort(60),
+                NavigationItem::make('payroll')->label(fn () => __('core::core.nav_folders.payroll'))->group('HR')->icon('heroicon-o-banknotes')->sort(70),
+                NavigationItem::make('commissions')->label(fn () => __('core::core.nav_folders.commissions'))->group('HR')->icon('heroicon-o-receipt-percent')->sort(80),
+                // Inventory
+                NavigationItem::make('catalog')->label(fn () => __('core::core.nav_folders.catalog'))->group('Inventory')->icon('heroicon-o-squares-2x2')->sort(50),
+                NavigationItem::make('stock')->label(fn () => __('core::core.nav_folders.stock'))->group('Inventory')->icon('heroicon-o-cube')->sort(60),
+                NavigationItem::make('purchasing')->label(fn () => __('core::core.nav_folders.purchasing'))->group('Inventory')->icon('heroicon-o-shopping-cart')->sort(70),
+                NavigationItem::make('units')->label(fn () => __('core::core.nav_folders.units'))->group('Inventory')->icon('heroicon-o-scale')->sort(80),
+                // Marketing
+                NavigationItem::make('campaigns')->label(fn () => __('core::core.nav_folders.campaigns'))->group('Marketing')->icon('heroicon-o-megaphone')->sort(50),
+                NavigationItem::make('loyalty_gifts')->label(fn () => __('core::core.nav_folders.loyalty_gifts'))->group('Marketing')->icon('heroicon-o-gift')->sort(60),
+                NavigationItem::make('channels')->label(fn () => __('core::core.nav_folders.channels'))->group('Marketing')->icon('heroicon-o-chat-bubble-left-right')->sort(70),
+                NavigationItem::make('website')->label(fn () => __('core::core.nav_folders.website'))->group('Marketing')->icon('heroicon-o-globe-alt')->sort(80),
+                // Settings
+                NavigationItem::make('booking')->label(fn () => __('core::core.nav_folders.booking'))->group('Settings')->icon('heroicon-o-calendar')->sort(50),
+                NavigationItem::make('access')->label(fn () => __('core::core.nav_folders.access'))->group('Settings')->icon('heroicon-o-lock-closed')->sort(60),
+                NavigationItem::make('clinic_setup')->label(fn () => __('core::core.nav_folders.clinic_setup'))->group('Settings')->icon('heroicon-o-building-office')->sort(70),
+                NavigationItem::make('templates')->label(fn () => __('core::core.nav_folders.templates'))->group('Settings')->icon('heroicon-o-document-duplicate')->sort(80),
+                NavigationItem::make('integrations')->label(fn () => __('core::core.nav_folders.integrations'))->group('Settings')->icon('heroicon-o-puzzle-piece')->sort(90),
+                // Mobile App
+                NavigationItem::make('app_settings')->label(fn () => __('core::core.nav_folders.app_settings'))->group('Mobile App')->icon('heroicon-o-cog-6-tooth')->sort(50),
+                // Reports
+                NavigationItem::make('rpt_finance')->label(fn () => __('core::core.nav_folders.rpt_finance'))->group('Reports')->icon('heroicon-o-banknotes')->sort(50),
+                NavigationItem::make('rpt_appointments')->label(fn () => __('core::core.nav_folders.rpt_appointments'))->group('Reports')->icon('heroicon-o-calendar-days')->sort(60),
+                NavigationItem::make('rpt_clinical')->label(fn () => __('core::core.nav_folders.rpt_clinical'))->group('Reports')->icon('heroicon-o-heart')->sort(70),
+                NavigationItem::make('rpt_staff')->label(fn () => __('core::core.nav_folders.rpt_staff'))->group('Reports')->icon('heroicon-o-user-group')->sort(80),
+                NavigationItem::make('rpt_marketing')->label(fn () => __('core::core.nav_folders.rpt_marketing'))->group('Reports')->icon('heroicon-o-megaphone')->sort(90),
+                NavigationItem::make('rpt_inventory')->label(fn () => __('core::core.nav_folders.rpt_inventory'))->group('Reports')->icon('heroicon-o-cube')->sort(100),
             ])
 
             // Discover Core module resources and pages

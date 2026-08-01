@@ -24,7 +24,12 @@ class StockLocationResource extends Resource
 
     protected static ?string $navigationGroup = 'Inventory';
 
-    protected static ?int $navigationSort = 55;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.stock');
+    }
+
+    protected static ?int $navigationSort = 10;
 
     protected static ?string $moduleCode = 'inventory';
 

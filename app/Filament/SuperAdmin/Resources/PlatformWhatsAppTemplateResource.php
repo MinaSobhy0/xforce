@@ -34,7 +34,7 @@ class PlatformWhatsAppTemplateResource extends Resource
 
     protected static ?string $navigationLabel = 'WhatsApp Catalog';
 
-    protected static ?string $navigationGroup = 'Platform';
+    protected static ?string $navigationGroup = 'Apps & Modules';
 
     protected static ?int $navigationSort = 35;
 

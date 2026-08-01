@@ -18,7 +18,12 @@ class UsageAnalytics extends Page implements HasForms
 
     protected static ?string $navigationLabel = 'Usage Analytics';
 
-    protected static ?string $navigationGroup = 'Financials';
+    protected static ?string $navigationGroup = 'Billing';
+
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.analytics');
+    }
 
     protected static ?int $navigationSort = 1;
 

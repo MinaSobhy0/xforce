@@ -23,7 +23,12 @@ class TreatmentAnalytics extends Page implements HasForms
     protected static ?string $permissionKey = 'treatment_analytics';
     protected static ?string $navigationIcon = 'heroicon-o-chart-bar';
     protected static ?string $navigationGroup = 'Reports';
-    protected static ?int $navigationSort = 30;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.rpt_clinical');
+    }
+
+    protected static ?int $navigationSort = 10;
     protected static ?string $slug = 'treatment-analytics';
 
     protected static string $view = 'booking::filament.pages.treatment-analytics';

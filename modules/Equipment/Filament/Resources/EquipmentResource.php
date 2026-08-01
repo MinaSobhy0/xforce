@@ -33,7 +33,7 @@ class EquipmentResource extends Resource
 
     protected static ?string $navigationGroup = 'Inventory';
 
-    protected static ?int $navigationSort = 20;
+    protected static ?int $navigationSort = 100;
 
     protected static ?string $recordTitleAttribute = 'name';
 

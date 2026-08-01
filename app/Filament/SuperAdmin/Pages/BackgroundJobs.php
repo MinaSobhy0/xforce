@@ -13,6 +13,11 @@ class BackgroundJobs extends Page
 
     protected static ?string $navigationGroup = 'System';
 
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.operations');
+    }
+
     protected static ?int $navigationSort = 4;
 
     protected static string $view = 'filament.super-admin.pages.background-jobs';

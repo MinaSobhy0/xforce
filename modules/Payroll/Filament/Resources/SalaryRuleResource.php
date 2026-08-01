@@ -28,7 +28,12 @@ class SalaryRuleResource extends Resource
 
     protected static ?string $navigationGroup = 'HR';
 
-    protected static ?int $navigationSort = 51;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.payroll');
+    }
+
+    protected static ?int $navigationSort = 40;
 
     protected static ?string $recordTitleAttribute = 'name';
 

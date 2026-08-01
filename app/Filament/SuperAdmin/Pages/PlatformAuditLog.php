@@ -20,6 +20,11 @@ class PlatformAuditLog extends Page implements HasTable
 
     protected static ?string $navigationGroup = 'System';
 
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.security_audit');
+    }
+
     protected static ?int $navigationSort = 4;
 
     protected static string $view = 'filament.super-admin.pages.platform-audit-log';

@@ -23,7 +23,12 @@ class BookingBlackoutDateResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-calendar-days';
     protected static ?string $navigationGroup = 'Settings';
-    protected static ?int $navigationSort = 52;
+
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.booking');
+    }
+    protected static ?int $navigationSort = 30;
 
     public static function getNavigationLabel(): string
     {

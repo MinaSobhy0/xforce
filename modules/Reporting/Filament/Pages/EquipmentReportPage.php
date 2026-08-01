@@ -13,6 +13,12 @@ class EquipmentReportPage extends BaseReportPage
 
     protected static ?int $navigationSort = 4;
 
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.rpt_inventory');
+    }
+
+
     public static function getNavigationLabel(): string
     {
         return __('reporting::reporting.equipment_report');

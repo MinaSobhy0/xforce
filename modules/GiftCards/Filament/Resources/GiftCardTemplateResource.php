@@ -31,7 +31,12 @@ class GiftCardTemplateResource extends Resource
 
     protected static ?string $navigationGroup = 'Marketing';
 
-    protected static ?int $navigationSort = 11;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.loyalty_gifts');
+    }
+
+    protected static ?int $navigationSort = 51;
 
     protected static ?string $recordTitleAttribute = 'name';
 

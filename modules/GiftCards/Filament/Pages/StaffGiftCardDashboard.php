@@ -26,7 +26,12 @@ class StaffGiftCardDashboard extends Page implements HasForms
 
     protected static ?string $navigationGroup = 'Marketing';
 
-    protected static ?int $navigationSort = 13;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.loyalty_gifts');
+    }
+
+    protected static ?int $navigationSort = 60;
 
     protected static string $view = 'giftcards::filament.pages.staff-gift-card-dashboard';
 

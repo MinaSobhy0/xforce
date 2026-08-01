@@ -13,6 +13,11 @@ class EvaluationReportPage extends BaseReportPage
 
     protected static ?int $navigationSort = 25;
 
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.rpt_clinical');
+    }
+
     protected static ?string $slug = 'evaluation-report';
 
     public static function getNavigationLabel(): string

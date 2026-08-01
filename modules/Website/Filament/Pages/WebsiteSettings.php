@@ -18,7 +18,12 @@ class WebsiteSettings extends Page implements Forms\Contracts\HasForms
 
     protected static ?string $navigationGroup = 'Marketing';
 
-    protected static ?int $navigationSort = 61;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.website');
+    }
+
+    protected static ?int $navigationSort = 20;
 
     public static function canAccess(): bool
     {

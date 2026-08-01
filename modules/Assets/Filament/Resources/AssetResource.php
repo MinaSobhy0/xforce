@@ -35,7 +35,12 @@ class AssetResource extends Resource
 
     protected static ?string $navigationGroup = 'Finance';
 
-    protected static ?int $navigationSort = 7;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.assets');
+    }
+
+    protected static ?int $navigationSort = 10;
 
     protected static ?string $recordTitleAttribute = 'name';
 

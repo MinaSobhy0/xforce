@@ -20,7 +20,7 @@ class OwnerUserResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-user-circle';
 
-    protected static ?string $navigationGroup = 'Platform';
+    protected static ?string $navigationGroup = 'Clients';
 
     protected static ?string $navigationLabel = 'Owner Portal Users';
 

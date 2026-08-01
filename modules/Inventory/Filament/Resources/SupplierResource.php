@@ -27,7 +27,12 @@ class SupplierResource extends Resource
 
     protected static ?string $navigationGroup = 'Inventory';
 
-    protected static ?int $navigationSort = 21;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.purchasing');
+    }
+
+    protected static ?int $navigationSort = 10;
 
     protected static ?string $recordTitleAttribute = 'name';
 

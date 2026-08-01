@@ -27,7 +27,12 @@ class FiscalPeriodResource extends Resource
 
     protected static ?string $navigationGroup = 'Finance';
 
-    protected static ?int $navigationSort = 45;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.accounting');
+    }
+
+    protected static ?int $navigationSort = 40;
 
     protected static ?string $recordTitleAttribute = 'name';
 

@@ -25,7 +25,12 @@ class UomCategoryResource extends Resource
 
     protected static ?string $navigationGroup = 'Inventory';
 
-    protected static ?int $navigationSort = 32;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.units');
+    }
+
+    protected static ?int $navigationSort = 11;
 
     protected static ?string $recordTitleAttribute = 'name';
 

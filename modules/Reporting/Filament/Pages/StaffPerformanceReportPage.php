@@ -14,6 +14,12 @@ class StaffPerformanceReportPage extends BaseReportPage
 
     protected static ?int $navigationSort = 5;
 
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.rpt_staff');
+    }
+
+
     public static function getNavigationLabel(): string
     {
         return __('reporting::reporting.staff_performance_report');

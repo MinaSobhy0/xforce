@@ -17,7 +17,7 @@ class HelpCategoryResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-folder';
 
-    protected static ?string $navigationGroup = 'Support';
+    protected static ?string $navigationGroup = 'Engagement';
 
     protected static ?int $navigationSort = 10;
 

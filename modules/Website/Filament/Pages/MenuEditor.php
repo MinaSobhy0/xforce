@@ -19,7 +19,12 @@ class MenuEditor extends Page implements Forms\Contracts\HasForms
 
     protected static ?string $navigationGroup = 'Marketing';
 
-    protected static ?int $navigationSort = 62;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.app_settings');
+    }
+
+    protected static ?int $navigationSort = 30;
 
     public static function canAccess(): bool
     {

@@ -30,7 +30,12 @@ class PackageResource extends Resource
 
     protected static ?string $navigationGroup = 'Inventory';
 
-    protected static ?int $navigationSort = 10;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.catalog');
+    }
+
+    protected static ?int $navigationSort = 30;
 
     protected static ?string $recordTitleAttribute = 'name';
 

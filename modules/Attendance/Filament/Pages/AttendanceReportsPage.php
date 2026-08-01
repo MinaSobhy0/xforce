@@ -35,6 +35,11 @@ class AttendanceReportsPage extends Page implements HasForms, HasTable
 
     protected static ?string $navigationGroup = 'Reports';
 
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.rpt_staff');
+    }
+
     protected static ?int $navigationSort = 10;
 
     protected static string $view = 'attendance::filament.pages.attendance-reports';

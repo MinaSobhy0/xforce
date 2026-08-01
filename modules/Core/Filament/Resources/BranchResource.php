@@ -28,7 +28,12 @@ class BranchResource extends Resource
 
     protected static ?string $navigationGroup = 'Settings';
 
-    protected static ?int $navigationSort = 2;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.clinic_setup');
+    }
+
+    protected static ?int $navigationSort = 20;
 
     protected static ?string $recordTitleAttribute = 'name';
 

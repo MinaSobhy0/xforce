@@ -31,7 +31,12 @@ class BookingSlotConfigPage extends Page implements Forms\Contracts\HasForms
 
     protected static ?string $navigationGroup = 'Settings';
 
-    protected static ?int $navigationSort = 50;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.booking');
+    }
+
+    protected static ?int $navigationSort = 20;
 
     protected static ?string $slug = 'booking-configuration';
 

@@ -14,6 +14,12 @@ class RevenueReportPage extends BaseReportPage
 
     protected static ?int $navigationSort = 1;
 
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.rpt_finance');
+    }
+
+
     public static function getNavigationLabel(): string
     {
         return __('reporting::reporting.revenue_report');

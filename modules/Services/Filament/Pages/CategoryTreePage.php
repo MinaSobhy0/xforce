@@ -16,7 +16,12 @@ class CategoryTreePage extends Page
 
     protected static ?string $navigationGroup = 'Inventory';
 
-    protected static ?int $navigationSort = 29;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.catalog');
+    }
+
+    protected static ?int $navigationSort = 40;
 
     protected static string $view = 'services::filament.pages.category-tree';
 

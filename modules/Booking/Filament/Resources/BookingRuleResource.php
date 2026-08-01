@@ -30,7 +30,12 @@ class BookingRuleResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-funnel';
     protected static ?string $navigationGroup = 'Settings';
-    protected static ?int $navigationSort = 51;
+
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.booking');
+    }
+    protected static ?int $navigationSort = 10;
 
     public static function getNavigationLabel(): string
     {

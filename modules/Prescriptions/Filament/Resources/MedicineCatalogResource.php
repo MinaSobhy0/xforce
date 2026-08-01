@@ -29,7 +29,12 @@ class MedicineCatalogResource extends Resource
 
     protected static ?string $navigationGroup = 'Operations';
 
-    protected static ?int $navigationSort = 26;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.clinical');
+    }
+
+    protected static ?int $navigationSort = 60;
 
     protected static ?string $recordTitleAttribute = 'brand_name';
 

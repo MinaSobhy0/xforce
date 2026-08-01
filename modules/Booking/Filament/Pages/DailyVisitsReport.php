@@ -28,7 +28,12 @@ class DailyVisitsReport extends Page implements HasForms, HasTable
     protected static ?string $permissionKey = 'appointments';
     protected static ?string $navigationIcon = 'heroicon-o-document-chart-bar';
     protected static ?string $navigationGroup = 'Reports';
-    protected static ?int $navigationSort = 50;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.rpt_appointments');
+    }
+
+    protected static ?int $navigationSort = 30;
     protected static ?string $slug = 'daily-visits-report';
 
     protected static string $view = 'booking::filament.pages.daily-visits-report';

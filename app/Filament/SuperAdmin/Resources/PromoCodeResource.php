@@ -20,7 +20,7 @@ class PromoCodeResource extends Resource
 
     protected static ?string $navigationLabel = 'Promo Codes';
 
-    protected static ?string $navigationGroup = 'Financials';
+    protected static ?string $navigationGroup = 'Billing';
 
     protected static ?int $navigationSort = 4;
 

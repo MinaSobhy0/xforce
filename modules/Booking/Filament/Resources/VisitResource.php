@@ -30,7 +30,12 @@ class VisitResource extends Resource
 
     protected static ?string $navigationGroup = 'Operations';
 
-    protected static ?int $navigationSort = 5;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.appointments');
+    }
+
+    protected static ?int $navigationSort = 40;
 
     protected static ?string $recordTitleAttribute = 'code';
 

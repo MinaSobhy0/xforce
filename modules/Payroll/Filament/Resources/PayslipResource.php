@@ -38,7 +38,12 @@ class PayslipResource extends Resource
 
     protected static ?string $navigationGroup = 'HR';
 
-    protected static ?int $navigationSort = 11;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.payroll');
+    }
+
+    protected static ?int $navigationSort = 20;
 
     // payroll_lines has no `name` column; a payslip's identity is the staff
     // member. Resolve the title via the relationship so global search / titles

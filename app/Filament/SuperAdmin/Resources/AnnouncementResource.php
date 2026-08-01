@@ -23,7 +23,7 @@ class AnnouncementResource extends Resource
 
     protected static ?string $navigationLabel = 'Announcements';
 
-    protected static ?string $navigationGroup = 'Support';
+    protected static ?string $navigationGroup = 'Engagement';
 
     protected static ?int $navigationSort = 2;
 

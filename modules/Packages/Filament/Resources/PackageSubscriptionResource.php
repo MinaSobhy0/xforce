@@ -29,7 +29,12 @@ class PackageSubscriptionResource extends Resource
 
     protected static ?string $navigationGroup = 'Inventory';
 
-    protected static ?int $navigationSort = 20;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.catalog');
+    }
+
+    protected static ?int $navigationSort = 31;
 
     public static function getNavigationLabel(): string
     {

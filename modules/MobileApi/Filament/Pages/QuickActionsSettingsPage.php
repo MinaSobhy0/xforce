@@ -18,7 +18,12 @@ class QuickActionsSettingsPage extends Page implements Forms\Contracts\HasForms
 
     protected static ?string $navigationGroup = 'Mobile App';
 
-    protected static ?int $navigationSort = 15;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.app_settings');
+    }
+
+    protected static ?int $navigationSort = 20;
 
     public ?array $data = [];
 

@@ -26,7 +26,12 @@ class EquipmentParameterTemplateResource extends Resource
 
     protected static ?string $navigationGroup = 'Settings';
 
-    protected static ?int $navigationSort = 6;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.templates');
+    }
+
+    protected static ?int $navigationSort = 30;
 
     protected static ?string $recordTitleAttribute = 'template_name';
 

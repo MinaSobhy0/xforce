@@ -24,7 +24,12 @@ class NotificationSettingsPage extends Page implements Forms\Contracts\HasForms,
 
     protected static ?string $navigationGroup = 'Mobile App';
 
-    protected static ?int $navigationSort = 20;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.app_settings');
+    }
+
+    protected static ?int $navigationSort = 10;
 
     public ?array $data = [];
 

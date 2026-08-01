@@ -22,7 +22,7 @@ class ModuleResource extends Resource
 
     protected static ?string $navigationLabel = 'Module Registry';
 
-    protected static ?string $navigationGroup = 'Financials';
+    protected static ?string $navigationGroup = 'Apps & Modules';
 
     protected static ?int $navigationSort = 2;
 

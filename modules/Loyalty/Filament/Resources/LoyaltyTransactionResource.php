@@ -25,7 +25,12 @@ class LoyaltyTransactionResource extends Resource
 
     protected static ?string $navigationGroup = 'Marketing';
 
-    protected static ?int $navigationSort = 21;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.loyalty_gifts');
+    }
+
+    protected static ?int $navigationSort = 20;
 
     protected static ?string $recordTitleAttribute = 'description';
 

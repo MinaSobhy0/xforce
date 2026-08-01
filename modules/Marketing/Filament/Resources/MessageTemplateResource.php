@@ -25,7 +25,12 @@ class MessageTemplateResource extends Resource
 
     protected static ?string $navigationGroup = 'Marketing';
 
-    protected static ?int $navigationSort = 2;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.campaigns');
+    }
+
+    protected static ?int $navigationSort = 30;
 
     protected static ?string $recordTitleAttribute = 'name';
 

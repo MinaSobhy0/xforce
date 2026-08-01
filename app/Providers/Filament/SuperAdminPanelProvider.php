@@ -8,6 +8,7 @@ use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Navigation\NavigationGroup;
+use Filament\Navigation\NavigationItem;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\SpatieLaravelTranslatablePlugin;
@@ -77,26 +78,46 @@ class SuperAdminPanelProvider extends PanelProvider
             // Filament's default ~1280px).
             ->maxContentWidth(MaxWidth::ScreenTwoExtraLarge)
 
-            // Navigation Groups - Simplified structure
+            // Navigation Groups (rail = layer 1)
             ->navigationGroups([
-                NavigationGroup::make('CRM')
-                    ->label(__('CRM'))
+                'Clients' => NavigationGroup::make('Clients')
+                    ->label(fn () => __('core::core.nav_groups.clients'))
                     ->icon('heroicon-o-building-office-2'),
-                NavigationGroup::make('Financials')
-                    ->label(__('Financials'))
+                'Billing' => NavigationGroup::make('Billing')
+                    ->label(fn () => __('core::core.nav_groups.billing'))
                     ->icon('heroicon-o-banknotes'),
-                NavigationGroup::make('Support')
-                    ->label(__('Support'))
-                    ->icon('heroicon-o-lifebuoy'),
-                NavigationGroup::make('Platform')
-                    ->label(__('Platform'))
+                'Apps & Modules' => NavigationGroup::make('Apps & Modules')
+                    ->label(fn () => __('core::core.nav_groups.apps_modules'))
                     ->icon('heroicon-o-squares-2x2'),
-                NavigationGroup::make('Engagement')
-                    ->label(__('Engagement'))
-                    ->icon('heroicon-o-envelope'),
-                NavigationGroup::make('System')
-                    ->label(__('System'))
+                'Engagement' => NavigationGroup::make('Engagement')
+                    ->label(fn () => __('core::core.nav_groups.engagement'))
+                    ->icon('heroicon-o-megaphone'),
+                'System' => NavigationGroup::make('System')
+                    ->label(fn () => __('core::core.nav_groups.system'))
                     ->icon('heroicon-o-cog-6-tooth'),
+            ])
+
+            // Sub-folder parent items (lazy labels — an eager __() here would
+            // poison the translator cache before the core:: namespace loads).
+            ->navigationItems([
+                NavigationItem::make('agreements')
+                    ->label(fn () => __('core::core.nav_folders.agreements'))
+                    ->group('Billing')->icon('heroicon-o-clipboard-document-check')->sort(50),
+                NavigationItem::make('analytics')
+                    ->label(fn () => __('core::core.nav_folders.analytics'))
+                    ->group('Billing')->icon('heroicon-o-chart-bar')->sort(60),
+                NavigationItem::make('mobile_app')
+                    ->label(fn () => __('core::core.nav_folders.mobile_app'))
+                    ->group('Apps & Modules')->icon('heroicon-o-device-phone-mobile')->sort(50),
+                NavigationItem::make('security_audit')
+                    ->label(fn () => __('core::core.nav_folders.security_audit'))
+                    ->group('System')->icon('heroicon-o-shield-check')->sort(50),
+                NavigationItem::make('operations')
+                    ->label(fn () => __('core::core.nav_folders.operations'))
+                    ->group('System')->icon('heroicon-o-server-stack')->sort(60),
+                NavigationItem::make('health')
+                    ->label(fn () => __('core::core.nav_folders.health'))
+                    ->group('System')->icon('heroicon-o-heart')->sort(70),
             ])
 
             // Resource Discovery

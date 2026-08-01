@@ -31,7 +31,12 @@ class PractitionerTimeOffResource extends Resource
 
     protected static ?string $navigationGroup = 'HR';
 
-    protected static ?int $navigationSort = 3;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.time_off');
+    }
+
+    protected static ?int $navigationSort = 10;
 
     protected static ?string $recordTitleAttribute = 'reason';
 

@@ -25,7 +25,12 @@ class UsageDashboardPage extends Page
 
     protected static ?string $navigationGroup = 'Settings';
 
-    protected static ?int $navigationSort = 70;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.clinic_setup');
+    }
+
+    protected static ?int $navigationSort = 40;
 
     public static function canAccess(): bool
     {

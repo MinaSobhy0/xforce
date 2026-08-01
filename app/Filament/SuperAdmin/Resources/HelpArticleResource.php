@@ -19,7 +19,7 @@ class HelpArticleResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
 
-    protected static ?string $navigationGroup = 'Support';
+    protected static ?string $navigationGroup = 'Engagement';
 
     protected static ?int $navigationSort = 11;
 

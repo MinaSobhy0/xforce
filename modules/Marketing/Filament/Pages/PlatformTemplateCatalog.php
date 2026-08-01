@@ -20,7 +20,12 @@ class PlatformTemplateCatalog extends Page
 
     protected static ?string $navigationGroup = 'Marketing';
 
-    protected static ?int $navigationSort = 6;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.channels');
+    }
+
+    protected static ?int $navigationSort = 30;
 
     protected static ?string $slug = 'whatsapp-template-catalog';
 

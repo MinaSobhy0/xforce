@@ -27,7 +27,12 @@ class AppVersionPolicy extends Page implements HasForms
 
     protected static ?string $navigationIcon = 'heroicon-o-arrow-up-tray';
 
-    protected static ?string $navigationGroup = 'Platform';
+    protected static ?string $navigationGroup = 'Apps & Modules';
+
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.mobile_app');
+    }
 
     protected static ?string $navigationLabel = 'App Version Policy';
 

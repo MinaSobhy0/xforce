@@ -26,7 +26,12 @@ class RevenueAnalytics extends Page implements HasForms
 
     protected static ?string $navigationLabel = 'Revenue Analytics';
 
-    protected static ?string $navigationGroup = 'Financials';
+    protected static ?string $navigationGroup = 'Billing';
+
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.analytics');
+    }
 
     protected static ?int $navigationSort = 3;
 

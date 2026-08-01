@@ -22,7 +22,7 @@ class SubscriptionPlanResource extends Resource
 
     protected static ?string $navigationLabel = 'Subscription Plans';
 
-    protected static ?string $navigationGroup = 'Financials';
+    protected static ?string $navigationGroup = 'Billing';
 
     protected static ?int $navigationSort = 1;
 

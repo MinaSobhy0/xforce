@@ -26,7 +26,12 @@ class TenantAppCodeResource extends Resource
 
     protected static ?string $navigationLabel = 'Mobile App Codes';
 
-    protected static ?string $navigationGroup = 'CRM';
+    protected static ?string $navigationGroup = 'Apps & Modules';
+
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.mobile_app');
+    }
 
     protected static ?int $navigationSort = 5;
 

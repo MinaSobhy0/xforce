@@ -18,7 +18,7 @@ class HelpScreenGuideResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-play-circle';
 
-    protected static ?string $navigationGroup = 'Support';
+    protected static ?string $navigationGroup = 'Engagement';
 
     protected static ?int $navigationSort = 12;
 

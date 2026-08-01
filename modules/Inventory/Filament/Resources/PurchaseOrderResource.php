@@ -32,7 +32,12 @@ class PurchaseOrderResource extends Resource
 
     protected static ?string $navigationGroup = 'Inventory';
 
-    protected static ?int $navigationSort = 22;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.purchasing');
+    }
+
+    protected static ?int $navigationSort = 20;
 
     protected static ?string $recordTitleAttribute = 'order_number';
 

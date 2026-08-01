@@ -37,7 +37,12 @@ class PrescriptionResource extends Resource
 
     protected static ?string $navigationGroup = 'Operations';
 
-    protected static ?int $navigationSort = 25;
+    public static function getNavigationParentItem(): ?string
+    {
+        return __('core::core.nav_folders.clinical');
+    }
+
+    protected static ?int $navigationSort = 20;
 
     protected static ?string $recordTitleAttribute = 'prescription_number';
 
