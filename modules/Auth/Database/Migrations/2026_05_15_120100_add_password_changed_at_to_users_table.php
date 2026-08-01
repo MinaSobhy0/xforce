@@ -15,6 +15,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasColumn('users', 'password_changed_at')) {
+            return;
+        }
+
         Schema::table('users', function (Blueprint $table) {
             $table->timestamp('password_changed_at')->nullable()->after('must_change_password');
         });
