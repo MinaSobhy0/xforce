@@ -321,7 +321,9 @@ class PlatformSettings extends Page implements HasForms
                                     ->imageCropAspectRatio('1:1')
                                     ->imageResizeTargetWidth('64')
                                     ->imageResizeTargetHeight('64')
-                                    ->acceptedFileTypes(['image/png', 'image/x-icon', 'image/svg+xml'])
+                                    // M-16: SVG dropped — favicons are served inline from a public
+                                    // route, and an SVG can carry <script> (stored XSS). PNG/ICO only.
+                                    ->acceptedFileTypes(['image/png', 'image/x-icon'])
                                     ->helperText('Recommended: 64x64px, PNG or ICO'),
 
                                 Forms\Components\FileUpload::make('login_page_image')

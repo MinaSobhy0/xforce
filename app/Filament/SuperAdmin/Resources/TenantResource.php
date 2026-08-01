@@ -296,7 +296,8 @@ class TenantResource extends Resource
                         ->image()
                         ->directory('tenants/favicons')
                         ->visibility('public')
-                        ->acceptedFileTypes(['image/x-icon', 'image/png', 'image/svg+xml'])
+                        // M-16: SVG dropped — public favicons can carry <script> (stored XSS). PNG/ICO only.
+                        ->acceptedFileTypes(['image/x-icon', 'image/png'])
                         ->maxSize(256)
                         ->helperText('ICO, PNG, or SVG. Max 256KB.'),
 
