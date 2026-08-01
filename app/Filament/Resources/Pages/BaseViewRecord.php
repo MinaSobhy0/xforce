@@ -2,14 +2,12 @@
 
 namespace App\Filament\Resources\Pages;
 
-use App\Filament\Resources\Pages\Concerns\HasRefreshAction;
 use App\Filament\Traits\HasRecordNavigation;
 use Filament\Resources\Pages\ViewRecord;
 
 class BaseViewRecord extends ViewRecord
 {
     use HasRecordNavigation;
-    use HasRefreshAction;
 
     /**
      * Whether to show record navigation buttons.
@@ -33,9 +31,7 @@ class BaseViewRecord extends ViewRecord
 
     protected function getHeaderActions(): array
     {
-        $actions = [$this->getRefreshHeaderAction()];
-
-        $actions = array_merge($actions, $this->getViewHeaderActions());
+        $actions = $this->getViewHeaderActions();
 
         if ($this->hasRecordNavigation) {
             $actions = array_merge($actions, $this->getRecordNavigationActions());

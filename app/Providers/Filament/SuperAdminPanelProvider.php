@@ -41,6 +41,13 @@ class SuperAdminPanelProvider extends PanelProvider
                 return $favicon ? asset('storage/' . $favicon) : null;
             })
 
+            // Icon-only Reload button next to the global search — soft
+            // Livewire refresh on SPA pages, plain reload elsewhere.
+            ->renderHook(
+                \Filament\View\PanelsRenderHook::GLOBAL_SEARCH_BEFORE,
+                fn (): string => \Illuminate\Support\Facades\Blade::render('<x-filament-topbar-reload />'),
+            )
+
             // Colors (dynamic from platform settings)
             ->colors(function () {
                 $primaryColor = PlatformSetting::get('primary_color', '#6366f1'); // Default indigo

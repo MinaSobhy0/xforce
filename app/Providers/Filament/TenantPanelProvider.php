@@ -213,6 +213,13 @@ class TenantPanelProvider extends PanelProvider
                 fn (): View => view('filament.hooks.branch-switcher')
             )
 
+            // Icon-only Reload button next to the global search — soft
+            // Livewire refresh on SPA pages, plain reload elsewhere.
+            ->renderHook(
+                PanelsRenderHook::GLOBAL_SEARCH_BEFORE,
+                fn (): string => \Illuminate\Support\Facades\Blade::render('<x-filament-topbar-reload />'),
+            )
+
             // Help Button in the topbar (before user menu)
             ->renderHook(
                 PanelsRenderHook::USER_MENU_BEFORE,

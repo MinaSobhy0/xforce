@@ -11,6 +11,7 @@ use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\Support\Enums\MaxWidth;
+use Filament\View\PanelsRenderHook;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -38,6 +39,21 @@ class AdminPanelProvider extends PanelProvider
             ->login()
             ->authGuard('owner')
             ->brandName('XForce')
+
+            // Show the uploaded platform logo on the login screen (and the
+            // sidebar brand slot) instead of the wordmark. Reuses the same
+            // platform_logo PlatformSetting the super-admin panel uses;
+            // falls back to the brandName text when unset.
+            ->brandLogo(function () {
+                $logo = \App\Models\PlatformSetting::get('platform_logo');
+
+                return $logo ? asset('storage/'.$logo) : null;
+            })
+            ->brandLogoHeight('3rem')
+            ->renderHook(
+                PanelsRenderHook::GLOBAL_SEARCH_BEFORE,
+                fn (): string => \Illuminate\Support\Facades\Blade::render('<x-filament-topbar-reload />'),
+            )
             ->colors([
                 'primary' => Color::Blue,
             ])
