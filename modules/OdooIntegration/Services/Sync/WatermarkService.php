@@ -46,7 +46,7 @@ class WatermarkService
         $cacheKey = $this->getCacheKey($mapping, $direction);
 
         // Validate timestamp format
-        if (!$this->isValidTimestamp($timestamp)) {
+        if (! $this->isValidTimestamp($timestamp)) {
             return;
         }
 
@@ -59,8 +59,29 @@ class WatermarkService
         // Update cache
         Cache::put($cacheKey, $timestamp, 3600);
 
-        // Update last sync log watermark (for persistence)
+        // Durable per-direction storage on the mapping itself — sync logs
+        // carry a 'bidirectional' direction for two-way mappings, so a
+        // direction-filtered log lookup can never round-trip their
+        // watermarks. The log column below stays as run diagnostics.
+        $this->persistWatermark($mapping, $direction, $timestamp);
+
+        // Update last sync log watermark (for diagnostics)
         $this->updateLastSyncLogWatermark($mapping, $direction, $timestamp);
+    }
+
+    /**
+     * Persist the watermark in the mapping's settings JSON.
+     */
+    protected function persistWatermark(OdooEntityMapping $mapping, string $direction, string $timestamp): void
+    {
+        $fresh = OdooEntityMapping::find($mapping->id);
+        if (! $fresh) {
+            return;
+        }
+
+        $settings = $fresh->settings ?? [];
+        data_set($settings, "watermarks.{$direction}", $timestamp);
+        $fresh->update(['settings' => $settings]);
     }
 
     /**
@@ -89,10 +110,19 @@ class WatermarkService
     }
 
     /**
-     * Get watermark from database (last successful sync log).
+     * Get watermark from database: the mapping's settings JSON first (the
+     * durable per-direction store), then the legacy sync-log lookup.
      */
     protected function getWatermarkFromDatabase(OdooEntityMapping $mapping, string $direction): ?string
     {
+        $stored = data_get(
+            OdooEntityMapping::find($mapping->id)?->settings,
+            "watermarks.{$direction}"
+        );
+        if ($stored) {
+            return $stored;
+        }
+
         $log = OdooSyncLog::where('entity_mapping_id', $mapping->id)
             ->where('direction', $direction)
             ->where('status', 'completed')
@@ -122,7 +152,7 @@ class WatermarkService
      */
     protected function getCacheKey(OdooEntityMapping $mapping, string $direction): string
     {
-        return self::CACHE_PREFIX . "{$mapping->id}_{$direction}";
+        return self::CACHE_PREFIX."{$mapping->id}_{$direction}";
     }
 
     /**

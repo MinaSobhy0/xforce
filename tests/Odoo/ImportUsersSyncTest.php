@@ -53,7 +53,7 @@ test('normalizes legacy filter_conditions into a positional odoo domain', functi
         ->and(User::where('email', 'active@clinic.test')->exists())->toBeTrue();
 });
 
-test('delta sync only imports users that do not exist locally yet', function () {
+test('delta sync creates new users without duplicating known ones', function () {
     $connection = OdooScenario::connection();
     $mapping = OdooScenario::users($connection);
 
@@ -63,8 +63,10 @@ test('delta sync only imports users that do not exist locally yet', function () 
     $this->odoo->seed('res.users', ['name' => 'Second User', 'login' => 'second@clinic.test', 'active' => true]);
     $log = runOdooSync($mapping, 'delta');
 
+    // Known records may be re-read inside the watermark overlap window and
+    // refreshed in place — but never duplicated, and never counted as failed.
     expect($log->records_created)->toBe(1)
-        ->and($log->records_skipped)->toBe(1)
+        ->and($log->records_failed)->toBe(0)
         ->and(User::whereNotNull('odoo_id')->count())->toBe(2);
 });
 

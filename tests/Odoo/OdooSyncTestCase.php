@@ -81,6 +81,11 @@ abstract class OdooSyncTestCase extends TestCase
         // Static per-request caches keyed by Odoo id go stale once tables
         // are truncated with RESTART IDENTITY.
         \Modules\Payroll\Models\PayrollLine::flushOdooImportCaches();
+
+        // Watermarks are cached per mapping id; RESTART IDENTITY reuses ids
+        // across tests, so a stale watermark would filter a later test's
+        // freshly-seeded records out of its delta run.
+        \Illuminate\Support\Facades\Cache::flush();
     }
 
     protected function tearDown(): void

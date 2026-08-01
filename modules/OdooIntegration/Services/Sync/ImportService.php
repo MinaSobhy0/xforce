@@ -5,6 +5,7 @@ namespace Modules\OdooIntegration\Services\Sync;
 use Illuminate\Support\Facades\DB;
 use Modules\OdooIntegration\Exceptions\OdooSyncException;
 use Modules\OdooIntegration\Models\OdooEntityMapping;
+use Modules\OdooIntegration\Models\OdooSyncRecord;
 use Modules\OdooIntegration\Services\Api\OdooApiClientInterface;
 use Modules\OdooIntegration\Services\RealtimeSyncManager;
 use Modules\OdooIntegration\Services\Transform\FieldTransformer;
@@ -18,7 +19,9 @@ class ImportService
     /**
      * Import a single record from Odoo.
      *
-     * @param  string  $syncType  'full' = override existing, 'delta' = new records only
+     * @param  string  $syncType  'full' = override existing; 'delta' = create new
+     *                            records and apply Odoo-side changes to records
+     *                            without local modifications (local edits win)
      */
     public function importRecord(
         OdooEntityMapping $mapping,
@@ -45,11 +48,15 @@ class ImportService
         // Check if local record exists by odoo_id
         $existingRecord = $modelClass::where('odoo_id', $odooId)->first();
 
-        // Delta sync: skip if record already exists locally
-        if ($syncType === 'delta' && $existingRecord) {
+        // Delta sync with an existing record: the write_date watermark means
+        // Odoo changed this record since we last saw it — apply the update
+        // UNLESS the local row carries changes newer than its last sync
+        // (updated_at > odoo_synced_at). Local edits win until the export
+        // path pushes them and re-stamps odoo_synced_at.
+        if ($syncType === 'delta' && $existingRecord && $this->hasLocalChanges($mapping, $existingRecord)) {
             return [
                 'action' => 'skipped',
-                'reason' => 'exists',
+                'reason' => 'local_changes',
                 'local_id' => $existingRecord->id,
                 'odoo_id' => $odooId,
             ];
@@ -63,9 +70,9 @@ class ImportService
             $localData = $modelClass::applyOdooImport($localData, $mapping, $odooData);
         }
 
-        // Full sync with existing record: override
-        if ($syncType === 'full' && $existingRecord) {
-            return $this->updateExistingRecord($existingRecord, $localData, $odooId);
+        // Existing record (full sync, or delta with no local divergence): override
+        if ($existingRecord) {
+            return $this->updateExistingRecord($existingRecord, $localData, $odooId, $mapping, $odooData);
         }
 
         // New record: create
@@ -121,16 +128,60 @@ class ImportService
     }
 
     /**
-     * Update existing local record with Odoo data (full sync).
+     * Whether the local record changed since its last sync round-trip.
+     *
+     * Preferred signal: the sync record's stored local checksum vs the
+     * current one — immune to same-second timestamp ties. Fallback (no sync
+     * record yet, e.g. import-only mappings): updated_at newer than
+     * odoo_synced_at.
+     */
+    protected function hasLocalChanges(OdooEntityMapping $mapping, $localRecord): bool
+    {
+        $syncRecord = OdooSyncRecord::where('entity_mapping_id', $mapping->id)
+            ->where('local_id', $localRecord->id)
+            ->first();
+
+        if ($syncRecord && ! empty($syncRecord->local_checksum)) {
+            return SyncChecksum::calculate($localRecord->toArray()) !== $syncRecord->local_checksum;
+        }
+
+        return $localRecord->odoo_synced_at !== null
+            && $localRecord->updated_at !== null
+            && $localRecord->updated_at->gt($localRecord->odoo_synced_at);
+    }
+
+    /**
+     * Update existing local record with Odoo data.
      */
     protected function updateExistingRecord(
         $localRecord,
         array $localData,
-        int $odooId
+        int $odooId,
+        ?OdooEntityMapping $mapping = null,
+        ?array $odooData = null
     ): array {
         RealtimeSyncManager::suppress(fn () => $localRecord->update(array_merge($localData, [
             'odoo_synced_at' => now(),
         ])));
+
+        // Keep the sync record's checksums current, otherwise the next delta
+        // would read this very update as a local modification and stop
+        // applying Odoo changes.
+        if ($mapping) {
+            $update = [
+                'local_checksum' => SyncChecksum::calculate($localRecord->fresh()->toArray()),
+                'last_synced_at' => now(),
+                'sync_status' => OdooSyncRecord::STATUS_SYNCED,
+                'last_sync_direction' => 'import',
+            ];
+            if ($odooData !== null) {
+                $update['odoo_checksum'] = SyncChecksum::calculate($odooData);
+            }
+
+            OdooSyncRecord::where('entity_mapping_id', $mapping->id)
+                ->where('local_id', $localRecord->id)
+                ->update($update);
+        }
 
         return [
             'action' => 'updated',

@@ -3,14 +3,13 @@
 namespace Modules\OdooIntegration\Services\Sync;
 
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
-use Modules\OdooIntegration\Models\OdooEntityMapping;
-use Modules\OdooIntegration\Models\OdooSyncRecord;
-use Modules\OdooIntegration\Models\OdooSyncConflict;
 use Modules\OdooIntegration\Enums\ConflictResolution;
-use Modules\OdooIntegration\Events\RecordSynced;
 use Modules\OdooIntegration\Events\ConflictDetected;
+use Modules\OdooIntegration\Events\RecordSynced;
 use Modules\OdooIntegration\Exceptions\OdooSyncException;
+use Modules\OdooIntegration\Models\OdooEntityMapping;
+use Modules\OdooIntegration\Models\OdooSyncConflict;
+use Modules\OdooIntegration\Models\OdooSyncRecord;
 use Modules\OdooIntegration\Services\Api\OdooApiClientInterface;
 use Modules\OdooIntegration\Services\Transform\FieldTransformer;
 
@@ -32,14 +31,14 @@ class ExportService
     ): array {
         $modelClass = $mapping->local_model;
 
-        if (!class_exists($modelClass)) {
+        if (! class_exists($modelClass)) {
             throw OdooSyncException::mappingNotFound($modelClass);
         }
 
         // Fetch record if not provided
         if ($localRecord === null) {
             $localRecord = $modelClass::find($localId);
-            if (!$localRecord) {
+            if (! $localRecord) {
                 throw OdooSyncException::exportFailed($mapping->local_model, $localId, 'Record not found locally');
             }
         }
@@ -130,6 +129,11 @@ class ExportService
                 'odoo_id' => $odooId,
                 'odoo_synced_at' => now(),
             ]);
+
+            // Recompute the checksum from the post-update record: it now
+            // carries odoo_id, and storing the pre-update checksum would make
+            // this record read as locally-modified forever.
+            $localChecksum = $this->calculateChecksum($localRecord->fresh()->toArray());
 
             // Create or update sync record
             $syncRecord = OdooSyncRecord::updateOrCreate(
@@ -372,7 +376,7 @@ class ExportService
         $localUpdatedAt = $localRecord->updated_at;
         $odooUpdatedAt = isset($currentOdooData['write_date']) ? new \DateTime($currentOdooData['write_date']) : null;
 
-        if (!$odooUpdatedAt || $localUpdatedAt > $odooUpdatedAt) {
+        if (! $odooUpdatedAt || $localUpdatedAt > $odooUpdatedAt) {
             return $this->resolveLocalWins($mapping, $client, $syncRecord, $localRecord, $odooData);
         }
 
@@ -475,8 +479,6 @@ class ExportService
      */
     protected function calculateChecksum(array $data): string
     {
-        unset($data['created_at'], $data['updated_at'], $data['odoo_synced_at']);
-        ksort($data);
-        return md5(json_encode($data));
+        return SyncChecksum::calculate($data);
     }
 }

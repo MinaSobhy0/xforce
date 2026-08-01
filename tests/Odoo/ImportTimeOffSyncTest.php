@@ -222,14 +222,14 @@ test('maps every odoo leave state to the local status vocabulary', function (str
     ['cancel', PractitionerTimeOff::STATUS_CANCELLED],
 ]);
 
-test('delta sync leaves locally-known leaves untouched', function () {
-    $connection = OdooScenario::connection();
-    [, $odooEmpId] = seedSyncedStaff($this, $connection);
-    [, $odooTypeId] = seedSyncedLeaveType($this, $connection);
+function seedDeltaLeave($test, $connection): array
+{
+    [, $odooEmpId] = seedSyncedStaff($test, $connection);
+    [, $odooTypeId] = seedSyncedLeaveType($test, $connection);
 
     $timeOffMapping = OdooScenario::timeOffs($connection);
 
-    $odooLeaveId = $this->odoo->seed('hr.leave', [
+    $odooLeaveId = $test->odoo->seed('hr.leave', [
         'employee_id' => [$odooEmpId, 'Sara Ahmed'],
         'holiday_status_id' => [$odooTypeId, 'Annual Leave'],
         'date_from' => '2026-08-03 06:00:00',
@@ -242,10 +242,32 @@ test('delta sync leaves locally-known leaves untouched', function () {
 
     runOdooSync($timeOffMapping);
 
-    // Odoo changes, but delta sync must not clobber the local copy
+    return [$timeOffMapping, $odooLeaveId];
+}
+
+test('delta sync applies odoo changes to locally-unmodified leaves', function () {
+    $connection = OdooScenario::connection();
+    [$timeOffMapping, $odooLeaveId] = seedDeltaLeave($this, $connection);
+
+    // No local edits since import → Odoo's newer data flows in.
     $this->odoo->write('hr.leave', [$odooLeaveId], ['name' => 'Rewritten in Odoo']);
     $log = runOdooSync($timeOffMapping, 'delta');
 
-    expect($log->records_skipped)->toBe(1);
-    expect(PractitionerTimeOff::where('odoo_id', $odooLeaveId)->first()->reason)->toBe('Original reason');
+    expect($log->records_updated)->toBeGreaterThanOrEqual(1);
+    expect(PractitionerTimeOff::where('odoo_id', $odooLeaveId)->first()->reason)->toBe('Rewritten in Odoo');
+});
+
+test('delta sync preserves local edits over odoo edits', function () {
+    $connection = OdooScenario::connection();
+    [$timeOffMapping, $odooLeaveId] = seedDeltaLeave($this, $connection);
+
+    // Local edit AND an Odoo edit: the locally-changed copy must survive
+    // (local wins until the export path pushes it).
+    PractitionerTimeOff::where('odoo_id', $odooLeaveId)->first()
+        ->update(['reason' => 'Edited locally']);
+    $this->odoo->write('hr.leave', [$odooLeaveId], ['name' => 'Rewritten in Odoo']);
+
+    runOdooSync($timeOffMapping, 'delta');
+
+    expect(PractitionerTimeOff::where('odoo_id', $odooLeaveId)->first()->reason)->toBe('Edited locally');
 });

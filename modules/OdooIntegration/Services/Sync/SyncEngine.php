@@ -4,17 +4,17 @@ namespace Modules\OdooIntegration\Services\Sync;
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Modules\OdooIntegration\Enums\SyncDirection;
+use Modules\OdooIntegration\Enums\SyncStatus;
+use Modules\OdooIntegration\Events\SyncCompleted;
+use Modules\OdooIntegration\Events\SyncFailed;
+use Modules\OdooIntegration\Events\SyncStarted;
+use Modules\OdooIntegration\Exceptions\MissingDependencyException;
+use Modules\OdooIntegration\Exceptions\OdooRateLimitException;
+use Modules\OdooIntegration\Exceptions\OdooSyncException;
 use Modules\OdooIntegration\Models\OdooConnection;
 use Modules\OdooIntegration\Models\OdooEntityMapping;
 use Modules\OdooIntegration\Models\OdooSyncLog;
-use Modules\OdooIntegration\Enums\SyncDirection;
-use Modules\OdooIntegration\Enums\SyncStatus;
-use Modules\OdooIntegration\Events\SyncStarted;
-use Modules\OdooIntegration\Events\SyncCompleted;
-use Modules\OdooIntegration\Events\SyncFailed;
-use Modules\OdooIntegration\Exceptions\OdooSyncException;
-use Modules\OdooIntegration\Exceptions\MissingDependencyException;
-use Modules\OdooIntegration\Exceptions\OdooRateLimitException;
 use Modules\OdooIntegration\Services\Api\OdooApiFactory;
 
 class SyncEngine
@@ -112,8 +112,8 @@ class SyncEngine
      */
     public function syncRecord(
         OdooEntityMapping $mapping,
-        int $localId = null,
-        int $odooId = null,
+        ?int $localId = null,
+        ?int $odooId = null,
         string $direction = 'import'
     ): array {
         $connection = $mapping->connection;
@@ -147,14 +147,28 @@ class SyncEngine
 
         // Apply date filter if configured
         $dateFilterDomain = $mapping->getDateFilterDomain();
-        if (!empty($dateFilterDomain)) {
+        if (! empty($dateFilterDomain)) {
             $domain = array_merge($domain, $dateFilterDomain);
         }
 
-        // Note: We no longer use watermark for filtering.
-        // Delta vs Full is handled in ImportService:
-        // - Delta: skip records that exist locally
-        // - Full: override existing records
+        // Delta sync is incremental: only records Odoo modified since the
+        // last successful run are fetched (write_date watermark, derived
+        // from Odoo's own clock so local clock skew is irrelevant). A short
+        // overlap re-reads the boundary — imports are idempotent, so a few
+        // duplicated records are cheaper than a missed tie.
+        // Full sync always reads everything and overrides local rows.
+        $watermark = null;
+        if ($syncType === 'delta') {
+            $watermark = $this->watermarkService->getWatermark($mapping, 'import');
+            if ($watermark) {
+                $domain[] = [
+                    'write_date',
+                    '>',
+                    \Carbon\Carbon::parse($watermark)->subMinutes(5)->format('Y-m-d H:i:s'),
+                ];
+            }
+        }
+        $maxWriteDate = $watermark;
 
         // Get total count with rate limit retry
         $totalCount = $this->fetchWithRateLimitRetry(function () use ($client, $mapping, $domain) {
@@ -187,6 +201,11 @@ class SyncEngine
             });
 
             foreach ($records as $record) {
+                if (! empty($record['write_date'])
+                    && ($maxWriteDate === null || $record['write_date'] > $maxWriteDate)) {
+                    $maxWriteDate = $record['write_date'];
+                }
+
                 try {
                     $result = $this->importService->importRecord($mapping, $client, $record['id'], $record, $syncType);
 
@@ -229,6 +248,13 @@ class SyncEngine
             if ($offset < $totalCount) {
                 sleep(2); // 2 second delay between batches
             }
+        }
+
+        // Advance the import watermark to the newest write_date seen. Only
+        // reached after every batch processed — a crashed run never advances
+        // it past unprocessed data.
+        if ($maxWriteDate !== null) {
+            $this->watermarkService->setWatermark($mapping, 'import', $maxWriteDate);
         }
     }
 
@@ -319,7 +345,7 @@ class SyncEngine
     {
         $modelClass = $mapping->local_model;
 
-        if (!class_exists($modelClass)) {
+        if (! class_exists($modelClass)) {
             throw OdooSyncException::mappingNotFound($modelClass);
         }
 
@@ -344,7 +370,7 @@ class SyncEngine
 
         foreach ($mapping->getActiveFieldMappings() as $fieldMapping) {
             // Skip field mappings without an Odoo field (default-only mappings)
-            if ($fieldMapping->allowsImport() && !empty($fieldMapping->odoo_field)) {
+            if ($fieldMapping->allowsImport() && ! empty($fieldMapping->odoo_field)) {
                 $fields[] = $fieldMapping->odoo_field;
             }
         }
