@@ -138,6 +138,36 @@ class Attendance extends BaseModel
         self::STATUS_LEAVE => 'info',
     ];
 
+    /**
+     * Odoo hr.attendance carries full datetimes in check_in/check_out; the
+     * local schema splits them into attendance_date (DATE) + TIME columns.
+     * The datetime transformer has already converted to the tenant timezone
+     * by the time this hook runs.
+     */
+    public static function applyOdooImport(array $data, $mapping = null, ?array $odooData = null): array
+    {
+        foreach (['check_in_time', 'check_out_time'] as $field) {
+            $value = $data[$field] ?? null;
+
+            if ($value === false) {
+                // Odoo's false-for-empty (open attendance has no check_out).
+                $data[$field] = null;
+
+                continue;
+            }
+
+            if (is_string($value) && strlen($value) > 8) {
+                $dt = \Carbon\Carbon::parse($value);
+                if ($field === 'check_in_time') {
+                    $data['attendance_date'] = $dt->toDateString();
+                }
+                $data[$field] = $dt->format('H:i:s');
+            }
+        }
+
+        return $data;
+    }
+
     /*
     |--------------------------------------------------------------------------
     | Relationships

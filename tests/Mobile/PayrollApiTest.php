@@ -33,11 +33,13 @@ function seedMobilePayslip($test, array $ruleVisibility = []): array
             'name' => 'Basic Salary', 'code' => 'BASIC', 'sequence' => 1,
             'category_id' => [$cats['BASIC'], 'Basic'], 'amount_select' => 'fix', 'active' => true,
             'appears_on_payslip' => $ruleVisibility['BASIC'] ?? true,
+            'show_in_mobile_app' => $ruleVisibility['BASIC'] ?? true,
         ]),
         'TAX' => $test->odoo->seed('hr.salary.rule', [
             'name' => 'Income Tax', 'code' => 'TAX', 'sequence' => 50,
             'category_id' => [$cats['DED'], 'Deduction'], 'amount_select' => 'code', 'active' => true,
             'appears_on_payslip' => $ruleVisibility['TAX'] ?? true,
+            'show_in_mobile_app' => $ruleVisibility['TAX'] ?? true,
         ]),
         // Employer-side contribution: computed on the slip but NOT for
         // employee eyes — appears_on_payslip = false in Odoo.
@@ -45,11 +47,13 @@ function seedMobilePayslip($test, array $ruleVisibility = []): array
             'name' => 'Employer Social Insurance', 'code' => 'EMP_SI', 'sequence' => 60,
             'category_id' => [$cats['COMP'], 'Company'], 'amount_select' => 'code', 'active' => true,
             'appears_on_payslip' => $ruleVisibility['EMP_SI'] ?? false,
+            'show_in_mobile_app' => $ruleVisibility['EMP_SI'] ?? false,
         ]),
         'NET' => $test->odoo->seed('hr.salary.rule', [
             'name' => 'Net Salary', 'code' => 'NET', 'sequence' => 100,
             'category_id' => [$cats['NET'], 'Net'], 'amount_select' => 'code', 'active' => true,
             'appears_on_payslip' => $ruleVisibility['NET'] ?? true,
+            'show_in_mobile_app' => $ruleVisibility['NET'] ?? true,
         ]),
     ];
     runOdooSync($ruleMapping);
@@ -107,7 +111,7 @@ function setPayslipDisplay($test, array $flags): void
 // Rule visibility
 // ---------------------------------------------------------------------------
 
-test('payslip detail exposes only rules flagged appears_on_payslip in Odoo', function () {
+test('payslip detail exposes only rules flagged show_in_mobile_app in Odoo', function () {
     [$user, $staff, $slip] = seedMobilePayslip($this);
 
     $data = $this->api('GET', "payroll/{$slip->id}", [], $user)->assertOk()->json('data');
@@ -121,11 +125,31 @@ test('payslip detail exposes only rules flagged appears_on_payslip in Odoo', fun
     expect(collect($data['rule_breakdown'])->first())->not->toHaveKey('visible');
 });
 
-test('the local appears_on_payslip column also syncs from Odoo', function () {
+test('the local visibility columns sync from Odoo', function () {
     seedMobilePayslip($this);
 
-    expect(SalaryRule::where('code', 'EMP_SI')->firstOrFail()->appears_on_payslip)->toBeFalse()
-        ->and(SalaryRule::where('code', 'BASIC')->firstOrFail()->appears_on_payslip)->toBeTrue();
+    $empSi = SalaryRule::where('code', 'EMP_SI')->firstOrFail();
+    $basic = SalaryRule::where('code', 'BASIC')->firstOrFail();
+    expect($empSi->appears_on_payslip)->toBeFalse()
+        ->and($empSi->show_in_mobile_app)->toBeFalse()
+        ->and($basic->appears_on_payslip)->toBeTrue()
+        ->and($basic->show_in_mobile_app)->toBeTrue();
+});
+
+test('flipping show_in_mobile_app in Odoo hides the rule after the next rule sync', function () {
+    [$user, $staff, $slip] = seedMobilePayslip($this);
+
+    // HR unticks "Show in Mobile App" on TAX in Odoo; rule sync brings it in.
+    $taxOdooId = SalaryRule::where('code', 'TAX')->firstOrFail()->odoo_id;
+    $this->odoo->write('hr.salary.rule', [$taxOdooId], ['show_in_mobile_app' => false]);
+    runOdooSync($this->entityMapping('salaryRules'));
+
+    $codes = collect($this->api('GET', "payroll/{$slip->id}", [], $user)->assertOk()->json('data.rule_breakdown'))
+        ->pluck('rule_code')->all();
+
+    // Applies to the ALREADY-imported payslip — no payslip re-import needed.
+    expect($codes)->not->toContain('TAX')
+        ->and($codes)->toContain('BASIC');
 });
 
 test('legacy breakdown entries without a visible flag fall back to the local rule column', function () {

@@ -201,7 +201,11 @@ class OdooIntegrationServiceProvider extends ServiceProvider
                     ->where('is_active', true)
                     ->where('sync_frequency', \Modules\OdooIntegration\Enums\SyncFrequency::REALTIME->value)
                     ->get()
-                    ->filter(fn ($m) => $m->sync_direction->allowsImport());
+                    ->filter(fn ($m) => $m->sync_direction->allowsImport()
+                        // settings.import_frequency lets a realtime mapping
+                        // slow just its import side — those are swept by
+                        // odoo:run-scheduled-syncs at their cadence instead.
+                        && (data_get($m->settings, 'import_frequency', 'realtime') === 'realtime'));
 
                 foreach ($mappings as $mapping) {
                     \Modules\OdooIntegration\Jobs\SyncEntityJob::dispatch(
@@ -229,6 +233,12 @@ class OdooIntegrationServiceProvider extends ServiceProvider
             $schedule->command('odoo:run-scheduled-syncs --frequency=daily')
                 ->name('odoo:daily-mappings')
                 ->dailyAt('03:15')
+                ->withoutOverlapping()
+                ->runInBackground();
+
+            $schedule->command('odoo:run-scheduled-syncs --frequency=every_two_days')
+                ->name('odoo:every-two-days-mappings')
+                ->cron('30 3 */2 * *')
                 ->withoutOverlapping()
                 ->runInBackground();
         });

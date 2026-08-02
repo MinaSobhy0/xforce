@@ -31,7 +31,7 @@ use Modules\OdooIntegration\Services\Sync\SyncEngine;
 class RunScheduledSyncsCommand extends Command
 {
     protected $signature = 'odoo:run-scheduled-syncs
-                            {--frequency=hourly : hourly|daily}
+                            {--frequency=hourly : hourly|daily|every_two_days}
                             {--tenant= : Limit to a single tenant slug}';
 
     protected $description = 'Sweep every tenant\'s Odoo entity mappings at the given cadence and pull/push whatever is pending.';
@@ -42,11 +42,12 @@ class RunScheduledSyncsCommand extends Command
         $enum = match ($frequency) {
             'hourly' => SyncFrequency::HOURLY,
             'daily' => SyncFrequency::DAILY,
+            'every_two_days' => SyncFrequency::EVERY_TWO_DAYS,
             default => null,
         };
 
         if (! $enum) {
-            $this->error("Unknown --frequency={$frequency}. Use 'hourly' or 'daily'.");
+            $this->error("Unknown --frequency={$frequency}. Use 'hourly', 'daily' or 'every_two_days'.");
 
             return self::FAILURE;
         }
@@ -75,9 +76,18 @@ class RunScheduledSyncsCommand extends Command
                 continue;
             }
 
+            // A realtime mapping can pin its IMPORT direction to a slower
+            // cadence via settings.import_frequency (e.g. attendance: export
+            // realtime, import daily) — those join the matching sweep here.
             $mappings = OdooEntityMapping::query()
                 ->where('is_active', true)
-                ->where('sync_frequency', $enum->value)
+                ->where(function ($q) use ($enum) {
+                    $q->where('sync_frequency', $enum->value)
+                        ->orWhere(function ($q2) use ($enum) {
+                            $q2->where('sync_frequency', SyncFrequency::REALTIME->value)
+                                ->where('settings->import_frequency', $enum->value);
+                        });
+                })
                 ->get();
 
             if ($mappings->isEmpty()) {

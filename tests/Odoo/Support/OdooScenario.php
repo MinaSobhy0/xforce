@@ -134,6 +134,22 @@ class OdooScenario
         ]);
     }
 
+    public static function workSchedules(OdooConnection $c, array $overrides = []): OdooEntityMapping
+    {
+        return self::mapping($c, array_merge([
+            'name' => 'WorkSchedule',
+            'local_model' => \Modules\Booking\Models\WorkSchedule::class,
+            'local_table' => 'work_schedules',
+            'odoo_model' => 'resource.calendar',
+            'sync_direction' => 'import',
+            'priority' => 3,
+        ], $overrides), [
+            ['local' => 'odoo_id', 'odoo' => 'id', 'direction' => 'import', 'key' => true],
+            ['local' => 'name', 'odoo' => 'name', 'direction' => 'import', 'required' => true],
+            ['local' => 'is_active', 'odoo' => 'active', 'direction' => 'import', 'transform' => 'boolean', 'default' => true],
+        ]);
+    }
+
     public static function timeOffTypes(OdooConnection $c, array $overrides = []): OdooEntityMapping
     {
         return self::mapping($c, array_merge([
@@ -258,6 +274,7 @@ class OdooScenario
             ['local' => 'is_active', 'odoo' => 'active', 'direction' => 'import', 'transform' => 'boolean'],
             // Which rules the employee may see on the mobile payslip.
             ['local' => 'appears_on_payslip', 'odoo' => 'appears_on_payslip', 'direction' => 'import', 'transform' => 'boolean'],
+            ['local' => 'show_in_mobile_app', 'odoo' => 'show_in_mobile_app', 'direction' => 'import', 'transform' => 'boolean'],
         ]);
     }
 

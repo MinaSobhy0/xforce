@@ -3,14 +3,15 @@
 namespace Modules\OdooIntegration\Providers;
 
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
-use Modules\OdooIntegration\Events\SyncStarted;
+use Modules\OdooIntegration\Events\ConflictDetected;
+use Modules\OdooIntegration\Events\RecordSynced;
 use Modules\OdooIntegration\Events\SyncCompleted;
 use Modules\OdooIntegration\Events\SyncFailed;
-use Modules\OdooIntegration\Events\RecordSynced;
-use Modules\OdooIntegration\Events\ConflictDetected;
-use Modules\OdooIntegration\Listeners\LogSyncActivity;
+use Modules\OdooIntegration\Events\SyncStarted;
 use Modules\OdooIntegration\Listeners\HandleConflict;
+use Modules\OdooIntegration\Listeners\LogSyncActivity;
 use Modules\OdooIntegration\Listeners\NotifySyncFailure;
+use Modules\OdooIntegration\Listeners\ReconcileWorkScheduleAssignments;
 
 class EventServiceProvider extends ServiceProvider
 {
@@ -25,6 +26,7 @@ class EventServiceProvider extends ServiceProvider
         ],
         SyncCompleted::class => [
             LogSyncActivity::class,
+            ReconcileWorkScheduleAssignments::class,
         ],
         SyncFailed::class => [
             LogSyncActivity::class,

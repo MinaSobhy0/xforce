@@ -60,6 +60,7 @@ return [
         'hr.department' => 2,      // Departments second
         'res.users' => 3,          // Users third
         'hr.employee' => 4,        // Employees fourth (depends on users, departments)
+        'resource.calendar' => 5,  // Work schedules (assignments reconcile post-sync)
         'hr.leave.type' => 10,
         'hr.leave.allocation' => 11,
         'hr.leave' => 12,
@@ -83,6 +84,9 @@ return [
         // HR
         'hr.department' => 'Modules\\Core\\Models\\Department',
         'hr.employee' => 'Modules\\Staff\\Models\\StaffProfile',
+
+        // Work schedules
+        'resource.calendar' => 'Modules\\Booking\\Models\\WorkSchedule',
 
         // Time Off
         'hr.leave.type' => 'Modules\\Booking\\Models\\TimeOffType',
@@ -218,6 +222,17 @@ return [
         ],
 
         // =====================================================================
+        // Work Schedules (resource.calendar -> WorkSchedule)
+        // weekly_hours/working_days are built from the calendar's attendance
+        // lines in WorkSchedule::applyOdooImport().
+        // =====================================================================
+        'resource.calendar' => [
+            ['local_field' => 'odoo_id', 'odoo_field' => 'id', 'is_key_field' => true],
+            ['local_field' => 'name', 'odoo_field' => 'name', 'is_required' => true],
+            ['local_field' => 'is_active', 'odoo_field' => 'active', 'transform_type' => 'boolean', 'default_value' => true],
+        ],
+
+        // =====================================================================
         // Salary Rules (hr.salary.rule -> SalaryRule)
         // structure_id has no local column. amount_type values normalised in
         // SalaryRule::applyOdooImport() (Odoo amount_select is fix/percentage/code).
@@ -231,6 +246,7 @@ return [
             ['local_field' => 'amount_type', 'odoo_field' => 'amount_select'],
             ['local_field' => 'is_active', 'odoo_field' => 'active', 'transform_type' => 'boolean'],
             ['local_field' => 'appears_on_payslip', 'odoo_field' => 'appears_on_payslip', 'transform_type' => 'boolean'],
+            ['local_field' => 'show_in_mobile_app', 'odoo_field' => 'show_in_mobile_app', 'transform_type' => 'boolean'],
         ],
 
         // =====================================================================

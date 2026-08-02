@@ -325,38 +325,38 @@ class PayrollController extends BaseApiController
     /**
      * Filter a rule_amounts_json breakdown down to employee-visible entries.
      *
-     * Entries carry a 'visible' flag written at Odoo import time
-     * (appears_on_payslip). Entries without the flag (calculated locally or
-     * imported before the flag existed) fall back to the local
-     * SalaryRule.appears_on_payslip column, defaulting to visible when the
-     * rule can't be resolved. The internal 'visible' key is stripped from
-     * the response.
+     * Authoritative signal: SalaryRule.show_in_mobile_app (HR's per-rule
+     * opt-in, synced from the custom Odoo field) — resolved LIVE so a flag
+     * flipped in Odoo applies to already-imported payslips after the next
+     * rule sync. Entries whose rule can't be resolved locally fall back to
+     * the import-time 'visible' flag (appears_on_payslip), defaulting to
+     * visible. The internal 'visible' key is stripped from the response.
      */
     protected function visibleRuleBreakdown(array $breakdown): array
     {
-        $unresolvedIds = collect($breakdown)
-            ->filter(fn ($e) => ! array_key_exists('visible', $e) && ! empty($e['rule_id']))
+        $ruleIds = collect($breakdown)
             ->pluck('rule_id')
+            ->filter()
             ->unique()
             ->values();
 
-        $localVisibility = [];
-        if ($unresolvedIds->isNotEmpty() && class_exists(\Modules\Payroll\Models\SalaryRule::class)) {
-            $localVisibility = \Modules\Payroll\Models\SalaryRule::whereIn('id', $unresolvedIds)
-                ->pluck('appears_on_payslip', 'id')
+        $mobileVisible = [];
+        if ($ruleIds->isNotEmpty() && class_exists(\Modules\Payroll\Models\SalaryRule::class)) {
+            $mobileVisible = \Modules\Payroll\Models\SalaryRule::whereIn('id', $ruleIds)
+                ->pluck('show_in_mobile_app', 'id')
                 ->map(fn ($v) => (bool) $v)
                 ->all();
         }
 
         return collect($breakdown)
-            ->filter(function ($entry) use ($localVisibility) {
-                if (array_key_exists('visible', $entry)) {
-                    return (bool) $entry['visible'];
-                }
-
+            ->filter(function ($entry) use ($mobileVisible) {
                 $ruleId = $entry['rule_id'] ?? null;
 
-                return $ruleId === null || ($localVisibility[$ruleId] ?? true);
+                if ($ruleId !== null && array_key_exists($ruleId, $mobileVisible)) {
+                    return $mobileVisible[$ruleId];
+                }
+
+                return (bool) ($entry['visible'] ?? true);
             })
             ->map(function ($entry) {
                 unset($entry['visible']);

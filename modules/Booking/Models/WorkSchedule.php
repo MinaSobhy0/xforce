@@ -2,15 +2,14 @@
 
 namespace Modules\Booking\Models;
 
-use XLinic\Framework\Core\Model\BaseModel;
-use XLinic\Framework\Core\Model\Traits\HasTenancy;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Modules\Auth\Models\User;
 use Modules\Core\Models\Branch;
 use Modules\Staff\Models\StaffProfile;
+use XLinic\Framework\Core\Model\BaseModel;
+use XLinic\Framework\Core\Model\Traits\HasTenancy;
 
 class WorkSchedule extends BaseModel
 {
@@ -35,6 +34,8 @@ class WorkSchedule extends BaseModel
         'color',
         'is_active',
         'sort_order',
+        'odoo_id',
+        'odoo_synced_at',
     ];
 
     protected $casts = [
@@ -49,8 +50,88 @@ class WorkSchedule extends BaseModel
         'sort_order' => 'integer',
     ];
 
+    /**
+     * Import hook for Odoo resource.calendar: the calendar's attendance
+     * lines (dayofweek 0=Monday, hour_from/hour_to floats, one or two lines
+     * per day) become the local weekly_hours map keyed by Carbon dow
+     * (0=Sunday). Two lines on a day are read as morning/afternoon around a
+     * break.
+     */
+    public static function applyOdooImport(array $data, $mapping = null, ?array $odooData = null): array
+    {
+        if (! $mapping || ! $odooData || empty($odooData['id'])) {
+            return $data;
+        }
+
+        $connection = \Modules\OdooIntegration\Models\OdooConnection::find($mapping->odoo_connection_id);
+        if (! $connection) {
+            return $data;
+        }
+
+        try {
+            $client = app(\Modules\OdooIntegration\Services\Api\OdooApiFactory::class)->make($connection);
+            $client->authenticate();
+            $lines = $client->searchRead(
+                'resource.calendar.attendance',
+                [['calendar_id', '=', (int) $odooData['id']]],
+                ['dayofweek', 'hour_from', 'hour_to'],
+                0,
+                50
+            );
+        } catch (\Throwable) {
+            return $data;
+        }
+
+        if (empty($lines)) {
+            return $data;
+        }
+
+        $toTime = fn (float $h) => sprintf('%02d:%02d', (int) $h, (int) round(($h - (int) $h) * 60));
+
+        $byDay = [];
+        foreach ($lines as $line) {
+            // Odoo dayofweek: 0=Monday … 6=Sunday → Carbon: 0=Sunday … 6=Saturday
+            $carbonDow = ((int) $line['dayofweek'] + 1) % 7;
+            $byDay[$carbonDow][] = [(float) $line['hour_from'], (float) $line['hour_to']];
+        }
+
+        $weekly = [];
+        $workingDays = [];
+        $weeklyMinutes = 0;
+        foreach ($byDay as $dow => $slots) {
+            usort($slots, fn ($a, $b) => $a[0] <=> $b[0]);
+            $day = [
+                'is_working' => true,
+                'start_time' => $toTime($slots[0][0]),
+                'end_time' => $toTime(end($slots)[1]),
+            ];
+            if (count($slots) > 1) {
+                $day['break_start'] = $toTime($slots[0][1]);
+                $day['break_end'] = $toTime($slots[1][0]);
+            }
+            $weekly[$dow] = $day;
+            $workingDays[] = $dow;
+            foreach ($slots as [$from, $to]) {
+                $weeklyMinutes += (int) round(($to - $from) * 60);
+            }
+        }
+        ksort($weekly);
+        sort($workingDays);
+
+        $data['weekly_hours'] = $weekly;
+        $data['working_days'] = $workingDays;
+        $data['schedule_type'] = self::TYPE_FIXED;
+        $data['required_hours_per_week'] = round($weeklyMinutes / 60, 2);
+        $data['required_hours_per_day'] = count($workingDays) > 0
+            ? round($weeklyMinutes / 60 / count($workingDays), 2)
+            : 0;
+
+        return $data;
+    }
+
     // Schedule Types
     public const TYPE_FIXED = 'fixed';
+
     public const TYPE_FLEXIBLE = 'flexible';
 
     public const SCHEDULE_TYPES = [
@@ -94,6 +175,7 @@ class WorkSchedule extends BaseModel
                 'break_end' => null,
             ];
         }
+
         return $default;
     }
 
@@ -140,7 +222,7 @@ class WorkSchedule extends BaseModel
         // For flexible schedules
         if ($this->schedule_type === self::TYPE_FLEXIBLE) {
             $workingDays = $this->working_days ?? [];
-            $dayNames = collect($workingDays)->map(fn($day) => self::DAYS_SHORT[$day] ?? $day)->implode(', ');
+            $dayNames = collect($workingDays)->map(fn ($day) => self::DAYS_SHORT[$day] ?? $day)->implode(', ');
 
             $hoursInfo = '';
             if ($this->required_hours_per_day) {
@@ -157,9 +239,10 @@ class WorkSchedule extends BaseModel
             }
 
             if ($hoursInfo) {
-                return $dayNames . " ({$hoursInfo}{$timeWindow})";
+                return $dayNames." ({$hoursInfo}{$timeWindow})";
             }
-            return $dayNames . ' (Flexible)';
+
+            return $dayNames.' (Flexible)';
         }
 
         // For fixed schedules
@@ -167,7 +250,7 @@ class WorkSchedule extends BaseModel
         $workingDays = [];
 
         foreach ($hours as $day => $config) {
-            if (!empty($config['is_working'])) {
+            if (! empty($config['is_working'])) {
                 $workingDays[] = self::DAYS_SHORT[$day] ?? $day;
             }
         }
@@ -177,12 +260,12 @@ class WorkSchedule extends BaseModel
         }
 
         // Get first day's hours as example
-        $firstWorking = collect($hours)->first(fn($c) => !empty($c['is_working']));
+        $firstWorking = collect($hours)->first(fn ($c) => ! empty($c['is_working']));
         $timeRange = $firstWorking
             ? "{$firstWorking['start_time']} - {$firstWorking['end_time']}"
             : '';
 
-        return implode(', ', $workingDays) . ($timeRange ? " ({$timeRange})" : '');
+        return implode(', ', $workingDays).($timeRange ? " ({$timeRange})" : '');
     }
 
     /**
@@ -197,8 +280,10 @@ class WorkSchedule extends BaseModel
             }
             if ($this->required_hours_per_day) {
                 $workingDaysCount = count($this->working_days ?? []);
+
                 return round($this->required_hours_per_day * $workingDaysCount, 1);
             }
+
             return 0;
         }
 
@@ -207,13 +292,13 @@ class WorkSchedule extends BaseModel
         $total = 0;
 
         foreach ($hours as $config) {
-            if (!empty($config['is_working']) && !empty($config['start_time']) && !empty($config['end_time'])) {
+            if (! empty($config['is_working']) && ! empty($config['start_time']) && ! empty($config['end_time'])) {
                 $start = strtotime($config['start_time']);
                 $end = strtotime($config['end_time']);
                 $dayHours = ($end - $start) / 3600;
 
                 // Subtract break
-                if (!empty($config['break_start']) && !empty($config['break_end'])) {
+                if (! empty($config['break_start']) && ! empty($config['break_end'])) {
                     $breakStart = strtotime($config['break_start']);
                     $breakEnd = strtotime($config['break_end']);
                     $dayHours -= ($breakEnd - $breakStart) / 3600;
@@ -232,7 +317,8 @@ class WorkSchedule extends BaseModel
     public function getWorkingDaysCountAttribute(): int
     {
         $hours = $this->weekly_hours ?? [];
-        return collect($hours)->filter(fn($c) => !empty($c['is_working']))->count();
+
+        return collect($hours)->filter(fn ($c) => ! empty($c['is_working']))->count();
     }
 
     // Methods
@@ -245,12 +331,14 @@ class WorkSchedule extends BaseModel
         // For flexible schedules
         if ($this->schedule_type === self::TYPE_FLEXIBLE) {
             $workingDays = $this->working_days ?? [];
+
             return in_array($dayOfWeek, $workingDays);
         }
 
         // For fixed schedules
         $hours = $this->weekly_hours ?? [];
-        return !empty($hours[$dayOfWeek]['is_working']);
+
+        return ! empty($hours[$dayOfWeek]['is_working']);
     }
 
     /**
@@ -266,12 +354,12 @@ class WorkSchedule extends BaseModel
      */
     public function isWithinFlexibleWindow(string $time): bool
     {
-        if (!$this->isFlexible()) {
+        if (! $this->isFlexible()) {
             return false;
         }
 
         // If no time window set, any time is valid
-        if (!$this->flexible_start_time || !$this->flexible_end_time) {
+        if (! $this->flexible_start_time || ! $this->flexible_end_time) {
             return true;
         }
 
@@ -287,7 +375,7 @@ class WorkSchedule extends BaseModel
      */
     public function getFlexibleTimeWindow(): ?array
     {
-        if (!$this->isFlexible() || !$this->flexible_start_time || !$this->flexible_end_time) {
+        if (! $this->isFlexible() || ! $this->flexible_start_time || ! $this->flexible_end_time) {
             return null;
         }
 
@@ -302,7 +390,7 @@ class WorkSchedule extends BaseModel
      */
     public function getRequiredHoursForDay(int $dayOfWeek): ?float
     {
-        if (!$this->isWorkingDay($dayOfWeek)) {
+        if (! $this->isWorkingDay($dayOfWeek)) {
             return null;
         }
 
@@ -312,7 +400,7 @@ class WorkSchedule extends BaseModel
 
         // For fixed schedules, calculate from the day config
         $daySchedule = $this->getDaySchedule($dayOfWeek);
-        if (!$daySchedule || empty($daySchedule['start_time']) || empty($daySchedule['end_time'])) {
+        if (! $daySchedule || empty($daySchedule['start_time']) || empty($daySchedule['end_time'])) {
             return null;
         }
 
@@ -321,7 +409,7 @@ class WorkSchedule extends BaseModel
         $hours = ($end - $start) / 3600;
 
         // Subtract break
-        if (!empty($daySchedule['break_start']) && !empty($daySchedule['break_end'])) {
+        if (! empty($daySchedule['break_start']) && ! empty($daySchedule['break_end'])) {
             $breakStart = strtotime($daySchedule['break_start']);
             $breakEnd = strtotime($daySchedule['break_end']);
             $hours -= ($breakEnd - $breakStart) / 3600;
@@ -336,6 +424,7 @@ class WorkSchedule extends BaseModel
     public function getDaySchedule(int $dayOfWeek): ?array
     {
         $hours = $this->weekly_hours ?? [];
+
         return $hours[$dayOfWeek] ?? null;
     }
 
@@ -346,7 +435,7 @@ class WorkSchedule extends BaseModel
     {
         $daySchedule = $this->getDaySchedule($dayOfWeek);
 
-        if (!$daySchedule || empty($daySchedule['is_working'])) {
+        if (! $daySchedule || empty($daySchedule['is_working'])) {
             return false;
         }
 
@@ -356,7 +445,7 @@ class WorkSchedule extends BaseModel
         }
 
         // Check if during break
-        if (!empty($daySchedule['break_start']) && !empty($daySchedule['break_end'])) {
+        if (! empty($daySchedule['break_start']) && ! empty($daySchedule['break_end'])) {
             if ($time >= $daySchedule['break_start'] && $time < $daySchedule['break_end']) {
                 return false;
             }
@@ -372,7 +461,7 @@ class WorkSchedule extends BaseModel
     {
         $daySchedule = $this->getDaySchedule($dayOfWeek);
 
-        if (!$daySchedule || empty($daySchedule['is_working'])) {
+        if (! $daySchedule || empty($daySchedule['is_working'])) {
             return [];
         }
 
@@ -383,8 +472,8 @@ class WorkSchedule extends BaseModel
 
         $start = strtotime($daySchedule['start_time']);
         $end = strtotime($daySchedule['end_time']);
-        $breakStart = !empty($daySchedule['break_start']) ? strtotime($daySchedule['break_start']) : null;
-        $breakEnd = !empty($daySchedule['break_end']) ? strtotime($daySchedule['break_end']) : null;
+        $breakStart = ! empty($daySchedule['break_start']) ? strtotime($daySchedule['break_start']) : null;
+        $breakEnd = ! empty($daySchedule['break_end']) ? strtotime($daySchedule['break_end']) : null;
 
         $current = $start;
 
@@ -401,7 +490,7 @@ class WorkSchedule extends BaseModel
                 }
             }
 
-            if (!$skipSlot) {
+            if (! $skipSlot) {
                 $slots[] = [
                     'start' => date('H:i', $current),
                     'end' => date('H:i', $slotEnd),
@@ -426,6 +515,7 @@ class WorkSchedule extends BaseModel
         if ($branchId === null) {
             return $query;
         }
+
         return $query->where(function ($q) use ($branchId) {
             $q->where('work_schedules.branch_id', $branchId)
                 ->orWhereNull('work_schedules.branch_id');
