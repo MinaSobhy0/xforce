@@ -186,3 +186,18 @@ test('full sync refreshes employee fields and reuses the linked user', function 
         ->and($staff->user_id)->toBe($originalUserId)
         ->and(StaffProfile::count())->toBe(1);
 });
+
+test('imported staff default to geofence-only check-in and the default branch', function () {
+    $connection = Tests\Odoo\Support\OdooScenario::connection();
+    $mapping = Tests\Odoo\Support\OdooScenario::staffProfiles($connection);
+
+    $odooEmpId = $this->odoo->seed('hr.employee', [
+        'name' => 'Default Dana', 'user_id' => false,
+        'work_email' => 'dana@clinic.test', 'active' => true,
+    ]);
+    runOdooSync($mapping);
+
+    $staff = Modules\Staff\Models\StaffProfile::where('odoo_id', $odooEmpId)->firstOrFail();
+    expect($staff->allowed_check_in_methods)->toBe(['geofence'])
+        ->and($staff->branch_id)->not->toBeNull();
+});

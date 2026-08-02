@@ -25,6 +25,31 @@ class StaffProfile extends BaseModel
     use HasTranslations;
 
     /**
+     * Creation defaults:
+     * - geofence is the default (and only) check-in method for new staff —
+     *   admins widen it per profile when needed;
+     * - branch defaults to the branch currently being worked in, falling
+     *   back to the tenant's first branch (Odoo imports run without a
+     *   branch context).
+     */
+    protected static function booted(): void
+    {
+        parent::booted();
+
+        static::creating(function (self $profile) {
+            if ($profile->allowed_check_in_methods === null) {
+                $profile->allowed_check_in_methods = ['geofence'];
+            }
+
+            if ($profile->branch_id === null) {
+                $profile->branch_id = function_exists('current_branch_id')
+                    ? (current_branch_id() ?? \Modules\Core\Models\Branch::query()->orderBy('id')->value('id'))
+                    : \Modules\Core\Models\Branch::query()->orderBy('id')->value('id');
+            }
+        });
+    }
+
+    /**
      * The column that stores the sequence number.
      */
     protected string $sequenceColumn = 'employee_number';

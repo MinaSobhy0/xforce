@@ -122,6 +122,9 @@ abstract class MobileApiTestCase extends OdooSyncTestCase
             'branch_id' => $branchId,
             'job_title' => 'Therapist',
             'is_active' => true,
+            // Production default is geofence-only (StaffProfile::booted);
+            // the suite exercises every method, so widen it here.
+            'allowed_check_in_methods' => ['manual', 'geofence', 'qr_static', 'qr_dynamic', 'biometric'],
         ], $profileAttrs));
 
         return [$user, $profile->fresh()];
