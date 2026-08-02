@@ -297,11 +297,20 @@ class SyncEngine
         $connection = $mapping->connection;
         $client = $this->apiFactory->make($connection);
 
+        // Run-start (minus a 1-minute overlap) becomes the next delta's
+        // export watermark: records modified during this run — including
+        // same-second ties the > comparison would drop — are re-examined
+        // next time. Without a watermark, every delta re-exported the
+        // ENTIRE table (one Odoo read per record — the main rate-limit hog).
+        $startedAt = now()->subMinute()->format('Y-m-d H:i:s');
+
         // Get local records to export
         $query = $this->buildExportQuery($mapping, $syncType);
         $totalCount = $query->count();
 
         if ($totalCount === 0) {
+            $this->watermarkService->setWatermark($mapping, 'export', $startedAt);
+
             return;
         }
 
@@ -336,6 +345,10 @@ class SyncEngine
             // Rate limit protection: pause between batches to avoid Odoo API throttling
             usleep(500000); // 500ms delay between batches
         });
+
+        // Only reached after every batch processed — a crashed run never
+        // advances the watermark past unexported changes.
+        $this->watermarkService->setWatermark($mapping, 'export', $startedAt);
     }
 
     /**
