@@ -198,14 +198,14 @@ class AttendanceController extends BaseApiController
         }
 
         // Two-level method gate, general first: (1) the tenant/branch-wide
-        // switch (Attendance Settings; manual defaults to enabled when never
-        // configured), then (2) the per-employee restriction. Distinct
-        // error_codes let the app tell "disabled by the clinic" apart from
-        // "not allowed for you".
-        if ($request->method === 'manual'
-            && class_exists(AttendanceTypeSetting::class)
-            && ! AttendanceTypeSetting::isManualEnabled($this->branch()?->id)) {
-            return $this->error(__('mobile_api::mobile.attendance.manual_disabled'), 403, null, 'MANUAL_DISABLED');
+        // availability of the method itself (Attendance Settings; manual
+        // defaults to enabled, every other method needs an enabled settings
+        // row), then (2) the per-employee restriction. Distinct error_codes
+        // let the app tell "disabled by the clinic" apart from "not allowed
+        // for you".
+        if (class_exists(AttendanceTypeSetting::class)
+            && ! AttendanceTypeSetting::isMethodEnabled($request->method, $this->branch()?->id)) {
+            return $this->error(__('mobile_api::mobile.attendance.method_disabled'), 403, null, 'METHOD_DISABLED');
         }
 
         if (! $staffProfile->isCheckInMethodAllowed($request->method)) {
@@ -533,12 +533,11 @@ class AttendanceController extends BaseApiController
             ->first();
 
         if ($punch['type'] === 'check_in') {
-            // Same two-level gate as live check-in: general switch first,
-            // then the per-employee restriction.
-            if ($method === 'manual'
-                && class_exists(AttendanceTypeSetting::class)
-                && ! AttendanceTypeSetting::isManualEnabled($this->branch()?->id)) {
-                return $reject('MANUAL_DISABLED', __('mobile_api::mobile.attendance.manual_disabled'));
+            // Same two-level gate as live check-in: general method
+            // availability first, then the per-employee restriction.
+            if (class_exists(AttendanceTypeSetting::class)
+                && ! AttendanceTypeSetting::isMethodEnabled($method, $this->branch()?->id)) {
+                return $reject('METHOD_DISABLED', __('mobile_api::mobile.attendance.method_disabled'));
             }
             if (! $staffProfile->isCheckInMethodAllowed($method)) {
                 return $reject('METHOD_NOT_ALLOWED', __('mobile_api::mobile.attendance.method_not_allowed'));

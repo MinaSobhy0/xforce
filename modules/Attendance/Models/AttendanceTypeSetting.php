@@ -162,10 +162,25 @@ class AttendanceTypeSetting extends BaseModel
     }
 
     /**
+     * Whether a check-in method is enabled at the tenant/branch level.
+     *
+     * Manual is special: ABSENCE of a row means ENABLED — it has always been
+     * the default method and existing tenants have no row for it. Every
+     * other method requires an enabled settings row (absence = disabled),
+     * matching what types()/getEnabledTypes() advertise to the app.
+     */
+    public static function isMethodEnabled(string $method, ?string $branchId = null): bool
+    {
+        if ($method === Attendance::TYPE_MANUAL) {
+            return static::isManualEnabled($branchId);
+        }
+
+        return static::getForType($method, $branchId) !== null;
+    }
+
+    /**
      * Whether manual check-in is enabled for the branch (branch-specific row
-     * wins over the global row). Unlike the other types, ABSENCE of a row
-     * means ENABLED — manual has always been the default method and existing
-     * tenants have no row for it.
+     * wins over the global row).
      */
     public static function isManualEnabled(?string $branchId = null): bool
     {

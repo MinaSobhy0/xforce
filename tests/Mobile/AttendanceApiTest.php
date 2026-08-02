@@ -106,13 +106,13 @@ test('manual check-in can be disabled tenant-wide in attendance settings', funct
     // Live manual punch refused with the general-level error code
     $this->api('POST', 'attendance/check-in', ['method' => 'manual'], $user)
         ->assertStatus(403)
-        ->assertJsonPath('error_code', 'MANUAL_DISABLED');
+        ->assertJsonPath('error_code', 'METHOD_DISABLED');
 
     // Offline manual punch refused with a per-punch result
     $response = $this->api('POST', 'attendance/sync', [
         'punches' => [offlinePunch('check_in', now()->subDay()->setTime(9, 0), self::GEO_LAT, self::GEO_LNG, ['method' => 'manual'])],
     ], $user)->assertOk();
-    expect($response->json('data.results.0.error_code'))->toBe('MANUAL_DISABLED');
+    expect($response->json('data.results.0.error_code'))->toBe('METHOD_DISABLED');
 
     // Settings and types both reflect the switch
     $settings = $this->api('GET', 'attendance/settings', [], $user)->assertOk()->json('data');
@@ -121,6 +121,18 @@ test('manual check-in can be disabled tenant-wide in attendance settings', funct
     $types = $this->api('GET', 'attendance/types', [], $user)->assertOk()->json('data.types');
     $manual = collect($types)->firstWhere('type', 'manual');
     expect($manual['enabled'])->toBeFalse();
+});
+
+test('a method the clinic never enabled is refused with METHOD_DISABLED', function () {
+    [$user, $staff] = $this->createStaffUser();
+
+    // No geofence settings row exists — the method is not offered, so the
+    // backend must refuse it even with valid-looking coordinates.
+    $this->api('POST', 'attendance/check-in', [
+        'method' => 'geofence',
+        'latitude' => self::GEO_LAT,
+        'longitude' => self::GEO_LNG,
+    ], $user)->assertStatus(403)->assertJsonPath('error_code', 'METHOD_DISABLED');
 });
 
 test('manual check-in without coordinates is refused when a geofence is configured', function () {
