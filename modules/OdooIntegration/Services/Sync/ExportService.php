@@ -196,6 +196,19 @@ class ExportService
         $currentOdooData = $currentOdooRecords[0];
         $currentOdooChecksum = $this->calculateChecksum($currentOdooData);
 
+        // Neither side changed since the last round-trip: nothing to push.
+        // (Also avoids tripping Odoo-side validations — e.g. hr.attendance
+        // overlap checks — with no-op writes during full sweeps.)
+        if ($localChecksum === $syncRecord->local_checksum
+            && $currentOdooChecksum === $syncRecord->odoo_checksum) {
+            return [
+                'action' => 'skipped',
+                'reason' => 'unchanged',
+                'local_id' => $localRecord->id,
+                'odoo_id' => $syncRecord->odoo_id,
+            ];
+        }
+
         // Check for conflicts
         if ($this->hasConflict($syncRecord, $localChecksum, $currentOdooChecksum)) {
             return $this->handleConflict($mapping, $client, $syncRecord, $localRecord, $odooData, $currentOdooData);
