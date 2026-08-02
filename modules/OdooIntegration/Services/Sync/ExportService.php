@@ -69,7 +69,7 @@ class ExportService
                 $odooChecksumNow = '';
             }
 
-            $localChecksumNow = $this->calculateChecksum($localRecord->toArray());
+            $localChecksumNow = SyncChecksum::forModel($localRecord);
 
             $syncRecord = OdooSyncRecord::create([
                 'tenant_id' => $mapping->tenant_id,
@@ -97,7 +97,7 @@ class ExportService
         }
 
         // Calculate checksum
-        $localChecksum = $this->calculateChecksum($localRecord->toArray());
+        $localChecksum = SyncChecksum::forModel($localRecord);
 
         if ($syncRecord && $syncRecord->odoo_id) {
             return $this->updateExistingOdooRecord($mapping, $client, $syncRecord, $localRecord, $odooData, $localChecksum);
@@ -133,7 +133,7 @@ class ExportService
             // Recompute the checksum from the post-update record: it now
             // carries odoo_id, and storing the pre-update checksum would make
             // this record read as locally-modified forever.
-            $localChecksum = $this->calculateChecksum($localRecord->fresh()->toArray());
+            $localChecksum = SyncChecksum::forModel($localRecord->fresh());
 
             // Create or update sync record
             $syncRecord = OdooSyncRecord::updateOrCreate(
@@ -330,7 +330,7 @@ class ExportService
 
             $odooRecord = $client->read($mapping->odoo_model, [$syncRecord->odoo_id]);
             $odooChecksum = $this->calculateChecksum($odooRecord[0] ?? []);
-            $localChecksum = $this->calculateChecksum($localRecord->toArray());
+            $localChecksum = SyncChecksum::forModel($localRecord);
 
             $localRecord->update(['odoo_synced_at' => now()]);
             $syncRecord->markSynced('export', $localChecksum, $odooChecksum);

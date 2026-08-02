@@ -473,6 +473,25 @@ class PractitionerTimeOff extends BaseModel
 
         $isCreate = $localRecord && empty($localRecord->odoo_id);
 
+        // Odoo 16+: hr.leave dates are DRIVEN by request_date_from/
+        // request_date_to — date_from/date_to are computed from them.
+        // Sending only the computed pair makes Odoo recompute from an unset
+        // request date, which DEFAULTS TO TODAY on create (surfaced by the
+        // realtime QA run: an Aug 20-21 request landed in Odoo dated today,
+        // and the import sweep then mirrored the wrong dates back locally).
+        if ($localRecord && $localRecord->start_date) {
+            $data['request_date_from'] = $localRecord->start_date->toDateString();
+            $data['request_date_to'] = ($localRecord->end_date ?? $localRecord->start_date)->toDateString();
+            unset($data['date_from'], $data['date_to']);
+
+            if ($localRecord->timeOffType?->isHourBased()
+                && $localRecord->start_time && $localRecord->end_time) {
+                $data['request_unit_hours'] = true;
+                $data['request_hour_from'] = self::timeStringToFloat($localRecord->start_time);
+                $data['request_hour_to'] = self::timeStringToFloat($localRecord->end_time);
+            }
+        }
+
         // Odoo's hr.leave state transitions are gated by workflow methods —
         // direct state writes are blocked once the record leaves draft.
         // So we never send `state` and instead emit __odoo_actions, which
@@ -493,6 +512,16 @@ class PractitionerTimeOff extends BaseModel
         }
 
         return $data;
+    }
+
+    /**
+     * "08:30" → 8.5 (Odoo request_hour_from/_to format).
+     */
+    protected static function timeStringToFloat(string $time): float
+    {
+        $t = \Carbon\Carbon::parse($time);
+
+        return $t->hour + $t->minute / 60;
     }
 
     /**

@@ -16,4 +16,14 @@ final class SyncChecksum
 
         return md5(json_encode($data));
     }
+
+    /**
+     * Checksum a model deterministically: loaded relations are excluded —
+     * whether a relation happens to be loaded (e.g. by an export hook) must
+     * not change the record's identity.
+     */
+    public static function forModel(\Illuminate\Database\Eloquent\Model $model): string
+    {
+        return self::calculate($model->withoutRelations()->toArray());
+    }
 }

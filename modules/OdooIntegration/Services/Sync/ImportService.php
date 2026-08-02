@@ -142,7 +142,7 @@ class ImportService
             ->first();
 
         if ($syncRecord && ! empty($syncRecord->local_checksum)) {
-            return SyncChecksum::calculate($localRecord->toArray()) !== $syncRecord->local_checksum;
+            return SyncChecksum::forModel($localRecord) !== $syncRecord->local_checksum;
         }
 
         return $localRecord->odoo_synced_at !== null
@@ -169,7 +169,7 @@ class ImportService
         // applying Odoo changes.
         if ($mapping) {
             $update = [
-                'local_checksum' => SyncChecksum::calculate($localRecord->fresh()->toArray()),
+                'local_checksum' => SyncChecksum::forModel($localRecord->fresh()),
                 'last_synced_at' => now(),
                 'sync_status' => OdooSyncRecord::STATUS_SYNCED,
                 'last_sync_direction' => 'import',

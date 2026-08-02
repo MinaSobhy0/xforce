@@ -303,8 +303,27 @@ class FakeOdooClient implements OdooApiClientInterface
             'create_date' => now('UTC')->format('Y-m-d H:i:s'),
             'write_date' => now('UTC')->format('Y-m-d H:i:s'),
         ];
+        $this->applyHrLeaveComputes($model, $id);
 
         return $id;
+    }
+
+    /**
+     * Emulate Odoo 16+'s hr.leave compute: date_from/date_to are DERIVED
+     * from request_date_from/request_date_to (the fields clients must send).
+     */
+    protected function applyHrLeaveComputes(string $model, int $id): void
+    {
+        if ($model !== 'hr.leave') {
+            return;
+        }
+
+        $record = &$this->records[$model][$id];
+
+        if (! empty($record['request_date_from'])) {
+            $record['date_from'] = $record['request_date_from'].' 06:00:00';
+            $record['date_to'] = ($record['request_date_to'] ?? $record['request_date_from']).' 14:00:00';
+        }
     }
 
     public function createBatch(string $model, array $valuesList): array
@@ -325,6 +344,7 @@ class FakeOdooClient implements OdooApiClientInterface
             $this->records[$model][$id] = array_merge($this->records[$model][$id], $values, [
                 'write_date' => now('UTC')->format('Y-m-d H:i:s'),
             ]);
+            $this->applyHrLeaveComputes($model, $id);
         }
 
         return true;
