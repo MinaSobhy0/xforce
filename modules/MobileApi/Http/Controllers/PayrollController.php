@@ -325,29 +325,29 @@ class PayrollController extends BaseApiController
      */
     protected function visibleRuleBreakdown(array $breakdown): array
     {
-        $unresolvedIds = collect($breakdown)
-            ->filter(fn($e) => !array_key_exists('visible', $e) && !empty($e['rule_id']))
+        $ruleIds = collect($breakdown)
             ->pluck('rule_id')
+            ->filter()
             ->unique()
             ->values();
 
-        $localVisibility = [];
-        if ($unresolvedIds->isNotEmpty() && class_exists(\Modules\Payroll\Models\SalaryRule::class)) {
-            $localVisibility = \Modules\Payroll\Models\SalaryRule::whereIn('id', $unresolvedIds)
-                ->pluck('appears_on_payslip', 'id')
+        $mobileVisible = [];
+        if ($ruleIds->isNotEmpty() && class_exists(\Modules\Payroll\Models\SalaryRule::class)) {
+            $mobileVisible = \Modules\Payroll\Models\SalaryRule::whereIn('id', $ruleIds)
+                ->pluck('show_in_mobile_app', 'id')
                 ->map(fn($v) => (bool) $v)
                 ->all();
         }
 
         return collect($breakdown)
-            ->filter(function ($entry) use ($localVisibility) {
-                if (array_key_exists('visible', $entry)) {
-                    return (bool) $entry['visible'];
-                }
-
+            ->filter(function ($entry) use ($mobileVisible) {
                 $ruleId = $entry['rule_id'] ?? null;
 
-                return $ruleId === null || ($localVisibility[$ruleId] ?? true);
+                if ($ruleId !== null && array_key_exists($ruleId, $mobileVisible)) {
+                    return $mobileVisible[$ruleId];
+                }
+
+                return (bool) ($entry['visible'] ?? true);
             })
             ->map(function ($entry) {
                 unset($entry['visible']);

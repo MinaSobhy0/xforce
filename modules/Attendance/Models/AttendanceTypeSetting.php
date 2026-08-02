@@ -164,6 +164,36 @@ class AttendanceTypeSetting extends BaseModel
     /**
      * Get all enabled types for a branch.
      */
+    /**
+     * Whether a check-in method is enabled at the tenant/branch level.
+     * Manual is special: ABSENCE of a row means ENABLED; every other method
+     * requires an enabled settings row.
+     */
+    public static function isMethodEnabled(string $method, ?string $branchId = null): bool
+    {
+        if ($method === Attendance::TYPE_MANUAL) {
+            return static::isManualEnabled($branchId);
+        }
+
+        return static::getForType($method, $branchId) !== null;
+    }
+
+    /**
+     * Whether manual check-in is enabled (branch row wins over global).
+     */
+    public static function isManualEnabled(?string $branchId = null): bool
+    {
+        $query = static::query()->ofType(Attendance::TYPE_MANUAL);
+
+        $row = null;
+        if ($branchId) {
+            $row = (clone $query)->where('branch_id', $branchId)->first();
+        }
+        $row ??= (clone $query)->whereNull('branch_id')->first();
+
+        return $row?->is_enabled ?? true;
+    }
+
     public static function getEnabledTypes(?string $branchId = null): array
     {
         $settings = static::query()

@@ -33,6 +33,8 @@ class AttendanceSettingsPage extends Page
         return $user->can('attendance_rules.view') || !\Spatie\Permission\Models\Permission::where('name', 'attendance_rules.view')->where('guard_name', 'web')->exists();
     }
 
+    public ?array $manualData = [];
+
     public ?array $geofenceData = [];
     public ?array $qrStaticData = [];
     public ?array $qrDynamicData = [];
@@ -76,11 +78,13 @@ class AttendanceSettingsPage extends Page
                 ->first();
 
             $data = [
-                'is_enabled' => $setting?->is_enabled ?? false,
+                // Manual defaults to enabled when never configured.
+                'is_enabled' => $setting?->is_enabled ?? ($type === Attendance::TYPE_MANUAL),
                 'settings' => $setting?->getMergedSettings() ?? AttendanceTypeSetting::DEFAULT_SETTINGS[$type] ?? [],
             ];
 
             match ($type) {
+                Attendance::TYPE_MANUAL => $this->manualData = $data,
                 Attendance::TYPE_GEOFENCE => $this->geofenceData = $data,
                 Attendance::TYPE_QR_STATIC => $this->qrStaticData = $data,
                 Attendance::TYPE_QR_DYNAMIC => $this->qrDynamicData = $data,
@@ -99,6 +103,7 @@ class AttendanceSettingsPage extends Page
     {
         return [
             'branchForm',
+            'manualForm',
             'geofenceForm',
             'qrStaticForm',
             'qrDynamicForm',
@@ -118,6 +123,18 @@ class AttendanceSettingsPage extends Page
                     ->afterStateUpdated(fn () => $this->loadSettings()),
             ])
             ->statePath('');
+    }
+
+    public function manualForm(Form $form): Form
+    {
+        return $form
+            ->schema([
+                Forms\Components\Toggle::make('is_enabled')
+                    ->label(__('attendance::attendance.settings.enabled'))
+                    ->helperText(__('attendance::attendance.settings.manual.toggle_help'))
+                    ->live(),
+            ])
+            ->statePath('manualData');
     }
 
     public function geofenceForm(Form $form): Form
@@ -330,6 +347,11 @@ class AttendanceSettingsPage extends Page
                     ->visible(fn (Forms\Get $get) => $get('is_enabled')),
             ])
             ->statePath('biometricData');
+    }
+
+    public function saveManual(): void
+    {
+        $this->saveTypeSetting(Attendance::TYPE_MANUAL, $this->manualData);
     }
 
     public function saveGeofence(): void

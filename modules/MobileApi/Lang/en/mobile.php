@@ -57,6 +57,7 @@ return [
         'cannot_dispute' => 'This violation cannot be disputed',
         'method_not_allowed' => 'This check-in method is not allowed for you',
         'location_not_allowed' => 'You are not allowed to check in at this location',
+        'method_disabled' => 'This check-in method is disabled. Please use one of the available check-in methods.',
         'offline_queued' => 'You are offline. Your punch was saved and we will verify your location once you are back online.',
         'offline_synced' => ':accepted of :total offline punches accepted',
         'punch_in_future' => 'This punch is timestamped in the future',
@@ -73,6 +74,7 @@ return [
         'times_required' => 'Start and end times are required for this leave type',
         'invalid_duration' => 'The requested duration is invalid',
         'no_allocation' => 'You have no leave allocation covering the requested dates',
+        'non_working_period' => 'The selected dates fall entirely on non-working days',
     ],
 
     'payroll' => [

@@ -43,16 +43,20 @@ class AttendanceController extends BaseApiController
         // Get staff's allowed methods (null = all allowed)
         $staffAllowedMethods = $staffProfile?->getAllowedCheckInMethods() ?? array_keys(\Modules\Staff\Models\StaffProfile::CHECK_IN_METHODS);
 
-        // Always include manual type
+        // Manual is always listed; usability comes from the settings toggle.
         $types = [[
             'type' => Attendance::TYPE_MANUAL,
             'label' => Attendance::TYPES[Attendance::TYPE_MANUAL],
-            'enabled' => true,
+            'enabled' => AttendanceTypeSetting::isManualEnabled($branch?->id),
             'allowed' => in_array('manual', $staffAllowedMethods),
             'settings' => [],
         ]];
 
         foreach ($settings as $setting) {
+            if ($setting->type === Attendance::TYPE_MANUAL) {
+                continue;
+            }
+
             $types[] = [
                 'type' => $setting->type,
                 'label' => Attendance::TYPES[$setting->type] ?? $setting->type,
@@ -153,6 +157,8 @@ class AttendanceController extends BaseApiController
             'qr_enabled' => $features['qr_check_in'] ?? true,
             'break_tracking' => $features['break_tracking'] ?? true,
             'photo_required' => $features['attendance_photo_required'] ?? false,
+            'multiple_check_in' => class_exists(Attendance::class)
+                && Attendance::multiplePunchesAllowedFor($this->staffProfile()),
             // Offline punch queue: the app may record punches (with location)
             // while offline, must show `offline_message` to the user, and
             // syncs them via POST /attendance/sync once back online. The
@@ -191,9 +197,16 @@ class AttendanceController extends BaseApiController
             return $this->error('Attendance module not available', 503);
         }
 
-        // Check if the check-in method is allowed for this staff
+        // Two-level method gate, general first: tenant/branch availability
+        // (Attendance Settings; manual defaults to enabled, other methods
+        // need an enabled row), then the per-employee restriction.
+        if (class_exists(AttendanceTypeSetting::class)
+            && !AttendanceTypeSetting::isMethodEnabled($request->method, $this->branch()?->id)) {
+            return $this->error(__('mobile_api::mobile.attendance.method_disabled'), 403, null, 'METHOD_DISABLED');
+        }
+
         if (!$staffProfile->isCheckInMethodAllowed($request->method)) {
-            return $this->error(__('mobile_api::mobile.attendance.method_not_allowed'), 403);
+            return $this->error(__('mobile_api::mobile.attendance.method_not_allowed'), 403, null, 'METHOD_NOT_ALLOWED');
         }
 
         // Location/method validation runs BEFORE any record is touched —
@@ -211,39 +224,45 @@ class AttendanceController extends BaseApiController
             }
         }
 
-        // Check if already has attendance record today (including soft-deleted)
-        $existing = Attendance::withTrashed()
+        // Today's records (soft-deleted included for the restore path).
+        $todays = Attendance::withTrashed()
             ->where('staff_profile_id', $staffProfile->id)
             ->whereDate('attendance_date', today())
-            ->first();
+            ->orderByDesc('id')
+            ->get();
 
-        if ($existing) {
-            // If soft-deleted, restore it instead of creating new
-            if ($existing->trashed()) {
-                $existing->restore();
-                $existing->update([
-                    'check_in_time' => now(),
-                    'check_out_time' => null,
-                    'attendance_type' => $request->method,
-                    'status' => Attendance::STATUS_PRESENT,
-                    'working_hours' => 0,
-                    'check_in_latitude' => $request->latitude,
-                    'check_in_longitude' => $request->longitude,
-                    'location_verified' => $locationVerified,
-                ]);
-                return $this->success([
-                    'id' => $existing->id,
-                    'check_in_time' => $existing->check_in_time->format('H:i'),
-                ], __('mobile_api::mobile.attendance.checked_in'));
-            }
-
-            // Already checked in today
-            if ($existing->check_out_time) {
-                // Already completed attendance for today
-                return $this->error(__('mobile_api::mobile.attendance.already_completed_today'), 400);
-            }
+        $open = $todays->first(fn ($a) => !$a->trashed() && $a->check_out_time === null);
+        if ($open) {
             // Still checked in (no check out yet)
             return $this->error(__('mobile_api::mobile.attendance.already_checked_in'), 400);
+        }
+
+        $latestLive = $todays->first(fn ($a) => !$a->trashed());
+
+        if ($latestLive) {
+            // A completed pair exists: another pair only when the tenant
+            // config permits multiple check-in/out for this employee.
+            if (!Attendance::multiplePunchesAllowedFor($staffProfile)) {
+                return $this->error(__('mobile_api::mobile.attendance.already_completed_today'), 400);
+            }
+            // fall through -> create an additional record for today
+        } elseif ($trashed = $todays->first(fn ($a) => $a->trashed())) {
+            // If soft-deleted, restore it instead of creating new
+            $trashed->restore();
+            $trashed->update([
+                'check_in_time' => now(),
+                'check_out_time' => null,
+                'attendance_type' => $request->method,
+                'status' => Attendance::STATUS_PRESENT,
+                'working_hours' => 0,
+                'check_in_latitude' => $request->latitude,
+                'check_in_longitude' => $request->longitude,
+                'location_verified' => $locationVerified,
+            ]);
+            return $this->success([
+                'id' => $trashed->id,
+                'check_in_time' => $trashed->check_in_time->format('H:i'),
+            ], __('mobile_api::mobile.attendance.checked_in'));
         }
 
         // Create attendance record with try-catch for race conditions
@@ -375,6 +394,7 @@ class AttendanceController extends BaseApiController
         $attendance = Attendance::where('staff_profile_id', $staffProfile->id)
             ->whereDate('attendance_date', today())
             ->whereNull('check_out_time')
+            ->orderByDesc('id')
             ->first();
 
         if (!$attendance) {
@@ -502,19 +522,26 @@ class AttendanceController extends BaseApiController
         $method = $punch['method'] ?? Attendance::TYPE_MANUAL;
         $punchDate = $recordedAt->toDateString();
 
-        $existing = Attendance::where('staff_profile_id', $staffProfile->id)
+        $dayRecords = Attendance::where('staff_profile_id', $staffProfile->id)
             ->whereDate('attendance_date', $punchDate)
-            ->first();
+            ->orderByDesc('id')
+            ->get();
+        $existing = $dayRecords->first();
+        $openRecord = $dayRecords->first(fn ($a) => $a->check_out_time === null);
 
         if ($punch['type'] === 'check_in') {
+            if (class_exists(AttendanceTypeSetting::class)
+                && !AttendanceTypeSetting::isMethodEnabled($method, $this->branch()?->id)) {
+                return $reject('METHOD_DISABLED', __('mobile_api::mobile.attendance.method_disabled'));
+            }
             if (!$staffProfile->isCheckInMethodAllowed($method)) {
                 return $reject('METHOD_NOT_ALLOWED', __('mobile_api::mobile.attendance.method_not_allowed'));
             }
-            if ($existing && $existing->check_out_time) {
-                return $reject('ALREADY_COMPLETED', __('mobile_api::mobile.attendance.already_completed_today'));
-            }
-            if ($existing) {
+            if ($openRecord) {
                 return $reject('ALREADY_CHECKED_IN', __('mobile_api::mobile.attendance.already_checked_in'));
+            }
+            if ($existing && !Attendance::multiplePunchesAllowedFor($staffProfile)) {
+                return $reject('ALREADY_COMPLETED', __('mobile_api::mobile.attendance.already_completed_today'));
             }
 
             try {
@@ -542,12 +569,10 @@ class AttendanceController extends BaseApiController
             ];
         }
 
-        // check_out
+        // check_out — targets the day's open record
+        $existing = $openRecord;
         if (!$existing || !$existing->check_in_time) {
             return $reject('NO_CHECK_IN', __('mobile_api::mobile.attendance.not_checked_in'));
-        }
-        if ($existing->check_out_time) {
-            return $reject('ALREADY_COMPLETED', __('mobile_api::mobile.attendance.already_completed_today'));
         }
 
         // check_in_time is a TIME column — anchor it to the attendance date
@@ -1007,15 +1032,16 @@ class AttendanceController extends BaseApiController
 
     protected function getEnabledCheckInMethods(): array
     {
-        $methods = ['manual'];
-
         if (!class_exists(AttendanceTypeSetting::class)) {
-            return $methods;
+            return ['manual'];
         }
 
-        $enabledTypes = AttendanceTypeSetting::getEnabledTypes($this->branch()?->id);
+        $branchId = $this->branch()?->id;
+        $methods = AttendanceTypeSetting::isManualEnabled($branchId) ? ['manual'] : [];
 
-        return array_merge($methods, $enabledTypes);
+        $enabledTypes = AttendanceTypeSetting::getEnabledTypes($branchId);
+
+        return array_values(array_unique(array_merge($methods, $enabledTypes)));
     }
 
     protected function getClientSettings(AttendanceTypeSetting $setting): array

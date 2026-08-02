@@ -413,6 +413,39 @@ class PractitionerTimeOff extends BaseModel
     }
 
     /**
+     * Working days between two dates per the staff member's assigned work
+     * schedule: non-working days (weekends, days off) do not consume
+     * balance. Falls back to plain calendar days without a schedule.
+     */
+    public static function workingDaysBetween($staffProfile, \Carbon\Carbon $start, \Carbon\Carbon $end): float
+    {
+        $schedule = null;
+        if ($staffProfile && class_exists(\Modules\Attendance\Services\AttendanceService::class)) {
+            try {
+                $schedule = app(\Modules\Attendance\Services\AttendanceService::class)->getStaffSchedule($staffProfile);
+            } catch (\Throwable) {
+                $schedule = null;
+            }
+        }
+
+        $days = 0;
+        for ($d = $start->copy()->startOfDay(); $d->lte($end); $d->addDay()) {
+            if (!$schedule) {
+                $days++;
+
+                continue;
+            }
+
+            $daySchedule = $schedule->getDaySchedule((int) $d->dayOfWeek);
+            if ($daySchedule && !empty($daySchedule['is_working'])) {
+                $days++;
+            }
+        }
+
+        return (float) $days;
+    }
+
+    /**
      * Calculate hours from time range.
      */
     public static function calculateHoursFromTimeRange(?string $startTime, ?string $endTime): float

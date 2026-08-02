@@ -90,8 +90,10 @@ class Attendance extends BaseModel
         self::TYPE_BIOMETRIC => 'Biometric',
     ];
 
-    // Types that can be configured via settings
+    // Types that can be configured via settings. Manual is special: with no
+    // stored row it defaults to ENABLED — see AttendanceTypeSetting::isManualEnabled().
     public const CONFIGURABLE_TYPES = [
+        self::TYPE_MANUAL,
         self::TYPE_GEOFENCE,
         self::TYPE_QR_STATIC,
         self::TYPE_QR_DYNAMIC,
@@ -125,6 +127,29 @@ class Attendance extends BaseModel
         self::STATUS_HALF_DAY => 'warning',
         self::STATUS_LEAVE => 'info',
     ];
+
+    /**
+     * Whether this staff member may punch multiple check-in/out pairs per
+     * day. Reads the tenant setting attendance.multiple_check_in
+     * ({enabled, scope, employee_odoo_ids}); default single pair per day.
+     */
+    public static function multiplePunchesAllowedFor($staffProfile): bool
+    {
+        $tenant = app()->bound('currentTenant') ? app('currentTenant') : null;
+        $config = $tenant?->getSetting('attendance.multiple_check_in');
+
+        if (! is_array($config) || empty($config['enabled'])) {
+            return false;
+        }
+
+        if (($config['scope'] ?? 'all') === 'all') {
+            return true;
+        }
+
+        $ids = array_map('intval', (array) ($config['employee_odoo_ids'] ?? []));
+
+        return $staffProfile && in_array((int) ($staffProfile->odoo_id ?? 0), $ids, true);
+    }
 
     /*
     |--------------------------------------------------------------------------

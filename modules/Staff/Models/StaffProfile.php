@@ -25,6 +25,26 @@ class StaffProfile extends BaseModel
     use HasSequence;
 
     /**
+     * Creation defaults: geofence-only check-in, and the branch currently
+     * being worked in (first branch as fallback).
+     */
+    protected static function booted(): void
+    {
+        parent::booted();
+
+        static::creating(function (self $profile) {
+            if ($profile->allowed_check_in_methods === null) {
+                $profile->allowed_check_in_methods = ['geofence'];
+            }
+
+            if ($profile->branch_id === null) {
+                $profile->branch_id = (function_exists('current_branch_id') ? current_branch_id() : null)
+                    ?? \Modules\Core\Models\Branch::query()->orderBy('id')->value('id');
+            }
+        });
+    }
+
+    /**
      * The column that stores the sequence number.
      */
     protected string $sequenceColumn = 'employee_number';
