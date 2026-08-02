@@ -139,6 +139,30 @@ class Attendance extends BaseModel
     ];
 
     /**
+     * Whether this staff member may punch multiple check-in/out pairs per
+     * day. Mirrors Odoo's xs.attendance.config (synced into tenant settings
+     * by SyncAttendanceConfigFromOdoo): a global switch, optionally scoped
+     * to specific employees/departments (departments pre-expanded to
+     * employee odoo ids at sync time). Default: single pair per day.
+     */
+    public static function multiplePunchesAllowedFor($staffProfile): bool
+    {
+        $tenant = app()->bound('currentTenant') ? app('currentTenant') : null;
+        $config = $tenant?->getSetting('attendance.multiple_check_in');
+
+        if (! is_array($config) || empty($config['enabled'])) {
+            return false;
+        }
+
+        if (($config['scope'] ?? 'all') === 'all') {
+            return true;
+        }
+
+        return $staffProfile && $staffProfile->odoo_id
+            && in_array((int) $staffProfile->odoo_id, array_map('intval', (array) ($config['employee_odoo_ids'] ?? [])), true);
+    }
+
+    /**
      * Odoo hr.attendance carries full datetimes in check_in/check_out; the
      * local schema splits them into attendance_date (DATE) + TIME columns.
      * The datetime transformer has already converted to the tenant timezone

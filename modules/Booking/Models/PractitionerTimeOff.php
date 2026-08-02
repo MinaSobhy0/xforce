@@ -515,6 +515,40 @@ class PractitionerTimeOff extends BaseModel
     }
 
     /**
+     * Working days between two dates per the staff member's assigned work
+     * schedule (like Odoo's leave computation): days the schedule marks as
+     * non-working (weekends, days off) do not consume balance. Falls back to
+     * plain calendar days when no schedule is assigned.
+     */
+    public static function workingDaysBetween($staffProfile, \Carbon\Carbon $start, \Carbon\Carbon $end): float
+    {
+        $schedule = null;
+        if ($staffProfile && class_exists(\Modules\Attendance\Services\AttendanceService::class)) {
+            try {
+                $schedule = app(\Modules\Attendance\Services\AttendanceService::class)->getStaffSchedule($staffProfile);
+            } catch (\Throwable) {
+                $schedule = null;
+            }
+        }
+
+        $days = 0;
+        for ($d = $start->copy()->startOfDay(); $d->lte($end); $d->addDay()) {
+            if (! $schedule) {
+                $days++;
+
+                continue;
+            }
+
+            $daySchedule = $schedule->getDaySchedule((int) $d->dayOfWeek);
+            if ($daySchedule && ! empty($daySchedule['is_working'])) {
+                $days++;
+            }
+        }
+
+        return (float) $days;
+    }
+
+    /**
      * "08:30" → 8.5 (Odoo request_hour_from/_to format).
      */
     protected static function timeStringToFloat(string $time): float

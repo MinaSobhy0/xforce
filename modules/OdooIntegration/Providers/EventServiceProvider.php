@@ -12,6 +12,7 @@ use Modules\OdooIntegration\Listeners\HandleConflict;
 use Modules\OdooIntegration\Listeners\LogSyncActivity;
 use Modules\OdooIntegration\Listeners\NotifySyncFailure;
 use Modules\OdooIntegration\Listeners\ReconcileWorkScheduleAssignments;
+use Modules\OdooIntegration\Listeners\SyncAttendanceConfigFromOdoo;
 
 class EventServiceProvider extends ServiceProvider
 {
@@ -27,6 +28,7 @@ class EventServiceProvider extends ServiceProvider
         SyncCompleted::class => [
             LogSyncActivity::class,
             ReconcileWorkScheduleAssignments::class,
+            SyncAttendanceConfigFromOdoo::class,
         ],
         SyncFailed::class => [
             LogSyncActivity::class,

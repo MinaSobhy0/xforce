@@ -193,7 +193,7 @@ class SyncEngine
                 return $client->searchRead(
                     $mapping->odoo_model,
                     $domain,
-                    $this->getOdooFields($mapping),
+                    $this->getOdooFields($mapping, $client),
                     $offset,
                     $batchSize,
                     'id asc'

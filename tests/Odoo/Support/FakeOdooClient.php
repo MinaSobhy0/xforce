@@ -371,10 +371,32 @@ class FakeOdooClient implements OdooApiClientInterface
         return true;
     }
 
+    /**
+     * Optional per-model field catalogs for fields_get emulation. When a
+     * model has no catalog defined, fields_get throws (like an inaccessible
+     * install) and callers must degrade gracefully.
+     *
+     * @var array<string, array<int, string>>
+     */
+    public array $modelFields = [];
+
+    public function defineFields(string $model, array $fields): void
+    {
+        $this->modelFields[$model] = $fields;
+    }
+
     public function execute(string $model, string $method, array $args = [], array $kwargs = []): mixed
     {
         $this->log('execute', $model, compact('method', 'args', 'kwargs'));
         $this->maybeFail($model, $method);
+
+        if ($method === 'fields_get') {
+            if (! isset($this->modelFields[$model])) {
+                throw new \RuntimeException("fields_get catalog not defined for {$model}");
+            }
+
+            return array_fill_keys($this->modelFields[$model], ['type' => 'char']);
+        }
 
         $ids = (array) ($args[0] ?? []);
         $this->actions[] = ['model' => $model, 'method' => $method, 'ids' => $ids];

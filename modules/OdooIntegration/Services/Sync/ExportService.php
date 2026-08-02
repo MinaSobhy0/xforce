@@ -96,6 +96,17 @@ class ExportService
             $odooData = $modelClass::applyOdooExport($odooData, $mapping, $localRecord);
         }
 
+        // Custom fields injected by hooks (replacement_emp, request_date_*)
+        // may not exist on this Odoo install — sending them errors the whole
+        // write. Filter the payload against the model's actual fields.
+        $available = OdooFieldCatalog::available($client, $mapping->odoo_model);
+        if ($available !== null) {
+            $odooData = array_intersect_key(
+                $odooData,
+                array_flip(array_merge($available, ['__odoo_actions']))
+            );
+        }
+
         // Calculate checksum
         $localChecksum = SyncChecksum::forModel($localRecord);
 

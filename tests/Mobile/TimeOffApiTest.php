@@ -294,3 +294,50 @@ test('an employee cannot see another employee\'s request', function () {
 
     $this->api('GET', "time-off/requests/{$id}", [], $bob)->assertStatus(404);
 });
+
+// ---------------------------------------------------------------------------
+// Work-schedule-aware day counting (like Odoo)
+// ---------------------------------------------------------------------------
+
+test('requested days count only working days per the schedule', function () {
+    [$user, $staff] = $this->createStaffUser();
+    $this->assignSchedule($staff); // Sun-Thu working, Fri+Sat off
+    $type = $this->syncLeaveType();
+    $this->syncAllocation($staff, $type, ['number_of_days' => 10.0]);
+
+    // Thursday → Sunday: 4 calendar days, only Thu + Sun are working days.
+    $thursday = now()->addWeeks(2)->next(\Carbon\Carbon::THURSDAY);
+    $this->api('POST', 'time-off/requests', timeOffPayload($type, $thursday->toDateString(), $thursday->copy()->addDays(3)->toDateString()), $user)
+        ->assertOk();
+
+    $request = PractitionerTimeOff::forStaffProfile($staff->id)->firstOrFail();
+    expect((float) $request->days_requested)->toBe(2.0);
+
+    // Balance reflects the working-day deduction, not calendar days.
+    $types = $this->api('GET', 'time-off/types', [], $user)->assertOk()->json('data');
+    expect($types[0]['remaining'])->toEqual(8);
+});
+
+test('a request spanning only days off is refused', function () {
+    [$user, $staff] = $this->createStaffUser();
+    $this->assignSchedule($staff); // Fri+Sat off
+    $type = $this->syncLeaveType();
+    $this->syncAllocation($staff, $type, ['number_of_days' => 10.0]);
+
+    $friday = now()->addWeeks(2)->next(\Carbon\Carbon::FRIDAY);
+    $this->api('POST', 'time-off/requests', timeOffPayload($type, $friday->toDateString(), $friday->copy()->addDay()->toDateString()), $user)
+        ->assertStatus(422)
+        ->assertJsonPath('error_code', 'NON_WORKING_PERIOD');
+});
+
+test('staff without a schedule keep plain calendar-day counting', function () {
+    [$user, $staff] = $this->createStaffUser();
+    $type = $this->syncLeaveType();
+    $this->syncAllocation($staff, $type, ['number_of_days' => 10.0]);
+
+    $from = now()->startOfYear()->addDays(30);
+    $this->api('POST', 'time-off/requests', timeOffPayload($type, $from->toDateString(), $from->copy()->addDays(3)->toDateString()), $user)
+        ->assertOk();
+
+    expect((float) PractitionerTimeOff::forStaffProfile($staff->id)->firstOrFail()->days_requested)->toBe(4.0);
+});

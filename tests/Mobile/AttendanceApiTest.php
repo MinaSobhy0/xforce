@@ -310,3 +310,68 @@ test('attendance settings advertise the offline sync contract', function () {
         ->and($data['offline_sync']['offline_message'])->not->toBeEmpty()
         ->and($data)->toHaveKey('location_required');
 });
+
+// ---------------------------------------------------------------------------
+// Multiple check-in/out pairs (Odoo xs.attendance.config)
+// ---------------------------------------------------------------------------
+
+test('a second check-in after a completed pair is refused by default', function () {
+    [$user, $staff] = $this->createStaffUser();
+
+    $this->api('POST', 'attendance/check-in', ['method' => 'manual'], $user)->assertOk();
+    $this->api('POST', 'attendance/check-out', [], $user)->assertOk();
+
+    $this->api('POST', 'attendance/check-in', ['method' => 'manual'], $user)->assertStatus(400);
+});
+
+test('multiple check-in pairs are allowed when the odoo config enables them', function () {
+    [$user, $staff] = $this->createStaffUser();
+    $this->setMultipleCheckIn(true);
+
+    $this->api('POST', 'attendance/check-in', ['method' => 'manual'], $user)->assertOk();
+    $this->api('POST', 'attendance/check-out', [], $user)->assertOk();
+
+    // Status advertises another punch is possible…
+    $status = $this->api('GET', 'attendance/status', [], $user)->assertOk()->json('data');
+    expect($status['can_check_in'])->toBeTrue();
+
+    // …and the second pair works, producing a second record.
+    $this->api('POST', 'attendance/check-in', ['method' => 'manual'], $user)->assertOk();
+    $this->api('POST', 'attendance/check-out', [], $user)->assertOk();
+
+    expect(Attendance::forStaff($staff->id)->today()->count())->toBe(2);
+
+    $status = $this->api('GET', 'attendance/status', [], $user)->assertOk()->json('data');
+    expect($status['punches'])->toBe(2);
+});
+
+test('multiple check-in respects the employee scope from odoo', function () {
+    [$user, $staff] = $this->createStaffUser();
+    $staff->update(['odoo_id' => 777]);
+    $this->setMultipleCheckIn(true, 'specific', [888]); // someone else
+
+    $this->api('POST', 'attendance/check-in', ['method' => 'manual'], $user)->assertOk();
+    $this->api('POST', 'attendance/check-out', [], $user)->assertOk();
+    $this->api('POST', 'attendance/check-in', ['method' => 'manual'], $user)->assertStatus(400);
+
+    // Now include this employee in the scope.
+    $this->setMultipleCheckIn(true, 'specific', [777]);
+    $this->api('POST', 'attendance/check-in', ['method' => 'manual'], $user)->assertOk();
+});
+
+test('offline sync accepts a second pair when multiple check-in is enabled', function () {
+    [$user, $staff] = $this->createStaffUser();
+    $this->enableGeofence();
+    $this->setMultipleCheckIn(true);
+
+    $day = now()->subDay();
+    $response = $this->api('POST', 'attendance/sync', ['punches' => [
+        offlinePunch('check_in', $day->copy()->setTime(9, 0), self::GEO_LAT, self::GEO_LNG),
+        offlinePunch('check_out', $day->copy()->setTime(12, 0), self::GEO_LAT, self::GEO_LNG),
+        offlinePunch('check_in', $day->copy()->setTime(13, 0), self::GEO_LAT, self::GEO_LNG),
+        offlinePunch('check_out', $day->copy()->setTime(17, 0), self::GEO_LAT, self::GEO_LNG),
+    ]], $user)->assertOk();
+
+    expect($response->json('data.accepted'))->toBe(4)
+        ->and(Attendance::forStaff($staff->id)->forDate($day->toDateString())->count())->toBe(2);
+});

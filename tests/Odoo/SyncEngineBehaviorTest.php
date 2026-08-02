@@ -188,3 +188,73 @@ test('the realtime job exports the saved record to odoo', function () {
     expect($attendance->odoo_id)->not->toBeNull()
         ->and($this->odoo->find('hr.attendance', $attendance->odoo_id)['employee_id'])->toBe($odooEmpId);
 });
+
+test('a mapped custom field missing from odoo does not break the import', function () {
+    $connection = Tests\Odoo\Support\OdooScenario::connection();
+    $mapping = Tests\Odoo\Support\OdooScenario::salaryRules($connection);
+
+    // This Odoo install has NO show_in_mobile_app (custom module absent).
+    $this->odoo->defineFields('hr.salary.rule', [
+        'id', 'name', 'code', 'category_id', 'sequence', 'amount_select',
+        'active', 'appears_on_payslip', 'write_date', 'create_date',
+    ]);
+
+    $catId = $this->odoo->seed('hr.salary.rule.category', ['name' => 'Basic', 'code' => 'BASIC']);
+    runOdooSync(Tests\Odoo\Support\OdooScenario::salaryRuleCategories($connection));
+
+    $this->odoo->seed('hr.salary.rule', [
+        'name' => 'Basic Salary', 'code' => 'BASIC', 'sequence' => 1,
+        'category_id' => [$catId, 'Basic'], 'amount_select' => 'fix', 'active' => true,
+        'appears_on_payslip' => true,
+    ]);
+
+    $log = runOdooSync($mapping);
+
+    expect($log->records_failed)->toBe(0)
+        ->and($log->records_created)->toBe(1);
+
+    $rule = Modules\Payroll\Models\SalaryRule::where('code', 'BASIC')->firstOrFail();
+    // Missing custom field degrades to the local default, nothing breaks.
+    expect($rule->show_in_mobile_app)->toBeFalse()
+        ->and($rule->appears_on_payslip)->toBeTrue();
+});
+
+test('export payload drops fields the odoo install does not have', function () {
+    $connection = Tests\Odoo\Support\OdooScenario::connection();
+
+    $empId = $this->odoo->seed('hr.employee', ['name' => 'Sara Ahmed', 'user_id' => false, 'work_email' => 'sara@clinic.test', 'active' => true]);
+    runOdooSync(Tests\Odoo\Support\OdooScenario::staffProfiles($connection));
+    $typeOdooId = $this->odoo->seed('hr.leave.type', ['name' => 'Annual Leave', 'code' => 'ANNUAL', 'request_unit' => 'day', 'leave_validation_type' => 'hr', 'active' => true]);
+    runOdooSync(Tests\Odoo\Support\OdooScenario::timeOffTypes($connection));
+    $staff = Modules\Staff\Models\StaffProfile::where('odoo_id', $empId)->firstOrFail();
+    $type = Modules\Booking\Models\TimeOffType::where('odoo_id', $typeOdooId)->firstOrFail();
+    $mapping = Tests\Odoo\Support\OdooScenario::timeOffs($connection);
+
+    // No custom replacement_emp field on this install.
+    $this->odoo->defineFields('hr.leave', [
+        'id', 'employee_id', 'holiday_status_id', 'date_from', 'date_to',
+        'request_date_from', 'request_date_to', 'name', 'state',
+        'number_of_days', 'write_date', 'create_date',
+    ]);
+
+    $leave = Modules\Booking\Models\PractitionerTimeOff::create([
+        'tenant_id' => current_tenant_id(),
+        'staff_profile_id' => $staff->id,
+        'time_off_type_id' => $type->id,
+        'start_date' => '2026-09-10',
+        'end_date' => '2026-09-11',
+        'is_full_day' => true,
+        'days_requested' => 2,
+        'reason' => 'Requested from mobile app',
+        'status' => 'pending',
+    ]);
+    $log = runOdooSync($mapping);
+
+    expect($log->records_failed)->toBe(0);
+    $leave->refresh();
+    expect($leave->odoo_id)->not->toBeNull();
+
+    $odooRecord = $this->odoo->find('hr.leave', $leave->odoo_id);
+    expect($odooRecord)->not->toHaveKey('replacement_emp')
+        ->and($odooRecord['request_date_from'])->not->toBeEmpty();
+});

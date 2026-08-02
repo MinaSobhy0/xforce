@@ -253,8 +253,18 @@ class TimeOffController extends BaseApiController
             );
             $daysRequested = $type->convertToDays($hoursRequested);
         } else {
-            // Calculate days
-            $daysRequested = $startDate->diffInDays($endDate) + 1;
+            // Working days per the employee's schedule (like Odoo): weekends
+            // and days off don't consume balance.
+            $workingDays = PractitionerTimeOff::workingDaysBetween($staffProfile, $startDate, $endDate);
+
+            if ($workingDays <= 0) {
+                return $this->businessRuleError(
+                    __('mobile_api::mobile.time_off.non_working_period'),
+                    'NON_WORKING_PERIOD'
+                );
+            }
+
+            $daysRequested = $workingDays;
             if (! $isFullDay && $type->allow_half_day) {
                 $daysRequested = 0.5;
             }

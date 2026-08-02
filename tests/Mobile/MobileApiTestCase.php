@@ -48,7 +48,7 @@ abstract class MobileApiTestCase extends OdooSyncTestCase
             [$schema]
         ))->pluck('table_name')->all();
 
-        foreach (['attendance_breaks', 'attendance_violations', 'attendance_type_settings'] as $table) {
+        foreach (['attendance_breaks', 'attendance_violations', 'attendance_type_settings', 'practitioner_schedule_assignments', 'work_schedules'] as $table) {
             if (in_array($table, $existing, true)) {
                 $conn->statement("TRUNCATE TABLE \"{$schema}\".\"{$table}\" RESTART IDENTITY CASCADE");
             }
@@ -56,6 +56,14 @@ abstract class MobileApiTestCase extends OdooSyncTestCase
 
         // Sanctum tokens live in the central public schema.
         DB::connection('pgsql')->statement('TRUNCATE TABLE public.personal_access_tokens RESTART IDENTITY CASCADE');
+
+        // Tenant settings persist on public.tenants across tests/runs —
+        // reset the keys the suite mutates so every test starts from defaults.
+        $settings = $this->tenant->settings ?? [];
+        unset($settings['attendance']['multiple_check_in'], $settings['payslip_display']);
+        $this->tenant->settings = $settings;
+        $this->tenant->save();
+        app()->instance('currentTenant', $this->tenant->fresh());
     }
 
     // ------------------------------------------------------------------
@@ -128,6 +136,53 @@ abstract class MobileApiTestCase extends OdooSyncTestCase
         ], $profileAttrs));
 
         return [$user, $profile->fresh()];
+    }
+
+    /**
+     * Assign a fixed work schedule to a staff member (Carbon dow keys,
+     * 0=Sunday). Default: Sunday-Thursday working, Friday+Saturday off.
+     */
+    public function assignSchedule(StaffProfile $staff, array $workingDows = [0, 1, 2, 3, 4]): \Modules\Booking\Models\WorkSchedule
+    {
+        $weekly = [];
+        foreach (range(0, 6) as $d) {
+            $weekly[$d] = in_array($d, $workingDows, true)
+                ? ['is_working' => true, 'start_time' => '09:00', 'end_time' => '17:00']
+                : ['is_working' => false];
+        }
+
+        $schedule = \Modules\Booking\Models\WorkSchedule::create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'QA Schedule '.uniqid(),
+            'schedule_type' => 'fixed',
+            'weekly_hours' => $weekly,
+            'working_days' => array_values($workingDows),
+            'is_active' => true,
+        ]);
+
+        \Modules\Booking\Models\PractitionerScheduleAssignment::create([
+            'tenant_id' => $this->tenant->id,
+            'staff_profile_id' => $staff->id,
+            'work_schedule_id' => $schedule->id,
+            'is_active' => true,
+            'is_primary' => true,
+        ]);
+
+        return $schedule;
+    }
+
+    /**
+     * Mirror the synced Odoo xs.attendance.config into tenant settings.
+     */
+    public function setMultipleCheckIn(bool $enabled, string $scope = 'all', array $employeeOdooIds = []): void
+    {
+        $this->tenant->setSetting('attendance.multiple_check_in', [
+            'enabled' => $enabled,
+            'scope' => $scope,
+            'employee_odoo_ids' => $employeeOdooIds,
+        ]);
+        $this->tenant->save();
+        app()->instance('currentTenant', $this->tenant->fresh());
     }
 
     // ------------------------------------------------------------------

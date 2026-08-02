@@ -94,6 +94,7 @@ return [
         'times_required' => 'Start and end times are required for this leave type',
         'invalid_duration' => 'The requested duration is invalid',
         'no_allocation' => 'You have no leave allocation covering the requested dates',
+        'non_working_period' => 'The selected dates fall entirely on non-working days',
     ],
 
     'payroll' => [
