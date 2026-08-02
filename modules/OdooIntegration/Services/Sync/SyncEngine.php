@@ -317,10 +317,10 @@ class SyncEngine
         // Process in batches
         $batchSize = $mapping->batch_size;
 
-        $query->chunk($batchSize, function ($records) use ($mapping, $client, $log) {
+        $query->chunk($batchSize, function ($records) use ($mapping, $client, $log, $syncType) {
             foreach ($records as $record) {
                 try {
-                    $result = $this->exportService->exportRecord($mapping, $client, $record->id, $record);
+                    $result = $this->exportService->exportRecord($mapping, $client, $record->id, $record, $syncType);
 
                     $log->incrementProcessed();
                     if ($result['action'] === 'created') {

@@ -27,7 +27,8 @@ class ExportService
         OdooEntityMapping $mapping,
         OdooApiClientInterface $client,
         int $localId,
-        $localRecord = null
+        $localRecord = null,
+        string $syncType = 'delta'
     ): array {
         $modelClass = $mapping->local_model;
 
@@ -111,7 +112,7 @@ class ExportService
         $localChecksum = SyncChecksum::forModel($localRecord);
 
         if ($syncRecord && $syncRecord->odoo_id) {
-            return $this->updateExistingOdooRecord($mapping, $client, $syncRecord, $localRecord, $odooData, $localChecksum);
+            return $this->updateExistingOdooRecord($mapping, $client, $syncRecord, $localRecord, $odooData, $localChecksum, $syncType);
         }
 
         return $this->createNewOdooRecord($mapping, $client, $localRecord, $odooData, $localChecksum);
@@ -183,8 +184,28 @@ class ExportService
         OdooSyncRecord $syncRecord,
         $localRecord,
         array $odooData,
-        string $localChecksum
+        string $localChecksum,
+        string $syncType = 'delta'
     ): array {
+        $localUnchanged = ! $syncRecord->wasRecentlyCreated
+            && $localChecksum === $syncRecord->local_checksum;
+
+        // DELTA: local unchanged since its last round-trip → nothing to push
+        // (Odoo-side changes are the import's job) — decided BEFORE any Odoo
+        // call so sweeps don't burn one read per unchanged record. FULL
+        // syncs fall through: the read doubles as deleted-remotely detection
+        // (recreate semantics). Just-backfilled sync records always push
+        // once — their baselined checksums look unchanged by construction
+        // but may carry pending workflow actions.
+        if ($syncType === 'delta' && $localUnchanged) {
+            return [
+                'action' => 'skipped',
+                'reason' => 'unchanged',
+                'local_id' => $localRecord->id,
+                'odoo_id' => $syncRecord->odoo_id,
+            ];
+        }
+
         // Check current Odoo state for conflict detection
         $currentOdooRecords = $client->read($mapping->odoo_model, [$syncRecord->odoo_id]);
 
@@ -196,11 +217,10 @@ class ExportService
         $currentOdooData = $currentOdooRecords[0];
         $currentOdooChecksum = SyncChecksum::forOdoo($mapping, $currentOdooData);
 
-        // Neither side changed since the last round-trip: nothing to push.
-        // (Also avoids tripping Odoo-side validations — e.g. hr.attendance
-        // overlap checks — with no-op writes during full sweeps.)
-        if ($localChecksum === $syncRecord->local_checksum
-            && $currentOdooChecksum === $syncRecord->odoo_checksum) {
+        // FULL sync, neither side changed: the record exists in Odoo and
+        // nothing needs writing — skip the no-op write (it can trip
+        // Odoo-side validations like hr.attendance overlap checks).
+        if ($localUnchanged && $currentOdooChecksum === $syncRecord->odoo_checksum) {
             return [
                 'action' => 'skipped',
                 'reason' => 'unchanged',
