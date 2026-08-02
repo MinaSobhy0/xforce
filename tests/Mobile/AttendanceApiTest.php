@@ -103,14 +103,16 @@ test('manual check-in can be disabled tenant-wide in attendance settings', funct
         'settings' => [],
     ]);
 
-    // Live manual punch refused
-    $this->api('POST', 'attendance/check-in', ['method' => 'manual'], $user)->assertStatus(403);
+    // Live manual punch refused with the general-level error code
+    $this->api('POST', 'attendance/check-in', ['method' => 'manual'], $user)
+        ->assertStatus(403)
+        ->assertJsonPath('error_code', 'MANUAL_DISABLED');
 
     // Offline manual punch refused with a per-punch result
     $response = $this->api('POST', 'attendance/sync', [
         'punches' => [offlinePunch('check_in', now()->subDay()->setTime(9, 0), self::GEO_LAT, self::GEO_LNG, ['method' => 'manual'])],
     ], $user)->assertOk();
-    expect($response->json('data.results.0.error_code'))->toBe('METHOD_NOT_ALLOWED');
+    expect($response->json('data.results.0.error_code'))->toBe('MANUAL_DISABLED');
 
     // Settings and types both reflect the switch
     $settings = $this->api('GET', 'attendance/settings', [], $user)->assertOk()->json('data');
