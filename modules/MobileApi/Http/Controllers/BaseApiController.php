@@ -173,7 +173,10 @@ class BaseApiController extends Controller
      */
     protected function branch()
     {
-        return app('currentBranch') ?? $this->staffProfile()?->branch;
+        // currentBranch is only bound by ResolveBranchContext when the user
+        // has a branch — resolving it unbound throws for branchless staff.
+        return (app()->bound('currentBranch') ? app('currentBranch') : null)
+            ?? $this->staffProfile()?->branch;
     }
 
     /**
