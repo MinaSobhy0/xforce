@@ -96,8 +96,11 @@ class Attendance extends BaseModel
         self::TYPE_BIOMETRIC => 'Biometric',
     ];
 
-    // Types that can be configured via settings
+    // Types that can be configured via settings. Manual is special: with no
+    // stored row it defaults to ENABLED (it is the historical baseline
+    // method) — see AttendanceTypeSetting::isManualEnabled().
     public const CONFIGURABLE_TYPES = [
+        self::TYPE_MANUAL,
         self::TYPE_GEOFENCE,
         self::TYPE_QR_STATIC,
         self::TYPE_QR_DYNAMIC,

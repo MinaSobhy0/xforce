@@ -43,16 +43,22 @@ class AttendanceController extends BaseApiController
         // Get staff's allowed methods (null = all allowed)
         $staffAllowedMethods = $staffProfile?->getAllowedCheckInMethods() ?? array_keys(\Modules\Staff\Models\StaffProfile::CHECK_IN_METHODS);
 
-        // Always include manual type
+        // Manual is always listed; whether it is usable comes from the
+        // Attendance Settings toggle (enabled by default when unset).
         $types = [[
             'type' => Attendance::TYPE_MANUAL,
             'label' => Attendance::TYPES[Attendance::TYPE_MANUAL],
-            'enabled' => true,
+            'enabled' => AttendanceTypeSetting::isManualEnabled($branch?->id),
             'allowed' => in_array('manual', $staffAllowedMethods),
             'settings' => [],
         ]];
 
         foreach ($settings as $setting) {
+            // Already rendered above from its dedicated entry.
+            if ($setting->type === Attendance::TYPE_MANUAL) {
+                continue;
+            }
+
             $types[] = [
                 'type' => $setting->type,
                 'label' => Attendance::TYPES[$setting->type] ?? $setting->type,
@@ -194,6 +200,14 @@ class AttendanceController extends BaseApiController
         // Check if the check-in method is allowed for this staff
         if (! $staffProfile->isCheckInMethodAllowed($request->method)) {
             return $this->error(__('mobile_api::mobile.attendance.method_not_allowed'), 403);
+        }
+
+        // Tenant/branch-wide kill switch for manual punches (Attendance
+        // Settings page). Default is enabled when never configured.
+        if ($request->method === 'manual'
+            && class_exists(AttendanceTypeSetting::class)
+            && ! AttendanceTypeSetting::isManualEnabled($this->branch()?->id)) {
+            return $this->error(__('mobile_api::mobile.attendance.manual_disabled'), 403);
         }
 
         // Location/method validation runs BEFORE any record is touched —
@@ -519,6 +533,11 @@ class AttendanceController extends BaseApiController
         if ($punch['type'] === 'check_in') {
             if (! $staffProfile->isCheckInMethodAllowed($method)) {
                 return $reject('METHOD_NOT_ALLOWED', __('mobile_api::mobile.attendance.method_not_allowed'));
+            }
+            if ($method === 'manual'
+                && class_exists(AttendanceTypeSetting::class)
+                && ! AttendanceTypeSetting::isManualEnabled($this->branch()?->id)) {
+                return $reject('METHOD_NOT_ALLOWED', __('mobile_api::mobile.attendance.manual_disabled'));
             }
             if ($existing && $existing->check_out_time) {
                 return $reject('ALREADY_COMPLETED', __('mobile_api::mobile.attendance.already_completed_today'));
@@ -1017,15 +1036,16 @@ class AttendanceController extends BaseApiController
 
     protected function getEnabledCheckInMethods(): array
     {
-        $methods = ['manual'];
-
         if (! class_exists(AttendanceTypeSetting::class)) {
-            return $methods;
+            return ['manual'];
         }
 
-        $enabledTypes = AttendanceTypeSetting::getEnabledTypes($this->branch()?->id);
+        $branchId = $this->branch()?->id;
+        $methods = AttendanceTypeSetting::isManualEnabled($branchId) ? ['manual'] : [];
 
-        return array_merge($methods, $enabledTypes);
+        $enabledTypes = AttendanceTypeSetting::getEnabledTypes($branchId);
+
+        return array_values(array_unique(array_merge($methods, $enabledTypes)));
     }
 
     protected function getClientSettings(AttendanceTypeSetting $setting): array

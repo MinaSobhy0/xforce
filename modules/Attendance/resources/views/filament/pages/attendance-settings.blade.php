@@ -12,6 +12,30 @@
             {{ $this->branchForm }}
         </x-filament::section>
 
+        {{-- Manual Check-in --}}
+        <x-filament::section
+            icon="heroicon-o-hand-raised"
+            icon-color="gray"
+            collapsible
+        >
+            <x-slot name="heading">
+                {{ __('attendance::attendance.settings.manual.title') }}
+            </x-slot>
+            <x-slot name="description">
+                {{ __('attendance::attendance.settings.manual.description') }}
+            </x-slot>
+
+            <form wire:submit.prevent="saveManual">
+                {{ $this->manualForm }}
+
+                <div class="mt-4 flex justify-end">
+                    <x-filament::button type="submit">
+                        {{ __('attendance::attendance.settings.save') }}
+                    </x-filament::button>
+                </div>
+            </form>
+        </x-filament::section>
+
         {{-- Geofence Settings --}}
         <x-filament::section
             icon="heroicon-o-map-pin"

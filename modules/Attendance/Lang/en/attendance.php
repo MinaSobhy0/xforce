@@ -373,6 +373,11 @@ return [
         'qr_regenerated' => 'QR code regenerated successfully',
         'secret_regenerated' => 'Secret key regenerated successfully',
 
+        'manual' => [
+            'title' => 'Manual Check-in',
+            'description' => 'Plain in-app check-in without QR or biometrics. Disable it to force staff onto verified methods.',
+            'toggle_help' => 'Enabled by default. When disabled, manual check-in is refused for everyone in this scope (location rules still apply to other methods).',
+        ],
         'geofence' => [
             'title' => 'Geofence Settings',
             'description' => 'Configure GPS-based location verification for attendance',

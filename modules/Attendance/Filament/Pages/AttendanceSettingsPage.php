@@ -29,18 +29,25 @@ class AttendanceSettingsPage extends Page
     public static function canAccess(): bool
     {
         $user = auth()->user();
-        if (!$user) return false;
+        if (! $user) {
+            return false;
+        }
 
         if (method_exists($user, 'hasRole') && $user->hasRole(['super-admin', 'super_admin', 'tenant-owner', 'tenant_owner', 'owner', 'admin'])) {
             return true;
         }
 
-        return $user->can('attendance_rules.view') || !\Spatie\Permission\Models\Permission::where('name', 'attendance_rules.view')->where('guard_name', 'web')->exists();
+        return $user->can('attendance_rules.view') || ! \Spatie\Permission\Models\Permission::where('name', 'attendance_rules.view')->where('guard_name', 'web')->exists();
     }
 
+    public ?array $manualData = [];
+
     public ?array $geofenceData = [];
+
     public ?array $qrStaticData = [];
+
     public ?array $qrDynamicData = [];
+
     public ?array $biometricData = [];
 
     public ?string $selectedBranchId = null;
@@ -81,11 +88,14 @@ class AttendanceSettingsPage extends Page
                 ->first();
 
             $data = [
-                'is_enabled' => $setting?->is_enabled ?? false,
+                // Manual defaults to enabled when never configured — it is
+                // the baseline method existing tenants rely on.
+                'is_enabled' => $setting?->is_enabled ?? ($type === Attendance::TYPE_MANUAL),
                 'settings' => $setting?->getMergedSettings() ?? AttendanceTypeSetting::DEFAULT_SETTINGS[$type] ?? [],
             ];
 
             match ($type) {
+                Attendance::TYPE_MANUAL => $this->manualData = $data,
                 Attendance::TYPE_GEOFENCE => $this->geofenceData = $data,
                 Attendance::TYPE_QR_STATIC => $this->qrStaticData = $data,
                 Attendance::TYPE_QR_DYNAMIC => $this->qrDynamicData = $data,
@@ -104,6 +114,7 @@ class AttendanceSettingsPage extends Page
     {
         return [
             'branchForm',
+            'manualForm',
             'geofenceForm',
             'qrStaticForm',
             'qrDynamicForm',
@@ -123,6 +134,18 @@ class AttendanceSettingsPage extends Page
                     ->afterStateUpdated(fn () => $this->loadSettings()),
             ])
             ->statePath('');
+    }
+
+    public function manualForm(Form $form): Form
+    {
+        return $form
+            ->schema([
+                Forms\Components\Toggle::make('is_enabled')
+                    ->label(__('attendance::attendance.settings.enabled'))
+                    ->helperText(__('attendance::attendance.settings.manual.toggle_help'))
+                    ->live(),
+            ])
+            ->statePath('manualData');
     }
 
     public function geofenceForm(Form $form): Form
@@ -337,6 +360,11 @@ class AttendanceSettingsPage extends Page
             ->statePath('biometricData');
     }
 
+    public function saveManual(): void
+    {
+        $this->saveTypeSetting(Attendance::TYPE_MANUAL, $this->manualData);
+    }
+
     public function saveGeofence(): void
     {
         $this->saveTypeSetting(Attendance::TYPE_GEOFENCE, $this->geofenceData);
@@ -374,8 +402,8 @@ class AttendanceSettingsPage extends Page
                     })
                     ->first();
 
-                if (!$setting) {
-                    $setting = new AttendanceTypeSetting();
+                if (! $setting) {
+                    $setting = new AttendanceTypeSetting;
                     $setting->branch_id = $this->selectedBranchId;
                     $setting->type = $type;
                     // tenant_id is auto-set by HasTenancy trait

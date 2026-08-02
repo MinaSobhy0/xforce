@@ -1,6 +1,7 @@
 <?php
 
 use Modules\Attendance\Models\Attendance;
+use Modules\Attendance\Models\AttendanceTypeSetting;
 
 /**
  * Mobile attendance API: geofence enforcement is a backend decision — for
@@ -90,6 +91,34 @@ test('a check-in method the staff member is not allowed to use is refused', func
     [$user, $staff] = $this->createStaffUser(['allowed_check_in_methods' => ['qr_static']]);
 
     $this->api('POST', 'attendance/check-in', ['method' => 'manual'], $user)->assertStatus(403);
+});
+
+test('manual check-in can be disabled tenant-wide in attendance settings', function () {
+    [$user, $staff] = $this->createStaffUser();
+
+    AttendanceTypeSetting::create([
+        'tenant_id' => $this->tenant->id,
+        'type' => Attendance::TYPE_MANUAL,
+        'is_enabled' => false,
+        'settings' => [],
+    ]);
+
+    // Live manual punch refused
+    $this->api('POST', 'attendance/check-in', ['method' => 'manual'], $user)->assertStatus(403);
+
+    // Offline manual punch refused with a per-punch result
+    $response = $this->api('POST', 'attendance/sync', [
+        'punches' => [offlinePunch('check_in', now()->subDay()->setTime(9, 0), self::GEO_LAT, self::GEO_LNG, ['method' => 'manual'])],
+    ], $user)->assertOk();
+    expect($response->json('data.results.0.error_code'))->toBe('METHOD_NOT_ALLOWED');
+
+    // Settings and types both reflect the switch
+    $settings = $this->api('GET', 'attendance/settings', [], $user)->assertOk()->json('data');
+    expect($settings['check_in_methods'])->not->toContain('manual');
+
+    $types = $this->api('GET', 'attendance/types', [], $user)->assertOk()->json('data.types');
+    $manual = collect($types)->firstWhere('type', 'manual');
+    expect($manual['enabled'])->toBeFalse();
 });
 
 test('manual check-in without coordinates is refused when a geofence is configured', function () {

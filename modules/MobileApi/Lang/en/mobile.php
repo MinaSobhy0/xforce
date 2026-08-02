@@ -74,6 +74,7 @@ return [
         'dispute_submitted' => 'Dispute submitted successfully',
         'cannot_dispute' => 'This violation cannot be disputed',
         'method_not_allowed' => 'This check-in method is not allowed for you',
+        'manual_disabled' => 'Manual check-in is disabled. Please use one of the verified check-in methods.',
         'location_not_allowed' => 'You are not allowed to check in at this location',
         'offline_queued' => 'You are offline. Your punch was saved and we will verify your location once you are back online.',
         'offline_synced' => ':accepted of :total offline punches accepted',

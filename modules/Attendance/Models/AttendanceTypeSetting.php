@@ -162,6 +162,25 @@ class AttendanceTypeSetting extends BaseModel
     }
 
     /**
+     * Whether manual check-in is enabled for the branch (branch-specific row
+     * wins over the global row). Unlike the other types, ABSENCE of a row
+     * means ENABLED — manual has always been the default method and existing
+     * tenants have no row for it.
+     */
+    public static function isManualEnabled(?string $branchId = null): bool
+    {
+        $query = static::query()->ofType(Attendance::TYPE_MANUAL);
+
+        $row = null;
+        if ($branchId) {
+            $row = (clone $query)->where('branch_id', $branchId)->first();
+        }
+        $row ??= (clone $query)->whereNull('branch_id')->first();
+
+        return $row?->is_enabled ?? true;
+    }
+
+    /**
      * Get all enabled types for a branch.
      */
     public static function getEnabledTypes(?string $branchId = null): array
@@ -227,7 +246,7 @@ class AttendanceTypeSetting extends BaseModel
         }
 
         $secret = $this->getSetting('secret_key');
-        if (!$secret) {
+        if (! $secret) {
             return null;
         }
 
@@ -257,7 +276,7 @@ class AttendanceTypeSetting extends BaseModel
         }
 
         $secret = $this->getSetting('secret_key');
-        if (!$secret) {
+        if (! $secret) {
             return false;
         }
 
@@ -295,7 +314,7 @@ class AttendanceTypeSetting extends BaseModel
         }
 
         $expectedContent = $this->getSetting('qr_content');
-        if (!$expectedContent) {
+        if (! $expectedContent) {
             return false;
         }
 
