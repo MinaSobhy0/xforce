@@ -175,7 +175,7 @@ class ImportService
                 'last_sync_direction' => 'import',
             ];
             if ($odooData !== null) {
-                $update['odoo_checksum'] = SyncChecksum::calculate($odooData);
+                $update['odoo_checksum'] = SyncChecksum::forOdoo($mapping, $odooData);
             }
 
             OdooSyncRecord::where('entity_mapping_id', $mapping->id)

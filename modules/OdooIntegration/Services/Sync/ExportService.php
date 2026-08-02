@@ -64,7 +64,7 @@ class ExportService
         if (! $syncRecord && ! empty($localRecord->odoo_id)) {
             try {
                 $currentOdoo = $client->read($mapping->odoo_model, [(int) $localRecord->odoo_id]);
-                $odooChecksumNow = $this->calculateChecksum($currentOdoo[0] ?? []);
+                $odooChecksumNow = SyncChecksum::forOdoo($mapping, $currentOdoo[0] ?? []);
             } catch (\Throwable) {
                 $odooChecksumNow = '';
             }
@@ -133,7 +133,7 @@ class ExportService
 
             // Read back for checksum
             $odooRecord = $client->read($mapping->odoo_model, [$odooId]);
-            $odooChecksum = $this->calculateChecksum($odooRecord[0] ?? []);
+            $odooChecksum = SyncChecksum::forOdoo($mapping, $odooRecord[0] ?? []);
 
             // Update local record with odoo_id
             $localRecord->update([
@@ -194,7 +194,7 @@ class ExportService
         }
 
         $currentOdooData = $currentOdooRecords[0];
-        $currentOdooChecksum = $this->calculateChecksum($currentOdooData);
+        $currentOdooChecksum = SyncChecksum::forOdoo($mapping, $currentOdooData);
 
         // Neither side changed since the last round-trip: nothing to push.
         // (Also avoids tripping Odoo-side validations — e.g. hr.attendance

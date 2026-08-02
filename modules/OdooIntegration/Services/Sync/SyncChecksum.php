@@ -26,4 +26,23 @@ final class SyncChecksum
     {
         return self::calculate($model->withoutRelations()->toArray());
     }
+
+    /**
+     * Checksum an Odoo record over ONLY the mapping's odoo fields (plus the
+     * standard id/write_date/create_date the engine always fetches). Import
+     * stores checksums from mapped-subset reads while export used to read
+     * full records — a full-record basis can never match the stored one, so
+     * both sides must checksum the same subset.
+     */
+    public static function forOdoo(\Modules\OdooIntegration\Models\OdooEntityMapping $mapping, array $record): string
+    {
+        $fields = ['id', 'write_date', 'create_date'];
+        foreach ($mapping->getActiveFieldMappings() as $fieldMapping) {
+            if (! empty($fieldMapping->odoo_field)) {
+                $fields[] = $fieldMapping->odoo_field;
+            }
+        }
+
+        return self::calculate(array_intersect_key($record, array_flip($fields)));
+    }
 }
