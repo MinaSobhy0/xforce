@@ -320,6 +320,21 @@ class FakeOdooClient implements OdooApiClientInterface
 
         $record = &$this->records[$model][$id];
 
+        // Odoo 17: request_hour_from/_to is a Selection keyed by half-hour
+        // strings ('9', '9.5'); floats raise "Wrong value for
+        // hr.leave.request_hour_from: 9.0" server-side.
+        foreach (['request_hour_from', 'request_hour_to'] as $hourField) {
+            if (array_key_exists($hourField, $record) && $record[$hourField] !== false
+                && (! is_string($record[$hourField])
+                    || ! preg_match('/^(?:[01]?\d|2[0-3])(?:\.5)?$/', $record[$hourField]))) {
+                throw new \RuntimeException(sprintf(
+                    'ValueError: Wrong value for hr.leave.%s: %s',
+                    $hourField,
+                    var_export($record[$hourField], true)
+                ));
+            }
+        }
+
         if (! empty($record['request_date_from'])) {
             $record['date_from'] = $record['request_date_from'].' 06:00:00';
             $record['date_to'] = ($record['request_date_to'] ?? $record['request_date_from']).' 14:00:00';

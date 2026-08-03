@@ -487,8 +487,8 @@ class PractitionerTimeOff extends BaseModel
             if ($localRecord->timeOffType?->isHourBased()
                 && $localRecord->start_time && $localRecord->end_time) {
                 $data['request_unit_hours'] = true;
-                $data['request_hour_from'] = self::timeStringToFloat($localRecord->start_time);
-                $data['request_hour_to'] = self::timeStringToFloat($localRecord->end_time);
+                $data['request_hour_from'] = self::hourToOdooSelection(self::timeStringToFloat($localRecord->start_time));
+                $data['request_hour_to'] = self::hourToOdooSelection(self::timeStringToFloat($localRecord->end_time));
             }
         }
 
@@ -546,6 +546,19 @@ class PractitionerTimeOff extends BaseModel
         }
 
         return (float) $days;
+    }
+
+    /**
+     * hr.leave.request_hour_from/_to is a Selection field whose keys are
+     * half-hour strings ('9', '9.5', ...) — a raw float (9.0) is rejected
+     * with "Wrong value for hr.leave.request_hour_from". Round to the
+     * nearest half hour and format the way Odoo generates the keys.
+     */
+    protected static function hourToOdooSelection(float $hour): string
+    {
+        $hour = max(0, min(23.5, round($hour * 2) / 2));
+
+        return $hour === floor($hour) ? (string) (int) $hour : (string) $hour;
     }
 
     /**

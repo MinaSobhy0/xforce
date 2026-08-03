@@ -73,6 +73,39 @@ test('a locally created request is pushed to odoo without a state write', functi
         ->and($created['replacement_emp'])->toBe($odooEmpId);
 });
 
+test('hour-based requests export half-hour selection strings, not floats', function () {
+    $connection = OdooScenario::connection();
+    [$staff] = roundTripFixtures($this, $connection);
+    $mapping = OdooScenario::timeOffs($connection);
+
+    $odooTypeId = $this->odoo->seed('hr.leave.type', [
+        'name' => 'Excuses', 'code' => 'EXCUSE', 'request_unit' => 'hour',
+        'leave_validation_type' => 'hr', 'active' => true,
+    ]);
+    runOdooSync(\Modules\OdooIntegration\Models\OdooEntityMapping::where('odoo_model', 'hr.leave.type')->firstOrFail());
+    $hourType = TimeOffType::where('odoo_id', $odooTypeId)->firstOrFail();
+
+    // 09:00 exported as float 9.0 raised "ValueError: Wrong value for
+    // hr.leave.request_hour_from: 9.0" — the field is a Selection keyed
+    // by half-hour strings ('9', '10.5') in Odoo 17.
+    $leave = makeLocalLeave($staff->id, $hourType->id, [
+        'start_date' => '2026-08-13', 'end_date' => '2026-08-13',
+        'is_full_day' => false, 'start_time' => '09:00', 'end_time' => '10:30',
+        'days_requested' => 0.19, 'hours_requested' => 1.5,
+    ]);
+
+    $log = runOdooSync($mapping);
+
+    expect($log->records_failed)->toBe(0);
+    $leave->refresh();
+    expect($leave->odoo_id)->not->toBeNull();
+
+    $created = $this->odoo->callsTo('create', 'hr.leave')[0]['args']['values'];
+    expect($created['request_unit_hours'])->toBeTrue()
+        ->and($created['request_hour_from'])->toBeString()->toBe('9')
+        ->and($created['request_hour_to'])->toBeString()->toBe('10.5');
+});
+
 test('approving locally triggers the action_approve workflow in odoo', function () {
     $connection = OdooScenario::connection();
     [$staff, , $type] = roundTripFixtures($this, $connection);
