@@ -206,3 +206,35 @@ test('delta export only pushes records modified after the watermark', function (
 
     expect($new->fresh()->odoo_id)->not->toBeNull();
 });
+
+test('delta export self-heals unlinked records left behind the watermark', function () {
+    $connection = Tests\Odoo\Support\OdooScenario::connection();
+
+    $empId = $this->odoo->seed('hr.employee', ['name' => 'Sara Ahmed', 'user_id' => false, 'work_email' => 'sara@clinic.test', 'active' => true]);
+    runOdooSync(Tests\Odoo\Support\OdooScenario::staffProfiles($connection));
+    $staff = Modules\Staff\Models\StaffProfile::where('odoo_id', $empId)->firstOrFail();
+
+    $mapping = Tests\Odoo\Support\OdooScenario::attendances($connection);
+
+    // First delta sets the export watermark.
+    runOdooSync($mapping, 'delta');
+
+    // A record whose realtime job was "lost": unlinked, updated_at older
+    // than the watermark (simulated by backdating).
+    $stranded = Modules\Attendance\Models\Attendance::create([
+        'tenant_id' => current_tenant_id(),
+        'staff_profile_id' => $staff->id,
+        'attendance_date' => '2026-07-20',
+        'check_in_time' => '09:00:00',
+        'check_out_time' => '17:00:00',
+        'working_hours' => 8,
+    ]);
+    Illuminate\Support\Facades\DB::table('attendances')
+        ->where('id', $stranded->id)
+        ->update(['updated_at' => now()->subDays(3)]);
+
+    $log = runOdooSync($mapping, 'delta');
+
+    expect($log->records_failed)->toBe(0);
+    expect($stranded->fresh()->odoo_id)->not->toBeNull();
+});

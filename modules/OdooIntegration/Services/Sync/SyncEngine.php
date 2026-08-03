@@ -367,7 +367,18 @@ class SyncEngine
         if ($syncType === 'delta') {
             $watermark = $this->watermarkService->getWatermark($mapping, 'export');
             if ($watermark) {
-                $query->where('updated_at', '>', $watermark);
+                // Unlinked records are ALWAYS candidates, watermark or not:
+                // if their realtime export job was lost (crash, exhausted
+                // retries during a rate-limit storm), the next sweep must
+                // self-heal instead of stranding them forever.
+                $hasOdooId = in_array('odoo_id', (new $modelClass)->getFillable(), true);
+
+                $query->where(function ($q) use ($watermark, $hasOdooId) {
+                    $q->where('updated_at', '>', $watermark);
+                    if ($hasOdooId) {
+                        $q->orWhereNull('odoo_id');
+                    }
+                });
             }
         }
 
