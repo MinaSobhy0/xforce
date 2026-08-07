@@ -76,6 +76,18 @@ class AttendanceSettingsController extends Controller
      */
     public function getDynamicQrCode(Request $request): JsonResponse
     {
+        // SECURITY: same rule as the mobile surface — the live rotating code
+        // is a kiosk display credential, not something every authenticated
+        // user may fetch. This route previously had auth:sanctum only, and
+        // took branch_id straight from the request, so any user could pull
+        // any branch's current code.
+        if (! auth()->user()?->can('attendance.display_qr')) {
+            return response()->json([
+                'success' => false,
+                'message' => __('mobile_api::mobile.general.forbidden'),
+            ], 403);
+        }
+
         $branchId = $request->input('branch_id');
         $setting = AttendanceTypeSetting::getForType(Attendance::TYPE_QR_DYNAMIC, $branchId);
 

@@ -253,10 +253,16 @@ class AttendanceController extends BaseApiController
             $locationVerified = true;
         }
 
-        // A manual punch without coordinates is refused when the tenant has
-        // a configured geofence — omitting the location is not a bypass.
-        if ($request->method === 'manual'
-            && (! $request->filled('latitude') || ! $request->filled('longitude'))
+        // A punch without coordinates is refused when the tenant has a
+        // configured geofence — omitting the location is not a bypass.
+        //
+        // This deliberately covers EVERY method, not just manual. Scoping it
+        // to manual left qr_static/qr_dynamic/biometric as a way out: posting
+        // {"method":"qr_dynamic","qr_code":"..."} with no lat/lng ran no
+        // location check at all and the punch was accepted from anywhere.
+        // checkOut() has always enforced this for every method, so a client
+        // that could not supply coordinates could never have checked out.
+        if ((! $request->filled('latitude') || ! $request->filled('longitude'))
             && $this->geofenceEnforced()) {
             return $this->businessRuleError(
                 __('mobile_api::mobile.attendance.location_required'),
@@ -905,6 +911,15 @@ class AttendanceController extends BaseApiController
      */
     public function getDynamicQr(): JsonResponse
     {
+        // SECURITY: this returns the live rotating code. It exists so a
+        // kiosk / reception screen can DISPLAY the code for staff to scan —
+        // handing it to every employee defeats the entire point of the
+        // method, since the rotation then only protects against
+        // photographing the screen, not against two API calls from home.
+        if (! $this->hasPermission('attendance.display_qr')) {
+            return $this->forbidden();
+        }
+
         if (! class_exists(AttendanceTypeSetting::class)) {
             return $this->error('Attendance module not available', 503);
         }

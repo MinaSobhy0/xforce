@@ -313,6 +313,12 @@ abstract class MobileApiTestCase extends OdooSyncTestCase
 
     protected const FAR_LNG = 31.2357;
 
+    /** Tenant id, for fixtures built in free functions inside test files. */
+    public function tenantId(): int
+    {
+        return (int) $this->tenant->id;
+    }
+
     public function enableGeofence(int $radiusMeters = 150): void
     {
         AttendanceTypeSetting::create([

@@ -145,6 +145,90 @@ test('manual check-in without coordinates is refused when a geofence is configur
         ->assertJsonPath('error_code', 'LOCATION_REQUIRED');
 });
 
+/**
+ * The LOCATION_REQUIRED guard used to be scoped to method=manual, which left
+ * the QR and biometric methods as a way around the fence entirely: post a
+ * valid code with no lat/lng and the punch was accepted from anywhere.
+ */
+function enableDynamicQr($test): AttendanceTypeSetting
+{
+    $qr = AttendanceTypeSetting::create([
+        'tenant_id' => $test->tenantId(),
+        'type' => Attendance::TYPE_QR_DYNAMIC,
+        'is_enabled' => true,
+        'settings' => ['refresh_interval_seconds' => 30, 'validity_seconds' => 60],
+    ]);
+    $qr->generateDynamicQrSecret();
+
+    return $qr->fresh();
+}
+
+test('qr_dynamic check-in without coordinates is refused when a geofence is configured', function () {
+    [$user, $staff] = $this->createStaffUser();
+    $this->enableGeofence();
+    $qr = enableDynamicQr($this);
+
+    $this->api('POST', 'attendance/check-in', [
+        'method' => 'qr_dynamic',
+        'qr_code' => $qr->getCurrentDynamicCode(),
+    ], $user)
+        ->assertStatus(422)
+        ->assertJsonPath('error_code', 'LOCATION_REQUIRED');
+
+    expect(Attendance::where('staff_profile_id', $staff->id)->exists())->toBeFalse();
+});
+
+test('qr_dynamic check-in with in-fence coordinates still succeeds', function () {
+    [$user, $staff] = $this->createStaffUser();
+    $this->enableGeofence();
+    $qr = enableDynamicQr($this);
+
+    $this->api('POST', 'attendance/check-in', [
+        'method' => 'qr_dynamic',
+        'qr_code' => $qr->getCurrentDynamicCode(),
+        'latitude' => self::GEO_LAT,
+        'longitude' => self::GEO_LNG,
+    ], $user)->assertOk();
+
+    expect((bool) Attendance::where('staff_profile_id', $staff->id)->value('location_verified'))->toBeTrue();
+});
+
+test('qr_dynamic check-in with out-of-fence coordinates is refused', function () {
+    [$user, $staff] = $this->createStaffUser();
+    $this->enableGeofence();
+    $qr = enableDynamicQr($this);
+
+    $this->api('POST', 'attendance/check-in', [
+        'method' => 'qr_dynamic',
+        'qr_code' => $qr->getCurrentDynamicCode(),
+        'latitude' => self::GEO_LAT + 1.5,
+        'longitude' => self::GEO_LNG + 1.5,
+    ], $user)
+        ->assertStatus(422)
+        ->assertJsonPath('error_code', 'OUT_OF_GEOFENCE');
+});
+
+test('the live rotating QR code is not readable by an ordinary employee', function () {
+    [$user] = $this->createStaffUser();
+    enableDynamicQr($this);
+
+    // Fetching the code from anywhere defeats the method: the rotation only
+    // protects against photographing the kiosk, not against an API call.
+    $this->api('GET', 'attendance/qr-dynamic/current', [], $user)->assertStatus(403);
+});
+
+test('a holder of attendance.display_qr can read the rotating code', function () {
+    [$kiosk] = $this->createStaffUser();
+    enableDynamicQr($this);
+
+    \Spatie\Permission\Models\Permission::findOrCreate('attendance.display_qr', 'web');
+    $kiosk->givePermissionTo('attendance.display_qr');
+
+    $this->api('GET', 'attendance/qr-dynamic/current', [], $kiosk)
+        ->assertOk()
+        ->assertJsonStructure(['data' => ['code']]);
+});
+
 test('manual check-in without coordinates stays allowed when no geofence is configured', function () {
     [$user, $staff] = $this->createStaffUser();
 

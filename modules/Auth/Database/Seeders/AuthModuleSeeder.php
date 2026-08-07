@@ -98,6 +98,11 @@ class AuthModuleSeeder extends Seeder
             // ApprovalsController fails closed without them.
             ['name' => 'practitioner_time_off.approve_any', 'display_name' => 'Approve Any Time Off Request', 'module' => 'staff'],
             ['name' => 'attendance_violations.approve_any', 'display_name' => 'Approve Any Attendance Violation', 'module' => 'attendance'],
+
+            // Permission to READ the live rotating check-in QR code. This is
+            // the kiosk/reception display credential — staff scan it, they do
+            // not fetch it, so it must not be granted to ordinary employees.
+            ['name' => 'attendance.display_qr', 'display_name' => 'Display Attendance QR Code', 'module' => 'attendance'],
         ];
 
         foreach ($permissions as $permission) {
@@ -158,6 +163,7 @@ class AuthModuleSeeder extends Seeder
                     'invoices.view_any', 'invoices.view', 'invoices.create', 'invoices.update',
                     'reports.view_any', 'reports.view', 'reports.export',
                     'practitioner_time_off.approve_any', 'attendance_violations.approve_any',
+                    'attendance.display_qr',
                     'profile.view', 'profile.update',
                 ],
             ],
@@ -176,6 +182,7 @@ class AuthModuleSeeder extends Seeder
                     'invoices.view_any', 'invoices.view', 'invoices.create', 'invoices.update',
                     'reports.view_any', 'reports.view',
                     'practitioner_time_off.approve_any', 'attendance_violations.approve_any',
+                    'attendance.display_qr',
                     'profile.view', 'profile.update',
                 ],
             ],
