@@ -91,6 +91,13 @@ class AuthModuleSeeder extends Seeder
             ['name' => 'reports.view_any', 'display_name' => 'View Reports List', 'module' => 'reporting'],
             ['name' => 'reports.view', 'display_name' => 'View Report', 'module' => 'reporting'],
             ['name' => 'reports.export', 'display_name' => 'Export Reports', 'module' => 'reporting'],
+
+            // HR approvals. These gate the mobile approvals surface for
+            // records whose staff profile has no explicit approver assigned
+            // (staff_profiles.{time_off,attendance}_approver_user_id).
+            // ApprovalsController fails closed without them.
+            ['name' => 'practitioner_time_off.approve_any', 'display_name' => 'Approve Any Time Off Request', 'module' => 'staff'],
+            ['name' => 'attendance_violations.approve_any', 'display_name' => 'Approve Any Attendance Violation', 'module' => 'attendance'],
         ];
 
         foreach ($permissions as $permission) {
@@ -150,6 +157,7 @@ class AuthModuleSeeder extends Seeder
                     'treatment_plans.view_any', 'treatment_plans.view', 'treatment_plans.create', 'treatment_plans.update', 'treatment_plans.delete',
                     'invoices.view_any', 'invoices.view', 'invoices.create', 'invoices.update',
                     'reports.view_any', 'reports.view', 'reports.export',
+                    'practitioner_time_off.approve_any', 'attendance_violations.approve_any',
                     'profile.view', 'profile.update',
                 ],
             ],
@@ -167,6 +175,7 @@ class AuthModuleSeeder extends Seeder
                     'treatment_plans.view_any', 'treatment_plans.view', 'treatment_plans.create', 'treatment_plans.update',
                     'invoices.view_any', 'invoices.view', 'invoices.create', 'invoices.update',
                     'reports.view_any', 'reports.view',
+                    'practitioner_time_off.approve_any', 'attendance_violations.approve_any',
                     'profile.view', 'profile.update',
                 ],
             ],

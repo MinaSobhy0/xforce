@@ -26,12 +26,31 @@ class AuthController extends BaseApiController
         // SECURITY: Exclude soft-deleted users to prevent terminated employee access
         $user = User::withoutTrashed()->where('email', $request->email)->first();
 
+        // SECURITY: Per-account lockout. The route throttle is keyed on IP
+        // only, and X-Forwarded-For is honoured from any proxy, so an
+        // attacker rotating that header gets unlimited guesses against a
+        // single account. The failed_login_attempts / locked_until columns
+        // already existed on users but nothing on this path touched them —
+        // the mobile login was a bypass for the web panel's lockout too.
+        if ($user && $user->isLocked()) {
+            return $this->error(
+                __('mobile_api::mobile.auth.account_locked', [
+                    'minutes' => max(1, (int) now()->diffInMinutes($user->locked_until, false)),
+                ]),
+                429
+            );
+        }
+
         if (!$user || !Hash::check($request->password, $user->password)) {
+            $user?->incrementFailedLoginAttempts();
+
             return $this->error(
                 __('mobile_api::mobile.auth.login_failed'),
                 401
             );
         }
+
+        $user->resetFailedLoginAttempts();
 
         // Check if user is active
         if (!$user->isActive()) {
@@ -203,11 +222,24 @@ class AuthController extends BaseApiController
         $abilities = config('mobile_api.tokens.staff.abilities', ['staff:*']);
         $expirationDays = config('mobile_api.tokens.staff.expiration_days', 30);
 
-        return $user->createToken(
+        $newToken = $user->createToken(
             $tokenName,
             $abilities,
             now()->addDays($expirationDays)
-        )->plainTextToken;
+        );
+
+        // SECURITY: stamp the issuing tenant. personal_access_tokens is a
+        // shared public-schema table but `users` is per-tenant-schema, so an
+        // unstamped token can be replayed against another tenant's slug and
+        // resolve to that tenant's user with the same numeric id.
+        // EnsureTokenMatchesTenant rejects any mismatch.
+        $tenant = app()->bound('currentTenant') ? app('currentTenant') : null;
+
+        if ($tenant) {
+            $newToken->accessToken->forceFill(['tenant_id' => $tenant->id])->save();
+        }
+
+        return $newToken->plainTextToken;
     }
 
     /**
@@ -233,7 +265,16 @@ class AuthController extends BaseApiController
                 return null;
             }
 
-            return User::find($data['user_id']);
+            // Re-check the same gates login enforced. The account can be
+            // deleted, disabled, locked or stripped of its staff profile in
+            // the window between password success and 2FA submission.
+            $user = User::withoutTrashed()->find($data['user_id']);
+
+            if (! $user || ! $user->isActive() || $user->isLocked() || ! $user->staffProfile) {
+                return null;
+            }
+
+            return $user;
         } catch (\Exception $e) {
             return null;
         }

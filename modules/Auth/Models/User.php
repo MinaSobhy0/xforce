@@ -539,19 +539,25 @@ class User extends BaseModel implements AuthenticatableContract, AuthorizableCon
     }
 
     // Account management methods
+    //
+    // These all write $guarded columns (locked_until, failed_login_attempts,
+    // last_login_*). Guarding them is correct — they must never be settable
+    // from request data — but it also means update() silently discards them,
+    // which left the whole brute-force lockout a no-op. These are the model's
+    // own trusted setters, so they forceFill past the guard deliberately.
     public function lockAccount(?int $minutes = null): void
     {
-        $this->update([
+        $this->forceFill([
             'locked_until' => now()->addMinutes($minutes ?? config('security.login.lockout_minutes', 15)),
-        ]);
+        ])->save();
     }
 
     public function unlockAccount(): void
     {
-        $this->update([
+        $this->forceFill([
             'locked_until' => null,
             'failed_login_attempts' => 0,
-        ]);
+        ])->save();
     }
 
     public function incrementFailedLoginAttempts(): void
@@ -559,7 +565,7 @@ class User extends BaseModel implements AuthenticatableContract, AuthorizableCon
         $attempts = $this->failed_login_attempts + 1;
         $maxAttempts = config('security.login.max_attempts', 5);
 
-        $this->update(['failed_login_attempts' => $attempts]);
+        $this->forceFill(['failed_login_attempts' => $attempts])->save();
 
         if ($attempts >= $maxAttempts) {
             $this->lockAccount();
@@ -568,15 +574,15 @@ class User extends BaseModel implements AuthenticatableContract, AuthorizableCon
 
     public function resetFailedLoginAttempts(): void
     {
-        $this->update(['failed_login_attempts' => 0]);
+        $this->forceFill(['failed_login_attempts' => 0])->save();
     }
 
     public function recordLogin(?string $ip = null): void
     {
-        $this->update([
+        $this->forceFill([
             'last_login_at' => now(),
             'last_login_ip' => $ip ?? request()->ip(),
-        ]);
+        ])->save();
 
         $this->resetFailedLoginAttempts();
 

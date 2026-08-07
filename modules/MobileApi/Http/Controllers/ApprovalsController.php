@@ -324,10 +324,13 @@ class ApprovalsController extends BaseApiController
     }
 
     /**
-     * Per-record check used by show/approve/reject. Falls back to
-     * "anyone with the resource permission can act" when no approver is
-     * configured on the requester's staff profile — same convention as
-     * the web admin panel.
+     * Per-record check used by show/approve/reject.
+     *
+     * Fails CLOSED: a record whose staff profile has no configured approver
+     * is actionable only by holders of practitioner_time_off.approve_any.
+     * The previous `return true` fallback made every unassigned record
+     * actionable by any authenticated staff member, which is the vast
+     * majority of them in practice.
      */
     protected function canActOnTimeOff(PractitionerTimeOff $record): bool
     {
@@ -342,7 +345,7 @@ class ApprovalsController extends BaseApiController
 
         $approver = $record->staffProfile?->timeOffApprover;
         if (! $approver) {
-            return true;
+            return false;
         }
 
         return (int) $approver->id === (int) $actor->id;
@@ -376,7 +379,7 @@ class ApprovalsController extends BaseApiController
 
         $approver = $record->staffProfile?->attendanceApprover;
         if (! $approver) {
-            return true;
+            return false;
         }
 
         return (int) $approver->id === (int) $actor->id;
