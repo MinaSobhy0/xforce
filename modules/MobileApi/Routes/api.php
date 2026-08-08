@@ -74,6 +74,9 @@ Route::middleware([\Modules\MobileApi\Http\Middleware\ResolveTenantFromHeader::c
     // Authenticated staff routes
     Route::middleware([
         'auth:sanctum',
+        // SECURITY: must sit immediately after auth:sanctum — rejects a token
+        // issued by a different tenant before any tenant data is touched.
+        \Modules\MobileApi\Http\Middleware\EnsureTokenMatchesTenant::class,
         \Modules\MobileApi\Http\Middleware\ResolveBranchContext::class,
         \Modules\MobileApi\Http\Middleware\CheckStaffPermission::class,
     ])->group(function () {

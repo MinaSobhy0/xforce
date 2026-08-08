@@ -218,7 +218,11 @@ class AttendanceTypeSetting extends BaseModel
             throw new \InvalidArgumentException('This method is only for static QR settings');
         }
 
-        $secret = $this->getSetting('qr_secret') ?: bin2hex(random_bytes(16));
+        // Always mint a fresh secret. This previously reused any existing
+        // one, so "Regenerate QR Code" rotated only the created_at stamp
+        // baked into the blob and the underlying secret lived forever —
+        // which defeats the point of having a regenerate action at all.
+        $secret = bin2hex(random_bytes(16));
         $this->setSetting('qr_secret', $secret);
 
         $content = json_encode([

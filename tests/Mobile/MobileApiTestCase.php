@@ -57,6 +57,19 @@ abstract class MobileApiTestCase extends OdooSyncTestCase
         // Sanctum tokens live in the central public schema.
         DB::connection('pgsql')->statement('TRUNCATE TABLE public.personal_access_tokens RESTART IDENTITY CASCADE');
 
+        // Direct permission/role grants are keyed on model_id. The harness
+        // truncates `users` with RESTART IDENTITY, so a later test's user
+        // reuses an earlier one's id and silently inherits its grants —
+        // which is enough to make an authorization test pass for the wrong
+        // reason. Clear the pivots so every actor starts with nothing.
+        foreach (['model_has_permissions', 'model_has_roles'] as $pivot) {
+            if (in_array($pivot, $existing, true)) {
+                $conn->statement("TRUNCATE TABLE \"{$schema}\".\"{$pivot}\" CASCADE");
+            }
+        }
+
+        app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
+
         // Tenant settings persist on public.tenants across tests/runs —
         // reset the keys the suite mutates so every test starts from defaults.
         $settings = $this->tenant->settings ?? [];
@@ -96,9 +109,45 @@ abstract class MobileApiTestCase extends OdooSyncTestCase
         return $response;
     }
 
+    /**
+     * Issue a request carrying a caller-supplied bearer token rather than
+     * one minted by tokenFor(). Needed by the tenant-binding tests, which
+     * deliberately present tokens the normal login flow would never hand
+     * out (wrong tenant stamp, or none at all).
+     */
+    public function apiWithRawToken(string $method, string $uri, string $plainTextToken, array $data = [])
+    {
+        $this->app['auth']->forgetGuards();
+
+        $response = $this->json($method, '/api/v2/'.ltrim($uri, '/'), $data, [
+            'X-Tenant-Slug' => self::TENANT_SLUG,
+            'Accept' => 'application/json',
+            'Authorization' => 'Bearer '.$plainTextToken,
+        ]);
+
+        $this->initializeTenantContext();
+
+        return $response;
+    }
+
     protected function tokenFor(User $user): string
     {
-        return $this->tokens[$user->id] ??= $user->createToken('mobile-test')->plainTextToken;
+        return $this->tokens[$user->id] ??= $this->issueToken($user);
+    }
+
+    /**
+     * Mirror AuthController::createToken — including the tenant stamp that
+     * EnsureTokenMatchesTenant requires. Tokens without it are treated as
+     * cross-tenant replays and rejected with 401, so a bare createToken()
+     * here would not model the real login flow.
+     */
+    protected function issueToken(User $user): string
+    {
+        $newToken = $user->createToken('mobile-test');
+
+        $newToken->accessToken->forceFill(['tenant_id' => $this->tenant->id])->save();
+
+        return $newToken->plainTextToken;
     }
 
     // ------------------------------------------------------------------
@@ -263,6 +312,33 @@ abstract class MobileApiTestCase extends OdooSyncTestCase
     protected const FAR_LAT = 30.0625;
 
     protected const FAR_LNG = 31.2357;
+
+    /**
+     * Hit the Attendance module's own API (/api/attendance/...), which is a
+     * separate surface from the mobile v2 routes: no /api/v2 prefix and no
+     * X-Tenant-Slug middleware, just auth:sanctum. Returns the decoded body.
+     *
+     * @return array<string, mixed>
+     */
+    public function attendanceModuleApi(string $method, string $uri, User $as): array
+    {
+        $this->app['auth']->forgetGuards();
+
+        $response = $this->json($method, '/api/'.ltrim($uri, '/'), [], [
+            'Accept' => 'application/json',
+            'Authorization' => 'Bearer '.$this->tokenFor($as),
+        ]);
+
+        $this->initializeTenantContext();
+
+        return $response->json() ?? [];
+    }
+
+    /** Tenant id, for fixtures built in free functions inside test files. */
+    public function tenantId(): int
+    {
+        return (int) $this->tenant->id;
+    }
 
     public function enableGeofence(int $radiusMeters = 150): void
     {

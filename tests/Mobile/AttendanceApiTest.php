@@ -145,6 +145,90 @@ test('manual check-in without coordinates is refused when a geofence is configur
         ->assertJsonPath('error_code', 'LOCATION_REQUIRED');
 });
 
+/**
+ * The LOCATION_REQUIRED guard used to be scoped to method=manual, which left
+ * the QR and biometric methods as a way around the fence entirely: post a
+ * valid code with no lat/lng and the punch was accepted from anywhere.
+ */
+function enableDynamicQr($test): AttendanceTypeSetting
+{
+    $qr = AttendanceTypeSetting::create([
+        'tenant_id' => $test->tenantId(),
+        'type' => Attendance::TYPE_QR_DYNAMIC,
+        'is_enabled' => true,
+        'settings' => ['refresh_interval_seconds' => 30, 'validity_seconds' => 60],
+    ]);
+    $qr->generateDynamicQrSecret();
+
+    return $qr->fresh();
+}
+
+test('qr_dynamic check-in without coordinates is refused when a geofence is configured', function () {
+    [$user, $staff] = $this->createStaffUser();
+    $this->enableGeofence();
+    $qr = enableDynamicQr($this);
+
+    $this->api('POST', 'attendance/check-in', [
+        'method' => 'qr_dynamic',
+        'qr_code' => $qr->getCurrentDynamicCode(),
+    ], $user)
+        ->assertStatus(422)
+        ->assertJsonPath('error_code', 'LOCATION_REQUIRED');
+
+    expect(Attendance::where('staff_profile_id', $staff->id)->exists())->toBeFalse();
+});
+
+test('qr_dynamic check-in with in-fence coordinates still succeeds', function () {
+    [$user, $staff] = $this->createStaffUser();
+    $this->enableGeofence();
+    $qr = enableDynamicQr($this);
+
+    $this->api('POST', 'attendance/check-in', [
+        'method' => 'qr_dynamic',
+        'qr_code' => $qr->getCurrentDynamicCode(),
+        'latitude' => self::GEO_LAT,
+        'longitude' => self::GEO_LNG,
+    ], $user)->assertOk();
+
+    expect((bool) Attendance::where('staff_profile_id', $staff->id)->value('location_verified'))->toBeTrue();
+});
+
+test('qr_dynamic check-in with out-of-fence coordinates is refused', function () {
+    [$user, $staff] = $this->createStaffUser();
+    $this->enableGeofence();
+    $qr = enableDynamicQr($this);
+
+    $this->api('POST', 'attendance/check-in', [
+        'method' => 'qr_dynamic',
+        'qr_code' => $qr->getCurrentDynamicCode(),
+        'latitude' => self::GEO_LAT + 1.5,
+        'longitude' => self::GEO_LNG + 1.5,
+    ], $user)
+        ->assertStatus(422)
+        ->assertJsonPath('error_code', 'OUT_OF_GEOFENCE');
+});
+
+test('the live rotating QR code is not readable by an ordinary employee', function () {
+    [$user] = $this->createStaffUser();
+    enableDynamicQr($this);
+
+    // Fetching the code from anywhere defeats the method: the rotation only
+    // protects against photographing the kiosk, not against an API call.
+    $this->api('GET', 'attendance/qr-dynamic/current', [], $user)->assertStatus(403);
+});
+
+test('a holder of attendance.display_qr can read the rotating code', function () {
+    [$kiosk] = $this->createStaffUser();
+    enableDynamicQr($this);
+
+    \Spatie\Permission\Models\Permission::findOrCreate('attendance.display_qr', 'web');
+    $kiosk->givePermissionTo('attendance.display_qr');
+
+    $this->api('GET', 'attendance/qr-dynamic/current', [], $kiosk)
+        ->assertOk()
+        ->assertJsonStructure(['data' => ['code']]);
+});
+
 test('manual check-in without coordinates stays allowed when no geofence is configured', function () {
     [$user, $staff] = $this->createStaffUser();
 
@@ -309,6 +393,105 @@ test('attendance settings advertise the offline sync contract', function () {
         ->and($data['offline_sync']['max_age_days'])->toBe(7)
         ->and($data['offline_sync']['offline_message'])->not->toBeEmpty()
         ->and($data)->toHaveKey('location_required');
+});
+
+test('the advertised backdating window and the enforced one are the same value', function () {
+    [$user, $staff] = $this->createStaffUser();
+    $this->enableGeofence();
+
+    config()->set('mobile_api.attendance.offline_max_age_days', 2);
+
+    expect($this->api('GET', 'attendance/settings', [], $user)->json('data.offline_sync.max_age_days'))
+        ->toBe(2);
+
+    // A punch older than the configured window is refused, so the number the
+    // client is told is the number the server actually applies.
+    $this->api('POST', 'attendance/sync', ['punches' => [[
+        'client_id' => 'stale-1',
+        'type' => 'check_in',
+        'recorded_at' => now()->subDays(4)->toIso8601String(),
+        'latitude' => self::GEO_LAT,
+        'longitude' => self::GEO_LNG,
+    ]]], $user)->assertOk()->assertJsonPath('data.results.0.error_code', 'PUNCH_TOO_OLD');
+
+    // Inside the window it still lands.
+    $this->api('POST', 'attendance/sync', ['punches' => [[
+        'client_id' => 'fresh-1',
+        'type' => 'check_in',
+        'recorded_at' => now()->subDay()->setTime(9, 0)->toIso8601String(),
+        'latitude' => self::GEO_LAT,
+        'longitude' => self::GEO_LNG,
+    ]]], $user)->assertOk()->assertJsonPath('data.accepted', 1);
+});
+
+// ---------------------------------------------------------------------------
+// Static QR
+// ---------------------------------------------------------------------------
+
+test('regenerating the static QR rotates the secret and invalidates the old code', function () {
+    $qr = AttendanceTypeSetting::create([
+        'tenant_id' => $this->tenantId(),
+        'type' => Attendance::TYPE_QR_STATIC,
+        'is_enabled' => true,
+        'settings' => [],
+    ]);
+
+    $original = $qr->generateStaticQrContent();
+    $originalSecret = $qr->fresh()->getSetting('qr_secret');
+
+    // created_at is second-granular, so move the clock before regenerating.
+    $this->travel(90)->seconds();
+    $rotated = $qr->fresh()->generateStaticQrContent();
+
+    expect($rotated)->not->toBe($original)
+        ->and($qr->fresh()->getSetting('qr_secret'))->not->toBe($originalSecret)
+        ->and($qr->fresh()->validateStaticQrCode($original))->toBeFalse()
+        ->and($qr->fresh()->validateStaticQrCode($rotated))->toBeTrue();
+});
+
+test('the static QR credential is not handed to an ordinary employee', function () {
+    [$user] = $this->createStaffUser();
+
+    $qr = AttendanceTypeSetting::create([
+        'tenant_id' => $this->tenantId(),
+        'type' => Attendance::TYPE_QR_STATIC,
+        'is_enabled' => true,
+        // The clinic has opted into showing the QR in-app...
+        'settings' => ['show_qr_in_app' => true],
+    ]);
+    $qr->generateStaticQrContent();
+    $branchId = $qr->fresh()->branch_id;
+
+    // ...which must still not expose the credential to everyone, because
+    // qr_content IS the code: validation is hash_equals against this blob.
+    $body = $this->attendanceModuleApi('GET', "attendance/settings/qr_static?branch_id={$branchId}", $user);
+
+    // Assert we actually reached the payload — a 404 would also yield null.
+    expect($body['success'] ?? null)->toBeTrue()
+        ->and($body['data']['settings'])->toHaveKey('qr_content')
+        ->and($body['data']['settings']['show_qr_in_app'])->toBeTrue()
+        ->and($body['data']['settings']['qr_content'])->toBeNull();
+});
+
+test('a display_qr holder still receives the static QR credential', function () {
+    [$kiosk] = $this->createStaffUser();
+
+    $qr = AttendanceTypeSetting::create([
+        'tenant_id' => $this->tenantId(),
+        'type' => Attendance::TYPE_QR_STATIC,
+        'is_enabled' => true,
+        'settings' => ['show_qr_in_app' => true],
+    ]);
+    $expected = $qr->generateStaticQrContent();
+    $branchId = $qr->fresh()->branch_id;
+
+    \Spatie\Permission\Models\Permission::findOrCreate('attendance.display_qr', 'web');
+    $kiosk->givePermissionTo('attendance.display_qr');
+
+    $body = $this->attendanceModuleApi('GET', "attendance/settings/qr_static?branch_id={$branchId}", $kiosk);
+
+    expect($body['success'] ?? null)->toBeTrue()
+        ->and($body['data']['settings']['qr_content'])->toBe($expected);
 });
 
 // ---------------------------------------------------------------------------

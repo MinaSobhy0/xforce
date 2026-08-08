@@ -76,6 +76,18 @@ class AttendanceSettingsController extends Controller
      */
     public function getDynamicQrCode(Request $request): JsonResponse
     {
+        // SECURITY: same rule as the mobile surface — the live rotating code
+        // is a kiosk display credential, not something every authenticated
+        // user may fetch. This route previously had auth:sanctum only, and
+        // took branch_id straight from the request, so any user could pull
+        // any branch's current code.
+        if (! auth()->user()?->can('attendance.display_qr')) {
+            return response()->json([
+                'success' => false,
+                'message' => __('mobile_api::mobile.general.forbidden'),
+            ], 403);
+        }
+
         $branchId = $request->input('branch_id');
         $setting = AttendanceTypeSetting::getForType(Attendance::TYPE_QR_DYNAMIC, $branchId);
 
@@ -238,8 +250,15 @@ class AttendanceSettingsController extends Controller
                     'allow_camera_only' => $settings['allow_camera_only'] ?? true,
                     'show_qr_in_app' => $settings['show_qr_in_app'] ?? false,
                     'require_location' => $settings['require_location'] ?? false,
-                    // Include QR content only if show_qr_in_app is true
-                    'qr_content' => ($settings['show_qr_in_app'] ?? false) ? ($settings['qr_content'] ?? null) : null,
+                    // SECURITY: qr_content IS the static credential — validation
+                    // is hash_equals against this exact blob, and it does not
+                    // rotate on its own. show_qr_in_app alone is not enough to
+                    // hand it to every authenticated user; it also takes the
+                    // kiosk-display permission, same as the rotating code.
+                    'qr_content' => (($settings['show_qr_in_app'] ?? false)
+                        && auth()->user()?->can('attendance.display_qr'))
+                            ? ($settings['qr_content'] ?? null)
+                            : null,
                 ],
             ];
         }

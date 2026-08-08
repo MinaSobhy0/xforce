@@ -22,4 +22,20 @@ class PersonalAccessToken extends SanctumPersonalAccessToken
      * @var string
      */
     protected $table = 'public.personal_access_tokens';
+
+    /**
+     * The tenant that issued this token. Because `users` is per-tenant-schema
+     * while this table is shared, a token with no tenant stamp can be
+     * replayed against another tenant's schema and resolve to a different
+     * person with the same numeric id. See EnsureTokenMatchesTenant.
+     *
+     * @var list<string>
+     */
+    protected $fillable = [
+        'tenant_id',
+        'name',
+        'token',
+        'abilities',
+        'expires_at',
+    ];
 }

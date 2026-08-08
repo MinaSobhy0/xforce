@@ -75,6 +75,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Attendance
+    |--------------------------------------------------------------------------
+    |
+    | offline_max_age_days bounds how far back a punch submitted through
+    | POST /attendance/sync may be dated. Both the timestamp and the
+    | coordinates on a synced punch are chosen by the client, so this is
+    | the window in which an employee can manufacture attendance after the
+    | fact. Kept at the historical 7 for compatibility; lower it to match
+    | how long staff realistically go offline.
+    |
+    */
+    'attendance' => [
+        'offline_max_age_days' => env('MOBILE_ATTENDANCE_OFFLINE_MAX_AGE_DAYS', 7),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | App Code Configuration
     |--------------------------------------------------------------------------
     */

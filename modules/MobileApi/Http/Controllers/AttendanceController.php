@@ -173,7 +173,7 @@ class AttendanceController extends BaseApiController
             // out-of-geofence ones.
             'offline_sync' => [
                 'enabled' => true,
-                'max_age_days' => 7,
+                'max_age_days' => $this->offlineMaxAgeDays(),
                 'max_batch_size' => 50,
                 'offline_message' => __('mobile_api::mobile.attendance.offline_queued'),
             ],
@@ -253,10 +253,16 @@ class AttendanceController extends BaseApiController
             $locationVerified = true;
         }
 
-        // A manual punch without coordinates is refused when the tenant has
-        // a configured geofence — omitting the location is not a bypass.
-        if ($request->method === 'manual'
-            && (! $request->filled('latitude') || ! $request->filled('longitude'))
+        // A punch without coordinates is refused when the tenant has a
+        // configured geofence — omitting the location is not a bypass.
+        //
+        // This deliberately covers EVERY method, not just manual. Scoping it
+        // to manual left qr_static/qr_dynamic/biometric as a way out: posting
+        // {"method":"qr_dynamic","qr_code":"..."} with no lat/lng ran no
+        // location check at all and the punch was accepted from anywhere.
+        // checkOut() has always enforced this for every method, so a client
+        // that could not supply coordinates could never have checked out.
+        if ((! $request->filled('latitude') || ! $request->filled('longitude'))
             && $this->geofenceEnforced()) {
             return $this->businessRuleError(
                 __('mobile_api::mobile.attendance.location_required'),
@@ -419,6 +425,21 @@ class AttendanceController extends BaseApiController
      * branch coordinates). Without a configured fence there is nothing to
      * verify against, so coordinates are not demanded.
      */
+    /**
+     * How far back an offline-recorded punch may be dated.
+     *
+     * Single source of truth: the enforcement in processOfflinePunch() and
+     * the value advertised to the client by settings() were two separate
+     * hardcoded 7s that could drift apart. Lowering this is the lever for
+     * narrowing the fabrication window — a synced punch's timestamp and
+     * coordinates are both chosen by the client, so every day of tolerance
+     * is a day of attendance an employee can manufacture after the fact.
+     */
+    protected function offlineMaxAgeDays(): int
+    {
+        return max(1, (int) config('mobile_api.attendance.offline_max_age_days', 7));
+    }
+
     protected function geofenceEnforced(): bool
     {
         $features = $this->tenant()->getMobileAppConfig()['features'] ?? [];
@@ -524,7 +545,7 @@ class AttendanceController extends BaseApiController
         if ($recordedAt->isAfter(now()->addMinutes(5))) {
             return $reject('FUTURE_PUNCH', __('mobile_api::mobile.attendance.punch_in_future'));
         }
-        if ($recordedAt->isBefore(now()->subDays(7))) {
+        if ($recordedAt->isBefore(now()->subDays($this->offlineMaxAgeDays()))) {
             return $reject('PUNCH_TOO_OLD', __('mobile_api::mobile.attendance.punch_too_old'));
         }
 
@@ -905,6 +926,15 @@ class AttendanceController extends BaseApiController
      */
     public function getDynamicQr(): JsonResponse
     {
+        // SECURITY: this returns the live rotating code. It exists so a
+        // kiosk / reception screen can DISPLAY the code for staff to scan —
+        // handing it to every employee defeats the entire point of the
+        // method, since the rotation then only protects against
+        // photographing the screen, not against two API calls from home.
+        if (! $this->hasPermission('attendance.display_qr')) {
+            return $this->forbidden();
+        }
+
         if (! class_exists(AttendanceTypeSetting::class)) {
             return $this->error('Attendance module not available', 503);
         }

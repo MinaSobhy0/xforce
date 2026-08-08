@@ -37,8 +37,11 @@ return [
         'invalid_token' => 'Invalid or expired token',
         '2fa_required' => 'Two-factor authentication required',
         '2fa_invalid' => 'Invalid verification code',
+        '2fa_invalid_attempts' => 'Invalid verification code. :remaining attempts remaining.',
+        '2fa_locked_out' => 'Too many failed attempts. Try again in :minutes minutes.',
         '2fa_success' => 'Two-factor authentication verified',
         'account_disabled' => 'Your account has been disabled',
+        'account_locked' => 'Too many failed login attempts. Try again in :minutes minutes.',
         'not_staff' => 'Only staff members can access this app',
     ],
 
