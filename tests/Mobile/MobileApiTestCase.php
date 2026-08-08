@@ -313,6 +313,27 @@ abstract class MobileApiTestCase extends OdooSyncTestCase
 
     protected const FAR_LNG = 31.2357;
 
+    /**
+     * Hit the Attendance module's own API (/api/attendance/...), which is a
+     * separate surface from the mobile v2 routes: no /api/v2 prefix and no
+     * X-Tenant-Slug middleware, just auth:sanctum. Returns the decoded body.
+     *
+     * @return array<string, mixed>
+     */
+    public function attendanceModuleApi(string $method, string $uri, User $as): array
+    {
+        $this->app['auth']->forgetGuards();
+
+        $response = $this->json($method, '/api/'.ltrim($uri, '/'), [], [
+            'Accept' => 'application/json',
+            'Authorization' => 'Bearer '.$this->tokenFor($as),
+        ]);
+
+        $this->initializeTenantContext();
+
+        return $response->json() ?? [];
+    }
+
     /** Tenant id, for fixtures built in free functions inside test files. */
     public function tenantId(): int
     {

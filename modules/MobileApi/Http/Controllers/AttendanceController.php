@@ -173,7 +173,7 @@ class AttendanceController extends BaseApiController
             // out-of-geofence ones.
             'offline_sync' => [
                 'enabled' => true,
-                'max_age_days' => 7,
+                'max_age_days' => $this->offlineMaxAgeDays(),
                 'max_batch_size' => 50,
                 'offline_message' => __('mobile_api::mobile.attendance.offline_queued'),
             ],
@@ -425,6 +425,21 @@ class AttendanceController extends BaseApiController
      * branch coordinates). Without a configured fence there is nothing to
      * verify against, so coordinates are not demanded.
      */
+    /**
+     * How far back an offline-recorded punch may be dated.
+     *
+     * Single source of truth: the enforcement in processOfflinePunch() and
+     * the value advertised to the client by settings() were two separate
+     * hardcoded 7s that could drift apart. Lowering this is the lever for
+     * narrowing the fabrication window — a synced punch's timestamp and
+     * coordinates are both chosen by the client, so every day of tolerance
+     * is a day of attendance an employee can manufacture after the fact.
+     */
+    protected function offlineMaxAgeDays(): int
+    {
+        return max(1, (int) config('mobile_api.attendance.offline_max_age_days', 7));
+    }
+
     protected function geofenceEnforced(): bool
     {
         $features = $this->tenant()->getMobileAppConfig()['features'] ?? [];
@@ -530,7 +545,7 @@ class AttendanceController extends BaseApiController
         if ($recordedAt->isAfter(now()->addMinutes(5))) {
             return $reject('FUTURE_PUNCH', __('mobile_api::mobile.attendance.punch_in_future'));
         }
-        if ($recordedAt->isBefore(now()->subDays(7))) {
+        if ($recordedAt->isBefore(now()->subDays($this->offlineMaxAgeDays()))) {
             return $reject('PUNCH_TOO_OLD', __('mobile_api::mobile.attendance.punch_too_old'));
         }
 

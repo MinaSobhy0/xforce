@@ -395,6 +395,105 @@ test('attendance settings advertise the offline sync contract', function () {
         ->and($data)->toHaveKey('location_required');
 });
 
+test('the advertised backdating window and the enforced one are the same value', function () {
+    [$user, $staff] = $this->createStaffUser();
+    $this->enableGeofence();
+
+    config()->set('mobile_api.attendance.offline_max_age_days', 2);
+
+    expect($this->api('GET', 'attendance/settings', [], $user)->json('data.offline_sync.max_age_days'))
+        ->toBe(2);
+
+    // A punch older than the configured window is refused, so the number the
+    // client is told is the number the server actually applies.
+    $this->api('POST', 'attendance/sync', ['punches' => [[
+        'client_id' => 'stale-1',
+        'type' => 'check_in',
+        'recorded_at' => now()->subDays(4)->toIso8601String(),
+        'latitude' => self::GEO_LAT,
+        'longitude' => self::GEO_LNG,
+    ]]], $user)->assertOk()->assertJsonPath('data.results.0.error_code', 'PUNCH_TOO_OLD');
+
+    // Inside the window it still lands.
+    $this->api('POST', 'attendance/sync', ['punches' => [[
+        'client_id' => 'fresh-1',
+        'type' => 'check_in',
+        'recorded_at' => now()->subDay()->setTime(9, 0)->toIso8601String(),
+        'latitude' => self::GEO_LAT,
+        'longitude' => self::GEO_LNG,
+    ]]], $user)->assertOk()->assertJsonPath('data.accepted', 1);
+});
+
+// ---------------------------------------------------------------------------
+// Static QR
+// ---------------------------------------------------------------------------
+
+test('regenerating the static QR rotates the secret and invalidates the old code', function () {
+    $qr = AttendanceTypeSetting::create([
+        'tenant_id' => $this->tenantId(),
+        'type' => Attendance::TYPE_QR_STATIC,
+        'is_enabled' => true,
+        'settings' => [],
+    ]);
+
+    $original = $qr->generateStaticQrContent();
+    $originalSecret = $qr->fresh()->getSetting('qr_secret');
+
+    // created_at is second-granular, so move the clock before regenerating.
+    $this->travel(90)->seconds();
+    $rotated = $qr->fresh()->generateStaticQrContent();
+
+    expect($rotated)->not->toBe($original)
+        ->and($qr->fresh()->getSetting('qr_secret'))->not->toBe($originalSecret)
+        ->and($qr->fresh()->validateStaticQrCode($original))->toBeFalse()
+        ->and($qr->fresh()->validateStaticQrCode($rotated))->toBeTrue();
+});
+
+test('the static QR credential is not handed to an ordinary employee', function () {
+    [$user] = $this->createStaffUser();
+
+    $qr = AttendanceTypeSetting::create([
+        'tenant_id' => $this->tenantId(),
+        'type' => Attendance::TYPE_QR_STATIC,
+        'is_enabled' => true,
+        // The clinic has opted into showing the QR in-app...
+        'settings' => ['show_qr_in_app' => true],
+    ]);
+    $qr->generateStaticQrContent();
+    $branchId = $qr->fresh()->branch_id;
+
+    // ...which must still not expose the credential to everyone, because
+    // qr_content IS the code: validation is hash_equals against this blob.
+    $body = $this->attendanceModuleApi('GET', "attendance/settings/qr_static?branch_id={$branchId}", $user);
+
+    // Assert we actually reached the payload — a 404 would also yield null.
+    expect($body['success'] ?? null)->toBeTrue()
+        ->and($body['data']['settings'])->toHaveKey('qr_content')
+        ->and($body['data']['settings']['show_qr_in_app'])->toBeTrue()
+        ->and($body['data']['settings']['qr_content'])->toBeNull();
+});
+
+test('a display_qr holder still receives the static QR credential', function () {
+    [$kiosk] = $this->createStaffUser();
+
+    $qr = AttendanceTypeSetting::create([
+        'tenant_id' => $this->tenantId(),
+        'type' => Attendance::TYPE_QR_STATIC,
+        'is_enabled' => true,
+        'settings' => ['show_qr_in_app' => true],
+    ]);
+    $expected = $qr->generateStaticQrContent();
+    $branchId = $qr->fresh()->branch_id;
+
+    \Spatie\Permission\Models\Permission::findOrCreate('attendance.display_qr', 'web');
+    $kiosk->givePermissionTo('attendance.display_qr');
+
+    $body = $this->attendanceModuleApi('GET', "attendance/settings/qr_static?branch_id={$branchId}", $kiosk);
+
+    expect($body['success'] ?? null)->toBeTrue()
+        ->and($body['data']['settings']['qr_content'])->toBe($expected);
+});
+
 // ---------------------------------------------------------------------------
 // Multiple check-in/out pairs (Odoo xs.attendance.config)
 // ---------------------------------------------------------------------------
