@@ -119,8 +119,10 @@ test('resolves time off and attendance approvers through synced users', function
 });
 
 test('leaves department unset when the odoo department has no local counterpart', function () {
-    // There is no Department entity mapping configured (hr.department is not
-    // synced) — employee imports must still succeed with department_id null.
+    // When departments have not been synced yet (no local counterpart for
+    // the Odoo department), employee imports must still succeed with
+    // department_id null — it backfills on the next sync after departments
+    // import (see ImportDepartmentsSyncTest).
     $connection = OdooScenario::connection();
     $staffMapping = OdooScenario::staffProfiles($connection);
 

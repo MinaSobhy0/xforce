@@ -134,6 +134,28 @@ class OdooScenario
         ]);
     }
 
+    public static function departments(OdooConnection $c, array $overrides = []): OdooEntityMapping
+    {
+        return self::mapping($c, array_merge([
+            'name' => 'Department',
+            'local_model' => \Modules\Core\Models\Department::class,
+            'local_table' => 'departments',
+            'odoo_model' => 'hr.department',
+            'sync_direction' => 'import',
+            'priority' => 2,
+        ], $overrides), [
+            ['local' => 'odoo_id', 'odoo' => 'id', 'direction' => 'import', 'key' => true],
+            ['local' => 'name', 'odoo' => 'name', 'direction' => 'import', 'required' => true],
+            ['local' => 'code', 'odoo' => 'code', 'direction' => 'import'],
+            // Departments sync before employees and before their own parents,
+            // so unresolved relations import as null and backfill on the next
+            // full sync instead of skipping the record.
+            ['local' => 'parent_id', 'odoo' => 'parent_id', 'direction' => 'import', 'transform' => 'relation', 'config' => ['model' => \Modules\Core\Models\Department::class, 'skip_on_missing' => false]],
+            ['local' => 'manager_id', 'odoo' => 'manager_id', 'direction' => 'import', 'transform' => 'relation', 'config' => ['model' => \Modules\Staff\Models\StaffProfile::class, 'skip_on_missing' => false]],
+            ['local' => 'is_active', 'odoo' => 'active', 'direction' => 'import', 'transform' => 'boolean', 'default' => true],
+        ]);
+    }
+
     public static function workSchedules(OdooConnection $c, array $overrides = []): OdooEntityMapping
     {
         return self::mapping($c, array_merge([

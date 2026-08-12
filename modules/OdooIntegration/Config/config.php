@@ -136,8 +136,12 @@ return [
             ['local_field' => 'odoo_id', 'odoo_field' => 'id', 'is_key_field' => true],
             ['local_field' => 'name', 'odoo_field' => 'name', 'is_required' => true],
             ['local_field' => 'code', 'odoo_field' => 'code'],
-            ['local_field' => 'parent_id', 'odoo_field' => 'parent_id', 'transform_type' => 'relation', 'transform_config' => ['model' => 'Modules\\Core\\Models\\Department']],
-            ['local_field' => 'manager_id', 'odoo_field' => 'manager_id', 'transform_type' => 'relation', 'transform_config' => ['model' => 'Modules\\Staff\\Models\\StaffProfile']],
+            // skip_on_missing=false: departments sync BEFORE employees (and
+            // before their own parents within a batch), so unresolved
+            // parent/manager relations must import as null — they backfill on
+            // the next full sync — instead of skipping the whole department.
+            ['local_field' => 'parent_id', 'odoo_field' => 'parent_id', 'transform_type' => 'relation', 'transform_config' => ['model' => 'Modules\\Core\\Models\\Department', 'skip_on_missing' => false]],
+            ['local_field' => 'manager_id', 'odoo_field' => 'manager_id', 'transform_type' => 'relation', 'transform_config' => ['model' => 'Modules\\Staff\\Models\\StaffProfile', 'skip_on_missing' => false]],
             ['local_field' => 'is_active', 'odoo_field' => 'active', 'transform_type' => 'boolean', 'default_value' => true],
         ],
 

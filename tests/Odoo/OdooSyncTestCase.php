@@ -56,6 +56,8 @@ abstract class OdooSyncTestCase extends TestCase
         'salary_structures',
         'salary_rule_categories',
         'staff_profiles',
+        'departments',
+        'work_schedules',
         'users',
     ];
 

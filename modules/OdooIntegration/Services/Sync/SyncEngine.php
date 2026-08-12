@@ -80,6 +80,15 @@ class SyncEngine
         try {
             $log->start();
 
+            // RelationResolver is a singleton with an in-memory cache that
+            // also stores "not found" results. In long-running processes
+            // (queue workers, the scheduler, one Sync Now covering several
+            // mappings) a stale negative entry would keep a relation null
+            // even after the related record was imported — e.g. a department
+            // manager synced later in the same process. Each entity sync run
+            // starts from fresh DB state.
+            app(\Modules\OdooIntegration\Services\Transform\RelationResolver::class)->clearCache();
+
             $client = $this->apiFactory->make($connection);
             $client->authenticate();
 
