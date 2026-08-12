@@ -138,7 +138,7 @@ class StaffProfileResource extends Resource
                             ->helperText(__('staff::staff.fields.attendance_approver_help')),
                     ])
                     ->columns(3)
-                    ->collapsed(),
+                    ->collapsible(),
 
                 Forms\Components\Section::make(__('staff::staff.sections.bio'))
                     ->schema([
@@ -311,7 +311,7 @@ class StaffProfileResource extends Resource
                     ->label(__('staff::staff.fields.time_off_approver'))
                     ->formatStateUsing(fn (StaffProfile $record) => $record->timeOffApprover?->full_name)
                     ->placeholder('—')
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->toggleable(),
 
                 Tables\Columns\TextColumn::make('attendanceApprover.email')
                     ->label(__('staff::staff.fields.attendance_approver'))
