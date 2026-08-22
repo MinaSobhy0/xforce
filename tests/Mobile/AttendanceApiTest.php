@@ -167,6 +167,121 @@ test('check-out without coordinates is refused when a geofence is configured', f
 });
 
 // ---------------------------------------------------------------------------
+// "Allow mock locations" — the clinic's opt-out of GPS enforcement
+// ---------------------------------------------------------------------------
+
+test('mock locations allowed lets a geofence check-in succeed from anywhere', function () {
+    [$user, $staff] = $this->createStaffUser();
+    $this->enableGeofence();
+    $this->allowMockLocation();
+
+    $this->api('POST', 'attendance/check-in', [
+        'method' => 'geofence',
+        'latitude' => self::FAR_LAT,
+        'longitude' => self::FAR_LNG,
+    ], $user)->assertOk();
+
+    $attendance = Attendance::forStaff($staff->id)->today()->firstOrFail();
+
+    // Accepted, but honestly recorded as NOT location-verified.
+    expect((float) $attendance->check_in_latitude)->toBe(self::FAR_LAT)
+        ->and($attendance->location_verified)->toBeFalse();
+});
+
+test('mock locations allowed keeps an inside-the-fence punch verified', function () {
+    [$user, $staff] = $this->createStaffUser();
+    $this->enableGeofence();
+    $this->allowMockLocation();
+
+    $this->api('POST', 'attendance/check-in', [
+        'method' => 'geofence',
+        'latitude' => self::GEO_LAT,
+        'longitude' => self::GEO_LNG,
+    ], $user)->assertOk();
+
+    expect(Attendance::forStaff($staff->id)->today()->firstOrFail()->location_verified)->toBeTrue();
+});
+
+test('mock locations allowed lets a manual check-in through without coordinates', function () {
+    [$user, $staff] = $this->createStaffUser();
+    $this->enableGeofence();
+    $this->allowMockLocation();
+
+    // Same request that yields LOCATION_REQUIRED with the toggle off — this
+    // is the App Store reviewer who denied the location permission.
+    $this->api('POST', 'attendance/check-in', ['method' => 'manual'], $user)->assertOk();
+});
+
+test('mock locations allowed lets check-out succeed from outside the fence', function () {
+    [$user, $staff] = $this->createStaffUser();
+    $this->enableGeofence();
+    $this->allowMockLocation();
+
+    $this->api('POST', 'attendance/check-in', [
+        'method' => 'geofence',
+        'latitude' => self::GEO_LAT,
+        'longitude' => self::GEO_LNG,
+    ], $user)->assertOk();
+
+    $this->api('POST', 'attendance/check-out', [
+        'latitude' => self::FAR_LAT,
+        'longitude' => self::FAR_LNG,
+    ], $user)->assertOk();
+});
+
+test('mock locations allowed accepts an offline punch from outside the fence', function () {
+    [$user, $staff] = $this->createStaffUser();
+    $this->enableGeofence();
+    $this->allowMockLocation();
+
+    $in = now()->subDay()->setTime(9, 0);
+
+    $response = $this->api('POST', 'attendance/sync', [
+        'punches' => [offlinePunch('check_in', $in, self::FAR_LAT, self::FAR_LNG)],
+    ], $user)->assertOk();
+
+    expect($response->json('data.results.0.accepted'))->toBeTrue();
+
+    $attendance = Attendance::forStaff($staff->id)->forDate($in->toDateString())->firstOrFail();
+    expect($attendance->location_verified)->toBeFalse();
+});
+
+test('settings demand a location while mock locations are refused', function () {
+    [$user] = $this->createStaffUser();
+    $this->enableGeofence();
+
+    $data = $this->api('GET', 'attendance/settings', [], $user)->assertOk()->json('data');
+    expect($data['allow_mock_location'])->toBeFalse()
+        ->and($data['location_required'])->toBeTrue();
+});
+
+test('settings tell the app when mock locations are allowed', function () {
+    [$user] = $this->createStaffUser();
+    $this->enableGeofence();
+    $this->allowMockLocation();
+
+    $data = $this->api('GET', 'attendance/settings', [], $user)->assertOk()->json('data');
+    expect($data['allow_mock_location'])->toBeTrue()
+        // Nothing left to verify against, so the app must stop demanding
+        // coordinates (and stop blocking on its own mock-GPS check).
+        ->and($data['location_required'])->toBeFalse();
+});
+
+test('the geofence validation endpoint reports mock locations as usable', function () {
+    [$user] = $this->createStaffUser();
+    $this->enableGeofence();
+    $this->allowMockLocation();
+
+    $data = $this->api('POST', 'attendance/validate/geofence', [
+        'latitude' => self::FAR_LAT,
+        'longitude' => self::FAR_LNG,
+    ], $user)->assertOk()->json('data');
+
+    expect($data['valid'])->toBeTrue()
+        ->and($data['mock_location_allowed'])->toBeTrue();
+});
+
+// ---------------------------------------------------------------------------
 // Offline sync — backend verifies every queued punch
 // ---------------------------------------------------------------------------
 

@@ -164,11 +164,18 @@ class AttendanceSettingsController extends Controller
             $request->input('accuracy')
         );
 
+        // "Allow mock locations" is the clinic's opt-out of GPS enforcement:
+        // the device's coordinates are accepted as-is, so the location is
+        // reported as usable even when it falls outside every fence.
+        $mockAllowed = AttendanceTypeSetting::isMockLocationAllowed($branchId);
+        $isValid = $isWithin || $mockAllowed;
+
         return response()->json([
-            'success' => $isWithin,
-            'message' => $isWithin ? 'Location is within geofence' : 'Location is outside geofence',
+            'success' => $isValid,
+            'message' => $isValid ? 'Location is within geofence' : 'Location is outside geofence',
             'data' => [
                 'within_geofence' => $isWithin,
+                'allow_mock_location' => $mockAllowed,
                 'locations' => $setting->getSetting('locations', []),
             ],
         ]);

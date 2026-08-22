@@ -386,7 +386,7 @@ return [
             'min_accuracy' => 'Minimum GPS Accuracy',
             'require_accuracy' => 'Require High Accuracy',
             'allow_mock' => 'Allow Mock Locations',
-            'allow_mock_help' => 'Warning: Enabling this allows fake GPS locations',
+            'allow_mock_help' => 'Warning: accepts whatever location the device reports without verifying it — staff can check in from anywhere, including a simulated GPS. Use for off-site staff or app-store review.',
             'check_checkout' => 'Verify Location on Checkout',
             'locations' => 'Geofence Locations',
             'location_name' => 'Location Name',

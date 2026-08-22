@@ -10,6 +10,9 @@ use Modules\Attendance\Models\AttendanceViolation;
 
 class AttendanceController extends BaseApiController
 {
+    /** Memoised "Allow mock locations" verdict for the active branch. */
+    protected ?bool $mockLocationAllowed = null;
+
     /**
      * Get available attendance/check-in types.
      * GET /api/v2/attendance/types
@@ -161,6 +164,9 @@ class AttendanceController extends BaseApiController
             'check_in_methods' => $this->getEnabledCheckInMethods(),
             'geofence_enabled' => $features['geofence_check_in'] ?? true,
             'location_required' => $this->geofenceEnforced(),
+            // When true the clinic accepts simulated/out-of-fence GPS: the
+            // app must NOT block the punch on its own mock-location check.
+            'allow_mock_location' => $this->mockLocationAllowed(),
             'qr_enabled' => $features['qr_check_in'] ?? true,
             'break_tracking' => $features['break_tracking'] ?? true,
             'photo_required' => $features['attendance_photo_required'] ?? false,
@@ -235,7 +241,9 @@ class AttendanceController extends BaseApiController
                     'OUT_OF_GEOFENCE'
                 );
             }
-            $locationVerified = true;
+            // false when the punch only passed because mock locations are
+            // allowed — accepted, but not location-verified.
+            $locationVerified = $validation['location_verified'] ?? true;
         }
 
         // TC-8/9: SECURITY — if coordinates were provided (offline-synced
@@ -250,7 +258,7 @@ class AttendanceController extends BaseApiController
                     'OUT_OF_GEOFENCE'
                 );
             }
-            $locationVerified = true;
+            $locationVerified = $validation['location_verified'] ?? true;
         }
 
         // A manual punch without coordinates is refused when the tenant has
@@ -426,6 +434,14 @@ class AttendanceController extends BaseApiController
             return false;
         }
 
+        // "Allow mock locations" waives the requirement entirely: if any
+        // coordinates the device reports are accepted anyway, demanding
+        // coordinates buys nothing — and it would still lock out a user who
+        // has denied the OS location permission.
+        if ($this->mockLocationAllowed()) {
+            return false;
+        }
+
         if (class_exists(AttendanceTypeSetting::class)) {
             $setting = AttendanceTypeSetting::getForType(Attendance::TYPE_GEOFENCE, $this->branch()?->id);
             if ($setting && ! empty($setting->getSetting('locations', []))) {
@@ -578,7 +594,7 @@ class AttendanceController extends BaseApiController
                     'check_in_latitude' => $punch['latitude'],
                     'check_in_longitude' => $punch['longitude'],
                     'is_offline_entry' => true,
-                    'location_verified' => true,
+                    'location_verified' => $validation['location_verified'] ?? true,
                 ]);
             } catch (\Illuminate\Database\UniqueConstraintViolationException) {
                 return $reject('ALREADY_CHECKED_IN', __('mobile_api::mobile.attendance.already_checked_in'));
@@ -1042,6 +1058,7 @@ class AttendanceController extends BaseApiController
             'has_location_restrictions' => $allowedBranchIds !== null,
             'allowed_location_ids' => $allowedBranchIds,
             'settings' => [
+                'allow_mock_location' => $this->mockLocationAllowed(),
                 'require_high_accuracy' => class_exists(AttendanceTypeSetting::class)
                     ? (AttendanceTypeSetting::getForType(Attendance::TYPE_GEOFENCE, $this->branch()?->id)?->getSetting('require_high_accuracy', true) ?? true)
                     : true,
@@ -1078,6 +1095,7 @@ class AttendanceController extends BaseApiController
             Attendance::TYPE_GEOFENCE => [
                 'radius_meters' => $allSettings['radius_meters'] ?? 100,
                 'require_high_accuracy' => $allSettings['require_high_accuracy'] ?? true,
+                'allow_mock_location' => $this->mockLocationAllowed(),
             ],
             Attendance::TYPE_QR_STATIC => [
                 'allow_camera_only' => $allSettings['allow_camera_only'] ?? true,
@@ -1117,7 +1135,47 @@ class AttendanceController extends BaseApiController
         return ['valid' => false, 'reason' => 'unknown_type'];
     }
 
+    /**
+     * Backend geofence verdict, with the clinic's "Allow mock locations"
+     * opt-out applied on top: when that toggle is on the device's reported
+     * coordinates are taken at face value, so a punch from outside the fence
+     * (or from a simulated location) is ACCEPTED. The honest verdict is kept
+     * in `location_verified` so the record still shows the punch was not
+     * location-verified.
+     */
     protected function validateGeofenceLocation(float $lat, float $lng, $staffProfile = null): array
+    {
+        $result = $this->evaluateGeofenceLocation($lat, $lng, $staffProfile);
+
+        if (! $result['valid'] && $this->mockLocationAllowed()) {
+            return array_merge($result, [
+                'valid' => true,
+                'location_verified' => false,
+                'mock_location_allowed' => true,
+            ]);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Whether the clinic accepts device-reported ("mock") locations for the
+     * active branch. Memoised — the check-in path consults it several times.
+     */
+    protected function mockLocationAllowed(): bool
+    {
+        if (! class_exists(AttendanceTypeSetting::class)) {
+            return false;
+        }
+
+        return $this->mockLocationAllowed ??= AttendanceTypeSetting::isMockLocationAllowed($this->branch()?->id);
+    }
+
+    /**
+     * The raw distance-based geofence check, before the mock-location
+     * opt-out is applied.
+     */
+    protected function evaluateGeofenceLocation(float $lat, float $lng, $staffProfile = null): array
     {
         $defaultRadius = 100;
         $allLocations = [];

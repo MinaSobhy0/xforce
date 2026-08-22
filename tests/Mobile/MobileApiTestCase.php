@@ -281,4 +281,31 @@ abstract class MobileApiTestCase extends OdooSyncTestCase
             ],
         ]);
     }
+
+    /**
+     * Flip the clinic's "Allow mock locations" toggle. Creates the geofence
+     * settings row when absent, so the toggle can be exercised on tenants
+     * that never enabled geofence check-in.
+     */
+    public function allowMockLocation(bool $allowed = true): void
+    {
+        $rows = AttendanceTypeSetting::query()
+            ->withoutGlobalScope('branch')
+            ->withoutGlobalScope('tenant')
+            ->ofType(Attendance::TYPE_GEOFENCE)
+            ->get();
+
+        if ($rows->isEmpty()) {
+            $rows = collect([tap(new AttendanceTypeSetting, function ($s) {
+                $s->tenant_id = $this->tenant->id;
+                $s->type = Attendance::TYPE_GEOFENCE;
+                $s->is_enabled = false;
+            })]);
+        }
+
+        foreach ($rows as $setting) {
+            $setting->setSetting('allow_mock_location', $allowed);
+            $setting->save();
+        }
+    }
 }
