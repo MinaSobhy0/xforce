@@ -156,6 +156,14 @@ class AttendanceSettingsPage extends Page
                     ->label(__('attendance::attendance.settings.enabled'))
                     ->live(),
 
+                // Lives outside the section below on purpose: it relaxes
+                // location enforcement for EVERY check-in method, so it must
+                // stay reachable for clinics that never turned geofence on.
+                Forms\Components\Toggle::make('settings.allow_mock_location')
+                    ->label(__('attendance::attendance.settings.geofence.allow_mock'))
+                    ->default(false)
+                    ->helperText(__('attendance::attendance.settings.geofence.allow_mock_help')),
+
                 Forms\Components\Section::make(__('attendance::attendance.settings.geofence.title'))
                     ->schema([
                         Forms\Components\TextInput::make('settings.radius_meters')
@@ -174,11 +182,6 @@ class AttendanceSettingsPage extends Page
                         Forms\Components\Toggle::make('settings.require_high_accuracy')
                             ->label(__('attendance::attendance.settings.geofence.require_accuracy'))
                             ->default(true),
-
-                        Forms\Components\Toggle::make('settings.allow_mock_location')
-                            ->label(__('attendance::attendance.settings.geofence.allow_mock'))
-                            ->default(false)
-                            ->helperText(__('attendance::attendance.settings.geofence.allow_mock_help')),
 
                         Forms\Components\Toggle::make('settings.check_on_checkout')
                             ->label(__('attendance::attendance.settings.geofence.check_checkout'))

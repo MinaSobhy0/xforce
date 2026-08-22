@@ -162,6 +162,29 @@ class AttendanceTypeSetting extends BaseModel
     }
 
     /**
+     * Whether the clinic accepts device-reported ("mock") locations.
+     *
+     * The flag lives on the geofence settings row, but it is read even when
+     * the geofence METHOD is disabled and regardless of `is_enabled`: it is
+     * the clinic's opt-out of GPS enforcement for EVERY check-in method, so
+     * a punch from a simulated or out-of-fence location is accepted. Used
+     * for staff working off-site and for App Store / Play Store review,
+     * where the reviewer is nowhere near the clinic.
+     */
+    public static function isMockLocationAllowed(?string $branchId = null): bool
+    {
+        $query = static::query()->ofType(Attendance::TYPE_GEOFENCE);
+
+        $row = null;
+        if ($branchId) {
+            $row = (clone $query)->where('branch_id', $branchId)->first();
+        }
+        $row ??= (clone $query)->whereNull('branch_id')->first();
+
+        return (bool) $row?->getSetting('allow_mock_location', false);
+    }
+
+    /**
      * Whether a check-in method is enabled at the tenant/branch level.
      *
      * Manual is special: ABSENCE of a row means ENABLED — it has always been
