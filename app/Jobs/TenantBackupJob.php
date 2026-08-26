@@ -20,7 +20,9 @@ class TenantBackupJob implements ShouldQueue
 
     public int $tries = 3;
 
-    public int $timeout = 600; // 10 minutes
+    // Matches SystemBackupJob: a multi-GB schema takes well over the previous
+    // 10 minutes to dump and compress, and a timeout mid-dump leaves a partial file.
+    public int $timeout = 3600; // 1 hour
 
     protected Backup $backup;
 
@@ -103,31 +105,45 @@ class TenantBackupJob implements ShouldQueue
             $pgpassFile = $this->createSecurePgpassFile($dbHost, $dbPort, $dbName, $dbUser, $dbPass);
 
             try {
-                // Build pg_dump command using connection string (more secure)
-                // Uses .pgpass file for authentication
+                // Stream pg_dump straight through gzip into the target file.
+                //
+                // Never capture the dump on stdout: Symfony Process buffers captured
+                // output into php://temp, which spills to a file in the system temp
+                // dir past 1MB. With a multi-GB schema that grew to 80GB+ in /tmp,
+                // and gzencode($result->output()) then loaded the whole dump into a
+                // single string, OOM-killing the worker. Piping to a file keeps both
+                // disk and memory use flat regardless of schema size.
+                //
+                // Uses the .pgpass file for authentication (see $pgpassFile).
+                // ${PIPESTATUS[0]} propagates pg_dump's exit code rather than gzip's,
+                // so a failed dump cannot masquerade as success and leave a
+                // silently-truncated backup behind.
+                $cmd = sprintf(
+                    'pg_dump -h %s -p %s -U %s -d %s -n %s --no-owner --no-acl | gzip -9 > %s',
+                    escapeshellarg($dbHost),
+                    escapeshellarg((string) $dbPort),
+                    escapeshellarg($dbUser),
+                    escapeshellarg($dbName),
+                    escapeshellarg($schema),
+                    escapeshellarg($backupPath)
+                );
+
                 $result = Process::timeout($this->timeout)
                     ->env([
                         'PGPASSFILE' => $pgpassFile,
                         'HOME' => storage_path('app/tmp'), // Required for .pgpass
                     ])
-                    ->run([
-                        'pg_dump',
-                        '-h', $dbHost,
-                        '-p', (string) $dbPort,
-                        '-U', $dbUser,
-                        '-d', $dbName,
-                        '-n', $schema,
-                        '--no-owner',
-                        '--no-acl',
-                    ]);
+                    ->run(['bash', '-c', $cmd.'; exit ${PIPESTATUS[0]}']);
 
                 if (! $result->successful()) {
+                    // Remove the partial file so a truncated dump is never mistaken
+                    // for a usable backup.
+                    if (file_exists($backupPath)) {
+                        unlink($backupPath);
+                    }
+
                     throw new \Exception('pg_dump failed: '.$result->errorOutput());
                 }
-
-                // Compress and save output
-                $compressedData = gzencode($result->output(), 9);
-                file_put_contents($backupPath, $compressedData);
 
             } finally {
                 // SECURITY: Always clean up the pgpass file
